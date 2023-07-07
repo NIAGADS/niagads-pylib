@@ -5,3 +5,4 @@ flask_marshmallow
 python-dotenv
 requests
 python-dateutil
+gunicorn
