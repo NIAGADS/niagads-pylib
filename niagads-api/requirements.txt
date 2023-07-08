@@ -6,3 +6,4 @@ python-dotenv
 requests
 python-dateutil
 gunicorn
+sqlalchemy_utils

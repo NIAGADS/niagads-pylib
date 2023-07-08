@@ -1,0 +1,14 @@
+version: '3.3'
+
+services:
+  niagads-api:
+    container_name: niagads-api_${API_VERSION}
+    image: niagads-api_${API_VERSION}
+    build:
+      context: .
+      dockerfile: ./Dockerfile      
+    ports:
+      - '${PORT}:8000'  
+    volumes:
+        - ${APPLICATION_DIR}:/app
+      
