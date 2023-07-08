@@ -77,4 +77,17 @@ docker-compose -f "niagads-api/docker-compose.yaml" up -d --build
 
 ## Initialize the `FILER Metadata` and `API Query Cache`
 
+On the host run the following:
 
+```
+cd niagads-api
+docker run -v $PWD:/app --env FLASK_APP="app:create_app(initCacheDB='all')" --env FLASK_DEBUG=TRUE -it --rm niagads-api_alpha flask run
+```
+
+> NOTE: the `--env FLASK_DEBUG=TRUE` is not necessary, but it will let you track the metadata parsing progress for `FILER`
+
+* setting `initCacheDB` to `all` will initialize (or refresh) both caches
+
+* `filer` -> `FILER` only (e.g., if you want to change the `FILER_METADATA_TEMPLATE_FILE` in the API `.env` file and regenerate the metadata cache)
+
+* `cache` -> `pagination cache` only, e.g, can set a CRON job do do this & clear every day
