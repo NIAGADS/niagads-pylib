@@ -164,11 +164,15 @@ def int_to_alpha(value, lower=False):
 # regex wrappers to re calls to reduce re imports
 # =================================================
 def regex_replace(pattern, replacement, value):
+    ''' wrapper for re.sub '''
     return re.sub(pattern, replacement, value)
 
 
 def regex_extract(pattern, value):
-    ''' assumes one extract subset only '''
+    ''' extract substring using a regexp
+        assumes matching a single substring 
+        and returns first match
+    '''
     result = re.search(pattern, value)
     if result is not None:
         return result.group(1)
