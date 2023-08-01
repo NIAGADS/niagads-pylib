@@ -1,8 +1,51 @@
-""" library of string manipulation functions """
+""" library of string manipulation functions & converters"""
 
 import re
 from dateutil.parser import parse as parse_date
 from datetime import datetime
+
+from dict_utils import print_dict
+
+def reverse(s):
+    ''' reverse a string 
+    see https://www.w3schools.com/python/python_howto_reverse_string.asp '''
+    return s[::-1]
+        
+
+def truncate(s, length):
+    '''
+    if string s is > length, return truncated string
+    with ... added to end
+    '''
+    return (s[:(length - 3)] + '...') if len(s) > length else s
+
+
+def xstr(value, nullStr="", falseAsNull=False):
+    '''
+    wrapper for str() that handles Nones
+    '''
+    if value is None:
+        return nullStr
+    elif falseAsNull and isinstance(value, bool):
+        if value is False:
+            return nullStr
+        else:
+            return str(value)
+    elif isinstance(value, dict):
+        if bool(value):
+            return print_dict(value, pretty=False)
+        else:
+            return nullStr
+    else:
+        return str(value)
+
+
+def ascii_safe_str(obj):
+    try: return str(obj)
+    except UnicodeEncodeError:
+        return obj.encode('ascii', 'ignore').decode('ascii')
+    return ""
+
 
 
 def to_date(value, pattern='%m-%d-%Y'):
@@ -102,8 +145,20 @@ def is_null(value, naIsNull=False):
 
 
 def to_snake_case(key):
-    ''' from https://stackoverflow.com/a/1176023 / advanced cases'''
+    ''' converts camel case to snake case
+    from https://stackoverflow.com/a/1176023 / advanced cases'''
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', key).lower()
+
+
+
+def int_to_alpha(value, lower=False):
+    ''' Convert an input integer to alphabetic representation, 
+    starting with 1=A. or 1=a if lower=True'''
+
+    if lower:
+        return chr(96 + value)
+    else:
+        return chr(64 + value)
 
 
 # regex wrappers to re calls to reduce re imports
@@ -118,3 +173,4 @@ def regex_extract(pattern, value):
     if result is not None:
         return result.group(1)
     return None
+

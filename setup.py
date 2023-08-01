@@ -9,7 +9,7 @@ setup(
     author_email='egreenfest@gmail.com',
     license='GNU GPLv3',
     packages=['filer', 'utils'],
-    install_requires=[],
+    install_requires=['openpyxl'],
     classifiers=[
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU GPLv3',  
