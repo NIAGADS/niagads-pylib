@@ -1,1 +1,1 @@
-from parsers import FILERMetadataParser, metadata_parser
+from filer.parser import FILERMetadataParser, metadata_parser
