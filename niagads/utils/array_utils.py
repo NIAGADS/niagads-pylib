@@ -63,6 +63,20 @@ def list_to_indexed_dict(clist):
     return OrderedDict(zip(clist, range(1, len(clist) + 1)))
 
 
+def list_to_string(value, nullVal="NULL", delim=','):
+    """ checks if list, if so, converts to string; 
+    None -> nullVal; 
+    all other return str(value) 
+    """
+    if value is None:
+        return nullVal
+    
+    if isinstance(value, list):
+        return delim.join(value)
+    
+    return str(value)
+
+
 def drop_nulls(arr):
     """ removes nulls from the list """
     return list(filter(None, arr))

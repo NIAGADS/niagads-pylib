@@ -1,17 +1,9 @@
 """ library of object / dictionary / hash manipulation functions """
 
 import json
-from types import SimpleNamespace
 from collections import abc
-from string_utils import is_float, is_integer
-import array_utils
-
-
-def print_dict(dictObj, pretty=True):
-    ''' pretty print a dict / JSON object '''
-    if isinstance(dictObj, SimpleNamespace):
-        return dictObj.__repr__()
-    return json.dumps(dictObj, indent=4, sort_keys=True) if pretty else json.dumps(dictObj)
+from utils.string_utils import is_float, is_integer
+import utils.array_utils as array_utils
 
 
 def drop_nulls(obj):

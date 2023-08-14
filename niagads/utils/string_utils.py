@@ -4,7 +4,7 @@ import re
 from dateutil.parser import parse as parse_date
 from datetime import datetime
 
-from dict_utils import print_dict
+from niagads.utils.sys_utils import print_dict
 
 def reverse(s):
     ''' reverse a string 
@@ -38,14 +38,6 @@ def xstr(value, nullStr="", falseAsNull=False):
             return nullStr
     else:
         return str(value)
-
-
-def ascii_safe_str(obj):
-    try: return str(obj)
-    except UnicodeEncodeError:
-        return obj.encode('ascii', 'ignore').decode('ascii')
-    return ""
-
 
 
 def to_date(value, pattern='%m-%d-%Y'):

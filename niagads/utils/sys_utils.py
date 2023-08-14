@@ -5,16 +5,31 @@ import os
 import gzip
 import datetime
 import requests
+import json
+
 from urllib.parse import urlencode
-
-import dict_utils
-import string_utils
-
+from types import SimpleNamespace
 from subprocess import check_output, CalledProcessError
+
+def ascii_safe_str(obj):
+    ''' here and not in string_utils to avoid circular imports '''
+    try: return str(obj)
+    except UnicodeEncodeError:
+        return obj.encode('ascii', 'ignore').decode('ascii')
+    return ""
+
+
+def print_dict(dictObj, pretty=True):
+    ''' pretty print a dict / JSON object 
+    here and not in dict_utils to avoid circular import '''
+    if isinstance(dictObj, SimpleNamespace):
+        return dictObj.__repr__()
+    return json.dumps(dictObj, indent=4, sort_keys=True) if pretty else json.dumps(dictObj)
+
 
 def print_args(args, pretty=True):
     ''' print argparse args '''
-    return dict_utils.print_dict(vars(args), pretty)
+    return print_dict(vars(args), pretty)
 
 
 def get_opener(fileName=None, compressed=False, binary=True):
@@ -37,7 +52,7 @@ def execute_cmd(cmd, cwd=None, printCmdOnly=False, verbose=True, shell=False):
     shell = execute in a shell (e.g., necessary for commands like gzip)
     '''
     if verbose or printCmdOnly:
-        asciiSafeCmd = [string_utils.ascii_safe_str(c) for c in cmd]
+        asciiSafeCmd = [ascii_safe_str(c) for c in cmd]
         warning("EXECUTING: ", ' '.join(asciiSafeCmd), flush=True)
         if printCmdOnly: return
     try:
