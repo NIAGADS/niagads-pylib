@@ -28,7 +28,6 @@ def get_opener(fileName=None, compressed=False, binary=True):
     return open
 
 
-
 def execute_cmd(cmd, cwd=None, printCmdOnly=False, verbose=True, shell=False):
     '''
     execute a shell command
