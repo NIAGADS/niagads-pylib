@@ -8,7 +8,7 @@ setup(
     author='fossilfriend',
     author_email='egreenfest@gmail.com',
     license='GNU GPLv3',
-    packages=['filer', 'utils'],
+    packages=['niagads', 'niagads.filer', 'niagads.utils'],
     install_requires=['openpyxl'],
     classifiers=[
         'Intended Audience :: Science/Research',
