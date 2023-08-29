@@ -1,8 +1,7 @@
 import logging
 from urllib.parse import unquote
 
-
-from utils import string_utils, array_utils, dict_utils
+from niagads.utils import string_utils, array_utils, dict_utils
 
 logger = logging.getLogger(__name__)
 

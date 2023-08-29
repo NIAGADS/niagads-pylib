@@ -2,8 +2,8 @@
 
 import json
 from collections import abc
-from utils.string_utils import is_float, is_integer
-import utils.array_utils as array_utils
+from niagads.utils.string_utils import is_float, is_integer
+import niagads.utils.array_utils as array_utils
 
 
 def drop_nulls(obj):

@@ -6,7 +6,7 @@ import csv
 from os import getcwd, path
 
 from openpyxl import Workbook as wb, load_workbook
-from sys_utils import warning
+from niagads.utils.sys_utils import warning
 
 def get_worksheet_names(workbook, print2stderr=False):
     '''

@@ -1,1 +1,1 @@
-from filer.parser import FILERMetadataParser, metadata_parser
+from niagads.filer.parser import FILERMetadataParser, metadata_parser
