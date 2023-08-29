@@ -64,9 +64,10 @@ class FILERMetadataParser:
     
     '''
     
-    def __init__(self, data):
+    def __init__(self, data, debug=False):
         self.__metadata = data
         self.__filer_download_url = None
+        self.__debug = debug
         
         
     def set_filer_download_url(self, url):
@@ -412,7 +413,7 @@ class FILERMetadataParser:
                 if is_searchable_string(k, v, skipFieldsWith)]
         
         # some field have the same info
-        self.__metadata.update({"searchable_text": ' '.join(string_utils.remove_duplicates(textValues))})
+        self.__metadata.update({"searchable_text": ' '.join(array_utils.remove_duplicates(textValues))})
         
 
     def __rename_key(self, key):
@@ -467,7 +468,7 @@ class FILERMetadataParser:
         
         # standardize keys & convert nulls & numbers from__parse_replicates string
         self.__transform_key_values()
-                
+                        
         # parse concatenated data points into separate attributes
         # standardize others (e.g., urls, data sources)
         # dropping description; allow use cases to piece together out of the other info
@@ -484,11 +485,13 @@ class FILERMetadataParser:
         self.__parse_feature_type()
         self.__parse_output_type()
         
+        if self.__debug:
+            logger.debug("Done parsing line; cleaning up")
+        
         # remove private info
         self.__remove_internal_attributes()
-        
         # generate text search field
         self.__add_text_search_field()
-        
+   
         # return the parsed metadata
         return self.__metadata
