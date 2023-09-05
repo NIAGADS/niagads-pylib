@@ -64,10 +64,11 @@ class FILERMetadataParser:
     
     '''
     
-    def __init__(self, data, debug=False):
+    def __init__(self, data, debug=False, datesAsStrings = False):
         self.__metadata = data
         self.__filer_download_url = None
         self.__debug = debug
+        self.__dates_as_strings = datesAsStrings
         
         
     def set_filer_download_url(self, url):
@@ -94,7 +95,7 @@ class FILERMetadataParser:
             return string_utils.to_numeric(value)
         
         if 'date' in key.lower() and string_utils.is_date(value):
-            return string_utils.to_date(value)
+            return string_utils.to_date(value, returnStr=self.__dates_as_strings)
             
         return value
     
@@ -484,9 +485,6 @@ class FILERMetadataParser:
         self.__parse_data_category()
         self.__parse_feature_type()
         self.__parse_output_type()
-        
-        if self.__debug:
-            logger.debug("Done parsing line; cleaning up")
         
         # remove private info
         self.__remove_internal_attributes()

@@ -40,9 +40,10 @@ def xstr(value, nullStr="", falseAsNull=False):
         return str(value)
 
 
-def to_date(value, pattern='%m-%d-%Y'):
+def to_date(value, pattern='%m-%d-%Y', returnStr = False):
     # transforms string into Python datetime object
-    return parse_date(value, fuzzy=True) # datetime.strptime(value, pattern).date()
+    date = parse_date(value, fuzzy=True) 
+    return date.strftime(pattern) if returnStr else date
 
 
 def to_bool(val):
