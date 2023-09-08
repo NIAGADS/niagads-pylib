@@ -18,12 +18,23 @@ class Record:
         self._page_size = 200
         self._response_format = 'json'
         self._params = None
+        self._nullStr = ""
         
         self.__validate_type(recordType)
         self.set_database(database)
         
         self._logger = logging.getLogger(__name__ + self._type)
 
+
+    def set_null_str(self, nullStr=""):
+        """
+        set value to be printed for none/null in tabular output
+
+        Args:
+            nullStr (string): usually one of '', NA, N/A, NULL. Defaults to '' (empty string).
+        """
+        self._nullStr = nullStr
+        
 
     def get_response(self):
         if self._response is None:
