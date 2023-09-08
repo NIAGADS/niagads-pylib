@@ -19,11 +19,11 @@ class Record:
         self._response_format = 'json'
         self._params = None
         self._nullStr = ""
-        
+
         self.__validate_type(recordType)
         self.set_database(database)
         
-        self._logger = logging.getLogger(__name__ + self._type)
+        self._logger = logging.getLogger(__name__ + "." + self._type)
 
 
     def set_null_str(self, nullStr=""):
