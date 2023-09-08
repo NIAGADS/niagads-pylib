@@ -4,14 +4,15 @@ from niagads.api_wrapper import constants
 from niagads.api_wrapper.records import Record
 from niagads.utils.string_utils import xstr
 
-class Variant(Record):
-    def __init__(self, requestUrl, database, variantIds=None):
-        super().__init__(self, 'variant', requestUrl, variantIds)
+class VariantRecord(Record):
+    def __init__(self, database, requestUrl="https://api.niagads.org", variantIds=None):
+        super().__init__(self, 'variant', database, requestUrl, variantIds)
         self.__full = False # retrieve full annotation?
         self.__alleleFrequencies = None
         self.__query_variants = None 
         self.set_ids(self._ids) # initializes query_variants
         
+
     def report_allele_frequencies(self, source="1000Genomes"):
         """
         report 1000Genomes frequencies only or all?
@@ -25,6 +26,7 @@ class Variant(Record):
         else:
             self.__alleleFrequencies = source
         
+
     def retrieve_full_annotation(self, flag=True):
         """
         retrieve full annotation? if set to false (default for variant lookups)
@@ -39,6 +41,7 @@ class Variant(Record):
         """
         self.__full = flag
         
+
     def set_ids(self, ids):
         """
         overloads parent `set_ids` to clean variant ids 
@@ -46,6 +49,7 @@ class Variant(Record):
         """
         self._ids = ids
         self.__query_variants = self.__parse_variant_ids(ids)
+
 
     def __clean_variant_id(self, id):
         """
@@ -65,6 +69,7 @@ class Variant(Record):
         return id.replace('chr', '').replace('MT','M') \
             .replace('RS', 'rs').replace('/', ':').replace('_', ':')
  
+
     def __parse_variant_ids(self, variantIds):
         """
         create mapping of user supplied variant id : cleaned id for lookups
@@ -77,12 +82,20 @@ class Variant(Record):
         """
         return { self.__clean_variant_id(id): id for id in variantIds }
     
+
     def run(self):
         params = {} if self._params is None else self._params
         if self.__full is not None:
             self.set_params(params | {"full": self.__full})
         super().run()
+    
+    def build_parser(self):
+        if self._database == 'genomics':
+            return GenomicsVariantRecordParser(self._database)
+        else:
+            return VariantRecordParser(self._database)   
         
+                
     def write_response(self, file=stdout, format=None):
         if format is None:
             format = self._response_format
@@ -91,13 +104,15 @@ class Variant(Record):
         else:
             return self.__write_tabular_response(file)
         
+        
     def __write_tabular_response(self, file):
-        """print query result in tab-delimited text format to STDOUT
+        if self._database == 'genomics':
+            self.__write_genomics_tabular_response(file, self.build_parser())
+        else:
+            raise NotImplementedError("Writing tabular output not yet implemented for " + self._database + " variant records.")
 
-        Args:
-            resultJson (dict): JSON response from query against webservice
-            reqChr (boolean): flag indicating whether 'chr' needs to be prepended to the queried_varaint        
-        """
+
+    def __write_genomics_tabular_response(self, file, parser):
         header = ['queried_variant', 'mapped_variant', 'ref_snp_id', 'is_adsp_variant',
                 'most_severe_consequence', 'msc_annotations', 'msc_impacted_gene_id', 'msc_impacted_gene_symbol']
         if self.__full:
@@ -116,22 +131,27 @@ class Variant(Record):
         
         resultJson = self.get_response()
         for variant in resultJson:
-            annotation = variant['annotation']
+            parser.set_record(variant)
+            annotation = parser.get('annotation')
             
-            values = [self.__query_variants[variant['queried_variant']],
-                      variant['metaseq_id'], variant['ref_snp_id'], variant['is_adsp_variant']] \
-                        + extract_most_severe_consequence(annotation)
+            values = [self.__query_variants[parser.get('queried_variant')],
+                      parser.get('metaseq_id'),
+                      parser.get('ref_snp_id'), 
+                      parser.get('is_adsp_variant')] \
+                        + parser.get_conseq_summary('most_severe')
 
             if self.__full: 
-                values = values + [annotation['cadd_scores']['CADD_phred'] \
-                    if 'CADD_phred' in annotation['cadd_scores'] else None]
-                values = values + extract_associations(annotation) 
-                values = values + [extract_regulatory_feature_consequences(annotation)]
-                values = values + [extract_motif_feature_consequences(annotation)]
+                caddScores = parser.get_annotation('cadd_scores')
+                values = values + [caddScores['CADD_phred'] \
+                    if 'CADD_phred' in caddScores else None]
+
+                values = values + parser.get_associations_summary() 
+                values = values + [parser.get_conseq_summary('regulatory_feature')]
+                values = values + [parser.get_conseq_summary('motif_feature')]
                 if self.__alleleFrequencies in ['1000Genomes', 'all']:
-                    values = values + extract_1000Genomes_allele_frequencies(annotation)
+                    values = values + parser.get_freq_summary('1000Genomes')
                 if self.__alleleFrequencies == 'all':
-                    values = values + [extract_allele_frequencies(annotation, '1000Genomes')]
+                    values = values + [parser.get_freq_summary(skip=['1000Genomes'])]
 
             print('\t'.join([xstr(v, nullStr=self._nullStr, falseAsNull=True) for v in values]), file=file)
 
@@ -139,84 +159,174 @@ class Variant(Record):
 # end class
 
 
-## variant response parsers 
-
-def extract_allele_frequencies(annotation, skip=['1000Genomes']):
-    """extract allele frequencies and return as // delimited list 
-    info strings reporting the freq for each population in a datasource
-
-    Args:
-        annotation (dict): variant annotation block
-        skip (string, optional): A data source to skip. Defaults to '1000Genomes'.
-
-    Returns:
-        a string that uses // to delimitate an info string for each data source
-        info strings are semi-colon delimited population=freq pairs
-    """
-    alleleFreqs = annotation['allele_frequencies']
-    if alleleFreqs is None:
-        return None
-    else:
-        freqs = []
-        for source, populations in alleleFreqs.items():
-            if skip is not None and source not in skip:
-                continue    
-    
-            sFreqs = ["source=" + source]
-            for pop, af in populations.items():
-                sFreqs = sFreqs + ['='.join((pop, xstr(af)))] 
-            freqs = freqs + [';'.join(sFreqs)]
+## variant record  parsers 
+class VariantRecordParser():
+    def __init__(self, database, record=None):
+        self.__database = database
+        self.__record = None
+        self.__has_annotation = False
+        if record is not None:
+            self.set_record(record) # handle error checking
             
-        return '//'.join(freqs)    
         
-
-def extract_1000Genomes_allele_frequencies(annotation):
-    """extract out the 1000 Genomes frequencies into an array of freq,
-        with one value for each population: 
-            ['afr', 'amr', 'eas', 'eur', 'sas', 'gmaf']
-    Args:
-        annotation (dict): variant annotation block
-
-    Returns:
-        array of frequencies, with one value for each 1000 Genomes population
-        if the population is not provided in the annotation, None is returned for
-        that frequency
-    """
-    populations = ['afr', 'amr', 'eas', 'eur', 'sas', 'gmaf']
-    alleleFreqs = annotation['allele_frequencies']
-    if alleleFreqs  is None:
-        return [None] * 6
-    elif '1000Genomes' in alleleFreqs:
-        freqs = alleleFreqs['1000Genomes']
-        return [freqs[pop] if pop in freqs else None for pop in populations]
-    else:
-        return [None] * 6
+    def has_annotation_field(self):
+        return self.__has_annotation
+        
+        
+    def set_record(self, record):
+        if record is None:
+            raise TypeError("Record is NoneType; cannot parse")
+        self.__record = record
+        self.__has_annotation = self.get('annotation', missingAsNone=True) is not None    
+        
+        
+    def get_record_attributes(self):
+        return list(self.__record.keys())
     
+    
+    def get_annotation_types(self):
+        if self.__has_annotation:
+            annotation = self.get('annotation', missingAsNone=True)
+            return list(annotation.keys())
+        else:
+            raise AttributeError("Record has no annotation field or annoation is NoneType")
 
-def extract_associations(annotation):
-    """ extract association (GWAS summary statistics resuls)
-     from a variant annotations
 
-    Args:
-        annotation (dict): variant annotation block
+    def get_annotation(self, attribute, missingAsNone, warnOnKeyError=False):
+        """
+            retrieve attribute if in annotation object
+        Args:
+            attribute (string): attribute to return
+            missingAsNone (boolean, optional): return None on Key/AttributeError. Defaults to False
+            warnOnKeyError (boolean, optional): warn instead of failing on Key/AttributeError. Defaults to False
+            
+        Returns:
+            the value of the attribute      
+        """
+        try:
+            if self.has_annotation_field():
+                annotation = self.get_annotation()    
+                return getattr(annotation, attribute, None) \
+                    if missingAsNone else getattr(annotation, attribute)
+            else:
+                raise TypeError("annotation field is NoneType; cannot extract subfields")
+        except AttributeError as err:
+            if warnOnKeyError:
+                self._logger.warn("KeyError; attribute `" + attribute 
+                    + "` does not exist in the annotation for variant " + self.get('queried_variant'))
+                return None
+            else:
+                raise err
+    
+    
+    def get(self, attribute, missingAsNone=False, warnOnKeyError=False):
+        """
+        retrieve attribute if in record
+        Args:
+            attribute (string): attribute to return
+            missingAsNone (boolean, optional): return None on Key/AttributeError. Defaults to False
+            warnOnKeyError (boolean, optional): warn instead of failing on Key/AttributeError. Defaults to False
+            
+        Returns:
+            the value of the attribute
+            
+        """
+        try:
+            return getattr(self.__record, attribute, None) \
+                if missingAsNone else getattr(self.__record, attribute)
+        except AttributeError as err:
+            if warnOnKeyError:
+                self._logger.warn("KeyError; attribute `" + attribute 
+                    + "` does not exist in record for variant " + self.get('queried_variant'))
+                return None
+            else:
+                raise err
 
-    Returns:
-        list containing:
-            info string of dataset=pvalue pairs delimited by semicolons
-            the # of associations
-            the # of associations in which the p-value has genome wide significance
-    """
-    if annotation['associations'] is not None:
-        associations = [key + '=' + str(value['p_value'])
-                            for key, value in annotation['associations'].items()]
-        associations.sort()
+class GenomicsVariantRecordParser(VariantRecordParser):
+    def __init__(self, database, record):
+        super().__init__(database, record)
+
+
+    def get_freq_summary(self, freqSet, skip=None):
+        if freqSet == '1000Genomes':
+            return self.__extract_1000Genomes_allele_frequencies()
+        else:
+            if skip is not None and isinstance(skip, str):
+                skip = [skip]
+            return self.__extract_allele_frequencies(skip=skip)
         
-        # associations w/genome wide significance
-        isGWS = [assoc['is_gws'] for assoc in annotation['associations'].values()]
+    
+    def __extract_allele_frequencies(self, skip=['1000Genomes']):
+        """extract allele frequencies and return as // delimited list 
+        info strings reporting the freq for each population in a datasource
+
+        Args:
+            skip (string, optional): A data source to skip. Defaults to '1000Genomes'.
+
+        Returns:
+            a string that uses // to delimitate an info string for each data source
+            info strings are semi-colon delimited population=freq pairs
+        """
+        alleleFreqs = self.get_annotation('allele_frequencies', missingAsNone=True)
+        if alleleFreqs is None:
+            return None
+        else:
+            freqs = []
+            for source, populations in alleleFreqs.items():
+                if skip is not None and source not in skip:
+                    continue    
         
-        return [';'.join(associations), len(isGWS), sum(isGWS)]
-    else:
-        return [None, None, None]
+                sFreqs = ["source=" + source]
+                for pop, af in populations.items():
+                    sFreqs = sFreqs + ['='.join((pop, xstr(af)))] 
+                freqs = freqs + [';'.join(sFreqs)]
+                
+            return '//'.join(freqs)    
+        
+
+    def __extract_1000Genomes_allele_frequencies(self):
+        """extract out the 1000 Genomes frequencies into an array of freq,
+            with one value for each population: 
+                ['afr', 'amr', 'eas', 'eur', 'sas', 'gmaf']
+
+        Returns:
+            array of frequencies, with one value for each 1000 Genomes population
+            if the population is not provided in the annotation, None is returned for
+            that frequency
+        """
+        populations = ['afr', 'amr', 'eas', 'eur', 'sas', 'gmaf']
+        alleleFreqs = self.get_annotation('allele_frequencies', missingAsNone=True)
+        if alleleFreqs  is None:
+            return [None] * 6
+        elif '1000Genomes' in alleleFreqs:
+            freqs = alleleFreqs['1000Genomes']
+            return [freqs[pop] if pop in freqs else None for pop in populations]
+        else:
+            return [None] * 6
+        
+    
+    def get_association_summary(self):
+        """ extract association (GWAS summary statistics resuls)
+        from a variant annotations
+
+        Returns:
+            list containing:
+                info string of dataset=pvalue pairs delimited by semicolons
+                the # of associations
+                the # of associations in which the p-value has genome wide significance
+        """
+        associations = self.get_annotation('associations')
+        if associations is not None:
+            associations = [key + '=' + str(value['p_value'])
+                                for key, value in associations.items()]
+            associations.sort()
+            
+            # associations w/genome wide significance
+            isGWS = [assoc['is_gws'] for assoc in associations.values()]
+            
+            return [';'.join(associations), len(isGWS), sum(isGWS)]
+        else:
+            return [None, None, None]
 
 
 def extract_consequences(conseqAnnotations, fields):
@@ -307,8 +417,9 @@ def extract_motif_feature_consequences(annotation):
     if 'motif_feature_consequences'  in rankedConsequences:
         motifConsequences = rankedConsequences['motif_feature_consequences']
         fields = ['impact', 'consequence_is_coding', 'impact', 'variant_allele',
-                  'motif_feature_id', 'motif_name', 'motif_score_change', 'strand',
-                  'transcription_factors']
+            'motif_feature_id', 'motif_name', 'motif_score_change', 
+            'motif_pos', 'high_inf_pos', 'cell_type',
+            'strand', 'transcription_factors']
 
         conseqList = [extract_consequences(conseqAnnotations, fields) for conseqAnnotations in motifConsequences ]
         conseqs = ["consequence=" + conseq[0] + ";" + conseq[1] for conseq in conseqList]
