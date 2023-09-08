@@ -23,6 +23,7 @@ def truncate(s, length):
 def xstr(value, nullStr="", falseAsNull=False):
     '''
     wrapper for str() that handles Nones
+    lists and dict objects
     '''
     if value is None:
         return nullStr
@@ -31,6 +32,11 @@ def xstr(value, nullStr="", falseAsNull=False):
             return nullStr
         else:
             return str(value)
+    elif isinstance(value, list):
+        if len(list) == 0:
+            return nullStr
+        else:
+            return ','.join([xstr(v, nullStr, falseAsNull) for v in value])
     elif isinstance(value, dict):
         if bool(value):
             return print_dict(value, pretty=False)
