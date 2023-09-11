@@ -3,6 +3,7 @@ import logging
 import json
 from sys import exit
 from urllib.parse import urlencode
+from niagads.api_wrapper import constants
 
 LOGGER = logging.getLogger(__name__)
 
@@ -70,3 +71,17 @@ class ResponseError(Exception):
     def __init__(self, message):
         self.__message = message
         super().__init__(json.dumps(self.__message))
+
+
+def map_variant_conseq_types(conseqType):
+    if conseqType not in constants.VARIANT_CONSEQUENCE_TYPES:
+        raise ValueError("Invalid consequence type: " + conseqType + "; valid values are " + xstr(constants.VARIANT_CONSEQUENCE_TYPES))
+  
+    if conseqType == 'most_severe':
+        return 'most_severe_consequence'
+    
+    if conseqType in ['regulatory', 'motif']:
+        return conseqType + '_feature_consequences'
+    
+    else:
+        return 'transcript_consequences'
