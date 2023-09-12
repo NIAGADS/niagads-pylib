@@ -1,14 +1,12 @@
-# looks up a list of variants provided in a file
-# returns as JSON or tab-delimited text
-# output is to STDOUT
-# author: fossilfriend
-
+""" looks up a list of variants provided in a file
+    # returns as JSON or tab-delimited text
+    # output is to STDOUT
+    # author: fossilfriend
+"""
 import argparse
 from sys import stdout
 
-from ..utils import sys
-
-
+from ..utils.sys import warning
 from ..api_wrapper import VariantRecord
 
 REQUEST_URI = "https://api.niagads.org"
