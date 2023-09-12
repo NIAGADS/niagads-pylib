@@ -11,7 +11,7 @@ from niagads.utils.dict import print_dict
 class Record:
     def __init__(self, recordType, database, requestUrl="https://api.niagads.org", ids=None):
         self._requestUrl = requestUrl
-        self._type = None
+        self._type = self.__validate_type(recordType)
         self._database = None
         self._ids = None 
         self._response = None
@@ -20,10 +20,10 @@ class Record:
         self._params = None
         self._nullStr = ""
 
-        self.__validate_type(recordType)
         self.set_database(database)
         
         self.logger = logging.getLogger(__name__ + "." + self._type)
+        self.logger.info("Record initialized")
 
 
     def set_null_str(self, nullStr=""):
@@ -65,6 +65,7 @@ class Record:
 
     
     def set_page_size(self, size):
+        self.logger.debug("Setting Page Size")
         self._page_size = self.__validate_page_size(size)
  
     
@@ -73,7 +74,7 @@ class Record:
             raise ValueError("Page size must be set to a value <= " + max(PAGE_SIZES)
                 + "; recommend choices: " + xstr(PAGE_SIZES))
         else:
-            self._page_size = size        
+            return size        
     
     def get_database(self):
         return self._database
@@ -90,7 +91,6 @@ class Record:
             raise ValueError("Invalid database: " + database
                 + "; valid choices are: " + xstr(Databases.upper()))
 
-           
         
     def get_type(self):
         return self._type
@@ -125,6 +125,7 @@ class Record:
     def get_query_size(self):
         return 0 if self._ids is None else len(self._ids)
 
+
     def set_params(self, params):
         self._params = params
     
@@ -133,7 +134,7 @@ class Record:
         return self._params
 
     
-    def __fetch(self, ids):
+    def _fetch(self, ids):
         idParam = { "id": xstr(ids)}
         params = idParam if self._params is None else {**idParam, **self._params}
         endpoint = self._database + '/' + self._type + '/'       
@@ -141,9 +142,11 @@ class Record:
 
 
     def fetch(self):
+        if self._page_size is None:
+            raise ValueError("Must set page size before fetching")
         chunks = chunker(self._ids, self._page_size)      
         with Pool() as pool:
-            response = pool.map(self.__fetch, chunks)
+            response = pool.map(self._fetch, chunks)
             self._response = sum(response, []) # concatenates indvidual responses
 
     

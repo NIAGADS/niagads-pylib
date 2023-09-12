@@ -4,6 +4,7 @@
     # author: fossilfriend
 """
 import argparse
+import logging
 from sys import stdout
 
 from ..utils.sys import warning
@@ -24,9 +25,10 @@ def read_variants(file):
     """
     with open(file) as fh:
         variants = fh.read().splitlines() 
-        if variants[0].lower() in ['id', 'variant']:
+        if variants[0].lower() in ['id', 'variant', 'variant_id', 'ref_snp_id']:
             variants.pop(0)
     return variants
+
 
 def main():
     parser = argparse.ArgumentParser(description="Look up a list of variants and retrieve annotation", allow_abbrev=False)
@@ -39,7 +41,17 @@ def main():
     parser.add_argument('--full', help="retrieve full annotation; when not supplied will just return variant IDS and most severe consequence", action="store_true")
     parser.add_argument('--nullStr', help="string for null values in .tab format", 
                         choices=['N/A', 'NA', 'NULL', '.', ''], default='')
+    parser.add_argument('--logLevel', help="log level", default='info',
+                        choices=['debug', 'info', 'warn', 'error'])
     args = parser.parse_args()
+    
+    logLevel = logging.INFO if args.logLevel == 'info' \
+        else logging.DEBUG if args.logLevel == 'debug' \
+            else logging.WARN if args.logLevel == 'warn' \
+                else logging.ERROR
+                
+    logging.basicConfig(filename=args.file + '-variant-annotator.log',
+                        encoding='utf-8', level=logLevel)
     
     variants = VariantRecord('genomics', REQUEST_URI, read_variants(args.file))
     variants.set_null_str(args.nullStr)

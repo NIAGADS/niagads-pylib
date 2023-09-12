@@ -8,10 +8,11 @@ from niagads.utils.dict import get, dict_to_info_string, print_dict
 
 class VariantRecord(Record):
     def __init__(self, database, requestUrl="https://api.niagads.org", variantIds=None):
-        super().__init__(self, 'variant', database, requestUrl, variantIds)
+        super().__init__('variant', database, requestUrl, variantIds)
         self.__full = False # retrieve full annotation?
         self.__query_variants = None 
-        self.set_ids(self._ids) # initializes query_variants
+        if variantIds is not None:
+            self.set_ids(variantIds) # initializes query_variants
         
 
     def retrieve_full_annotation(self, flag=True):

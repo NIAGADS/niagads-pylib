@@ -3,7 +3,8 @@ import re
 from dateutil.parser import parse as parse_date
 from datetime import datetime
 
-from .dict import print_dict, dict_to_string
+import niagads.utils.dict as dict_utils # avoid circular import
+
 
 def reverse(s):
     ''' reverse a string 
@@ -51,9 +52,9 @@ def xstr(value, nullStr="", falseAsNull=False, dictsAsJson=True):
     elif isinstance(value, dict):
         if bool(value):
             if dictsAsJson:
-                return print_dict(value, pretty=False)
+                return dict_utils.print_dict(value, pretty=False)
             else:
-                return dict_to_string(value, nullStr=".")
+                return dict_utils.dict_to_string(value, nullStr=".")
         else:
             return nullStr
     else:
