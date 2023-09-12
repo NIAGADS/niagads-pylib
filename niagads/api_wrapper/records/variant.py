@@ -2,9 +2,10 @@ import logging
 from sys import stdout
 from copy import deepcopy
 from niagads.api_wrapper import constants, map_variant_conseq_types
-from niagads.api_wrapper.records import Record
+from niagads.api_wrapper.records.record import Record
 from niagads.utils.string_utils import xstr
 from niagads.utils.dict_utils import get, dict_to_info_string
+
 
 class VariantRecord(Record):
     def __init__(self, database, requestUrl="https://api.niagads.org", variantIds=None):
@@ -12,7 +13,6 @@ class VariantRecord(Record):
         self.__full = False # retrieve full annotation?
         self.__query_variants = None 
         self.set_ids(self._ids) # initializes query_variants
-
 
     def retrieve_full_annotation(self, flag=True):
         """

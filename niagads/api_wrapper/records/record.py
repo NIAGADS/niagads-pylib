@@ -80,6 +80,8 @@ class Record:
             raise ValueError("Invalid database: " + database
                 + "; valid choices are: " + xstr(constants.DATABASES))
         else:
+            if database != 'genomics':
+                raise NotImplementedError('API Wrapper currently only written for `genomics` [GenomicsDB] lookups')
             return database
         
     def get_type(self):
@@ -115,16 +117,16 @@ class Record:
     def get_params(self):
         return self._params
     
-    def __lookup(self, ids):
+    def __fetch(self, ids):
         idParam = { "id": xstr(ids)}
         params = idParam if self._params is None else {**idParam, **self._params}
         endpoint = self._database + '/' + self._type + '/'       
         make_request(endpoint, params)
 
-    def run(self):
+    def fetch(self):
         chunks = chunker(self._ids, self._page_size)      
         with Pool() as pool:
-            response = pool.map(self.__lookup, chunks)
+            response = pool.map(self.__fetch, chunks)
             self._response = sum(response, []) # concatenates indvidual responses
     
     def write_response(self, file=stdout, format=None):

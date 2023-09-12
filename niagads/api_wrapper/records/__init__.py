@@ -1,4 +1,1 @@
-__all__ = [
-   "variant",
-   "record"
-]
+from record import Record
