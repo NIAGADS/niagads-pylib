@@ -3,8 +3,17 @@
 import json
 import warnings
 from collections import abc
-from niagads.utils.string_utils import is_float, is_integer, xstr
-import niagads.utils.array_utils as array_utils
+from types import SimpleNamespace
+from .string import is_float, is_integer, xstr
+from .list import drop_nulls as drop_nulls_from_list
+
+
+def print_dict(dictObj, pretty=True):
+    ''' pretty print a dict / JSON object 
+    here and not in dict_utils to avoid circular import '''
+    if isinstance(dictObj, SimpleNamespace):
+        return dictObj.__repr__()
+    return json.dumps(dictObj, indent=4, sort_keys=True) if pretty else json.dumps(dictObj)
 
 
 def get(obj, attribute, default=None, errorAction="fail"):
@@ -37,7 +46,7 @@ def get(obj, attribute, default=None, errorAction="fail"):
 def drop_nulls(obj):
     """ find nulls and remove from the object """
     if isinstance(obj, list):
-        array_utils.drop_nulls(obj)
+        drop_nulls_from_list(obj)
     if isinstance(obj, dict):
         return {k: v for k, v in obj.items() if v}
     

@@ -73,15 +73,3 @@ class ResponseError(Exception):
         super().__init__(json.dumps(self.__message))
 
 
-def map_variant_conseq_types(conseqType):
-    if conseqType not in constants.VARIANT_CONSEQUENCE_TYPES:
-        raise ValueError("Invalid consequence type: " + conseqType + "; valid values are " + xstr(constants.VARIANT_CONSEQUENCE_TYPES))
-  
-    if conseqType == 'most_severe':
-        return 'most_severe_consequence'
-    
-    if conseqType in ['regulatory', 'motif']:
-        return conseqType + '_feature_consequences'
-    
-    else:
-        return 'transcript_consequences'

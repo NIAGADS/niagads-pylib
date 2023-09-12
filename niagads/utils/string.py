@@ -1,10 +1,9 @@
 """ library of string manipulation functions & converters"""
-
 import re
 from dateutil.parser import parse as parse_date
 from datetime import datetime
 
-from niagads.utils.sys_utils import print_dict
+from .dict import print_dict, dict_to_string
 
 def reverse(s):
     ''' reverse a string 
@@ -20,11 +19,23 @@ def truncate(s, length):
     return (s[:(length - 3)] + '...') if len(s) > length else s
 
 
-def xstr(value, nullStr="", falseAsNull=False):
-    '''
+def xstr(value, nullStr="", falseAsNull=False, dictsAsJson=True):
+    """
     wrapper for str() that handles Nones
     lists and dict objects
-    '''
+
+    Args:
+        value (obj): obj / type to be converted to string
+        nullStr (str, optional): value to used to indicate NULL/None. Defaults to "".
+        falseAsNull (bool, optional): treat `False` as None. Defaults to False.
+        dictsAsJson (bool, optional): convert dicts to JSON, otherwise generates 
+            an INFO string (semi-colon delimited key=value pairs). Defaults to True.
+            if nullStr is "" and dictAsJson=False, '.' will be used in the info string
+            for None values
+
+    Returns:
+        value in string format
+    """
     if value is None:
         return nullStr
     elif falseAsNull and isinstance(value, bool):
@@ -36,10 +47,13 @@ def xstr(value, nullStr="", falseAsNull=False):
         if len(list) == 0:
             return nullStr
         else:
-            return ','.join([xstr(v, nullStr, falseAsNull) for v in value])
+            return ','.join([xstr(v, nullStr, falseAsNull, dictsAsJson) for v in value])
     elif isinstance(value, dict):
         if bool(value):
-            return print_dict(value, pretty=False)
+            if dictsAsJson:
+                return print_dict(value, pretty=False)
+            else:
+                return dict_to_string(value, nullStr=".")
         else:
             return nullStr
     else:
@@ -158,6 +172,13 @@ def int_to_alpha(value, lower=False):
         return chr(96 + value)
     else:
         return chr(64 + value)
+
+
+def ascii_safe_str(obj):
+    ''' convert to ASCII safe string '''
+    try: return str(obj)
+    except UnicodeEncodeError:
+        return obj.encode('ascii', 'ignore').decode('ascii')
 
 
 # regex wrappers to re calls to reduce re imports

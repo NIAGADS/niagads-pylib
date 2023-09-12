@@ -4,11 +4,12 @@
 # author: fossilfriend
 
 import argparse
-import json
 from sys import stdout
 
-from niagads.utils.sys_utils import warning
-from niagads.api_wrapper.records.variant import VariantRecord
+from ..utils import sys
+
+
+from ..api_wrapper import VariantRecord
 
 REQUEST_URI = "https://api.niagads.org"
 

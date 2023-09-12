@@ -9,7 +9,7 @@ setup(
     author_email='egreenfest@gmail.com',
     license='GNU GPLv3',
     packages=find_packages(), # ['niagads', 'niagads.filer', 'niagads.utils'],
-    install_requires=['openpyxl'],
+    install_requires=['openpyxl', 'strenum'],
     entry_points ={
         'console_scripts': [
                'variant_annotator = niagads.scripts.variant_annotator:main'

@@ -1,11 +1,10 @@
-import logging
 from sys import stdout
 from copy import deepcopy
-from niagads.api_wrapper import constants, map_variant_conseq_types
-from niagads.api_wrapper.records.record import Record
-from niagads.utils.string_utils import xstr
-from niagads.utils.dict_utils import get, dict_to_info_string
+from . import Record
+from .. import VariantConsequenceTypes, FileFormats
 
+from niagads.utils.string import xstr
+from niagads.utils.dict import get, dict_to_info_string, print_dict
 
 class VariantRecord(Record):
     def __init__(self, database, requestUrl="https://api.niagads.org", variantIds=None):
@@ -13,6 +12,7 @@ class VariantRecord(Record):
         self.__full = False # retrieve full annotation?
         self.__query_variants = None 
         self.set_ids(self._ids) # initializes query_variants
+        
 
     def retrieve_full_annotation(self, flag=True):
         """
@@ -87,7 +87,7 @@ class VariantRecord(Record):
     def write_response(self, file=stdout, format=None):
         if format is None:
             format = self._response_format
-        if format == 'json':
+        if format == FileFormats.JSON:
             return super().write_response(file, format)
         else:
             return self.__write_tabular_response(file)
@@ -113,7 +113,7 @@ class VariantRecord(Record):
                 del freqs['1000Genomes']
                 return returnVal + [dict_to_info_string(freqs)]
             
- 
+
     def __write_genomics_tabular_response(self, file, parser):
         header = ['queried_variant', 'mapped_variant', 'ref_snp_id', 'is_adsp_variant',
                 'most_severe_consequence', 'msc_annotations', 'msc_impacted_gene_id', 'msc_impacted_gene_symbol']
@@ -291,16 +291,25 @@ class GenomicsVariantRecordParser(VariantRecordParser):
 
     def get_consequences(self, conseqType, asString=False):
         conseqAnnotations = None      
-        if conseqType == 'most_severe':
-            conseqAnnotations = get(self.__annotation, 'most_severe_consequence')
-        else:
-            conseqAnnotations = get(self.__annotation['ranked_conseqeunces'], map_variant_conseq_types(conseqType), None, 'ignore')
-  
-        if asString:
-            conseq = deepcopy(conseqAnnotations)
-            conseq['consequence_terms'] = ','.join(conseq['consequence_terms'])
-            return dict_to_info_string(conseq)
-        else:
-            return conseqAnnotations
-
-
+        rankedConsequences = None
+        try:
+            cType = VariantConsequenceTypes[conseqType.upper()].value
+            if cType == 'most_severe_consequence':
+                conseqAnnotations = get(self.__annotation, cType)
+            else:
+                rankedConsequences = get(self.__annotation, 'ranked_consequences', None, 'ignore')
+                if rankedConsequences != None and conseqType.upper() != 'ALL':
+                    conseqAnnotations = get(rankedConsequences, cType , None, 'ignore')
+    
+            if cType == 'ALL':
+                return print_dict(rankedConsequences) if asString else rankedConsequences
+            
+            if conseqAnnotations and asString:
+                conseq = deepcopy(conseqAnnotations)
+                conseq['consequence_terms'] = ','.join(conseq['consequence_terms'])
+                return dict_to_info_string(conseq)
+            else:
+                return conseqAnnotations
+        except KeyError:
+            raise ValueError("Invalid variant consequence type: " + conseqType
+                + "; valid values are " + xstr(VariantConsequenceTypes.list()))

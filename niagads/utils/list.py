@@ -1,5 +1,4 @@
 """ library of array, list, and set manipulation functions """
-
 from collections import OrderedDict, Counter
 
 def chunker(seq, size):
