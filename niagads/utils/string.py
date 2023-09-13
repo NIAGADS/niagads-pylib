@@ -50,7 +50,7 @@ def xstr(value, nullStr="", falseAsNull=False, dictsAsJson=True):
         else:
             return str(value)
     elif isinstance(value, list):
-        if len(list) == 0:
+        if len(value) == 0:
             return nullStr
         else:
             return ','.join([xstr(v, nullStr, falseAsNull, dictsAsJson) for v in value])
