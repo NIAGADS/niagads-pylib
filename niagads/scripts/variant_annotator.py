@@ -38,20 +38,18 @@ def main():
     parser.add_argument('--format', default="json", choices=['table', 'json'], 
                         help="output file format; JSON format will include a lot more information than the table format")
     parser.add_argument('--pageSize', default=200, choices = [50, 200, 300, 400, 500], type=int)
-    parser.add_argument('--full', help="retrieve full annotation; when not supplied will just return variant IDS and most severe consequence", action="store_true")
+    parser.add_argument('--full', action="store_true",
+                        help="retrieve full annotation; when not supplied will just return variant IDS and most severe consequence")
     parser.add_argument('--nullStr', help="string for null values in .tab format", 
                         choices=['N/A', 'NA', 'NULL', '.', ''], default='')
-    parser.add_argument('--logLevel', help="log level", default='info',
-                        choices=['debug', 'info', 'warn', 'error'])
+    parser.add_argument('--debug', help="log debugging statements", action='store_true')
     args = parser.parse_args()
     
-    logLevel = logging.INFO if args.logLevel == 'info' \
-        else logging.DEBUG if args.logLevel == 'debug' \
-            else logging.WARN if args.logLevel == 'warn' \
-                else logging.ERROR
-                
+
     logging.basicConfig(filename=args.file + '-variant-annotator.log',
-                        encoding='utf-8', level=logLevel)
+                        filemode='w',
+                        encoding='utf-8',
+                        level=logging.DEBUG if args.debug else logging.INFO)
     
     variants = VariantRecord('genomics', REQUEST_URI, read_variants(args.file))
     variants.set_null_str(args.nullStr)
@@ -60,6 +58,6 @@ def main():
     warning("Looking up ", variants.get_query_size(), "variants", prefix="INFO")
     
     variants.fetch()
-    variants.write_response(file=stdout, format="json")
+    variants.write_response(file=stdout, format=args.format)
 
     
