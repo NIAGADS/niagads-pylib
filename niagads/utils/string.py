@@ -1,9 +1,14 @@
-""" library of string manipulation functions & converters"""
+"""string
+The `string` module provides a library of 
+string manipulation functions, converters and 
+value testers
+"""
+
 import re
 from dateutil.parser import parse as parse_date
 from datetime import datetime
 
-import niagads.utils.dict as dict_utils # avoid circular import
+import niagads.utils.dict as dict_utils # avoid circular import by using the full import path
 
 
 def reverse(s):
@@ -61,8 +66,18 @@ def xstr(value, nullStr="", falseAsNull=False, dictsAsJson=True):
         return str(value)
 
 
-def to_date(value, pattern='%m-%d-%Y', returnStr = False):
-    # transforms string into Python datetime object
+def to_date(value, pattern='%m-%d-%Y', returnStr=False):
+    """converts a string into a Python date time object
+
+    Args:
+        value (string): value to be converted
+        pattern (str, optional): date format to be returned if returnStr. Defaults to '%m-%d-%Y'.
+        returnStr (bool, optional): return string? if False returns a date time object. Defaults to False.
+
+    Returns:
+        datetime object if returnStr is False
+        formatted string (following pattern) if returnStr is True
+    """
     date = parse_date(value, fuzzy=True) 
     return date.strftime(pattern) if returnStr else date
 
@@ -96,13 +111,17 @@ def is_bool(value):
     
 
 def is_date(value, fuzzy=False):
-    '''
-    Return whether the string can be interpreted as a date.
+    """ Return whether the string can be interpreted as a date.
     from https://stackoverflow.com/a/25341965
-    :param value: str, string to check for date
-    :param fuzzy: bool, ignore unknown tokens in string if True
-   
-    '''
+
+    Args:
+        value (str): string to check for date
+        fuzzy (bool, optional):ignore unknown tokens in string if True. Defaults to False.
+
+    Returns:
+        bool: flag indicating if string is date (or contains date if fuzzy=True)
+    """
+
     if isinstance(value, datetime):
         return True
     
@@ -114,11 +133,19 @@ def is_date(value, fuzzy=False):
         return False
 
 
+def is_numeric(value):
+    ''' legacy for `is_number` '''
+    return is_number(value)
+
+
 def is_number(value):
-    return is_integer(value) or is_float(value)
+    ''' check if the string is a number; 
+    support legacy code originally written for Python 2.7 '''
+    return value.isnumeric()
 
 
 def is_integer(value):
+    ''' check if the string is an integer'''
     if isinstance(value, (float, bool)):
         return False
     try:
@@ -129,21 +156,22 @@ def is_integer(value):
 
 
 def is_float(value):
+    ''' check if the string is a float '''
     try:
         float(value)
         return True
     except ValueError:
         return False
-    
+        
 
 def is_non_numeric(value):
-    if True in [char.isdigit() for char in value]:
-        return False
-    return True
+    """checks if string is non-numeric; legacy to support code written for Python 2.7
+    """
+    return not value.isnumeric()
 
 
-def to_numeric(value):
-    ''' convert string to appropriate numeric '''
+def to_number(value):
+    ''' convert string to appropriate number '''
     try:
         return int(value)
     except ValueError:
