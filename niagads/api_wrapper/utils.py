@@ -33,7 +33,8 @@ def make_request(requestUri, endpoint, params):
         if 'message'  in rJson:
             raise ResponseError(rJson)
         else:
-            return response.json()
+            return rJson
+        
     except ResponseError as err:
         LOGGER.error("NIAGADS API returned an error: " + requestUrl, err, stack_info=True, exec_info=True)
     except requests.exceptions.HTTPError as err:
