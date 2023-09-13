@@ -65,22 +65,24 @@ class Record:
 
     
     def set_page_size(self, size):
-        self.logger.debug("Setting Page Size")
         self._page_size = self.__validate_page_size(size)
- 
+        
     
     def __validate_page_size(self, size):
         if size > max(PAGE_SIZES):
             raise ValueError("Page size must be set to a value <= " + max(PAGE_SIZES)
                 + "; recommend choices: " + xstr(PAGE_SIZES))
         else:
-            return size        
+            return size      
+          
     
     def get_database(self):
         return self._database
     
+    
     def set_database(self, database):
         self._database = self.__validate_database(database)
+        
     
     def __validate_database(self, database):
         if Databases.has_value(database.upper()):            
@@ -134,26 +136,26 @@ class Record:
         return self._params
 
     
-    def _fetch(self, ids):
+    def _fetch_chunk(self, ids):
         idParam = { "id": xstr(ids)}
         params = idParam if self._params is None else {**idParam, **self._params}
-        endpoint = self._database + '/' + self._type + '/'       
-        make_request(endpoint, params)
+        endpoint = self._database.lower() + '/' + self._type.lower() + '/'       
+        return make_request(self._requestUrl, endpoint, params)
 
 
     def fetch(self):
         if self._page_size is None:
             raise ValueError("Must set page size before fetching")
-        chunks = chunker(self._ids, self._page_size)      
+        chunks = chunker(self._ids, self._page_size, returnIterator=True)
         with Pool() as pool:
-            response = pool.map(self._fetch, chunks)
+            response = pool.map(self._fetch_chunk, chunks)
             self._response = sum(response, []) # concatenates indvidual responses
 
     
     def write_response(self, file=stdout, format=None):
         if format is None:
             format = self._response_format
-        if format == FileFormats.JSON:
+        if format.upper() == FileFormats.JSON:
             # use get_response b/c it does the None check
             return print(print_dict(self.get_response(), pretty=True), file=file)
         else:
