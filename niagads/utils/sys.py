@@ -3,6 +3,7 @@ import os
 import gzip
 import datetime
 import requests
+import logging
 
 from sys import stderr, exit
 from urllib.parse import urlencode
@@ -134,3 +135,18 @@ def make_request(requestUrl, params, returnSuccess=True):
         if returnSuccess:
             return False
         return {"message": "ERROR: " + err.args[0]}
+
+
+# ================================
+
+class ExitOnExceptionHandler(logging.FileHandler):
+    """
+    logging exception handler that catches ERRORS and CRITICAL
+    level logging and exits 
+    see https://stackoverflow.com/a/48201163
+    """
+    def emit(self, record):
+        super().emit(record)
+        if record.levelno in (logging.ERROR, logging.CRITICAL):
+            raise SystemExit(-1)
+
