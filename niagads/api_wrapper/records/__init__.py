@@ -1,2 +1,2 @@
-from .record import Record
-from .variant import *
+from .record import Record, RecordParser
+from .variant import VariantRecord

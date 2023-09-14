@@ -38,8 +38,8 @@ def main():
     parser.add_argument('--format', default="json", choices=['table', 'json'], 
                         help="output file format; JSON format will include a lot more information than the table format")
     parser.add_argument('--pageSize', default=200, choices = [50, 200, 300, 400, 500], type=int)
-    parser.add_argument('--full', action="store_true",
-                        help="retrieve full annotation; when not supplied will just return variant IDS and most severe consequence")
+    parser.add_argument('--allConseqs', action="store_true",
+                        help="retrieve all conseuqences, not just most severe")
     parser.add_argument('--nullStr', help="string for null values in .tab format", 
                         choices=['N/A', 'NA', 'NULL', '.', ''], default='')
     parser.add_argument('--debug', help="log debugging statements", action='store_true')
@@ -54,6 +54,7 @@ def main():
     variants = VariantRecord('genomics', REQUEST_URI, read_variants(args.file))
     variants.set_null_str(args.nullStr)
     variants.set_page_size(args.pageSize)
+    if args.allConseqs: variants.retrieve_full_annotation()
 
     warning("Looking up ", variants.get_query_size(), "variants", prefix="INFO")
     

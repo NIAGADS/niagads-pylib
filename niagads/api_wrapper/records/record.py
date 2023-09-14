@@ -6,7 +6,49 @@ from multiprocessing import Pool # note using temporarily to page results b/c pa
 from .. import make_request, Databases, RecordTypes, FileFormats, PAGE_SIZES
 from niagads.utils.string import xstr
 from niagads.utils.list import chunker
-from niagads.utils.dict import print_dict
+from niagads.utils.dict import print_dict, get
+
+class RecordParser:
+    def __init__(self, database, record=None):
+        self._database = self.__validate_database(database)
+        self._record = None
+        self._logger = logging.getLogger(__name__)
+        if record is not None:
+            self.set_record(record) # handle error checking
+            
+            
+    def __validate_database(self, database):
+        db = database.upper()
+        if Databases.has_value(db):            
+            return db
+        else:
+            raise ValueError("Invalid database: " + db
+                + "; valid choices are: " + xstr(Databases.upper()))
+
+            
+    def get(self, attribute, default=None, errorAction='fail'):
+        if self._record is None:
+            raise TypeError("record is NoneType (not set)")     
+        else:
+            return get(self._record, attribute, default, errorAction)
+        
+    
+    def get_record(self):
+        return self._record
+      
+        
+    def set_record(self, record):
+        if record is None:
+            raise TypeError("record is NoneType (not set); cannot parse")
+        self._record = record
+        
+            
+    def get_record_attributes(self):
+        if self._record is None:
+            raise TypeError("record is NoneType (not set); cannot parse")
+        return list(self._record.keys())
+    
+
 
 class Record:
     def __init__(self, recordType, database, requestUrl="https://api.niagads.org", ids=None):
