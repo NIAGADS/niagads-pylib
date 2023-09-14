@@ -1,4 +1,3 @@
-#!/usr/bin/evn python
 """
 utils for parsing an excel file; includes wrappers for openpyxl
 """
@@ -6,7 +5,7 @@ import csv
 from os import getcwd, path
 
 from openpyxl import Workbook as wb, load_workbook
-from niagads.utils.sys_utils import warning
+from .sys import warning
 
 def get_worksheet_names(workbook, print2stderr=False):
     '''
@@ -58,7 +57,6 @@ def extract_field_values(worksheet, field, headerRow=1):
     values = []
     for row in worksheet.iter_rows(min_row=headerRow + 1):
         values.append(row[index].value)
-                                  
     return values
 
 

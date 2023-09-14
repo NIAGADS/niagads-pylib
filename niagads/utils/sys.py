@@ -1,31 +1,15 @@
 """ i/o and other system (e.g., subprocess) utils"""
-
-import sys
 import os
 import gzip
 import datetime
 import requests
-import json
 
+from sys import stderr, exit
 from urllib.parse import urlencode
-from types import SimpleNamespace
 from subprocess import check_output, CalledProcessError
 
-def ascii_safe_str(obj):
-    ''' here and not in string_utils to avoid circular imports '''
-    try: return str(obj)
-    except UnicodeEncodeError:
-        return obj.encode('ascii', 'ignore').decode('ascii')
-    return ""
-
-
-def print_dict(dictObj, pretty=True):
-    ''' pretty print a dict / JSON object 
-    here and not in dict_utils to avoid circular import '''
-    if isinstance(dictObj, SimpleNamespace):
-        return dictObj.__repr__()
-    return json.dumps(dictObj, indent=4, sort_keys=True) if pretty else json.dumps(dictObj)
-
+from .dict import print_dict
+from .string import ascii_safe_str
 
 def print_args(args, pretty=True):
     ''' print argparse args '''
@@ -79,7 +63,7 @@ def warning(*objs, **kwargs):
     '''
     print log messages to stderr
     '''
-    fh = sys.stderr
+    fh = stderr
     flush = False
     if kwargs:
         if 'file' in kwargs: fh = kwargs['file']
@@ -119,21 +103,34 @@ def die(message):
     mimics Perl's die function
     '''
     warning(message)
-    sys.exit(1)
+    exit(1)
 
 
-def make_request(endpoint, params, returnSuccess=False):
+def make_request(requestUrl, params, returnSuccess=True):
+    """
+    make request and catch errors; return flag indicating 
+    if successful even in case of error if returnSuccess == True
+    
+    Args:
+        requestUrl (string): url + endpoint
+        params (obj): {key:value} for parameters
+        returnSuccess (bool, optional): return success flag even in case of error. Defaults to False.
+
+    Returns:
+        None or flag indicating success
+    """
+
     ''' make a request and catch errors 
         return True if call is successful and returnSuccess=True
     '''
-    requestUrl = endpoint + "?" + urlencode(requestParams)
+    requestUrl += "?" + urlencode(params)
     try:
         response = requests.get(requestUrl)
         response.raise_for_status()      
         if returnSuccess:
             return True       
         return response.json()
-    except requests.exceptions.HTTPError as err:
+    except Exception as err:
         if returnSuccess:
             return False
         return {"message": "ERROR: " + err.args[0]}

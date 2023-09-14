@@ -1,22 +1,65 @@
 """ library of object / dictionary / hash manipulation functions """
 
 import json
+import warnings
 from collections import abc
-from niagads.utils.string_utils import is_float, is_integer
-import niagads.utils.array_utils as array_utils
+from types import SimpleNamespace
+from .string import is_float, is_integer, xstr
+from .list import drop_nulls as drop_nulls_from_list
+
+
+def print_dict(dictObj, pretty=True):
+    ''' pretty print a dict / JSON object 
+    here and not in dict_utils to avoid circular import '''
+    if isinstance(dictObj, SimpleNamespace):
+        return dictObj.__repr__()
+    return json.dumps(dictObj, indent=4, sort_keys=True) if pretty else json.dumps(dictObj)
+
+
+def get(obj, attribute, default=None, errorAction="fail"):
+    """
+    retrieve attribute if in dict
+    Args:
+        obj (dict): dictionary object to query
+        attribute (string): attribute to return
+        default (obj): value to return on KeyError. Defaults to None
+        errorAction (string, optional): fail or warn on KeyError. Defaults to False
+        
+    Returns:
+        the value of the attribute or the supplied `default` value if the attribute is missing  
+    """
+    if errorAction not in ['warn', 'fail', 'ignore']:
+        raise ValueError("Allowable actions upon a KeyError are `warn`, `fail`, `ignore`")
+    
+    try:
+        return obj[attribute]
+    except KeyError as err:
+        if errorAction == 'fail':
+            raise err
+        elif errorAction == 'warn':
+            warnings.warn("KeyError:" + err, RuntimeWarning)
+            return default
+        else:
+            return default
 
 
 def drop_nulls(obj):
     """ find nulls and remove from the object """
     if isinstance(obj, list):
-        array_utils.drop_nulls(obj)
+        drop_nulls_from_list(obj)
     if isinstance(obj, dict):
         return {k: v for k, v in obj.items() if v}
     
 
-def dict_to_string(obj):
+def dict_to_info_string(obj):
+    """ wrapper for dict_to_string (semantics )"""
+    return dict_to_string(obj, '.')
+
+
+def dict_to_string(obj, nullStr):
     """ translate dict to attr=value; string list"""
-    pairs = [ k + "=" + str(v) for k,v in obj.items()]
+    pairs = [ k + "=" + xstr(v, nullStr=nullStr) for k,v in obj.items()]
+    pairs.sort()
     return ';'.join(pairs)
 
 

@@ -1,9 +1,6 @@
 import logging
 from urllib.parse import unquote
-
-from niagads.utils import string_utils, array_utils, dict_utils
-
-logger = logging.getLogger(__name__)
+from ..utils import list, string
 
 def metadata_parser(metadata):
     ''' iterate over list of one or more raw metadata 
@@ -12,10 +9,10 @@ def metadata_parser(metadata):
 
 
 def split_replicates(replicates):
-    if string_utils.is_null(replicates, True):
+    if string.is_null(replicates, True):
         return None
     
-    if string_utils.is_non_numeric(replicates) and ',' in replicates:
+    if string.is_non_numeric(replicates) and ',' in replicates:
         return replicates.replace(' ', '').split(',')
     
     return [str(replicates)] # covert to list of 1 string
@@ -26,16 +23,16 @@ def is_searchable_string(key, value, skipFieldsWith):
         checks to see if key: value field contains, searchable text
         based on 1) field name and 2) field contents 
     """
-    if array_utils.array_in_string(key, skipFieldsWith):
+    if list.array_in_string(key, skipFieldsWith):
         return False
     
     if value is None:
         return False
     
-    if string_utils.is_bool(value):
+    if string.is_bool(value):
         return False
     
-    if string_utils.is_number(value):
+    if string.is_number(value):
         return False
     
     return True
@@ -65,6 +62,7 @@ class FILERMetadataParser:
     '''
     
     def __init__(self, data, debug=False, datesAsStrings = False):
+        self.logger = logging.getLogger(__name__)
         self.__metadata = data
         self.__filer_download_url = None
         self.__debug = debug
@@ -88,14 +86,14 @@ class FILERMetadataParser:
 
     def __parse_value(self, key, value):
         ''' catch numbers, booleans, and nulls '''
-        if string_utils.is_null(value, naIsNull=True):
+        if string.is_null(value, naIsNull=True):
             return None
         
-        if string_utils.is_number(value):
-            return string_utils.to_numeric(value)
+        if string.is_number(value):
+            return string.to_numeric(value)
         
-        if 'date' in key.lower() and string_utils.is_date(value):
-            return string_utils.to_date(value, returnStr=self.__dates_as_strings)
+        if 'date' in key.lower() and string.is_date(value):
+            return string.to_date(value, returnStr=self.__dates_as_strings)
             
         return value
     
@@ -157,7 +155,7 @@ class FILERMetadataParser:
                 # check track_description
                 # e.g., All lncRNA annotations
                 if 'annotation' in self._get_metadata("track_description"):
-                    return string_utils.regex_extract("All (.+) annotation" , self._get_metadata("track_description"))
+                    return string.regex_extract("All (.+) annotation" , self._get_metadata("track_description"))
             if 'QTL' in analysis:
                 return analysis
         
@@ -293,10 +291,10 @@ class FILERMetadataParser:
         
         if self._get_metadata('cell_type'):    
             biosample = self._get_metadata('cell_type')
-            if string_utils.is_number(biosample):
-                logger.debug("Found numeric cell_type - " + str(biosample) + " - for track " + self._get_metadata('identifier'))
+            if string.is_number(biosample):
+                self.logger.debug("Found numeric cell_type - " + str(biosample) + " - for track " + self._get_metadata('identifier'))
                 biosample = unquote(self._get_metadata('file_name')).split('.')[0].replace(':',' - ')
-                logger.debug("Updated to " + biosample + " from file name = " + self._get_metadata('file_name'))
+                self.logger.debug("Updated to " + biosample + " from file name = " + self._get_metadata('file_name'))
             nameInfo.append(biosample)
             
         if self._get_metadata('antibody_target'):
@@ -308,8 +306,8 @@ class FILERMetadataParser:
             nameInfo.append(self._get_metadata('assay'))
             nameInfo.append(self._get_metadata('output_type'))
             
-        bReps = string_utils.is_null(self._get_metadata('biological_replicates'), True)
-        tReps = string_utils.is_null(self._get_metadata('technical_replicates'), True)
+        bReps = string.is_null(self._get_metadata('biological_replicates'), True)
+        tReps = string.is_null(self._get_metadata('technical_replicates'), True)
         replicates = bReps is bReps if not None else None
         replicates = tReps if replicates is None and tReps is not None else None
         if replicates is not None:
@@ -324,7 +322,7 @@ class FILERMetadataParser:
         # [Experiment: ENCSR778NDP] [Orig: Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system;Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD]",
         id = self._get_metadata('encode_experiment_id')
         info =  self._get_metadata('track_description')
-        project = string_utils.regex_extract('Project=(.+);*', info) \
+        project = string.regex_extract('Project=(.+);*', info) \
                 if info is not None else None
         
         self.__metadata.update({
@@ -376,7 +374,7 @@ class FILERMetadataParser:
         ''' correct domain and other formatting issues
         ''' 
         url = self.__parse_generic_url(url)           
-        return string_utils.regex_replace('^[^GADB]*\/GADB', self.__filer_download_url, url)
+        return string.regex_replace('^[^GADB]*\/GADB', self.__filer_download_url, url)
     
     
     def __parse_urls(self):
@@ -414,7 +412,7 @@ class FILERMetadataParser:
                 if is_searchable_string(k, v, skipFieldsWith)]
         
         # some field have the same info
-        self.__metadata.update({"searchable_text": ' '.join(array_utils.remove_duplicates(textValues))})
+        self.__metadata.update({"searchable_text": ' '.join(list.remove_duplicates(textValues))})
         
 
     def __rename_key(self, key):
@@ -437,7 +435,7 @@ class FILERMetadataParser:
 
     def __transform_key(self, key):
         # camel -> snake + lower case
-        tValue = string_utils.to_snake_case(key)
+        tValue = string.to_snake_case(key)
         tValue = tValue.replace(" ", "_")
         tValue = tValue.replace("(s)", "s")
         return self.__rename_key(tValue)
