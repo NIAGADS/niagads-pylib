@@ -67,5 +67,5 @@ def main():
         variants.write_response(file=stdout, format=args.format)
     except Exception as err:
         logger.error("Error annotating variants", err, stack_info=True, exc_info=True)
-        raise err
+
     
