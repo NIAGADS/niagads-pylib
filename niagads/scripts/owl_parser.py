@@ -2,6 +2,9 @@
 more details to be added
 
 Author: fossilfriend
+
+see https://owlready2.readthedocs.io for help w/owlready2
+
 """
 import argparse
 import logging
@@ -31,10 +34,17 @@ def main():
             level=logging.DEBUG if args.debug else logging.INFO)
     
     try:
-        logger.info("Fetching ontology file from: " + args.owlUrl)
+        logger.info("Loading ontology file from: " + args.owlUrl)
         ontology = get_ontology(args.owlUrl)
-        logger.info("Parsing ontology")
         ontology.load()
+        
+        classes = ontology.classes()
+        for c in classes:
+            if c.name == 'CLO_0009464':
+                print(c)
+                print(c.definition)
+               
+            
     except Exception as err:
         logger.exception("Error fetching ontology")
 
