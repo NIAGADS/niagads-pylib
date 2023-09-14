@@ -1,20 +1,33 @@
 """ library of array, list, and set manipulation functions """
-
 from collections import OrderedDict, Counter
 
-def chunker(seq, size):
-    """ for a given sequence, splits into even + residual chunks.  returns an iterator 
+def chunker(seq, size, returnIterator=True):
+    """for a given sequence, splits into even + residual chunks.  returns an iterator 
     see: https://stackoverflow.com/a/434328
-    
-animals = ['cat', 'dog', 'rabbit', 'duck', 'bird', 'cow', 'gnu', 'fish']
 
-for group in chunker(animals, 3):
-    print(group)
-# ['cat', 'dog', 'rabbit']
-# ['duck', 'bird', 'cow']
-# ['gnu', 'fish']
+    Example:    
+        ::
+        
+            animals = ['cat', 'dog', 'rabbit', 'duck', 'bird', 'cow', 'gnu', 'fish']
+
+            for group in chunker(animals, 3):
+                print(group)
+        
+        will output:
+            ['cat', 'dog', 'rabbit']
+            ['duck', 'bird', 'cow']
+            ['gnu', 'fish']
+
+    Args:
+        seq (list): list to be chunked
+        size (int): page or chunk size
+        returnIterator (boolean, optional): return an iterator; if false, returns a nested list. Defaults to True
+        
+    Returns:
+        iterator for chunked list of lists
     """
-    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size)) if returnIterator \
+        else [seq[pos:pos + size] for pos in range(0, len(seq), size)]
 
 
 def qw(s, returnTuple=False):

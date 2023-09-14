@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='niagads-pylib',
@@ -8,8 +8,13 @@ setup(
     author='fossilfriend',
     author_email='egreenfest@gmail.com',
     license='GNU GPLv3',
-    packages=['niagads', 'niagads.filer', 'niagads.utils'],
-    install_requires=['openpyxl'],
+    packages=find_packages(), # ['niagads', 'niagads.filer', 'niagads.utils'],
+    install_requires=['openpyxl', 'strenum'],
+    entry_points ={
+        'console_scripts': [
+               'variant_annotator = niagads.scripts.variant_annotator:main'
+        ]
+        },
     classifiers=[
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU GPLv3',  
