@@ -35,18 +35,19 @@ def main():
     
     try:
         logger.info("Loading ontology file from: " + args.owlUrl)
+
         ontology = get_ontology(args.owlUrl)
         ontology.load()
-        
         classes = ontology.classes()
         for c in classes:
             if c.name == 'CLO_0009464':
-                print(c)
-                print(c.definition)
-               
+                warning(c)
+                parents = ontology.get_parents_of(c)
+                warning(parents)
+
             
     except Exception as err:
-        logger.exception("Error fetching ontology")
+        logger.exception("Error parsing ontology")
 
     
 
