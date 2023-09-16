@@ -6,7 +6,7 @@ from .. import VariantConsequenceTypes, FileFormats, Databases
 
 from niagads.utils.string import xstr
 from niagads.utils.dict import get, dict_to_info_string, print_dict
-
+from niagads.utils.exceptions import RestrictedValueError
 
 ## variant record  parsers 
 class VariantRecordParser(RecordParser):
@@ -30,7 +30,7 @@ class VariantRecordParser(RecordParser):
         if self.has_annotation_field():
             return list(self._annotation.keys())
         else:
-            raise AttributeError("Record has no annotation field or annoation is NoneType")
+            raise AttributeError("Record has no annotation field or annotation is NoneType")
 
 # end class
 
@@ -108,14 +108,21 @@ class GenomicsVariantRecordParser(VariantRecordParser):
     
 
     def get_consequences(self, conseqType, asString=False):
-        conseqAnnotations = None      
-        rankedConsequences = None
+       
         try:
             cType = VariantConsequenceTypes[conseqType.upper()].value
+        except KeyError as err:
+            raise RestrictedValueError("variant consequence type", conseqType.upper(), VariantConsequenceTypes)
+            # raise ValueError("Invalid variant consequence type: " + conseqType
+            #     + "; valid values are " + xstr(VariantConsequenceTypes.list()))
+            
+        try:
+            conseqAnnotations = None      
+            rankedConsequences = None
             if cType == 'most_severe_consequence':
                 conseqAnnotations = get(self._annotation, cType)
             else:
-                rankedConsequences = get(self._annotation, VariantConsequenceTypes['ALL'])
+                rankedConsequences = get(self._annotation, VariantConsequenceTypes.ALL.value)
                 if rankedConsequences is not None:
                     conseqAnnotations = get(rankedConsequences, cType , None, 'ignore')
     
@@ -132,12 +139,11 @@ class GenomicsVariantRecordParser(VariantRecordParser):
             else:
                 return conseqAnnotations
             
-        except KeyError:
+        except KeyError as err:
             if cType == 'ranked_consequences':
                 raise RuntimeError("`ranked_consequences` missing from API response; did you specify returning a full report?")         
             else:
-                raise ValueError("Invalid variant consequence type: " + conseqType
-                    + "; valid values are " + xstr(VariantConsequenceTypes.list()))
+                raise err
 
 
 class VariantRecord(Record):
