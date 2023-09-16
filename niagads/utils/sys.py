@@ -9,8 +9,44 @@ from sys import stderr, exit
 from urllib.parse import urlencode
 from subprocess import check_output, CalledProcessError
 
+from .enums import CLASS_PROPERTIES
 from .dict import print_dict
 from .string import ascii_safe_str
+from .exceptions import RestrictedValueError
+
+
+def generator_size(generator):
+    ''' return numbr items in a generator '''
+    return len(list(generator))
+
+
+def get_class_properties(instance, property):
+    """given a class instance (or class Type itself), prints properties 
+    (methods [or non-dunder methods (__methodName__)], members, or everything)
+    useful when using a class important from a poorly documented package
+    
+    Args:
+        instance (instantiated class object): class to investigate; can also pass the class itself
+        entity (str or CLASS_PROPERTIES enum value, optional): one of CLASS_PROPERTIES
+    """
+    if CLASS_PROPERTIES.has_value(property):
+        lookup = CLASS_PROPERTIES[property.upper()]
+        if lookup == CLASS_PROPERTIES.METHODS:
+            # ignore class-level properties (defined outside of init)
+            # after https://www.askpython.com/python/examples/find-all-methods-of-class
+            methods = [attribute for attribute in dir(instance) if callable(getattr(instance, attribute))]
+            return [ m for m in methods if not m.startswith('__') and not m.endswith('__') ]
+
+        if property == CLASS_PROPERTIES.MEMBERS:
+            # only works if class is instantiated
+            if type(instance) == type: # the class Type itself was passed
+                raise ValueError("Can only get members from an instantiated class")
+            else:
+                return list(vars(instance).keys())
+            
+    else:
+        raise RestrictedValueError("property", property, CLASS_PROPERTIES)
+
 
 def print_args(args, pretty=True):
     ''' print argparse args '''
@@ -135,18 +171,4 @@ def make_request(requestUrl, params, returnSuccess=True):
         if returnSuccess:
             return False
         return {"message": "ERROR: " + err.args[0]}
-
-
-# ================================
-
-class ExitOnExceptionHandler(logging.FileHandler):
-    """
-    logging exception handler that catches ERRORS and CRITICAL
-    level logging and exits 
-    see https://stackoverflow.com/a/48201163
-    """
-    def emit(self, record):
-        super().emit(record)
-        if record.levelno in (logging.ERROR, logging.CRITICAL):
-            raise SystemExit(-1)
 
