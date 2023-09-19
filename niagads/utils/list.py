@@ -1,5 +1,6 @@
 """ library of array, list, and set manipulation functions """
 from collections import OrderedDict, Counter
+from niagads.utils.string import xstr
 
 def chunker(seq, size, returnIterator=True):
     """for a given sequence, splits into even + residual chunks.  returns an iterator 
@@ -76,18 +77,18 @@ def list_to_indexed_dict(clist):
     return OrderedDict(zip(clist, range(1, len(clist) + 1)))
 
 
-def list_to_string(value, nullVal="NULL", delim=','):
+def list_to_string(value, nullStr="NULL", delim=','):
     """ checks if list, if so, converts to string; 
-    None -> nullVal; 
+    None/empty -> nullStr; 
     all other return str(value) 
     """
-    if value is None:
-        return nullVal
+    if value is None or len(value) == 0:
+        return nullStr
     
     if isinstance(value, list):
-        return delim.join(value)
+        return delim.join([xstr(v, nullStr=nullStr) for v in value])
     
-    return str(value)
+    return xstr(value)
 
 
 def drop_nulls(arr):

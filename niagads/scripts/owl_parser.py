@@ -16,28 +16,57 @@ classes === python class and need to be instantiated before accessed
 """
 import argparse
 import logging
-import inspect
 
 from rdflib.namespace import OWL, RDF, RDFS
 from rdflib import Graph, URIRef
-
-
 from os import path
-from owlready2 import get_ontology, sync_reasoner
-from ..utils.sys import warning, create_dir, get_class_properties, generator_size
+from owlready2 import get_ontology
+
+from ..utils.sys import create_dir
 from ..utils.logging import ExitOnExceptionHandler
 from ..utils.string import xstr
+from ..ontologies import ANNOTATION_PROPERTY_TYPES, OntologyTerm, ORDERED_PROPERTY_LABELS
 
+LOGGER = logging.getLogger(__name__)
+
+def get_term_properties(term: OntologyTerm, relIter):
+    """exract annotation properties for the specified term
+
+    Args:
+        term (OntologyTerm): ontology term object
+        relIter (generator): (relationship iterate), just predicates & objects
+
+    Returns:
+        update term
+    """
+    for predicate, object in relIter:
+        property = path.basename(str(predicate))
+        if '#' in property:
+            property = property.split('#')[1]
+        if term.valid_annotation_property(property):
+            term.set_annotation_property(property, str(object))
+        elif property == 'label':
+            term.set_term(str(object))
+        elif property == 'subClassOf':
+            parentId = str(object)
+            if parentId.startswith('N'): # BNode, not handling for now (nested or restricted axiom)
+                continue
+            else:
+                parentId = path.basename(parentId)
+                term.add_parent(parentId)
+    return term
+        
 
 def main():
-    logger = logging.getLogger(__name__)
-    
     parser = argparse.ArgumentParser(description="OWL (ontology RDF) file parser", allow_abbrev=False)
     parser.add_argument('--owlUrl', required=True,
                         help="URL for the OWL file (use purl.obolibrary.org URL when possible)")
     parser.add_argument('--outputDir', required=True,
                         help="full path to output directory")
     parser.add_argument('--debug', help="log debugging statements", action='store_true')
+    parser.add_argument('--namespace', help="only retrieve terms from specified namespace (e.g., CLO)")
+    parser.add_argument('--skipOntologies', 
+                        help="comma separated list of referenced ontologies (ID prefixes/namespace) to skip when generating the term list (e.g., UBERON, DOID)")
     args = parser.parse_args()
     
     outputPath = create_dir(args.outputDir)
@@ -51,62 +80,25 @@ def main():
             level=logging.DEBUG if args.debug else logging.INFO)
     
     try:
+        LOGGER.info("Loading ontology file from: " + args.owlUrl)
         graph = Graph()
-        logger.info("Loading ontology file from: " + args.owlUrl)
         graph.parse(args.owlUrl, format="xml")
-        logger.info("Done parsing ontology")
         
-        logger.info("Size of ontology: " + xstr(len(graph)))
+        LOGGER.info("Done parsing ontology")
+        LOGGER.info("Size of ontology: " + xstr(len(graph)))
 
-        # get all nodes
         subjects = graph.subjects()
-        for s in subjects:
-            logger.info("--- " + str(s) + " ---")
-            for p, o in graph.predicate_objects(subject=s):
-                logger.info(str(p) + " -> " + str(o))
-            logger.info("")
-            # logger.info(s)
-            # list all triples for the node n
-            # logger.info(list(graph[s]))
-            
-            # check that http://www.w3.org/1999/02/22-rdf-syntax-ns#type -> http://www.w3.org/2002/07/owl#Class
-            
-            
-  
-        for s, p, o in graph: 
-            if 'label' in p: 
-              logger.info(str(s) + " -> " + str(p) + " -> " + str(o))
-        
-        # x = graph.subjects()
-        # print(generator_size(graph.subjects()))
-        # for subject in graph.subjects():
-        #     for predicate in subject:
-        #         print(predicate)
-            
-        # ontology = get_ontology(args.owlUrl)
-        # ontology.load()
-        
-        # classes = ontology.classes()
-        # for c in classes:
-        #     # if c.name == 'CLO_0009464':
-        #     logger.info(" ")
-        #     logger.info(" /// " + c.name)
-        #     if c.name == 'Thing':
-        #         continue
-        #     else:
-        #         c()
-        #     instances = c.instances()
-            
-        #     for instance in instances:
-        #         logger.info("     --- start " + instance.name)
-        #         for p in instance.get_properties():
-        #             for value in p[instance]:
-        #                 logger.info(".%s == %s" % (p.python_name, value))
-        #         logger.info("     --- end " + instance.name)       
-                
+        validTerms = []
+        with open(path.join(outputPath, "terms.txt"), 'w') as tfh:
+            print('\t'.join(ORDERED_PROPERTY_LABELS)), file=tfh)
+            for s in subjects:
+                term = OntologyTerm(str(s))
+                if (args.namespace and term.in_namespace(args.namespace)) or (not args.namespace):
+                    term = get_term_properties(term, graph.predicate_objects(subject=s))
+                    print(str(term), file=tfh)   
+                    validTerms.append(term)
 
-            
     except Exception as err:
-        logger.exception("Error parsing ontology")
+        LOGGER.exception("Error parsing ontology")
 
     
