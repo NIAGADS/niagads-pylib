@@ -20,22 +20,22 @@ import logging
 from rdflib.namespace import OWL, RDF, RDFS
 from rdflib import Graph, URIRef
 from os import path
-from owlready2 import get_ontology
+from owlready2 import get_ontology, Ontology, Thing
 
 from ..utils.sys import create_dir
 from ..utils.logging import ExitOnExceptionHandler
 from ..utils.string import xstr
-from ..ontologies import ANNOTATION_PROPERTY_TYPES, OntologyTerm, ORDERED_PROPERTY_LABELS
+from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS
 
 LOGGER = logging.getLogger(__name__)
 
-def get_term_properties(term: OntologyTerm, relIter):
-    """exract annotation properties for the specified term
+def annotate_term(term: OntologyTerm, relIter, ontology: Ontology):
+    """exract annotation properties & relationships for the specified term
 
     Args:
         term (OntologyTerm): ontology term object
-        relIter (generator): (relationship iterate), just predicates & objects
-
+        relIter (generator): partial 'triples' iterator, just predicates & objects for the subject defined by the term
+        ontology (Ontology): owlready2 parsed ontology object
     Returns:
         update term
     """
@@ -49,11 +49,16 @@ def get_term_properties(term: OntologyTerm, relIter):
             term.set_term(str(object))
         elif property == 'subClassOf':
             parentId = str(object)
-            if parentId.startswith('N'): # BNode, not handling for now (nested or restricted axiom)
-                continue
-            else:
+            if not parentId.startswith('N'):  # ignore blind nodes
                 parentId = path.basename(parentId)
                 term.add_parent(parentId)
+                
+    # classDef:Thing = 
+    matches = ontology.search(iri = term.get_iri())
+    print(len(matches))
+    print(matches)
+    # relationships = # classDef.is_a
+    # LOGGER.info(relationships)
     return term
         
 
@@ -80,9 +85,10 @@ def main():
             level=logging.DEBUG if args.debug else logging.INFO)
     
     try:
-        LOGGER.info("Loading ontology file from: " + args.owlUrl)
+        LOGGER.info("Loading ontology graph file from: " + args.owlUrl)
         graph = Graph()
         graph.parse(args.owlUrl, format="xml")
+        ontology = get_ontology(args.owlUrl) # for following axioms
         
         LOGGER.info("Done parsing ontology")
         LOGGER.info("Size of ontology: " + xstr(len(graph)))
@@ -94,7 +100,7 @@ def main():
             for s in subjects:
                 term = OntologyTerm(str(s))
                 if (args.namespace and term.in_namespace(args.namespace)) or (not args.namespace):
-                    term = get_term_properties(term, graph.predicate_objects(subject=s))
+                    term = annotate_term(term, graph.predicate_objects(subject=s), ontology)
                     print(str(term), file=tfh)   
                     validTerms.append(term)
 
