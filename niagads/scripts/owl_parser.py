@@ -13,17 +13,21 @@ classes === python class and need to be instantiated before accessed
     - e.g., for c in ontoloy.classes():
                 c().get_iri()
                 c().get_properties()
+                
+TODO: simplify namespace filter
 """
 import argparse
 import logging
 
-from rdflib import Graph
+from typing import Dict
+from rdflib import Graph, URIRef
 from os import path
 from owlready2 import get_ontology, Ontology, Thing
 
 from ..utils.sys import create_dir
 from ..utils.logging import ExitOnExceptionHandler
 from ..utils.string import xstr, regex_replace
+from ..utils.list import qw
 from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS
 
 LOGGER = logging.getLogger(__name__)
@@ -42,10 +46,15 @@ def set_annotation_properties(term: OntologyTerm, relIter):
 
 
 def set_relationships(term: OntologyTerm, ontology: Ontology):
-    owlClass = ontology.search(iri = "*" + term.get_id())[0]
-    relationships = [regex_replace('^[a-z]+.', '', str(c)) for c in owlClass.is_a]
-    term.set_is_a(relationships)
-    return term
+    try:
+        owlClass = ontology.search(iri = "*" + term.get_id())
+        if len(owlClass) == 0:
+            raise ValueError("Term " + term.get_id() + " not found in ontology.")
+        relationships = [str(c) for c in owlClass[0].is_a]
+        term.set_is_a(relationships)
+        return term
+    except Exception as err:
+        LOGGER.exception(err)
 
 
 def annotate_term(term: OntologyTerm, relIter, ontology: Ontology):
@@ -68,22 +77,67 @@ def annotate_term(term: OntologyTerm, relIter, ontology: Ontology):
     return term
         
         
-def get_terms(graph: Graph, ontology: Ontology):
-    subjects = graph.subjects()
-    terms = {}
-    for s in subjects:
-        term = OntologyTerm(str(s))
-        term = annotate_term(term, graph.predicate_objects(subject=s), ontology)
-        terms = {term.get_id() : term}     
-         
-    return terms
+def get_terms(graph: Graph, ontology: Ontology, namespace=None):
+    """
+    parse graph and ontology objects to extract terms, 
+    their annotation properties, and is_a relationships
 
-def write_terms(terms, outputPath: str, namespace=None):
-    with open(path.join(outputPath, "terms.txt"), 'w') as fh:
-        print('\t'.join(ORDERED_PROPERTY_LABELS), file=fh)       
-        for t in terms.values():
-            if (namespace and t.in_namespace(namespace)) or (not namespace):
-                    print(str(t), file=fh)   
+    Args:
+        graph (Graph): rdflib graph object capturing ontology classes in nodes
+        ontology (Ontology): owlready2 ontolog representation
+        namespace (str, optional): only export terms in the specified namespace. Defaults to None.
+        
+    Returns:
+        dict of { term_id: OntologyTerm } pairs
+    """
+
+
+
+def write_term(term: OntologyTerm, file):
+    """
+     write term to terms.txt file
+
+    Args:
+        term (OntologyTerm): the ontology term
+        file (obj): file handler
+    """
+    print(str(term), file=file)   
+                    
+
+def write_synonyms(term: OntologyTerm, file):
+    """
+    _summary_
+
+    Args:
+        terms (OntologyTerm): {term_id: OntologyTerm} pairs
+        file (obj): file handler
+    """
+    synonyms = term.get_synonyms()
+    if synonyms is not None:
+        id = term.get_id()
+        for s in synonyms:
+            print(id, s, sep='\t', file=file)
+              
+
+def write_relationships(term: OntologyTerm, file):
+    relationships = term.is_a()
+    if relationships is not None:
+        for rel in relationships:
+            LOGGER.info(rel)
+                    
+            
+def create_files(outputPath):
+    tfh = open(path.join(outputPath, "terms.txt"), 'w')
+    print('\t'.join(ORDERED_PROPERTY_LABELS), file=tfh, flush=True)  
+        
+    rfh = open(path.join(outputPath, "relationships.txt"), 'w')
+    print('\t'.join(qw('subject_term_id subject_term predicate_term_id predicate_term object_term_id object_term triple', returnTuple=True)), file=rfh, flush=True)
+
+    sfh = open(path.join(outputPath, "synonyms.txt"), 'w')
+    print('\t'.join(qw('subject_term_id synonym', returnTuple=True)), file=sfh, flush=True)
+    
+    return tfh, rfh, sfh
+   
 
 def main():
     parser = argparse.ArgumentParser(description="OWL (ontology RDF) file parser", allow_abbrev=False)
@@ -93,7 +147,7 @@ def main():
                         help="URL for the OWL file (use purl.obolibrary.org URL when possible)")
     parser.add_argument('--outputDir', required=True,
                         help="full path to output directory")
-    parser.add_argument('--namespace', help="only retrieve terms from specified namespace (e.g., CLO)")
+    parser.add_argument('--namespace', help="only write terms from specified namespace (e.g., CLO)")
     args = parser.parse_args()
     
     outputPath = create_dir(args.outputDir)
@@ -106,7 +160,6 @@ def main():
             format='%(asctime)s %(levelname)-8s %(message)s',
             level=logging.DEBUG if args.debug else logging.INFO)
     
-
     try:
         if args.namespace:
             LOGGER.warn("--namespace '" + args.namespace + "' specified; term file may not contain all terms in relationships")
@@ -124,12 +177,26 @@ def main():
         ontology.load()
         
         if args.verbose:
-            LOGGER.info("Done parsing ontology")
+            LOGGER.info("Done loading ontology")
             LOGGER.info("Size of ontology: " + xstr(len(graph)))
 
+        if args.verbose:
+            LOGGER.info("Extracting terms and annotations")
+            
+        termFh, relFh, synFh = create_files(outputPath)
+        subjects = graph.subjects()
+        for s in subjects:
+            if isinstance(s, URIRef): # ignore rdflib Blind Nodes     
+                term = OntologyTerm(str(s))
+                if (args.namespace and term.in_namespace(args.namespace)) or (not args.namespace):
+                    term = annotate_term(term, graph.predicate_objects(subject=s), ontology)
+                    write_term(term, termFh)
+                    write_synonyms(term, synFh)
+                    write_relationships(term, relFh)
 
-        terms = get_terms(graph, ontology)
-        write_terms(terms, outputPath, args.namespace)
+        termFh.close()
+        relFh.close()
+        synFh.close()
         
             
                 

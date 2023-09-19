@@ -1,2 +1,2 @@
-from .constants import ANNOTATION_PROPERTIES, ANNOTATION_PROPERTY_TYPES, ORDERED_PROPERTY_LABELS
+from .constants import * 
 from .ontology_term import OntologyTerm

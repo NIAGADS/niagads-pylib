@@ -217,7 +217,7 @@ def regex_replace(pattern, replacement, value):
     return re.sub(pattern, replacement, value)
 
 
-def regex_extract(pattern, value):
+def extract(pattern, value):
     ''' extract substring using a regexp
         assumes matching a single substring 
         and returns first match
