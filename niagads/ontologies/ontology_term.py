@@ -13,8 +13,8 @@ class OntologyTerm:
         self.__id = basename(iri).replace(':', '_')
         self.__term = None
         self.__annotation_properties = {}
-        self.__parents = []
-        self.__includeComments = False
+        self.__subclass_of = []
+        self.__includeComments = False # TODO: flag to include comments in output
        
     def include_comments(self, includeComments=True):
         self.__includeComments = includeComments
@@ -22,14 +22,14 @@ class OntologyTerm:
     def debug(self, debug=True):
         self.__debug = debug   
         
-    def add_parent(self, parentId):
-        self.__parents.append(parentId)
+    def set_is_a(self, relationships):
+        self.__subclass_of = relationships
         
-    def get_parents(self, asStr=False):
-        if self.__parents is None:
+    def is_a(self, asStr=False):
+        if self.__subclass_of is None:
             return None
         
-        return '//'.join(self.__parents) if asStr else self.__parents
+        return '//'.join(self.__subclass_of) if asStr else self.__subclass_of
         
     def get_id(self):
         return self.__id
@@ -65,7 +65,6 @@ class OntologyTerm:
                 if prop in self.__annotation_properties else None
             values.append(annotation)
     
-        values.append(self.get_parents(asStr=True))
         return list_to_string(values, nullStr='', delim='\t')
     
 
@@ -75,7 +74,7 @@ class OntologyTerm:
             self.set_term(value)
         else:
             propType = self.valid_annotation_property(prop, returnType=True)
-            if propType == 'dbref': 
+            if propType == 'db_ref': 
                 value = value.replace(': ', ':')
             value = [value] # make everything a list
             if propType in self.__annotation_properties:

@@ -17,28 +17,18 @@ classes === python class and need to be instantiated before accessed
 import argparse
 import logging
 
-from rdflib.namespace import OWL, RDF, RDFS
-from rdflib import Graph, URIRef
+from rdflib import Graph
 from os import path
 from owlready2 import get_ontology, Ontology, Thing
 
 from ..utils.sys import create_dir
 from ..utils.logging import ExitOnExceptionHandler
-from ..utils.string import xstr
+from ..utils.string import xstr, regex_replace
 from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS
 
 LOGGER = logging.getLogger(__name__)
 
-def annotate_term(term: OntologyTerm, relIter, ontology: Ontology):
-    """exract annotation properties & relationships for the specified term
-
-    Args:
-        term (OntologyTerm): ontology term object
-        relIter (generator): partial 'triples' iterator, just predicates & objects for the subject defined by the term
-        ontology (Ontology): owlready2 parsed ontology object
-    Returns:
-        update term
-    """
+def set_annotation_properties(term: OntologyTerm, relIter):
     for predicate, object in relIter:
         property = path.basename(str(predicate))
         if '#' in property:
@@ -47,31 +37,63 @@ def annotate_term(term: OntologyTerm, relIter, ontology: Ontology):
             term.set_annotation_property(property, str(object))
         elif property == 'label':
             term.set_term(str(object))
-        elif property == 'subClassOf':
-            parentId = str(object)
-            if not parentId.startswith('N'):  # ignore blind nodes
-                parentId = path.basename(parentId)
-                term.add_parent(parentId)
-                
-    # classDef:Thing = 
-    matches = ontology.search(iri = term.get_iri())
-    print(len(matches))
-    print(matches)
-    # relationships = # classDef.is_a
-    # LOGGER.info(relationships)
+            
+    return term
+
+
+def set_relationships(term: OntologyTerm, ontology: Ontology):
+    owlClass = ontology.search(iri = "*" + term.get_id())[0]
+    relationships = [regex_replace('^[a-z]+.', '', str(c)) for c in owlClass.is_a]
+    term.set_is_a(relationships)
+    return term
+
+
+def annotate_term(term: OntologyTerm, relIter, ontology: Ontology):
+    """exract annotation properties & relationships for the specified term
+    
+    although rdflib can be used to get is_a relationships its a bit cumbersone
+    so using owlready2, that's why we only extract the annotation properties 
+    from the rdflib triples iterator
+
+    Args:
+        term (OntologyTerm): ontology term object
+        relIter (generator): partial 'triples' iterator, just predicates & objects for the subject defined by the term
+        ontology (Ontology): owlready2 parsed ontology object
+    Returns:
+        update term
+    """
+   
+    term = set_annotation_properties(term, relIter)
+    term = set_relationships(term, ontology)
     return term
         
+        
+def get_terms(graph: Graph, ontology: Ontology):
+    subjects = graph.subjects()
+    terms = {}
+    for s in subjects:
+        term = OntologyTerm(str(s))
+        term = annotate_term(term, graph.predicate_objects(subject=s), ontology)
+        terms = {term.get_id() : term}     
+         
+    return terms
+
+def write_terms(terms, outputPath: str, namespace=None):
+    with open(path.join(outputPath, "terms.txt"), 'w') as fh:
+        print('\t'.join(ORDERED_PROPERTY_LABELS), file=fh)       
+        for t in terms.values():
+            if (namespace and t.in_namespace(namespace)) or (not namespace):
+                    print(str(t), file=fh)   
 
 def main():
     parser = argparse.ArgumentParser(description="OWL (ontology RDF) file parser", allow_abbrev=False)
-    parser.add_argument('--owlUrl', required=True,
+    parser.add_argument('--debug', help="log debugging statements", action='store_true')
+    parser.add_argument('--verbose', help="run in verbose mode (will log INFO statements)", action='store_true')
+    parser.add_argument('--url', required=True,
                         help="URL for the OWL file (use purl.obolibrary.org URL when possible)")
     parser.add_argument('--outputDir', required=True,
                         help="full path to output directory")
-    parser.add_argument('--debug', help="log debugging statements", action='store_true')
     parser.add_argument('--namespace', help="only retrieve terms from specified namespace (e.g., CLO)")
-    parser.add_argument('--skipOntologies', 
-                        help="comma separated list of referenced ontologies (ID prefixes/namespace) to skip when generating the term list (e.g., UBERON, DOID)")
     args = parser.parse_args()
     
     outputPath = create_dir(args.outputDir)
@@ -84,25 +106,33 @@ def main():
             format='%(asctime)s %(levelname)-8s %(message)s',
             level=logging.DEBUG if args.debug else logging.INFO)
     
-    try:
-        LOGGER.info("Loading ontology graph file from: " + args.owlUrl)
-        graph = Graph()
-        graph.parse(args.owlUrl, format="xml")
-        ontology = get_ontology(args.owlUrl) # for following axioms
-        
-        LOGGER.info("Done parsing ontology")
-        LOGGER.info("Size of ontology: " + xstr(len(graph)))
 
-        subjects = graph.subjects()
-        validTerms = []
-        with open(path.join(outputPath, "terms.txt"), 'w') as tfh:
-            print('\t'.join(ORDERED_PROPERTY_LABELS), file=tfh)
-            for s in subjects:
-                term = OntologyTerm(str(s))
-                if (args.namespace and term.in_namespace(args.namespace)) or (not args.namespace):
-                    term = annotate_term(term, graph.predicate_objects(subject=s), ontology)
-                    print(str(term), file=tfh)   
-                    validTerms.append(term)
+    try:
+        if args.namespace:
+            LOGGER.warn("--namespace '" + args.namespace + "' specified; term file may not contain all terms in relationships")
+        
+        if args.verbose:
+            LOGGER.info("Loading ontology graph file from: " + args.url)
+        
+        # using rdflib for extracting annotation properties
+        graph = Graph()
+        graph.parse(args.url, format="xml") 
+        
+        # using owlready2 for following axioms/is_a relationships
+        # extra overhead but logistically easier
+        ontology = get_ontology(args.url) 
+        ontology.load()
+        
+        if args.verbose:
+            LOGGER.info("Done parsing ontology")
+            LOGGER.info("Size of ontology: " + xstr(len(graph)))
+
+
+        terms = get_terms(graph, ontology)
+        write_terms(terms, outputPath, args.namespace)
+        
+            
+                
 
     except Exception as err:
         LOGGER.exception("Error parsing ontology")
