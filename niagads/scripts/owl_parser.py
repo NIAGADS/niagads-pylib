@@ -90,7 +90,7 @@ def main():
         subjects = graph.subjects()
         validTerms = []
         with open(path.join(outputPath, "terms.txt"), 'w') as tfh:
-            print('\t'.join(ORDERED_PROPERTY_LABELS)), file=tfh)
+            print('\t'.join(ORDERED_PROPERTY_LABELS), file=tfh)
             for s in subjects:
                 term = OntologyTerm(str(s))
                 if (args.namespace and term.in_namespace(args.namespace)) or (not args.namespace):
