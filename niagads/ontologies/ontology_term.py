@@ -95,7 +95,7 @@ class OntologyTerm:
                 if prop in self.__annotationProperties else None
             values.append(annotation)
     
-        return list_to_string(values, nullStr='', delim='\t')
+        return list_to_string(values, nullStr='NULL', delim='\t')
     
         
     def set_annotation_property(self, prop, value):
