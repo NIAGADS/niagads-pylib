@@ -10,7 +10,7 @@ setup(
     license='GNU GPLv3',
     packages=find_packages(), # ['niagads', 'niagads.filer', 'niagads.utils'],
     setup_requires = ['Cython'],
-    install_requires=['openpyxl', 'strenum', 'rdflib', 'owlready2'],
+    install_requires=['Cython', 'openpyxl', 'strenum', 'rdflib', 'owlready2', 'python-dateutil'],
     entry_points ={
         'console_scripts': [
                'variant_annotator = niagads.scripts.variant_annotator:main',
