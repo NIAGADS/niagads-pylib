@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from types import SimpleNamespace
 from ..utils.list import qw
 
 # NOTE in Python 3.7+ all dicts are inherently ordered dicts, so this 
@@ -20,3 +21,12 @@ def annotation_property_types():
     return pTypes
 
 ORDERED_PROPERTY_LABELS = ['id', 'iri', 'term'] + annotation_property_types()
+
+REGEX_PATTERNS = SimpleNamespace(
+    outermost = '\((.*)\)',
+    parentheses = '[()]',
+    qualifier = '[a-z]+\.[^\.]+\.[a-z]+',
+    logic = '&|\|',
+    namespace = '^[a-z]+\.',
+    term_id = '^[A-Z]+_'
+)
