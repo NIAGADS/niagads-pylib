@@ -1,9 +1,11 @@
 import logging
+import json
+
 from os.path import basename
 
 from . import annotation_property_types, ANNOTATION_PROPERTIES, REGEX_PATTERNS
 from ..utils.list import list_to_string
-from ..utils.string import is_balanced, regex_extract, regex_replace
+from ..utils.string import is_balanced, regex_extract, regex_replace, regex_split
 
 class OntologyTerm:
     def __init__(self, iri, debug=False):
@@ -58,7 +60,7 @@ class OntologyTerm:
             return None  
         if parse:
             relationships = [parse_subclass_relationship(r) for r in self.__subclass_of]
-            return '//'.join([' '.join(r) for r in relationships]) if asStr else relationships
+            return '//'.join([json.dumps(r) for r in relationships]) if asStr else relationships
         return '//'.join(self.__subclass_of) if asStr else self.__subclass_of
         
     def get_id(self):
@@ -132,8 +134,6 @@ class OntologyTerm:
 
 
 def __phrase_type(relStr):
-    if regex_extract(REGEX_PATTERNS.logic, relStr) is not None:
-        return 'LOGIC' # & or |
     if '(' in relStr or ')' in relStr:
         if is_balanced(relStr): # () are balanced
             return 'QUALIFIER'
@@ -145,55 +145,53 @@ def __phrase_type(relStr):
 
 def __parse_qualifier(relStr):
     qualifier = regex_extract(REGEX_PATTERNS.qualifier, relStr)
+    namespace, iri, qual = qualifier.split('.')
     phrase = regex_extract(REGEX_PATTERNS.outermost, relStr)
-    return qualifier, phrase
+    return '.'.join([iri, qual]), phrase
     
     
-def parse_subclass_relationship(relStr, prefix=None):
+def parse_subclass_relationship(relStr, piece="full"):
     """parses subclass relationships (owlready2 format) and returns an array of elements that can be joined into a phrase
     or further parsed (e.g., to map the IRIs to terms)
     
     Examples:
-        obo.CL_0000542 -> ['CL_0000542']
-        obo.CL_0000542 & obo.RO_0001000.some(obo.CL_0000542 | obo.BFO_0000050.value(obo.NCBITaxon_9606)) -> ['CL_0000542', '&', 'RO_0001000', 'some', '(', 'CL_0000542', '|', 'BFO_0000050', 'value', '(', 'NCBITaxon_9606', ')', ')']
-        obo.RO_0001000.some(obo.CL_0000542 | obo.BFO_0000050.value(obo.NCBITaxon_9606)) -> ['RO_0001000', 'some', '(', 'CL_0000542', '|', 'BFO_0000050', 'value', '(', 'NCBITaxon_9606', ')', ')']
-        obo.RO_0001000.some(obo.CL_0000542 | obo.BFO_0000050.value(obo.NCBITaxon_9606)) & obo.CL_0000542 -> ['RO_0001000', 'some', '(', 'CL_0000542', '|', 'BFO_0000050', 'value', '(', 'NCBITaxon_9606', ')', ')']
-        obo.BFO_0000050.value(obo.NCBITaxon_9606) -> ['BFO_0000050', 'value', '(', 'NCBITaxon_9606', ')']
-
-
+       
     Args:
         relStr (str): the string to be parsed; expects is_a relationship from 'owlready2' package
-        prefix (str list, optional): prefix; used for recursion or to add a prefix to the result. Defaults to None.
-
+        piece (str): for debugging purposes; can use to log breakdown
+  
     Returns:
-        _type_: _description_
+        dict / json representation of the relationship
     """
-    # if you set the default value of the translation parameter to [], 
-    # it does not garbage collect correctly and subsequent calls to
-    # parse_subclass_relationship (e.g., in a loop) will get 
-    # concatenated
-    # so, we set it to None and change it to [] after the function is
-    # called
-    result = [] if prefix is None else prefix
-    if isinstance(result, str):
-        result = [result]
-
     relationships = relStr.split(' ')
-    for index, r in enumerate(relationships):
-        phraseType = __phrase_type(r)
-        if phraseType == 'LOGIC':
-            result.append(r)
+    
+    if len(relationships) == 1:
+        relation = relationships[0]
+        pType = __phrase_type(relation)
+        if pType == 'CLASS':
+            namespace, iri = relation.split('.')
+            return iri
+        elif pType == 'QUALIFIER':
+            qualifier, innerRels = __parse_qualifier(relation)
+            return { qualifier: parse_subclass_relationship(innerRels, "inner") }
+        else:
+            raise NotImplementedError("Issue parsing relationship - case not caught: " + relStr)
             
-        elif phraseType == 'CLASS':
-            namespace, iri = r.split('.')
-            result.append(iri)
+    else:
+        if relationships[1] in ['&', '|']:
+            # valid a | b or a & b
+            if __phrase_type(relationships[0]) != 'BROKEN_QUALIFIER':
+                # re- split again on first occurrence of logical operator
+                # trim spaces
+                operator = relationships[1]
+                relationships = [x.strip() for x in relStr.split(operator, 1)] 
+                
+                # recursively process left & right side of operation
+                return { 'AND' if operator == '&' else 'OR': 
+                            [parse_subclass_relationship(relationships[0], "left"),
+                            parse_subclass_relationship(relationships[1], "right")]
+                        }
             
-        elif 'QUALIFIER' in phraseType:
-            qualifiedRelationship = ' '.join(relationships[index:]) if phraseType == 'BROKEN_QUALIFIER' else r
-            qualifier, newRelStr = __parse_qualifier(qualifiedRelationship)
-            namespace, iri, qual = qualifier.split('.')
-            result += [iri, qual, '(']
-            result = parse_subclass_relationship(newRelStr, result) + [')']
-            break
-
-    return result
+            else: # logical operation is nested, splitting broke the qualifier
+                qualifier, innerRels = __parse_qualifier(relStr)
+                return {qualifier: parse_subclass_relationship(innerRels, "inner")}
