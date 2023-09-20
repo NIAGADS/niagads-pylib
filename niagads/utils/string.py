@@ -208,6 +208,36 @@ def ascii_safe_str(obj):
     try: return str(obj)
     except UnicodeEncodeError:
         return obj.encode('ascii', 'ignore').decode('ascii')
+    
+
+def is_balanced(value, start='(', end=')'):
+    """returns True if enclosing tags are balanced (e.g, braces, brackets, parentheses, carets, user defined)
+    modified from https://www.geeksforgeeks.org/identify-mark-unmatched-parenthesis-expression/
+    
+    TODO: (possibly) handle multiple, nested kinds of tags, e.g., ([{}])
+    
+    Args:
+        value (str): string to check
+        
+    Returns:
+        boolean indicating whether or not parentheses are balanced
+    """
+    stack = []
+    for c in value:
+		# if c is opening tag then push into stack
+        if c == start:
+            stack.append(c)
+        elif c == end:
+			# unmatched start tag; return False
+            if len(stack) == 0:
+                return False
+            else: # matched start tag
+                stack.pop()
+	
+    if len(stack) == 0: # balanced
+        return True
+    else: # not balanced
+        return False
 
 
 # regex wrappers to re calls to reduce re imports
@@ -217,13 +247,26 @@ def regex_replace(pattern, replacement, value):
     return re.sub(pattern, replacement, value)
 
 
-def extract(pattern, value):
+def regex_extract(pattern, value):
     ''' extract substring using a regexp
         assumes matching a single substring 
         and returns first match
     '''
     result = re.search(pattern, value)
     if result is not None:
-        return result.group(1)
+        try:
+            return result.group(1)
+        except:
+            return result.group()
     return None
 
+def matches(pattern, value):
+    ''' returns true if pattern found in string
+    '''
+    result = re.search(pattern, value)
+    return result is not None
+
+
+def regex_split(pattern, value):
+    ''' wrapper for re.split'''
+    return re.split(pattern, value)
