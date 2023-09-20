@@ -103,3 +103,17 @@ def convert_str2numeric_values(cdict, nanAsStr=True, infAsStr=True):
             cdict[key] = int(value)
 
     return cdict
+
+
+def size(obj, n=0):
+    '''
+    recursively find size (number of elements) in a potentially nested dict
+    after https://www.tutorialspoint.com/How-to-count-elements-in-a-nested-Python-dictionary
+    '''
+    for key in obj:
+        if isinstance(obj[key], dict):
+            n = size(obj[key], n + 1)
+        else:
+            n += 1          
+    return n
+
