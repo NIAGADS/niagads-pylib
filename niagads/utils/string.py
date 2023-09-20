@@ -260,6 +260,7 @@ def regex_extract(pattern, value):
             return result.group()
     return None
 
+
 def matches(pattern, value):
     ''' returns true if pattern found in string
     '''
