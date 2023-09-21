@@ -20,9 +20,11 @@ import argparse
 import logging
 import json
 
+from functools import partial
 from rdflib import Graph, URIRef
 from os import path
 from owlready2 import get_ontology, Ontology
+from multiprocessing import Pool, cpu_count, Manager
 
 from ..utils.sys import create_dir, generator_size
 from ..utils.logging import ExitOnExceptionHandler
@@ -79,7 +81,7 @@ def set_relationships(term: OntologyTerm, ontology: Ontology):
         logger.exception(err)
 
 
-def annotate_term(term: OntologyTerm, relIter, ontology: Ontology, labelOnly=False):
+def annotate_term(subject: URIRef, graph: Graph, ontology: Ontology, namespace: None):
     """exract annotation properties & relationships for the specified term
     
     although rdflib can be used to get is_a relationships its a bit cumbersone
@@ -92,13 +94,20 @@ def annotate_term(term: OntologyTerm, relIter, ontology: Ontology, labelOnly=Fal
         ontology (Ontology): owlready2 parsed ontology object
         labelOnly (boolean, optional): only fetch label
     Returns:
-        update term
+        term
     """
-    
+    logger.info("Annotating " + str(subject))
+    term = OntologyTerm(str(subject))
+    labelOnly = False if namespace is None \
+        else not (namespace and term.in_namespace(namespace))
+                
+    relationIterator = graph.objects(subject=subject, predicate=URIRef(LABEL_URI)) \
+        if labelOnly else graph.predicate_objects(subject=subject)
+        
     if labelOnly:
-        term.set_term(str(next(relIter, term.get_id()))) # some terms may not have labels
+        term.set_term(str(next(relationIterator, term.get_id()))) # some terms may not have labels
     else:
-        term = set_annotation_properties(term, relIter)
+        term = set_annotation_properties(term, relationIterator)
         term = set_relationships(term, ontology)
     return term
         
@@ -207,37 +216,44 @@ def main():
         if args.verbose:
             logger.info("Done loading ontology")
             logger.info("Found " + str(len(graph)) + " ontology terms (incl. blind nodes)")
-
+            logger.info("Pruning blind nodes")
+        
+        # remove blind nodes and transform to list so can use multiprocessing.imap   
+        subjects = [s for s in graph.subjects() if isinstance(s, URIRef)]
+        
         if args.verbose:
+            logger.info("Found " + str(len(subjects)) + " ontology terms")
             logger.info("Extracting terms and annotations")
             
+        terms = [annotate_term(s, graph, ontology, args.namespace ) for s in subjects]
+        
         termFh, relFh, synFh = create_files(outputPath)
         
-        subjects = graph.subjects()                 
-        count = 0
-        termCount = 0
-        for s in subjects:
-            count += 1
-            if isinstance(s, URIRef): # ignore rdflib Blind Nodes     
-                term = OntologyTerm(str(s))
+        # TODO: https://stackoverflow.com/questions/68373535/global-variable-access-during-python-multiprocessing
+        with Pool(cpu_count() + 2) as pool:
+            for result in pool.imap(partial(annotate_term, 
+                                            graph=graph,
+                                            ontology=ontology, 
+                                            namespace=args.namespace), subjects):
+                logger.info(type(result))
+                logger.info(result.get_term())
+            # self._response = sum(response, []) # concatenates indvidual responses
+            
+          
+        # count = 0
+        # termCount = 0
+        # for s in subjects:
+        #     count += 1
+        #     if isinstance(s, URIRef): # ignore rdflib Blind Nodes                     
+        #         write_term(term, termFh)
                 
-                inNamespace = (args.namespace and term.in_namespace(args.namespace)) or (not args.namespace)  
-                labelOnly = not inNamespace
-                
-                relationIterator = graph.objects(subject=s, predicate=URIRef(LABEL_URI)) \
-                    if labelOnly else graph.predicate_objects(subject=s)
-                    
-                term = annotate_term(term, relationIterator, ontology, labelOnly=labelOnly)
-                
-                write_term(term, termFh)
-                
-                if inNamespace:
-                    write_synonyms(term, synFh)
-                    write_relationships(term, relFh)
+        #         if inNamespace:
+        #             write_synonyms(term, synFh)
+        #             write_relationships(term, relFh)
                                     
-                termCount += 1
-                if termCount % 5000 == 0 and args.verbose:
-                    logger.info("Parsed " + str(count) + " ontology terms; found " + str(termCount) + " valid terms")
+        #         termCount += 1
+        #         if termCount % 5000 == 0 and args.verbose:
+        #             logger.info("Parsed " + str(count) + " ontology terms; found " + str(termCount) + " valid terms")
         
         if args.verbose:
             logger.info("DONE. Parsed " + str(count) + " ontology terms; found " + str(termCount) + " valid terms")
