@@ -14,6 +14,8 @@ ANNOTATION_PROPERTIES = OrderedDict({
     'db_ref': qw('dbref seeAlso hasDbXref')
 })
 
+LABEL_URI = 'http://www.w3.org/2000/01/rdf-schema#label'
+
 def annotation_property_types():
     pTypes = list(ANNOTATION_PROPERTIES.keys())
     pTypes.remove('db_ref')

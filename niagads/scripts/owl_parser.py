@@ -27,18 +27,17 @@ from owlready2 import get_ontology, Ontology
 from ..utils.sys import create_dir, generator_size
 from ..utils.logging import ExitOnExceptionHandler
 from ..utils.list import qw
-from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS, parse_subclass_relationship
+from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS, parse_subclass_relationship, LABEL_URI
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+validAnnotationProps = {}
 
-
-def set_annotation_properties(term: OntologyTerm, relIter, labelOnly=False):
+def set_annotation_properties(term: OntologyTerm, relIter):
     """extract annotation properties from term relationships
 
     Args:
         term (OntologyTerm): ontology term to be annotated
         relIter (iterator): rdflib triples iterator (predicates & objects) of relationships
-        labelOnly (bool, optional): extract label only. Defaults to False.
 
     Returns:
         updated term
@@ -47,10 +46,11 @@ def set_annotation_properties(term: OntologyTerm, relIter, labelOnly=False):
         property = path.basename(str(predicate))
         if '#' in property:
             property = property.split('#')[1]
-        if term.valid_annotation_property(property) and not labelOnly:
-            term.set_annotation_property(property, str(object))
-        elif property == 'label':
+            
+        if property == 'label':
             term.set_term(str(object))
+        else:
+            term.set_annotation_property(property, str(object))
             
     return term
 
@@ -76,7 +76,7 @@ def set_relationships(term: OntologyTerm, ontology: Ontology):
         term.set_is_a(relationships)
         return term
     except ValueError as err:
-        LOGGER.exception(err)
+        logger.exception(err)
 
 
 def annotate_term(term: OntologyTerm, relIter, ontology: Ontology, labelOnly=False):
@@ -88,14 +88,17 @@ def annotate_term(term: OntologyTerm, relIter, ontology: Ontology, labelOnly=Fal
 
     Args:
         term (OntologyTerm): ontology term object
-        relIter (generator): partial 'triples' iterator, just predicates & objects for the subject defined by the term
+        relIter (generator): partial 'triples' iterator; if labelOnly objects iterator; if not labelOnly predicates & objects
         ontology (Ontology): owlready2 parsed ontology object
         labelOnly (boolean, optional): only fetch label
     Returns:
         update term
     """
-    term = set_annotation_properties(term, relIter, labelOnly)
-    if not labelOnly:
+    
+    if labelOnly:
+        term.set_term(str(next(relIter)))
+    else:
+        term = set_annotation_properties(term, relIter)
         term = set_relationships(term, ontology)
     return term
         
@@ -108,7 +111,7 @@ def write_term(term: OntologyTerm, file):
         term (OntologyTerm): the ontology term
         file (obj): file handler
     """
-    print(str(term), file=file, flush=True)   
+    print(str(term), file=file)   
                     
 
 def write_synonyms(term: OntologyTerm, file):
@@ -123,7 +126,7 @@ def write_synonyms(term: OntologyTerm, file):
     if synonyms is not None:
         id = term.get_id()
         for s in synonyms:
-            print(id, s, sep='\t', file=file, flush=True)
+            print(id, s, sep='\t', file=file)
 
 
 def write_relationships(term: OntologyTerm, file):
@@ -140,8 +143,8 @@ def write_relationships(term: OntologyTerm, file):
         objectTermId = parsedR if isinstance(parsedR, str) else 'NULL'
         relJson = 'NULL' if isinstance(parsedR, str) else json.dumps(parsedR) 
         relStr = 'NULL' if isinstance(parsedR, str) else r
-        print(subjectTermId, objectTermId, relStr, relJson, sep="\t", file=file, flush=True)   
-
+        print(subjectTermId, objectTermId, relStr, relJson, sep="\t", file=file)   
+            
             
 def create_files(dir: str):
     """create file handles / output header
@@ -187,10 +190,10 @@ def main():
     
     try:
         if args.namespace:
-            LOGGER.warn("namespace '" + args.namespace + "' specified; term file may not contain all terms in relationships")
+            logger.warn("namespace '" + args.namespace + "' specified; term file may not contain all terms in relationships")
         
         if args.verbose:
-            LOGGER.info("Loading ontology graph file from: " + args.url)
+            logger.info("Loading ontology graph file from: " + args.url)
         
         # using rdflib for extracting annotation properties
         graph = Graph()
@@ -202,11 +205,11 @@ def main():
         ontology.load()
         
         if args.verbose:
-            LOGGER.info("Done loading ontology")
-            LOGGER.info("Found " + str(len(graph)) + " ontology terms (incl. blind nodes)")
+            logger.info("Done loading ontology")
+            logger.info("Found " + str(len(graph)) + " ontology terms (incl. blind nodes)")
 
         if args.verbose:
-            LOGGER.info("Extracting terms and annotations")
+            logger.info("Extracting terms and annotations")
             
         termFh, relFh, synFh = create_files(outputPath)
         
@@ -217,25 +220,33 @@ def main():
             count += 1
             if isinstance(s, URIRef): # ignore rdflib Blind Nodes     
                 term = OntologyTerm(str(s))
+                
                 inNamespace = (args.namespace and term.in_namespace(args.namespace)) or (not args.namespace)  
-                term = annotate_term(term, graph.predicate_objects(subject=s), ontology, labelOnly=not inNamespace)
+                labelOnly = not inNamespace
+                
+                relationIterator = graph.objects(subject=s, predicate=URIRef(LABEL_URI)) \
+                    if labelOnly else graph.predicate_objects(subject=s)
+                    
+                term = annotate_term(term, relationIterator, ontology, labelOnly=labelOnly)
+                
                 write_term(term, termFh)
+                
                 if inNamespace:
                     write_synonyms(term, synFh)
                     write_relationships(term, relFh)
-                    
+                                    
                 termCount += 1
                 if termCount % 5000 == 0 and args.verbose:
-                    LOGGER.info("Parsed " + str(count) + " ontology terms; found " + str(termCount) + " valid terms")
+                    logger.info("Parsed " + str(count) + " ontology terms; found " + str(termCount) + " valid terms")
         
         if args.verbose:
-            LOGGER.info("DONE. Parsed " + str(count) + " ontology terms; found " + str(termCount) + " valid terms")
+            logger.info("DONE. Parsed " + str(count) + " ontology terms; found " + str(termCount) + " valid terms")
             
         termFh.close()
         relFh.close()
         synFh.close()
 
     except Exception as err:
-        LOGGER.exception("Error parsing ontology")
+        logger.exception("Error parsing ontology")
 
     

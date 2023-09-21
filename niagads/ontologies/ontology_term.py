@@ -16,10 +16,11 @@ class OntologyTerm:
         self.__id = basename(iri).replace(':', '_')
         self.__term = None
         self.__annotationProperties = {}
-        self.__subclass_of = None
+        self.__subclassOf = None
         self.__synonyms = None
         self.__dbRefs = None
         self.__includeComments = False # TODO: flag to include comments in output
+        self.__propTypes = annotation_property_types()
        
     def include_comments(self, includeComments=True):
         self.__includeComments = includeComments
@@ -43,7 +44,7 @@ class OntologyTerm:
             
         
     def set_is_a(self, relationships):
-        self.__subclass_of = relationships
+        self.__subclassOf = relationships
         
     def get_db_refs(self, asStr=False):
         if self.__dbRefs is None:
@@ -56,12 +57,12 @@ class OntologyTerm:
         return '//'.join(self.__synonyms) if asStr else self.__synonyms
         
     def is_a(self, parse=False, asStr=False):
-        if self.__subclass_of is None:
+        if self.__subclassOf is None:
             return None  
         if parse:
-            relationships = [parse_subclass_relationship(r) for r in self.__subclass_of]
+            relationships = [parse_subclass_relationship(r) for r in self.__subclassOf]
             return '//'.join([json.dumps(r) for r in relationships]) if asStr else relationships
-        return '//'.join(self.__subclass_of) if asStr else self.__subclass_of
+        return '//'.join(self.__subclassOf) if asStr else self.__subclassOf
         
     def get_id(self):
         return self.__id
@@ -91,8 +92,8 @@ class OntologyTerm:
         Returns:
             tab delimited string of term and its annotations
         """
-        values = [self.__id, self.__iri, self.__term]
-        for prop in annotation_property_types():
+        values = [self.__id, self.__iri, self.__term]    
+        for prop in self.__propTypes:
             annotation = '//'.join(self.__annotationProperties[prop]) \
                 if prop in self.__annotationProperties else None
             values.append(annotation)
@@ -103,31 +104,28 @@ class OntologyTerm:
     def set_annotation_property(self, prop, value):
         if prop == 'label':
             self.set_term(value)
-        else:
-            propType = self.valid_annotation_property(prop, returnType=True)
             
-            if propType == 'db_ref': 
-                self.add_db_ref(value)
-            if propType == 'synonym':
-                self.add_synonym(value)
-            else:    
-                value = [value] # make everything a list
-                if propType in self.__annotationProperties:
-                    self.__annotationProperties[propType] = self.__annotationProperties[propType] + value
-                else:
-                    self.__annotationProperties[propType] = value
+        else:
+            propType = self.__valid_annotation_property(prop)
+            if propType is not None:
+                if propType == 'db_ref': 
+                    self.add_db_ref(value)
+                if propType == 'synonym':
+                    self.add_synonym(value)
+                else:    
+                    value = [value] # make everything a list
+                    if propType in self.__annotationProperties:
+                        self.__annotationProperties[propType] = self.__annotationProperties[propType] + value
+                    else:
+                        self.__annotationProperties[propType] = value
                 
     
-    def valid_annotation_property(self, property, returnType=False):
+    def __valid_annotation_property(self, property):
         for annotType, properties in ANNOTATION_PROPERTIES.items():
             if property in properties:
-                return annotType if returnType else True
+                return annotType
         
-        # if can't be mapped:    
-        if not returnType:
-            return False
-        else:
-            raise KeyError('Annotation property: ' + property + ' not in reserved types.')
+        return None
 
 
 # -- functions for parsing is_a relationships
@@ -161,7 +159,7 @@ def parse_subclass_relationship(relStr, piece="full"):
         piece (str): for debugging purposes; can use to log breakdown
   
     Returns:
-        dict / json representation of the relationship
+        dict representation of the relationship
     """
     relationships = relStr.split(' ')
     
