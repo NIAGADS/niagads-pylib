@@ -26,11 +26,11 @@ from owlready2 import get_ontology, Ontology
 
 from ..utils.sys import create_dir, generator_size
 from ..utils.logging import ExitOnExceptionHandler
-from ..utils.list import qw
-from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS, parse_subclass_relationship, LABEL_URI
+from ..utils.list import qw, flatten
+from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS, parse_subclass_relationship, LABEL_URI, ANNOTATION_PROPERTIES
 
 logger = logging.getLogger(__name__)
-validAnnotationProps = {}
+validAnnotationProps = flatten(list(ANNOTATION_PROPERTIES.values()))
 
 def set_annotation_properties(term: OntologyTerm, relIter):
     """extract annotation properties from term relationships
@@ -49,9 +49,9 @@ def set_annotation_properties(term: OntologyTerm, relIter):
             
         if property == 'label':
             term.set_term(str(object))
-        else:
+        elif property in validAnnotationProps:
             term.set_annotation_property(property, str(object))
-            
+
     return term
 
 
@@ -96,7 +96,7 @@ def annotate_term(term: OntologyTerm, relIter, ontology: Ontology, labelOnly=Fal
     """
     
     if labelOnly:
-        term.set_term(str(next(relIter)))
+        term.set_term(str(next(relIter, term.get_id()))) # some terms may not have labels
     else:
         term = set_annotation_properties(term, relIter)
         term = set_relationships(term, ontology)

@@ -106,7 +106,7 @@ class OntologyTerm:
             self.set_term(value)
             
         else:
-            propType = self.__valid_annotation_property(prop)
+            propType = self.__get_annotation_type(prop)
             if propType is not None:
                 if propType == 'db_ref': 
                     self.add_db_ref(value)
@@ -120,7 +120,7 @@ class OntologyTerm:
                         self.__annotationProperties[propType] = value
                 
     
-    def __valid_annotation_property(self, property):
+    def __get_annotation_type(self, property):
         for annotType, properties in ANNOTATION_PROPERTIES.items():
             if property in properties:
                 return annotType
