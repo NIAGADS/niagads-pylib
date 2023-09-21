@@ -2,6 +2,13 @@
 from collections import OrderedDict, Counter
 from niagads.utils.string import xstr
 
+
+def flatten(array):
+    ''' flatten nested list 
+    after https://stackoverflow.com/a/952952'''
+    return [item for sublist in array for item in sublist]
+
+
 def chunker(seq, size, returnIterator=True):
     """for a given sequence, splits into even + residual chunks.  returns an iterator 
     see: https://stackoverflow.com/a/434328
