@@ -4,9 +4,9 @@ import json
 import warnings
 from collections import abc
 from types import SimpleNamespace
-from .string import is_float, is_integer, xstr
-from .list import drop_nulls as drop_nulls_from_list
 
+import niagads.utils.string as string_utils # aliased import to avoid 'partially initialized modules'
+import niagads.utils.list as list_utils 
 
 def print_dict(dictObj, pretty=True):
     ''' pretty print a dict / JSON object 
@@ -46,7 +46,7 @@ def get(obj, attribute, default=None, errorAction="fail"):
 def drop_nulls(obj):
     """ find nulls and remove from the object """
     if isinstance(obj, list):
-        drop_nulls_from_list(obj)
+        list_utils.drop_nulls(obj)
     if isinstance(obj, dict):
         return {k: v for k, v in obj.items() if v}
     
@@ -58,7 +58,7 @@ def dict_to_info_string(obj):
 
 def dict_to_string(obj, nullStr):
     """ translate dict to attr=value; string list"""
-    pairs = [ k + "=" + xstr(v, nullStr=nullStr) for k,v in obj.items()]
+    pairs = [ k + "=" + string_utils.xstr(v, nullStr=nullStr) for k,v in obj.items()]
     pairs.sort()
     return ';'.join(pairs)
 
@@ -97,9 +97,9 @@ def convert_str2numeric_values(cdict, nanAsStr=True, infAsStr=True):
         if 'inf' in str(value).lower() and infAsStr:
             # is_float test will be true for Infinity / -Infinity
             continue
-        if is_float(value): # must check float first b/c integers are a subset
+        if string_utils.is_float(value): # must check float first b/c integers are a subset
             cdict[key] = float(value)
-        if is_integer(value):
+        if string_utils.is_integer(value):
             cdict[key] = int(value)
 
     return cdict
