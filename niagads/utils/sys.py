@@ -1,30 +1,51 @@
 """ i/o and other system (e.g., subprocess) utils"""
-
-import sys
 import os
 import gzip
 import datetime
 import requests
-import json
+import logging
 
+from sys import stderr, exit
 from urllib.parse import urlencode
-from types import SimpleNamespace
 from subprocess import check_output, CalledProcessError
 
-def ascii_safe_str(obj):
-    ''' here and not in string_utils to avoid circular imports '''
-    try: return str(obj)
-    except UnicodeEncodeError:
-        return obj.encode('ascii', 'ignore').decode('ascii')
-    return ""
+from .enums import CLASS_PROPERTIES
+from .dict import print_dict
+from .string import ascii_safe_str
+from .exceptions import RestrictedValueError
 
 
-def print_dict(dictObj, pretty=True):
-    ''' pretty print a dict / JSON object 
-    here and not in dict_utils to avoid circular import '''
-    if isinstance(dictObj, SimpleNamespace):
-        return dictObj.__repr__()
-    return json.dumps(dictObj, indent=4, sort_keys=True) if pretty else json.dumps(dictObj)
+def generator_size(generator):
+    ''' return numbr items in a generator '''
+    return len(list(generator))
+
+
+def get_class_properties(instance, property):
+    """given a class instance (or class Type itself), prints properties 
+    (methods [or non-dunder methods (__methodName__)], members, or everything)
+    useful when using a class important from a poorly documented package
+    
+    Args:
+        instance (instantiated class object): class to investigate; can also pass the class itself
+        entity (str or CLASS_PROPERTIES enum value, optional): one of CLASS_PROPERTIES
+    """
+    if CLASS_PROPERTIES.has_value(property):
+        lookup = CLASS_PROPERTIES[property.upper()]
+        if lookup == CLASS_PROPERTIES.METHODS:
+            # ignore class-level properties (defined outside of init)
+            # after https://www.askpython.com/python/examples/find-all-methods-of-class
+            methods = [attribute for attribute in dir(instance) if callable(getattr(instance, attribute))]
+            return [ m for m in methods if not m.startswith('__') and not m.endswith('__') ]
+
+        if property == CLASS_PROPERTIES.MEMBERS:
+            # only works if class is instantiated
+            if type(instance) == type: # the class Type itself was passed
+                raise ValueError("Can only get members from an instantiated class")
+            else:
+                return list(vars(instance).keys())
+            
+    else:
+        raise RestrictedValueError("property", property, CLASS_PROPERTIES)
 
 
 def print_args(args, pretty=True):
@@ -79,7 +100,7 @@ def warning(*objs, **kwargs):
     '''
     print log messages to stderr
     '''
-    fh = sys.stderr
+    fh = stderr
     flush = False
     if kwargs:
         if 'file' in kwargs: fh = kwargs['file']
@@ -119,21 +140,35 @@ def die(message):
     mimics Perl's die function
     '''
     warning(message)
-    sys.exit(1)
+    exit(1)
 
 
-def make_request(endpoint, params, returnSuccess=False):
+def make_request(requestUrl, params, returnSuccess=True):
+    """
+    make request and catch errors; return flag indicating 
+    if successful even in case of error if returnSuccess == True
+    
+    Args:
+        requestUrl (string): url + endpoint
+        params (obj): {key:value} for parameters
+        returnSuccess (bool, optional): return success flag even in case of error. Defaults to False.
+
+    Returns:
+        None or flag indicating success
+    """
+
     ''' make a request and catch errors 
         return True if call is successful and returnSuccess=True
     '''
-    requestUrl = endpoint + "?" + urlencode(requestParams)
+    requestUrl += "?" + urlencode(params)
     try:
         response = requests.get(requestUrl)
         response.raise_for_status()      
         if returnSuccess:
             return True       
         return response.json()
-    except requests.exceptions.HTTPError as err:
+    except Exception as err:
         if returnSuccess:
             return False
         return {"message": "ERROR: " + err.args[0]}
+

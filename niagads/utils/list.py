@@ -1,20 +1,41 @@
 """ library of array, list, and set manipulation functions """
-
 from collections import OrderedDict, Counter
+from niagads.utils.string import xstr
 
-def chunker(seq, size):
-    """ for a given sequence, splits into even + residual chunks.  returns an iterator 
+
+def flatten(array):
+    ''' flatten nested list 
+    after https://stackoverflow.com/a/952952'''
+    return [item for sublist in array for item in sublist]
+
+
+def chunker(seq, size, returnIterator=True):
+    """for a given sequence, splits into even + residual chunks.  returns an iterator 
     see: https://stackoverflow.com/a/434328
-    
-animals = ['cat', 'dog', 'rabbit', 'duck', 'bird', 'cow', 'gnu', 'fish']
 
-for group in chunker(animals, 3):
-    print(group)
-# ['cat', 'dog', 'rabbit']
-# ['duck', 'bird', 'cow']
-# ['gnu', 'fish']
+    Example:    
+        ::
+        
+            animals = ['cat', 'dog', 'rabbit', 'duck', 'bird', 'cow', 'gnu', 'fish']
+
+            for group in chunker(animals, 3):
+                print(group)
+        
+        will output:
+            ['cat', 'dog', 'rabbit']
+            ['duck', 'bird', 'cow']
+            ['gnu', 'fish']
+
+    Args:
+        seq (list): list to be chunked
+        size (int): page or chunk size
+        returnIterator (boolean, optional): return an iterator; if false, returns a nested list. Defaults to True
+        
+    Returns:
+        iterator for chunked list of lists
     """
-    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size)) if returnIterator \
+        else [seq[pos:pos + size] for pos in range(0, len(seq), size)]
 
 
 def qw(s, returnTuple=False):
@@ -63,18 +84,18 @@ def list_to_indexed_dict(clist):
     return OrderedDict(zip(clist, range(1, len(clist) + 1)))
 
 
-def list_to_string(value, nullVal="NULL", delim=','):
+def list_to_string(value, nullStr="NULL", delim=','):
     """ checks if list, if so, converts to string; 
-    None -> nullVal; 
+    None/empty -> nullStr; 
     all other return str(value) 
     """
-    if value is None:
-        return nullVal
+    if value is None or len(value) == 0:
+        return nullStr
     
     if isinstance(value, list):
-        return delim.join(value)
+        return delim.join([xstr(v, nullStr=nullStr) for v in value])
     
-    return str(value)
+    return xstr(value)
 
 
 def drop_nulls(arr):
