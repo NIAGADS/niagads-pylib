@@ -1,20 +1,24 @@
 """ ontology parser
-more details to be added
-https://www.michelepasin.org/blog/2011/07/18/inspecting-an-ontology-with-rdflib/index.html
+Parses an OWL file representing an ontology and generates 3 tab-delimited file:
+
+terms.txt - contains basic term identification
+------------------------------------------------
+term_id, term, iri, db_refs, definition, comments, and obsolete/deprecated flags
+
+synonyms.txt - contains term_id - synonym (raw term, not ID) pairs
+------------------------------------------------
+
+relationships.txt - term 'is_a'/'subclass_of' relationships
+------------------------------------------------
+contains either subject_id / object_id pairs or 
+subject_id / parsed triple string (for relationships with restrictions or logic)
+
+in all files, missing or irrelevant information are indicated by 'NULL'
 
 Author: fossilfriend
 
 see https://owlready2.readthedocs.io for help w/owlready2
-
-some additional info that is helpful to know:
-owlready2 creates modules from the ontology structure, meanig
-
-classes === python class and need to be instantiated before accessed
-    - e.g., for c in ontoloy.classes():
-                c().get_iri()
-                c().get_properties()
-                
-TODO: simplify namespace filter
+see https://rdflib.readthedocs.io/en/stable/ for help w/rdflib
 """
 import argparse
 import logging
@@ -24,7 +28,7 @@ from functools import partial
 from rdflib import Graph, URIRef
 from os import path
 from owlready2 import get_ontology, Ontology
-from multiprocessing import Pool, cpu_count, Manager
+from multiprocessing import Pool, cpu_count, SimpleQueue
 
 from ..utils.sys import create_dir, generator_size
 from ..utils.logging import ExitOnExceptionHandler
@@ -34,6 +38,27 @@ from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS, parse_subclass_r
 logger = logging.getLogger(__name__)
 validAnnotationProps = flatten(list(ANNOTATION_PROPERTIES.values()))
 
+def init_worker(graph: Graph, ontology: Ontology, namespace: str):
+    """initialize parallel worker with large data structures 
+    or 'global' information'
+    so they can be shared amongs the processors
+    see https://superfastpython.com/multiprocessing-pool-shared-global-variables/
+
+    Args:
+        graph (Graph): ontology in rdflib Graph format (for accessing annotation properties)
+        ontology (Ontology): ontology in owlready2 Ontology format (for accessing parsed nested is_a relationships)
+        namespace (str): focal ontology namespace (e.g., DOID, CLO)
+    """
+    # declare scope of new global variable
+    global sharedGraph
+    global sharedOntology
+    global sharedNamespace
+
+    sharedGraph = graph
+    sharedOntology = ontology
+    sharedNamespace = namespace
+    
+    
 def set_annotation_properties(term: OntologyTerm, relIter):
     """extract annotation properties from term relationships
 
@@ -81,37 +106,54 @@ def set_relationships(term: OntologyTerm, ontology: Ontology):
         logger.exception(err)
 
 
-def annotate_term(subject: URIRef, graph: Graph, ontology: Ontology, namespace: None):
-    """exract annotation properties & relationships for the specified term
+def parallel_annotate_term(subject: URIRef):
+    """ worker function called by the multiproccessing pool to extract
+    anntotion properties and relationshisp for the specific term
     
-    although rdflib can be used to get is_a relationships its a bit cumbersone
-    so using owlready2, that's why we only extract the annotation properties 
+    relies on the following pool shared resources:
+    
+    sharedGraph: rdflib graph representation of the ontology,
+        for accessing annotation properties
+        
+    sharedOntology: owlready2 ontology representation of the ontology; 
+        for accessing parsed is_a relationships
+        
+    sharedNamespace: focal ontology namespace (e.g., DOID, CLO); 
+        relationships and full annotation properties will only be extracted
+        for terms in the namespace
+        all others will just be annotated by term_id, iri, and label (term itself)
+
+    NOTE: although rdflib can be used to get is_a relationships, its a bit cumbersone
+    so using owlready2 which returns them in a nice string format, 
+    that's why we only extract the annotation properties 
     from the rdflib triples iterator
 
     Args:
-        term (OntologyTerm): ontology term object
-        relIter (generator): partial 'triples' iterator; if labelOnly objects iterator; if not labelOnly predicates & objects
-        ontology (Ontology): owlready2 parsed ontology object
-        labelOnly (boolean, optional): only fetch label
+        subject (URIRef): term to be annotated, identified by its IRI
+
     Returns:
-        term
+        term (OntologyTerm): annotated term
     """
-    logger.info("Annotating " + str(subject))
+    # declare scope of shared variables
+    global sharedNamespace
+    global sharedGraph
+    global sharedOntology
+    
     term = OntologyTerm(str(subject))
-    labelOnly = False if namespace is None \
-        else not (namespace and term.in_namespace(namespace))
+    labelOnly = False if sharedNamespace is None \
+        else not (sharedNamespace and term.in_namespace(sharedNamespace))
                 
-    relationIterator = graph.objects(subject=subject, predicate=URIRef(LABEL_URI)) \
-        if labelOnly else graph.predicate_objects(subject=subject)
+    relationIterator = sharedGraph.objects(subject=subject, predicate=URIRef(LABEL_URI)) \
+        if labelOnly else sharedGraph.predicate_objects(subject=subject)
         
     if labelOnly:
         term.set_term(str(next(relationIterator, term.get_id()))) # some terms may not have labels
     else:
         term = set_annotation_properties(term, relationIterator)
-        term = set_relationships(term, ontology)
+        term = set_relationships(term, sharedOntology)
     return term
-        
-        
+
+
 def write_term(term: OntologyTerm, file):
     """
      write term to terms.txt file
@@ -174,10 +216,11 @@ def create_files(dir: str):
     print('\t'.join(qw('subject_term_id synonym', returnTuple=True)), file=sfh, flush=True)
     
     return tfh, rfh, sfh
-   
+
 
 def main():
-    parser = argparse.ArgumentParser(description="OWL (ontology RDF) file parser", allow_abbrev=False)
+    parser = argparse.ArgumentParser(description="OWL (ontology RDF) file parser", allow_abbrev=False,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--debug', help="log debugging statements", action='store_true')
     parser.add_argument('--verbose', help="run in verbose mode (will log INFO statements)", action='store_true')
     parser.add_argument('--url', required=True,
@@ -185,6 +228,7 @@ def main():
     parser.add_argument('--outputDir', required=True,
                         help="full path to output directory")
     parser.add_argument('--namespace', help="only write terms from specified namespace (e.g., CLO)")
+    parser.add_argument('--numWorkers', help="number of workers for parallel processing, default = #CPUs", type=int, default=cpu_count())
     args = parser.parse_args()
     
     outputPath = create_dir(args.outputDir)
@@ -223,46 +267,35 @@ def main():
         
         if args.verbose:
             logger.info("Found " + str(len(subjects)) + " ontology terms")
-            logger.info("Extracting terms and annotations")
-            
-        terms = [annotate_term(s, graph, ontology, args.namespace ) for s in subjects]
-        
+            logger.info("Extracting terms and annotations in parallel")
+                    
         termFh, relFh, synFh = create_files(outputPath)
         
-        # TODO: https://stackoverflow.com/questions/68373535/global-variable-access-during-python-multiprocessing
-        with Pool(cpu_count() + 2) as pool:
-            for result in pool.imap(partial(annotate_term, 
-                                            graph=graph,
-                                            ontology=ontology, 
-                                            namespace=args.namespace), subjects):
-                logger.info(type(result))
-                logger.info(result.get_term())
-            # self._response = sum(response, []) # concatenates indvidual responses
-            
-          
-        # count = 0
-        # termCount = 0
-        # for s in subjects:
-        #     count += 1
-        #     if isinstance(s, URIRef): # ignore rdflib Blind Nodes                     
-        #         write_term(term, termFh)
-                
-        #         if inNamespace:
-        #             write_synonyms(term, synFh)
-        #             write_relationships(term, relFh)
-                                    
-        #         termCount += 1
-        #         if termCount % 5000 == 0 and args.verbose:
-        #             logger.info("Parsed " + str(count) + " ontology terms; found " + str(termCount) + " valid terms")
+        # see https://superfastpython.com/multiprocessing-pool-shared-global-variables/
+        # for more info on shared 'globals' passed through custom initializer & initargs
+        with Pool(args.numWorkers, initializer=init_worker, initargs=(graph, ontology, args.namespace)) as pool:
+            terms = pool.imap(parallel_annotate_term, [s for s in subjects])
         
-        if args.verbose:
-            logger.info("DONE. Parsed " + str(count) + " ontology terms; found " + str(termCount) + " valid terms")
-            
-        termFh.close()
-        relFh.close()
-        synFh.close()
-
+            if args.verbose:
+                logger.info("Parsing ontology terms and writing files.")
+                
+            count = 0
+            for term in terms:
+                write_term(term, termFh)
+                
+                if (args.namespace and term.in_namespace(args.namespace)) or not args.namespace:
+                    write_synonyms(term, synFh)
+                    write_relationships(term, relFh)
+                
+                count = count + 1
+                if args.verbose and count % 5000 == 0:
+                    logger.info("Output " + str(count) + " ontology terms.")
+        
     except Exception as err:
         logger.exception("Error parsing ontology")
 
-    
+    finally:
+        # close the file handlers, if they exist                                    
+        if 'termFh' in locals(): termFh.close()
+        if 'relFh' in locals(): relFh.close()
+        if 'synFh' in locals(): synFh.close()
