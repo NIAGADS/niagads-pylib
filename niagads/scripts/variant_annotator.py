@@ -33,7 +33,8 @@ def read_variants(file):
 def main():
     logger = logging.getLogger(__name__)
     
-    parser = argparse.ArgumentParser(description="Look up a list of variants and retrieve annotation", allow_abbrev=False)
+    parser = argparse.ArgumentParser(description="Look up a list of variants and retrieve annotation", allow_abbrev=False,
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--file', required=True,
                         help="new line separated list of variants, can be refSnpID or chr:pos:ref:alt")
     parser.add_argument('--database', choices=['genomics', 'advp'], default='genomics')
