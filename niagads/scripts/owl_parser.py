@@ -222,7 +222,9 @@ def create_files(dir: str):
         term, relationship, and synoynm file handlers
     """
     tfh = open(path.join(dir, "terms.txt"), 'w')
-    print('\t'.join(ORDERED_PROPERTY_LABELS), file=tfh, flush=True)  
+    fields = ORDERED_PROPERTY_LABELS
+    fields.remove("comment")
+    print('\t'.join(fields), file=tfh, flush=True)  
         
     rfh = open(path.join(dir, "relationships.txt"), 'w')
     print('\t'.join(qw('subject_term_id object_term_id triple triple_json', returnTuple=True)), file=rfh, flush=True)

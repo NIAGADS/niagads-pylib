@@ -19,7 +19,7 @@ class OntologyTerm:
         self.__subclassOf = None
         self.__synonyms = None
         self.__dbRefs = None
-        self.__includeComments = False # TODO: flag to include comments in output
+        self.__includeComments = False
         self.__propTypes = annotation_property_types()
        
     def include_comments(self, includeComments=True):
@@ -94,6 +94,8 @@ class OntologyTerm:
         """
         values = [self.__id, self.__iri, self.__term]    
         for prop in self.__propTypes:
+            if not self.__includeComments and prop == 'comment':
+                continue
             annotation = '//'.join(self.__annotationProperties[prop]) \
                 if prop in self.__annotationProperties else None
             values.append(annotation)
