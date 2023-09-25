@@ -230,7 +230,7 @@ def create_files(dir: str):
     sfh = open(path.join(dir, "synonyms.txt"), 'w')
     print('\t'.join(qw('subject_term_id synonym', returnTuple=True)), file=sfh, flush=True)
     
-    dfh = open(path.join(dir, "db-refs.txt"), 'w')
+    dfh = open(path.join(dir, "dbrefs.txt"), 'w')
     print('\t'.join(qw('subject_term_id db_ref', returnTuple=False)), file=dfh, flush=True)
     
     return tfh, rfh, sfh, dfh
@@ -302,8 +302,8 @@ def main():
                 write_term(term, termFh)
                 
                 if (args.namespace and term.in_namespace(args.namespace)) or not args.namespace:
+                    write_relationships(term, relFh)                    
                     write_synonyms(term, synFh)
-                    write_relationships(term, relFh)
                     write_dbrefs(term, refFh)
                 
                 count = count + 1
@@ -318,3 +318,4 @@ def main():
         if 'termFh' in locals(): termFh.close()
         if 'relFh' in locals(): relFh.close()
         if 'synFh' in locals(): synFh.close()
+        if 'refFh' in locals(): refFh.close()
