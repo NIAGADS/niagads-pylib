@@ -102,6 +102,16 @@ class OntologyTerm:
     
         
     def set_annotation_property(self, prop, value):
+        """set annotation property; incls clean and validating property IRIs
+
+        Args:
+            prop (str): field/property to add
+            value (str): value to assign to the property
+        """
+        # some comments & definitions have newlines or tabs in them
+        # so clean it up; see https://stackoverflow.com/a/10711166
+        value = ' '.join(value.split())
+    
         if prop == 'label':
             self.set_term(value)
             
@@ -121,6 +131,14 @@ class OntologyTerm:
                 
     
     def __get_annotation_type(self, property):
+        """get property mapping for iri (e.g., multiple synonym fields -> synonym property)
+
+        Args:
+            property (str): field or property name
+
+        Returns:
+            string indicating mapped type (e.g., multiple synonym fields -> synonym property)
+        """
         for annotType, properties in ANNOTATION_PROPERTIES.items():
             if property in properties:
                 return annotType
