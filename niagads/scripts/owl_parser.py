@@ -310,6 +310,7 @@ def main():
                 if args.verbose and count % 5000 == 0:
                     logger.info("Output " + str(count) + " ontology terms.")
         
+            logger.info("Done.  Parsed " + str(count) + " ontology terms.")
     except Exception as err:
         logger.exception("Error parsing ontology")
 
