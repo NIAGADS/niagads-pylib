@@ -7,7 +7,8 @@ import argparse
 import logging
 from sys import stdout
 
-from ..utils.sys import warning, ExitOnExceptionHandler
+from ..utils.sys import warning
+from ..utils.logging import ExitOnExceptionHandler
 from ..api_wrapper import VariantRecord
 
 REQUEST_URI = "https://api.niagads.org"
