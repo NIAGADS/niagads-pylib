@@ -163,7 +163,22 @@ def write_term(term: OntologyTerm, file):
         file (obj): file handler
     """
     print(str(term), file=file)   
-                    
+
+
+def write_dbrefs(term: OntologyTerm, file):
+    """
+    write DB Refs to file
+
+    Args:
+        term (OntologyTerm): ontology term
+        file (obj): file handler
+    """
+    refs = term.get_db_refs()
+    if refs is not None:
+        id = term.get_id()
+        for r in refs:
+            print(id, r, sep='\t', file=file)   
+
 
 def write_synonyms(term: OntologyTerm, file):
     """
@@ -215,7 +230,10 @@ def create_files(dir: str):
     sfh = open(path.join(dir, "synonyms.txt"), 'w')
     print('\t'.join(qw('subject_term_id synonym', returnTuple=True)), file=sfh, flush=True)
     
-    return tfh, rfh, sfh
+    dfh = open(path.join(dir, "db-refs.txt"), 'w')
+    print('\t'.join(qw('subject_term_id db_ref', returnTuple=False)), file=dfh, flush=True)
+    
+    return tfh, rfh, sfh, dfh
 
 
 def main():
@@ -269,7 +287,7 @@ def main():
             logger.info("Found " + str(len(subjects)) + " ontology terms")
             logger.info("Extracting terms and annotations in parallel")
                     
-        termFh, relFh, synFh = create_files(outputPath)
+        termFh, relFh, synFh, refFh = create_files(outputPath)
         
         # see https://superfastpython.com/multiprocessing-pool-shared-global-variables/
         # for more info on shared 'globals' passed through custom initializer & initargs
@@ -286,6 +304,7 @@ def main():
                 if (args.namespace and term.in_namespace(args.namespace)) or not args.namespace:
                     write_synonyms(term, synFh)
                     write_relationships(term, relFh)
+                    write_dbrefs(term, refFh)
                 
                 count = count + 1
                 if args.verbose and count % 5000 == 0:
