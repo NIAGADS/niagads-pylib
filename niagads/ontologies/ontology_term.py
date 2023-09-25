@@ -115,7 +115,15 @@ class OntologyTerm:
         value = ' '.join(value.split())
     
         if prop == 'label':
-            self.set_term(value)
+            if value.startswith('obsolete:') or value.startswith('deprecated:'):
+                obs, term = value.split(':')
+                self.set_term(term.strip())
+                if 'obsolete' in value:
+                    self.__annotationProperties['is_obsolete'] = True
+                else:
+                    self.__annotationProperties['is_deprecated'] = True
+            else:
+                self.set_term(value)
             
         else:
             propType = self.__get_annotation_type(prop)
