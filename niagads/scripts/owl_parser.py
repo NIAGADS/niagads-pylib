@@ -287,8 +287,10 @@ def main():
                 logger.info("Parsing ontology terms and writing files.")
                 
             count = 0
+            importCount = 0
             for term in terms:
                 if term is None: # imported
+                    importCount = importCount + 1
                     continue
                 
                 write_term(term, termFh)
@@ -308,6 +310,7 @@ def main():
                     logger.info("Output " + str(count) + " ontology terms")
         
             logger.info("Done.  Parsed " + str(count) + " ontology terms")
+            logger.info("Skipped " + str(importCount) + " imported ontology terms")
     except Exception as err:
         logger.exception("Error parsing ontology")
 
