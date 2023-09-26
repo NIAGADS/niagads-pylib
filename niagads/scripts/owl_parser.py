@@ -66,7 +66,10 @@ def set_annotation_properties(term: OntologyTerm, relIter):
     Returns:
         updated term
     """
+    id = term.get_id()
     for predicate, object in relIter:
+        if id == 'oboInOwl#ObsoleteClass':
+            print(property)
         property = path.basename(str(predicate))
         if '#' in property:
             property = property.split('#')[1]
@@ -75,7 +78,9 @@ def set_annotation_properties(term: OntologyTerm, relIter):
             term.set_term(str(object))
         elif property in validAnnotationProps:
             term.set_annotation_property(property, str(object))
-
+        
+    if id == 'oboInOwl#ObsoleteClass':
+        logger.error("done with test")
     return term
 
 
