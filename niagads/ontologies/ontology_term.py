@@ -113,9 +113,11 @@ class OntologyTerm:
             if not self.__includeComments and prop == 'comment':
                 continue
             if prop in self.__annotationProperties:
-                annotation = 'True' if prop == 'is_obsolete' \
+                annotation = True if prop == 'is_obsolete' \
                     else '//'.join(self.__annotationProperties[prop])     
                 values.append(annotation)
+            else:
+                values.append(None)
     
         return list_to_string(values, nullStr='NULL', delim='\t')
     
