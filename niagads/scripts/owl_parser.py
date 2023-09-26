@@ -95,7 +95,7 @@ def set_relationships(term: OntologyTerm, ontology: Ontology):
     try:
         owlClass = ontology.search(iri = "*" + term.get_id())
         if len(owlClass) == 0:
-            raise ValueError("Term " + term.get_id() + " not found in ontology.")
+            return term
         relationships = [str(c) for c in owlClass[0].is_a]
         term.set_is_a(relationships)
         return term
