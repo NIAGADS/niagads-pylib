@@ -7,12 +7,13 @@ from ..utils.list import qw
 ANNOTATION_PROPERTIES = OrderedDict({
     'definition': qw('IAO_0000115 definition def'),
     'preferred_term': ['IAO_0000111'],
-    'is_obsolete':['ObsoleteClass', 'ObsoleteProperty'],
-    'is_deprecated':  ['deprecated'],
+    'is_obsolete':['is_obsolete', 'deprecated'],
     'comment': ['comment'],
     'synonym': qw('IAO_0000118 alternative_term Synonym hasBroadSynonym hasExactSynonym hasNarrowSynonym hasRelatedSynonym OBI_9991119 OBI_9991118'),
     'db_ref': qw('dbref seeAlso hasDbXref')
 })
+
+OBSOLETE_RELATIONSHIPS = ['ObsoleteClass', 'ObsoleteProperty']
 
 LABEL_URI = 'http://www.w3.org/2000/01/rdf-schema#label'
 

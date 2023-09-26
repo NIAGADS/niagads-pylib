@@ -38,7 +38,7 @@ from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS, parse_subclass_r
 logger = logging.getLogger(__name__)
 validAnnotationProps = flatten(list(ANNOTATION_PROPERTIES.values()))
 
-def init_worker(graph: Graph, ontology: Ontology, namespace: str):
+def init_worker(graph: Graph, ontology: Ontology):
     """initialize parallel worker with large data structures 
     or 'global' information'
     so they can be shared amongs the processors
@@ -47,16 +47,14 @@ def init_worker(graph: Graph, ontology: Ontology, namespace: str):
     Args:
         graph (Graph): ontology in rdflib Graph format (for accessing annotation properties)
         ontology (Ontology): ontology in owlready2 Ontology format (for accessing parsed nested is_a relationships)
-        namespace (str): focal ontology namespace (e.g., DOID, CLO)
     """
     # declare scope of new global variable
     global sharedGraph
     global sharedOntology
-    global sharedNamespace
 
     sharedGraph = graph
     sharedOntology = ontology
-    sharedNamespace = namespace
+
     
     
 def set_annotation_properties(term: OntologyTerm, relIter):
@@ -118,10 +116,6 @@ def parallel_annotate_term(subject: URIRef):
     sharedOntology: owlready2 ontology representation of the ontology; 
         for accessing parsed is_a relationships
         
-    sharedNamespace: focal ontology namespace (e.g., DOID, CLO); 
-        relationships and full annotation properties will only be extracted
-        for terms in the namespace
-        all others will just be annotated by term_id, iri, and label (term itself)
 
     NOTE: although rdflib can be used to get is_a relationships, its a bit cumbersone
     so using owlready2 which returns them in a nice string format, 
@@ -135,22 +129,13 @@ def parallel_annotate_term(subject: URIRef):
         term (OntologyTerm): annotated term
     """
     # declare scope of shared variables
-    global sharedNamespace
     global sharedGraph
     global sharedOntology
     
     term = OntologyTerm(str(subject))
-    labelOnly = False if sharedNamespace is None \
-        else not (sharedNamespace and term.in_namespace(sharedNamespace))
-                
-    relationIterator = sharedGraph.objects(subject=subject, predicate=URIRef(LABEL_URI)) \
-        if labelOnly else sharedGraph.predicate_objects(subject=subject)
-        
-    if labelOnly:
-        term.set_term(str(next(relationIterator, term.get_id()))) # some terms may not have labels
-    else:
-        term = set_annotation_properties(term, relationIterator)
-        term = set_relationships(term, sharedOntology)
+    relationIterator = sharedGraph.objects(subject=subject, predicate=URIRef(LABEL_URI)) 
+    term = set_annotation_properties(term, relationIterator)
+    term = set_relationships(term, sharedOntology)
     return term
 
 
@@ -282,7 +267,7 @@ def main():
             logger.info("Found " + str(len(graph)) + " ontology terms (incl. blind nodes)")
             logger.info("Pruning blind nodes")
         
-        # remove blind nodes and transform to list so can use multiprocessing.imap   
+        # remove blind nodes and transform iterator to list so can use multiprocessing.imap   
         subjects = [s for s in graph.subjects() if isinstance(s, URIRef)]
         
         if args.verbose:
@@ -293,7 +278,7 @@ def main():
         
         # see https://superfastpython.com/multiprocessing-pool-shared-global-variables/
         # for more info on shared 'globals' passed through custom initializer & initargs
-        with Pool(args.numWorkers, initializer=init_worker, initargs=(graph, ontology, args.namespace)) as pool:
+        with Pool(args.numWorkers, initializer=init_worker, initargs=(graph, ontology)) as pool:
             terms = pool.imap(parallel_annotate_term, [s for s in subjects])
         
             if args.verbose:
@@ -303,7 +288,12 @@ def main():
             for term in terms:
                 write_term(term, termFh)
                 
-                if (args.namespace and term.in_namespace(args.namespace)) or not args.namespace:
+                # terms get fully annotated b/c obsolete flags can be in relationships
+                # filter for namespace after annotation is complete
+                termOnly = False if args.namespace is None \
+                    else not (args.namespace and term.in_namespace(args.namespace))
+                    
+                if not termOnly:
                     write_relationships(term, relFh)                    
                     write_synonyms(term, synFh)
                     write_dbrefs(term, refFh)

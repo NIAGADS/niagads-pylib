@@ -3,9 +3,9 @@ import json
 
 from os.path import basename
 
-from . import annotation_property_types, ANNOTATION_PROPERTIES, REGEX_PATTERNS
-from ..utils.list import list_to_string
-from ..utils.string import is_balanced, regex_extract, regex_replace, regex_split
+from . import annotation_property_types, ANNOTATION_PROPERTIES, REGEX_PATTERNS, OBSOLETE_RELATIONSHIPS
+from ..utils.list import array_in_string, list_to_string
+from ..utils.string import is_balanced, regex_extract
 
 class OntologyTerm:
     def __init__(self, iri, debug=False):
@@ -21,7 +21,11 @@ class OntologyTerm:
         self.__dbRefs = None
         self.__includeComments = False
         self.__propTypes = annotation_property_types()
-       
+        
+        
+    def set_is_obsolete(self):
+        self.__annotationProperties['is_obsolete'] = True
+        
     def include_comments(self, includeComments=True):
         self.__includeComments = includeComments
      
@@ -44,6 +48,18 @@ class OntologyTerm:
             
         
     def set_is_a(self, relationships):
+        """takes is_a relationships; finds obsolete flags and removes,
+        setting the term to obsolete when required
+        
+        then assigns the remaning relationships to the term
+
+        Args:
+            relationships (str list): list of relationships in str format
+        """
+        for r in relationships:
+            if array_in_string(r, OBSOLETE_RELATIONSHIPS):
+                self.set_is_obsolete()
+                relationships.remove(r)
         self.__subclassOf = relationships
         
     def get_db_refs(self, asStr=False):
@@ -115,21 +131,18 @@ class OntologyTerm:
         value = ' '.join(value.split())
     
         if prop == 'label':
-            if value.startswith('obsolete:') or value.startswith('deprecated:'):
-                qualifier, term = value.split(':')
-                self.set_term(term.strip())
-                self.__annotationProperties['is_' + qualifier] = True 
-            else:
-                self.set_term(value)
+            self.set_term(value)
             
         else:
             propType = self.__get_annotation_type(prop)
             if propType is not None:
                 if propType == 'db_ref': 
                     self.add_db_ref(value)
-                if propType == 'synonym':
+                elif propType == 'synonym':
                     self.add_synonym(value)
-                else:    
+                elif propType == 'is_obsolete':
+                    self.set_is_obsolete()
+                else:
                     value = [value] # make everything a list
                     if propType in self.__annotationProperties:
                         self.__annotationProperties[propType] = self.__annotationProperties[propType] + value
