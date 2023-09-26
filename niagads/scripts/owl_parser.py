@@ -69,7 +69,7 @@ def set_annotation_properties(term: OntologyTerm, relIter):
     id = term.get_id()
     for predicate, object in relIter:
         property = path.basename(str(predicate))
-        if id == 'oboInOwl#ObsoleteClass':
+        if id == 'UBERON_0005795':
             logger.info(id + " -> " + property + " -> " + str(object))
         if '#' in property:
             property = property.split('#')[1]
@@ -79,7 +79,7 @@ def set_annotation_properties(term: OntologyTerm, relIter):
         elif property in validAnnotationProps:
             term.set_annotation_property(property, str(object))
         
-    if id == 'oboInOwl#ObsoleteClass':
+    if id == 'UBERON_0005795':
         logger.error("done with test")
     return term
 
@@ -273,7 +273,7 @@ def main():
         
         # remove blind nodes and transform iterator to list so can use multiprocessing.imap   
         subjects = [s for s in graph.subjects() if isinstance(s, URIRef)]
-        
+    
         if args.verbose:
             logger.info("Found " + str(len(subjects)) + " ontology terms")
             logger.info("Extracting terms and annotations in parallel")
@@ -304,9 +304,9 @@ def main():
                 
                 count = count + 1
                 if args.verbose and count % 5000 == 0:
-                    logger.info("Output " + str(count) + " ontology terms.")
+                    logger.info("Output " + str(count) + " ontology terms")
         
-            logger.info("Done.  Parsed " + str(count) + " ontology terms.")
+            logger.info("Done.  Parsed " + str(count) + " ontology terms")
     except Exception as err:
         logger.exception("Error parsing ontology")
 
