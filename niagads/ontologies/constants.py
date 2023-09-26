@@ -15,6 +15,8 @@ ANNOTATION_PROPERTIES = OrderedDict({
 
 OBSOLETE_RELATIONSHIPS = ['ObsoleteClass', 'ObsoleteProperty']
 
+IMPORTED_FROM = 'IAO_0000412'
+
 LABEL_URI = 'http://www.w3.org/2000/01/rdf-schema#label'
 
 def annotation_property_types():
