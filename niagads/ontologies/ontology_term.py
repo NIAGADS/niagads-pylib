@@ -92,7 +92,8 @@ class OntologyTerm:
     def set_term(self, term:str):
         self.__term = term
         # not always flagged w/an annotation property or ObsoleteClass tag
-        if term.startswith('obsolete') or term.startswith('deprecated'):
+        if (term.startswith('obsolete') and term != 'obsolete class') \
+            or term.startswith('deprecated'):
             self.set_is_obsolete()
         
     def get_annotation_properties(self):
