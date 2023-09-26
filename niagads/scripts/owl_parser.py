@@ -56,7 +56,6 @@ def init_worker(graph: Graph, ontology: Ontology):
     sharedOntology = ontology
 
     
-    
 def set_annotation_properties(term: OntologyTerm, relIter):
     """extract annotation properties from term relationships
 
@@ -133,7 +132,7 @@ def parallel_annotate_term(subject: URIRef):
     global sharedOntology
     
     term = OntologyTerm(str(subject))
-    relationIterator = sharedGraph.objects(subject=subject, predicate=URIRef(LABEL_URI)) 
+    relationIterator = sharedGraph.predicate_objects(subject=subject) 
     term = set_annotation_properties(term, relationIterator)
     term = set_relationships(term, sharedOntology)
     return term
