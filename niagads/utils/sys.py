@@ -15,6 +15,48 @@ from .string import ascii_safe_str
 from .exceptions import RestrictedValueError
 
 
+def generic_file_sort(file: str, header=True, overwrite=True):
+    """ sorts file; returns sorted file name """
+    if not header:
+        cmd = ["sort", file, ">", file + ".sorted"]
+    else:
+        cmd = ["(", "head", "-n", 2, file, "&&", "tail", "-n", "+3", file, "|", "sort", ")", ">", file + ".sorted"]
+        
+    execute_cmd(cmd)
+    
+    if overwrite:
+        cmd = ["mv", file + ".sorted", file]
+        execute_cmd(cmd)
+        return file    
+    else:
+        return file + ".sorted"
+    
+
+
+def remove_duplicate_lines(file: str, header=True, overwrite=True):
+    """remove duplicate lines from a file
+
+    Args:
+        file (str): file name
+        header (boolean, optional): file contains header? Defaults to True
+        overwrite (boolean, optional): overwrite file? Defaults to True
+      
+    Returns:
+        cleaned file name
+    """
+    sortedFile = generic_file_sort(file, header, overwrite)
+    cmd = ["uniq", sortedFile, ">", sortedFile + ".uniq"]
+    execute_cmd(cmd)
+    
+    if overwrite:
+        cmd = ["mv", sortedFile + ".uniq", file]
+        execute_cmd(cmd)
+        return file  
+    else:
+        return sortedFile + ".uniq"  
+    
+
+
 def generator_size(generator):
     ''' return numbr items in a generator '''
     return len(list(generator))
