@@ -253,6 +253,20 @@ def create_files(dir: str):
     return tfh, rfh, sfh, dfh
 
 
+def clean_subjects(graph: Graph):
+    # remove blind nodes and transform iterator to list so can use multiprocessing.imap   
+    # remove duplicates
+    subjects = graph.subjects()
+    reference = {}
+    cleanSubjects = []
+    for s in subjects:
+        id = str(s)
+        if id not in reference and isinstance(s, URIRef):
+            reference[id] = True
+            cleanSubjects.append(s)
+    return cleanSubjects
+
+
 def main():
     parser = argparse.ArgumentParser(description="OWL (ontology RDF) file parser", allow_abbrev=False,
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -298,9 +312,10 @@ def main():
             logger.info("Found " + str(len(graph)) + " ontology terms (incl. blind nodes)")
             logger.info("Pruning blind nodes")
         
-        # remove blind nodes and transform iterator to list so can use multiprocessing.imap   
-        subjects = [s for s in graph.subjects() if isinstance(s, URIRef)]
-    
+        # remove blind nodes and duplicates
+        subjects = clean_subjects(graph)
+        # subjects = [s for s in graph.subjects() if isinstance(s, URIRef)]
+        
         if args.verbose:
             logger.info("Found " + str(len(subjects)) + " ontology terms")
             logger.info("Extracting terms and annotations in parallel")
@@ -340,7 +355,7 @@ def main():
                         logger.debug(term.get_id() + " - WRITING - relationships")
                         
                     write_relationships(term, relFh)    
-                       
+
                     if args.debug:
                         logger.debug(term.get_id() + " - WRITING - synonyms")    
                                 
