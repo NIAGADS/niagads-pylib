@@ -24,9 +24,11 @@ import argparse
 import logging
 import json
 
+from os import path
+from sys import stdout
+
 from functools import partial
 from rdflib import Graph, URIRef
-from os import path
 from owlready2 import get_ontology, Ontology
 from multiprocessing import Pool, cpu_count, SimpleQueue
 
@@ -236,6 +238,7 @@ def main():
                         help="full path to output directory")
     parser.add_argument('--namespace', help="only write terms from specified namespace (e.g., CLO)")
     parser.add_argument('--numWorkers', help="number of workers for parallel processing, default = #CPUs", type=int, default=cpu_count())
+    parser.add_argument('--reportSuccess', action='store_true', help="for third party calls, report SUCCESS when complete")
     args = parser.parse_args()
     
     outputPath = create_dir(args.outputDir)
@@ -314,13 +317,20 @@ def main():
             logger.info("Removing duplicates from 'terms.txt file")
             termFh.close()
             remove_duplicate_lines(path.join(outputPath, "terms.txt"), header=True, overwrite=True)
-            
+        
+        if args.reportSuccess:
+            print("SUCCESS", file=stdout)
     except Exception as err:
         logger.exception("Error parsing ontology")
-
+        # report success
+        if args.reportSuccess:
+            print("FAIL", file=stdout)
+            
     finally:
         # close the file handlers, if they exist                                    
         if 'termFh' in locals(): termFh.close()
         if 'relFh' in locals(): relFh.close()
         if 'synFh' in locals(): synFh.close()
         if 'refFh' in locals(): refFh.close()
+        
+    
