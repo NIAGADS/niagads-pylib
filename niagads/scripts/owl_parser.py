@@ -31,7 +31,7 @@ from rdflib import Graph, URIRef
 from owlready2 import get_ontology, Ontology
 from multiprocessing import Pool, cpu_count
 
-from ..utils.sys import create_dir, remove_duplicate_lines
+from ..utils.sys import create_dir
 from ..utils.logging import ExitOnExceptionHandler
 from ..utils.list import qw, flatten
 from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS, parse_subclass_relationship, ANNOTATION_PROPERTIES, IMPORTED_FROM
@@ -309,12 +309,11 @@ def main():
         if args.verbose:
             logger.info("Done loading ontology")
             logger.info("Found " + str(len(graph)) + " ontology terms (incl. blind nodes)")
-            logger.info("Pruning blind nodes")
+            logger.info("Pruning blind nodes and removing duplicates")
         
         # remove blind nodes and duplicates
         subjects = clean_subjects(graph)
-        # subjects = [s for s in graph.subjects() if isinstance(s, URIRef)]
-        
+
         if args.verbose:
             logger.info("Found " + str(len(subjects)) + " ontology terms")
             logger.info("Extracting terms and annotations in parallel")
@@ -374,10 +373,7 @@ def main():
         
             logger.info("Done.  Parsed " + str(count) + " ontology terms")
             logger.info("Skipped " + str(importCount) + " imported ontology terms")
-            # logger.info("Removing duplicates from 'terms.txt file")
-            # termFh.close()
-            # remove_duplicate_lines(path.join(outputPath, "terms.txt"), header=True, overwrite=True)
-        
+
         if args.reportSuccess:
             print("SUCCESS", file=stdout)
     except Exception as err:
