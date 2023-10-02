@@ -40,7 +40,7 @@ from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS, parse_subclass_r
 logger = logging.getLogger(__name__)
 validAnnotationProps = flatten(list(ANNOTATION_PROPERTIES.values()))
 
-def init_worker(graph: Graph, ontology: Ontology):
+def init_worker(graph: Graph, ontology: Ontology, debug: bool):
     """initialize parallel worker with large data structures 
     or 'global' information'
     so they can be shared amongs the processors
@@ -53,9 +53,11 @@ def init_worker(graph: Graph, ontology: Ontology):
     # declare scope of new global variable
     global sharedGraph
     global sharedOntology
+    global sharedDebugFlag
 
     sharedGraph = graph
     sharedOntology = ontology
+    sharedDebugFlag = debug
 
     
 def set_annotation_properties(term: OntologyTerm, relIter):
@@ -67,7 +69,9 @@ def set_annotation_properties(term: OntologyTerm, relIter):
 
     Returns:
         updated term
-    """
+    """ 
+    global sharedDebugFlag
+    
     for predicate, object in relIter:
         property = path.basename(str(predicate))
         if property == IMPORTED_FROM:
@@ -79,6 +83,10 @@ def set_annotation_properties(term: OntologyTerm, relIter):
             term.set_term(str(object))
         elif property in validAnnotationProps:
             term.set_annotation_property(property, str(object))
+            
+    if sharedDebugFlag:
+        logger.debug(term.get_id() + " - END - properties")
+ 
     return term
 
 
@@ -95,12 +103,16 @@ def set_relationships(term: OntologyTerm, ontology: Ontology):
     Returns:
         updated term
     """
+    global sharedDebugFlag
+    
     try:
         owlClass = ontology.search(iri = "*" + term.get_id())
         if len(owlClass) == 0:
             return term
         relationships = [str(c) for c in owlClass[0].is_a]
         term.set_is_a(relationships)
+        if sharedDebugFlag:
+            logger.debug(term.get_id() + " - DONE - relationships")
         return term
     except ValueError as err:
         logger.exception(err)
@@ -108,7 +120,7 @@ def set_relationships(term: OntologyTerm, ontology: Ontology):
 
 def parallel_annotate_term(subject: URIRef):
     """ worker function called by the multiproccessing pool to extract
-    anntotion properties and relationshisp for the specific term
+    annotation properties and relationshisp for the specific term
     
     relies on the following pool shared resources:
     
@@ -133,13 +145,27 @@ def parallel_annotate_term(subject: URIRef):
     # declare scope of shared variables
     global sharedGraph
     global sharedOntology
+    global sharedDebugFlag
     
-    term = OntologyTerm(str(subject))
+    term = OntologyTerm(str(subject))  
+    if sharedDebugFlag:
+        logger.debug(term.get_id() + " - START")
+        
     relationIterator = sharedGraph.predicate_objects(subject=subject) 
+    
+    if sharedDebugFlag:
+        logger.debug(term.get_id() + " - START - properties")
+        
     term = set_annotation_properties(term, relationIterator)
     if term is None: # will happen if properties reveal the term is imported and so not fully annotated in the OWL file
         return None
+    
+    if sharedDebugFlag:
+        logger.debug(term.get_id() + " - START - relationships")
     term = set_relationships(term, sharedOntology)
+    
+    if sharedDebugFlag:
+        logger.debug(term.get_id() + " - END - annotated")
     return term
 
 
@@ -283,7 +309,10 @@ def main():
         
         # see https://superfastpython.com/multiprocessing-pool-shared-global-variables/
         # for more info on shared 'globals' passed through custom initializer & initargs
-        with Pool(args.numWorkers, initializer=init_worker, initargs=(graph, ontology)) as pool:
+        with Pool(args.numWorkers, initializer=init_worker, initargs=(graph, ontology, args.debug)) as pool:
+            if args.debug:
+                logger.debug("Starting parallel processing of subjects; max number workers = " + str(args.numWorkers))
+                
             terms = pool.imap(parallel_annotate_term, [s for s in subjects])
         
             if args.verbose:
@@ -296,6 +325,9 @@ def main():
                     importCount = importCount + 1
                     continue
                 
+                if args.debug:
+                    logger.debug(term.get_id() + " - WRITING - term")
+                    
                 write_term(term, termFh)
                 
                 # terms get fully annotated b/c obsolete flags can be in relationships
@@ -304,10 +336,24 @@ def main():
                     else not (args.namespace and term.in_namespace(args.namespace))
                     
                 if not termOnly:
-                    write_relationships(term, relFh)                    
+                    if args.debug:
+                        logger.debug(term.get_id() + " - WRITING - relationships")
+                        
+                    write_relationships(term, relFh)    
+                       
+                    if args.debug:
+                        logger.debug(term.get_id() + " - WRITING - synonyms")    
+                                
                     write_synonyms(term, synFh)
+                    
+                    if args.debug:
+                        logger.debug(term.get_id() + " - WRITING - dbrefs")
+                        
                     write_dbrefs(term, refFh)
-                
+                    
+                if args.debug:
+                    logger.debug(term.get_id() + " - WRITING - END")
+                    
                 count = count + 1
                 if args.verbose and count % 5000 == 0:
                     logger.info("Output " + str(count) + " ontology terms")
