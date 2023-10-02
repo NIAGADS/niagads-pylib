@@ -27,12 +27,11 @@ import json
 from os import path
 from sys import stdout
 
-from functools import partial
 from rdflib import Graph, URIRef
 from owlready2 import get_ontology, Ontology
-from multiprocessing import Pool, cpu_count, SimpleQueue
+from multiprocessing import Pool, cpu_count
 
-from ..utils.sys import create_dir, generator_size, remove_duplicate_lines
+from ..utils.sys import create_dir, remove_duplicate_lines
 from ..utils.logging import ExitOnExceptionHandler
 from ..utils.list import qw, flatten
 from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS, parse_subclass_relationship, ANNOTATION_PROPERTIES, IMPORTED_FROM
@@ -375,9 +374,9 @@ def main():
         
             logger.info("Done.  Parsed " + str(count) + " ontology terms")
             logger.info("Skipped " + str(importCount) + " imported ontology terms")
-            logger.info("Removing duplicates from 'terms.txt file")
-            termFh.close()
-            remove_duplicate_lines(path.join(outputPath, "terms.txt"), header=True, overwrite=True)
+            # logger.info("Removing duplicates from 'terms.txt file")
+            # termFh.close()
+            # remove_duplicate_lines(path.join(outputPath, "terms.txt"), header=True, overwrite=True)
         
         if args.reportSuccess:
             print("SUCCESS", file=stdout)
