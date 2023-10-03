@@ -59,6 +59,9 @@ def init_worker(graph: Graph, ontology: Ontology, debug: bool, timer=None):
     sharedOntology = ontology
     sharedDebugFlag = debug
     sharedTimer = timer
+    
+    if sharedDebugFlag:
+        sharedTimer.start()
 
     
 def set_annotation_properties(term: OntologyTerm, relIter):
@@ -330,9 +333,9 @@ def main():
         
         # see https://superfastpython.com/multiprocessing-pool-shared-global-variables/
         # for more info on shared 'globals' passed through custom initializer & initargs
+ 
         with Pool(args.numWorkers, initializer=init_worker, initargs=(graph, ontology, args.debug, timer)) as pool:
             if args.debug:
-                timer.start()
                 logger.debug(timer.time() + " - Starting parallel processing of subjects; max number workers = " + str(args.numWorkers))
                 
             terms = pool.imap(parallel_annotate_term, [s for s in subjects])
