@@ -18,6 +18,8 @@ class RestrictedValueError(Exception):
         super().__init__(json.dumps(self.__message))
 
 
+class TimerError(Exception):
+    """A custom exception used to report errors in use of Timer class"""
 
 
 
