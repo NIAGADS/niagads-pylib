@@ -32,14 +32,14 @@ from owlready2 import get_ontology, Ontology
 from multiprocessing import Pool, cpu_count
 
 from ..utils.sys import create_dir
-from ..utils.logging import ExitOnExceptionHandler, Timer
+from ..utils.logging import ExitOnExceptionHandler
 from ..utils.list import qw, flatten
 from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS, parse_subclass_relationship, ANNOTATION_PROPERTIES, IMPORTED_FROM
 
 logger = logging.getLogger(__name__)
 validAnnotationProps = flatten(list(ANNOTATION_PROPERTIES.values()))
 
-def init_worker(graph: Graph, ontology: Ontology, debug: bool, timer=None):
+def init_worker(graph: Graph, ontology: Ontology, debug: bool):
     """initialize parallel worker with large data structures 
     or 'global' information'
     so they can be shared amongs the processors
@@ -53,15 +53,10 @@ def init_worker(graph: Graph, ontology: Ontology, debug: bool, timer=None):
     global sharedGraph
     global sharedOntology
     global sharedDebugFlag
-    global sharedTimer 
     
     sharedGraph = graph
     sharedOntology = ontology
     sharedDebugFlag = debug
-    sharedTimer = timer
-    
-    if sharedDebugFlag:
-        sharedTimer.start()
 
     
 def set_annotation_properties(term: OntologyTerm, relIter):
@@ -75,7 +70,6 @@ def set_annotation_properties(term: OntologyTerm, relIter):
         updated term
     """ 
     global sharedDebugFlag
-    global sharedTimer
     
     for predicate, object in relIter:
         property = path.basename(str(predicate))
@@ -90,7 +84,7 @@ def set_annotation_properties(term: OntologyTerm, relIter):
             term.set_annotation_property(property, str(object))
             
     if sharedDebugFlag:
-        logger.debug(sharedTimer.time() + " - " + term.get_id() + " - END - properties")
+        logger.debug(term.get_id() + " - END - properties")
  
     return term
 
@@ -109,7 +103,6 @@ def set_relationships(term: OntologyTerm, ontology: Ontology):
         updated term
     """
     global sharedDebugFlag
-    global sharedTimer
     
     try:
         owlClass = ontology.search(iri = "*" + term.get_id())
@@ -118,7 +111,7 @@ def set_relationships(term: OntologyTerm, ontology: Ontology):
         relationships = [str(c) for c in owlClass[0].is_a]
         term.set_is_a(relationships)
         if sharedDebugFlag:
-            logger.debug(sharedTimer.time() + " - " + term.get_id() + " - DONE - relationships")
+            logger.debug(term.get_id() + " - DONE - relationships")
         return term
     except ValueError as err:
         logger.exception(err)
@@ -152,27 +145,26 @@ def parallel_annotate_term(subject: URIRef):
     global sharedGraph
     global sharedOntology
     global sharedDebugFlag
-    global sharedTimer
     
     term = OntologyTerm(str(subject))  
     if sharedDebugFlag:
-        logger.debug(sharedTimer.time() + " - " + term.get_id() + " - START")
+        logger.debug(term.get_id() + " - START")
         
     relationIterator = sharedGraph.predicate_objects(subject=subject) 
     
     if sharedDebugFlag:
-        logger.debug(sharedTimer.time() + " - " + term.get_id() + " - START - properties")
+        logger.debug(term.get_id() + " - START - properties")
         
     term = set_annotation_properties(term, relationIterator)
     if term is None: # will happen if properties reveal the term is imported and so not fully annotated in the OWL file
         return None
     
     if sharedDebugFlag:
-        logger.debug(sharedTimer.time() + " - " + term.get_id() + " - START - relationships")
+        logger.debug(term.get_id() + " - START - relationships")
     term = set_relationships(term, sharedOntology)
     
     if sharedDebugFlag:
-        logger.debug(sharedTimer.time() + " - " + term.get_id() + " - END - annotated")
+        logger.debug(term.get_id() + " - END - annotated")
     return term
 
 
@@ -287,9 +279,7 @@ def main():
     parser.add_argument('--numWorkers', help="number of workers for parallel processing, default = #CPUs", type=int, default=cpu_count())
     parser.add_argument('--reportSuccess', action='store_true', help="for third party calls, report SUCCESS when complete")
     args = parser.parse_args()
-    
-    timer = Timer() if args.debug else None
-    
+        
     outputPath = create_dir(args.outputDir)
     
     logging.basicConfig(
@@ -298,7 +288,7 @@ def main():
                 mode='w',
                 encoding='utf-8',
             )],
-            format='%(asctime)s %(levelname)-8s %(message)s',
+            format='%(asctime)s %(funcName)s %(levelname)-8s %(message)s',
             level=logging.DEBUG if args.debug else logging.INFO)
     
     try:
@@ -334,9 +324,9 @@ def main():
         # see https://superfastpython.com/multiprocessing-pool-shared-global-variables/
         # for more info on shared 'globals' passed through custom initializer & initargs
  
-        with Pool(args.numWorkers, initializer=init_worker, initargs=(graph, ontology, args.debug, timer)) as pool:
+        with Pool(args.numWorkers, initializer=init_worker, initargs=(graph, ontology, args.debug)) as pool:
             if args.debug:
-                logger.debug(timer.time() + " - Starting parallel processing of subjects; max number workers = " + str(args.numWorkers))
+                logger.debug("Starting parallel processing of subjects; max number workers = " + str(args.numWorkers))
                 
             terms = pool.imap(parallel_annotate_term, [s for s in subjects])
         
@@ -351,7 +341,7 @@ def main():
                     continue
                 
                 if args.debug:
-                    logger.debug(timer.time() + " - " + term.get_id() + " - WRITING - term")
+                    logger.debug(term.get_id() + " - WRITING - term")
                     
                 write_term(term, termFh)
                 
@@ -362,22 +352,22 @@ def main():
                     
                 if not termOnly:
                     if args.debug:
-                        logger.debug(timer.time() + " - " + term.get_id() + " - WRITING - relationships")
+                        logger.debug(term.get_id() + " - WRITING - relationships")
                         
                     write_relationships(term, relFh)    
 
                     if args.debug:
-                        logger.debug(timer.time() + " - " + term.get_id() + " - WRITING - synonyms")    
+                        logger.debug(term.get_id() + " - WRITING - synonyms")    
                                 
                     write_synonyms(term, synFh)
                     
                     if args.debug:
-                        logger.debug(timer.time() + " - " + term.get_id() + " - WRITING - dbrefs")
+                        logger.debug(term.get_id() + " - WRITING - dbrefs")
                         
                     write_dbrefs(term, refFh)
                     
                 if args.debug:
-                    logger.debug(timer.time() + " - " + term.get_id() + " - WRITING - END")
+                    logger.debug(term.get_id() + " - WRITING - END")
                     
                 count = count + 1
                 if args.verbose and count % 5000 == 0:
@@ -388,7 +378,7 @@ def main():
             logger.info("Skipped " + str(importCount) + " imported ontology terms")
             
             if args.debug:
-                logger.debug("DONE - " + timer.stop())
+                logger.debug("DONE")
 
         if args.reportSuccess:
             print("SUCCESS", file=stdout)
