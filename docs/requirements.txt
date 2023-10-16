@@ -1,3 +1,8 @@
 cloud-sptheme
-python-dateutil
+Cython
+openpyxl
 strenum
+rdflib
+owlready2
+python-dateutil
+requests
