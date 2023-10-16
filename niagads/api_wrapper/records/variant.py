@@ -4,8 +4,8 @@ from typing import Type
 from . import Record, RecordParser
 from .. import VariantConsequenceTypes, FileFormats, Databases
 
-from niagads.utils.string import xstr
-from niagads.utils.dict import get, dict_to_info_string, print_dict
+from niagads.utils.string import xstr, dict_to_info_string
+from niagads.utils.dict import get, print_dict
 from niagads.utils.exceptions import RestrictedValueError
 
 ## variant record  parsers 

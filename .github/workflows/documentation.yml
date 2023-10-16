@@ -18,6 +18,8 @@ jobs:
       uses: ammaraskar/sphinx-action@master
       with:
         docs-folder: "docs/"
+        build-command: "sphinx-apidoc -o _apidocs ../niagads/ && make html"
+
     
     
     # Deploy the HTML documentation to GitHub Pages
@@ -25,7 +27,7 @@ jobs:
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs/html/
+        publish_dir: ./docs/_build/html/
         enable_jekyll: false
         allow_empty_commit: false
         force_orphan: true

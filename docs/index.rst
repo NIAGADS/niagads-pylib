@@ -9,8 +9,8 @@ Welcome to NIAGADS-pylib's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
-
+    
+   _apidocs/modules
 
 Indices and tables
 ==================

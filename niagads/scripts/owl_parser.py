@@ -1,15 +1,13 @@
 """ ontology parser
-Parses an OWL file representing an ontology and generates 3 tab-delimited file:
+Parses an OWL file representing an ontology and generates 3 tab-delimited files:
 
-terms.txt - contains basic term identification
-------------------------------------------------
+**terms.txt - contains basic term identification**
 term_id, term, iri, db_refs, definition, comments, and obsolete/deprecated flags
 
-synonyms.txt - contains term_id - synonym (raw term, not ID) pairs
-------------------------------------------------
+**synonyms.txt - contains term_id - synonym (raw term, not ID) pairs**
 
-relationships.txt - term 'is_a'/'subclass_of' relationships
-------------------------------------------------
+
+**relationships.txt - term 'is_a'/'subclass_of' relationships**
 contains either subject_id / object_id pairs or 
 subject_id / parsed triple string (for relationships with restrictions or logic)
 
@@ -90,7 +88,7 @@ def set_annotation_properties(term: OntologyTerm, relIter):
 
 
 def set_relationships(term: OntologyTerm, ontology: Ontology):
-    """_summary_
+    """set term relationships
 
     Args:
         term (OntologyTerm): ontology term to be annotated

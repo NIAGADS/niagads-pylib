@@ -5,10 +5,23 @@ value testers
 """
 
 import re
+import json
 from dateutil.parser import parse as parse_date
 from datetime import datetime
 
-import niagads.utils.dict as dict_utils # avoid circular import by using the full import path
+def dict_to_info_string(obj):
+    """ wrapper for dict_to_string (semantics )
+    in string utils to avoid circular imports"""
+    return dict_to_string(obj, '.')
+
+
+def dict_to_string(obj, nullStr):
+    """ translate dict to attr=value; string list
+    in string utils to avoid circular imports
+    """
+    pairs = [ k + "=" + xstr(v, nullStr=nullStr) for k,v in obj.items()]
+    pairs.sort()
+    return ';'.join(pairs)
 
 
 def reverse(s):
@@ -57,9 +70,9 @@ def xstr(value, nullStr="", falseAsNull=False, dictsAsJson=True):
     elif isinstance(value, dict):
         if bool(value):
             if dictsAsJson:
-                return dict_utils.print_dict(value, pretty=False)
+                return json.dumps(value)
             else:
-                return dict_utils.dict_to_string(value, nullStr=".")
+                return dict_to_string(value, nullStr=".")
         else:
             return nullStr
     else:
