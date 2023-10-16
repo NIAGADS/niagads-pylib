@@ -1,1 +1,3 @@
 cloud-sptheme
+python-dateutil
+strenum
