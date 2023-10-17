@@ -9,10 +9,12 @@ from niagads.utils.list import chunker
 from niagads.utils.dict import print_dict, get
 
 class RecordParser:
-    def __init__(self, database, record=None):
+    def __init__(self, database, record=None, debug=False):
+        self._debug = debug
+        self.logger = logging.getLogger(__name__)
         self._database = self.__validate_database(database)
         self._record = None
-        self._logger = logging.getLogger(__name__)
+
         if record is not None:
             self.set_record(record) # handle error checking
             

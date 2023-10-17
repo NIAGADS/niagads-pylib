@@ -65,7 +65,7 @@ class FILERMetadataParser:
         self.logger = logging.getLogger(__name__)
         self.__metadata = data
         self.__filer_download_url = None
-        self.__debug = debug
+        self._debug = debug
         self.__dates_as_strings = datesAsStrings
         
         

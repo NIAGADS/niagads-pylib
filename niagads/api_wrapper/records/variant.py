@@ -10,8 +10,8 @@ from niagads.utils.exceptions import RestrictedValueError
 
 ## variant record  parsers 
 class VariantRecordParser(RecordParser):
-    def __init__(self, database, record=None):
-        super().__init__(database, record)
+    def __init__(self, database, record=None, debug=False):
+        super().__init__(database, record, debug)
         self._annotation = None
         if record is not None:
             self.set_record(record) # handle error checking

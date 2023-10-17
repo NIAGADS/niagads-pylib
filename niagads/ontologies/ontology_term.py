@@ -10,7 +10,7 @@ from ..utils.string import is_balanced, regex_extract
 class OntologyTerm:
     def __init__(self, iri, debug=False):
         self.logger = logging.getLogger(__name__)
-        self.__debug = debug
+        self._debug = debug
         
         self.__iri = iri
         self.__id = basename(iri).replace(':', '_')
@@ -30,7 +30,7 @@ class OntologyTerm:
         self.__includeComments = includeComments
      
     def debug(self, debug=True):
-        self.__debug = debug   
+        self._debug = debug   
         
     def add_db_ref(self, value):
         value = value.replace(': ', ':')

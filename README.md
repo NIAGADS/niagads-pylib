@@ -87,6 +87,10 @@ Example `docker` usage coming soon.
 
 All functions, classes and packages should have a doc-string.  For non-inuitive or complex functions, please provide a `summary` description, a list of `args`, a description of the `return value`, and any `raised exceptions`.  For simple functions (e.g., member `getters` and `setters`, no documentation is need or a simple `summary` doc string will suffice)
 
+## Logging
+
+Please use `logging` to log script progress and debug statements. Details coming soon.
+
 ### Classes
 * When definining `classes`, try to stick to the principles of `Object Oriented Programming`: `Encapsulation, Data Abstraction, Polymorphism and Inheritence`.  
 
@@ -101,10 +105,19 @@ Especially `Encapsulation`:
 
   * when creating `class methods` consider usage of functions and make functions private or protected if should not be directly accessed by the user (i.e., only used internally by the class) by prefixing with `__` or `_` as needed
 
-> **EXCEPTION**: all classes should have a `debug` and `logger` variable that can be accessed publicly
+  * all classes should have a `public` `logger` member variable
+  
+  * all classes should have a `protected` `debug` member variable
+
+
+
+### Scripts
+
+Executable scripts can be added to the `scripts` directory. `setup.py` will also need to be updated.  Details coming soon.
 
 ### Other
 
 * use [type hints](https://docs.python.org/3/library/typing.html) when possible help the `Pylance` (the Python interpreter) provide better autocompletion examples
 
 * use `enums` to define variables limited to controlled vocabularies (see the [enums utilities](niagads/utils/enums.py) and the [api_wrapper constants](niagads/api_wrapper/constants.py) for examples)
+
