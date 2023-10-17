@@ -91,8 +91,8 @@ Example `docker` usage coming soon.
 All functions, classes and packages should have a doc-string.  For non-inuitive or complex functions, please provide a `summary` description, a list of `args`, a description of the `return value`, and any `raised exceptions`.  For simple functions (e.g., member `getters` and `setters`, no documentation is need or a simple `summary` doc string will suffice)
 
 > NOTE: you **MUST** give credit when pulling code from a third-party (e.g., StackOverflow, GitHub).  Please include the URL or link to the specific response (each StackOverflow response has a _share_ link) in your documentation.
-> for example: [niagads.utils.string.is_balanced](https://niagads.github.io/niagads-pylib/_modules/niagads/utils/string.html#is_balanced)
-> for example: [niagads.utils.list.chunker](https://niagads.github.io/niagads-pylib/_modules/niagads/utils/list.html#chunker)
+> for example: [niagads.utils.string.is_balanced](https://niagads.github.io/niagads-pylib/_modules/niagads/utils/string.html#is_balanced), 
+> or [niagads.utils.list.chunker](https://niagads.github.io/niagads-pylib/_modules/niagads/utils/list.html#chunker)
 
 ### Logging
 
