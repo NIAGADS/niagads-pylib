@@ -17,6 +17,7 @@ def print_dict(dictObj, pretty=True):
 def get(obj, attribute, default=None, errorAction="fail"):
     """
     retrieve attribute if in dict
+    
     Args:
         obj (dict): dictionary object to query
         attribute (string): attribute to return
@@ -50,14 +51,18 @@ def drop_nulls(obj):
     
 
 def deep_update(d, u):
-    """! deep update a dict
+    """
+    deep update a nested dict
     based on https://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth/60321833
     answer: https://stackoverflow.com/a/3233356 
-    but may not handle all variations
+    TODO: may not handle all variations
 
-        @param d             source dict to be updated
-        @param u             overrides
-        @returns             the deep updated source dict
+    Args:
+        d (dict obj): source dict to be updated
+        u (dict obj): overrides/updates to be made
+
+    Returns:
+        the deep updated source dict
     """
     for k, v in u.items():
         if isinstance(v, abc.Mapping):
@@ -69,12 +74,16 @@ def deep_update(d, u):
 
 
 def convert_str2numeric_values(cdict, nanAsStr=True, infAsStr=True):
-    """!  converts numeric values in dictionary stored as strings 
+    """converts numeric values in dictionary stored as strings 
     to numeric
 
-        @param cdict             dictionary to conver
-        @param nanAsStr          treat NaN/nan/NAN as string?
-        @returns                 the converted dictionary
+    Args:
+        cdict (dict obj): dict bject to convert
+        nanAsStr (bool, optional): treat NaN/nan/NAN as string?
+        infAsStr (bool, optional): treat inf/INF as string?
+
+    Returns:
+        updated dict object
     """
     for key, value in cdict.items():
         if str(value).upper() == 'NAN' and nanAsStr:

@@ -9,7 +9,7 @@ from sys import stdout
 
 from ..utils.sys import warning
 from ..utils.logging import ExitOnExceptionHandler
-from ..api_wrapper import VariantRecord
+from ..api_wrapper import VariantRecord, Databases
 
 REQUEST_URI = "https://api.niagads.org"
 
@@ -58,7 +58,7 @@ def main():
             level=logging.DEBUG if args.debug else logging.INFO)
     
     try:
-        variants = VariantRecord('genomics', REQUEST_URI, read_variants(args.file))
+        variants = VariantRecord(args.database, REQUEST_URI, read_variants(args.file))
         variants.set_null_str(args.nullStr)
         variants.set_page_size(args.pageSize)
         if args.allConseqs: variants.retrieve_full_annotation()
