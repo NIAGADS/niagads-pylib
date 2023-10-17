@@ -93,13 +93,13 @@ def convert_str2numeric_values(cdict, nanAsStr=True, infAsStr=True):
             # is_float test will be true for Infinity / -Infinity
             continue
         if value.isnumeric():
-            if isinstance(value, bool):
-                 cdict[key] = bool(value)
-                 continue
             if isinstance(value, float): # must check float first b/c integers are a subset
                 cdict[key] = float(value)
             if isinstance(value, int):
                 cdict[key] = int(value)
+                continue
+            if isinstance(value, bool): # treat 0 & 1 as integer, so test last
+                cdict[key] = bool(value)
 
     return cdict
 
