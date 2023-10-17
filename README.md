@@ -1,6 +1,6 @@
 # niagads-pylib
 
-a collection of python packages, classes, and utility functions in support of NIAGADS projects
+a collection of python packages, classes, and utility functions in support of NIAGADS projects -ega comment
 
 # Documentation
 
