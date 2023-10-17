@@ -40,7 +40,7 @@ python3 setup.py install
 
 > NOTE: This is for **_`NIAGADS organization` members only_** at this time
 
-If a member of NIAGADS, make a request to `Emily G` or `Otto V` to be added to the NIAGADS GitHub organization, and to be given `pull` access to the `docker-repo`. Next:
+If a member of NIAGADS, make a request to `Emily G` or `Otto V` to be added to the NIAGADS GitHub organization, and to be given access to the `Docker Team` for read access to the `NIAGADS/docker-repo`. Next:
 
 ```bash 
 git clone https://github.com/NIAGADS/docker-repo.git
@@ -51,7 +51,7 @@ docker build --build-arg GID=$GID --pull --rm -f "docker-repo/dev-environments/p
 
 > use the `--build-arg` `PYLIB_SOURCE` to override the `GitHub` target (e.g., use your own fork or a branch other than `main`)
 
-Example `docker` usage coming soon.
+Example `docker` usage will be provided in the `README` for the `NIAGADS/docker-repo`
 
 # Contributing
 
