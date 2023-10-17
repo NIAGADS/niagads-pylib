@@ -70,8 +70,11 @@ Example `docker` usage coming soon.
 
 ## Standard Operating Procedure
 
-* create your own fork (details coming soon)
-* make `pull request` to submit contribution
+> More details coming soon
+
+* create your own fork 
+* do a local test merge & sync your fork with `NIAGADS/pylib#integration` to resolve conflicts/changes since you started working on your fork
+* make `pull request`, using the `integration` branch as the base for comparison to submit contribution
 
 ## Coding Conventions
 
