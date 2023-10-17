@@ -1,4 +1,5 @@
 cloud-sptheme
+autoclasstoc
 Cython
 openpyxl
 strenum
