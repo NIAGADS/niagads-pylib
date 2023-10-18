@@ -13,7 +13,7 @@ see https://niagads.github.io/niagads-pylib
 # Installation
 
 > NOTE: add the `--user` flag to the `pip3` or `setup.py` calls to install as a `user` or `local` package
-> add #branch-name to the end of the URL to install from a specific branch
+> add `#branch-name` to the end of the URL to install from a specific branch
 
 ## `pip3` installation direct from GitHub:
 
@@ -30,7 +30,7 @@ pip3 install git+https://github.com/NIAGADS/niagads-pylib.git#branch-name
 ## `python3 setup.py` from local working version
 ```bash
 git clone https://github.com/NIAGADS/niagads-pylib.git
-cd niagads-pylib.git
+cd niagads-pylib
 python3 setup.py install
 ```
 
@@ -101,20 +101,24 @@ Please use `logging` to log script progress and debug statements. Details coming
 ### Classes
 * When definining `classes`, try to stick to the principles of `Object Oriented Programming`: `Encapsulation, Data Abstraction, Polymorphism and Inheritence`.  
 
-Especially `Encapsulation`:
-  * all `class variables` should be `private` (`protected` if class using Inheritence and class has children) 
-    * `private`: variable only accessible within the class
-       * naming: starts with `__` (double underscore; e.g., `__size`)
-    * `protected`: variable accesesible within class and any child classes
-       * nameing: starts with `_` (underscore; e.g., `_size`)
+> Especially `Encapsulation` (a class's variables are hidden from other classes and can only be accessed by the methods of the class in which they are found):
 
-  * `getters` and `setters` methods should be defined to manipulate variable values
+* all `class variables` should be `private` (`protected` if class using Inheritence and class has children) 
+  * `private`: variable only accessible within the class
+    * naming: starts with `__` (double underscore; e.g., `__size`)
+  * `protected`: variable accesesible within class and any child classes
+    * naming: starts with `_` (underscore; e.g., `_size`)
 
-  * when creating `class methods` consider usage of functions and make functions private or protected if should not be directly accessed by the user (i.e., only used internally by the class) by prefixing with `__` or `_` as needed
-
-  * all classes should have a `public` `logger` member variable
+* `getters` and `setters` methods should be defined to set and access (get) member variables that the user may need to access directly
+  * to access the member variable `__size`, there should be a function `set_size(self, size)` and `get_size(self)` or `size(self)`
   
-  * all classes should have a `protected` `debug` member variable
+* when creating `class methods` consider usage of functions and make functions `private` or `protected` if they should not be directly accessed by the user (i.e., only used internally by the class) by prefixing with `__` or `_` as needed
+
+* all classes should have a `public` `logger` member variable
+  
+* all classes should have a `protected` `_debug` member variable
+
+* override the `__str__` [dunder method](https://mathspp.com/blog/pydonts/dunder-methods) for the class so that users can debug or write class state as output (i.e., convert class to string)
 
 
 
