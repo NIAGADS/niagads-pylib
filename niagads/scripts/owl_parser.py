@@ -327,7 +327,7 @@ def main():
             logger.info("Found " + str(len(subjects)) + " ontology terms")
             logger.info("Extracting terms and annotations in parallel")
                     
-        termFh, relFh, synFh, refFh = create_files(outputPath)
+        termFh, relFh, synFh, refFh = create_files(outputPath, args.includeComments)
         
         # see https://superfastpython.com/multiprocessing-pool-shared-global-variables/
         # for more info on shared 'globals' passed through custom initializer & initargs
