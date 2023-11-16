@@ -37,7 +37,7 @@ from ..ontologies import OntologyTerm, ORDERED_PROPERTY_LABELS, parse_subclass_r
 logger = logging.getLogger(__name__)
 validAnnotationProps = flatten(list(ANNOTATION_PROPERTIES.values()))
 
-def init_worker(graph: Graph, ontology: Ontology, debug: bool):
+def init_worker(graph: Graph, ontology: Ontology, debug: bool, includeComments: bool):
     """initialize parallel worker with large data structures 
     or 'global' information'
     so they can be shared amongs the processors
@@ -46,15 +46,19 @@ def init_worker(graph: Graph, ontology: Ontology, debug: bool):
     Args:
         graph (Graph): ontology in rdflib Graph format (for accessing annotation properties)
         ontology (Ontology): ontology in owlready2 Ontology format (for accessing parsed nested is_a relationships)
+        debug (bool): flag for debugging mode
+        includeComments (bool): flag for including comments in term annotations
     """
     # declare scope of new global variable
     global sharedGraph
     global sharedOntology
     global sharedDebugFlag
+    global sharedIncludeCommentsFlag
     
     sharedGraph = graph
     sharedOntology = ontology
     sharedDebugFlag = debug
+    sharedIncludeCommentsFlag = includeComments
 
     
 def set_annotation_properties(term: OntologyTerm, relIter):
@@ -143,8 +147,12 @@ def parallel_annotate_term(subject: URIRef):
     global sharedGraph
     global sharedOntology
     global sharedDebugFlag
+    global sharedIncludeCommentsFlag
     
     term = OntologyTerm(str(subject))  
+    if sharedIncludeCommentsFlag:
+        term.include_comments()
+        
     if sharedDebugFlag:
         logger.debug(term.get_id() + " - START")
         
@@ -224,18 +232,19 @@ def write_relationships(term: OntologyTerm, file):
         print(subjectTermId, objectTermId, relStr, relJson, sep="\t", file=file)   
             
             
-def create_files(dir: str):
+def create_files(dir: str, includeComments: bool):
     """create file handles / output header
 
     Args:
         dir (str): output directory
+        includeComments (bool): flag to include comments in output
 
     Returns:
         term, relationship, and synoynm file handlers
     """
     tfh = open(path.join(dir, "terms.txt"), 'w')
     fields = ORDERED_PROPERTY_LABELS
-    fields.remove("comment")
+    if not includeComments: fields.remove("comment")
     print('\t'.join(fields), file=tfh, flush=True)  
         
     rfh = open(path.join(dir, "relationships.txt"), 'w')
@@ -276,6 +285,7 @@ def main():
     parser.add_argument('--namespace', help="only write terms from specified namespace (e.g., CLO)")
     parser.add_argument('--numWorkers', help="number of workers for parallel processing, default = #CPUs", type=int, default=cpu_count())
     parser.add_argument('--reportSuccess', action='store_true', help="for third party calls, report SUCCESS when complete")
+    parser.add_argument('--includeComments', action='store_true',  help="include comments in output")
     args = parser.parse_args()
         
     outputPath = create_dir(args.outputDir)
@@ -322,7 +332,7 @@ def main():
         # see https://superfastpython.com/multiprocessing-pool-shared-global-variables/
         # for more info on shared 'globals' passed through custom initializer & initargs
  
-        with Pool(args.numWorkers, initializer=init_worker, initargs=(graph, ontology, args.debug)) as pool:
+        with Pool(args.numWorkers, initializer=init_worker, initargs=(graph, ontology, args.debug, args.includeComments)) as pool:
             if args.debug:
                 logger.debug("Starting parallel processing of subjects; max number workers = " + str(args.numWorkers))
                 
