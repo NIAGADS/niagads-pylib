@@ -12,7 +12,8 @@ class ExitOnExceptionHandler(logging.FileHandler):
         super().emit(record)
         if record.levelno in (logging.ERROR, logging.CRITICAL):
             raise SystemExit(-1)
-        
+
+
 def timed(fn):
     """ decorator for timing a function call """
     @wraps(fn)
