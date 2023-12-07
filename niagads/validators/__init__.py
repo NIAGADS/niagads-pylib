@@ -1,1 +1,1 @@
-from .json import JSONValidator
+from .json.jsonschema import JSONValidator

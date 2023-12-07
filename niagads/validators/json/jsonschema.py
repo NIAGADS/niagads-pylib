@@ -21,8 +21,10 @@ class JSONValidator:
         
         self.set_schema(schema)
         
+        
     def get_schema_validator(self):
         return self.__schemaValidator
+        
         
     def set_schema(self, schema):
         """
@@ -112,4 +114,4 @@ class JSONValidator:
 
         else:
             return errors
-       
+    
