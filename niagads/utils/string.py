@@ -6,6 +6,7 @@ value testers
 
 import re
 import json
+from types import SimpleNamespace
 from dateutil.parser import parse as parse_date
 from datetime import datetime
 

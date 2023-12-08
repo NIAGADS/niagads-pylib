@@ -1,13 +1,13 @@
 import logging
 import json
 
-from jsonschema import Draft7Validator as DraftValidator, exceptions as JSExceptions, validators as JSValidators
+from jsonschema import Draft7Validator as DraftValidator, exceptions as jsExceptions, validators as jsValidators
 
 from ...utils.string import xstr
 from ...utils.dict import print_dict
 from ...utils.list import list_to_string
 
-from format_checkers import FORMAT_CHECKER
+from .format_checkers import JSONSchemaFormatChecker
 
 class JSONValidator:
     """
@@ -84,7 +84,8 @@ class JSONValidator:
         # where is_positive is a function 
         # see https://lat.sk/2017/03/custom-json-schema-type-validator-format-python/
         
-        self.__customValidatorClass = JSValidators.create(meta_schema=DraftValidator.META_SCHEMA, validators=customValidators)
+        self.__customValidatorClass = jsValidators.create(meta_schema=DraftValidator.META_SCHEMA,
+            validators=customValidators)
         
         
     def __initialize_schema_validator(self):
@@ -93,7 +94,8 @@ class JSONValidator:
         happens exactly once
         """
         self.__check_schema()      
-        self.__schemaValidator = self.__customValidatorClass(self.__schema, format_checker=FORMAT_CHECKER)
+        self.__schemaValidator = self.__customValidatorClass(self.__schema,
+            format_checker=JSONSchemaFormatChecker)
         
 
     def __check_schema(self) -> bool:
@@ -109,7 +111,7 @@ class JSONValidator:
         try:
             DraftValidator.check_schema(self.__schema)
             return True
-        except JSExceptions.SchemaError as err:
+        except jsExceptions.SchemaError as err:
             raise err
         
         
@@ -131,7 +133,7 @@ class JSONValidator:
             return True
 
         if failOnError:
-            raise JSExceptions.ValidationError(list_to_string(errors, delim=" // "))
+            raise jsExceptions.ValidationError(list_to_string(errors, delim=" // "))
 
         else:
             return errors
