@@ -15,6 +15,16 @@ from .string import ascii_safe_str
 from .exceptions import RestrictedValueError
 
 
+def is_xlsx(fileName: str) -> bool:
+    """ 
+    tests if a file is an EXCEL (xlsx) file 
+    from : https://stackoverflow.com/a/60494584
+    """
+    with open(fileName, 'rb') as f:         
+        first_four_bytes = f.read()[:4]     
+        return first_four_bytes == b'PK\x03\x04' 
+
+
 def generic_file_sort(file: str, header=True, overwrite=True):
     """ sorts file; returns sorted file name """
     if not header:
