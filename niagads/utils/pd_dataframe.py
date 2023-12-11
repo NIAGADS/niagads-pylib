@@ -10,6 +10,25 @@ def strip(df:DataFrame) -> DataFrame:
     """
     return trim(df)
 
+
+def __strip_with_check(value: str) -> str:
+    """
+    tries to strip, catches the error and returns value if failed
+    b/c pandas considers both numbers and strings to be "objects"
+
+    Args:
+        value (str): _description_
+        
+    Returns
+        trimmed string value if string else original value
+    """
+    try:
+        return value.strip()
+    except TypeError:
+        return value
+    except AttributeError:
+        return value
+    
     
 def trim(df:DataFrame) -> DataFrame:
     """
@@ -21,9 +40,8 @@ def trim(df:DataFrame) -> DataFrame:
         df (DataFrame): pandas data frame to modify
     """
     for col in df.columns:
-        warning(df[col])
-        if is_string_dtype(df[col].dtype):
-            df[col] = df[col].map(str.strip)
+        if df[col].dtype == 'object':
+            df[col] = df[col].map(__strip_with_check)
 
     return df 
     
