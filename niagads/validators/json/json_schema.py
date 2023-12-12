@@ -2,6 +2,7 @@ import logging
 import json
 
 from jsonschema import Draft7Validator as DraftValidator, exceptions as jsExceptions, validators as jsValidators
+from typing import List
 
 from ...utils.string import xstr
 from ...utils.dict import print_dict
@@ -20,7 +21,7 @@ class JSONValidator:
         self._debug = debug
         self.logger = logging.getLogger(__name__)
         
-        self.__metadataJson = json.loads(jsonObj) if isinstance(jsonObj, str) else jsonObj 
+        self.__json = json.loads(jsonObj) if isinstance(jsonObj, str) else jsonObj 
         self.__schema = None
         self.__schemaValidator = None
         self.__customValidatorClass = None
@@ -31,6 +32,17 @@ class JSONValidator:
         
     def get_schema_validator(self):
         return self.__schemaValidator
+        
+        
+    def set_json(self, jsonObj):
+        """
+        set JSON to be validated; this allow applying the same schema
+        to multiple JSON objects w/out revalidating the schema itself
+
+        Args:
+            json (str|dict): JSON object to be validated in object or string format
+        """
+        self.__json = json.loads(jsonObj) if isinstance(jsonObj, str) else jsonObj 
         
         
     def set_schema(self, schema):
@@ -115,6 +127,44 @@ class JSONValidator:
             raise err
         
         
+    def validation_error(self, errors: List[str], prefix=None):
+        """
+        raises a validation exception prepended by the message
+        errors is an array of strings
+
+        Args:
+            prefix (str, optional): message to prepend
+            errors (List[str]): list of validation errors in str format
+        """
+        
+        message = list_to_string(errors, delim=" // ")
+        if prefix:
+            message = prefix + " - " + message
+        
+        raise jsExceptions.ValidationError(message)
+    
+        
+    def __parse_validation_error(self, error: jsExceptions.ValidationError):
+        """
+        primarily to catch poorly formatted validation errors, incl:
+            * present but empty required fields
+
+        Args:
+            error (ValidationError): the validation error
+        """
+        requiredFields = [f for f in self.__schema['required']] \
+            if 'required' in self.__schema else []
+                
+        if error.message.startswith('None is not of type'):
+            field = error.path.popleft()
+            if field in requiredFields:
+                return "required field '" + field + "' cannot be empty / null"
+            else:
+                return "'" + field + "' contains an empty string / null value.  Check specification - are nulls allowed?"
+    
+        return error.message
+        
+        
     def run(self, failOnError=False):
         """
         Validate the JSON against the supplied json-schema
@@ -128,12 +178,12 @@ class JSONValidator:
         Raises
             jsonschema.exceptions.ValidationError
         """
-        errors = [e.message for e in sorted(self.__schemaValidator.iter_errors(self.__metadataJson), key=str)]
+        errors = [self.__parse_validation_error(e) for e in sorted(self.__schemaValidator.iter_errors(self.__json), key=str)]
         if len(errors) == 0:
             return True
 
         if failOnError:
-            raise jsExceptions.ValidationError(list_to_string(errors, delim=" // "))
+            self.validation_error(errors)
 
         else:
             return errors
