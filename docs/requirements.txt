@@ -7,3 +7,5 @@ rdflib
 owlready2
 python-dateutil
 requests
+jsonschema
+pandas
