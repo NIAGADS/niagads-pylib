@@ -6,6 +6,7 @@ from pandas import read_excel, DataFrame
 from openpyxl import Workbook as wb, load_workbook
 
 from ..utils.string import xstr, to_snake_case
+from ..utils.pd_dataframe import strip
 
 class ExcelFileParser:
     """
@@ -22,7 +23,8 @@ class ExcelFileParser:
         self._debug = debug
         self.logger = logging.getLogger(__name__)
         self.__file = file
-        self.__na = 'null' # missing value string representation
+        self.__na = None # missing value string representation
+        self.__strip = False # flag for trimming leading & trailing whitespace
         
         # openpyxl data structures
         # useful for iterating over sheets
@@ -41,11 +43,34 @@ class ExcelFileParser:
         self.__workbook = load_workbook(self.__file, data_only=True)
         self.__worksheets = self.__workbook.get_sheet_names()
  
+ 
+    def na(self, value: str):
+        """
+        fill NA's with specified value when using pandas conversions
+
+        Args:
+            value (str): value to fill (e.g., 'NULL', 'NA', '.')
+        """
+        self.__na = value
+ 
+ 
+    def strip(self, strip=True):
+        """
+        flag indicating whether to iterate over all fields and 
+        trim leading and trailing spaces when converting to JSON or CSV
+
+        Args:
+            strip (bool, optional): trim leading and trailing spaces from all fields. Defaults to True.
+        """
+        self.__strip = strip
+        
 
     def set_na_rep(self, value:str):
         """
         set the NA (missing / null) value string representation
         suggestions: '.', 'NA', 'null', 'NULL', '\t'
+        
+        currently only applies to CSV export
 
         Args:
             value (str): missing / null value string
@@ -145,6 +170,16 @@ class ExcelFileParser:
         jsonStr = self.to_pandas_df(ws, transpose, **kwargs).to_json(orient = 'records')
         return jsonStr if returnStr else json.loads(jsonStr)
 
+
+    def __trim(self, df: DataFrame):
+        """
+        trims trailing spaces if set in options
+
+        Args:
+            df (DataFrame): pandas data frame
+        """
+        return strip(df) if self.__strip else df
+    
         
     def to_pandas_df(self, worksheet: str, transpose=False, **kwargs) -> DataFrame:
         """
@@ -162,5 +197,6 @@ class ExcelFileParser:
         # raise error if False
         self.is_valid_worksheet(worksheet, raiseErr=True)
         df: DataFrame = read_excel(self.__file, sheet_name=worksheet, **kwargs)
-        return df.T if transpose else df
-        
+        if self.__na is not None:
+            df.fillna(self.__na)
+        return self.__trim(df.T) if transpose else self.__trim(df)

@@ -1,5 +1,5 @@
 from enum import auto
-from strenum import LowercaseStrEnum, UppercaseStrEnum
+from strenum import LowercaseStrEnum, UppercaseStrEnum, StrEnum
 
 class CustomStrEnum:   
     """extension for a `StrEnum` (generic, Lowercase or Uppercase) that includes custom
@@ -12,6 +12,8 @@ class CustomStrEnum:
         currently only works w/StrEnum, LowercaseStrEnum, UppercaseStrEnum"""
         if type(self) == LowercaseStrEnum:
             return value.lower() in self._value2member_map_ 
+        elif type(self) == StrEnum:
+            return value in self.__value2member_map_
         else:
             return value.upper() in self._value2member_map_ 
         
@@ -21,16 +23,23 @@ class CustomStrEnum:
         return [e.value for e in self]
     
     
-
-class CLASS_PROPERTIES(CustomStrEnum, UppercaseStrEnum):
+class ClassProperties(CustomStrEnum, UppercaseStrEnum):
     """enum for functions that extract info about a class -- methods or members?
     """
-    METHODS=auto()
-    MEMBERS=auto()
+    METHODS = auto()
+    MEMBERS = auto()
     
-class ERROR_ACTIONS(CustomStrEnum, UppercaseStrEnum):
+class ErrorActions(CustomStrEnum, UppercaseStrEnum):
     """enum for possible behaviors on critical errors
     """
-    IGNORE=auto()
-    FAIL=auto()
-    WARN=auto()
+    IGNORE = auto()
+    FAIL = auto()
+    WARN = auto()
+    
+class RegularExpressions(CustomStrEnum, StrEnum):
+    """
+    commonly used regexps
+    """
+    PUBMED_ID ='^([0-9]{8}|PMID:[0-9]{8})$'
+    MD5SUM = '^[a-fA-F0-9]{32}$'
+    DOI = '(10[.][0-9]{4,}(?:[.][0-9]+)*\/(?:(?!["&\'<>])\S)+)$'

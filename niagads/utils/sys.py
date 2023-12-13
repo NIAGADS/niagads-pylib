@@ -9,10 +9,20 @@ from sys import stderr, exit
 from urllib.parse import urlencode
 from subprocess import check_output, CalledProcessError
 
-from .enums import CLASS_PROPERTIES
+from .enums import ClassProperties
 from .dict import print_dict
 from .string import ascii_safe_str
 from .exceptions import RestrictedValueError
+
+
+def is_xlsx(fileName: str) -> bool:
+    """ 
+    tests if a file is an EXCEL (xlsx) file 
+    from : https://stackoverflow.com/a/60494584
+    """
+    with open(fileName, 'rb') as f:         
+        first_four_bytes = f.read()[:4]     
+        return first_four_bytes == b'PK\x03\x04' 
 
 
 def generic_file_sort(file: str, header=True, overwrite=True):
@@ -69,17 +79,17 @@ def get_class_properties(instance, property):
     
     Args:
         instance (instantiated class object): class to investigate; can also pass the class itself
-        entity (str or CLASS_PROPERTIES enum value, optional): one of CLASS_PROPERTIES
+        entity (str or ClassProperties enum value, optional): one of ClassProperties
     """
-    if CLASS_PROPERTIES.has_value(property):
-        lookup = CLASS_PROPERTIES[property.upper()]
-        if lookup == CLASS_PROPERTIES.METHODS:
+    if ClassProperties.has_value(property):
+        lookup = ClassProperties[property.upper()]
+        if lookup == ClassProperties.METHODS:
             # ignore class-level properties (defined outside of init)
             # after https://www.askpython.com/python/examples/find-all-methods-of-class
             methods = [attribute for attribute in dir(instance) if callable(getattr(instance, attribute))]
             return [ m for m in methods if not m.startswith('__') and not m.endswith('__') ]
 
-        if property == CLASS_PROPERTIES.MEMBERS:
+        if property == ClassProperties.MEMBERS:
             # only works if class is instantiated
             if type(instance) == type: # the class Type itself was passed
                 raise ValueError("Can only get members from an instantiated class")
@@ -87,7 +97,7 @@ def get_class_properties(instance, property):
                 return list(vars(instance).keys())
             
     else:
-        raise RestrictedValueError("property", property, CLASS_PROPERTIES)
+        raise RestrictedValueError("property", property, ClassProperties)
 
 
 def print_args(args, pretty=True):
