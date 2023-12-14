@@ -5,7 +5,6 @@ from os import path
 from csv import Sniffer, Dialect
 from pandas import read_csv, DataFrame
 
-
 from ..utils.pd_dataframe import strip
 
 class CSVFileParser:

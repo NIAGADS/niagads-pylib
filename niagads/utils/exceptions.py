@@ -22,5 +22,10 @@ class TimerError(Exception):
     """A custom exception used to report errors in use of Timer class"""
 
 
-
-
+class ParserError(Exception):
+    """
+    custom exception to report errors in parsing
+    """
+    def __init__(self, message, errors):
+        super().__init__(message)
+        self.errors = errors
