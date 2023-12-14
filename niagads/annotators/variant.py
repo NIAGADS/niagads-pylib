@@ -1,9 +1,8 @@
 """ variant annotator functions """
 #!pylint: disable=invalid-name
-##
-# @package util
+import logging
+from ..utils.string import xstr, truncate, reverse
 
-from GenomicsDBData.Util.utils import xstr, truncate, reverse, warning
 
 def truncate_allele(value, long=False):
     """ wrapper for trunctate to 5 chars """
@@ -18,7 +17,9 @@ def reverse_complement(seq):
 class VariantAnnotator(object):
     """ functions used to generate variant annotations """
 
-    def __init__(self, refAllele, altAllele, chrom, position):
+    def __init__(self, refAllele, altAllele, chrom, position, debug):
+        self._debug = debug
+        self.logger = logging.getLogger(__name__)
         self.__ref = refAllele
         self.__alt = altAllele
         self.__chrom = chrom
