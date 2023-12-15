@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='niagads-pylib',
-    version='0.1.0',    
+    version='0.2.0',    
     description='libraries and utils in support of NIAGADS projects',
     url='https://github.com/NIAGADS/niagads-pylib',
     author='fossilfriend',
@@ -13,7 +13,7 @@ setup(
     install_requires=['Cython', 'openpyxl', 'strenum', 
                       'rdflib', 'owlready2', 'pandas', 
                       'python-dateutil', 'requests',
-                      'jsonschema'],
+                      'jsonschema', 'Deprecated'],
     entry_points ={
         'console_scripts': [
                'variant_annotator = niagads.scripts.variant_annotator:main',
