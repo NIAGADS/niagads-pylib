@@ -1,1 +1,1 @@
-from .enums import ErrorActions, RegularExpressions, ClassProperties
+from .enums import ErrorActions, RegularExpressions, ClassProperties, RegexFlag
