@@ -2,7 +2,7 @@ import logging
 from json import dumps as j_dumps
 from abc import ABC, abstractmethod 
 
-from typing import List
+from typing import List, Set
 
 from jsonschema import exceptions as jsExceptions
 
@@ -195,7 +195,17 @@ class FileManifestValidator(TableValidator):
             sampleField (str): field in the sample manifest that contains sample IDs
             sampleReference (List[str]): reference list of samples to match against
         """
-        raise NotImplementedError("validating samples IDS in the file manifest coming soon")
+        
+        sampleSet = { r[sampleField] for r in self._metadata }
+        referenceSet  = set(sampleReference)
+    
+        if referenceSet.issuperset(sampleSet):
+            return True
+        else:
+            invalidSamples = sampleSet.difference(referenceSet)
+            raise jsExceptions.ValidationError("Invalid samples found: " + xstr(invalidSamples))
+            
+            # TODO -- fail on error catch
     
 
 class BiosourcePropertiesValidator(TableValidator):
@@ -205,5 +215,19 @@ class BiosourcePropertiesValidator(TableValidator):
     
     """
     def __init__(self, fileName, schema, debug:bool=False):
-        # super().__init__(fileName, schema, debug)
-        return NotImplementedError("BiosourcePropertiesValidator coming soon")
+        super().__init__(fileName, schema, debug)
+        self.__sampleField = 'sample_id'
+        
+    
+    def set_sample_field(self, sampleField: str):
+        self.__sampleField = sampleField
+    
+    
+    def get_sample_ids(self):
+        """
+        extract sample IDs
+        """
+        if self._metadata is None:
+            raise TypeError("metadata not loaded; run `.load` before extracting sample IDs")
+        
+        return [ r[self.__sampleField] for r in self._metadata ] 
