@@ -19,6 +19,9 @@ def pubmed_id(value):
     """
     expects PMID:34650042 or 34650042 (8 digit number)
     """
+    if value is None: 
+        return True
+    
     assert matches(RE.PUBMED_ID, str(value))
     return True
 
@@ -27,11 +30,17 @@ def doi(value: str):
     """
     expects DOI or url that contains DOI, e.g., 10.1038/s41467-021-26271-2
     """
+    if value is None:
+        return True
+    
     assert matches(RE.DOI, value, flags=RegexFlag.IGNORECASE)
     return True
 
 @JSONSchemaFormatChecker.checks('md5sum', AssertionError)
 def md5sum(value: str):
+    if value is None:
+        return True
+    
     assert matches(RE.MD5SUM, value)
     return True
 
@@ -40,7 +49,10 @@ def file_size(value: str):
     """
     expects file size in K,M,G bytes, e.g., 1.1K, 10M, 2.5 G
     """
-    assert matches(RE.FILE_SIZE, value, RegexFlag.IGNORECASE)
+    if value is None:
+        return True
+    
+    assert matches(RE.FILE_SIZE, value, flags=RegexFlag.IGNORECASE)
     return True
 
 @JSONSchemaFormatChecker.checks('info_string', AssertionError)
@@ -48,6 +60,9 @@ def info_string(value: str):
     """
     expects string of key=value pairs delimited by semi-colons
     """
+    if value is None:
+        return True
+    
     pairs = value.split(';')
     for p in pairs:
         assert matches(RE.KEY_VALUE_PAIR, p)
