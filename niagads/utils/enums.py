@@ -1,5 +1,6 @@
 from enum import auto
 from strenum import LowercaseStrEnum, UppercaseStrEnum, StrEnum
+from re import RegexFlag
 
 class CustomStrEnum:   
     """extension for a `StrEnum` (generic, Lowercase or Uppercase) that includes custom
@@ -43,3 +44,6 @@ class RegularExpressions(CustomStrEnum, StrEnum):
     PUBMED_ID ='^([0-9]{8}|PMID:[0-9]{8})$'
     MD5SUM = '^[a-fA-F0-9]{32}$'
     DOI = '(10[.][0-9]{4,}(?:[.][0-9]+)*\/(?:(?!["&\'<>])\S)+)$'
+    FILE_SIZE = '^[.0-9]+\s?(K|M|G)$'
+    KEY_VALUE_PAIR = '^[^\s=]+=[^=;]+$' # key=value
+
