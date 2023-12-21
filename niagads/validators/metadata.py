@@ -202,7 +202,7 @@ class FileManifestValidator(TableValidator):
         if referenceSet.issuperset(sampleSet):
             return True
         else:
-            invalidSamples = sampleSet.difference(referenceSet)
+            invalidSamples = referenceSet.difference(sampleSet)
             raise jsExceptions.ValidationError("Invalid samples found: " + xstr(invalidSamples))
             
             # TODO -- fail on error catch
