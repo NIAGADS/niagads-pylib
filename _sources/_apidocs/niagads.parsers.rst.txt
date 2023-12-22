@@ -1,0 +1,29 @@
+niagads.parsers package
+=======================
+
+Submodules
+----------
+
+niagads.parsers.csv module
+--------------------------
+
+.. automodule:: niagads.parsers.csv
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.parsers.excel module
+----------------------------
+
+.. automodule:: niagads.parsers.excel
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niagads.parsers
+   :members:
+   :undoc-members:
+   :show-inheritance:

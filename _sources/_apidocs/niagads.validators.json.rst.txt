@@ -1,0 +1,29 @@
+niagads.validators.json package
+===============================
+
+Submodules
+----------
+
+niagads.validators.json.format\_checkers module
+-----------------------------------------------
+
+.. automodule:: niagads.validators.json.format_checkers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.validators.json.json\_schema module
+-------------------------------------------
+
+.. automodule:: niagads.validators.json.json_schema
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niagads.validators.json
+   :members:
+   :undoc-members:
+   :show-inheritance:

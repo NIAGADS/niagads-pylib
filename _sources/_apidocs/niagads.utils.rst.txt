@@ -1,0 +1,93 @@
+niagads.utils package
+=====================
+
+Submodules
+----------
+
+niagads.utils.dict module
+-------------------------
+
+.. automodule:: niagads.utils.dict
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.utils.enums module
+--------------------------
+
+.. automodule:: niagads.utils.enums
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.utils.exceptions module
+-------------------------------
+
+.. automodule:: niagads.utils.exceptions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.utils.list module
+-------------------------
+
+.. automodule:: niagads.utils.list
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.utils.logging module
+----------------------------
+
+.. automodule:: niagads.utils.logging
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.utils.numeric module
+----------------------------
+
+.. automodule:: niagads.utils.numeric
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.utils.pd\_dataframe module
+----------------------------------
+
+.. automodule:: niagads.utils.pd_dataframe
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.utils.reg\_ex module
+----------------------------
+
+.. automodule:: niagads.utils.reg_ex
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.utils.string module
+---------------------------
+
+.. automodule:: niagads.utils.string
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.utils.sys module
+------------------------
+
+.. automodule:: niagads.utils.sys
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niagads.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
