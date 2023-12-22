@@ -234,7 +234,7 @@ class FileManifestValidator(TableValidator):
         result = super().run(failOnError)
         if self.__sampleReference is not None:
             sampleValidationResult = self.validate_samples(failOnError)
-            if len(sampleValidationResult) > 0:
+            if isinstance(sampleValidationResult, list):
                 if isinstance(result, list):
                     return result + [sampleValidationResult]
                 else:
