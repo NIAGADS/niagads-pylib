@@ -10,6 +10,8 @@ from . import JSONValidator
 from ..parsers import ExcelFileParser, CSVFileParser
 from ..utils.sys import is_xlsx
 from ..utils.string import xstr
+from ..utils.list import list_to_string
+from ..utils.exceptions import ValidationError
 
 class CSVValidator(ABC):
     """
@@ -183,30 +185,63 @@ class FileManifestValidator(TableValidator):
     all biosources are known
     """
     def __init__(self, fileName, schema, debug:bool=False):
+        self.__sampleReference: List[str] = None
+        self.__sampleField: str = 'sample_id'
         super().__init__(fileName, schema, debug)
         
+    
+    def set_sample_reference(self, sampleReference:List[str]):
+        self.__sampleReference = sampleReference
         
-    def validate_samples(self, sampleField: str, sampleReference:List[str]):
+        
+    def set_sample_field(self, field:str):
+        self.__sampleField = field
+        
+        
+    def validate_samples(self, failOnError:bool=False):
         """
         verifies that samples in the file manifest are 
         present in a reference list of samples
 
         Args:
-            sampleField (str): field in the sample manifest that contains sample IDs
-            sampleReference (List[str]): reference list of samples to match against
+            failOnError (bool, optional): fail on error; if False, returns list of errors.  Defaults to False.
+
+        Returns:
+            list of invalid samples
         """
         
-        sampleSet = { r[sampleField] for r in self._metadata }
-        referenceSet  = set(sampleReference)
+        sampleSet = { r[self.__sampleField] for r in self._metadata }
+        referenceSet  = set(self.__sampleReference)
     
         if referenceSet.issuperset(sampleSet):
             return True
         else:
-            invalidSamples = referenceSet.difference(sampleSet)
-            raise jsExceptions.ValidationError("Invalid samples found: " + xstr(invalidSamples))
+            invalidSamples = list(sampleSet.difference(referenceSet))
             
-            # TODO -- fail on error catch
-    
+            error = ValidationError("invalid samples found in file manifest: " + list_to_string(invalidSamples, delim=', '))
+            if failOnError:
+                raise error
+            else:
+                return error.message          
+
+
+    def run(self, failOnError:bool=False):
+        """
+        run validation on each row
+
+        wrapper of TableValidator.riun that also does sample validation
+        """
+        result = super().run(failOnError)
+        if self.__sampleReference is not None:
+            sampleValidationResult = self.validate_samples(failOnError)
+            if len(sampleValidationResult) > 0:
+                if isinstance(result, list):
+                    return result + [sampleValidationResult]
+                else:
+                    return [sampleValidationResult]
+        
+        return result        
+            
 
 class BiosourcePropertiesValidator(TableValidator):
     """
@@ -231,3 +266,6 @@ class BiosourcePropertiesValidator(TableValidator):
             raise TypeError("metadata not loaded; run `.load` before extracting sample IDs")
         
         return [ r[self.__sampleField] for r in self._metadata ] 
+    
+    
+    

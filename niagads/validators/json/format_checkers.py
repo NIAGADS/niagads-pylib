@@ -33,16 +33,18 @@ def doi(value: str):
     if value is None:
         return True
     
-    assert matches(RE.DOI, value, flags=RegexFlag.IGNORECASE)
+    assert matches(RE.DOI, str(value), flags=RegexFlag.IGNORECASE)
     return True
+
 
 @JSONSchemaFormatChecker.checks('md5sum', AssertionError)
 def md5sum(value: str):
     if value is None:
         return True
     
-    assert matches(RE.MD5SUM, value)
+    assert matches(RE.MD5SUM, str(value))
     return True
+
 
 @JSONSchemaFormatChecker.checks('file_size', AssertionError)
 def file_size(value: str):
@@ -52,8 +54,9 @@ def file_size(value: str):
     if value is None:
         return True
     
-    assert matches(RE.FILE_SIZE, value, flags=RegexFlag.IGNORECASE)
+    matches(RE.FILE_SIZE, str(value), flags=RegexFlag.IGNORECASE)
     return True
+
 
 @JSONSchemaFormatChecker.checks('info_string', AssertionError)
 def info_string(value: str):
@@ -63,10 +66,8 @@ def info_string(value: str):
     if value is None:
         return True
     
-    pairs = value.split(';')
+    pairs = str(value).split(';')
     for p in pairs:
         assert matches(RE.KEY_VALUE_PAIR, p)
     return True
-
-
 

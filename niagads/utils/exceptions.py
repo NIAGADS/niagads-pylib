@@ -12,11 +12,21 @@ class RestrictedValueError(Exception):
     """
 
     def __init__(self, label, value, enum):  
-        self.__message = "Invalid value for " + label \
+        self.message = "Invalid value for " + label \
             + ": " + xstr(value) \
             + "; valid values are: " + xstr(enum.list())
-        super().__init__(json.dumps(self.__message))
+        super().__init__(json.dumps(self.message))
 
+
+
+class ValidationError(Exception):
+    """
+    Generic ValidationException (raise when validation fails)
+    """
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+        
 
 class TimerError(Exception):
     """A custom exception used to report errors in use of Timer class"""
