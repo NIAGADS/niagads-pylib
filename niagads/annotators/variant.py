@@ -3,27 +3,37 @@
 import logging
 from ..utils.string import xstr, truncate, reverse
 
+def truncate_allele(allele: str, long=False):
+    """
+    wrapper for trunctate alleles to 8 chars by defualt
 
-def truncate_allele(value, long=False):
-    """ wrapper for trunctate to 5 chars """
-    return truncate(value, 100) if long else truncate(value, 8) 
+    Args:
+        allele (str): allele string
+        long (bool, optional): for long indels, can specify to truncate to 100 chars. Defaults to False.
+
+    Returns:
+        truncated allele string
+    """
+    return truncate(allele, 100) if long else truncate(allele, 8) 
+
 
 def reverse_complement(seq):
     """! @returns reverse complement of the specified sequence (seq)
     """
     mapping = str.maketrans("ACGTacgt", "TGCAtgca")
     return seq.translate(mapping)[::-1]
+
     
 class VariantAnnotator(object):
-    """ functions used to generate variant annotations """
+    """ generate dervived variant annotations: e.g., normalized alleles, inferred length """
 
-    def __init__(self, refAllele, altAllele, chrom, position, debug):
+    def __init__(self, chrom: str, pos: int, ref: str, alt: str, debug=False):
         self._debug = debug
         self.logger = logging.getLogger(__name__)
-        self.__ref = refAllele
-        self.__alt = altAllele
-        self.__chrom = chrom
-        self.__position = position
+        self.__ref = ref
+        self.__alt = alt
+        self.__chromosome = chrom
+        self.__position = pos
         self.__metaseqId = None
         self.__set_metaseq_id()
 
@@ -44,7 +54,7 @@ class VariantAnnotator(object):
         ref = self.__ref
         alt = self.__alt
         
-        normRef, normAlt = self.get_normalized_alleles()
+        normRef, normAlt = self.__normalize_alleles()
 
         rLength = len(ref)
         aLength = len(alt)
@@ -127,7 +137,7 @@ class VariantAnnotator(object):
         self.__metaseqId = ':'.join((xstr(self.__chrom), xstr(self.__position), self.__ref, self.__alt))
 
 
-    def get_metaseq_id(self):
+    def metaseq_id(self):
         """! @returns metaseq id """
         return self.__metaseqId
 
@@ -141,7 +151,7 @@ class VariantAnnotator(object):
         LONG = True
         
         position = self.__position
-         
+
         refLength = len(self.__ref)
         altLength = len(self.__alt)
 
@@ -157,7 +167,7 @@ class VariantAnnotator(object):
             'location_start': position,
             'location_end': position
         }
-     
+
         if (refLength == 1 and altLength == 1): # SNV
             attributes.update({
                 'variant_class': "single nucleotide variant",

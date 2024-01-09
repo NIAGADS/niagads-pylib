@@ -45,15 +45,18 @@
 from __future__ import print_function
 
 import csv
+import logging
 from collections import OrderedDict
 from datetime import date
 
-from GenomicsDBData.Util.utils import warning, to_numeric, die, int_to_alpha, verify_path, print_dict, xstr
-import GenomicsDBData.Util.list_utils as lu
+from ...utils.sys import warning, die, verify_path
+from ...utils.string import to_numeric, int_to_alpha, xstr
+from ...utils.dict import print_dict
+from ...utils.list import is_equivalent_list, qw, alphabetize_string_list, list_to_indexed_dict
 
-from AnnotatedVDB.Util.enums import ConseqGroup
+from . import ConseqGroup
 
-class ConsequenceParser(object):
+class VEPConsequenceParser(object):
     """! Parser for reading and re-ranking ADSP ranked consequences of VEP output """
 
     def __init__(self, rankingFileName, saveOnAddConseq=False, rankOnLoad=False, verbose=False, debug=False):
@@ -69,10 +72,11 @@ class ConsequenceParser(object):
         """
         self._verbose = verbose
         self._debug = debug
-        self._rankingFileName = rankingFileName
-        self._consequenceRankings = self.__parse_ranking_file()
-        self._addedConsequences = []
-        self._saveOnAddConsequence = saveOnAddConseq
+        self.logger = logging.getLogger(__name__)
+        self.__rankingFileName = rankingFileName
+        self.__consequenceRankings = self.__parse_ranking_file()
+        self.__addedConsequences = []
+        self.__saveOnAddConsequence = saveOnAddConseq
         
         if rankOnLoad: # re-rank file on load (e.g., first time using a ranking file)
             if self._verbose:
@@ -87,10 +91,10 @@ class ConsequenceParser(object):
         @param fileName   output file name; if no file name is provided, will upate original file name with current date 
         """
 
-        header = lu.qw('consequence rank')
+        header = qw('consequence rank')
         version = "_v" + xstr(self.get_new_conseq_count())
         if fileName is None:
-            fileName = self._rankingFileName.split('.')[0] + "_" \
+            fileName = self.__rankingFileName.split('.')[0] + "_" \
                 + date.today().strftime("%m-%d-%Y") + ".txt"
 
         if verify_path(fileName): # file already exists / add versioning for each newly added conseq
@@ -98,7 +102,7 @@ class ConsequenceParser(object):
 
         with open(fileName, 'w') as ofh:
             print('\t'.join(header), file=ofh)
-            for conseq, rank in self._consequenceRankings.items():
+            for conseq, rank in self.__consequenceRankings.items():
                 print(conseq, rank, sep='\t', file=ofh)
             
 
@@ -108,14 +112,14 @@ class ConsequenceParser(object):
         """
         
         if self._verbose:
-            warning("Parsing ranking file: ", self._rankingFileName)
+            warning("Parsing ranking file: ", self.__rankingFileName)
 
         result = OrderedDict()
         rank = 1
-        with open(self._rankingFileName, 'r') as fh:
+        with open(self.__rankingFileName, 'r') as fh:
             reader = csv.DictReader(fh, delimiter='\t')
             for row in reader:
-                conseq = lu.alphabetize_string_list(row['consequence']) # ensures unique keys
+                conseq = alphabetize_string_list(row['consequence']) # ensures unique keys
                 if 'rank' in row:
                     result[conseq] = to_numeric(row['rank'])
                 else: # assume load order is rank order
@@ -131,25 +135,25 @@ class ConsequenceParser(object):
     def get_new_conseq_count(self):    
         """! retrieve count of newly added consequences
         @returns count of newly added consequences"""
-        return len(self._addedConsequences)
+        return len(self.__addedConsequences)
     
 
     def new_consequences_added(self):
         """! check if new consequences were added
         @returns True if new consequences were added"""
-        return len(self._addedConsequences) > 0
+        return len(self.__addedConsequences) > 0
 
     
     def get_added_consequences(self, mostRecent=False):
         """! retrieve list of newly added consequences
         @return list of new consequences"""
-        return self._addedConsequences[-1] if mostRecent else self._addedConsequences
+        return self.__addedConsequences[-1] if mostRecent else self.__addedConsequences
         
         
     def get_rankings(self):
         """! retrieve consequence rankings
         @return OrderedDict of conseqs:rank """
-        return self._consequenceRankings
+        return self.__consequenceRankings
 
 
     def get_consequence_rank(self, conseq, failOnError=False):
@@ -158,8 +162,8 @@ class ConsequenceParser(object):
         @param failOnError  flag indicating whether to raise an error if consequence is not found
         @return return value from consequence rank map for the specified or None if not found
         """
-        if conseq in self._consequenceRankings:
-            return self._consequenceRankings[conseq]
+        if conseq in self.__consequenceRankings:
+            return self.__consequenceRankings[conseq]
         else:
             if failOnError:
                 raise IndexError('Consequence ' + conseq + ' not found in ADSP rankings.')
@@ -179,9 +183,9 @@ class ConsequenceParser(object):
         # storing matches b/c this step is slow (checking equivalent lists etc)
         if conseqKey not in self._matchedConseqTerms:
             match = None
-            for conseqStr in self._consequenceRankings:
+            for conseqStr in self.__consequenceRankings:
                 conseqList = conseqStr.split(',')
-                if lu.is_equivalent_list(terms, conseqList):
+                if is_equivalent_list(terms, conseqList):
                     match = self.get_consequence_rank(conseqStr)
                     break
                 
@@ -210,7 +214,7 @@ class ConsequenceParser(object):
 
             b/c these are keys to a hash, they are unique
         """
-        return list(self._consequenceRankings.keys()) # convert from odict_keys object
+        return list(self.__consequenceRankings.keys()) # convert from odict_keys object
 
 
     def __add_consequence(self, terms):
@@ -218,14 +222,14 @@ class ConsequenceParser(object):
 
         # extract list of known consequences & add the new one
         referenceConseqs = self.get_known_consequences()
-        conseqStr = lu.alphabetize_string_list(terms)
+        conseqStr = alphabetize_string_list(terms)
         
         if conseqStr in referenceConseqs:
             raise IndexError('Attempted to add consequence combination ' \
                                 + conseqStr + ', but already in ADSP rankings.')
         
         referenceConseqs.append(conseqStr)
-        self._addedConsequences.append(conseqStr)
+        self.__addedConsequences.append(conseqStr)
 
         return referenceConseqs
 
@@ -270,9 +274,9 @@ class ConsequenceParser(object):
         if self._debug:
             warning("FINAL SORTED CONSEQUENCES", sortedConseqs)
             
-        self._consequenceRankings = lu.list_to_indexed_dict(sortedConseqs)
+        self.__consequenceRankings = list_to_indexed_dict(sortedConseqs)
 
-        if terms is not None and self._saveOnAddConsequence:
+        if terms is not None and self.__saveOnAddConsequence:
             if self._verbose:
                 warning("Added new consequence `" + ','.join(terms) + "`. Saving version:", self.get_new_conseq_count())
             self.save_ranking_file()

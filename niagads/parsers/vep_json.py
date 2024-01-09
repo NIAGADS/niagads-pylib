@@ -13,17 +13,6 @@
 #
 # - clean vep result to remove info that has been extracted
 #
-# @section libraries_vep_parser Libraries/Modules
-# - operator: standard operators as functions / use operator.itemgetter for sorting
-# - [GenomicsDBData.Util.utils](https://github.com/NIAGADS/GenomicsDBData/blob/master/Util/lib/python/utils.py)
-#   + provides variety of wrappers for standard file, string, list, and logging operations
-# - [GenomicsDBData.Util.list_utils](https://github.com/NIAGADS/GenomicsDBData/blob/master/Util/lib/python/list_utils.py)
-#   + provides variety of wrappers for set and list operations
-# - [GenomicsDBData.Util.auto_viv_dict](https://github.com/NIAGADS/GenomicsDBData/blob/master/Util/lib/python/auto_viv_dict.py)
-#   + dictionary allowing AutoVivification (perl ability to add nested levels to a hash on the fly, e.g., yourdict[yourkey][newkey1][newkey2] = 42)
-# - [AnnotatedVDB.Util.parsers](https://github.com/NIAGADS/AnnotatedVDB/tree/master/Util/lib/python/parsers)
-#   + ConsequenceParser - parse & rank vep consequences according to ADSP standards
-#
 # @section author_vep_parser Author(s)
 # - Created by Emily Greenfest-Allen (fossilfriend) 2019
 # - Modified to remove consequence ranking to the ConsequenceParser class by EGA 2022
@@ -37,8 +26,8 @@ from copy import deepcopy
 
 from ..utils.string import xstr
 from ..utils.list import qw
-from .. import AutoVivificationDict
-from . import ConsequenceParser
+from .. import AutoVivificationDict 
+from . import VEPConsequenceParser as ConsequenceParser
 
 CONSEQUENCE_TYPES = qw('transcript regulatory_feature motif_feature intergenic')
 CODING_CONSEQUENCES= qw('synonymous_variant missense_variant inframe_insertion inframe_deletion stop_gained stop_lost stop_retained_variant start_lost frameshift_variant coding_sequence_variant')

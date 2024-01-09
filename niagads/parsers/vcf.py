@@ -13,11 +13,6 @@
 #
 # - None
 #
-# @section libraries_vcf_parser Libraries/Modules
-# - types: SimpleNamespace -- allows treatment of a dict as a namespace to access with dot notation
-# - [GenomicsDBData.Util.utils](https://github.com/NIAGADS/GenomicsDBData/blob/master/Util/lib/python/utils.py)
-#   + provides variety of wrappers for standard file, string, list, and logging operations
-# - [GenomicsDBData.Util.list_utils](https://github.com/NIAGADS/GenomicsDBData/blob/master/Util/lib/python/list_utils.py)
 #
 # @section author_vcf_parser Author(s)
 # - Created by Emily Greenfest-Allen (fossilfriend) 2019
@@ -25,8 +20,8 @@
 
 # pylint: disable=line-too-long,invalid-name,no-self-use
 
-from types import SimpleNamespace
 import logging
+from types import SimpleNamespace
 
 from ..utils.exceptions import ParserError
 from ..utils.string import xstr, to_numeric
@@ -35,7 +30,7 @@ from ..utils.list import qw
 from ..annotators import VariantAnnotator
 
 
-class VcfEntryParser(object):
+class VCFEntryParser(object):
     """! utils for parse a single line of a vcf file """
 
     def __init__(self, entry, headerFields=None, verbose=False, debug=False):
@@ -83,7 +78,7 @@ class VcfEntryParser(object):
         fields = self.__headerFields
         values = inputStr.split('\t')
         result = convert_str2numeric_values(dict(zip(fields, values)))
-       
+
         
         # now unpack the info field and save as its own
         try:
