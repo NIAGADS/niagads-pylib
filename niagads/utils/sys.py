@@ -14,6 +14,29 @@ from .dict import print_dict
 from .string import ascii_safe_str
 from .exceptions import RestrictedValueError
 
+class FakeSecHead(object):
+    '''
+    puts a fake section into a properties file file so that ConfigParser can
+    be used to retrieve info / necessary for gus.config (GenomicsDB admin config) files
+
+    workaround for the INI-style headings required by ConfigParser
+    see https://stackoverflow.com/questions/2819696/parsing-properties-file-in-python
+    
+    Required for Python versions < 3 only; for 3+ see utils.db.postgres_dbi.load_database_config for solution
+    '''
+    def __init__(self, fp):
+        self.fp = fp
+        self.sechead = '[section]\n'
+
+    def readline(self):
+        if self.sechead:
+            try: 
+                return self.sechead
+            finally: 
+                self.sechead = None
+        else: 
+            return self.fp.readline()
+
 
 def is_xlsx(fileName: str) -> bool:
     """ 
