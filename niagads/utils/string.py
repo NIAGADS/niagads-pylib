@@ -4,11 +4,15 @@ string manipulation functions, converters and
 value testers
 """
 
-import re
 import json
-from types import SimpleNamespace
+import niagads.utils.reg_ex as re
+
+from deprecated import deprecated
 from dateutil.parser import parse as parse_date
 from datetime import datetime
+
+from .enums import RegexFlag
+
 
 def dict_to_info_string(obj):
     """ wrapper for dict_to_string (semantics )
@@ -262,32 +266,24 @@ def is_balanced(value, start='(', end=')'):
 
 # regex wrappers to re calls to reduce re imports
 # =================================================
-def regex_replace(pattern, replacement, value):
-    ''' wrapper for re.sub '''
-    return re.sub(pattern, replacement, value)
+@deprecated(version='0.2.0', reason="Moved; import from `utils.reg_ex` instead")
+def regex_replace(pattern, replacement, value, **kwargs):
+    ''' see `utils.reg_ex.regex_replace` for documentation '''
+    return re.regex_replace(pattern, replacement, value, **kwargs)
 
 
-def regex_extract(pattern, value):
-    ''' extract substring using a regexp
-        assumes matching a single substring 
-        and returns first match
-    '''
-    result = re.search(pattern, value)
-    if result is not None:
-        try:
-            return result.group(1)
-        except:
-            return result.group()
-    return None
+@deprecated(version='0.2.0', reason="Moved; import from `utils.reg_ex` instead")
+def regex_extract(pattern, value, firstMatchOnly=True, **kwargs): 
+    ''' see `utils.reg_ex.regex_extract` for documentation '''
+    return re.regex_extract(pattern, value, **kwargs)
 
 
-def matches(pattern, value):
-    ''' returns true if pattern found in string
-    '''
-    result = re.search(pattern, value)
-    return result is not None
+@deprecated(version='0.2.0', reason="Moved; import from `utils.reg_ex` instead")
+def matches(pattern, value, **kwargs):
+    ''' see `utils.reg_ex.matches` for documentation '''
+    return re.matches(pattern, value, **kwargs)
 
-
-def regex_split(pattern, value):
-    ''' wrapper for re.split'''
-    return re.split(pattern, value)
+@deprecated(version='0.2.0', reason="Moved; import from `utils.reg_ex` instead")
+def regex_split(pattern, value, **kwargs):
+    ''' see `utils.reg_ex.split` for documentation '''
+    return re.regex_split(pattern, value, **kwargs)
