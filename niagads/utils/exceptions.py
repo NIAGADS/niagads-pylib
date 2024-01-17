@@ -2,6 +2,11 @@ import json
 import logging
 from .string import xstr
 
+
+class IllegalArgumentError(ValueError):
+    pass
+
+
 class RestrictedValueError(Exception):
     """Exception raised when controlled value does not match reference enum
     assumes the "Enum" is a "CustomStrEnum" which has a .list() class member
