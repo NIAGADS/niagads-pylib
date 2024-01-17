@@ -7,11 +7,47 @@ value testers
 import json
 import niagads.utils.reg_ex as re
 
+from typing import List
 from deprecated import deprecated
 from dateutil.parser import parse as parse_date
 from datetime import datetime
 
 from .enums import RegexFlag
+from .list import qw
+
+
+def string_in_list(value: str, array: List[str], ignoreCase=False):
+    """
+    wrapper for seeing if a string value is 'in' a list 
+    allows case insensitive matches
+
+    Args:
+        value (str): string value to lookup
+        array (List[str]): list of strings
+        ignoreCase (bool, optional): flag for case sensitive match. Defaults to False.
+    """
+    if not ignoreCase:
+        return value in array
+    else:
+        if value.casefold() in (s.casefold() for s in array):
+            return True
+    return False
+    
+
+def eval_null(value: str, naIsNull=False):
+    """
+    checks to see if value is NULL / None or equivalent
+
+    Args:
+        value (str): value to evaluate
+        naIsNull (boolean, optional): NA is considered null.  Default to False
+
+    Returns:
+        None if null value, else value
+    """
+    if value is not None and is_null(value, naIsNull=naIsNull):
+        return None
+    return value   
 
 
 def dict_to_info_string(obj):
@@ -203,9 +239,9 @@ def to_numeric(value):
 
 
 def is_null(value, naIsNull=False):
-    if value is None:
+    if value is None or value in ['NULL', 'null']:
         return True
-    if naIsNull and value in ['NA', 'not applicable', 'Not applicable', '.']:
+    if naIsNull and string_in_list(value, ['NA', 'not applicable', '.', 'N/A', 'NULL'], ignoreCase=True):
         return True
     return False
 
