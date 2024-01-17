@@ -5,13 +5,17 @@ management
 
 import logging
 import psycopg2
-import psycopg2.extras
+import psycopg2.extras 
 
 from os import environ
 from sys import exc_info
 
-from psycopg2 import OperationalError, errorcodes, errors, DatabaseError
+from psycopg2 import DatabaseError
 from configparser import ConfigParser as SafeConfigParser # renamed in Python 3.2
+
+from .exceptions import IllegalArgumentError
+from .sys import verify_path
+
 
 def raise_pg_exception(err, returnError=False):
     """ raise postgres exception """
@@ -29,22 +33,37 @@ def raise_pg_exception(err, returnError=False):
 
 class Database(object):
     """
-    accessor for database connection info
-    + database handler
+    accessor for database connection info / provides database handler
     """
-    def __init__(self, gusConfigFile):
+    def __init__(self, gusConfigFile=None, connectionString=None):
         self.__dbh = None # database handler (connection)
         self.__dsn = None
         self.__user = None
         self.__password = None
         self.__pgpassword = None # placeholder for resetting PGPASSWORD environmental var
         self.__dsnConfig = None
-        self.connectionString = None
+        self.__connectionString = connectionString
 
-        self.gusConfigFile = environ['GUS_HOME'] + "/config/gus.config" \
-            if gusConfigFile is None else gusConfigFile
+        self.__initialize_database_config(gusConfigFile, connectionString)
 
-        self.load_database_config()
+        
+    def __initialize_database_config(self, gusConfigFile, connectionString):
+        if connectionString is not None:
+            self.__connectionString = connectionString
+            # TODO: extract user, etc from connection string & set
+            return
+        
+        if gusConfigFile is None:
+            if not environ.get('GUS_HOME'):
+                raise IllegalArgumentError("GUS_HOME environmental variable not set; must provide full path to `gus.config` file or connection string to establish a database connection")
+        
+            gusConfigFile = environ['GUS_HOME'] + "/config/gus.config"
+            
+        if not verify_path(gusConfigFile):
+            raise FileNotFoundError(gusConfigFile)
+        
+        self.load_database_config(gusConfigFile)
+        
         
     def cursor(self, cursorFactory=None):
         """
@@ -102,6 +121,10 @@ class Database(object):
         environ['PGPASSWORD'] = self.__password
 
         
+    def clear_pgpassword(self):
+        self.reset_pgpassword()
+        
+        
     def reset_pgpassword(self):
         """
         set PGPASSWORD back to original value
@@ -137,13 +160,14 @@ class Database(object):
         else:
             return None
 
-    def load_database_config(self):
+
+    def load_database_config(self, gusConfigFile):
         """
         parse gus config file for DB connection info
         """
         config_parser = SafeConfigParser()
 
-        with open(self.gusConfigFile, 'r') as fh:
+        with open(gusConfigFile, 'r') as fh:
             config_string = '[section]\n' + fh.read()
             config_parser.read_string(config_string)
 
@@ -154,6 +178,8 @@ class Database(object):
         self.__dsn = self.__dsn.replace('dbi:Pg:', '')
         self.__dsn = self.__dsn.replace('DBI:Pg:', '')
         self.__dsnConfig = dict(param.split("=") for param in self.__dsn.split(";"))
+        
+        self.__build_connection_string()
 
 
     def dbh(self):
@@ -165,19 +191,22 @@ class Database(object):
     def user(self):
         return self.__user
 
+
+    def __build_connection_string(self):
+        self.__connectionString = "user='" + self.__user + "'"
+        self.__connectionString = self.__connectionString + " password='" + self.__password + "'"
+        self.__connectionString = self.__connectionString + " dbname='" + self.__dsnConfig['dbname'] + "'"
+        if 'host' in self.__dsnConfig:
+            self.__connectionString = self.__connectionString + " host='" + self.__dsnConfig['host'] + "'"
+        if 'port' in self.__dsnConfig:
+            self.__connectionString = self.__connectionString + " port='" + self.__dsnConfig['port'] + "'"
+            
+
     def connect(self):
         """
         create database connection
         """
-        self.connectionString = "user='" + self.__user + "'"
-        self.connectionString = self.connectionString + " password='" + self.__password + "'"
-        self.connectionString = self.connectionString + " dbname='" + self.__dsnConfig['dbname'] + "'"
-        if 'host' in self.__dsnConfig:
-            self.connectionString = self.connectionString + " host='" + self.__dsnConfig['host'] + "'"
-        if 'port' in self.__dsnConfig:
-            self.connectionString = self.connectionString + " port='" + self.__dsnConfig['port'] + "'"
-    
-        self.__dbh = psycopg2.connect(self.connectionString)
+        self.__dbh = psycopg2.connect(self.__connectionString)
 
 
     def connected(self):
