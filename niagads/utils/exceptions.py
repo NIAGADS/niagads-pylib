@@ -1,6 +1,6 @@
 import json
 import logging
-from niagads.utils.string import xstr
+from .string import xstr
 
 
 class IllegalArgumentError(ValueError):

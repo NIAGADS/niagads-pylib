@@ -12,10 +12,6 @@ from deprecated import deprecated
 from dateutil.parser import parse as parse_date
 from datetime import datetime
 
-from .enums import RegexFlag
-from .list import qw
-
-
 def string_in_list(value: str, array: List[str], ignoreCase=False):
     """
     wrapper for seeing if a string value is 'in' a list 
