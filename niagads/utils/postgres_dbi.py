@@ -13,8 +13,8 @@ from sys import exc_info
 from psycopg2 import DatabaseError
 from configparser import ConfigParser as SafeConfigParser # renamed in Python 3.2
 
-from .exceptions import IllegalArgumentError
-from .sys import verify_path
+from niagads.utils.exceptions import IllegalArgumentError
+from niagads.utils.sys import verify_path
 
 
 def raise_pg_exception(err, returnError=False):

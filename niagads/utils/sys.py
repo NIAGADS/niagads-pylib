@@ -10,10 +10,10 @@ from sys import stderr, exit
 from urllib.parse import urlencode
 from subprocess import check_output, CalledProcessError
 
-from .enums import ClassProperties
-from .dict import print_dict
-from .string import ascii_safe_str
-from .exceptions import RestrictedValueError
+from niagads.utils.enums import ClassProperties
+from niagads.utils.dict import print_dict
+from niagads.utils.string import ascii_safe_str
+from niagads.utils.exceptions import RestrictedValueError
 
 
 def file_chunker(buffer: IO, chunkSize:int):
