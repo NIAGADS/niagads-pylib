@@ -4,17 +4,32 @@ management
 """
 
 import logging
-import psycopg2
-import psycopg2.extras 
-
 from os import environ
 from sys import exc_info
 
-from psycopg2 import DatabaseError
+from time import sleep
+from psycopg2 import DatabaseError, connect as db_connect
+from psycopg2.extras import DictCursor, RealDictCursor
+from psycopg2.pool import SimpleConnectionPool, ThreadedConnectionPool as _ThreadedConnectionPool
+from threading import Semaphore
+
+
 from configparser import ConfigParser as SafeConfigParser # renamed in Python 3.2
 
 from .exceptions import IllegalArgumentError
 from .sys import verify_path
+
+
+def initialize_cursor(dbh, name: str = None, realDict=False, withhold=False):    
+        cursorFactory = RealDictCursor if realDict else None
+        
+        if name is None:
+            return dbh.cursor(cursor_factory=cursorFactory)
+            
+        if ' ' in name:
+            raise ValueError("Invalid name " + name + " for cursor; no spaces allowed")
+        
+        return dbh.cursor(name=name, cursorFactory=cursorFactory, withhold=withhold)
 
 
 def raise_pg_exception(err, returnError=False):
@@ -31,6 +46,39 @@ def raise_pg_exception(err, returnError=False):
         raise err
 
 
+class ThreadedConnectionPool(_ThreadedConnectionPool):
+    """
+    adapted from https://stackoverflow.com/a/53437049
+    to use semaphore blocking to limit connection attempts until
+    one is available
+    
+    """
+    def __init__(self, minconn, maxconn, *args, **kwargs):
+        self.__semaphore = Semaphore(maxconn)
+        self.__maxConnections = maxconn
+        super().__init__(minconn, maxconn, *args, **kwargs)
+
+    def getconn(self, *args, **kwargs):
+        self.__semaphore.acquire()
+        try:
+            return super().getconn(*args, **kwargs)
+        except:
+            self.__semaphore.release()
+            raise
+
+    def putconn(self, *args, **kwargs):
+        try:
+            super().putconn(*args, **kwargs)
+        finally:
+            self.__semaphore.release()
+            
+    def closeall(self):
+        try:
+            super().closeall()
+        finally: 
+            self.__semaphore = Semaphore(self.__maxConnections)
+
+
 class Database(object):
     """
     accessor for database connection info / provides database handler
@@ -43,6 +91,7 @@ class Database(object):
         self.__pgpassword = None # placeholder for resetting PGPASSWORD environmental var
         self.__dsnConfig = None
         self.__connectionString = connectionString
+        self.__pool = None # connection pool
 
         self.__initialize_database_config(gusConfigFile, connectionString)
 
@@ -64,6 +113,46 @@ class Database(object):
         
         self.load_database_config(gusConfigFile)
         
+    
+    def pool(self):
+        """
+        get connection pool
+        usage:
+            see https://www.psycopg.org/docs/pool.html for more info on getconn and putconn
+            db = Database()
+            db.create_pool() # threaded=True for multithreading applications
+            dbh = db.pool().getconn() # get a connection
+            db.pool().putconn(dbh) # put away the connection
+            db.pool().putconn(dbh, close=True) # close the connection
+            namedDbh = db.pool().getconn(key="my-conn") # if named, using the key will retrieve the same connection
+            db.pool().putconn(namedDbh, key="my-conn") # key needs to be consistent with .getconn call
+            db.pool().closeall() # close all connections
+        """
+        return self.__pool
+
+
+    def create_pool(self, maxConnections:int=20, threaded=False):
+        """
+        create (if does not exist) and return connection pool
+
+        Args:
+            maxConnections (int, optional): maximum number of connections in the pool.  Defaults to 20.
+            threaded (bool, optional): create threaded pool (for use in multi-threaded applications). Defaults to False.
+        """
+        if self.__pool is not None:
+            raise DatabaseError("Connection Pool already exists; please close before creating a new pool")
+        
+        if threaded:
+            self.__pool = ThreadedConnectionPool(1, maxConnections, self.__connectionString)
+        else:
+            self.__pool = SimpleConnectionPool(1, maxConnections, self.__connectionString)
+
+                
+
+    def close_pool(self):
+        self.__pool.closeall()
+        self.__pool = None
+        
         
     def cursor(self, cursorFactory=None):
         """
@@ -71,9 +160,9 @@ class Database(object):
         if dictCursor is True, return DictCursor
         """
         if cursorFactory == 'DictCursor':
-            return self.__dbh.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            return self.__dbh.cursor(cursor_factory=DictCursor)
         if cursorFactory == 'RealDictCursor':
-            return self.__dbh.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            return self.__dbh.cursor(cursor_factory=RealDictCursor)
 
         return self.__dbh.cursor()
 
@@ -84,9 +173,9 @@ class Database(object):
         if dictCursor is True, return DictCursor
         """
         if cursorFactory == 'DictCursor':
-            return self.__dbh.cursor(name=name,cursor_factory=psycopg2.extras.DictCursor, withhold=withhold)
+            return self.__dbh.cursor(name=name,cursor_factory=DictCursor, withhold=withhold)
         if cursorFactory == 'RealDictCursor':
-            return self.__dbh.cursor(name=name,cursor_factory=psycopg2.extras.RealDictCursor, withhold=withhold)
+            return self.__dbh.cursor(name=name,cursor_factory=RealDictCursor, withhold=withhold)
 
         return self.__dbh.cursor(name=name, withhold=withhold)
 
@@ -206,11 +295,15 @@ class Database(object):
         """
         create database connection
         """
-        self.__dbh = psycopg2.connect(self.__connectionString)
+        if not self.connected():
+            self.__dbh = db_connect(self.__connectionString)
 
 
     def connected(self):
         """ test the connection; returns true if handle is connected """
+        if self.__dbh is None:
+            return False
+        
         return not bool(self.__dbh.closed)
 
 
@@ -218,7 +311,8 @@ class Database(object):
         """
         close the database connection
         """
-        self.__dbh.close()
+        if self.connected():
+            self.__dbh.close()
 
 
     def rollback(self):
@@ -234,4 +328,7 @@ class Database(object):
         """
         self.__dbh.commit()
 
+
+    def __exit__(self):
+        self.close()
 
