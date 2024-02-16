@@ -8,7 +8,7 @@ from os import environ
 from sys import exc_info
 
 from time import sleep
-from psycopg2 import DatabaseError, connect as db_connect
+from psycopg2 import DatabaseError, DataError, connect as db_connect
 from psycopg2.extras import DictCursor, RealDictCursor
 from psycopg2.pool import SimpleConnectionPool, ThreadedConnectionPool as _ThreadedConnectionPool
 from threading import Semaphore
