@@ -26,7 +26,7 @@ def initialize_cursor(dbh, name: str = None, realDict=False, withhold=False):
         if name is None:
             return dbh.cursor(cursor_factory=cursorFactory)
             
-        if ' ' in name:
+        if name is not None and ' ' in name:
             raise ValueError("Invalid name " + name + " for cursor; no spaces allowed")
         
         return dbh.cursor(name=name, cursorFactory=cursorFactory, withhold=withhold)
@@ -312,6 +312,8 @@ class Database(object):
         close the database connection
         """
         if self.connected():
+            if self.__pool is not None:
+                self.close_pool
             self.__dbh.close()
 
 
