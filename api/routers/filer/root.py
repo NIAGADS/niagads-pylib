@@ -2,6 +2,8 @@ from fastapi import APIRouter
 from typing import Union
 from .metadata import router as metadata
 
+# for defining re-used query params, e.g., the filters https://stackoverflow.com/a/64366434
+
 fullResourceName = "FILER Functional Genomics Repository"
 resourceAbbrev = "FILER"
 
