@@ -13,8 +13,8 @@ router = APIRouter(
 async def query_track_metadata():
     return {"tracks": "TODO: retrieve all tracks"}
 
-
 @router.get("/{track}", tags=tags, description="get metadata for a specific FILER track")
 async def track_metadata_by_id(track: str):
     return {"track": track, "metadata": "TODO"}
+
 
