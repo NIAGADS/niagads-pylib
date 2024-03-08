@@ -12,7 +12,7 @@ setup(
     setup_requires = ['Cython'],
     install_requires=['Cython', 'openpyxl', 'strenum', 
                       'rdflib', 'owlready2', 'pandas', 
-                      'python-dateutil', 'requests', 'psycopg2',
+                      'python-dateutil', 'requests', 'psycopg2-binary',
                       'jsonschema', 'Deprecated'],
     entry_points ={
         'console_scripts': [
