@@ -13,6 +13,7 @@ from niagads.reference.chromosomes import Human as Chromosome
 # https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#query-parameter-list-multiple-values
 
 RESPONSES = {404: {"description": "Not found"}}
+
 class Assembly(str, Enum):
     """enum for genome builds"""
     GRCh37 = "GRCh37"
@@ -35,3 +36,12 @@ def assembly_param(assembly: Assembly = Query(Assembly.GRCh38, description="refe
 def chromosome_param(chromosome: str = Query(Chromosome.chr19.value, enum=[c.name for c in Chromosome],
         description="chromosome, specificed as 1..22,X,Y,M,MT or chr1...chr22,chrX,chrY,chrM,chrMT")):
     return Chromosome.validate(chromosome)
+
+
+def span_param(span: str = Query(alias="loc", regex="", description="")):
+    return True
+
+
+def variant_id(variant: str = Query(regex="", description="")):
+    return True
+

@@ -7,7 +7,7 @@ from .dependencies import ROUTE_TAGS
 TAGS = ROUTE_TAGS +  ["Data Retrieval"]
 
 router = APIRouter(
-    prefix="/query",
+    prefix="/track",
     tags=TAGS,
     responses=RESPONSES
 )
@@ -18,5 +18,6 @@ async def query(assembly = Depends(assembly_param), chromosome = Depends(chromos
 
 @router.get("/{track}", tags=ROUTE_TAGS, description="query data from a specific FILER track")
 async def query_track(track: str):
-    return {"track": "track", "metadata": "TODO"}
+    return {"track": track, "result": []}
+
 
