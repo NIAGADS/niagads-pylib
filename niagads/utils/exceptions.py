@@ -3,6 +3,12 @@ import logging
 from .string import xstr
 
 
+class AbstractMethodNotImplemented(NotImplementedError):
+    def __init__(self, methodName):  
+        self.message = "`" + methodName + "` method has not been implement for the child of this Abstract parent class"
+        super().__init__(self.message)
+
+
 class IllegalArgumentError(ValueError):
     pass
 

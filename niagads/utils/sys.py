@@ -288,7 +288,7 @@ class FakeSecHead(object):
     workaround for the INI-style headings required by ConfigParser
     see https://stackoverflow.com/questions/2819696/parsing-properties-file-in-python
     
-    Required for Python versions < 3 only; for 3+ see utils.db.postgres_dbi.load_database_config for solution
+    Required for Python versions < 3 only; for 3+ see db.postgres.postgres_dbi.load_database_config for solution
     '''
     def __init__(self, fp):
         self.fp = fp

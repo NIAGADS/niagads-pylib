@@ -13,7 +13,7 @@ setup(
     install_requires=['Cython', 'openpyxl', 'strenum', 
                       'rdflib', 'owlready2', 'pandas', 
                       'python-dateutil', 'requests', 'psycopg2-binary',
-                      'jsonschema', 'Deprecated'],
+                      'jsonschema', 'Deprecated', 'asyncpg'],
     entry_points ={
         'console_scripts': [
                'variant_annotator = niagads.scripts.variant_annotator:main',
