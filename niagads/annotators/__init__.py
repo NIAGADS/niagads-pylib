@@ -1,1 +1,1 @@
-from variant import VariantAnnotator
+from .variant import VariantAnnotator
