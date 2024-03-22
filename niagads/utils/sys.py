@@ -15,6 +15,7 @@ from .dict import print_dict
 from .string import ascii_safe_str
 from .exceptions import RestrictedValueError
 
+LOGGER = logging.getLogger(__name__)
 
 def file_chunker(buffer: IO, chunkSize:int):
     """
@@ -180,15 +181,17 @@ def execute_cmd(cmd, cwd=None, printCmdOnly=False, verbose=True, shell=False):
     shell = execute in a shell (e.g., necessary for commands like gzip)
     '''
     if verbose or printCmdOnly:
-        asciiSafeCmd = [ascii_safe_str(c) for c in cmd]
-        warning("EXECUTING: ", ' '.join(asciiSafeCmd), flush=True)
+        if not isinstance(cmd, str):
+            asciiSafeCmd = [ascii_safe_str(c) for c in cmd]
+            cmd = ' '.join(asciiSafeCmd)
+        LOGGER.info("EXECUTING: " + cmd)
         if printCmdOnly: return
     try:
         if shell:
             output = check_output(cmd, cwd=cwd, shell=True)
         else:
             output = check_output(cmd, cwd=cwd)
-        warning(output)
+        LOGGER.info(output)
     except CalledProcessError as e:
         die(e)
 
