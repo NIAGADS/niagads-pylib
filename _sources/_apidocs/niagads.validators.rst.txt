@@ -1,0 +1,29 @@
+niagads.validators package
+==========================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   niagads.validators.json
+
+Submodules
+----------
+
+niagads.validators.metadata module
+----------------------------------
+
+.. automodule:: niagads.validators.metadata
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niagads.validators
+   :members:
+   :undoc-members:
+   :show-inheritance:

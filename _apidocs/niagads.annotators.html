@@ -1,0 +1,257 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>niagads.annotators package &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=e031e9a9"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+
+    
+    
+     
+        <script src="../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="niagads.api_wrapper package" href="niagads.api_wrapper.html" />
+    <link rel="prev" title="niagads package" href="niagads.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.api_wrapper.html" title="niagads.api_wrapper package"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.html" title="niagads package"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" accesskey="U">niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.annotators package</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="niagads-annotators-package">
+<h1>niagads.annotators package<a class="headerlink" href="#niagads-annotators-package" title="Permalink to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">¶</a></h2>
+</section>
+<section id="module-niagads.annotators.variant">
+<span id="niagads-annotators-variant-module"></span><h2>niagads.annotators.variant module<a class="headerlink" href="#module-niagads.annotators.variant" title="Permalink to this heading">¶</a></h2>
+<p>variant annotator functions</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.annotators.variant.VariantAnnotator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.annotators.variant.</span></span><span class="sig-name descname"><span class="pre">VariantAnnotator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chrom</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/annotators/variant.html#VariantAnnotator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.annotators.variant.VariantAnnotator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>generate dervived variant annotations: e.g., normalized alleles, inferred length</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.annotators.variant.VariantAnnotator.get_display_attributes">
+<span class="sig-name descname"><span class="pre">get_display_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rsPosition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/annotators/variant.html#VariantAnnotator.get_display_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.annotators.variant.VariantAnnotator.get_display_attributes" title="Permalink to this definition">¶</a></dt>
+<dd><p>! generate and return display alleles &amp; dbSNP compatible start-end
+&#64;param rsPosition       dbSNP property RSPOS
+&#64;returns                 dict containing display attributes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.annotators.variant.VariantAnnotator.get_normalized_alleles">
+<span class="sig-name descname"><span class="pre">get_normalized_alleles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">snvDivMinus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/annotators/variant.html#VariantAnnotator.get_normalized_alleles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.annotators.variant.VariantAnnotator.get_normalized_alleles" title="Permalink to this definition">¶</a></dt>
+<dd><p>! public wrapper for __normalize_alleles / LEGACY
+&#64;returns normalized alleles</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.annotators.variant.VariantAnnotator.infer_variant_end_location">
+<span class="sig-name descname"><span class="pre">infer_variant_end_location</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rsPosition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/annotators/variant.html#VariantAnnotator.infer_variant_end_location"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.annotators.variant.VariantAnnotator.infer_variant_end_location" title="Permalink to this definition">¶</a></dt>
+<dd><p>! infer span of indels/deletions for a
+specific alternative allele, modeled off
+GUS Perl VariantAnnotator &amp; dbSNP normalization conventions
+&#64;returns                 end location</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.annotators.variant.VariantAnnotator.metaseq_id">
+<span class="sig-name descname"><span class="pre">metaseq_id</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/annotators/variant.html#VariantAnnotator.metaseq_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.annotators.variant.VariantAnnotator.metaseq_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>! &#64;returns metaseq id</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.annotators.variant.reverse_complement">
+<span class="sig-prename descclassname"><span class="pre">niagads.annotators.variant.</span></span><span class="sig-name descname"><span class="pre">reverse_complement</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/annotators/variant.html#reverse_complement"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.annotators.variant.reverse_complement" title="Permalink to this definition">¶</a></dt>
+<dd><p>! &#64;returns reverse complement of the specified sequence (seq)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.annotators.variant.truncate_allele">
+<span class="sig-prename descclassname"><span class="pre">niagads.annotators.variant.</span></span><span class="sig-name descname"><span class="pre">truncate_allele</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">allele</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">long</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/annotators/variant.html#truncate_allele"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.annotators.variant.truncate_allele" title="Permalink to this definition">¶</a></dt>
+<dd><p>wrapper for trunctate alleles to 8 chars by defualt</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>allele</strong> (<em>str</em>) – allele string</p></li>
+<li><p><strong>long</strong> (<em>bool</em><em>, </em><em>optional</em>) – for long indels, can specify to truncate to 100 chars. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>truncated allele string</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-niagads.annotators">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-niagads.annotators" title="Permalink to this heading">¶</a></h2>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="sphinx-toc sphinxlocaltoc">
+    <h3><a href="../index.html">Page contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">niagads.annotators package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-niagads.annotators.variant">niagads.annotators.variant module</a><ul>
+<li><a class="reference internal" href="#niagads.annotators.variant.VariantAnnotator"><code class="docutils literal notranslate"><span class="pre">VariantAnnotator</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.annotators.variant.VariantAnnotator.get_display_attributes"><code class="docutils literal notranslate"><span class="pre">VariantAnnotator.get_display_attributes()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.annotators.variant.VariantAnnotator.get_normalized_alleles"><code class="docutils literal notranslate"><span class="pre">VariantAnnotator.get_normalized_alleles()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.annotators.variant.VariantAnnotator.infer_variant_end_location"><code class="docutils literal notranslate"><span class="pre">VariantAnnotator.infer_variant_end_location()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.annotators.variant.VariantAnnotator.metaseq_id"><code class="docutils literal notranslate"><span class="pre">VariantAnnotator.metaseq_id()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.annotators.variant.reverse_complement"><code class="docutils literal notranslate"><span class="pre">reverse_complement()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.annotators.variant.truncate_allele"><code class="docutils literal notranslate"><span class="pre">truncate_allele()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.annotators">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="niagads.html"
+                          title="Previous page">&larr; niagads package</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="niagads.api_wrapper.html"
+                          title="Next page">&rarr; niagads.api_wrapper package</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/_apidocs/niagads.annotators.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.api_wrapper.html" title="niagads.api_wrapper package"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.html" title="niagads package"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" >niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.annotators package</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.1.2.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

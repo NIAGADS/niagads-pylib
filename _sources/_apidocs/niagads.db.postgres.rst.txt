@@ -1,0 +1,29 @@
+niagads.db.postgres package
+===========================
+
+Submodules
+----------
+
+niagads.db.postgres.postgres\_async module
+------------------------------------------
+
+.. automodule:: niagads.db.postgres.postgres_async
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.db.postgres.postgres\_dbi module
+----------------------------------------
+
+.. automodule:: niagads.db.postgres.postgres_dbi
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niagads.db.postgres
+   :members:
+   :undoc-members:
+   :show-inheritance:

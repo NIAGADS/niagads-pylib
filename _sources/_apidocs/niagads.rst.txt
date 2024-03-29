@@ -1,0 +1,28 @@
+niagads package
+===============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   niagads.annotators
+   niagads.api_wrapper
+   niagads.db
+   niagads.filer
+   niagads.objects
+   niagads.ontologies
+   niagads.parsers
+   niagads.reference
+   niagads.scripts
+   niagads.utils
+   niagads.validators
+
+Module contents
+---------------
+
+.. automodule:: niagads
+   :members:
+   :undoc-members:
+   :show-inheritance:
