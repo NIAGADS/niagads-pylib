@@ -31,7 +31,7 @@ pip3 install git+https://github.com/NIAGADS/niagads-pylib.git#branch-name
 ```bash
 git clone https://github.com/NIAGADS/niagads-pylib.git
 cd niagads-pylib
-python3 setup.py install
+python3 -m pip install .
 ```
 
 ## docker 
