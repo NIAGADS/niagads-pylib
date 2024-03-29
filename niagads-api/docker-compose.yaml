@@ -2,26 +2,22 @@ version: '3.3'
 
 services:
   app-db:
-    container_name: api-db
+    container_name: niagads-api-app-db-${API_VERSION}
     image: postgres:15
     restart: always
     ports:
-      - ${DB_PORT}:5432
+      - ${PG_PORT}:5432
     environment:
-      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_INIT_PASSWORD}
+      POSTGRES_USER: ${PG_ADMIN_USER}
+      POSTGRES_PASSWORD: ${PG_ADMIN_PASSWORD}
       POSTGRES_HOST_AUTH_METHOD: md5
       POSTGRES_INITDB_ARGS: --auth-host=md5 --auth-local=md5
     volumes:
-      - ${DB_DATA}:/var/lib/postgresql/data
+      - ${PG_DATA_DIR}:/var/lib/postgresql/data
 
-    # web:
-    #  args:
-    #    CONNECTION_STRING: ${CONNECTION_STRING}
-
-  niagads-api:
-    container_name: niagads-api_${API_VERSION}
-    image: niagads-api_${API_VERSION}
+  app:
+    container_name: niagads-api-app-${API_VERSION}
+    image: niagads-api-${API_VERSION}
     depends_on:
       - app-db
     build:
@@ -30,7 +26,4 @@ services:
     ports:
       - '${PORT}:8000'  
     volumes:
-        - ${APPLICATION_DIR}:/app
-
-
-      
+      - ${APPLICATION_DIR}:/app
