@@ -37,7 +37,7 @@ class RecordParser:
     
     def get_record(self):
         return self._record
-      
+
         
     def set_record(self, record):
         if record is None:
@@ -118,7 +118,7 @@ class Record:
                 + "; recommend choices: " + xstr(PAGE_SIZES))
         else:
             return size      
-          
+
     
     def get_database(self):
         return self._database

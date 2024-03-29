@@ -10,3 +10,5 @@ requests
 jsonschema
 pandas
 Deprecated
+asyncpg
+pydantic

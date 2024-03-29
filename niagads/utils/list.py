@@ -1,6 +1,6 @@
 """ library of array, list, and set manipulation functions """
 from collections import OrderedDict, Counter
-from niagads.utils.string import xstr
+from .string import xstr
 
 
 def flatten(array):

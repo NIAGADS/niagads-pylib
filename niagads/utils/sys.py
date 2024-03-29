@@ -5,6 +5,7 @@ import datetime
 import requests
 import logging
 
+from typing import IO
 from sys import stderr, exit
 from urllib.parse import urlencode
 from subprocess import check_output, CalledProcessError
@@ -13,6 +14,62 @@ from .enums import ClassProperties
 from .dict import print_dict
 from .string import ascii_safe_str
 from .exceptions import RestrictedValueError
+
+LOGGER = logging.getLogger(__name__)
+
+def file_chunker(buffer: IO, chunkSize:int):
+    """
+    Read n-line chunks from filehandle. Returns sequence of n lines, or None at EOF.
+    from https://stackoverflow.com/a/22610745
+    
+    buffer is the file handler; may be of type TextIOWrapper or BufferedReader (binary)
+    
+    example usage:
+    
+    with open(filename) as fh:
+        chunkCounter = 0
+        for chunk in file_chunker(fh, 20):
+            chunkCounter = chunkCounter + 1
+            print("Chunk: " + str(chunkCounter))
+            for line in chunk:
+                print(line)
+    """
+
+    while buffer:
+        chunk = [buffer.readline() for _ in range(chunkSize)]
+
+        if not any(chunk):  # detect termination at end-of-file (list of ['', '',...] )
+            chunk = None
+
+        yield chunk
+
+
+        
+def file_line_count(fileName: str, eol: str='\n', header=False) -> int:
+    """
+    get file_size as count of number of lines
+    if header = True, does not count header line
+    adapted from: https://pynative.com/python-count-number-of-lines-in-file/
+    
+    Args:
+        fileName (str): name of the file
+        eol (str): EOL indicator, defaults to newline
+        header (bool, optional): file includes a header line
+        
+    Returns
+        the number of lines in the file
+    """
+    def __count_generator(reader):
+        b = reader(1024 * 1024)
+        while b:
+            yield b
+            b = reader(1024 * 1024)
+            
+    with open(fileName, 'rb') as fh:
+        generator = __count_generator(fh.raw.read)
+        # count each eol
+        count = sum(buffer.count(bytes(eol, encoding='utf-8')) for buffer in generator)
+        return count if header else count + 1
 
 
 def is_xlsx(fileName: str) -> bool:
@@ -65,7 +122,6 @@ def remove_duplicate_lines(file: str, header=True, overwrite=True):
     else:
         return sortedFile + ".uniq"  
     
-
 
 def generator_size(generator):
     ''' return numbr items in a generator '''
@@ -125,15 +181,17 @@ def execute_cmd(cmd, cwd=None, printCmdOnly=False, verbose=True, shell=False):
     shell = execute in a shell (e.g., necessary for commands like gzip)
     '''
     if verbose or printCmdOnly:
-        asciiSafeCmd = [ascii_safe_str(c) for c in cmd]
-        warning("EXECUTING: ", ' '.join(asciiSafeCmd), flush=True)
+        if not isinstance(cmd, str):
+            asciiSafeCmd = [ascii_safe_str(c) for c in cmd]
+            cmd = ' '.join(asciiSafeCmd)
+        LOGGER.info("EXECUTING: " + cmd)
         if printCmdOnly: return
     try:
         if shell:
             output = check_output(cmd, cwd=cwd, shell=True)
         else:
             output = check_output(cmd, cwd=cwd)
-        warning(output)
+        LOGGER.info(output)
     except CalledProcessError as e:
         die(e)
 
@@ -224,3 +282,26 @@ def make_request(requestUrl, params, returnSuccess=True):
             return False
         return {"message": "ERROR: " + err.args[0]}
 
+# ------------------------------------------------------------------------------------------------------------
+class FakeSecHead(object):
+    '''
+    puts a fake section into a properties file file so that ConfigParser can
+    be used to retrieve info / necessary for gus.config (GenomicsDB admin config) files
+
+    workaround for the INI-style headings required by ConfigParser
+    see https://stackoverflow.com/questions/2819696/parsing-properties-file-in-python
+    
+    Required for Python versions < 3 only; for 3+ see db.postgres.postgres_dbi.load_database_config for solution
+    '''
+    def __init__(self, fp):
+        self.fp = fp
+        self.sechead = '[section]\n'
+
+    def readline(self):
+        if self.sechead:
+            try: 
+                return self.sechead
+            finally: 
+                self.sechead = None
+        else: 
+            return self.fp.readline()
