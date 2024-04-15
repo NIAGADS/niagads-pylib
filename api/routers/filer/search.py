@@ -12,11 +12,20 @@ router = APIRouter(
     responses=RESPONSES
 )
 
-@router.get("/", tags=TAGS, description="get metadata for all FILER tracks or those that meet the filter criteria")
+@router.get("/", tags=TAGS, 
+            description="get metadata for all FILER tracks or those that meet the filter criteria")
 async def search_track_metadata():
-    return {"tracks": "TODO: retrieve all tracks"}
+    return {"tracks": "TODO: retrieve tracks by filter"}
 
-@router.get("/{track}", tags=ROUTE_TAGS, description="get metadata for a specific FILER track")
-async def track_metadata_by_id(track: str):
-    return {"track": track, "metadata": "TODO"}
+@router.get("/datasource/{datasource}", tags=TAGS, 
+            name="Search for tracks by original data source", 
+            description="get metadata for all FILER tracks by datasource")
+async def datasource_search_track_metadata():
+    return {"tracks": "TODO: retrieve tracks by filter"}
+
+@router.get("/keyword/{keyword}", tags=TAGS, 
+            name="Search track metadata by keyword", 
+            description="search all FILER track metadata fields by keyword (exact, case-insensitive match)")
+async def keyword_search_track_metadata():
+    return {"tracks": "TODO: retrieve tracks by keyword"}
 
