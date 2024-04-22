@@ -1,6 +1,6 @@
 \connect apistaticdb; 
 
-CREATE TABLE ServerApplication.FILERTrackMetadata(
+CREATE TABLE ServerApplication.FILERTrack (
         track_id CHARACTER VARYING(50) PRIMARY KEY NOT NULL,
         name     CHARACTER VARYING(250) NOT NULL,
         description TEXT,
@@ -41,22 +41,20 @@ CREATE TABLE ServerApplication.FILERTrackMetadata(
         bp_covered INTEGER,
         number_of_intervals INTEGER,
         file_size INTEGER,
-        file_format CHARACTER_VARYING(25),
+        file_format CHARACTER VARYING(25),
         file_schema CHARACTER VARYING(25),
         searchable_text TEXT  
 );
 
-CREATE INDEX FTM_IND01 ON ServerApplication.FILERTrackMetadata (name, track_id);
-CREATE INDEX FTM_IND02 ON ServerApplication.FILERTrackMetadata (genome_build, track_id);
-CREATE INDEX FTM_IND03 ON ServerApplication.FILERTrackMetadata (feature_type, track_id);
-CREATE INDEX FTM_IND04 ON ServerApplication.FILERTrackMetadata (assay, track_id);
-CREATE INDEX FTM_IND05 ON ServerApplication.FILERTrackMetadata (data_category, track_id);
-CREATE INDEX FTM_IND06 ON ServerApplication.FILERTrackMetadata (antibody_target, track_id);
-CREATE INDEX FTM_IND07 ON ServerApplication.FILERTrackMetadata (data_source, track_id);
-CREATE INDEX FTM_IND08 ON ServerApplication.FILERTrackMetadata (project, track_id);
-        
+CREATE INDEX FTM_IND01 ON ServerApplication.FILERTrack(name, track_id);
+CREATE INDEX FTM_IND02 ON ServerApplication.FILERTrack (genome_build, track_id);
+CREATE INDEX FTM_IND03 ON ServerApplication.FILERTrack (feature_type, track_id);
+CREATE INDEX FTM_IND04 ON ServerApplication.FILERTrack (assay, track_id);
+CREATE INDEX FTM_IND05 ON ServerApplication.FILERTrack (data_category, track_id);
+CREATE INDEX FTM_IND06 ON ServerApplication.FILERTrack (antibody_target, track_id);
+CREATE INDEX FTM_IND07 ON ServerApplication.FILERTrack (data_source, track_id);
+CREATE INDEX FTM_IND08 ON ServerApplication.FILERTrack (project, track_id);
 
--- TODO: Ontology tables
    
 -- Grants (may need to do them again here)
 
