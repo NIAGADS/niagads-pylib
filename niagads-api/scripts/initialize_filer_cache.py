@@ -3,38 +3,54 @@
 import argparse
 import logging
 
+from os import path
+
 from requests import get
 from requests.exceptions import HTTPError
 
 from niagads.db.postgres.postgres_async import AsyncDatabase 
-from niagads.filer.parser import FILERMetadataParser
+from niagads.filer import FILERMetadataParser, FILERApiWrapper
+from niagads.utils.logging import ExitOnExceptionHandler
+from niagads.utils.dict import print_dict
 
+from constants import URLS
 
-from filer.utils import make_request # TODO - api wrapper for FILER raw API; create a class
 
 LOGGER = logging.getLogger(__name__)
 
-def fetch_live_FILER_metadata():
+
+def fetch_live_FILER_metadata(debug:bool=False):
     ''' for verifying tracks and removing any not currently available '''
+    LOGGER.info("Fetching Live FILER track identifiers reference.")
+    
+    api = FILERApiWrapper(URLS.filer_api, debug=debug)
     
     # sum(list, []) is a python hack for flattening a nested list
-    hg19 = sum([[ v for k, v in d.items() if k == 'Identifier'] for d in make_request("get_metadata", {'assembly':'hg19'})], [])
-    hg38 = sum([[ v for k, v in d.items() if k == 'Identifier'] for d in make_request("get_metadata", {'assembly':'hg38'})], [])
-    return  {"GRCh37": hg19, "GRCh38": hg38}
+    GRCh37 = sum([[ v for k, v in d.items() if k == '#Identifier' or k == 'Identifier'] \
+        for d in api.make_request("get_metadata", {'assembly':'hg19'})], [])
+    GRCh38 = sum([[ v for k, v in d.items() if k == '#Identifier' or k == 'Identifier'] \
+        for d in api.make_request("get_metadata", {'assembly':'hg38'})], [])
+
+    LOGGER.info("Found " + str(len(GRCh37)) + " GRCh37 live tracks.")
+    LOGGER.info("Found " + str(len(GRCh38)) + " GRCh38 live tracks.")
+
+    return  {"GRCh37": GRCh37, "GRCh38": GRCh38}
 
 
-def initialize_metadata_cache(db, metadataFileName, debug):
+def initialize_metadata_cache(dbh, metadataFileName:str, debug: bool=False):
     ''' initializes FILER metadta from the metadata template file '''
     lineNum = 0
     currentLine = None
     try:
         # query FILER metadata (for verify track availabilty)
-        liveMetadata = fetch_live_FILER_metadata()
+        liveMetadata = fetch_live_FILER_metadata(debug)
         
         # fetch the template file 
-        requestUrl = constants.URLS.filer_downloads + '/metadata/' + metadataFileName
+        requestUrl = URLS.filer_downloads + '/metadata/' + metadataFileName
+        LOGGER.info("Fetching FILER metadata: " + requestUrl)
+        
         if debug:
-            logger.debug("Fetching FILER metadata from " + requestUrl)
+            LOGGER.debug("Fetching FILER metadata from " + requestUrl)
         response = get(requestUrl)
         response.raise_for_status()
         
@@ -43,26 +59,34 @@ def initialize_metadata_cache(db, metadataFileName, debug):
         if metadata[-1] == '': metadata.pop()    # file may end with empty line
             
         if debug:
-            logger.debug("Retrieved metadata for " + str(len(metadata)) + " tracks.")
+            LOGGER.debug("Retrieved metadata for " + str(len(metadata)) + " tracks.")
     
+        parser = FILERMetadataParser(debug=debug)
+        parser.set_filer_download_url(URLS.filer_downloads)
+        parser.set_primary_key_label('track_id')
+        parser.set_biosample_props_as_json()
+        parser.set_dates_as_strings()
+        
         for line in metadata:
             lineNum += 1
             currentLine = line
         
             # parse & create Metadata object
-            track = FILERMetadataParser(dict(zip(header, line.split('\t'))), debug)
-            track.set_filer_download_url(constants.URLS.filer_downloads)
-            track = track.parse()
+            parser.set_metadata(dict(zip(header, line.split('\t'))))
+            track = parser.parse()
             
-            if track['identifier'] in liveMetadata[track['genome_build']]:
-                db.session.add(Track(**track))
+            LOGGER.critical(track)
+            
+            if track['track_id'] in liveMetadata[track['genome_build']]:
+                1
+                # db.session.add(Track(**track))
             else:
-                logger.info("Track not found in FILER: " + currentLine)
+                LOGGER.info("Track not found in FILER: " + currentLine)
             
             if debug and lineNum % 10000 == 0:
-                logger.debug("Loaded metadata for " + str(lineNum) +" tracks")
+                LOGGER.debug("Loaded metadata for " + str(lineNum) +" tracks")
             
-        db.session.commit()
+        # db.session.commit()
         
     except HTTPError as err:
         raise HTTPError("Unable to fetch FILER metadata", err)
@@ -70,5 +94,24 @@ def initialize_metadata_cache(db, metadataFileName, debug):
         raise RuntimeError("Unable to parse FILER metadata, problem with line #: " 
                 + str(lineNum), currentLine , err)
 
-if __name__ == "main":
-    pass
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Initialize FILER Track Metadata Cache", allow_abbrev=False)
+    parser.add_argument("--trackMetadataFile", help="full URI", required=True)
+    parser.add_argument("--commit", action="store_true")
+    parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--logFilePath", default="/logs")
+    
+    args = parser.parse_args()
+    
+    logging.basicConfig(
+        handlers=[ExitOnExceptionHandler(
+            filename=path.join(args.logFilePath, 'initialize_filer_cache.log'),
+            mode='w',
+            encoding='utf-8',
+        )],
+        format='%(asctime)s %(funcName)s %(levelname)-8s %(message)s',
+        level=logging.DEBUG if args.debug else logging.INFO)
+
+    initialize_metadata_cache(None, args.trackMetadataFile, args.debug)
+    
+  
