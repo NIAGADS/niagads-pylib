@@ -7,8 +7,7 @@ from types import SimpleNamespace
 
 
 def print_dict(dictObj, pretty=True):
-    ''' pretty print a dict / JSON object 
-    here and not in dict_utils to avoid circular import '''
+    ''' pretty print a dict / JSON object  '''
     if isinstance(dictObj, SimpleNamespace):
         return dictObj.__repr__()
     return json.dumps(dictObj, indent=4, sort_keys=True) if pretty else json.dumps(dictObj)
