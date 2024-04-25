@@ -14,15 +14,17 @@ services:
       POSTGRES_INITDB_ARGS: --auth-host=md5 --auth-local=md5
     volumes:
       - ${PG_DATA_DIR}:/var/lib/postgresql/data
-      - ${DB_INIT_DIR}:/docker-entrypoint-initdb.d/
+      - ${PG_ENTRYPOINT}:/docker-entrypoint-initdb.d/
 
   app-db-init:
     container_name: app-db-init-${API_VERSION}
     image: niagads-api-db-init
+    depends_on:
+      - app-db
     build:
       context: .
       dockerfile: ./Dockerfile
       args:
           BUILD: ${BUILD}
     volumes:
-      - ${SOURCE_DIR}:/src
+      - ${SCRIPTS_DIR}:/scripts
