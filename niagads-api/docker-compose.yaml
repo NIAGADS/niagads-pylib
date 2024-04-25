@@ -17,8 +17,9 @@ services:
       - ${PG_ENTRYPOINT}:/docker-entrypoint-initdb.d/
 
   app-db-init:
-    container_name: app-db-init-${API_VERSION}
-    image: niagads-api-db-init
+    container_name: init-${API_VERSION}
+    image: niagads-api-init
+    command: tail -F anything # this is to keep it running so we don't have to remount /scripts
     depends_on:
       - app-db
     build:
@@ -28,3 +29,4 @@ services:
           BUILD: ${BUILD}
     volumes:
       - ${SCRIPTS_DIR}:/scripts
+      - ${LOG_DIR}:/logs
