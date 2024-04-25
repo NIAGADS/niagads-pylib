@@ -21,7 +21,7 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install application
-WORKDIR /init
+WORKDIR /scripts
 
 COPY ./requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt 
