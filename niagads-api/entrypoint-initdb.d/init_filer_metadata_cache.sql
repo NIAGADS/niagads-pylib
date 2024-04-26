@@ -24,7 +24,7 @@ CREATE TABLE ServerApplication.FILERTrack (
         
         --provenance
         data_source CHARACTER VARYING(50),
-        data_source_ersion CHARACTER VARYING(50),
+        data_source_version CHARACTER VARYING(50),
         download_url CHARACTER VARYING(250),
         download_date DATE,
         release_date DATE,
