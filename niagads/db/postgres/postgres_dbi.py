@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from psycopg2 import DatabaseError, DataError, connect as db_connect
 from psycopg2.extras import DictCursor, RealDictCursor
 from psycopg2.pool import SimpleConnectionPool, ThreadedConnectionPool as _ThreadedConnectionPool
+from psycopg2.sql import SQL as psSQL, Identifier as psIdentifier, Placeholder as psPlaceholder 
 from threading import Semaphore
 
 
@@ -19,6 +20,32 @@ from configparser import ConfigParser as SafeConfigParser # renamed in Python 3.
 
 from ...utils.exceptions import IllegalArgumentError, AbstractMethodNotImplemented
 from ...utils.sys import verify_path
+
+
+def prepared_insert_statement(fields:type[dict|list], schemaName:str, tableName: str):
+    """
+    leverage pyscopg2 sql package (https://www.psycopg.org/docs/sql.html)
+    to generate a prepared insert statement from a dict of field_names:value pairs
+    if fields is a dict, field names are sorted; if array, original order is kept
+    Args:
+        fields (dict|list): list of field names or dict of field_name:value pairs
+        schemaName (str): schema containing table
+        tableName (str): table name
+        
+    Returns:
+        prepared insert statement in the format: insert into schema.table ("foo", "bar", "baz") values (%s, %s, %s)
+    """
+    fieldNames = fields
+    if isinstance(fields, dict):
+        fieldNames = list(fields.keys())
+        fieldNames.sort()
+
+    statement = psSQL("INSERT INTO {table} ({fields}) values ({placeholders})").format(
+        table=psIdentifier(schemaName.lower(), tableName.lower()),
+        fields=psSQL(', ').join(map(psIdentifier, fieldNames)),
+        placeholders=psSQL(', ').join(psPlaceholder() * len(fieldNames)))
+    
+    return statement
 
 
 def initialize_cursor(dbh, name: str = None, realDict=False, withhold=False):    
