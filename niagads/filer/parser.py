@@ -1,7 +1,9 @@
 import logging
 from urllib.parse import unquote
-from ..utils.list import array_in_string, remove_duplicates
+
+from ..utils.list import array_in_string, remove_duplicates, flatten
 from ..utils import string as str_utils
+from ..utils import reg_ex as re
 
 def metadata_parser(metadata):
     ''' iterate over list of one or more raw metadata 
@@ -157,7 +159,7 @@ class FILERMetadataParser:
         
         if self.__biosamplePropsAsJson:
             self.__metadata.update({"biosample_characteristics":  biosampleCharacteristics})
-            self.__searchableTextValues = [ v for k,v in biosampleCharacteristics.items() if v is not None]
+            self.__searchableTextValues = [self.__clean_text(v) for k,v in biosampleCharacteristics.items() if v is not None]
             self.__remove_attributes(['biosample_term', 'biosample_term_id', 'biosample_display', 'biosample_type', 'cell_line'])
         else:
             self.__metadata.update(biosampleCharacteristics)
@@ -195,7 +197,7 @@ class FILERMetadataParser:
                 # check track_description
                 # e.g., All lncRNA annotations
                 if 'annotation' in self._get_metadata("track_description"):
-                    return str_utils.regex_extract("All (.+) annotation" , self._get_metadata("track_description"))
+                    return re.regex_extract("All (.+) annotation" , self._get_metadata("track_description"))
             if 'QTL' in analysis:
                 return analysis
         
@@ -362,7 +364,7 @@ class FILERMetadataParser:
         # [Experiment: ENCSR778NDP] [Orig: Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system;Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD]",
         id = self._get_metadata('encode_experiment_id')
         info =  self._get_metadata('track_description')
-        project = str_utils.regex_extract('Project=(.+);*', info) \
+        project = re.regex_extract('Project=(.+);*', info) \
                 if info is not None else None
         
         self.__metadata.update({
@@ -414,7 +416,7 @@ class FILERMetadataParser:
         ''' correct domain and other formatting issues
         ''' 
         url = self.__parse_generic_url(url)           
-        return str_utils.regex_replace('^[^GADB]*\/GADB', self.__filerDownloadUrl, url)
+        return re.regex_replace('^[^GADB]*\/GADB', self.__filerDownloadUrl, url)
     
     
     def __parse_urls(self):
@@ -444,15 +446,29 @@ class FILERMetadataParser:
 
         self.__metadata.update({"output_type": outputType})   
         
+        
+    def __clean_text(self, s:str):
+        """
+        clean text to remove symbols (;:,) and extra spaces 
+        Args:
+            value (str): string to clean
+        Returns:
+            cleaned string
+        """
+        cleanStr = re.regex_replace(';|,|:', '', s)
+        return ' '.join(cleanStr.split()) # hack to remove multiple consecutive spaces
+        
 
     def __add_text_search_field(self):
         """ concatenate everything that isn't a date or url """
         skipFieldsWith = ['date', 'url', 'md5', 'path', 'file']
-        textValues = [ v for k,v in self.__metadata.items() 
-                if is_searchable_string(k, v, skipFieldsWith)]
         
+        # sum(list, []) is a python hack for flattening a nested list
+        textValues = [self.__clean_text(v) for k,v in self.__metadata.items() 
+                if is_searchable_string(k, v, skipFieldsWith)]
+
         # some field have the same info
-        self.__metadata.update({"searchable_text": ' '.join(remove_duplicates(textValues + self.__searchableTextValues))})
+        self.__metadata.update({"searchable_text": '//'.join(remove_duplicates(textValues + self.__searchableTextValues))})
         
 
     def __rename_key(self, key):
