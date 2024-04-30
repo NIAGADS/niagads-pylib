@@ -9,18 +9,17 @@ from os import path
 from requests import get
 from requests.exceptions import HTTPError
 
-from niagads.db.postgres.postgres_dbi import Database, prepared_insert_statement
+from niagads.db.postgres import Database, PreparedStatement
 from niagads.filer import FILERMetadataParser, FILERApiWrapper
 from niagads.utils.logging import ExitOnExceptionHandler
 from niagads.utils.dict import print_dict
 from niagads.utils.list import flatten
 from niagads.utils.string import xstr
 
-from constants import URLS
+from constants import URLS, SCHEMA, FILER_TABLE
 
 LOGGER = logging.getLogger(__name__)
-SCHEMA = "ServerApplication"
-TABLE = "FILERTrack"
+
 
 def fetch_live_FILER_metadata(debug:bool=False):
     ''' for verifying tracks and removing any not currently available '''
@@ -67,9 +66,9 @@ def insert_record(track: dict):
     Args:
         track (dict): track info to be loaded
     """
-    query = prepared_insert_statement(track, SCHEMA, TABLE)
+    statement = PreparedStatement(SCHEMA, FILER_TABLE)
     with database.cursor() as cursor:
-        cursor.execute(query, extract_metadata_values(track))
+        cursor.execute(statement.insert(track), extract_metadata_values(track))
         
 
 def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False):
