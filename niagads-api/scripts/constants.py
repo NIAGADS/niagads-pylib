@@ -1,5 +1,8 @@
 from types import SimpleNamespace
 
+SCHEMA = "ServerApplication"
+FILER_TABLE = "FILERTrack"
+
 
 DATASET_TYPES = ["GWAS_sumstats", "QTL_sumstats"]
 GENOME_BUILDS = ["GRCh37", "GRCh38", "grch38", "grch37", "hg38", "hg19"]
