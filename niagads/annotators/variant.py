@@ -134,7 +134,7 @@ class VariantAnnotator(object):
 
     def __set_metaseq_id(self):
         """! generate metaseq id and set value"""
-        self.__metaseqId = ':'.join((xstr(self.__chrom), xstr(self.__position), self.__ref, self.__alt))
+        self.__metaseqId = ':'.join((xstr(self.__chromosome), xstr(self.__position), self.__ref, self.__alt))
 
 
     def metaseq_id(self):
@@ -160,13 +160,16 @@ class VariantAnnotator(object):
         nAltLength = len(normAlt)
         normRef, normAlt = self.__normalize_alleles(True) # display version (- for empty string)
         
-
         endLocation = self.infer_variant_end_location()
 
         attributes = {
             'location_start': position,
             'location_end': position
         }
+        
+        normalizedMetaseqId = ':'.join((xstr(self.__chromosome), xstr(self.__position), normRef, normAlt)) 
+        if normalizedMetaseqId != self.__metaseqId:
+            attributes.update({'normalized_metaseq_id': normalizedMetaseqId})
 
         if (refLength == 1 and altLength == 1): # SNV
             attributes.update({
