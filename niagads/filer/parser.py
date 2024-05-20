@@ -2,6 +2,7 @@ import logging
 from urllib.parse import unquote
 
 from ..utils.list import array_in_string, remove_duplicates, flatten
+from ..utils.dict import print_dict
 from ..utils import string as str_utils
 from ..utils import reg_ex as re
 
@@ -52,7 +53,7 @@ class FILERMetadataParser:
     ''' parser for FILER metadata:
     standardizes keys, extracts non-name info from name, cleans up
     
-      keys:
+        keys:
             -- replace spaces with _
             -- lower case
             -- camelCase to snake_case
@@ -85,6 +86,14 @@ class FILERMetadataParser:
         
         self.__searchableTextValues = [] # needed to save biosample info, if converting to JSON
         
+        self.__biosampleMapper = None
+        
+        
+    def set_biosample_mapper(self, mapper: list):
+       self.__biosampleMapper = self.__parse_biosample_mapper(mapper)
+       if self._debug:
+           self.logger.debug("Biosample Mapper: " + print_dict(self.__biosampleMapper, pretty=True))
+           
         
     def set_metadata(self, data):
         self.__metadata = data
@@ -117,6 +126,31 @@ class FILERMetadataParser:
             return self.__metadata[attribute] \
                 if attribute in self.__metadata else None
     
+
+    def __parse_biosample_mapper(self, mapper: list):
+        """
+        translates array of lines from biosample mapper file into hash
+
+        Args:
+            mapper (list): result from reading biosample mapper file into array   
+        """
+        # Original cell type      
+        # Proposed cell type      
+        # Tissue of origin info   
+        # Biosample info  
+        # Life stage info 
+        # Derivation info notes   
+        # final cell type
+
+        fields = { value: index for index, value in enumerate([str_utils.to_snake_case(x) for x in mapper.pop(0).split('\t')])}
+        if mapper[-1] == '': mapper.pop()    # file may end with empty line
+        
+        self.__biosampleMapper = {}
+        for row in mapper:
+            entry = row.split('\t')
+            self.__biosampleMapper[entry[fields['original_cell_type']]] = entry[fields['final_cell_type']]
+        
+
 
     def __parse_value(self, key, value):
         ''' catch numbers, booleans, and nulls '''
