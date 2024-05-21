@@ -139,13 +139,13 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
             
             if test is not None and lineNum == test:
                 LOGGER.info("TEST LOAD - COMPLETE")
-                return
+                return insertCount
         
     except HTTPError as err:
         raise HTTPError("Unable to fetch FILER metadata", err)
     except Exception as err:
         raise RuntimeError("Unable to parse FILER metadata, problem with line #: " 
-                + str(lineNum), currentLine , err)
+                + str(lineNum), currentLine , track, err)
         
     return insertCount
 
