@@ -90,10 +90,8 @@ class FILERMetadataParser:
         
         
     def set_biosample_mapper(self, mapper: list):
-       self.__biosampleMapper = self.__parse_biosample_mapper(mapper)
-       if self._debug:
-           self.logger.debug("Biosample Mapper: " + print_dict(self.__biosampleMapper, pretty=True))
-           
+        self.__parse_biosample_mapper(mapper)
+        
         
     def set_metadata(self, data):
         self.__metadata = data
