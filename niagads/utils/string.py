@@ -237,7 +237,7 @@ def to_numeric(value):
 def is_null(value, naIsNull=False):
     if value is None or value in ['NULL', 'null']:
         return True
-    if naIsNull and string_in_list(value, ['NA', 'not applicable', '.', 'N/A', 'NULL'], ignoreCase=True):
+    if naIsNull and string_in_list(value, ['NA', 'not reported', 'not applicable', '.', 'N/A', 'NULL'], ignoreCase=True):
         return True
     return False
 
