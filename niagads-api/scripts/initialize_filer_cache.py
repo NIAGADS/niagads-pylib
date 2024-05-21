@@ -21,6 +21,29 @@ from constants import URLS, SCHEMA, FILER_TABLE
 LOGGER = logging.getLogger(__name__)
 
 
+def read_reference_file(fileName: str, localFile:bool=False):
+    """ if '/files' in file name assumes local and opens and reads.  otherwise, fetches from FILER """
+    contents = None
+    if localFile or '/' in fileName:
+        LOGGER.info("Reading file: " + fileName)
+        with open(fileName, 'r') as fh:
+            contents = fh.read().splitlines() 
+    
+    else:
+        try:
+            requestUrl = URLS.filer_downloads + '/metadata/' + fileName
+            LOGGER.info("Fetching file: " + requestUrl)
+            
+            response = get(requestUrl)
+            response.raise_for_status()
+            contents = response.text.split('\n')
+        except Exception: # TODO: why didn't catching HTTPError work?
+            LOGGER.info("Unable to fetch file: " + requestUrl + "; trying to open locally")  
+            return read_reference_file(fileName, localFile=True)    
+
+    return contents
+
+
 def fetch_live_FILER_metadata(debug:bool=False):
     ''' for verifying tracks and removing any not currently available '''
     LOGGER.info("Fetching Live FILER track identifiers reference.")
@@ -77,29 +100,22 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
     insertCount = 0
     currentLine = None
     try:
-        # query FILER metadata (for verify track availabilty)
-        liveMetadata = fetch_live_FILER_metadata(debug)
-        
         # initialize parser    
         parser = FILERMetadataParser(debug=debug)
         parser.set_filer_download_url(URLS.filer_downloads)
         parser.set_primary_key_label('track_id')
         parser.set_biosample_props_as_json()
         parser.set_dates_as_strings()
+        parser.set_biosample_mapper(read_reference_file(args.biosampleMapping))
         
         # fetch the template file 
-        requestUrl = URLS.filer_downloads + '/metadata/' + metadataFileName
-        LOGGER.info("Fetching FILER metadata: " + requestUrl)
-        
-        if debug:
-            LOGGER.debug("Fetching FILER metadata from: " + requestUrl)
-        response = get(requestUrl)
-        response.raise_for_status()
-        
-        metadata = response.text.split('\n')
+        metadata = read_reference_file(args.metadataTemplate)
         header = metadata.pop(0).split('\t')
         if metadata[-1] == '': metadata.pop()    # file may end with empty line
         LOGGER.info("Processing metadata for " + str(len(metadata)) + " tracks.")
+       
+        # query FILER metadata (for verify track availabilty)
+        liveMetadata = fetch_live_FILER_metadata(debug)
         
         for line in metadata:
             lineNum += 1
@@ -134,7 +150,10 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Initialize FILER Track Metadata Cache", allow_abbrev=False)
-    parser.add_argument("--trackMetadataFile", help="full URI", required=True)
+    parser.add_argument("--metadataTemplate", required=True,
+        help="metadata template file; if file name includes '/', assumes local otherwise assumes it will needed to be fetched from the server")
+    parser.add_argument("--biosampleMapping", required=True, 
+        help="biosample mapping file; if file name includes '/', assumes local otherwise assumes it will needed to be fetched from the server")
     parser.add_argument("--connectionString", help="postgres connection string", required=True)
     parser.add_argument("--commit", action="store_true")
     parser.add_argument("--debug", action="store_true")
@@ -155,7 +174,7 @@ if __name__ == "__main__":
     try:
         database = Database(connectionString=args.connectionString)
         database.connect()
-        nInserts = initialize_metadata_cache(args.trackMetadataFile, args.test, args.debug)
+        nInserts = initialize_metadata_cache(args.metadataTemplate, args.test, args.debug)
         LOGGER.info("INSERTED " + str(nInserts) + " rows.")
         if args.commit:
             LOGGER.info("COMMITTING")
@@ -169,4 +188,3 @@ if __name__ == "__main__":
     finally:
         database.close()
     
-  
