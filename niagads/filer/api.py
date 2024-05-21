@@ -71,11 +71,13 @@ class FILERApiWrapper():
             response = requests.get(requestUrl)
             response.raise_for_status()     
             if self._debug:
-                self.logger.debug(print_dict(response.json(), pretty=False)) 
+                self.logger.debug("SUCCESS: " + str(len(response.json()))) 
             if returnSuccess:
                 return True       
             return response.json()
         except requests.exceptions.HTTPError as err:
+            if self._debug:
+                self.logger.debug("HTTP Request FAILED")
             if returnSuccess:
                 return False
             return {"message": "Error accessing FILER: " + err.args[0]}
