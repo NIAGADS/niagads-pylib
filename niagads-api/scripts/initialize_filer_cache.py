@@ -113,9 +113,9 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
         header = metadata.pop(0).split('\t')
         if metadata[-1] == '': metadata.pop()    # file may end with empty line
         LOGGER.info("Processing metadata for " + str(len(metadata)) + " tracks.")
-       
+
         # query FILER metadata (for verify track availabilty)
-        liveMetadata = fetch_live_FILER_metadata(debug)
+        liveMetadata = fetch_live_FILER_metadata(debug) if not args.skipLiveValidation else None
         
         for line in metadata:
             lineNum += 1
@@ -125,7 +125,9 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
             parser.set_metadata(dict(zip(header, line.split('\t'))))
             track = parser.parse()
             
-            if track['track_id'] in liveMetadata[track['genome_build']]:
+            if args.skipLiveValidation or \
+                    (liveMetadata is not None and \
+                    track['track_id'] in liveMetadata[track['genome_build']]):
                 insert_record(track)
                 insertCount = insertCount + 1
             else:
@@ -159,6 +161,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--logFilePath", default="/logs")
     parser.add_argument("--test", type=int, help="number of test tracks to process")
+    parser.add_argument("--skipLiveValidation", action="store_true", help="to speed up testing, skip validation against live instance")
     
     args = parser.parse_args()
     
