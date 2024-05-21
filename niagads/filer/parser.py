@@ -1,8 +1,8 @@
 import logging
 from urllib.parse import unquote
 
-from ..utils.list import array_in_string, remove_duplicates, flatten
-from ..utils.dict import print_dict
+from ..utils.list import array_in_string, remove_duplicates
+from ..utils.dict import print_dict, prune
 from ..utils import string as str_utils
 from ..utils import reg_ex as re
 
@@ -132,7 +132,7 @@ class FILERMetadataParser:
         Args:
             mapper (list): result from reading biosample mapper file into array   
         """
-        # Original cell type      
+        # de type      
         # Proposed cell type      
         # Tissue of origin info   
         # Biosample info  
@@ -175,24 +175,36 @@ class FILERMetadataParser:
         "Track Description": "Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system;Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD",
         "system category": "Nervous",
         "life stage": "Adult", '''
-        # lifeStage = self._get_metadata("life_stage")
         
         biosample = self._get_metadata("cell_type")
         biosampleType = self._get_metadata('biosample_type')
         cellLine = biosample if biosampleType == 'cell_line' else None
-        
+        trackDescription = self._get_metadata('track_description')
+        biosampleSummary = re.regex_extract('Biosample_summary=(.+);*', trackDescription ) \
+            if trackDescription is not None else None
+    
         biosampleCharacteristics  = {
             "biosample_term": biosample,
             "biosample_term_id": self._get_metadata('biosamples_term_id'),
-            "biosample_display": biosample,
+            "biosample_display": self.__biosampleMapper[biosample] if biosample in self.__biosampleMapper else biosample,
             "biosample_type": biosampleType.lower() if biosampleType is not None else None,
-            "cell_line": cellLine
+            "cell_line": cellLine,
+            "tissue_category": self._get_metadata('tissue_category'),
+            "system_category": self._get_metadata('system_category'),
+            "life_stage" : self._get_metadata("life_stage"),
+            "biosample_summary": self.__clean_list(biosampleSummary, delim='//')
         }
+        
+        biosampleCharacteristics = prune(biosampleCharacteristics, prune=['Unknown'])
         
         if self.__biosamplePropsAsJson:
             self.__metadata.update({"biosample_characteristics":  biosampleCharacteristics})
-            self.__searchableTextValues = [self.__clean_text(v) for k,v in biosampleCharacteristics.items() if v is not None]
-            self.__remove_attributes(['biosample_term', 'biosample_term_id', 'biosample_display', 'biosample_type', 'cell_line'])
+            self.__searchableTextValues = [self.__clean_text(v) 
+                for k,v in biosampleCharacteristics.items() 
+                if v is not None]
+            self.__remove_attributes(['biosample_term', 'biosample_term_id', 
+                'biosample_display', 'biosample_type', 'cell_line', 'life_stage',
+                'tissue_category', 'system_category'])
         else:
             self.__metadata.update(biosampleCharacteristics)
         
@@ -395,7 +407,7 @@ class FILERMetadataParser:
     def __parse_experiment_info(self):
         # [Experiment: ENCSR778NDP] [Orig: Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system;Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD]",
         id = self._get_metadata('encode_experiment_id')
-        info =  self._get_metadata('track_description')
+        info = self.__clean_list(self._get_metadata('track_description'), delim="//")
         project = re.regex_extract('Project=(.+);*', info) \
                 if info is not None else None
         
@@ -489,6 +501,23 @@ class FILERMetadataParser:
         """
         cleanStr = re.regex_replace(';|,|:', '', s)
         return ' '.join(cleanStr.split()) # hack to remove multiple consecutive spaces
+        
+        
+    def __clean_list(self, s:str, delim:str=';'):
+        """
+        wrapper to clean ';' delimited list of values; removes extra spaces
+        can change delimiter w/ delim option
+
+        Args:
+            s (str): string to clean
+            delim (str, optional): new delimiter. Defaults to ';'.
+        """
+        if s is None:
+            return s
+
+        cleanStr = s.replace('; ', ';')
+        return delim.join(cleanStr.split(';')) # hack to remove multiple consecutive spaces
+       
         
 
     def __add_text_search_field(self):
