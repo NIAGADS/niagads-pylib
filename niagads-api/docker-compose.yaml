@@ -1,8 +1,8 @@
 version: '3.3'
 
 services:
-  app-db:
-    container_name: app-db-${API_VERSION}
+  api-static-db:
+    container_name: api-static-db-${API_VERSION}
     image: postgres:15
     restart: always
     ports:
@@ -16,12 +16,12 @@ services:
       - ${PG_DATA_DIR}:/var/lib/postgresql/data
       - ${PG_ENTRYPOINT}:/docker-entrypoint-initdb.d/
 
-  app-db-init:
+  api-static-db-init:
     container_name: init-${API_VERSION}
     image: niagads-api-init
     command: tail -F anything # this is to keep it running so we don't have to remount /scripts
     depends_on:
-      - app-db
+      - api-static-db
     build:
       context: .
       dockerfile: ./Dockerfile
