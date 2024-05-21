@@ -4,7 +4,7 @@ CREATE TABLE ServerApplication.FILERTrack (
         track_id CHARACTER VARYING(50) PRIMARY KEY NOT NULL,
         name     CHARACTER VARYING(250) NOT NULL,
         description TEXT,
-        genome_build CHARACTER VARYING(50) CHECK (genome_build IN ('GRCh38', 'GRCh39', 'T2T', 'Pangenome')),
+        genome_build CHARACTER VARYING(50) CHECK (genome_build IN ('GRCh38', 'GRCh37', 'T2T', 'Pangenome')),
         feature_type CHARACTER VARYING(100),
         
         -- biosample
@@ -37,7 +37,7 @@ CREATE TABLE ServerApplication.FILERTrack (
         url CHARACTER VARYING(250),
         md5sum CHARACTER VARYING(250),
         raw_file_url CHARACTER VARYING(250),
-        raf_file_md5sum CHARACTER VARYING(250),
+        raw_file_md5sum CHARACTER VARYING(250),
         bp_covered INTEGER,
         number_of_intervals INTEGER,
         file_size INTEGER,
