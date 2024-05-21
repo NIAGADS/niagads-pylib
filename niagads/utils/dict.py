@@ -4,6 +4,25 @@ import json
 import warnings
 from collections import abc
 from types import SimpleNamespace
+from niagads.utils.string import is_null
+
+
+
+def prune(dictObj:dict, removeNulls:bool=True, prune:list=[]):
+    """
+    remove null entries from dict and entries whose value matches items in `prune`
+
+    Args:
+        dictObj (dict): the dictionary/hash
+        removeNulls (bool, optional): flag indicating whether to remove null values.  Defaults to True.
+        prune (list, optional): list of additional values to prune. Defaults to an empty list.
+
+    Returns:
+        cleaned up dict
+    """
+    return {key: value for key, value in dictObj.items() 
+        if (removeNulls and value is not None and not is_null(value, naIsNull=True))
+        and value not in prune}
 
 
 def print_dict(dictObj, pretty=True):
