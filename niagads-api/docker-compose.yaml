@@ -30,3 +30,4 @@ services:
     volumes:
       - ${SCRIPTS_DIR}:/scripts
       - ${LOG_DIR}:/logs
+      - ${FILES_DIR}:/files
