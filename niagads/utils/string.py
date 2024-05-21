@@ -243,10 +243,9 @@ def is_null(value, naIsNull=False):
 
 
 def to_snake_case(key):
-    ''' converts camel case to snake case
+    ''' converts camel case or space delimited strings to snake case
     from https://stackoverflow.com/a/1176023 / advanced cases'''
-    return re.regex_replace('([a-z0-9])([A-Z])', r'\1_\2', key).lower()
-
+    return re.regex_replace('([a-z0-9])([A-Z])', r'\1_\2', key).lower().replace(' ', '_')
 
 
 def int_to_alpha(value, lower=False):
