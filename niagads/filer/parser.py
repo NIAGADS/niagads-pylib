@@ -526,6 +526,7 @@ class FILERMetadataParser:
         tValue = str_utils.to_snake_case(key)
         tValue = tValue.replace(" ", "_")
         tValue = tValue.replace("(s)", "s")
+        tValue = tValue.replace('#', '')
         return self.__rename_key(tValue)
         
         
