@@ -42,7 +42,7 @@ CREATE TABLE ServerApplication.FILERTrack (
         number_of_intervals BIGINT,
         file_size INTEGER,
         file_format CHARACTER VARYING(25),
-        file_schema CHARACTER VARYING(25),
+        file_schema CHARACTER VARYING(50),
         searchable_text TEXT  
 );
 
