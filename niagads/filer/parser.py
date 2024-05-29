@@ -146,7 +146,9 @@ class FILERMetadataParser:
         self.__biosampleMapper = {}
         for row in mapper:
             entry = row.split('\t')
-            self.__biosampleMapper[entry[fields['original_cell_type']]] = entry[fields['final_cell_type']]
+            mappedCellType = entry[fields['final_cell_type']]
+            if mappedCellType: # check for empty string
+                self.__biosampleMapper[entry[fields['original_cell_type']]] = mappedCellType
         
 
 
