@@ -1,7 +1,7 @@
 import logging
 from urllib.parse import unquote
 
-from ..utils.list import array_in_string, remove_duplicates
+from ..utils.list import array_in_string, remove_duplicates, drop_nulls
 from ..utils.dict import print_dict, prune
 from ..utils import string as str_utils
 from ..utils import reg_ex as re
@@ -350,29 +350,32 @@ class FILERMetadataParser:
 
     def __parse_assay(self):
         analysis = None
-        assay = self._get_metadata('assay')
-        assay = assay.replace('-Seq', '-seq') # consistency
+
         classification = self._get_metadata('classification')
-        
         if classification == 'ChIP-seq consolidated ChromHMM':
             analysis = 'ChromHMM'
             
-        if 'ChromHMM' in assay:
-            analysis = assay
-            assay = "ChIP-seq"
+        assay = self._get_metadata('assay')
+
+        if assay is not None:
+            assay = assay.replace('-Seq', '-seq') # consistency 
             
-        elif assay.lower() == 'annotation':
-            assay = None
-            analysis = "annotation"
-        
-        elif assay in ["eQTL", "sQTL"]:
-            analysis = assay
-            assay = None
+            if 'ChromHMM' in assay:
+                analysis = assay
+                assay = "ChIP-seq"
+                
+            elif assay.lower() == 'annotation':
+                assay = None
+                analysis = "annotation"
             
-        # TODO: need to check output type b/c assay type may need to be updated
-        # e.g. DNASeq Footprinting if output_type == footprints
-        elif 'DNase' in assay:
-            return "DNase-seq"
+            elif assay in ["eQTL", "sQTL"]:
+                analysis = assay
+                assay = None
+            
+            # TODO: need to check output type b/c assay type may need to be updated
+            # e.g. DNASeq Footprinting if output_type == footprints
+            elif 'DNase' in assay:
+                return "DNase-seq"
 
         self.__metadata.update({"assay": assay, "analysis": analysis})
 
@@ -405,7 +408,7 @@ class FILERMetadataParser:
         if replicates is not None:
             nameInfo.append('(repl. ' + str(replicates) + ')')
 
-        name = self._get_metadata('identifier') + ': ' + ' '.join(nameInfo) 
+        name = self._get_metadata('identifier') + ': ' + ' '.join(drop_nulls(nameInfo)) 
         
         self.__metadata.update({"name": name})
 
