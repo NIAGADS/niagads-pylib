@@ -25,7 +25,7 @@ CREATE TABLE ServerApplication.FILERTrack (
         --provenance
         data_source CHARACTER VARYING(50),
         data_source_version CHARACTER VARYING(50),
-        download_url CHARACTER VARYING(250),
+        download_url CHARACTER VARYING(500),
         download_date DATE,
         release_date DATE,
         filer_release_date DATE,
@@ -33,10 +33,10 @@ CREATE TABLE ServerApplication.FILERTrack (
         project CHARACTER VARYING(100),
         
         --FILER file properties
-        file_name CHARACTER VARYING(250),
-        url CHARACTER VARYING(250),
+        file_name CHARACTER VARYING(500),
+        url CHARACTER VARYING(500),
         md5sum CHARACTER VARYING(250),
-        raw_file_url CHARACTER VARYING(250),
+        raw_file_url CHARACTER VARYING(500),
         raw_file_md5sum CHARACTER VARYING(250),
         bp_covered BIGINT,
         number_of_intervals BIGINT,
