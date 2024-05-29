@@ -151,17 +151,21 @@ class FILERMetadataParser:
 
 
     def __parse_value(self, key, value):
-        ''' catch numbers, booleans, and nulls '''
+        ''' catch numbers, booleans, nulls and html entities (b/c of text search) '''
         if str_utils.is_null(value, naIsNull=True):
             return None
         
         if str_utils.is_number(value):
-            return str_utils.to_numeric(value)
+            if 'replicate' in key.lower():
+                return value # leave as string
+            else:
+                return str_utils.to_numeric(value)
         
         if 'date' in key.lower() and str_utils.is_date(value):
             return str_utils.to_date(value, returnStr=self.__datesAsStrings)
+
             
-        return value
+        return unquote(value) # html entities
     
     
     # TODO map ontology terms to correct     
@@ -180,19 +184,25 @@ class FILERMetadataParser:
         biosampleType = self._get_metadata('biosample_type')
         cellLine = biosample if biosampleType == 'cell_line' else None
         trackDescription = self._get_metadata('track_description')
-        biosampleSummary = re.regex_extract('Biosample_summary=(.+);*', trackDescription ) \
+        biosampleSummary = re.regex_extract('Biosample_summary=([^;]*)', trackDescription ) \
             if trackDescription is not None else None
     
+        if biosample is not None and str_utils.is_number(biosample):
+            self.logger.debug("Found numeric cell_type - " + str(biosample) + " - for track " + self._get_metadata('identifier'))
+            biosample = unquote(self._get_metadata('file_name')).split('.')[0].replace(':',' - ')
+            self.__metadata.update({'cell_type': biosample})
+            self.logger.debug("Updated to " + biosample + " from file name = " + self._get_metadata('file_name'))
+            
         biosampleCharacteristics  = {
-            "biosample_term": biosample,
+            "biosample_term": str(biosample), # sometimes cell lines are numbers
             "biosample_term_id": self._get_metadata('biosamples_term_id'),
-            "biosample_display": self.__biosampleMapper[biosample] if biosample in self.__biosampleMapper else biosample,
+            "biosample_display": str(self.__biosampleMapper[biosample] if biosample in self.__biosampleMapper else biosample),
             "biosample_type": biosampleType.lower() if biosampleType is not None else None,
             "cell_line": cellLine,
             "tissue_category": self._get_metadata('tissue_category'),
             "system_category": self._get_metadata('system_category'),
             "life_stage" : self._get_metadata("life_stage"),
-            "biosample_summary": self.__clean_list(biosampleSummary, delim='//')
+            "biosample_summary": self.__clean_list(biosampleSummary, delim=';')
         }
         
         biosampleCharacteristics = prune(biosampleCharacteristics, prune=['Unknown'])
@@ -377,10 +387,6 @@ class FILERMetadataParser:
         
         if self._get_metadata('cell_type'):    
             biosample = self._get_metadata('cell_type')
-            if str_utils.is_number(biosample):
-                self.logger.debug("Found numeric cell_type - " + str(biosample) + " - for track " + self._get_metadata('identifier'))
-                biosample = unquote(self._get_metadata('file_name')).split('.')[0].replace(':',' - ')
-                self.logger.debug("Updated to " + biosample + " from file name = " + self._get_metadata('file_name'))
             nameInfo.append(biosample)
             
         if self._get_metadata('antibody_target'):
@@ -391,7 +397,7 @@ class FILERMetadataParser:
         else:
             nameInfo.append(self._get_metadata('assay'))
             nameInfo.append(self._get_metadata('output_type'))
-            
+                    
         bReps = str_utils.is_null(self._get_metadata('biological_replicates'), True)
         tReps = str_utils.is_null(self._get_metadata('technical_replicates'), True)
         replicates = bReps is bReps if not None else None
@@ -405,12 +411,14 @@ class FILERMetadataParser:
 
 
     def __parse_experiment_info(self):
-        # [Experiment: ENCSR778NDP] [Orig: Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system;Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD]",
+        # [Experiment: ENCSR778NDP] [Orig: Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue \
+        # female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system; \
+        # Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD]",
         id = self._get_metadata('encode_experiment_id')
-        info = self.__clean_list(self._get_metadata('track_description'), delim="//")
-        project = re.regex_extract('Project=(.+);*', info) \
+        info = self.__clean_list(self._get_metadata('track_description'), delim=";")
+        project = re.regex_extract('Project=([^;]*)', info) \
                 if info is not None else None
-        
+
         self.__metadata.update({
                 "experiment_id": id,
                 "experiment_info": info,
@@ -472,16 +480,25 @@ class FILERMetadataParser:
         
 
     def __parse_genome_build(self):
-        genomeBuild = 'GRCh38' if 'hg38' in self._get_metadata('genome_build') else 'GRCh37'
+        genomeBuild = self._get_metadata('genome_build')
+        if genomeBuild is not None:
+            genomeBuild = 'GRCh38' if 'hg38' in genomeBuild else 'GRCh37'
         self.__metadata.update({"genome_build": genomeBuild})
     
     
     def __parse_is_lifted(self):
-        lifted = None
-        if 'lifted' in self._get_metadata('genome_build') \
-                    or 'lifted' in self._get_metadata('data_source'):
-            lifted = True
+        genomeBuild = self._get_metadata('genome_build')
+        dataSource = self._get_metadata('data_source')
+        
+        lifted = False
+        if genomeBuild is not None:
+            lifted = 'lifted' in genomeBuild
+        
+        if not lifted and dataSource is not None:
+            lifted = 'lifted' in dataSource
+
         self.__metadata.update({"is_lifted": lifted})
+
 
     def __parse_output_type(self):
         outputType = self._get_metadata('output_type')
@@ -529,7 +546,7 @@ class FILERMetadataParser:
                 if is_searchable_string(k, v, skipFieldsWith)]
 
         # some field have the same info
-        self.__metadata.update({"searchable_text": '//'.join(remove_duplicates(textValues + self.__searchableTextValues))})
+        self.__metadata.update({"searchable_text": ';'.join(remove_duplicates(textValues + self.__searchableTextValues))})
         
 
     def __rename_key(self, key):
@@ -564,7 +581,7 @@ class FILERMetadataParser:
             the metadata anyway, catch nulls, numbers and convert from string
         '''
         self.__metadata = { self.__transform_key(key): self.__parse_value(key, value) for key, value in self.__metadata.items()}
-
+        
 
     def __remove_attributes(self, attributes):
         """ remove attributes by name/key """    
@@ -626,6 +643,6 @@ class FILERMetadataParser:
         
         # update primary key label
         self.__update_primary_key_label()     
-   
+
         # return the parsed metadata
         return self.__metadata

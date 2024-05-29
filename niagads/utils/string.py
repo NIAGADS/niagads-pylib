@@ -191,7 +191,8 @@ def is_numeric(value):
 def is_number(value):
     ''' check if the string is a number; 
     support legacy code originally written for Python 2.7 '''
-    return value.isnumeric() if isinstance(value, str) \
+    # extra is_float if string is to check for scientific notation
+    return value.isnumeric() or is_float(value) if isinstance(value, str) \
         else is_integer(value) or is_float(value)
 
 
@@ -226,7 +227,7 @@ def to_number(value):
     try:
         return int(value)
     except ValueError:
-        return float(value) # raises ValueError again that will be thrown
+        return int(float(value)) if float(value).is_integer() else float(value) # raises ValueError again that will be thrown
 
 
 def to_numeric(value):
