@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
 from typing import Union, Annotated
 
-from ...shared_dependencies import RESPONSES
+from ...internal.shared_dependencies import RESPONSES
 from .dependencies import ROUTE_ABBREVIATION, ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX
-from ...shared_dependencies import RESPONSES, assembly_param, chromosome_param, SharedParams
+from ...internal.shared_dependencies import RESPONSES, assembly_param, chromosome_param, SharedParams
 
 router = APIRouter(
     prefix=ROUTE_PREFIX,
