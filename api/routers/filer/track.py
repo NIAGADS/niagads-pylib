@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from typing import Union, Annotated
 
-from ...dependencies import RESPONSES, assembly_param, chromosome_param
+from ...shared_dependencies import RESPONSES, assembly_param, chromosome_param
 from .dependencies import ROUTE_TAGS
 
 TAGS = ROUTE_TAGS +  ["Data Retrieval"]

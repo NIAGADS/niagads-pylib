@@ -1,3 +1,5 @@
+import nh3 # XSS protection
+
 from fastapi import Query
 from fastapi.exception_handlers import (
     http_exception_handler,
@@ -7,12 +9,17 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from enum import Enum
+from pydantic import BaseModel
+from typing import Optional, Set
 
 from niagads.reference.chromosomes import Human as Chromosome
+
 
 # https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#query-parameter-list-multiple-values
 
 RESPONSES = {404: {"description": "Not found"}}
+
+
 
 class Assembly(str, Enum):
     """enum for genome builds"""
@@ -29,19 +36,29 @@ class Assembly(str, Enum):
     
         return None
 
-def assembly_param(assembly: Assembly = Query(Assembly.GRCh38, description="reference genome build (assembly)")): 
+async def assembly_param(assembly: Assembly = Query(Assembly.GRCh38, description="reference genome build (assembly)")): 
     return Assembly.validate(assembly)
 
 
-def chromosome_param(chromosome: str = Query(Chromosome.chr19.value, enum=[c.name for c in Chromosome],
+async def chromosome_param(chromosome: str = Query(Chromosome.chr19.value, enum=[c.name for c in Chromosome],
         description="chromosome, specificed as 1..22,X,Y,M,MT or chr1...chr22,chrX,chrY,chrM,chrMT")):
     return Chromosome.validate(chromosome)
 
-
-def span_param(span: str = Query(alias="loc", regex="", description="")):
+async def span_param(span: str = Query(alias="loc", regex="", description="")):
     return True
 
 
-def variant_id(variant: str = Query(regex="", description="")):
+async def variant_identifier_param(variant: str = Query(regex="", description="")):
     return True
 
+# TODO: investigate nh3.clean and all its options
+async def clean(html: str):
+    return nh3.clean_text(html)
+
+# TODO: common params: https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/
+class OptionalParams(BaseModel):
+    limit: Optional[int] = None
+    page: Optional[int] = None
+    countOnly: Optional[bool] = False
+    
+    
