@@ -135,7 +135,7 @@ class Record:
             return database.upper()
         else:
             raise ValueError("Invalid database: " + database
-                + "; valid choices are: " + xstr(Databases.upper()))
+                + "; valid choices are: " + xstr(Databases.list()))
 
         
     def get_type(self):
