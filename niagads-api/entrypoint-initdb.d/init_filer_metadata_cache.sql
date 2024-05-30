@@ -11,8 +11,8 @@ CREATE TABLE ServerApplication.FILERTrack (
         biosample_characteristics JSONB,
 
         -- experimental design 
-        biological_replicates TEXT,
-        technical_replicates TEXT,
+        biological_replicates CHARACTER VARYING(100),
+        technical_replicates CHARACTER VARYING(100),
         antibody_target CHARACTER VARYING(100),
         assay CHARACTER VARYING(100),
         analysis TEXT,
