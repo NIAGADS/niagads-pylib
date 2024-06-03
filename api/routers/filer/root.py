@@ -1,33 +1,32 @@
 from fastapi import APIRouter, Depends
+from fastapi import Depends
+from sqlmodel import select
 from typing import Union, Annotated
 
-from ...internal.shared_dependencies import RESPONSES
-from .dependencies import ROUTE_ABBREVIATION, ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX
-from ...internal.shared_dependencies import RESPONSES, assembly_param, chromosome_param, SharedParams
+from api.dependencies.location_params import assembly_param, chromosome_param
+from api.dependencies.exceptions import RESPONSES
+from api.dependencies.database import DBSession
+
+from .dependencies import ROUTE_ABBREVIATION, ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX, Service
+from .track import router as tracks
+from .model import Track
 
 router = APIRouter(
     prefix=ROUTE_PREFIX,
     tags=ROUTE_TAGS,
     responses=RESPONSES,
-    # dependencies=[Depends(assembly)] -- adds dependencies to every query, but saves in state
+    # dependencies=[Depends(get_db('filer'))] # adds dependencies to every query, but saves in state
 )
 
 @router.get("/", tags=ROUTE_TAGS, name="about", description="about the " + ROUTE_NAME)
-async def read_root():
-    return {"database": "FILER"}
+async def read_root(service: Annotated[Service, Depends(Service)]):
+    numTracks = service.get_count()
+    return {"database": "FILER", "number of tracks": numTracks}
 
-TAGS = ROUTE_TAGS +  ["Find Data Tracks"]
-@router.get("/search", tags=TAGS, 
-            name="Search for functional genomics tracks", 
-            description="get metadata for all FILER tracks by datasource")
-async def find_filer_tracks(sp: SharedParams):
-    return {"tracks": "TODO: retrieve tracks by filter"}
-
-# query(assembly = Depends(assembly_param), chromosome = Depends(chromosome_param), filter: Union[str, None] = None):
 
 
 # --------------------------------------------------------------
 # CHIILD ROUTES
 # --------------------------------------------------------------
-# router.include_router(metadata)
+router.include_router(tracks)
 # router.include_router(data)

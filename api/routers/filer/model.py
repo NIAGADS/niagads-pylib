@@ -7,10 +7,10 @@ from datetime import datetime
 from typing import Optional
 from pydantic import computed_field
 
-from internal.constants import DATASOURCE_URLS
+from api.internal.constants import DATASOURCE_URLS
 from niagads.filer.parser import split_replicates
 
-class FilerTable(SQLModel, table=True):
+class Track(SQLModel, table=True):
     __tablename__ = "filertrack"
     __bind_key__ = 'filer'
     __table_args__ = {'schema': 'serverapplication'}
@@ -62,13 +62,13 @@ class FilerTable(SQLModel, table=True):
     
     @computed_field
     @property
-    def genome_browser_track_schema(self):    
+    def genome_browser_track_schema(self) -> str:    
         schema = self.file_schema.split('|')
         return schema[0]
     
     @computed_field
     @property 
-    def genome_browser_track_type(self):
+    def genome_browser_track_type(self) -> str:
         # TODO: interactions
         if 'QTL' in self.feature_type:
             return 'qtl'
@@ -77,18 +77,18 @@ class FilerTable(SQLModel, table=True):
     
     @computed_field
     @property
-    def index_url(self):
+    def index_url(self) -> str:
         return self.url + '.tbi'
     
     @computed_field
     @property
-    def data_source_url(self):
+    def data_source_url(self) -> str:
         dsKey = self.data_source + '|' + self.data_source_version
         return getattr(DATASOURCE_URLS, dsKey)
     
     @computed_field
     @property
-    def replicates(self):
+    def replicates(self) -> str:
         biological = split_replicates(self.biological_replicates)
         technical = split_replicates(self.technical_replicates)
         

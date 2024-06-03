@@ -1,22 +1,7 @@
-import nh3 # XSS protection
-
+from enum import Enum
 from fastapi import Query
-from fastapi.exception_handlers import (
-    http_exception_handler,
-    request_validation_exception_handler,
-)
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
-from enum import Enum, auto
-from pydantic import BaseModel
-from typing import Optional, Set, List
-
 from niagads.reference.chromosomes import Human as Chromosome
 
-# https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#query-parameter-list-multiple-values
-
-RESPONSES = {404: {"description": "Not found"}}
 
 class Assembly(str, Enum):
     """enum for genome builds"""
@@ -43,22 +28,3 @@ async def chromosome_param(chromosome: str = Query(Chromosome.chr19.value, enum=
 
 async def span_param(span: str = Query(alias="loc", regex="", description="")):
     return True
-
-
-async def variant_identifier_param(variant: str = Query(regex="", description="")):
-    return True
-
-# TODO: investigate nh3.clean and all its options
-async def clean(html: str):
-    return nh3.clean_text(html)
-
-
-
-
-# TODO: common params: https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/
-class OptionalParams(BaseModel):
-    limit: Optional[int] = None
-    page: Optional[int] = None
-    countOnly: Optional[bool] = False
-    
-    
