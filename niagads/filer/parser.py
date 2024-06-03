@@ -182,23 +182,30 @@ class FILERMetadataParser:
         "system category": "Nervous",
         "life stage": "Adult", '''
         
-        biosample = self._get_metadata("cell_type")
+        # TODO - remove mapper; template files are now pre-mapped
+        
+        displayTerm = self._get_metadata("cell_type")
         biosampleType = self._get_metadata('biosample_type')
         cellLine = biosample if biosampleType == 'cell_line' else None
         trackDescription = self._get_metadata('track_description')
         biosampleSummary = re.regex_extract('Biosample_summary=([^;]*)', trackDescription ) \
             if trackDescription is not None else None
+        biosample = re.regex_extract('premapping_cell_type=([^;]*)', trackDescription ) \
+            if trackDescription is not None else None
+        if biosample is None:
+            biosample = displayTerm
     
-        if biosample is not None and str_utils.is_number(biosample):
-            self.logger.debug("Found numeric cell_type - " + str(biosample) + " - for track " + self._get_metadata('identifier'))
-            biosample = unquote(self._get_metadata('file_name')).split('.')[0].replace(':',' - ')
-            self.__metadata.update({'cell_type': biosample})
-            self.logger.debug("Updated to " + biosample + " from file name = " + self._get_metadata('file_name'))
+        if displayTerm is not None and str_utils.is_number(displayTerm):
+            self.logger.debug("Found numeric cell_type - " + str(displayTerm) + " - for track " + self._get_metadata('identifier'))
+            displayTerm = unquote(self._get_metadata('file_name')).split('.')[0].replace(':',' - ')
+            self.__metadata.update({'cell_type': displayTerm})
+            self.logger.debug("Updated to " + displayTerm + " from file name = " + self._get_metadata('file_name'))
             
         biosampleCharacteristics  = {
-            "biosample_term": str(biosample), # sometimes cell lines are numbers
+            "biosample_term": str(biosample), 
             "biosample_term_id": self._get_metadata('biosamples_term_id'),
-            "biosample_display": str(self.__biosampleMapper[biosample] if biosample in self.__biosampleMapper else biosample),
+            "biosample_display": displayTerm, 
+                # str(self.__biosampleMapper[biosample] if biosample in self.__biosampleMapper else biosample),
             "biosample_type": biosampleType.lower() if biosampleType is not None else None,
             "cell_line": cellLine,
             "tissue_category": self._get_metadata('tissue_category'),
