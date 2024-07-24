@@ -13,12 +13,11 @@ ROUTE_DESCRIPTION = {}
 
 ROUTE_TAGS = [ROUTE_ABBREVIATION]
 
-FilerDatabaseSession = DBSession('filer')
-
 class Service:
-    def __init__(self, session: Annotated[Session, Depends(FilerDatabaseSession)]):
-        self.__session = session
+    def __init__(self):
+        self.__db = DBSession('filer')
 
     def get_count(self) -> int:
         statement = select(Track)
-        return self.__session.exec(statement).first()
+        with self.__db() as session:
+            return session.exec(statement).first()
