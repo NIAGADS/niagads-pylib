@@ -37,6 +37,7 @@ __datasource_urls = ({
         'FactorBook': 'https://genome.ucsc.edu/index.html',
         'FactorBook|lifted': 'https://genome.ucsc.edu/index.html',
         'INFERNO_genomic_partition': 'http://inferno.lisanwanglab.org/index.php',
+        'INFERNO_genomic_partition|genomic_partition': 'http://inferno.lisanwanglab.org/index.php',
         'GTEx|v7': 'https://gtexportal.org/home/',
         'GTEx|v8': 'https://gtexportal.org/home/',
         'HOMER' : 'http://homer.ucsd.edu/homer/',

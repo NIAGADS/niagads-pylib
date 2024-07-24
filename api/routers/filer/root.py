@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends
 from fastapi import Depends
 from sqlmodel import select
-from typing import Union, Annotated
+from typing import Union, Annotated, Optional
 
 from api.dependencies.location_params import assembly_param, chromosome_param
 from api.dependencies.exceptions import RESPONSES
 from api.dependencies.database import DBSession
 
 from .dependencies import ROUTE_ABBREVIATION, ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX, Service
-from .track import router as tracks
+from .metadata import router as metadata
 from .model import Track
 
 router = APIRouter(
@@ -25,8 +25,9 @@ async def read_root(service: Annotated[Service, Depends(Service)]):
 
 
 
+
 # --------------------------------------------------------------
 # CHIILD ROUTES
 # --------------------------------------------------------------
-router.include_router(tracks)
+router.include_router(metadata)
 # router.include_router(data)

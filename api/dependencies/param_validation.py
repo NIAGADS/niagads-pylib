@@ -10,7 +10,7 @@ from niagads.reference.chromosomes import Human as Chromosome
 
 
 # TODO: investigate nh3.clean and all its options
-async def clean(html: str):
+def clean(html: str):
     return nh3.clean_text(html)
 
 

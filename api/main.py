@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from .routers import filer
 
 app = FastAPI(
@@ -18,7 +20,21 @@ app = FastAPI(
         root_path="/api"
     )
 
+
+@app.exception_handler(ValueError)
+async def validation_exception_handler(request: Request, exc: ValueError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder(
+            {
+                "msg": str(exc),  # optionally, include the pydantic errors
+                 "error": "Invalid parameter value"
+            }),
+    )
+
+
 app.include_router(filer)
+
 
 @app.get("/")
 async def read_root():

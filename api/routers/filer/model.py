@@ -10,6 +10,7 @@ from pydantic import computed_field
 from api.internal.constants import DATASOURCE_URLS
 from niagads.filer.parser import split_replicates
 
+
 class Track(SQLModel, table=True):
     __tablename__ = "filertrack"
     __bind_key__ = 'filer'
@@ -83,7 +84,7 @@ class Track(SQLModel, table=True):
     @computed_field
     @property
     def data_source_url(self) -> str:
-        dsKey = self.data_source + '|' + self.data_source_version
+        dsKey = self.data_source + '|' + self.data_source_version if self.data_source_version is not None else self.data_source
         return getattr(DATASOURCE_URLS, dsKey)
     
     @computed_field
@@ -99,3 +100,14 @@ class Track(SQLModel, table=True):
             return { "biological": biological}
         
         return { "technical": technical, "biological": biological}
+    
+    # FIXME: this does not work b/c it does not include the computed fields
+    def clean(self):
+        internalFields = ['biological_replicates', 'technical_replicates', 
+            'searchable_text',
+            'genome_browser_track_schema', 'genome_browser_track_type',
+            '_sa_instance_state']
+        x = vars(self).items()
+        for k,v in vars(self).items():
+            print(k, v)
+        return { k: v for k, v in vars(self).items() if k not in internalFields}
