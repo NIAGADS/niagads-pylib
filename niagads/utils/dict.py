@@ -7,6 +7,25 @@ from types import SimpleNamespace
 from niagads.utils.string import is_null
 
 
+def rename_key(dictObj:dict, oldKey: str, newKey: str, ordered: bool=False): # note does not preserve python3+ ordering
+    """
+    rename dict key
+
+    Args:
+        dictObj (dict): the dictionary object to update
+        oldKey (str): old key
+        newKey (str): new key
+        ordered (bool, optional): keep ordering; slower. Defaults to False.
+
+    Returns:
+       updated dict object
+    """
+    if ordered:
+        return {newKey if k == oldKey else k:v for k,v in dictObj.items()} 
+    
+    dictObj[newKey] = dictObj.pop(oldKey)
+    return dictObj
+
 
 def prune(dictObj:dict, removeNulls:bool=True, prune:list=[]):
     """
