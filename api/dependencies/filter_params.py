@@ -67,12 +67,15 @@ class FilterParameter():
         return pattern.parseString(expression, parse_all=True)
     
     
-    def __call__(self, filter: str=Query(title="description expression string")):
-        if filter:
-            try:
+    def __call__(self, filter: str = Query(default=None, description="filter expresssion string", examples=['data_source eq GTEx and biosample eq brain'])):
+        try:
+            if filter is not None:
                 return self.__parse_expression(filter).as_list()
-            except Exception as e:
-                raise ValueError(f'Unable to parse `filter` expression: {filter}; {get_error_message(e)}', )
+            else:
+                return None
+        
+        except Exception as e:
+            raise ValueError(f'Unable to parse `filter` expression: {filter}; {get_error_message(e)}', )
                 
-        return None
+
 

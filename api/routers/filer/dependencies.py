@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import Depends
 from sqlmodel import Session, select, col, or_
 from sqlalchemy import func
-from typing import List
+from typing import List, Optional
 
 from api.dependencies.database import DBSession
 from api.dependencies.filter_params import tripleToPreparedStatement
@@ -43,7 +43,7 @@ class Service:
         
     def get_track_metadata(self, trackId: str) -> Track:
         ids = trackId.split(',')
-        statement = select(Track).filter(col(Track.track_id).in_(ids))
+        statement = select(Track).filter(col(Track.track_id).in_(ids)).order_by(Track.track_id)
         # statement = select(Track).where(col(Track.track_id) == trackId) 
         # if trackId is not None else select(Track).limit(100) # TODO: pagination
         with self.__db() as session:
@@ -75,7 +75,7 @@ class Service:
                 
         return statement
 
-    def query_track_metadata(self, assembly: str, filters: List[str], options: OptionalParams) -> List[Track]:
+    def query_track_metadata(self, assembly: str, filters: List[str] | None, keyword: Optional[str], options: OptionalParams) -> List[Track]:
         if (options.idsOnly and options.countOnly):
             raise ValueError("please set only one of `idsOnly` or `countOnly` to `TRUE`")
         
@@ -83,10 +83,19 @@ class Service:
             else func.count(Track.track_id) if options.countOnly else Track
 
         statement = select(target).filter(col(Track.genome_build) == assembly)
-        statement = self.__add_statement_filters(statement, filters)
+        if filters is not None:
+            statement = self.__add_statement_filters(statement, filters)
+        if keyword is not None:
+            # TODO: add antibody targets to searchable text during cache build
+            statement = statement.filter(or_(
+                col(Track.searchable_text).regexp_match(keyword, 'i'),
+                col(Track.antibody_target).regexp_match(keyword, 'i')))
             
-        if options.limit and not options.countOnly:
-            statement = statement.limit(options.limit)
+        if not options.countOnly:
+            statement = statement.order_by(Track.track_id)
+            if options.limit:
+                statement = statement.limit(options.limit)
+
         with self.__db() as session:
             result = session.exec(statement).all()
             if options.countOnly:
