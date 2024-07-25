@@ -64,6 +64,8 @@ class Track(SQLModel, table=True):
     @computed_field
     @property
     def genome_browser_track_schema(self) -> str:    
+        if self.file_schema is None:
+            return None
         schema = self.file_schema.split('|')
         return schema[0]
     
@@ -85,7 +87,10 @@ class Track(SQLModel, table=True):
     @property
     def data_source_url(self) -> str:
         dsKey = self.data_source + '|' + self.data_source_version if self.data_source_version is not None else self.data_source
-        return getattr(DATASOURCE_URLS, dsKey)
+        try:
+            return getattr(DATASOURCE_URLS, dsKey)
+        except Exception as e: # TODO: error reporting to admins b/c this is a missing data problem
+            return self.data_source
     
     @computed_field
     @property
