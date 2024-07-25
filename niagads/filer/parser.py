@@ -342,6 +342,19 @@ class FILERMetadataParser:
 
         if feature is None:
             raise ValueError("No feature type mapped for track: ", self.__metadata)
+        
+        # variants have unnecessary prefixes
+        # SAS GIH INDEL
+        # SAS GIH SNV
+        # SAS GIH SV
+        # SAS SV
+        if feature.endswith(' INDEL'):
+            feature = 'insertion/deletion variant (INDEL)'
+        if feature.endswith(' SNV'):
+            feature = 'single nucleotide variant (SNV)'
+        if feature.endswith(' SV'):
+            feature = 'structural variant (SV)'
+            
         self.__metadata.update({"feature_type": feature})
         
         
