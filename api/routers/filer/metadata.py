@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 from typing import Annotated, Optional
 
 from api.dependencies.filter_params import ExpressionType, FilterParameter
@@ -18,7 +18,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", tags=ROUTE_TAGS, 
+@router.get("/", tags=TAGS, 
     name="Lookup functional genomics track metadata from FILER",
     description="retrieve metadata for (one or more) track(s) by identifier")
 async def get_track_metadata(service: Annotated[Service, Depends(Service)], 
@@ -40,4 +40,18 @@ async def search_track_metadata(service: Annotated[Service, Depends(Service)],
     return service.query_track_metadata(assembly, filter, keyword, options)
 
 
+tags = ROUTE_TAGS +  ["Data Summary"]
+@router.get("/filter", tags=tags, 
+    name="helper query providing the list allowable fields for track filters", 
+    description="get list of allowable fields for filter-based searches of track metadata")
+async def get_track_filters():
+    return {k: v['description'] for k, v in TRACK_SEARCH_FILTER_FIELD_MAP.items()}
 
+@router.get("/filter/{field}", tags=tags, 
+    name="helper query providing a list of exact values for the specified track filter `field`", 
+    description="get list of values and associated track counts for each allowable filter field")
+async def get_track_filter_summary(service: Annotated[Service, Depends(Service)], 
+    field: str=Path(enum=list(TRACK_SEARCH_FILTER_FIELD_MAP.keys()),
+        description="filter field; please note that there are too many possible values for `biosample`; the returned result summarizes over broad `tissue categories` only")
+):
+    return service.get_track_filter_summary(clean(field))

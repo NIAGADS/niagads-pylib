@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import Depends
 from sqlmodel import Session, select, col, or_
-from sqlalchemy import func
+from sqlalchemy import func, distinct
 from typing import List, Optional
 
 from api.dependencies.database import DBSession
@@ -18,8 +18,8 @@ ROUTE_DESCRIPTION = {}
 ROUTE_TAGS = [ROUTE_ABBREVIATION]
 
 _BIOSAMPLE_FIELDS = ["life_stage", "biosample_term", "system_category",
-                     "tissue_category", "biosample_display",
-                     "biosample_summary", "biosample_term_id"]
+    "tissue_category", "biosample_display",
+    "biosample_summary", "biosample_term_id"]
 
 TRACK_SEARCH_FILTER_FIELD_MAP = { 
     'biosample': {
@@ -27,7 +27,7 @@ TRACK_SEARCH_FILTER_FIELD_MAP = {
         'description': "searches across biosample characteristics, including, " +
             "but not limited to: biological system, tissue, cell type, cell line, " +
             "life stage; can be searched using ontology terms from UBERON (tissues), CL (cells), " + 
-            "CLO (cell lines), and EFO (experimental factors)"
+            "CLO (cell lines), and EFO (experimental factors); NOTE: biosample term matches are fuzzy and case insensitive"
         },
     'antibody': {
         'model_field': 'antibody_target',
@@ -135,3 +135,17 @@ class CacheQueryService:
             if options.countOnly:
                 return {'track_count': result[0] }
             return result
+        
+    def get_track_filter_summary(self, filterField:str) -> dict:
+        modelField = TRACK_SEARCH_FILTER_FIELD_MAP[filterField]['model_field']
+
+        valueCol = col(getattr(Track, modelField))
+        if 'biosample' in modelField:
+            valueCol = valueCol['tissue_category'].astext
+        # statement = select(valueCol, Track.track_id).group_by(valueCol).count()
+        statement = select(distinct(valueCol), func.count(Track.track_id)).group_by(valueCol)
+        with self.__db() as session:
+            result = session.exec(statement).all()
+            return {row[0]: row[1] for row in result}
+
+    

@@ -15,6 +15,13 @@ _NUMBER = Word(nums)
 _TEXT = Word(alphas + '+')
 _JOIN =  Keyword("and") # TODO: | Keyword("or") 
 
+
+OPERATORS = {
+    'eq': "`equals`: exact, case sensitive, matches to entire field",
+    'neq': "`not equals`: exact, case sensitive, negative matches to entire field",
+    'like': "`like`: case-insensitive substring matching; NOTE for queries against `biosample`, `eq` and `neq` will be executed as `like` or `not like`, respeectively"
+}
+
 class ExpressionType(str, Enum):
     """enum for text expression types (text vs numeric)"""
     TEXT = auto()
