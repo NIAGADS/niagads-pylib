@@ -22,14 +22,42 @@ _BIOSAMPLE_FIELDS = ["life_stage", "biosample_term", "system_category",
                      "biosample_summary", "biosample_term_id"]
 
 TRACK_SEARCH_FILTER_FIELD_MAP = { 
-    'biosample': 'biosample_characteristics',
-    'antibody': 'antibody_target',
-    'assay': 'assay',
-    'category': 'data_category',
-    'analysis': 'analysis',
-    'classification': 'classification',
-    'data_source': 'data_source',
-    'feature': 'feature_type'
+    'biosample': {
+        'model_field' : 'biosample_characteristics', 
+        'description': "searches across biosample characteristics, including, " +
+            "but not limited to: biological system, tissue, cell type, cell line, " +
+            "life stage; can be searched using ontology terms from UBERON (tissues), CL (cells), " + 
+            "CLO (cell lines), and EFO (experimental factors)"
+        },
+    'antibody': {
+        'model_field': 'antibody_target',
+        'description': "the antibody target, e.g. in a CHiP-SEQ experiment; " + 
+            "we recommend searching for gene targets with `like` operator as many are prefixed"
+    },
+    'assay': {
+        'model_field': 'assay',
+        'description': 'type of assay'
+    },
+    'feature': {
+        'model_field': 'feature_type',
+        'description': "the type of functional genomics feature reported in the data track"
+    },
+    'analysis': {
+        'model_field': 'analysis',
+        'description': "type of statistical analysis, if relevant"
+    },
+    'classification': {
+        'model_field': 'classification',
+        'description': "specific categorization or classification of the data reported in the data track"
+    },
+    'category': {
+        'model_field': 'data_category',
+        'description': "broad categorization of the type of the data reported in the data track"
+    },
+    'data_source': {
+        'model_field': 'data_source',
+        'description': "original third-party data source for the track"
+    },
 }
 
 
@@ -72,9 +100,10 @@ class CacheQueryService:
                 if phrase[0] == 'biosample':
                     statement = self.__add_biosample_filters(statement, phrase)
                 else: 
+                    modelField = TRACK_SEARCH_FILTER_FIELD_MAP[phrase[0]]['model_field']
                     statement = statement.filter(
                         tripleToPreparedStatement(
-                            [TRACK_SEARCH_FILTER_FIELD_MAP[phrase[0]], phrase[1], phrase[2]],
+                            [modelField, phrase[1], phrase[2]],
                             Track
                         ))
                 
