@@ -6,6 +6,7 @@ from typing import List
 
 from api.dependencies.database import DBSession
 from api.dependencies.filter_params import tripleToPreparedStatement
+from api.dependencies.shared_params import OptionalParams
 from .model import Track
 
 ROUTE_PREFIX = "/filer"
@@ -74,9 +75,20 @@ class Service:
                 
         return statement
 
-    def query_track_metadata(self, assembly: str, filters: List[str]) -> List[Track]:
-        # func.count(Track.track_id) if countOnly else Track
-        statement = select(Track).filter(col(Track.genome_build) == assembly)
+    def query_track_metadata(self, assembly: str, filters: List[str], options: OptionalParams) -> List[Track]:
+        if (options.idsOnly and options.countOnly):
+            raise ValueError("please set only one of `idsOnly` or `countOnly` to `TRUE`")
+        
+        target = Track.track_id if options.idsOnly \
+            else func.count(Track.track_id) if options.countOnly else Track
+
+        statement = select(target).filter(col(Track.genome_build) == assembly)
         statement = self.__add_statement_filters(statement, filters)
+            
+        if options.limit and not options.countOnly:
+            statement = statement.limit(options.limit)
         with self.__db() as session:
-            return session.exec(statement).all()
+            result = session.exec(statement).all()
+            if options.countOnly:
+                return {'track_count': result[0] }
+            return result
