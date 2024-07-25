@@ -7,7 +7,7 @@ from api.dependencies.location_params import assembly_param, chromosome_param
 from api.dependencies.exceptions import RESPONSES
 from api.dependencies.database import DBSession
 
-from .dependencies import ROUTE_ABBREVIATION, ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX, Service
+from .dependencies import ROUTE_ABBREVIATION, ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX, CacheQueryService as Service
 from .metadata import router as metadata
 from .model import Track
 

@@ -8,6 +8,7 @@ from api.dependencies.database import DBSession
 from api.dependencies.filter_params import tripleToPreparedStatement
 from api.dependencies.shared_params import OptionalParams
 from .model import Track
+from niagads.filer.api import FILERApiWrapper
 
 ROUTE_PREFIX = "/filer"
 ROUTE_NAME = "FILER Functional Genomics Repository"
@@ -32,7 +33,11 @@ TRACK_SEARCH_FILTER_FIELD_MAP = {
 }
 
 
-class Service:
+class ApiWrapperService:
+    def __init__(self):
+        self.__api_url = ""
+
+class CacheQueryService:
     def __init__(self):
         self.__db = DBSession('filer')
 
