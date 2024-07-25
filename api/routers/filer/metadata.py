@@ -6,7 +6,7 @@ from api.dependencies.param_validation import clean
 from api.dependencies.location_params import assembly_param, chromosome_param
 from api.dependencies.exceptions import RESPONSES
 
-from .dependencies import ROUTE_TAGS, Service
+from .dependencies import ROUTE_TAGS, Service, TRACK_SEARCH_FILTER_FIELD_MAP
 from .model import Track
 
 TAGS = ROUTE_TAGS +  ["Metadata Retrieval"]
@@ -26,13 +26,14 @@ async def get_track_metadata(service: Annotated[Service, Depends(Service)],
     return service.get_track_metadata(clean(track)) # FIXME: .clean()
 
 
-filter_param = FilterParameter(['datasource', 'project'], ExpressionType.TEXT)
+
+filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
 @router.get("/search", tags=TAGS + ['Find Data Tracks'], 
     name="Search for functional genomics tracks in the FILER repository", 
     description="find FILER tracks by querying against the track metadata")
 async def search_track_metadata(service: Annotated[Service, Depends(Service)],
     assembly = Depends(assembly_param), filter = Depends(filter_param)):
-    return {"filters": filter.as_list()}
+    return service.query_track_metadata(assembly, filter)
 
 
 

@@ -46,7 +46,8 @@ __datasource_urls = ({
         'ROADMAP|lifted': 'http://www.roadmapepigenomics.org/',
         'Repeats' : 'http://genome.ucsc.edu/cgi-bin/hgTables',
         'TargetScan|v7p2': 'http://www.targetscan.org/vert_72/',
-        'TargetScan|v7p2-lifted': 'http://www.targetscan.org/vert_72/' 
+        'TargetScan|v7p2-lifted': 'http://www.targetscan.org/vert_72/' ,
+        'Ensembl|Gene_model': 'https://useast.ensembl.org/info/genome/genebuild/index.html'
 })
 
 
