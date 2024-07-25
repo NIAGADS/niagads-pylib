@@ -27,8 +27,19 @@ async def validation_exception_handler(request: Request, exc: ValueError):
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder(
             {
-                "msg": str(exc),  # optionally, include the pydantic errors
+                "message": str(exc),  # optionally, include the pydantic errors
                  "error": "Invalid parameter value"
+            }), 
+    )
+
+@app.exception_handler(LookupError)
+async def validation_exception_handler(request: Request, exc: ValueError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content=jsonable_encoder(
+            {
+                "message": str(exc),  # optionally, include the pydantic errors
+                 "error": "Invalid external request"
             }),
     )
 

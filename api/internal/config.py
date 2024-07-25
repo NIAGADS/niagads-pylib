@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     API_STATICDB_URL: str
     API_CACHEDB_URL: str
     GENOMICSDB_URL: str
+    FILER_REQUEST_URI: str
     
     # required by Pydantic
     model_config = SettingsConfigDict(env_file=ENV_FILE_PATH)

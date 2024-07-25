@@ -1,21 +1,25 @@
 from typing import Annotated
 from fastapi import Depends
 from sqlmodel import Session, select, col, or_
-from sqlalchemy import func, distinct
+from sqlalchemy import func, distinct, Values, String, column as sqla_column
 from typing import List, Optional
 
+from niagads.filer.api import FILERApiWrapper
+from niagads.utils.list import list_to_string
+from niagads.utils.dict import rename_key
+
+from api.internal.config import get_settings
 from api.dependencies.database import DBSession
 from api.dependencies.filter_params import tripleToPreparedStatement
 from api.dependencies.shared_params import OptionalParams
 from .model import Track
-from niagads.filer.api import FILERApiWrapper
 
 ROUTE_PREFIX = "/filer"
 ROUTE_NAME = "FILER Functional Genomics Repository"
 ROUTE_ABBREVIATION = "FILER"
 ROUTE_DESCRIPTION = {}
 
-ROUTE_TAGS = [ROUTE_ABBREVIATION]
+ROUTE_TAGS = [ROUTE_NAME]
 
 _BIOSAMPLE_FIELDS = ["life_stage", "biosample_term", "system_category",
     "tissue_category", "biosample_display",
@@ -62,21 +66,56 @@ TRACK_SEARCH_FILTER_FIELD_MAP = {
 
 
 class ApiWrapperService:
+    _OVERLAPS_ENDPOINT = 'get_overlaps'
+    
+    
     def __init__(self):
-        self.__api_url = ""
+        self.__request_uri = get_settings().FILER_REQUEST_URI
+        self.__wrapper = FILERApiWrapper(self.__request_uri)
+    
+    def __validate_tracks(self, tracks: List[str]):
+        service = CacheQueryService()
+        service.validate_tracks(tracks) # raises error if invalid tracks found
+        
+    def __rename_keys(self, dictObj, keyMapping):
+        for oldKey, newKey in keyMapping.items():
+            dictObj = rename_key(dictObj, oldKey, newKey)
+        return dictObj
+    
+    def __clean_overlaps_result(self, result):
+        keyMap = {'Identifier' : 'track_id', 'queryRegion': 'query_region'}
+        return [self.__rename_keys(record, keyMap) for record in result]
+        
+    def get_track_hits(self, tracks: str, span: str):
+        result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': tracks, 'span': span})
+        return self.__clean_overlaps_result(result)
 
 class CacheQueryService:
     def __init__(self):
         self.__db = DBSession('filer')
+
+    def validate_tracks(self, tracks: List[str]):
+        # solution for finding tracks not in the table adapted from
+        # https://stackoverflow.com/a/73691503
+
+        lookups = Values(sqla_column('track_id', String), name='lookups').data([(t, ) for t in tracks])
+        statement = select(lookups.c.track_id).outerjoin(
+            Track, col(Track.track_id) == lookups.c.track_id).where(col(Track.track_id) == None)
+        with self.__db() as session:
+            result = session.exec(statement).all()
+            if len(result) > 0:
+                raise ValueError(f'Invalid track identifiers found: {list_to_string(result)}')
+            else:
+                return True
 
     def get_count(self) -> int:
         statement = select(func.count(Track.track_id))
         with self.__db() as session:
             return session.exec(statement).first()
         
-    def get_track_metadata(self, trackId: str) -> Track:
-        ids = trackId.split(',')
-        statement = select(Track).filter(col(Track.track_id).in_(ids)).order_by(Track.track_id)
+    
+    def get_track_metadata(self, tracks: List[str]) -> Track:
+        statement = select(Track).filter(col(Track.track_id).in_(tracks)).order_by(Track.track_id)
         # statement = select(Track).where(col(Track.track_id) == trackId) 
         # if trackId is not None else select(Track).limit(100) # TODO: pagination
         with self.__db() as session:
@@ -148,4 +187,14 @@ class CacheQueryService:
             result = session.exec(statement).all()
             return {row[0]: row[1] for row in result}
 
-    
+    def get_genome_build(self, tracks: List[str]) -> str:
+        """ retrieves the genome build for a set of tracks; returns track -> genome build mapping if not all on same assembly"""
+        statement = select(distinct(Track.genome_build)).where(col(Track.track_id).in_(tracks))
+        with self.__db() as session:
+            result = session.exec(statement).all()
+            if len(result) > 1: 
+                statement = select(Track.track_id, Track.genome_build).where(col(Track.track_id).in_(tracks)).order_by(Track.genome_build, Track.track_id)
+                result = session.exec(statement).all()
+                return {row[0]: row[1] for row in result}
+            else:
+                return result[0]

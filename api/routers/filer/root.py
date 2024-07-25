@@ -8,8 +8,8 @@ from api.dependencies.exceptions import RESPONSES
 from api.dependencies.database import DBSession
 
 from .dependencies import ROUTE_ABBREVIATION, ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX, CacheQueryService as Service
-from .metadata import router as metadata
-from .model import Track
+from .track import router as TrackRouter
+from .query import router as QueryRouter
 
 router = APIRouter(
     prefix=ROUTE_PREFIX,
@@ -29,5 +29,6 @@ async def read_root(service: Annotated[Service, Depends(Service)]):
 # --------------------------------------------------------------
 # CHIILD ROUTES
 # --------------------------------------------------------------
-router.include_router(metadata)
+router.include_router(TrackRouter)
+router.include_router(QueryRouter)
 # router.include_router(data)
