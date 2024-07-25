@@ -53,9 +53,12 @@ class FILERApiWrapper():
             newParams['genomeBuild'] = self.map_genome_build(params['genomeBuild'])
 
         if 'id' in params:
-            key = "trackIDs" if ',' in params['id'] else "trackID"
-            newParams[key] = params['id']
+            newParams['trackIDs'] = params['id']
 
+        if 'track_id' in params:
+            # key = "trackIDs" if ',' in params['track_id'] else "trackID"
+            newParams['trackIDs'] = params['track_id']
+            
         if 'span' in params:
             newParams['region'] = params['span']
 
@@ -73,8 +76,10 @@ class FILERApiWrapper():
             if self._debug:
                 self.logger.debug("SUCCESS: " + str(len(response.json()))) 
             if returnSuccess:
-                return True       
+                return True    
             return response.json()
+        except requests.JSONDecodeError as err:
+            raise LookupError(f'Unable to parse FILER repsonse `{response.content}` for the following request: {requestUrl}')
         except requests.exceptions.HTTPError as err:
             if self._debug:
                 self.logger.debug("HTTP Request FAILED")
