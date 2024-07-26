@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+FILER_N_TRACK_LOOKUP_LIMIT = 50
+
 CHR_NS = [str(x) for x in [*range(1,22)]] + ['X', 'Y', 'N']
 CHR_IDS = [ 'chr' + str(x) for x in CHR_NS]
 CHROMOSOMES = [*CHR_NS, *CHR_IDS]

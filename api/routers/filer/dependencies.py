@@ -82,13 +82,16 @@ class ApiWrapperService:
             dictObj = rename_key(dictObj, oldKey, newKey)
         return dictObj
     
-    def __clean_overlaps_result(self, result):
-        keyMap = {'Identifier' : 'track_id', 'queryRegion': 'query_region'}
-        return [self.__rename_keys(record, keyMap) for record in result]
+    
+    def __clean_hit_result(self, hitList):
+        queryRegion = hitList[0]['queryRegion']
+        hits = {record['Identifier']: record['features'] for record in hitList if len(record['features']) > 0}
+        hits.update({'query_region': queryRegion})
+        return hits
         
     def get_track_hits(self, tracks: str, span: str):
         result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': tracks, 'span': span})
-        return self.__clean_overlaps_result(result)
+        return self.__clean_hit_result(result)
 
 class CacheQueryService:
     def __init__(self):
