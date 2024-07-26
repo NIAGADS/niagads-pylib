@@ -17,7 +17,8 @@ app = FastAPI(
             "name": "Apache 2.0",
             "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
         },
-        root_path="/api"
+        root_path="/api",
+        #swagger_ui_parameters={"docExpansion": "full"}
     )
 
 
