@@ -1,7 +1,12 @@
+import functools
+import yaml
+
+from io import StringIO
 from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.encoders import jsonable_encoder
 from .routers import filer
+
 
 app = FastAPI(
         title="NIAGADS API",
@@ -20,7 +25,6 @@ app = FastAPI(
         root_path="/api",
         #swagger_ui_parameters={"docExpansion": "full"}
     )
-
 
 @app.exception_handler(ValueError)
 async def validation_exception_handler(request: Request, exc: ValueError):
@@ -51,3 +55,14 @@ app.include_router(filer)
 @app.get("/")
 async def read_root():
     return {"messge": "NIAGADS API Route"}
+
+# get yaml version of openapi.json
+# from https://github.com/tiangolo/fastapi/issues/1140#issuecomment-659469034
+@app.get('/openapi.yaml', include_in_schema=False)
+@functools.lru_cache()
+def read_openapi_yaml() -> Response:
+    openapi_json= app.openapi()
+    yaml_s = StringIO()
+    yaml.dump(openapi_json, yaml_s)
+    return Response(yaml_s.getvalue(), media_type='text/yaml')
+
