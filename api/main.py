@@ -5,8 +5,13 @@ from io import StringIO
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, Response
 from fastapi.encoders import jsonable_encoder
+from fastapi.openapi.models import Server
+
 from .routers import filer
 
+# FIXME -- needed for applications reading the openapi.json or openapi.yaml, but 
+# needs to be dynamic based on deployment
+SERVER = {'url' :"http://localhost:8000/api"}
 
 app = FastAPI(
         title="NIAGADS API",
@@ -23,6 +28,7 @@ app = FastAPI(
             "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
         },
         root_path="/api",
+        servers=[SERVER],
         #swagger_ui_parameters={"docExpansion": "full"}
     )
 

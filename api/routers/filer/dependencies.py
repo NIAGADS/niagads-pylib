@@ -128,7 +128,9 @@ class CacheQueryService:
     def __add_biosample_filters(self, statement, triple: List[str]):
         conditions = []
         for bsf in _BIOSAMPLE_FIELDS:
-            conditions.append(tripleToPreparedStatement([f'biosample_characteristics|{bsf}', "like" if triple[1] == 'eq' else "not like" , triple[2]], Track))
+            conditions.append(tripleToPreparedStatement([f'biosample_characteristics|{bsf}', 
+                "like" if (triple[1] == 'eq' or triple[1] == 'like') else "not like" , 
+                triple[2]], Track))
         
         return statement.filter(or_(*conditions))
 
@@ -178,17 +180,18 @@ class CacheQueryService:
                 return {'track_count': result[0] }
             return result
         
-    def get_track_filter_summary(self, filterField:str) -> dict:
+    def get_track_filter_summary(self, filterField:str, inclCounts: Optional[bool] = False) -> dict:
         modelField = TRACK_SEARCH_FILTER_FIELD_MAP[filterField]['model_field']
 
         valueCol = col(getattr(Track, modelField))
         if 'biosample' in modelField:
             valueCol = valueCol['tissue_category'].astext
         # statement = select(valueCol, Track.track_id).group_by(valueCol).count()
-        statement = select(distinct(valueCol), func.count(Track.track_id)).group_by(valueCol)
+        statement = select(distinct(valueCol), func.count(Track.track_id)).where(valueCol.is_not(None)).group_by(valueCol) \
+            if inclCounts else select(distinct(valueCol)).where(valueCol.is_not(None))
         with self.__db() as session:
             result = session.exec(statement).all()
-            return {row[0]: row[1] for row in result}
+            return {row[0]: row[1] for row in result} if inclCounts else list(result)
 
     def get_genome_build(self, tracks: List[str]) -> str:
         """ retrieves the genome build for a set of tracks; returns track -> genome build mapping if not all on same assembly"""

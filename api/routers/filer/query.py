@@ -32,7 +32,6 @@ async def query_track_metadata(service: Annotated[CacheQueryService, Depends(Cac
     return service.query_track_metadata(assembly, filter, keyword, options)
 
 
-tags = TAGS + ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
 @router.get("/region", tags=tags, 
     name="Get Data from Tracks meeting Search Criteria", 
     description="retrieve data in a region of interest from all functional genomics tracks whose metadata meets the search or filter criteria")
@@ -73,9 +72,11 @@ async def get_track_filters():
 
 @router.get("/filter/{field}", tags=tags, 
     name="Helper: Filter Field Values", 
-    description="get list of values and associated FILER track counts for each allowable filter field")
+    description="get list of values and (optionally) associated FILER track counts for each allowable filter field")
 async def get_track_filter_summary(service: Annotated[CacheQueryService, Depends(CacheQueryService)], 
     field: str=Path(enum=list(TRACK_SEARCH_FILTER_FIELD_MAP.keys()),
-        description="filter field; please note that there are too many possible values for `biosample`; the returned result summarizes over broad `tissue categories` only")
+    description="filter field; please note that there are too many possible values for `biosample`; the returned result summarizes over broad `tissue categories` only"),
+    inclCounts: Optional[bool] = Query(default=False, description="include number of tracks meeting each field value")
 ):
-    return service.get_track_filter_summary(clean(field))
+    return service.get_track_filter_summary(clean(field), inclCounts)
+

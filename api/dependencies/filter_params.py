@@ -13,7 +13,7 @@ from .exceptions import get_error_message
 
 _NUMBER = Word(nums)
 _TEXT = Word(alphas + '+')
-_JOIN =  Keyword("and") # TODO: | Keyword("or") 
+_JOIN =  Keyword("and") | Keyword(';') # TODO: | Keyword("or") 
 
 
 OPERATORS = {
@@ -36,7 +36,7 @@ def tripleToPreparedStatement(triple, model):
         tableField = tableField[field[1]].astext
         
     operator = triple[1]
-    test = triple[2]
+    test = triple[2].replace('+', ' ')
     
     if operator == 'eq':
         return tableField == test
@@ -82,7 +82,7 @@ class FilterParameter():
                 return None
         
         except Exception as e:
-            raise ValueError(f'Unable to parse `filter` expression: {filter}; {get_error_message(e)}', )
+            raise ValueError(f'Unable to parse `filter` expression: {filter}; {get_error_message(e)}.  Example expression: data_source eq GTEx and biosample like astrocyte.  Test conditions must substitute a plus sign (+) for spaces, e.g., histone modification should be written as histone+modification')
                 
 
 
