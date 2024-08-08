@@ -58,7 +58,7 @@ TRACK_SEARCH_FILTER_FIELD_MAP = {
         'model_field': 'data_category',
         'description': "broad categorization of the type of the data reported in the data track"
     },
-    'data_source': {
+    'datasource': {
         'model_field': 'data_source',
         'description': "original third-party data source for the track"
     },

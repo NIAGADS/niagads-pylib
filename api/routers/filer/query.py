@@ -35,7 +35,7 @@ async def query_track_metadata(service: Annotated[CacheQueryService, Depends(Cac
 @router.get("/region", tags=tags, 
     name="Get Data from Tracks meeting Search Criteria", 
     description="retrieve data in a region of interest from all functional genomics tracks whose metadata meets the search or filter criteria")
-async def query_track_metadata(cacheService: Annotated[CacheQueryService, Depends(CacheQueryService)], 
+async def query_track_data(cacheService: Annotated[CacheQueryService, Depends(CacheQueryService)], 
     apiWrapperService: Annotated[ApiWrapperService, Depends(ApiWrapperService)],
     assembly = Depends(assembly_param), filter = Depends(filter_param), 
     keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),

@@ -12,7 +12,7 @@ from .param_validation import clean
 from .exceptions import get_error_message
 
 _NUMBER = Word(nums)
-_TEXT = Word(alphas + '+')
+_TEXT = Word(alphas + '_')
 _JOIN =  Keyword("and") | Keyword(';') # TODO: | Keyword("or") 
 
 
@@ -36,7 +36,7 @@ def tripleToPreparedStatement(triple, model):
         tableField = tableField[field[1]].astext
         
     operator = triple[1]
-    test = triple[2].replace('+', ' ')
+    test = triple[2].replace('_', ' ')
     
     if operator == 'eq':
         return tableField == test
@@ -74,7 +74,7 @@ class FilterParameter():
         return pattern.parseString(expression, parse_all=True)
     
     
-    def __call__(self, filter: str = Query(default=None, description="filter expresssion string", examples=['data_source eq GTEx and biosample eq brain'])):
+    def __call__(self, filter: str = Query(default=None, description="filter expresssion string", examples=['datasource eq GTEx and biosample eq brain'])):
         try:
             if filter is not None:
                 return self.__parse_expression(filter).as_list()
@@ -82,7 +82,7 @@ class FilterParameter():
                 return None
         
         except Exception as e:
-            raise ValueError(f'Unable to parse `filter` expression: {filter}; {get_error_message(e)}.  Example expression: data_source eq GTEx and biosample like astrocyte.  Test conditions must substitute a plus sign (+) for spaces, e.g., histone modification should be written as histone+modification')
+            raise ValueError(f'Unable to parse `filter` expression: {filter}; {get_error_message(e)}.  Example expression: data_source eq GTEx and biosample like astrocyte.  Test conditions must substitute an underscore (_) for spaces, e.g., histone modification should be written as histone_modification')
                 
 
 
