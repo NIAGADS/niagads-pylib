@@ -4,11 +4,48 @@ import json
 import warnings
 from collections import abc
 from types import SimpleNamespace
+from niagads.utils.string import is_null
+
+
+def rename_key(dictObj:dict, oldKey: str, newKey: str, ordered: bool=False): # note does not preserve python3+ ordering
+    """
+    rename dict key
+
+    Args:
+        dictObj (dict): the dictionary object to update
+        oldKey (str): old key
+        newKey (str): new key
+        ordered (bool, optional): keep ordering; slower. Defaults to False.
+
+    Returns:
+       updated dict object
+    """
+    if ordered:
+        return {newKey if k == oldKey else k:v for k,v in dictObj.items()} 
+    
+    dictObj[newKey] = dictObj.pop(oldKey)
+    return dictObj
+
+
+def prune(dictObj:dict, removeNulls:bool=True, prune:list=[]):
+    """
+    remove null entries from dict and entries whose value matches items in `prune`
+
+    Args:
+        dictObj (dict): the dictionary/hash
+        removeNulls (bool, optional): flag indicating whether to remove null values.  Defaults to True.
+        prune (list, optional): list of additional values to prune. Defaults to an empty list.
+
+    Returns:
+        cleaned up dict
+    """
+    return {key: value for key, value in dictObj.items() 
+        if (removeNulls and value is not None and not is_null(value, naIsNull=True))
+        and value not in prune}
 
 
 def print_dict(dictObj, pretty=True):
-    ''' pretty print a dict / JSON object 
-    here and not in dict_utils to avoid circular import '''
+    ''' pretty print a dict / JSON object  '''
     if isinstance(dictObj, SimpleNamespace):
         return dictObj.__repr__()
     return json.dumps(dictObj, indent=4, sort_keys=True) if pretty else json.dumps(dictObj)
