@@ -1,15 +1,27 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.10-alpine
+FROM python:slim-bookworm AS builder
 
-WORKDIR /app
+ARG BUILD
 
-ADD requirements.txt .
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-# install git & python dependencies
-RUN pip install --upgrade pip --no-cache-dir \
-    && pip install -r /app/requirements.txt --no-cache-dir
+# install git to be able to fetch niagads-pylib from git
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    git \
+    # remove cache
+    && apt autoremove --purge -y \
+    && rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/*.list
 
-ENV SERVICE_PORT=$PORT 
+RUN python -m venv /opt/venv
 
-CMD ls /app && gunicorn -w 4 --reload --bind 0.0.0.0:8000 'app:create_app(None)'
+# ensure venv is used; see https://pythonspeed.com/articles/activate-virtualenv-dockerfile/
+# to understand how this "activates" the venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install application
+WORKDIR /scripts
+
+COPY ./requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt 

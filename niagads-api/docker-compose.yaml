@@ -1,14 +1,33 @@
 version: '3.3'
 
 services:
-  niagads-api:
-    container_name: niagads-api_${API_VERSION}
-    image: niagads-api_${API_VERSION}
+  api-static-db:
+    container_name: api-static-db-${API_VERSION}
+    image: postgres:15
+    restart: always
+    ports:
+      - ${PG_PORT}:5432
+    environment:
+      POSTGRES_USER: ${PG_ADMIN_USER}
+      POSTGRES_PASSWORD: ${PG_ADMIN_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_INITDB_ARGS: --auth-host=md5 --auth-local=md5
+    volumes:
+      - ${PG_DATA_DIR}:/var/lib/postgresql/data
+      - ${PG_ENTRYPOINT}:/docker-entrypoint-initdb.d/
+
+  api-static-db-init:
+    container_name: init-${API_VERSION}
+    image: niagads-api-init
+    command: tail -F anything # this is to keep it running so we don't have to remount /scripts
+    depends_on:
+      - api-static-db
     build:
       context: .
-      dockerfile: ./Dockerfile      
-    ports:
-      - '${PORT}:8000'  
+      dockerfile: ./Dockerfile
+      args:
+          BUILD: ${BUILD}
     volumes:
-        - ${APPLICATION_DIR}:/app
-      
+      - ${SCRIPTS_DIR}:/scripts
+      - ${LOG_DIR}:/logs
+      - ${FILES_DIR}:/files
