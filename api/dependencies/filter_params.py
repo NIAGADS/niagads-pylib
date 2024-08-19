@@ -41,7 +41,7 @@ def tripleToPreparedStatement(triple, model):
     if operator == 'eq':
         return tableField == test
     if operator == 'neq':
-        return not_(tableField = test)
+        return not_(tableField == test)
     if operator == 'like':
         return tableField.regexp_match(test, "i")
     if operator == 'not like':
