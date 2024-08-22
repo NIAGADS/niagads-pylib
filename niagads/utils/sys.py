@@ -161,15 +161,28 @@ def print_args(args, pretty=True):
     return print_dict(vars(args), pretty)
 
 
-def get_opener(fileName=None, compressed=False, binary=True):
+def get_opener(fileName=None, compressed=False, binary=False):
     ''' check if compressed files are expected and return
     appropriate opener for a file'''
 
     if compressed or (fileName is not None and fileName.endswith('.gz')):
-        if binary:
+        if binary or (fileName is not None and is_binary_file(fileName)):
             return gzip.GzipFile
         return gzip.open
     return open
+
+
+def is_binary_file(fileName):
+    """
+    tests if the file is binary
+    adapted from https://stackoverflow.com/a/7392391
+
+    Args:
+        fileName (string): file name (full path)
+    """
+    textchars = bytearray({7,8,9,10,12,13,27} | set(range(0x20, 0x100)) - {0x7f})
+    is_binary_string = lambda bytes: bool(bytes.translate(None, textchars))
+    return is_binary_string(open(fileName, 'rb').read(1024))
 
 
 def execute_cmd(cmd, cwd=None, printCmdOnly=False, verbose=True, shell=False):
