@@ -165,7 +165,7 @@ def get_opener(fileName=None, compressed=False, binary=False):
     ''' check if compressed files are expected and return
     appropriate opener for a file'''
 
-    if compressed or (fileName is not None and fileName.endswith('.gz')):
+    if compressed or (fileName is not None and fileName.endswith('gz')):
         if binary or (fileName is not None and is_binary_file(fileName)):
             return gzip.GzipFile
         return gzip.open
