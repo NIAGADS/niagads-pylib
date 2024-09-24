@@ -197,14 +197,14 @@ def execute_cmd(cmd, cwd=None, printCmdOnly=False, verbose=True, shell=False):
         if not isinstance(cmd, str):
             asciiSafeCmd = [ascii_safe_str(c) for c in cmd]
             cmd = ' '.join(asciiSafeCmd)
-        LOGGER.info("EXECUTING: " + cmd)
+        warning("EXECUTING: " + cmd)
         if printCmdOnly: return
     try:
         if shell:
             output = check_output(cmd, cwd=cwd, shell=True)
         else:
             output = check_output(cmd, cwd=cwd)
-        LOGGER.info(output)
+        warning(output)
     except CalledProcessError as e:
         die(e)
 
