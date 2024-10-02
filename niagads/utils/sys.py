@@ -17,6 +17,9 @@ from .exceptions import RestrictedValueError
 
 LOGGER = logging.getLogger(__name__)
 
+
+
+
 def file_chunker(buffer: IO, chunkSize:int):
     """
     Read n-line chunks from filehandle. Returns sequence of n lines, or None at EOF.
@@ -107,7 +110,7 @@ def remove_duplicate_lines(file: str, header=True, overwrite=True):
         file (str): file name
         header (boolean, optional): file contains header? Defaults to True
         overwrite (boolean, optional): overwrite file? Defaults to True
-      
+
     Returns:
         cleaned file name
     """
@@ -195,9 +198,10 @@ def execute_cmd(cmd, cwd=None, printCmdOnly=False, verbose=True, shell=False):
     '''
     if verbose or printCmdOnly:
         if not isinstance(cmd, str):
-            asciiSafeCmd = [ascii_safe_str(c) for c in cmd]
-            cmd = ' '.join(asciiSafeCmd)
-        warning("EXECUTING: " + cmd)
+            asciiSafeCmd = [ascii_safe_str(c) for c in cmd] 
+            warning("EXECUTING: " + ' '.join(asciiSafeCmd))
+        else:
+            warning("EXECUTING: " + cmd)
         if printCmdOnly: return
     try:
         if shell:
