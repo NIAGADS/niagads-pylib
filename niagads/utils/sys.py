@@ -205,13 +205,37 @@ def execute_cmd(cmd, cwd=None, printCmdOnly=False, verbose=True, shell=False):
         if printCmdOnly: return
     try:
         if shell:
+            if isinstance(cmd, list):
+                cmd = ' '.join(cmd)
             output = check_output(cmd, cwd=cwd, shell=True)
         else:
             output = check_output(cmd, cwd=cwd)
         warning(output)
     except CalledProcessError as e:
         die(e)
+    
 
+def backup_file(fileName):
+    ''' create a .bak version of a file'''
+    cmd = ['cp', fileName, fileName + ".bak"]
+    execute_cmd(cmd, shell=True)
+    
+
+def rename_file(oldFileName, targetFileName, backupExistingTarget=True):
+    """
+    _summary_
+
+    Args:
+        oldFileName (string): original file name
+        targetFileName (string): new file name
+        backupExistingTarget (bool, optional): if the target file exists, back up before renaming the old file. Defaults to True.
+    """
+    if backupExistingTarget and verify_path(targetFileName):
+        backup_file(targetFileName)
+    
+    cmd = ['mv', oldFileName, targetFileName ]
+    execute_cmd(cmd, shell=True)
+    
 
 def gzip_file(filename, removeOriginal):
     '''
