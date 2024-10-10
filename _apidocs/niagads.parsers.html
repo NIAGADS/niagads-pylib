@@ -1,0 +1,455 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>niagads.parsers package &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="niagads.parsers.adsp_vep_consequences package" href="niagads.parsers.adsp_vep_consequences.html" />
+    <link rel="prev" title="niagads.ontologies package" href="niagads.ontologies.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.parsers.adsp_vep_consequences.html" title="niagads.parsers.adsp_vep_consequences package"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.ontologies.html" title="niagads.ontologies package"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" accesskey="U">niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers package</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="niagads-parsers-package">
+<h1>niagads.parsers package<a class="headerlink" href="#niagads-parsers-package" title="Link to this heading">¶</a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="niagads.parsers.adsp_vep_consequences.html">niagads.parsers.adsp_vep_consequences package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="niagads.parsers.adsp_vep_consequences.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="niagads.parsers.adsp_vep_consequences.html#niagads-parsers-adsp-vep-consequences-consequence-groups-module">niagads.parsers.adsp_vep_consequences.consequence_groups module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="niagads.parsers.adsp_vep_consequences.html#niagads-parsers-adsp-vep-consequences-parser-module">niagads.parsers.adsp_vep_consequences.parser module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="niagads.parsers.adsp_vep_consequences.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="niagads-parsers-args-module">
+<h2>niagads.parsers.args module<a class="headerlink" href="#niagads-parsers-args-module" title="Link to this heading">¶</a></h2>
+</section>
+<section id="niagads-parsers-chromosome-map-module">
+<h2>niagads.parsers.chromosome_map module<a class="headerlink" href="#niagads-parsers-chromosome-map-module" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-niagads.parsers.csv">
+<span id="niagads-parsers-csv-module"></span><h2>niagads.parsers.csv module<a class="headerlink" href="#module-niagads.parsers.csv" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.parsers.csv.CSVFileParser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.parsers.csv.</span></span><span class="sig-name descname"><span class="pre">CSVFileParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/csv.html#CSVFileParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.csv.CSVFileParser" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>parser for CSV files; mainly to add the following functionality:</p>
+<ul class="simple">
+<li><p>infer delimiter</p></li>
+<li><p>to_json (leveraging pandas)</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.csv.CSVFileParser.na">
+<span class="sig-name descname"><span class="pre">na</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/csv.html#CSVFileParser.na"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.csv.CSVFileParser.na" title="Link to this definition">¶</a></dt>
+<dd><p>fill NA’s with specified value when using pandas conversions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>str</em>) – value to fill (e.g., ‘NULL’, ‘NA’, ‘.’)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.csv.CSVFileParser.sniff">
+<span class="sig-name descname"><span class="pre">sniff</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/csv.html#CSVFileParser.sniff"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.csv.CSVFileParser.sniff" title="Link to this definition">¶</a></dt>
+<dd><p>‘sniff’ out / infer the delimitier</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.csv.CSVFileParser.strip">
+<span class="sig-name descname"><span class="pre">strip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/csv.html#CSVFileParser.strip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.csv.CSVFileParser.strip" title="Link to this definition">¶</a></dt>
+<dd><p>flag indicating whether to iterate over all fields and
+trim leading and trailing spaces when converting to JSON or CSV</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>strip</strong> (<em>bool</em><em>, </em><em>optional</em>) – trim leading and trailing spaces from all fields. Defaults to True.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.csv.CSVFileParser.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transpose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnStr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/csv.html#CSVFileParser.to_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.csv.CSVFileParser.to_json" title="Link to this definition">¶</a></dt>
+<dd><p>converts the CSV file to JSON</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transpose</strong> (<em>bool</em><em>, </em><em>optional</em>) – transpose the worksheet?</p></li>
+<li><p><strong>returnStr</strong> (<em>bool</em><em>, </em><em>optional</em>) – return jsonStr instead of object</p></li>
+<li><p><strong>**kwargs</strong> (<em>optional</em>) – arguments to pass to <cite>pandas</cite> <cite>read_csv</cite> see
+(see <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html">https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html</a>))</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>if <cite>returnStr</cite> returns JSON string instead of object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.csv.CSVFileParser.to_pandas_df">
+<span class="sig-name descname"><span class="pre">to_pandas_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transpose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="../_modules/niagads/parsers/csv.html#CSVFileParser.to_pandas_df"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.csv.CSVFileParser.to_pandas_df" title="Link to this definition">¶</a></dt>
+<dd><p>_summary_</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transpose</strong> (<em>str</em>) – transpose the worksheet</p></li>
+<li><p><strong>**kwargs</strong> – must match expected args for pandas.read_excel
+(see <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html">https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html</a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>CSV data in data frame format</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-niagads.parsers.excel">
+<span id="niagads-parsers-excel-module"></span><h2>niagads.parsers.excel module<a class="headerlink" href="#module-niagads.parsers.excel" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.parsers.excel.ExcelFileParser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.parsers.excel.</span></span><span class="sig-name descname"><span class="pre">ExcelFileParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/excel.html#ExcelFileParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.excel.ExcelFileParser" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>parser for EXCEL files; mainly a pandas/openpyxl wrapper</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.excel.ExcelFileParser.get_workbook">
+<span class="sig-name descname"><span class="pre">get_workbook</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/excel.html#ExcelFileParser.get_workbook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.excel.ExcelFileParser.get_workbook" title="Link to this definition">¶</a></dt>
+<dd><p>returns openpyxl <cite>workbook</cite> object</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.excel.ExcelFileParser.is_valid_worksheet">
+<span class="sig-name descname"><span class="pre">is_valid_worksheet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">worksheet</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raiseErr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/excel.html#ExcelFileParser.is_valid_worksheet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.excel.ExcelFileParser.is_valid_worksheet" title="Link to this definition">¶</a></dt>
+<dd><p>checks if worksheet exists, otherwise raises error</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>worksheet</strong> (<em>str</em>) – worksheet name</p></li>
+<li><p><strong>raiseErr</strong> (<em>boolean</em><em>, </em><em>optional</em>) – raise an error if False, otherwise will return False</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.excel.ExcelFileParser.list_worksheets">
+<span class="sig-name descname"><span class="pre">list_worksheets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/excel.html#ExcelFileParser.list_worksheets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.excel.ExcelFileParser.list_worksheets" title="Link to this definition">¶</a></dt>
+<dd><p>returns a list of worksheet names</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.excel.ExcelFileParser.na">
+<span class="sig-name descname"><span class="pre">na</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/excel.html#ExcelFileParser.na"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.excel.ExcelFileParser.na" title="Link to this definition">¶</a></dt>
+<dd><p>fill NA’s with specified value when using pandas conversions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>str</em>) – value to fill (e.g., ‘NULL’, ‘NA’, ‘.’)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.excel.ExcelFileParser.set_na_rep">
+<span class="sig-name descname"><span class="pre">set_na_rep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/excel.html#ExcelFileParser.set_na_rep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.excel.ExcelFileParser.set_na_rep" title="Link to this definition">¶</a></dt>
+<dd><p>set the NA (missing / null) value string representation
+suggestions: ‘.’, ‘NA’, ‘null’, ‘NULL’, ‘       ‘</p>
+<p>currently only applies to CSV export</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>str</em>) – missing / null value string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.excel.ExcelFileParser.strip">
+<span class="sig-name descname"><span class="pre">strip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/excel.html#ExcelFileParser.strip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.excel.ExcelFileParser.strip" title="Link to this definition">¶</a></dt>
+<dd><p>flag indicating whether to iterate over all fields and
+trim leading and trailing spaces when converting to JSON or CSV</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>strip</strong> (<em>bool</em><em>, </em><em>optional</em>) – trim leading and trailing spaces from all fields. Defaults to True.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.excel.ExcelFileParser.to_pandas_df">
+<span class="sig-name descname"><span class="pre">to_pandas_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">worksheet</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transpose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="../_modules/niagads/parsers/excel.html#ExcelFileParser.to_pandas_df"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.excel.ExcelFileParser.to_pandas_df" title="Link to this definition">¶</a></dt>
+<dd><p>_summary_</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>worksheet</strong> (<em>str</em>) – worksheet name</p></li>
+<li><p><strong>transpose</strong> (<em>str</em>) – transpose the worksheet</p></li>
+<li><p><strong>**kwargs</strong> – must match expected args for pandas.read_excel
+(see <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html">https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html</a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>worksheet in data frame format</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.excel.ExcelFileParser.worksheet_to_json">
+<span class="sig-name descname"><span class="pre">worksheet_to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">worksheet</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transpose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnStr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/excel.html#ExcelFileParser.worksheet_to_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.excel.ExcelFileParser.worksheet_to_json" title="Link to this definition">¶</a></dt>
+<dd><p>converts the EXCEL file to JSON</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>worksheet</strong> (<em>str</em><em>|</em><em>int</em>) – worksheet name or index, starting from 0.</p></li>
+<li><p><strong>transpose</strong> (<em>bool</em><em>, </em><em>optional</em>) – transpose the worksheet?</p></li>
+<li><p><strong>returnStr</strong> (<em>bool</em><em>, </em><em>optional</em>) – return jsonStr instead of object</p></li>
+<li><p><strong>**kwargs</strong> (<em>optional</em>) – arguments to pass to <cite>pandas</cite> <cite>read_excel</cite> see
+(see <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html">https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html</a>))</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>if <cite>returnStr</cite> returns JSON string instead of object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.excel.ExcelFileParser.write_to_csv">
+<span class="sig-name descname"><span class="pre">write_to_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outputPath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">worksheet</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">','</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/excel.html#ExcelFileParser.write_to_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.excel.ExcelFileParser.write_to_csv" title="Link to this definition">¶</a></dt>
+<dd><p>converts the EXCEL file to CSV and saved to <cite>outputPath</cite>.
+If <cite>worksheet</cite> == None, all worksheets in the file are converted
+otherwise only the specified worksheet will be converted</p>
+<p>output files will be named <cite>to_snake_case(worksheet)</cite> +’.csv’`
+‘.txt’ extension will be used for space and tab delimited files
+‘.csv’ will be use for comma and non-standard delimiters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>outputPath</strong> (<em>str</em>) – path to which the files should be written</p></li>
+<li><p><strong>sep</strong> (<em>str</em><em>, </em><em>optional</em>) – delimiter.  Defaults to ‘,’</p></li>
+<li><p><strong>worksheet</strong> (<em>str</em><em>, </em><em>optional</em>) – worksheet name. Defaults to None.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="niagads-parsers-vcf-module">
+<h2>niagads.parsers.vcf module<a class="headerlink" href="#niagads-parsers-vcf-module" title="Link to this heading">¶</a></h2>
+</section>
+<section id="niagads-parsers-vep-json-module">
+<h2>niagads.parsers.vep_json module<a class="headerlink" href="#niagads-parsers-vep-json-module" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-contents">
+<h2>Module contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><div class="sphinx-toc sphinxlocaltoc">
+    <h3><a href="../index.html">Page contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">niagads.parsers package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#niagads-parsers-args-module">niagads.parsers.args module</a></li>
+<li><a class="reference internal" href="#niagads-parsers-chromosome-map-module">niagads.parsers.chromosome_map module</a></li>
+<li><a class="reference internal" href="#module-niagads.parsers.csv">niagads.parsers.csv module</a><ul>
+<li><a class="reference internal" href="#niagads.parsers.csv.CSVFileParser"><code class="docutils literal notranslate"><span class="pre">CSVFileParser</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.parsers.csv.CSVFileParser.na"><code class="docutils literal notranslate"><span class="pre">CSVFileParser.na()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.csv.CSVFileParser.sniff"><code class="docutils literal notranslate"><span class="pre">CSVFileParser.sniff()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.csv.CSVFileParser.strip"><code class="docutils literal notranslate"><span class="pre">CSVFileParser.strip()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.csv.CSVFileParser.to_json"><code class="docutils literal notranslate"><span class="pre">CSVFileParser.to_json()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.csv.CSVFileParser.to_pandas_df"><code class="docutils literal notranslate"><span class="pre">CSVFileParser.to_pandas_df()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.parsers.excel">niagads.parsers.excel module</a><ul>
+<li><a class="reference internal" href="#niagads.parsers.excel.ExcelFileParser"><code class="docutils literal notranslate"><span class="pre">ExcelFileParser</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.parsers.excel.ExcelFileParser.get_workbook"><code class="docutils literal notranslate"><span class="pre">ExcelFileParser.get_workbook()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.excel.ExcelFileParser.is_valid_worksheet"><code class="docutils literal notranslate"><span class="pre">ExcelFileParser.is_valid_worksheet()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.excel.ExcelFileParser.list_worksheets"><code class="docutils literal notranslate"><span class="pre">ExcelFileParser.list_worksheets()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.excel.ExcelFileParser.na"><code class="docutils literal notranslate"><span class="pre">ExcelFileParser.na()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.excel.ExcelFileParser.set_na_rep"><code class="docutils literal notranslate"><span class="pre">ExcelFileParser.set_na_rep()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.excel.ExcelFileParser.strip"><code class="docutils literal notranslate"><span class="pre">ExcelFileParser.strip()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.excel.ExcelFileParser.to_pandas_df"><code class="docutils literal notranslate"><span class="pre">ExcelFileParser.to_pandas_df()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.excel.ExcelFileParser.worksheet_to_json"><code class="docutils literal notranslate"><span class="pre">ExcelFileParser.worksheet_to_json()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.excel.ExcelFileParser.write_to_csv"><code class="docutils literal notranslate"><span class="pre">ExcelFileParser.write_to_csv()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads-parsers-vcf-module">niagads.parsers.vcf module</a></li>
+<li><a class="reference internal" href="#niagads-parsers-vep-json-module">niagads.parsers.vep_json module</a></li>
+<li><a class="reference internal" href="#module-contents">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="niagads.ontologies.html"
+                          title="Previous page">&larr; niagads.ontologies package</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="niagads.parsers.adsp_vep_consequences.html"
+                          title="Next page">&rarr; niagads.parsers.adsp_vep_consequences package</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/_apidocs/niagads.parsers.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.parsers.adsp_vep_consequences.html" title="niagads.parsers.adsp_vep_consequences package"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.ontologies.html" title="niagads.ontologies package"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" >niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers package</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.0.2.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

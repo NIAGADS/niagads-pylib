@@ -1,0 +1,37 @@
+niagads.api\_wrapper package
+============================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   niagads.api_wrapper.records
+
+Submodules
+----------
+
+niagads.api\_wrapper.constants module
+-------------------------------------
+
+.. automodule:: niagads.api_wrapper.constants
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.api\_wrapper.utils module
+---------------------------------
+
+.. automodule:: niagads.api_wrapper.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niagads.api_wrapper
+   :members:
+   :undoc-members:
+   :show-inheritance:
