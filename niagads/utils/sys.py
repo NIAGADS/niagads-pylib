@@ -17,6 +17,9 @@ from .exceptions import RestrictedValueError
 
 LOGGER = logging.getLogger(__name__)
 
+
+
+
 def file_chunker(buffer: IO, chunkSize:int):
     """
     Read n-line chunks from filehandle. Returns sequence of n lines, or None at EOF.
@@ -107,7 +110,7 @@ def remove_duplicate_lines(file: str, header=True, overwrite=True):
         file (str): file name
         header (boolean, optional): file contains header? Defaults to True
         overwrite (boolean, optional): overwrite file? Defaults to True
-      
+
     Returns:
         cleaned file name
     """
@@ -161,15 +164,28 @@ def print_args(args, pretty=True):
     return print_dict(vars(args), pretty)
 
 
-def get_opener(fileName=None, compressed=False, binary=True):
+def get_opener(fileName=None, compressed=False, binary=False):
     ''' check if compressed files are expected and return
     appropriate opener for a file'''
 
-    if compressed or (fileName is not None and fileName.endswith('.gz')):
-        if binary:
+    if compressed or (fileName is not None and fileName.endswith('gz')):
+        if binary or (fileName is not None and is_binary_file(fileName)):
             return gzip.GzipFile
         return gzip.open
     return open
+
+
+def is_binary_file(fileName):
+    """
+    tests if the file is binary
+    adapted from https://stackoverflow.com/a/7392391
+
+    Args:
+        fileName (string): file name (full path)
+    """
+    textchars = bytearray({7,8,9,10,12,13,27} | set(range(0x20, 0x100)) - {0x7f})
+    is_binary_string = lambda bytes: bool(bytes.translate(None, textchars))
+    return is_binary_string(open(fileName, 'rb').read(1024))
 
 
 def execute_cmd(cmd, cwd=None, printCmdOnly=False, verbose=True, shell=False):
@@ -182,19 +198,44 @@ def execute_cmd(cmd, cwd=None, printCmdOnly=False, verbose=True, shell=False):
     '''
     if verbose or printCmdOnly:
         if not isinstance(cmd, str):
-            asciiSafeCmd = [ascii_safe_str(c) for c in cmd]
-            cmd = ' '.join(asciiSafeCmd)
-        LOGGER.info("EXECUTING: " + cmd)
+            asciiSafeCmd = [ascii_safe_str(c) for c in cmd] 
+            warning("EXECUTING: " + ' '.join(asciiSafeCmd))
+        else:
+            warning("EXECUTING: " + cmd)
         if printCmdOnly: return
     try:
         if shell:
+            if isinstance(cmd, list):
+                cmd = ' '.join(cmd)
             output = check_output(cmd, cwd=cwd, shell=True)
         else:
             output = check_output(cmd, cwd=cwd)
-        LOGGER.info(output)
+        warning(output)
     except CalledProcessError as e:
         die(e)
+    
 
+def backup_file(fileName):
+    ''' create a .bak version of a file'''
+    cmd = ['cp', fileName, fileName + ".bak"]
+    execute_cmd(cmd, shell=True)
+    
+
+def rename_file(oldFileName, targetFileName, backupExistingTarget=True):
+    """
+    _summary_
+
+    Args:
+        oldFileName (string): original file name
+        targetFileName (string): new file name
+        backupExistingTarget (bool, optional): if the target file exists, back up before renaming the old file. Defaults to True.
+    """
+    if backupExistingTarget and verify_path(targetFileName):
+        backup_file(targetFileName)
+    
+    cmd = ['mv', oldFileName, targetFileName ]
+    execute_cmd(cmd, shell=True)
+    
 
 def gzip_file(filename, removeOriginal):
     '''

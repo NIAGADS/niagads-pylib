@@ -10,6 +10,7 @@ from sys import exc_info
 from abc import ABC, abstractmethod
 
 from psycopg2 import DatabaseError, DataError, connect as db_connect
+from psycopg2.extensions import QueryCanceledError
 from psycopg2.extras import DictCursor, RealDictCursor
 from psycopg2.pool import SimpleConnectionPool, ThreadedConnectionPool as _ThreadedConnectionPool
 from threading import Semaphore
@@ -96,7 +97,7 @@ class AbstractDatabase(ABC):
         self._set_connection_string(gusConfigFile, connectionString)
 
     @abstractmethod
-    def connect(self):
+    def connect(self, timeout=None):
         raise AbstractMethodNotImplemented(AbstractDatabase.connect.__qualname__)
         
     @abstractmethod
@@ -353,12 +354,15 @@ class Database(AbstractDatabase):
             del environ['PGPASSWORD']
             
 
-    def connect(self):
+    def connect(self, timeout=None):
         """
         create database connection
         """
         if not self.connected():
-            self._dbh = db_connect(self._connectionString)
+            connectionString = self._connectionString
+            if timeout is not None:
+                connectionString += " options='-c statement_timeout=" + str(timeout) + "'"
+            self._dbh = db_connect(connectionString)
 
     def connected(self):
         """ test the connection; returns true if handle is connected """
