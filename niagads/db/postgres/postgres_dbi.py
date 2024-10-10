@@ -15,12 +15,10 @@ from psycopg2.extras import DictCursor, RealDictCursor
 from psycopg2.pool import SimpleConnectionPool, ThreadedConnectionPool as _ThreadedConnectionPool
 from threading import Semaphore
 
-
 from configparser import ConfigParser as SafeConfigParser # renamed in Python 3.2
 
 from ...utils.exceptions import IllegalArgumentError, AbstractMethodNotImplemented
 from ...utils.sys import verify_path
-
 
 def initialize_cursor(dbh, name: str = None, realDict=False, withhold=False):    
         cursorFactory = RealDictCursor if realDict else None

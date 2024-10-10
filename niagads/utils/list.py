@@ -3,10 +3,10 @@ from collections import OrderedDict, Counter
 from .string import xstr
 
 
-def flatten(array):
-    ''' flatten nested list 
-    after https://stackoverflow.com/a/952952'''
-    return [item for sublist in array for item in sublist]
+def flatten(array: list):
+    ''' flatten nested list ''' 
+    # sum(list, []) is a python hack for flattening a nested list
+    return sum(array, [])
 
 
 def chunker(seq, size, returnIterator=True):
