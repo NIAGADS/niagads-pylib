@@ -14,6 +14,10 @@ def clean(html: str):
     return nh3.clean_text(html)
 
 
+def convert_str2list(param: str):
+    return clean(param).split(',')
+
+
 # https://fastapi.tiangolo.com/tutorial/query-params-str-validations/#query-parameter-list-multiple-values
 
 
