@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, Path, Query
 from typing import Annotated, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.dependencies.database import DatabaseSessionManager
 from api.dependencies.filter_params import ExpressionType, FilterParameter
 from api.dependencies.param_validation import clean
 from api.dependencies.location_params import assembly_param, span_param
 from api.dependencies.exceptions import RESPONSES
 from api.dependencies.shared_params import OptionalParams
 
-from .dependencies import ROUTE_TAGS, CacheQueryService, ApiWrapperService, TRACK_SEARCH_FILTER_FIELD_MAP
+from .dependencies import ROUTE_TAGS, MetadataQueryService, ApiWrapperService, ROUTE_SESSION_MANAGER, TRACK_SEARCH_FILTER_FIELD_MAP
 from api.internal.constants import FILER_N_TRACK_LOOKUP_LIMIT
 
 TAGS = ROUTE_TAGS 
@@ -22,26 +24,24 @@ filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEX
 @router.get("/tracks", tags=tags, 
     name="Track Metadata Text Search", 
     description="find functional genomics tracks using category filters or by a keyword search againts all text fields in the track metadata")
-async def query_track_metadata(service: Annotated[CacheQueryService, Depends(CacheQueryService)],
-    assembly = Depends(assembly_param), filter = Depends(filter_param), 
-    keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),
-    options: OptionalParams = Depends(),
-    ):
+async def query_track_metadata(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
+        assembly = Depends(assembly_param), filter = Depends(filter_param), 
+        keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),
+        options: OptionalParams = Depends()):
     if filter is None and keyword is None:
         raise ValueError('must specify either a `filter` and/or a `keyword` to search')
-    return service.query_track_metadata(assembly, filter, keyword, options)
+    return await MetadataQueryService(session).query_track_metadata(assembly, filter, keyword, options)
 
 
 @router.get("/region", tags=tags, 
     name="Get Data from Tracks meeting Search Criteria", 
     description="retrieve data in a region of interest from all functional genomics tracks whose metadata meets the search or filter criteria")
-async def query_track_data(cacheService: Annotated[CacheQueryService, Depends(CacheQueryService)], 
-    apiWrapperService: Annotated[ApiWrapperService, Depends(ApiWrapperService)],
-    assembly = Depends(assembly_param), filter = Depends(filter_param), 
-    keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),
-    span: str=Depends(span_param),
-    options: OptionalParams = Depends()
-    ):
+async def query_track_data(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
+        apiWrapperService: Annotated[ApiWrapperService, Depends(ApiWrapperService)],
+        assembly = Depends(assembly_param), filter = Depends(filter_param), 
+        keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),
+        span: str=Depends(span_param),
+        options: OptionalParams = Depends()):
     if filter is None and keyword is None:
         raise ValueError('must specify either a `filter` and/or a `keyword` to search')
     
@@ -49,7 +49,7 @@ async def query_track_data(cacheService: Annotated[CacheQueryService, Depends(Ca
     # temp to get accurate count; TODO: figure out when limit gets applied in this case
     limit = options.limit
     options.limit = None
-    tracks = cacheService.query_track_metadata(assembly, filter, keyword, options)
+    tracks = await MetadataQueryService(session).query_track_metadata(assembly, filter, keyword, options)
     
     message = None
     if len(tracks) > FILER_N_TRACK_LOOKUP_LIMIT:
@@ -73,10 +73,9 @@ async def get_track_filters():
 @router.get("/filter/{field}", tags=tags, 
     name="Helper: Filter Field Values", 
     description="get list of values and (optionally) associated FILER track counts for each allowable filter field")
-async def get_track_filter_summary(service: Annotated[CacheQueryService, Depends(CacheQueryService)], 
-    field: str=Path(enum=list(TRACK_SEARCH_FILTER_FIELD_MAP.keys()),
-    description="filter field; please note that there are too many possible values for `biosample`; the returned result summarizes over broad `tissue categories` only"),
-    inclCounts: Optional[bool] = Query(default=False, description="include number of tracks meeting each field value")
-):
-    return service.get_track_filter_summary(clean(field), inclCounts)
+async def get_track_filter_summary(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
+        field: str=Path(enum=list(TRACK_SEARCH_FILTER_FIELD_MAP.keys()),
+        description="filter field; please note that there are too many possible values for `biosample`; the returned result summarizes over broad `tissue categories` only"),
+        inclCounts: Optional[bool] = Query(default=False, description="include number of tracks meeting each field value")):
+    return await MetadataQueryService(session).get_track_filter_summary(clean(field), inclCounts)
 

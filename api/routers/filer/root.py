@@ -1,13 +1,10 @@
 from fastapi import APIRouter, Depends
-from fastapi import Depends
-from sqlmodel import select
-from typing import Union, Annotated, Optional
-
-from api.dependencies.location_params import assembly_param, chromosome_param
+from typing import Annotated
+from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies.exceptions import RESPONSES
-from api.dependencies.database import DBSession
 
-from .dependencies import ROUTE_ABBREVIATION, ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX, CacheQueryService as Service
+
+from .dependencies import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX, ROUTE_SESSION_MANAGER, MetadataQueryService
 from .track import router as TrackRouter
 from .query import router as QueryRouter
 
@@ -19,9 +16,9 @@ router = APIRouter(
 )
 
 @router.get("/", tags=ROUTE_TAGS, name="about", description="about the " + ROUTE_NAME)
-async def read_root(service: Annotated[Service, Depends(Service)]):
-    numTracks = service.get_count()
-    return {"database": "FILER", "number of tracks": numTracks}
+async def read_root(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)]):
+    result = await MetadataQueryService(session).get_track_count()
+    return {"database": "FILER", "number of tracks": result}
 
 
 

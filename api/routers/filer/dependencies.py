@@ -1,15 +1,14 @@
-from typing import Annotated
-from fastapi import Depends
-from sqlmodel import Session, select, col, or_
-from sqlalchemy import func, distinct, Values, String, column as sqla_column
-from typing import List, Optional
+from sqlmodel import select, col, or_, func, distinct
+from sqlalchemy import Values, String, column as sqla_column
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional, AsyncIterator
 
 from niagads.filer.api import FILERApiWrapper
 from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
 
 from api.internal.config import get_settings
-from api.dependencies.database import DBSession
+from api.dependencies.database import DatabaseSessionManager
 from api.dependencies.filter_params import tripleToPreparedStatement
 from api.dependencies.shared_params import OptionalParams
 from .model import Track
@@ -18,8 +17,9 @@ ROUTE_PREFIX = "/filer"
 ROUTE_NAME = "FILER Functional Genomics Repository"
 ROUTE_ABBREVIATION = "FILER"
 ROUTE_DESCRIPTION = {}
-
 ROUTE_TAGS = [ROUTE_NAME]
+__ROUTE_DATABASE = 'metadata'
+ROUTE_SESSION_MANAGER = DatabaseSessionManager(__ROUTE_DATABASE)
 
 _BIOSAMPLE_FIELDS = ["life_stage", "biosample_term", "system_category",
     "tissue_category", "biosample_display",
@@ -65,16 +65,16 @@ TRACK_SEARCH_FILTER_FIELD_MAP = {
 }
 
 
+
 class ApiWrapperService:
     _OVERLAPS_ENDPOINT = 'get_overlaps'
-    
     
     def __init__(self):
         self.__request_uri = get_settings().FILER_REQUEST_URI
         self.__wrapper = FILERApiWrapper(self.__request_uri)
     
     def __validate_tracks(self, tracks: List[str]):
-        service = CacheQueryService()
+        service = MetadataQueryService(ROUTE_SESSION_MANAGER)
         service.validate_tracks(tracks) # raises error if invalid tracks found
         
     def __rename_keys(self, dictObj, keyMapping):
@@ -93,36 +93,40 @@ class ApiWrapperService:
         result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': tracks, 'span': span})
         return self.__clean_hit_result(result)
 
-class CacheQueryService:
-    def __init__(self):
-        self.__db = DBSession('filer')
+class MetadataQueryService:
+    def __init__(self, session: AsyncSession):
+        self.__session = session
 
-    def validate_tracks(self, tracks: List[str]):
+    async def validate_tracks(self, tracks: List[str]):
         # solution for finding tracks not in the table adapted from
         # https://stackoverflow.com/a/73691503
 
         lookups = Values(sqla_column('track_id', String), name='lookups').data([(t, ) for t in tracks])
         statement = select(lookups.c.track_id).outerjoin(
             Track, col(Track.track_id) == lookups.c.track_id).where(col(Track.track_id) == None)
-        with self.__db() as session:
-            result = session.exec(statement).all()
-            if len(result) > 0:
-                raise ValueError(f'Invalid track identifiers found: {list_to_string(result)}')
-            else:
-                return True
+        
+        result = await self.__session.execute(statement)
+        # result = result.all()
+        if len(result) > 0:
+            raise ValueError(f'Invalid track identifiers found: {list_to_string(result)}')
+        else:
+            return True
 
-    def get_count(self) -> int:
+    async def get_track_count(self) -> int:
         statement = select(func.count(Track.track_id))
-        with self.__db() as session:
-            return session.exec(statement).first()
+        result = await self.__session.execute(statement)
+        return result.scalars().first()
         
     
-    def get_track_metadata(self, tracks: List[str]) -> Track:
+    async def get_track_metadata(self, tracks: List[str], validate=True) -> Track:
         statement = select(Track).filter(col(Track.track_id).in_(tracks)).order_by(Track.track_id)
         # statement = select(Track).where(col(Track.track_id) == trackId) 
         # if trackId is not None else select(Track).limit(100) # TODO: pagination
-        with self.__db() as session:
-            return session.exec(statement).all()
+        if validate:
+            await self.validate_tracks(tracks)
+
+        result = await self.__session.execute(statement)
+        return result.all()
 
 
     def __add_biosample_filters(self, statement, triple: List[str]):
@@ -153,7 +157,9 @@ class CacheQueryService:
                 
         return statement
 
-    def query_track_metadata(self, assembly: str, filters: List[str] | None, keyword: Optional[str], options: OptionalParams) -> List[Track]:
+    async def query_track_metadata(self, assembly: str, 
+            filters: List[str] | None, keyword: Optional[str], 
+            options: OptionalParams) -> List[Track]:
         if (options.idsOnly and options.countOnly):
             raise ValueError("please set only one of `idsOnly` or `countOnly` to `TRUE`")
         
@@ -174,13 +180,16 @@ class CacheQueryService:
             if options.limit:
                 statement = statement.limit(options.limit)
 
-        with self.__db() as session:
-            result = session.exec(statement).all()
-            if options.countOnly:
-                return {'track_count': result[0] }
-            return result
+        result = await self.__session.execute(statement)
+        # result = result.scalars()
+        if options.countOnly:
+            return {'track_count': result.scalars().one() }
+        else:
+            result = result.scalars()
+            return result.all()
+    
         
-    def get_track_filter_summary(self, filterField:str, inclCounts: Optional[bool] = False) -> dict:
+    async def get_track_filter_summary(self, filterField:str, inclCounts: Optional[bool] = False) -> dict:
         modelField = TRACK_SEARCH_FILTER_FIELD_MAP[filterField]['model_field']
 
         valueCol = col(getattr(Track, modelField))
@@ -189,18 +198,25 @@ class CacheQueryService:
         # statement = select(valueCol, Track.track_id).group_by(valueCol).count()
         statement = select(distinct(valueCol), func.count(Track.track_id)).where(valueCol.is_not(None)).group_by(valueCol) \
             if inclCounts else select(distinct(valueCol)).where(valueCol.is_not(None))
-        with self.__db() as session:
-            result = session.exec(statement).all()
-            return {row[0]: row[1] for row in result} if inclCounts else list(result)
+            
+        result = await self.__session.execute(statement)
+        result = result.all()
+        return {row[0]: row[1] for row in result} if inclCounts else list(result)
 
-    def get_genome_build(self, tracks: List[str]) -> str:
+    async def get_genome_build(self, tracks: List[str], validate=True) -> str:
         """ retrieves the genome build for a set of tracks; returns track -> genome build mapping if not all on same assembly"""
+        
+        if validate:
+            await self.validate_tracks(tracks)
+            
         statement = select(distinct(Track.genome_build)).where(col(Track.track_id).in_(tracks))
-        with self.__db() as session:
-            result = session.exec(statement).all()
-            if len(result) > 1: 
-                statement = select(Track.track_id, Track.genome_build).where(col(Track.track_id).in_(tracks)).order_by(Track.genome_build, Track.track_id)
-                result = session.exec(statement).all()
-                return {row[0]: row[1] for row in result}
-            else:
-                return result[0]
+
+        result = await self.__session.execute(statement).all()
+        if len(result) > 1: 
+            statement = select(Track.track_id, Track.genome_build).where(col(Track.track_id).in_(tracks)).order_by(Track.genome_build, Track.track_id)
+            result = await self.__session.execute(statement)
+            result = result.all()
+            return {row[0]: row[1] for row in result}
+        else:
+            return result[0]
+            
