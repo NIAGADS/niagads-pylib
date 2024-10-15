@@ -1,31 +1,68 @@
 # Middleware for choosing database based on endpoint
-
-# TODO: connection pooling? 
-# should I really be creatinig the engine for each request or should I bind models in an sqlalchemy config
-
-from sqlmodel import Session, create_engine
+# adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
+import logging
+from sqlmodel import text
+from sqlalchemy.ext.asyncio import create_async_engine, async_scoped_session, AsyncSession, AsyncEngine, async_sessionmaker
+from asyncio import current_task
+from typing import AsyncIterator
 
 from api.internal.config import get_settings
 
-def get_db_url(route: str = 'cache'):
-    match route:
-        case 'genomics':
-            return get_settings().GENOMICSDB_URL
-        case 'advp':
-            return get_settings().GENOMICSDB_URL
-        case 'cache':
-            return get_settings().API_CACHEDB_URL
-        case 'ontology':
-            return get_settings().API_STATICDB_URL
-        case 'filer': # filer
-            return get_settings().API_STATICDB_URL 
-        case _:
-            raise ValueError('Need to specify endpoint database - one of: genomics, advp, cache, ontology, or filer')
-
-class DBSession:
+logger = logging.getLogger(__name__)
+class DatabaseSessionManager:
     def __init__(self, route: str):
-        self.__connectionString = get_db_url(route)
-        self.__engine = create_engine(self.__connectionString, echo=True, pool_size=50)
+        self.__connectionString: str = self.__get_db_url(route)
+        self.__engine: AsyncEngine = create_async_engine(
+            self.__connectionString, 
+            echo=True,  # Log SQL queries for debugging (set to False in production)
+            pool_size=10,  # Maximum number of permanent connections to maintain in the pool
+            max_overflow=10,  # Maximum number of additional connections that can be created if the pool is exhausted
+            pool_timeout=30,  # Number of seconds to wait for a connection if the pool is exhausted
+            pool_recycle=1800  # Maximum age (in seconds) of connections that can be reused                                
+        )
+        
+        self.__sessionMaker: async_sessionmaker = async_sessionmaker(bind = self.__engine)
+        self.__session: AsyncSession = async_scoped_session(
+            self.__sessionMaker,
+            scopefunc=current_task
+        )
+        
     
-    def __call__(self):
-        return Session(self.__engine)
+    def __get_db_url(self, route: str = None):
+        match route:
+            case 'genomics':
+                return get_settings().GENOMICSDB_URL.replace('postgresql:', 'postgresql+asyncpg:')
+            case 'cache':
+                return get_settings().API_CACHEDB_URL
+            case 'metadata': 
+                return get_settings().API_STATICDB_URL.replace('postgresql:', 'postgresql+asyncpg:')
+            case _:
+                raise ValueError('Need to specify endpoint database - one of: genomics, cache, or metadata')
+            
+    async def close(self):
+        """ 
+            note: this does not actually disconnect from the db, 
+            but closes all pooled connections and then creates a fresh connection pool
+            (i.e. takes care of dangling sessions)
+            SQL alchmeny should handle the disconnect on exit
+        """
+        if self.__engine is None:
+            raise Exception("DatabaseSessionManager is not initialized")
+        self.__engine.dispose()
+        
+
+    async def __call__(self):
+        async with self.__session() as session:
+            if session is None:
+                raise Exception("DatabaseSessionManager is not initialized")
+            try: 
+                await session.execute(text("SELECT 1"))
+                yield session
+            except Exception as err:
+                # b/c it catches errors having nothing to do w/the database
+                # that disrupt the yielded session
+                logger.error('Unexpected Error', exc_info=err, stack_info=True)
+                await session.rollback()
+                raise
+            finally:
+                await session.close()

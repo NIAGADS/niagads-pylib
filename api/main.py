@@ -32,6 +32,7 @@ app = FastAPI(
         #swagger_ui_parameters={"docExpansion": "full"}
     )
 
+
 @app.exception_handler(ValueError)
 async def validation_exception_handler(request: Request, exc: ValueError):
     return JSONResponse(
@@ -39,7 +40,7 @@ async def validation_exception_handler(request: Request, exc: ValueError):
         content=jsonable_encoder(
             {
                 "message": str(exc),  # optionally, include the pydantic errors
-                 "error": "Invalid parameter value"
+                "error": "Invalid parameter value"
             }), 
     )
 
