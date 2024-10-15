@@ -1,5 +1,6 @@
 # Middleware for choosing database based on endpoint
 # adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
+import logging
 from sqlmodel import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_scoped_session, AsyncSession, AsyncEngine, async_sessionmaker
 from asyncio import current_task
@@ -7,6 +8,7 @@ from typing import AsyncIterator
 
 from api.internal.config import get_settings
 
+logger = logging.getLogger(__name__)
 class DatabaseSessionManager:
     def __init__(self, route: str):
         self.__connectionString: str = self.__get_db_url(route)
@@ -24,7 +26,7 @@ class DatabaseSessionManager:
             self.__sessionMaker,
             scopefunc=current_task
         )
-    
+        
     
     def __get_db_url(self, route: str = None):
         match route:
@@ -48,28 +50,19 @@ class DatabaseSessionManager:
             raise Exception("DatabaseSessionManager is not initialized")
         self.__engine.dispose()
         
-    async def __get_db(self) -> AsyncIterator[AsyncSession]:
-        session: AsyncSession = self.__session()
-        if session is None:
-            raise Exception("DatabaseSessionManager is not initialized")
-        try: 
-            await session.execute(text("SELECT 1"))
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
 
     async def __call__(self):
-        session: AsyncSession = self.__session()
-        if session is None:
-            raise Exception("DatabaseSessionManager is not initialized")
-        try: 
-            await session.execute(text("SELECT 1"))
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+        async with self.__session() as session:
+            if session is None:
+                raise Exception("DatabaseSessionManager is not initialized")
+            try: 
+                await session.execute(text("SELECT 1"))
+                yield session
+            except Exception as err:
+                # b/c it catches errors having nothing to do w/the database
+                # that disrupt the yielded session
+                logger.error('Unexpected Error', exc_info=err, stack_info=True)
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
