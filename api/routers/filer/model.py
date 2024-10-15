@@ -94,7 +94,7 @@ class Track(SQLModel, table=True):
     
     @computed_field
     @property
-    def replicates(self) -> str:
+    def replicates(self) -> dict:
         biological = split_replicates(self.biological_replicates)
         technical = split_replicates(self.technical_replicates)
         

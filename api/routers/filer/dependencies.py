@@ -1,7 +1,8 @@
 from sqlmodel import select, col, or_, func, distinct
 from sqlalchemy import Values, String, column as sqla_column
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional, AsyncIterator
+from typing import List, Optional
+from collections import OrderedDict
 
 from niagads.filer.api import FILERApiWrapper
 from niagads.utils.list import list_to_string
@@ -68,6 +69,7 @@ TRACK_SEARCH_FILTER_FIELD_MAP = {
 
 class ApiWrapperService:
     _OVERLAPS_ENDPOINT = 'get_overlaps'
+    _INFORMATIVE_TRACKS_ENDPOINT = 'get_overlapping_tracks_by_coord'
     
     def __init__(self):
         self.__request_uri = get_settings().FILER_REQUEST_URI
@@ -85,14 +87,21 @@ class ApiWrapperService:
     
     def __clean_hit_result(self, hitList):
         queryRegion = hitList[0]['queryRegion']
-        hits = {record['Identifier']: record['features'] for record in hitList if len(record['features']) > 0}
+        hits = {record['Identifier']: record['features'] for record in hitList }
         hits.update({'query_region': queryRegion})
         return hits
         
     def get_track_hits(self, tracks: str, span: str):
         result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': tracks, 'span': span})
         return self.__clean_hit_result(result)
-
+    
+    
+    def get_informative_tracks(self, span: str, assembly: str, sort=False):
+        result = self.__wrapper.make_request(self._INFORMATIVE_TRACKS_ENDPOINT, {'span': span, 'assembly': assembly})
+        result = {track['Identifier'] : track['numOverlaps'] for track in result}
+        # sort by most hits
+        return OrderedDict(sorted(result.items(), key = lambda item: item[1], reverse=True)) if sort else result
+    
 class MetadataQueryService:
     def __init__(self, session: AsyncSession):
         self.__session = session
@@ -105,8 +114,7 @@ class MetadataQueryService:
         statement = select(lookups.c.track_id).outerjoin(
             Track, col(Track.track_id) == lookups.c.track_id).where(col(Track.track_id) == None)
         
-        result = await self.__session.execute(statement)
-        # result = result.all()
+        result = (await self.__session.execute(statement)).all()
         if len(result) > 0:
             raise ValueError(f'Invalid track identifiers found: {list_to_string(result)}')
         else:
@@ -114,8 +122,8 @@ class MetadataQueryService:
 
     async def get_track_count(self) -> int:
         statement = select(func.count(Track.track_id))
-        result = await self.__session.execute(statement)
-        return result.scalars().first()
+        result = (await self.__session.execute(statement)).scalars().first()
+        return result
         
     
     async def get_track_metadata(self, tracks: List[str], validate=True) -> Track:
@@ -125,10 +133,9 @@ class MetadataQueryService:
         if validate:
             await self.validate_tracks(tracks)
 
-        result = await self.__session.execute(statement)
-        return result.all()
-
-
+        result = (await self.__session.execute(statement)).scalars().all()
+        return result
+    
     def __add_biosample_filters(self, statement, triple: List[str]):
         conditions = []
         for bsf in _BIOSAMPLE_FIELDS:
@@ -160,6 +167,7 @@ class MetadataQueryService:
     async def query_track_metadata(self, assembly: str, 
             filters: List[str] | None, keyword: Optional[str], 
             options: OptionalParams) -> List[Track]:
+        
         if (options.idsOnly and options.countOnly):
             raise ValueError("please set only one of `idsOnly` or `countOnly` to `TRUE`")
         
@@ -181,14 +189,13 @@ class MetadataQueryService:
                 statement = statement.limit(options.limit)
 
         result = await self.__session.execute(statement)
-        # result = result.scalars()
+
         if options.countOnly:
             return {'track_count': result.scalars().one() }
         else:
-            result = result.scalars()
-            return result.all()
-    
-        
+            return result.scalars().all()
+
+
     async def get_track_filter_summary(self, filterField:str, inclCounts: Optional[bool] = False) -> dict:
         modelField = TRACK_SEARCH_FILTER_FIELD_MAP[filterField]['model_field']
 
@@ -203,6 +210,7 @@ class MetadataQueryService:
         result = result.all()
         return {row[0]: row[1] for row in result} if inclCounts else list(result)
 
+
     async def get_genome_build(self, tracks: List[str], validate=True) -> str:
         """ retrieves the genome build for a set of tracks; returns track -> genome build mapping if not all on same assembly"""
         
@@ -211,11 +219,10 @@ class MetadataQueryService:
             
         statement = select(distinct(Track.genome_build)).where(col(Track.track_id).in_(tracks))
 
-        result = await self.__session.execute(statement).all()
+        result = (await self.__session.execute(statement)).all()
         if len(result) > 1: 
             statement = select(Track.track_id, Track.genome_build).where(col(Track.track_id).in_(tracks)).order_by(Track.genome_build, Track.track_id)
-            result = await self.__session.execute(statement)
-            result = result.all()
+            result = (await self.__session.execute(statement)).all()
             return {row[0]: row[1] for row in result}
         else:
             return result[0]

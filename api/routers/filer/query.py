@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, Path, Query
 from typing import Annotated, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from collections import OrderedDict
 
-from api.dependencies.database import DatabaseSessionManager
 from api.dependencies.filter_params import ExpressionType, FilterParameter
 from api.dependencies.param_validation import clean
 from api.dependencies.location_params import assembly_param, span_param
 from api.dependencies.exceptions import RESPONSES
-from api.dependencies.shared_params import OptionalParams
+from api.dependencies.shared_params import ExtendedOptionalParams, OptionalParams
 
 from .dependencies import ROUTE_TAGS, MetadataQueryService, ApiWrapperService, ROUTE_SESSION_MANAGER, TRACK_SEARCH_FILTER_FIELD_MAP
 from api.internal.constants import FILER_N_TRACK_LOOKUP_LIMIT
@@ -27,7 +27,7 @@ filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEX
 async def query_track_metadata(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
         assembly = Depends(assembly_param), filter = Depends(filter_param), 
         keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),
-        options: OptionalParams = Depends()):
+        options: ExtendedOptionalParams = Depends()):
     if filter is None and keyword is None:
         raise ValueError('must specify either a `filter` and/or a `keyword` to search')
     return await MetadataQueryService(session).query_track_metadata(assembly, filter, keyword, options)
@@ -42,14 +42,31 @@ async def query_track_data(session: Annotated[AsyncSession, Depends(ROUTE_SESSIO
         keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),
         span: str=Depends(span_param),
         options: OptionalParams = Depends()):
+    
     if filter is None and keyword is None:
         raise ValueError('must specify either a `filter` and/or a `keyword` to search')
     
-    options.idsOnly = True
-    # temp to get accurate count; TODO: figure out when limit gets applied in this case
+    # get tracks that meet the filter criteria
+    opts = ExtendedOptionalParams(idsOnly=True, countOnly=False, page=None, limit=None )
+    matchingTracks = await MetadataQueryService(session).query_track_metadata(assembly, filter, keyword, opts)
+    
+    # get tracks with data in the region
+    informativeTracks = apiWrapperService.get_informative_tracks(span, assembly)
+    
+    # filter for tracks that match the filter
+    informativeTracks = {t: informativeTracks[t] for t in matchingTracks if t in informativeTracks}
+    informativeTracks = OrderedDict(sorted(informativeTracks.items(), key = lambda item: item[1], reverse=True))
+    
+    if options.countOnly:
+        return informativeTracks
+    
+    # do the actual data lookup
+    tracks = list(informativeTracks.keys())
+    
+    # here's were we would implement paging based on number of hits / tracks?
+    ## apply limit after determining most informative tracks
     limit = options.limit
     options.limit = None
-    tracks = await MetadataQueryService(session).query_track_metadata(assembly, filter, keyword, options)
     
     message = None
     if len(tracks) > FILER_N_TRACK_LOOKUP_LIMIT:

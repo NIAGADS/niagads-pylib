@@ -10,6 +10,7 @@ from api.dependencies.exceptions import RESPONSES
 from api.dependencies.shared_params import OptionalParams
 
 from .dependencies import ROUTE_TAGS,ROUTE_SESSION_MANAGER, MetadataQueryService, ApiWrapperService
+from .model import Track
 
 TAGS = ROUTE_TAGS
 router = APIRouter(
@@ -32,7 +33,7 @@ async def get_track_metadata(
     description="retrieve metadata for one or more functional genomics tracks from FILER")
 async def get_track_metadata(
         session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
-        track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")]):
+        track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")]) -> Track:
     return await MetadataQueryService(session).get_track_metadata(convert_str2list(track)) # b/c its been cleaned
 
 
@@ -45,7 +46,7 @@ async def get_track_data(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_
         track: Annotated[str, Path(description="FILER track identifier")],
         span: str=Depends(span_param)):
     
-    await MetadataQueryService(session).validate_tracks(track)
+    await MetadataQueryService(session).validate_tracks(convert_str2list(track))
     return apiWrapperService.get_track_hits(clean(track), span)
 
 
