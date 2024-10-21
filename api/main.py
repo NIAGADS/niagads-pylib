@@ -6,6 +6,10 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, Response
 from fastapi.encoders import jsonable_encoder
 
+from starlette.middleware.sessions import SessionMiddleware
+from asgi_correlation_id import CorrelationIdMiddleware
+
+from api.internal.config import get_settings
 from .routers import filer
 
 # FIXME -- needed for applications reading the openapi.json or openapi.yaml, but 
@@ -31,7 +35,8 @@ app = FastAPI(
         #swagger_ui_parameters={"docExpansion": "full"}
     )
 
-
+app.add_middleware(SessionMiddleware, secret_key=get_settings().SESSION_SECRET)
+app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
 
 @app.exception_handler(ValueError)
 async def validation_exception_handler(request: Request, exc: ValueError):

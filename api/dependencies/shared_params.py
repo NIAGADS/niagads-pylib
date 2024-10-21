@@ -1,6 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from typing import Optional
+from typing_extensions import Self
 from fastapi import Query
+from enum import Enum
+
+from .param_validation import clean
 
 # TODO: common params: https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/
 
@@ -15,7 +19,19 @@ class OptionalParams(BaseModel):
 class ExtendedOptionalParams(OptionalParams):
     idsOnly: Optional[bool] = Query(Query(default = False, description="return only the IDS (no annotation or metadata) for matching records"))
 
-class TrackResponseTyeParams(BaseModel):
-    browserSession: Optional[bool] = Query(Query(default=False, description="return NIAGADS Genome Browser Session JSON"))
-    browser: Optional[bool] = Query(Query(default=False, description="return NIAGADS Genome Browser"))
-    table: Optional[bool] = Query(Query(default=False, description="return interactive table of query results"))
+class ResponseType(str, Enum):
+    """ enum for allowable response / output types"""
+    JSON = "json"
+    TABLE = "table"
+    # XML = "xml"
+        
+    @classmethod
+    def validate(self, value: str): # allow to be case insensitive
+        for e in self:
+            if e.value.lower() == value.lower(): 
+                return e.value
+    
+        raise ValueError("Invalid response `format`: " + value)
+
+async def format_param(format: ResponseType = Query(ResponseType.JSON, description="type of response retured by the request")): 
+    return ResponseType.validate(clean(format))

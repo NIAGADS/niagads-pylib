@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, Request
+from fastapi.responses import RedirectResponse
+from fastapi.encoders import jsonable_encoder
 from typing import Annotated, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,8 +8,8 @@ from api.dependencies.database import AsyncSession
 from api.dependencies.param_validation import convert_str2list, clean
 from api.dependencies.location_params import span_param
 from api.dependencies.exceptions import RESPONSES
-from api.dependencies.shared_params import OptionalParams
-from api.response_models import BrowserTrack
+from api.dependencies.shared_params import OptionalParams, ResponseType, format_param
+from api.response_models import BrowserTrack, VizTable, VizTableOptions
 
 from ..dependencies import ROUTE_TAGS,ROUTE_SESSION_MANAGER, MetadataQueryService, ApiWrapperService
 from ..models import TrackPublic
@@ -33,10 +35,22 @@ async def get_track_metadata(
     name="Get metadata for multiple tracks",
     description="retrieve metadata for one or more functional genomics tracks from FILER")
 async def get_multi_track_metadata(
+        request: Request,
         session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
-        track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")]):
-    return await MetadataQueryService(session).get_track_metadata(convert_str2list(track)) # b/c its been cleaned
-
+        track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")],
+        format: str= Depends(format_param)):
+    response = await MetadataQueryService(session).get_track_metadata(convert_str2list(track)) # b/c its been cleaned
+    
+    if format == ResponseType.JSON:
+        return response
+    else:
+        data = [ TrackPublic(**jsonable_encoder(t)).serialize(expandObjects=True) for t in response ]
+        columns = TrackPublic.table_columns()
+        options = VizTableOptions(disableColumnFilters=True, defaultColumns=columns[:10])
+        requestId = request.headers.get("X-Request-ID")
+        request.session[requestId + '_table'] = VizTable(id='tracks', data=data, columns=columns, options=options)
+        #   return RedirectResponse("/redirect", status_code=status.HTTP_303_SEE_OTHER)
+        raise NotImplementedError('table')
 
 tags = TAGS + ["NIAGADS Genome Browser Configuration"]
 @router.get("/browser/{track}", tags=tags, response_model=List[BrowserTrack],
