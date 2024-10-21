@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends, Path, Query
-from typing import Annotated, Optional
+from typing import Annotated, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies.database import AsyncSession
-from api.dependencies.filter_params import ExpressionType, FilterParameter
 from api.dependencies.param_validation import convert_str2list, clean
-from api.dependencies.location_params import assembly_param, span_param
+from api.dependencies.location_params import span_param
 from api.dependencies.exceptions import RESPONSES
 from api.dependencies.shared_params import OptionalParams
+from api.response_models import BrowserTrack
 
-from .dependencies import ROUTE_TAGS,ROUTE_SESSION_MANAGER, MetadataQueryService, ApiWrapperService
-from .model import Track
+from ..dependencies import ROUTE_TAGS,ROUTE_SESSION_MANAGER, MetadataQueryService, ApiWrapperService
+from ..models import TrackPublic
 
 TAGS = ROUTE_TAGS
 router = APIRouter(
@@ -20,7 +20,7 @@ router = APIRouter(
 )
 
 tags = TAGS + ["Record(s) by ID", "Track Metadata by ID"]
-@router.get("/record/{track}", tags=tags, 
+@router.get("/record/{track}", tags=tags, response_model=List[TrackPublic],
     name="Get track metadata",
     description="retrieve metadata for the functional genomics `track` specified in the path")
 async def get_track_metadata(
@@ -28,12 +28,32 @@ async def get_track_metadata(
         track: Annotated[str, Path(description="FILER track identifier")]):
     return await MetadataQueryService(session).get_track_metadata(convert_str2list(track))
 
-@router.get("/record", tags=tags, 
+
+@router.get("/record", tags=tags, response_model=List[TrackPublic],
     name="Get metadata for multiple tracks",
     description="retrieve metadata for one or more functional genomics tracks from FILER")
-async def get_track_metadata(
+async def get_multi_track_metadata(
         session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
-        track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")]) -> Track:
+        track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")]):
+    return await MetadataQueryService(session).get_track_metadata(convert_str2list(track)) # b/c its been cleaned
+
+
+tags = TAGS + ["NIAGADS Genome Browser Configuration"]
+@router.get("/browser/{track}", tags=tags, response_model=List[BrowserTrack],
+    name="Get track Genome Browser configuration",
+    description="retrieve NIAGADS Genome Browser track configuration or session file for the functional genomics `track` specified in the path")
+async def get_track_browser_config(
+        session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
+        track: Annotated[str, Path(description="FILER track identifier")]):
+    return await MetadataQueryService(session).get_track_metadata(convert_str2list(track))
+
+
+@router.get("/browser", tags=tags,  response_model=List[BrowserTrack],
+    name="Get Genome Browser configuration for multiple tracks",
+    description="retrieve NIAGADS Genome Browser track configuration of session file for one or more functional genomics tracks from FILER")
+async def get_multi_track_browser_config(
+        session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
+        track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")]):
     return await MetadataQueryService(session).get_track_metadata(convert_str2list(track)) # b/c its been cleaned
 
 
@@ -50,10 +70,11 @@ async def get_track_data(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_
     return apiWrapperService.get_track_hits(clean(track), span)
 
 
-@router.get("/data", tags=tags, 
+@router.get("/data", tags=tags,
     name="Get data from multiple tracks",
     description="retrieve data from one or more functional genomics tracks from FILER in the specified region")
-async def get_track_data(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
+async def get_multi_track_data(
+        session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
         apiWrapperService: Annotated[ApiWrapperService, Depends(ApiWrapperService)],
         track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")],
         span: str=Depends(span_param)):

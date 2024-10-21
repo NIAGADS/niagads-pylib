@@ -12,7 +12,7 @@ from api.internal.config import get_settings
 from api.dependencies.database import DatabaseSessionManager
 from api.dependencies.filter_params import tripleToPreparedStatement
 from api.dependencies.shared_params import OptionalParams
-from .model import Track
+from .models.track_metadata_cache import Track
 
 ROUTE_PREFIX = "/filer"
 ROUTE_NAME = "FILER Functional Genomics Repository"

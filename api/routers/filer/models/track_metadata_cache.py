@@ -7,9 +7,13 @@ from datetime import datetime
 from typing import Optional
 from pydantic import computed_field
 
-from api.internal.constants import DATASOURCE_URLS
 from niagads.filer.parser import split_replicates
+from niagads.utils.list import qw
+from niagads.utils.string import xstr
 
+from api.internal.constants import DATASOURCE_URLS
+
+EXPERIMENTAL_DESIGN_FIELDS = qw('project experiment_id antibody_target assay analysis classification data_category output_type is_lifted')
 
 class Track(SQLModel, table=True):
     __tablename__ = "filertrack"
@@ -63,23 +67,6 @@ class Track(SQLModel, table=True):
     
     @computed_field
     @property
-    def genome_browser_track_schema(self) -> str:    
-        if self.file_schema is None:
-            return None
-        schema = self.file_schema.split('|')
-        return schema[0]
-    
-    @computed_field
-    @property 
-    def genome_browser_track_type(self) -> str:
-        # TODO: interactions
-        if 'QTL' in self.feature_type:
-            return 'qtl'
-        else:
-            return 'annotation'
-    
-    @computed_field
-    @property
     def index_url(self) -> str:
         return self.url + '.tbi'
     
@@ -106,13 +93,35 @@ class Track(SQLModel, table=True):
         
         return { "technical": technical, "biological": biological}
     
-    # FIXME: this does not work b/c it does not include the computed fields
-    def clean(self):
-        internalFields = ['biological_replicates', 'technical_replicates', 
-            'searchable_text',
-            'genome_browser_track_schema', 'genome_browser_track_type',
-            '_sa_instance_state']
-        x = vars(self).items()
-        for k,v in vars(self).items():
-            print(k, v)
-        return { k: v for k, v in vars(self).items() if k not in internalFields}
+    # =================================
+    # GENOME BROWSER FIELDS
+    # =================================
+    @computed_field
+    @property
+    def browser_track_category(self) -> str: # TODO: be more specific? e.g., data category?
+        return 'Functional Genomics'
+    
+    @computed_field 
+    @property
+    def experimental_design(self) -> str: # required for browser config
+        return { field : xstr(getattr(self, field), nullStr="NA") for field in EXPERIMENTAL_DESIGN_FIELDS }
+            
+    @computed_field
+    @property
+    def browser_track_schema(self) -> str:    
+        if self.file_schema is None:
+            return None
+        schema = self.file_schema.split('|')
+        return schema[0]
+    
+    
+    @computed_field
+    @property 
+    def browser_track_format(self) -> str:
+        # TODO: interactions
+        if 'QTL' in self.feature_type:
+            return 'qtl'
+        else:
+            return 'annotation'
+    
+    

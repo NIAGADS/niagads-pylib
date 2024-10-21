@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Path, Query
-from typing import Annotated, Optional
+from typing import Annotated, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from collections import OrderedDict
 
@@ -8,9 +8,10 @@ from api.dependencies.param_validation import clean
 from api.dependencies.location_params import assembly_param, span_param
 from api.dependencies.exceptions import RESPONSES
 from api.dependencies.shared_params import ExtendedOptionalParams, OptionalParams
-
-from .dependencies import ROUTE_TAGS, MetadataQueryService, ApiWrapperService, ROUTE_SESSION_MANAGER, TRACK_SEARCH_FILTER_FIELD_MAP
 from api.internal.constants import FILER_N_TRACK_LOOKUP_LIMIT
+
+from ..dependencies import ROUTE_TAGS, MetadataQueryService, ApiWrapperService, ROUTE_SESSION_MANAGER, TRACK_SEARCH_FILTER_FIELD_MAP
+from ..models import TrackPublic
 
 TAGS = ROUTE_TAGS 
 router = APIRouter(
@@ -21,10 +22,11 @@ router = APIRouter(
 
 tags = TAGS + ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
-@router.get("/tracks", tags=tags, 
+@router.get("/tracks", tags=tags, response_model=List[TrackPublic],
     name="Track Metadata Text Search", 
     description="find functional genomics tracks using category filters or by a keyword search againts all text fields in the track metadata")
-async def query_track_metadata(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
+async def query_track_metadata(
+        session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
         assembly = Depends(assembly_param), filter = Depends(filter_param), 
         keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),
         options: ExtendedOptionalParams = Depends()):
@@ -36,7 +38,8 @@ async def query_track_metadata(session: Annotated[AsyncSession, Depends(ROUTE_SE
 @router.get("/region", tags=tags, 
     name="Get Data from Tracks meeting Search Criteria", 
     description="retrieve data in a region of interest from all functional genomics tracks whose metadata meets the search or filter criteria")
-async def query_track_data(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
+async def query_track_data(
+        session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
         apiWrapperService: Annotated[ApiWrapperService, Depends(ApiWrapperService)],
         assembly = Depends(assembly_param), filter = Depends(filter_param), 
         keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),

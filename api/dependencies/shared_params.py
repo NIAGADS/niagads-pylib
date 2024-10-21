@@ -14,4 +14,8 @@ class OptionalParams(BaseModel):
 
 class ExtendedOptionalParams(OptionalParams):
     idsOnly: Optional[bool] = Query(Query(default = False, description="return only the IDS (no annotation or metadata) for matching records"))
-    
+
+class TrackResponseTyeParams(BaseModel):
+    browserSession: Optional[bool] = Query(Query(default=False, description="return NIAGADS Genome Browser Session JSON"))
+    browser: Optional[bool] = Query(Query(default=False, description="return NIAGADS Genome Browser"))
+    table: Optional[bool] = Query(Query(default=False, description="return interactive table of query results"))

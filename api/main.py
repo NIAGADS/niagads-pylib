@@ -5,7 +5,6 @@ from io import StringIO
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, Response
 from fastapi.encoders import jsonable_encoder
-from fastapi.openapi.models import Server
 
 from .routers import filer
 
@@ -33,6 +32,7 @@ app = FastAPI(
     )
 
 
+
 @app.exception_handler(ValueError)
 async def validation_exception_handler(request: Request, exc: ValueError):
     return JSONResponse(
@@ -51,7 +51,7 @@ async def validation_exception_handler(request: Request, exc: ValueError):
         content=jsonable_encoder(
             {
                 "message": str(exc),  # optionally, include the pydantic errors
-                 "error": "Invalid external request"
+                "error": "Invalid external request"
             }),
     )
 
