@@ -3,6 +3,37 @@ from collections import OrderedDict, Counter
 from .string import xstr
 
 
+def find(array, value, field:str=None, returnValues=True):
+    """
+    filters a list and returns matches
+
+    Args:
+        array (list): the list to filter
+        value (any): value to match
+        field (str, optional): field name to match if list of objects. Defaults to None.
+        returnValues (bool, optional): return matched elements. if false returns indexes of matches Defaults to True.
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    result:dict = None
+    
+    if len(array) == 0:
+        return result
+    if field is not None and not isinstance(array[0], dict):
+        raise ValueError('Cannot search by field; list does not contain dict %s', xstr(array))
+    
+    if field is None:
+        result = {index: x for index, x in enumerate(array) if x == value}
+    else:
+        result = {index: x for index, x in enumerate(array) if x[field] == value}
+        
+    return list(result.values()) if returnValues else list(result.keys())
+
+
 def flatten(array: list):
     ''' flatten nested list ''' 
     # sum(list, []) is a python hack for flattening a nested list
