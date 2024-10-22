@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Path, Query, Request
+from fastapi import APIRouter, Depends, Path, Query, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.encoders import jsonable_encoder
 from typing import Annotated, List
@@ -46,11 +46,13 @@ async def get_multi_track_metadata(
     else:
         data = [ TrackPublic(**jsonable_encoder(t)).serialize(expandObjects=True) for t in response ]
         columns = TrackPublic.table_columns()
-        options = VizTableOptions(disableColumnFilters=True, defaultColumns=columns[:10])
+        columnIds = [c['id'] for c in columns]
+        options = VizTableOptions(disableColumnFilters=True, defaultColumns=columnIds[:10])
         requestId = request.headers.get("X-Request-ID")
-        request.session[requestId + '_table'] = VizTable(id='tracks', data=data, columns=columns, options=options)
-        #   return RedirectResponse("/redirect", status_code=status.HTTP_303_SEE_OTHER)
-        raise NotImplementedError('table')
+        request.session[requestId + '_table'] = VizTable(id='tracks', data=data, columns=columns, options=options).serialize()
+        redirectUrl = f'/api/view/table?requestId={requestId}&field=table'
+        return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
+    
 
 tags = TAGS + ["NIAGADS Genome Browser Configuration"]
 @router.get("/browser/{track}", tags=tags, response_model=List[BrowserTrack],

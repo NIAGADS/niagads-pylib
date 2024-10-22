@@ -1,4 +1,7 @@
 from sqlmodel import Field, SQLModel, Column
+from fastapi.encoders import jsonable_encoder
+
+import json
 
 # typing
 from sqlalchemy import BigInteger
@@ -125,3 +128,12 @@ class Track(SQLModel, table=True):
             return 'annotation'
     
     
+    def serialize(self, expandObjects=False):
+        """Return a dict which contains only serializable fields."""
+        data:dict = jsonable_encoder(self.model_dump())
+        if expandObjects:
+            data.update(data.pop('biosample_characteristics', None))
+            data.update({'replicates': json.dumps(data['replicates'])})
+
+        return data
+        return data

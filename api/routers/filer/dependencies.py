@@ -98,9 +98,9 @@ class ApiWrapperService:
     
     def get_informative_tracks(self, span: str, assembly: str, sort=False):
         result = self.__wrapper.make_request(self._INFORMATIVE_TRACKS_ENDPOINT, {'span': span, 'assembly': assembly})
-        result = {track['Identifier'] : track['numOverlaps'] for track in result}
+        result = [{'track_id' : track['Identifier'], 'hit_count': track['numOverlaps']} for track in result]
         # sort by most hits
-        return OrderedDict(sorted(result.items(), key = lambda item: item[1], reverse=True)) if sort else result
+        return OrderedDict(sorted(result, key = lambda item: item.hit_count, reverse=True)) if sort else result
     
 class MetadataQueryService:
     def __init__(self, session: AsyncSession):
@@ -206,9 +206,8 @@ class MetadataQueryService:
         statement = select(distinct(valueCol), func.count(Track.track_id)).where(valueCol.is_not(None)).group_by(valueCol) \
             if inclCounts else select(distinct(valueCol)).where(valueCol.is_not(None))
             
-        result = await self.__session.execute(statement)
-        result = result.all()
-        return {row[0]: row[1] for row in result} if inclCounts else list(result)
+        result = (await self.__session.execute(statement)).all()
+        return {row[0]: row[1] for row in result} if inclCounts else [value for value, in result]
 
 
     async def get_genome_build(self, tracks: List[str], validate=True) -> str:
