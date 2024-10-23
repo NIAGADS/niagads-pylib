@@ -69,7 +69,7 @@ class TrackPublic(SerializableModel, TrackPublicBase):
 class TrackResponse(BaseResponseModel):
     response: List[TrackPublic]
 
-class TrackQueryPublic(TrackPublicBase):
+class InformativeTrackSummary(SerializableModel, TrackPublicBase):
     hit_count: int
     life_stage: Optional[str] = None
     biosample_term: Optional[str] = None
@@ -79,5 +79,5 @@ class TrackQueryPublic(TrackPublicBase):
     biosample_summary: Optional[str] = None
     biosample_term_id: Optional[str] = None
     
-class TrackQueryResponse(PagedResponseModel):
-    response: List[TrackQueryPublic]
+class InformativeTrackSummaryResponse(PagedResponseModel):
+    response: List[InformativeTrackSummary]
