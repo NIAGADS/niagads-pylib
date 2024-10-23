@@ -12,7 +12,7 @@ from api.dependencies.exceptions import RESPONSES
 from api.dependencies.shared_params import ExtendedOptionalParams, OptionalParams
 from api.internal.constants import FILER_N_TRACK_LOOKUP_LIMIT
 
-from ..dependencies.constants import ROUTE_SESSION_MANAGER, TRACK_SEARCH_FILTER_FIELD_MAP, ROUTE_TAGS
+from ..constants import ROUTE_SESSION_MANAGER, TRACK_SEARCH_FILTER_FIELD_MAP, ROUTE_TAGS
 from ..dependencies import MetadataQueryService, ApiWrapperService
 from ..models import TrackPublic, TrackQueryPublic
 

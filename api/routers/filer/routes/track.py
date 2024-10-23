@@ -11,9 +11,8 @@ from api.dependencies.exceptions import RESPONSES
 from api.dependencies.shared_params import ResponseType, format_param
 from api.response_models import BrowserTrackResponse, VizTableResponse, VizTable, VizTableOptions, RequestDataModel
 
-from ..dependencies.constants import ROUTE_TAGS,ROUTE_SESSION_MANAGER
+from ..constants import ROUTE_TAGS,ROUTE_SESSION_MANAGER
 from ..dependencies import MetadataQueryService, ApiWrapperService
-
 from ..models import TrackResponse, TrackPublic
 
 TAGS = ROUTE_TAGS

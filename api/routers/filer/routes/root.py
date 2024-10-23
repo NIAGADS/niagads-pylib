@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies.exceptions import RESPONSES
 from api.response_models import BaseResponseModel, RequestDataModel
 
-from ..dependencies.constants import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX, ROUTE_SESSION_MANAGER
+from ..constants import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX, ROUTE_SESSION_MANAGER
 from ..dependencies import MetadataQueryService
 
 from .track import router as TrackRouter

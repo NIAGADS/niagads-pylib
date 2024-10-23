@@ -13,7 +13,7 @@ from api.dependencies.filter_params import tripleToPreparedStatement
 from api.dependencies.shared_params import OptionalParams
 
 from ..models.track_metadata_cache import Track
-from .constants import ROUTE_DATABASE, TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
+from ..constants import ROUTE_DATABASE, TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 
 class ApiWrapperService:
     _OVERLAPS_ENDPOINT = 'get_overlaps'
