@@ -9,63 +9,11 @@ from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
 
 from api.internal.config import get_settings
-from api.dependencies.database import DatabaseSessionManager
 from api.dependencies.filter_params import tripleToPreparedStatement
 from api.dependencies.shared_params import OptionalParams
-from .models.track_metadata_cache import Track
 
-ROUTE_PREFIX = "/filer"
-ROUTE_NAME = "FILER Functional Genomics Repository"
-ROUTE_ABBREVIATION = "FILER"
-ROUTE_DESCRIPTION = {}
-ROUTE_TAGS = [ROUTE_NAME]
-__ROUTE_DATABASE = 'metadata'
-ROUTE_SESSION_MANAGER = DatabaseSessionManager(__ROUTE_DATABASE)
-
-_BIOSAMPLE_FIELDS = ["life_stage", "biosample_term", "system_category",
-    "tissue_category", "biosample_display",
-    "biosample_summary", "biosample_term_id"]
-
-TRACK_SEARCH_FILTER_FIELD_MAP = { 
-    'biosample': {
-        'model_field' : 'biosample_characteristics', 
-        'description': "searches across biosample characteristics, including, " +
-            "but not limited to: biological system, tissue, cell type, cell line, " +
-            "life stage; can be searched using ontology terms from UBERON (tissues), CL (cells), " + 
-            "CLO (cell lines), and EFO (experimental factors); NOTE: biosample term matches are fuzzy and case insensitive"
-        },
-    'antibody': {
-        'model_field': 'antibody_target',
-        'description': "the antibody target, e.g. in a CHiP-SEQ experiment; " + 
-            "we recommend searching for gene targets with `like` operator as many are prefixed"
-    },
-    'assay': {
-        'model_field': 'assay',
-        'description': 'type of assay'
-    },
-    'feature': {
-        'model_field': 'feature_type',
-        'description': "the type of functional genomics feature reported in the data track"
-    },
-    'analysis': {
-        'model_field': 'analysis',
-        'description': "type of statistical analysis, if relevant"
-    },
-    'classification': {
-        'model_field': 'classification',
-        'description': "specific categorization or classification of the data reported in the data track"
-    },
-    'category': {
-        'model_field': 'data_category',
-        'description': "broad categorization of the type of the data reported in the data track"
-    },
-    'datasource': {
-        'model_field': 'data_source',
-        'description': "original third-party data source for the track"
-    },
-}
-
-
+from ..models.track_metadata_cache import Track
+from .constants import ROUTE_DATABASE, TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 
 class ApiWrapperService:
     _OVERLAPS_ENDPOINT = 'get_overlaps'
@@ -84,7 +32,6 @@ class ApiWrapperService:
             dictObj = rename_key(dictObj, oldKey, newKey)
         return dictObj
     
-    
     def __clean_hit_result(self, hitList):
         queryRegion = hitList[0]['queryRegion']
         hits = {record['Identifier']: record['features'] for record in hitList }
@@ -101,7 +48,9 @@ class ApiWrapperService:
         result = [{'track_id' : track['Identifier'], 'hit_count': track['numOverlaps']} for track in result]
         # sort by most hits
         return OrderedDict(sorted(result, key = lambda item: item.hit_count, reverse=True)) if sort else result
-    
+
+
+
 class MetadataQueryService:
     def __init__(self, session: AsyncSession):
         self.__session = session
@@ -138,7 +87,7 @@ class MetadataQueryService:
     
     def __add_biosample_filters(self, statement, triple: List[str]):
         conditions = []
-        for bsf in _BIOSAMPLE_FIELDS:
+        for bsf in BIOSAMPLE_FIELDS:
             conditions.append(tripleToPreparedStatement([f'biosample_characteristics|{bsf}', 
                 "like" if (triple[1] == 'eq' or triple[1] == 'like') else "not like" , 
                 triple[2]], Track))

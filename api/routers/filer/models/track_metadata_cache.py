@@ -1,9 +1,5 @@
 from sqlmodel import Field, SQLModel, Column
-from fastapi.encoders import jsonable_encoder
 
-import json
-
-# typing
 from sqlalchemy import BigInteger
 from sqlalchemy.dialects.postgresql import TEXT, JSONB, TIMESTAMP
 from datetime import datetime
@@ -15,10 +11,11 @@ from niagads.utils.list import qw
 from niagads.utils.string import xstr
 
 from api.internal.constants import DATASOURCE_URLS
+from api.response_models import SerializableModel
 
 EXPERIMENTAL_DESIGN_FIELDS = qw('project experiment_id antibody_target assay analysis classification data_category output_type is_lifted')
 
-class Track(SQLModel, table=True):
+class Track(SQLModel, SerializableModel, table=True):
     __tablename__ = "filertrack"
     __bind_key__ = 'filer'
     __table_args__ = {'schema': 'serverapplication'}
@@ -127,13 +124,3 @@ class Track(SQLModel, table=True):
         else:
             return 'annotation'
     
-    
-    def serialize(self, expandObjects=False):
-        """Return a dict which contains only serializable fields."""
-        data:dict = jsonable_encoder(self.model_dump())
-        if expandObjects:
-            data.update(data.pop('biosample_characteristics', None))
-            data.update({'replicates': json.dumps(data['replicates'])})
-
-        return data
-        return data

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
-from fastapi.encoders import jsonable_encoder
+
+from .base_models import BaseResponseModel, SerializableModel
 
 class TableOptions(BaseModel):
     title: Optional[str] = None
@@ -9,11 +10,10 @@ class TableOptions(BaseModel):
     
 class Table(BaseModel):
     id: str
-    data: List[Dict[str, Any]]
+    data: List[Any]
     columns: List[Dict[str, Any]]
     options: TableOptions
     
-    def serialize(self, expandObjects=False):
-        """Return a dict which contains only serializable fields."""
-        return jsonable_encoder(self.model_dump())
-        
+
+class TableResponse(BaseResponseModel):
+    response: Table

@@ -1,6 +1,8 @@
 from fastapi.encoders import jsonable_encoder
 from sqlmodel import SQLModel
-from typing import Optional, Dict
+from typing import Optional, Dict, List
+
+from .base_models import BaseResponseModel
 
 class BrowserTrack(SQLModel):
     track_id: str
@@ -15,9 +17,6 @@ class BrowserTrack(SQLModel):
     url: str
     index_url: Optional[str]
     
-    def serialize(self, **kwargs):
-        """Return a dict which contains only serializable fields."""
-        return jsonable_encoder(self.model_dump())
-
-
+class BrowserTrackResponse(BaseResponseModel):
+    response: List[BrowserTrack]
 

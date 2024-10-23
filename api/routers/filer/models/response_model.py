@@ -6,7 +6,7 @@ from typing import Optional, List
 
 from niagads.utils.list import find
 
-from api.response_models import BiosampleCharacteristics, id2title, VizTable, VizTableOptions
+from api.response_models import BiosampleCharacteristics, id2title, PagedResponseModel, BaseResponseModel, SerializableModel
 
 class TrackPublicBase(SQLModel):
     track_id: str
@@ -20,21 +20,10 @@ class TrackPublicBase(SQLModel):
     is_lifted: Optional[bool]
     data_source: Optional[str]
 
-    
-    def serialize(self, expandObjects=False):
-        """Return a dict which contains only serializable fields."""
-        data:dict = jsonable_encoder(self.model_dump())
-        
-        if expandObjects:
-            data.update(data.pop('biosample_characteristics', None))
-            data.update({'replicates': json.dumps(data['replicates'])})
-
-        return data
-    
     @classmethod
     def table_columns(cls):
         """ Return a column object for niagads-viz-js/Table """
-        fields = list(cls.__annotations__.keys()) + list(BiosampleCharacteristics.__annotations__.keys())
+        fields = list(cls.__fields__.keys()) + list(BiosampleCharacteristics.__annotations__.keys())
         fields.remove('biosample_characteristics')
         columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields if f != 'data_source_url'] 
         
@@ -44,7 +33,7 @@ class TrackPublicBase(SQLModel):
         
         return columns
 
-class TrackPublic(TrackPublicBase):    
+class TrackPublic(SerializableModel, TrackPublicBase):    
     # experimental design
     replicates: Optional[dict]
     analysis: Optional[str]
@@ -76,6 +65,9 @@ class TrackPublic(TrackPublicBase):
     file_format: Optional[str]
     file_schema: Optional[str]
 
+        
+class TrackResponse(BaseResponseModel):
+    response: List[TrackPublic]
 
 class TrackQueryPublic(TrackPublicBase):
     hit_count: int
@@ -86,3 +78,6 @@ class TrackQueryPublic(TrackPublicBase):
     biosample_display: Optional[str] = None
     biosample_summary: Optional[str] = None
     biosample_term_id: Optional[str] = None
+    
+class TrackQueryResponse(PagedResponseModel):
+    response: List[TrackQueryPublic]
