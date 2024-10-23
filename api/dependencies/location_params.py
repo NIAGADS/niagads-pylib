@@ -28,7 +28,7 @@ async def chromosome_param(chromosome: str = Query(Chromosome.chr19.value, enum=
         return Chromosome.validate(clean(chromosome))
 
 async def span_param(span: str = Query(alias="loc", description="genomic region to query; for a chromosome, N, please specify as chrN:start-end or N:start-end", examples=["chr19:10000-40000", "19:10000-40000"])):
-    pattern ='.+:\d+-\d+' # chr:start-enddddd
+    pattern =r'.+:\d+-\d+' # chr:start-enddddd - NOTE: the r prefix declares the pattern as a raw string so that no syntax warning gets thrown for escaping the d
     span = clean(span)
     
     # check against regexp
