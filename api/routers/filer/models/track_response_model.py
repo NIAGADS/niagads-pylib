@@ -1,12 +1,14 @@
-import json
+
 from sqlmodel import SQLModel
 from fastapi.encoders import jsonable_encoder
 from datetime import datetime
 from typing import Optional, List
+from typing_extensions import Self
 
 from niagads.utils.list import find
 
-from api.response_models import BiosampleCharacteristics, id2title, PagedResponseModel, BaseResponseModel, SerializableModel
+from api.response_models import id2title, PagedResponseModel, BaseResponseModel, SerializableModel
+from .biosample_characteristics import BiosampleCharacteristics
 
 class TrackPublicBase(SQLModel):
     track_id: str
@@ -21,12 +23,15 @@ class TrackPublicBase(SQLModel):
     data_source: Optional[str]
 
     @classmethod
-    def table_columns(cls):
+    def view_table_columns(cls: Self):
         """ Return a column object for niagads-viz-js/Table """
-        fields = list(cls.__fields__.keys()) + list(BiosampleCharacteristics.__annotations__.keys())
+        fields = list(cls.model_fields.keys()) + list(BiosampleCharacteristics.model_fields.keys())
         fields.remove('biosample_characteristics')
-        columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields if f != 'data_source_url'] 
         
+        # FIXME: may need to convert to Set and Back b/c I think the OverlapsSummary child will put the biosample stuff in twice
+        
+        columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields if f != 'data_souce_url']
+            
         # some additional formatting
         index: int = find(columns, 'is_lifted', 'id', returnValues=False)
         columns[index[0]].update({'type': 'boolean', 'description': 'data have been lifted over from an earlier genome build'})
@@ -69,7 +74,8 @@ class TrackPublic(SerializableModel, TrackPublicBase):
 class TrackResponse(BaseResponseModel):
     response: List[TrackPublic]
 
-class InformativeTrackSummary(SerializableModel, TrackPublicBase):
+
+class TrackOverlapSummary(SerializableModel, TrackPublicBase):
     hit_count: int
     life_stage: Optional[str] = None
     biosample_term: Optional[str] = None
@@ -78,6 +84,7 @@ class InformativeTrackSummary(SerializableModel, TrackPublicBase):
     biosample_display: Optional[str] = None
     biosample_summary: Optional[str] = None
     biosample_term_id: Optional[str] = None
+
     
-class InformativeTrackSummaryResponse(PagedResponseModel):
-    response: List[InformativeTrackSummary]
+class TrackOverlapResponse(PagedResponseModel):
+    response: List[TrackOverlapSummary]

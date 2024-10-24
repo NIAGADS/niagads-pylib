@@ -1,2 +1,2 @@
-from .filer import filer
-from .visualization_redirects import router as viz_redirects
+from .filer import FILERRouter
+from .view_redirects import router as ViewRouter

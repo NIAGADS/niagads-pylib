@@ -1,19 +1,19 @@
 from fastapi import APIRouter, Depends, Path, Query, Request, status
 from fastapi.responses import RedirectResponse
-from fastapi.encoders import jsonable_encoder
 from typing import Annotated, List
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.datastructures import URL
 
 from api.dependencies.database import AsyncSession
 from api.dependencies.param_validation import convert_str2list, clean
 from api.dependencies.location_params import span_param
 from api.dependencies.exceptions import RESPONSES
 from api.dependencies.shared_params import ResponseType, format_param
-from api.response_models import BrowserTrackResponse, VizTableResponse, VizTable, VizTableOptions, RequestDataModel
+from api.response_models import GenomeBrowserConfigResponse, RequestDataModel
 
 from ..constants import ROUTE_TAGS,ROUTE_SESSION_MANAGER
 from ..dependencies import MetadataQueryService, ApiWrapperService
-from ..models import TrackResponse, TrackPublic
+from ..models import TrackResponse, Track
 
 TAGS = ROUTE_TAGS
 router = APIRouter(
@@ -40,52 +40,44 @@ async def get_track_metadata(
     name="Get metadata for multiple tracks",
     description="retrieve metadata for one or more functional genomics tracks from FILER")
 async def get_multi_track_metadata(
+        request: Request,
         session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
         track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")],
         requestData: RequestDataModel = Depends(RequestDataModel.from_request),
         format: str= Depends(format_param)) -> TrackResponse:
     
-    result = await MetadataQueryService(session).get_track_metadata(convert_str2list(track)) # b/c its been cleaned
+    result: List[Track] = await MetadataQueryService(session).get_track_metadata(convert_str2list(track)) # b/c its been cleaned
     
     if format == ResponseType.JSON:
         return TrackResponse(request=requestData, response=result)
     else:
-
-        columns = TrackPublic.table_columns()
-        columnIds = [c['id'] for c in columns]
-        
-        options = VizTableOptions(disableColumnFilters=True, defaultColumns=columnIds[:10])
-        data = [ TrackPublic(**t.serialize()) for t in result ] # convert Track to TrackPublic
-        table = VizTable(id='tracks', data=result, columns=columns, options=options)
-        tableResponse = VizTableResponse(request=requestData, response=table)
-        
-        # TODO - Cache
-        requestId = requestData.request_id
-        redirectUrl = f'/api/view/table?requestId={requestId}&field=table'
+        request.session[requestData.request_id + '_response'] = [t.serialize(expandObjs=True, collapseUrls=True) for t in result]
+        request.session[requestData.request_id + '_request'] = requestData.serialize()
+        redirectUrl = f'/view/table/filer_track?forwardingRequestId={requestData.request_id}'
         return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
     
 
 tags = TAGS + ["NIAGADS Genome Browser Configuration"]
-@router.get("/browser/{track}", tags=tags, response_model=BrowserTrackResponse,
+@router.get("/browser/{track}", tags=tags, response_model=GenomeBrowserConfigResponse,
     name="Get track Genome Browser configuration",
     description="retrieve NIAGADS Genome Browser track configuration or session file for the functional genomics `track` specified in the path")
 async def get_track_browser_config(
         session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
         track: Annotated[str, Path(description="FILER track identifier")],
-        requestData: RequestDataModel = Depends(RequestDataModel.from_request)) -> BrowserTrackResponse:
+        requestData: RequestDataModel = Depends(RequestDataModel.from_request)) -> GenomeBrowserConfigResponse:
     result = await MetadataQueryService(session).get_track_metadata(convert_str2list(track))
-    return BrowserTrackResponse(request=requestData, response=result)
+    return GenomeBrowserConfigResponse(request=requestData, response=result)
 
 
-@router.get("/browser", tags=tags,  response_model=BrowserTrackResponse,
+@router.get("/browser", tags=tags,  response_model=GenomeBrowserConfigResponse,
     name="Get Genome Browser configuration for multiple tracks",
     description="retrieve NIAGADS Genome Browser track configuration of session file for one or more functional genomics tracks from FILER")
 async def get_multi_track_browser_config(
         session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
         track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")],
-        requestData: RequestDataModel = Depends(RequestDataModel.from_request)) -> BrowserTrackResponse:
+        requestData: RequestDataModel = Depends(RequestDataModel.from_request)) -> GenomeBrowserConfigResponse:
     result = await MetadataQueryService(session).get_track_metadata(convert_str2list(track)) # b/c its been cleaned
-    return BrowserTrackResponse(request=requestData, response=result)
+    return GenomeBrowserConfigResponse(request=requestData, response=result)
 
 
 tags = TAGS + ["Track Data by ID"]

@@ -4,16 +4,26 @@ from fastapi.encoders import jsonable_encoder
 from fastapi import Request
 
 class SerializableModel(BaseModel):
-    def serialize(self, expandObjs=False):
-        """Return a dict which contains only serializable fields."""
+    def serialize(self, expandObjs=False, collapseUrls=False):
+        """Return a dict which contains only serializable fields.
+        expandObjs -> when True expands JSON fields; i.e., ds = {a:1, b:2} becomes a:1, b:2 and ds gets dropped
+        collapseUrls -> looks for field and field_url pairs and then updates field to be {url: , value: } object
+        """
         data:dict = jsonable_encoder(self.model_dump())
         if expandObjs:
-            for k,v in data.items():
-                if isinstance(v, dict):
-                    data.update(k, data.pop(k, None))
+            objFields = [ k for k, v in data.items() if isinstance(v, dict)]
+            for f in objFields:
+                data.update(data.pop(f, None))
+
+        if collapseUrls:
+            fields = list(data.keys())
+            pairedFields = [ f for f in fields if f + '_url' in fields]
+            for f in pairedFields:
+                data.update({f: {'url': data.pop(f +'_url', None), 'value': data[f]}})
+            
         return data
 
-class RequestDataModel(BaseModel):
+class RequestDataModel(SerializableModel, BaseModel):
     request_id: str
     endpoint: str
     parameters: str

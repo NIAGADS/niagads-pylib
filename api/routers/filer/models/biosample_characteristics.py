@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from .base_models import SerializableModel
+from ....response_models.base_models import SerializableModel
 
 class BiosampleCharacteristics(SerializableModel, BaseModel):
     life_stage: Optional[str] = Field(default=None, description='donor/sample life stage: adult, fetal, embryo')

@@ -1,10 +1,13 @@
 from fastapi.encoders import jsonable_encoder
 from sqlmodel import SQLModel
 from typing import Optional, Dict, List
+from typing_extensions import Self
+
+from api.response_models.formatters import id2title
 
 from .base_models import BaseResponseModel
 
-class BrowserTrack(SQLModel):
+class GenomeBrowserConfig(SQLModel):
     track_id: str
     name: str
     description: Optional[str]
@@ -17,6 +20,14 @@ class BrowserTrack(SQLModel):
     url: str
     index_url: Optional[str]
     
-class BrowserTrackResponse(BaseResponseModel):
-    response: List[BrowserTrack]
+    @classmethod
+    def view_table_columns(cls: Self):
+        """ Return a column object for niagads-viz-js/Table """
+        fields = list(cls.model_fields.keys())
+        columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields] 
+
+        return columns
+    
+class GenomeBrowserConfigResponse(BaseResponseModel):
+    response: List[GenomeBrowserConfig]
 

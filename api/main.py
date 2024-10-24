@@ -10,11 +10,11 @@ from starlette.middleware.sessions import SessionMiddleware
 from asgi_correlation_id import CorrelationIdMiddleware
 
 from api.internal.config import get_settings
-from .routers import filer, viz_redirects
+from .routers import FILERRouter, ViewRouter
 
 # FIXME -- needed for applications reading the openapi.json or openapi.yaml, but 
 # needs to be dynamic based on deployment
-SERVER = {'url' :"http://localhost:8000/api"}
+# SERVER = {'url' :"http://localhost:8000/api"}
 
 app = FastAPI(
         title="NIAGADS API",
@@ -30,8 +30,8 @@ app = FastAPI(
             "name": "Apache 2.0",
             "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
         },
-        root_path="/api",
-        servers=[SERVER],
+        # root_path="/api",
+        # servers=[SERVER],
         #swagger_ui_parameters={"docExpansion": "full"}
     )
 
@@ -61,8 +61,8 @@ async def validation_exception_handler(request: Request, exc: ValueError):
     )
 
 
-app.include_router(filer)
-app.include_router(viz_redirects)
+app.include_router(FILERRouter)
+app.include_router(ViewRouter)
 
 
 @app.get("/")
