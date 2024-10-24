@@ -10,36 +10,36 @@ from niagads.utils.list import find
 from api.response_models import id2title, PagedResponseModel, BaseResponseModel, SerializableModel
 from .biosample_characteristics import BiosampleCharacteristics
 
-class TrackPublicBase(SQLModel):
+class TrackPublicBase(SerializableModel, SQLModel):
     track_id: str
     name: str
     description: Optional[str] 
     genome_build: Optional[str]
     feature_type: Optional[str]
-    data_category: Optional[str]
-    antibody_target: Optional[str]
-    assay: Optional[str]
     is_lifted: Optional[bool]
     data_source: Optional[str]
+    data_category: Optional[str]
+    assay: Optional[str]
 
     @classmethod
     def view_table_columns(cls: Self):
         """ Return a column object for niagads-viz-js/Table """
-        fields = list(cls.model_fields.keys()) + list(BiosampleCharacteristics.model_fields.keys())
-        fields.remove('biosample_characteristics')
-        
-        # FIXME: may need to convert to Set and Back b/c I think the OverlapsSummary child will put the biosample stuff in twice
+        fields = list(cls.model_fields.keys())
+        if 'biosample_characteristics' in fields:
+            fields += list(BiosampleCharacteristics.model_fields.keys())
+            fields.remove('biosample_characteristics')
         
         columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields if f != 'data_souce_url']
             
-        # some additional formatting
+        # update type of is_lifted to boolean
         index: int = find(columns, 'is_lifted', 'id', returnValues=False)
         columns[index[0]].update({'type': 'boolean', 'description': 'data have been lifted over from an earlier genome build'})
         
         return columns
 
-class TrackPublic(SerializableModel, TrackPublicBase):    
+class TrackPublic(TrackPublicBase):    
     # experimental design
+    antibody_target: Optional[str]
     replicates: Optional[dict]
     analysis: Optional[str]
     classification: Optional[str]
@@ -70,21 +70,23 @@ class TrackPublic(SerializableModel, TrackPublicBase):
     file_format: Optional[str]
     file_schema: Optional[str]
 
-        
-class TrackResponse(BaseResponseModel):
-    response: List[TrackPublic]
-
 
 class TrackOverlapSummary(SerializableModel, TrackPublicBase):
     hit_count: int
+    """
     life_stage: Optional[str] = None
-    biosample_term: Optional[str] = None
     system_category: Optional[str] = None
     tissue_category: Optional[str] = None
-    biosample_display: Optional[str] = None
-    biosample_summary: Optional[str] = None
+    biosample_term: Optional[str] = None
     biosample_term_id: Optional[str] = None
-
+    """
     
+    
+class TrackSummaryResponse(BaseResponseModel):
+    response: List[TrackPublicBase]
+
+class TrackResponse(PagedResponseModel):
+    response: List[TrackPublic]
+
 class TrackOverlapResponse(PagedResponseModel):
     response: List[TrackOverlapSummary]
