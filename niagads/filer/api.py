@@ -1,5 +1,7 @@
 import logging
 import requests
+from pydantic import BaseModel
+from typing import List
 from urllib.parse import urlencode
 
 from ..utils.dict import print_dict
@@ -21,6 +23,11 @@ FILER_TRACK_FILTERS = {
     "project": "member of a collection of related tracks, often an ENCODE project",
     "tissue": "tissue associated with biosample"
 }
+
+class FILEROverlaps(BaseModel):
+    Indentifier: str
+    queryRegion: str
+    features: List[dict]
 
 
 class FILERApiWrapper():
@@ -66,7 +73,7 @@ class FILERApiWrapper():
 
 
     # TODO: error checking
-    def make_request(self, endpoint:str, params: dict, returnSuccess=False):
+    def make_request(self, endpoint:str, params: dict, returnSuccess=False) -> List[FILEROverlaps]:
         ''' map request params and submit to FILER API'''
         requestParams = self.__map_request_params(params)
         requestUrl = self.__filerRequestUri + "/" + endpoint + ".php?" + urlencode(requestParams)
