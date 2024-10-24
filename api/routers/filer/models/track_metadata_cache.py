@@ -103,7 +103,7 @@ class Track(SQLModel, SerializableModel, table=True):
     
     @computed_field 
     @property
-    def experimental_design(self) -> str: # required for browser config
+    def experimental_design(self) -> dict: # required for browser config
         return { field : xstr(getattr(self, field), nullStr="NA") for field in EXPERIMENTAL_DESIGN_FIELDS }
             
     @computed_field
