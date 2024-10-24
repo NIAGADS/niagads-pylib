@@ -9,7 +9,7 @@ from api.dependencies.param_validation import convert_str2list, clean
 from api.dependencies.location_params import span_param
 from api.dependencies.exceptions import RESPONSES
 from api.dependencies.shared_params import ResponseType, format_param
-from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse, RequestDataModel
+from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse, RequestDataModel, BEDResponse
 
 from ..constants import ROUTE_TAGS,ROUTE_SESSION_MANAGER
 from ..dependencies import MetadataQueryService, ApiWrapperService
@@ -72,15 +72,15 @@ async def get_track_browser_config(
 
 tags = TAGS + ["Track Data by ID"]
 @router.get("/data/{track}", tags=tags, 
-    name="Get track data",
+    name="Get track data", response_model=BEDResponse,
     description="retrieve functional genomics track data from FILER in the specified region")
 async def get_track_data(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
-        apiWrapperService: Annotated[ApiWrapperService, Depends(ApiWrapperService)],
         track: Annotated[str, Path(description="FILER track identifier")],
         span: str=Depends(span_param),
-        requestData: RequestDataModel = Depends(RequestDataModel.from_request)):
+        requestData: RequestDataModel = Depends(RequestDataModel.from_request)) -> BEDResponse:
     
     await MetadataQueryService(session).validate_tracks(convert_str2list(track))
-    return apiWrapperService.get_track_hits(clean(track), span)
+    result = await ApiWrapperService().get_track_hits(clean(track), span)
+    return BEDResponse(request=requestData, response=result)
 
 

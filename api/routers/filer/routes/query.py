@@ -14,7 +14,7 @@ from api.internal.constants import FILER_N_TRACK_LOOKUP_LIMIT
 
 from ..constants import ROUTE_SESSION_MANAGER, TRACK_SEARCH_FILTER_FIELD_MAP, ROUTE_TAGS
 from ..dependencies import MetadataQueryService, ApiWrapperService
-from ..models import TrackPublic, TrackOverlapSummary
+from ..models.track_response_model import FILERTrack, FILERTrackOverlapSummary
 
 def merge_track_lists(trackList1, trackList2):
     matched = groupby(sorted(trackList1 + trackList2, key=itemgetter('track_id')), itemgetter('track_id'))
@@ -31,7 +31,7 @@ router = APIRouter(
 
 tags = TAGS + ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
-@router.get("/tracks", tags=tags, response_model=List[TrackPublic],
+@router.get("/tracks", tags=tags, response_model=List[FILERTrack],
     name="Track Metadata Text Search", 
     description="find functional genomics tracks using category filters or by a keyword search againts all text fields in the track metadata")
 async def query_track_metadata(
@@ -44,7 +44,7 @@ async def query_track_metadata(
     return await MetadataQueryService(session).query_track_metadata(assembly, filter, keyword, options)
 
 
-@router.get('/region/summary', tags=tags, response_model=List[TrackOverlapSummary], include_in_schema=False,
+@router.get('/region/summary', tags=tags, response_model=List[FILERTrackOverlapSummary], include_in_schema=False,
             name="Get a data summary for Tracks meeting Search Criteria", 
             description="retrieve counts of hits/overlaps in a region of interest from all functional genomics tracks whose metadata meets the search or filter criteria")
 async def query_track_data_summary(request: Request, requestId: str):
@@ -79,7 +79,7 @@ async def query_track_data(
 
     if options.countOnly:    
         result = merge_track_lists([t.serialize(expandObjects=True) for t in matchingTracks], informativeTracks)
-        result = [TrackOverlapSummary(**t) for t in result if t['track_id'] in targetTrackIds]
+        result = [FILERTrackOverlapSummary(**t) for t in result if t['track_id'] in targetTrackIds]
         # informativeTracks = OrderedDict(sorted(informativeTracks.items(), key = lambda item: item[1], reverse=True))
 
         # requestId = request.headers.get("X-Request-ID")

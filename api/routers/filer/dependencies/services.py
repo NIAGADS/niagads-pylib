@@ -4,13 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from collections import OrderedDict
 
-from niagads.filer.api import FILERApiWrapper
+from niagads.filer import FILERApiWrapper, FILEROverlaps
 from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
 
 from api.internal.config import get_settings
 from api.dependencies.filter_params import tripleToPreparedStatement
 from api.dependencies.shared_params import OptionalParams
+from api.response_models.data_models import BEDFields
 
 from ..models.track_metadata_cache import Track
 from ..constants import ROUTE_DATABASE, TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
@@ -22,23 +23,20 @@ class ApiWrapperService:
     def __init__(self):
         self.__request_uri = get_settings().FILER_REQUEST_URI
         self.__wrapper = FILERApiWrapper(self.__request_uri)
-    
-    def __validate_tracks(self, tracks: List[str]):
-        service = MetadataQueryService(ROUTE_SESSION_MANAGER)
-        service.validate_tracks(tracks) # raises error if invalid tracks found
         
     def __rename_keys(self, dictObj, keyMapping):
         for oldKey, newKey in keyMapping.items():
             dictObj = rename_key(dictObj, oldKey, newKey)
         return dictObj
     
-    def __clean_hit_result(self, hitList):
-        queryRegion = hitList[0]['queryRegion']
+    def __clean_hit_result(self, hitList: List[FILEROverlaps]):
+        
+        h = [t.Identifier for t in hitList]
+        
         hits = {record['Identifier']: record['features'] for record in hitList }
-        hits.update({'query_region': queryRegion})
         return hits
         
-    def get_track_hits(self, tracks: str, span: str):
+    async def get_track_hits(self, tracks: str, span: str):
         result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': tracks, 'span': span})
         return self.__clean_hit_result(result)
     
