@@ -10,10 +10,9 @@ from niagads.utils.list import find
 from api.response_models import id2title, PagedResponseModel, BaseResponseModel, SerializableModel
 from .biosample_characteristics import BiosampleCharacteristics
 
-class TrackPublicBase(SerializableModel, SQLModel):
+class FILERTrackBrief(SQLModel, SerializableModel):
     track_id: str
     name: str
-    description: Optional[str] 
     genome_build: Optional[str]
     feature_type: Optional[str]
     is_lifted: Optional[bool]
@@ -37,7 +36,9 @@ class TrackPublicBase(SerializableModel, SQLModel):
         
         return columns
 
-class TrackPublic(TrackPublicBase):    
+class FILERTrack(FILERTrackBrief):  
+    description: Optional[str]   
+    
     # experimental design
     antibody_target: Optional[str]
     replicates: Optional[dict]
@@ -71,7 +72,7 @@ class TrackPublic(TrackPublicBase):
     file_schema: Optional[str]
 
 
-class TrackOverlapSummary(SerializableModel, TrackPublicBase):
+class FILERTrackOverlapSummary(FILERTrackBrief):
     hit_count: int
     """
     life_stage: Optional[str] = None
@@ -81,12 +82,17 @@ class TrackOverlapSummary(SerializableModel, TrackPublicBase):
     biosample_term_id: Optional[str] = None
     """
     
+class FILERTrackBriefResponse(BaseResponseModel):
+    response: List[FILERTrackBrief]
+
+class FILERTrackBriefPagedResponse(PagedResponseModel):
+    response: List[FILERTrackBrief]
     
-class TrackSummaryResponse(BaseResponseModel):
-    response: List[TrackPublicBase]
+class FILERTrackResponse(BaseResponseModel):
+    response: List[FILERTrack]
 
-class TrackResponse(PagedResponseModel):
-    response: List[TrackPublic]
+class FILERTrackPagedResponse(PagedResponseModel):
+    response: List[FILERTrack]
 
-class TrackOverlapResponse(PagedResponseModel):
-    response: List[TrackOverlapSummary]
+class FILERTrackOverlapPagedResponse(PagedResponseModel):
+    response: List[FILERTrackOverlapSummary]
