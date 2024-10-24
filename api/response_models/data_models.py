@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import List
+from typing import List, Dict, Any
 from typing_extensions import Self
 
 from .formatters import id2title
@@ -19,15 +19,16 @@ class BEDFields(SerializableModel, BaseModel):
     score: str
     strand: str
     
-    __pydantic_extra__: str = Field(init=False)    
+    __pydantic_extra__: Dict[str, Any] = Field(init=False)    
     
     model_config = ConfigDict(extra='allow')
     
     @classmethod
     def view_table_columns(cls: Self):
         """ Return a column object for niagads-viz-js/Table """
-        fields = list(cls.model_fields.keys()) + list(cls.model_extra.keys())
-        columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields if f != 'data_souce_url']
+        # TODO: how to handle the extras that only exist when instantiated
+        fields = list(cls.model_fields.keys()) 
+        columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields]
         return columns
 
     
