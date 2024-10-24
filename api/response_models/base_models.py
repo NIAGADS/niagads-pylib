@@ -4,13 +4,14 @@ from fastapi.encoders import jsonable_encoder
 from fastapi import Request
 
 class SerializableModel(BaseModel):
-    def serialize(self, expandObjs=False, collapseUrls=False):
+    def serialize(self, promoteObjs=False, collapseUrls=False, groupExtra=False):
         """Return a dict which contains only serializable fields.
-        expandObjs -> when True expands JSON fields; i.e., ds = {a:1, b:2} becomes a:1, b:2 and ds gets dropped
+        promoteObjs -> when True expands JSON fields; i.e., ds = {a:1, b:2} becomes a:1, b:2 and ds gets dropped
         collapseUrls -> looks for field and field_url pairs and then updates field to be {url: , value: } object
+        groupExtra -> if extra fields are present, group into a JSON object
         """
         data:dict = jsonable_encoder(self.model_dump())
-        if expandObjs:
+        if promoteObjs:
             objFields = [ k for k, v in data.items() if isinstance(v, dict)]
             for f in objFields:
                 data.update(data.pop(f, None))
@@ -42,5 +43,5 @@ class BaseResponseModel(SerializableModel, BaseModel):
     # TODO: session/user_id?
 
 class PagedResponseModel(BaseResponseModel):
-    page: int 
-    total_num_pages: int 
+    page: int = 1
+    total_num_pages: int = 1
