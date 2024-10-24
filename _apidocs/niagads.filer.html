@@ -1,0 +1,367 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>niagads.filer package &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="niagads.objects package" href="niagads.objects.html" />
+    <link rel="prev" title="niagads.db.postgres package" href="niagads.db.postgres.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.objects.html" title="niagads.objects package"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.db.postgres.html" title="niagads.db.postgres package"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" accesskey="U">niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.filer package</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="niagads-filer-package">
+<h1>niagads.filer package<a class="headerlink" href="#niagads-filer-package" title="Link to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-niagads.filer.api">
+<span id="niagads-filer-api-module"></span><h2>niagads.filer.api module<a class="headerlink" href="#module-niagads.filer.api" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.filer.api.FILERApiWrapper">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.filer.api.</span></span><span class="sig-name descname"><span class="pre">FILERApiWrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">requestUri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/api.html#FILERApiWrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.api.FILERApiWrapper" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Wrapper functions for FILER API, to help standardize, validate calls and protect from attacks</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.filer.api.FILERApiWrapper.make_request">
+<span class="sig-name descname"><span class="pre">make_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnSuccess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#niagads.filer.api.FILEROverlaps" title="niagads.filer.api.FILEROverlaps"><span class="pre">FILEROverlaps</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/niagads/filer/api.html#FILERApiWrapper.make_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.api.FILERApiWrapper.make_request" title="Link to this definition">¶</a></dt>
+<dd><p>map request params and submit to FILER API</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.filer.api.FILERApiWrapper.map_genome_build">
+<span class="sig-name descname"><span class="pre">map_genome_build</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">genomeBuild</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/api.html#FILERApiWrapper.map_genome_build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.api.FILERApiWrapper.map_genome_build" title="Link to this definition">¶</a></dt>
+<dd><p>return genome build in format filer expects</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.filer.api.FILEROverlaps">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.filer.api.</span></span><span class="sig-name descname"><span class="pre">FILEROverlaps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Indentifier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queryRegion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/api.html#FILEROverlaps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.api.FILEROverlaps" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.filer.api.FILEROverlaps.Indentifier">
+<span class="sig-name descname"><span class="pre">Indentifier</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#niagads.filer.api.FILEROverlaps.Indentifier" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.filer.api.FILEROverlaps.features">
+<span class="sig-name descname"><span class="pre">features</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#niagads.filer.api.FILEROverlaps.features" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.filer.api.FILEROverlaps.model_computed_fields">
+<span class="sig-name descname"><span class="pre">model_computed_fields</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ComputedFieldInfo</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#niagads.filer.api.FILEROverlaps.model_computed_fields" title="Link to this definition">¶</a></dt>
+<dd><p>A dictionary of computed field names and their corresponding <cite>ComputedFieldInfo</cite> objects.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.filer.api.FILEROverlaps.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#niagads.filer.api.FILEROverlaps.model_config" title="Link to this definition">¶</a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.filer.api.FILEROverlaps.model_fields">
+<span class="sig-name descname"><span class="pre">model_fields</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">FieldInfo</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'Indentifier':</span> <span class="pre">FieldInfo(annotation=str,</span> <span class="pre">required=True),</span> <span class="pre">'features':</span> <span class="pre">FieldInfo(annotation=List[dict],</span> <span class="pre">required=True),</span> <span class="pre">'queryRegion':</span> <span class="pre">FieldInfo(annotation=str,</span> <span class="pre">required=True)}</span></em><a class="headerlink" href="#niagads.filer.api.FILEROverlaps.model_fields" title="Link to this definition">¶</a></dt>
+<dd><p>Metadata about the fields defined on the model,
+mapping of field names to [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo] objects.</p>
+<p>This replaces <cite>Model.__fields__</cite> from Pydantic V1.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.filer.api.FILEROverlaps.queryRegion">
+<span class="sig-name descname"><span class="pre">queryRegion</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#niagads.filer.api.FILEROverlaps.queryRegion" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-niagads.filer.parser">
+<span id="niagads-filer-parser-module"></span><h2>niagads.filer.parser module<a class="headerlink" href="#module-niagads.filer.parser" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.filer.parser.FILERMetadataParser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.filer.parser.</span></span><span class="sig-name descname"><span class="pre">FILERMetadataParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/parser.html#FILERMetadataParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.parser.FILERMetadataParser" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>parser for FILER metadata:
+standardizes keys, extracts non-name info from name, cleans up</p>
+<blockquote>
+<div><dl class="simple">
+<dt>keys:</dt><dd><p>– replace spaces with _
+– lower case
+– camelCase to snake_case
+– rename fields, e.g., antibody -&gt; antibody_target
+– remove (s)</p>
+</dd>
+<dt>values:</dt><dd><p>– genome build: hg38 -&gt; GRCh38, hg19 -&gt; GRCh37
+– build biosample object
+– build file info object
+– build data source object
+– extract [] fields from trackName
+– original trackName –&gt; description
+– add feature type
+– remove TF etc from assay</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.filer.parser.FILERMetadataParser.parse">
+<span class="sig-name descname"><span class="pre">parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/parser.html#FILERMetadataParser.parse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.parser.FILERMetadataParser.parse" title="Link to this definition">¶</a></dt>
+<dd><p>parse the FILER metadata &amp; transform/clean up
+returns parsed / transformed metadata</p>
+<p>if verifyTrack = True will query FILER to make sure that the track exists
+parser will return None if the track is not valid</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.filer.parser.FILERMetadataParser.set_biosample_mapper">
+<span class="sig-name descname"><span class="pre">set_biosample_mapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapper</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/parser.html#FILERMetadataParser.set_biosample_mapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.parser.FILERMetadataParser.set_biosample_mapper" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.filer.parser.FILERMetadataParser.set_biosample_props_as_json">
+<span class="sig-name descname"><span class="pre">set_biosample_props_as_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/parser.html#FILERMetadataParser.set_biosample_props_as_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.parser.FILERMetadataParser.set_biosample_props_as_json" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.filer.parser.FILERMetadataParser.set_dates_as_strings">
+<span class="sig-name descname"><span class="pre">set_dates_as_strings</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/parser.html#FILERMetadataParser.set_dates_as_strings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.parser.FILERMetadataParser.set_dates_as_strings" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.filer.parser.FILERMetadataParser.set_filer_download_url">
+<span class="sig-name descname"><span class="pre">set_filer_download_url</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/parser.html#FILERMetadataParser.set_filer_download_url"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.parser.FILERMetadataParser.set_filer_download_url" title="Link to this definition">¶</a></dt>
+<dd><p>set value of FILER file download URL (base path)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.filer.parser.FILERMetadataParser.set_metadata">
+<span class="sig-name descname"><span class="pre">set_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/parser.html#FILERMetadataParser.set_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.parser.FILERMetadataParser.set_metadata" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.filer.parser.FILERMetadataParser.set_primary_key_label">
+<span class="sig-name descname"><span class="pre">set_primary_key_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pkLabel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/parser.html#FILERMetadataParser.set_primary_key_label"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.parser.FILERMetadataParser.set_primary_key_label" title="Link to this definition">¶</a></dt>
+<dd><p>default is ‘identifier’, use to override</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.filer.parser.is_searchable_string">
+<span class="sig-prename descclassname"><span class="pre">niagads.filer.parser.</span></span><span class="sig-name descname"><span class="pre">is_searchable_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipFieldsWith</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/parser.html#is_searchable_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.parser.is_searchable_string" title="Link to this definition">¶</a></dt>
+<dd><p>checks to see if key: value field contains, searchable text
+based on 1) field name and 2) field contents</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.filer.parser.metadata_parser">
+<span class="sig-prename descclassname"><span class="pre">niagads.filer.parser.</span></span><span class="sig-name descname"><span class="pre">metadata_parser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/parser.html#metadata_parser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.parser.metadata_parser" title="Link to this definition">¶</a></dt>
+<dd><p>iterate over list of one or more raw metadata
+objects from FILER API and standardize; returns array of standardized metadata objects</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.filer.parser.split_replicates">
+<span class="sig-prename descclassname"><span class="pre">niagads.filer.parser.</span></span><span class="sig-name descname"><span class="pre">split_replicates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">replicates</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/filer/parser.html#split_replicates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.filer.parser.split_replicates" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-niagads.filer">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-niagads.filer" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><div class="sphinx-toc sphinxlocaltoc">
+    <h3><a href="../index.html">Page contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">niagads.filer package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-niagads.filer.api">niagads.filer.api module</a><ul>
+<li><a class="reference internal" href="#niagads.filer.api.FILERApiWrapper"><code class="docutils literal notranslate"><span class="pre">FILERApiWrapper</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.filer.api.FILERApiWrapper.make_request"><code class="docutils literal notranslate"><span class="pre">FILERApiWrapper.make_request()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.api.FILERApiWrapper.map_genome_build"><code class="docutils literal notranslate"><span class="pre">FILERApiWrapper.map_genome_build()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.filer.api.FILEROverlaps"><code class="docutils literal notranslate"><span class="pre">FILEROverlaps</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.filer.api.FILEROverlaps.Indentifier"><code class="docutils literal notranslate"><span class="pre">FILEROverlaps.Indentifier</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.api.FILEROverlaps.features"><code class="docutils literal notranslate"><span class="pre">FILEROverlaps.features</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.api.FILEROverlaps.model_computed_fields"><code class="docutils literal notranslate"><span class="pre">FILEROverlaps.model_computed_fields</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.api.FILEROverlaps.model_config"><code class="docutils literal notranslate"><span class="pre">FILEROverlaps.model_config</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.api.FILEROverlaps.model_fields"><code class="docutils literal notranslate"><span class="pre">FILEROverlaps.model_fields</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.api.FILEROverlaps.queryRegion"><code class="docutils literal notranslate"><span class="pre">FILEROverlaps.queryRegion</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.filer.parser">niagads.filer.parser module</a><ul>
+<li><a class="reference internal" href="#niagads.filer.parser.FILERMetadataParser"><code class="docutils literal notranslate"><span class="pre">FILERMetadataParser</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.filer.parser.FILERMetadataParser.parse"><code class="docutils literal notranslate"><span class="pre">FILERMetadataParser.parse()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.parser.FILERMetadataParser.set_biosample_mapper"><code class="docutils literal notranslate"><span class="pre">FILERMetadataParser.set_biosample_mapper()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.parser.FILERMetadataParser.set_biosample_props_as_json"><code class="docutils literal notranslate"><span class="pre">FILERMetadataParser.set_biosample_props_as_json()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.parser.FILERMetadataParser.set_dates_as_strings"><code class="docutils literal notranslate"><span class="pre">FILERMetadataParser.set_dates_as_strings()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.parser.FILERMetadataParser.set_filer_download_url"><code class="docutils literal notranslate"><span class="pre">FILERMetadataParser.set_filer_download_url()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.parser.FILERMetadataParser.set_metadata"><code class="docutils literal notranslate"><span class="pre">FILERMetadataParser.set_metadata()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.parser.FILERMetadataParser.set_primary_key_label"><code class="docutils literal notranslate"><span class="pre">FILERMetadataParser.set_primary_key_label()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.filer.parser.is_searchable_string"><code class="docutils literal notranslate"><span class="pre">is_searchable_string()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.parser.metadata_parser"><code class="docutils literal notranslate"><span class="pre">metadata_parser()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.filer.parser.split_replicates"><code class="docutils literal notranslate"><span class="pre">split_replicates()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.filer">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="niagads.db.postgres.html"
+                          title="Previous page">&larr; niagads.db.postgres package</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="niagads.objects.html"
+                          title="Next page">&rarr; niagads.objects package</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/_apidocs/niagads.filer.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.objects.html" title="niagads.objects package"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.db.postgres.html" title="niagads.db.postgres package"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" >niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.filer package</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.2.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

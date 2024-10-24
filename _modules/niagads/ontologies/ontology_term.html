@@ -1,0 +1,423 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.ontologies.ontology_term &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.ontologies.ontology_term</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.ontologies.ontology_term</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">basename</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">annotation_property_types</span><span class="p">,</span> <span class="n">ANNOTATION_PROPERTIES</span><span class="p">,</span> <span class="n">REGEX_PATTERNS</span><span class="p">,</span> <span class="n">OBSOLETE_RELATIONSHIPS</span>
+<span class="kn">from</span> <span class="nn">..utils.list</span> <span class="kn">import</span> <span class="n">array_in_string</span><span class="p">,</span> <span class="n">list_to_string</span>
+<span class="kn">from</span> <span class="nn">..utils.string</span> <span class="kn">import</span> <span class="n">is_balanced</span><span class="p">,</span> <span class="n">regex_extract</span>
+
+<div class="viewcode-block" id="OntologyTerm">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm">[docs]</a>
+<span class="k">class</span> <span class="nc">OntologyTerm</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iri</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span> <span class="o">=</span> <span class="n">debug</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__iri</span> <span class="o">=</span> <span class="n">iri</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__id</span> <span class="o">=</span> <span class="n">basename</span><span class="p">(</span><span class="n">iri</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__term</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__annotationProperties</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__subclassOf</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__synonyms</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dbRefs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__includeComments</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__propTypes</span> <span class="o">=</span> <span class="n">annotation_property_types</span><span class="p">()</span>
+        
+        
+<div class="viewcode-block" id="OntologyTerm.set_is_obsolete">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.set_is_obsolete">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_is_obsolete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__annotationProperties</span><span class="p">[</span><span class="s1">&#39;is_obsolete&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+        
+<div class="viewcode-block" id="OntologyTerm.include_comments">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.include_comments">[docs]</a>
+    <span class="k">def</span> <span class="nf">include_comments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">includeComments</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__includeComments</span> <span class="o">=</span> <span class="n">includeComments</span></div>
+
+     
+<div class="viewcode-block" id="OntologyTerm.debug">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.debug">[docs]</a>
+    <span class="k">def</span> <span class="nf">debug</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span> <span class="o">=</span> <span class="n">debug</span>   </div>
+
+        
+<div class="viewcode-block" id="OntologyTerm.add_db_ref">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.add_db_ref">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_db_ref</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;: &#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dbRefs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__dbRefs</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__dbRefs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+       
+            
+<div class="viewcode-block" id="OntologyTerm.add_synonym">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.add_synonym">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_synonym</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__synonyms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__synonyms</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__synonyms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+            
+        
+<div class="viewcode-block" id="OntologyTerm.set_is_a">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.set_is_a">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_is_a</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">relationships</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;takes is_a relationships; finds obsolete flags and removes,</span>
+<span class="sd">        setting the term to obsolete when required</span>
+<span class="sd">        </span>
+<span class="sd">        then assigns the remaning relationships to the term</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            relationships (str list): list of relationships in str format</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">relationships</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">array_in_string</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">OBSOLETE_RELATIONSHIPS</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_is_obsolete</span><span class="p">()</span>
+                <span class="n">relationships</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__subclassOf</span> <span class="o">=</span> <span class="n">relationships</span></div>
+
+        
+<div class="viewcode-block" id="OntologyTerm.get_db_refs">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.get_db_refs">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_db_refs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asStr</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dbRefs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>      
+        <span class="k">return</span> <span class="s1">&#39;//&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dbRefs</span><span class="p">)</span> <span class="k">if</span> <span class="n">asStr</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dbRefs</span></div>
+
+        
+<div class="viewcode-block" id="OntologyTerm.get_synonyms">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.get_synonyms">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_synonyms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asStr</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__synonyms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>   
+        <span class="k">return</span> <span class="s1">&#39;//&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__synonyms</span><span class="p">)</span> <span class="k">if</span> <span class="n">asStr</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">__synonyms</span></div>
+
+        
+<div class="viewcode-block" id="OntologyTerm.is_a">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.is_a">[docs]</a>
+    <span class="k">def</span> <span class="nf">is_a</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">asStr</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__subclassOf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>  
+        <span class="k">if</span> <span class="n">parse</span><span class="p">:</span>
+            <span class="n">relationships</span> <span class="o">=</span> <span class="p">[</span><span class="n">parse_subclass_relationship</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__subclassOf</span><span class="p">]</span>
+            <span class="k">return</span> <span class="s1">&#39;//&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">relationships</span><span class="p">])</span> <span class="k">if</span> <span class="n">asStr</span> <span class="k">else</span> <span class="n">relationships</span>
+        <span class="k">return</span> <span class="s1">&#39;//&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__subclassOf</span><span class="p">)</span> <span class="k">if</span> <span class="n">asStr</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">__subclassOf</span></div>
+
+        
+<div class="viewcode-block" id="OntologyTerm.get_id">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.get_id">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__id</span></div>
+
+    
+<div class="viewcode-block" id="OntologyTerm.get_iri">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.get_iri">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_iri</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__iri</span></div>
+
+    
+<div class="viewcode-block" id="OntologyTerm.get_term">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.get_term">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_term</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__term</span></div>
+
+    
+<div class="viewcode-block" id="OntologyTerm.set_term">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.set_term">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__term</span> <span class="o">=</span> <span class="n">term</span>
+        <span class="c1"># not always flagged w/an annotation property or ObsoleteClass tag</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;obsolete&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">term</span> <span class="o">!=</span> <span class="s1">&#39;obsolete class&#39;</span><span class="p">)</span> \
+            <span class="ow">or</span> <span class="n">term</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;deprecated&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_is_obsolete</span><span class="p">()</span></div>
+
+        
+<div class="viewcode-block" id="OntologyTerm.get_annotation_properties">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.get_annotation_properties">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_annotation_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotationProperties</span></div>
+
+            
+<div class="viewcode-block" id="OntologyTerm.in_namespace">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.in_namespace">[docs]</a>
+    <span class="k">def</span> <span class="nf">in_namespace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">namespace</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+        
+        
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;str() wrapper</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tab delimited string of term and its annotations</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__iri</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__term</span><span class="p">]</span>    
+        <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__propTypes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__includeComments</span> <span class="ow">and</span> <span class="n">prop</span> <span class="o">==</span> <span class="s1">&#39;comment&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">prop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotationProperties</span><span class="p">:</span>
+                <span class="n">annotation</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">prop</span> <span class="o">==</span> <span class="s1">&#39;is_obsolete&#39;</span> \
+                    <span class="k">else</span> <span class="s1">&#39;//&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__annotationProperties</span><span class="p">[</span><span class="n">prop</span><span class="p">])</span>     
+                <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    
+        <span class="k">return</span> <span class="n">list_to_string</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">nullStr</span><span class="o">=</span><span class="s1">&#39;NULL&#39;</span><span class="p">,</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+    
+        
+<div class="viewcode-block" id="OntologyTerm.set_annotation_property">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm.set_annotation_property">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_annotation_property</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;set annotation property; incls clean and validating property IRIs</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            prop (str): field/property to add</span>
+<span class="sd">            value (str): value to assign to the property</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># some comments &amp; definitions have newlines or tabs in them</span>
+        <span class="c1"># so clean it up; see https://stackoverflow.com/a/10711166</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+    
+        <span class="k">if</span> <span class="n">prop</span> <span class="o">==</span> <span class="s1">&#39;label&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_term</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">propType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_annotation_type</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">propType</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">propType</span> <span class="o">==</span> <span class="s1">&#39;db_ref&#39;</span><span class="p">:</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">add_db_ref</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">propType</span> <span class="o">==</span> <span class="s1">&#39;synonym&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">add_synonym</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">propType</span> <span class="o">==</span> <span class="s1">&#39;is_obsolete&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_is_obsolete</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span> <span class="c1"># make everything a list</span>
+                    <span class="k">if</span> <span class="n">propType</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotationProperties</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">__annotationProperties</span><span class="p">[</span><span class="n">propType</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotationProperties</span><span class="p">[</span><span class="n">propType</span><span class="p">]</span> <span class="o">+</span> <span class="n">value</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">__annotationProperties</span><span class="p">[</span><span class="n">propType</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+                
+    
+    <span class="k">def</span> <span class="nf">__get_annotation_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">property</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;get property mapping for iri (e.g., multiple synonym fields -&gt; synonym property)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            property (str): field or property name</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            string indicating mapped type (e.g., multiple synonym fields -&gt; synonym property)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">annotType</span><span class="p">,</span> <span class="n">properties</span> <span class="ow">in</span> <span class="n">ANNOTATION_PROPERTIES</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">property</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">annotType</span>
+        
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<span class="c1"># -- functions for parsing is_a relationships</span>
+
+
+<span class="k">def</span> <span class="nf">__phrase_type</span><span class="p">(</span><span class="n">relStr</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s1">&#39;(&#39;</span> <span class="ow">in</span> <span class="n">relStr</span> <span class="ow">or</span> <span class="s1">&#39;)&#39;</span> <span class="ow">in</span> <span class="n">relStr</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">is_balanced</span><span class="p">(</span><span class="n">relStr</span><span class="p">):</span> <span class="c1"># () are balanced</span>
+            <span class="k">return</span> <span class="s1">&#39;QUALIFIER&#39;</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># it&#39;s been split due to nested logic</span>
+            <span class="k">return</span> <span class="s1">&#39;BROKEN_QUALIFIER&#39;</span>
+    <span class="k">else</span><span class="p">:</span> <span class="c1"># a class</span>
+        <span class="k">return</span> <span class="s1">&#39;CLASS&#39;</span>
+    
+
+<span class="k">def</span> <span class="nf">__parse_qualifier</span><span class="p">(</span><span class="n">relStr</span><span class="p">):</span>
+    <span class="n">qualifier</span> <span class="o">=</span> <span class="n">regex_extract</span><span class="p">(</span><span class="n">REGEX_PATTERNS</span><span class="o">.</span><span class="n">qualifier</span><span class="p">,</span> <span class="n">relStr</span><span class="p">)</span>
+    <span class="n">namespace</span><span class="p">,</span> <span class="n">iri</span><span class="p">,</span> <span class="n">qual</span> <span class="o">=</span> <span class="n">qualifier</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="n">phrase</span> <span class="o">=</span> <span class="n">regex_extract</span><span class="p">(</span><span class="n">REGEX_PATTERNS</span><span class="o">.</span><span class="n">outermost</span><span class="p">,</span> <span class="n">relStr</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">iri</span><span class="p">,</span> <span class="n">qual</span><span class="p">]),</span> <span class="n">phrase</span>
+    
+    
+<div class="viewcode-block" id="parse_subclass_relationship">
+<a class="viewcode-back" href="../../../_apidocs/niagads.ontologies.html#niagads.ontologies.ontology_term.parse_subclass_relationship">[docs]</a>
+<span class="k">def</span> <span class="nf">parse_subclass_relationship</span><span class="p">(</span><span class="n">relStr</span><span class="p">,</span> <span class="n">piece</span><span class="o">=</span><span class="s2">&quot;full&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;parses subclass relationships (owlready2 format) and returns an array of elements that can be joined into a phrase</span>
+<span class="sd">    or further parsed (e.g., to map the IRIs to terms)</span>
+<span class="sd">    </span>
+<span class="sd">    Examples:</span>
+<span class="sd">       </span>
+<span class="sd">    Args:</span>
+<span class="sd">        relStr (str): the string to be parsed; expects is_a relationship from &#39;owlready2&#39; package</span>
+<span class="sd">        piece (str): for debugging purposes; can use to log breakdown</span>
+<span class="sd">  </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        dict representation of the relationship</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">relationships</span> <span class="o">=</span> <span class="n">relStr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">relationships</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">relation</span> <span class="o">=</span> <span class="n">relationships</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">pType</span> <span class="o">=</span> <span class="n">__phrase_type</span><span class="p">(</span><span class="n">relation</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pType</span> <span class="o">==</span> <span class="s1">&#39;CLASS&#39;</span><span class="p">:</span>
+            <span class="n">namespace</span><span class="p">,</span> <span class="n">iri</span> <span class="o">=</span> <span class="n">relation</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">iri</span>
+        <span class="k">elif</span> <span class="n">pType</span> <span class="o">==</span> <span class="s1">&#39;QUALIFIER&#39;</span><span class="p">:</span>
+            <span class="n">qualifier</span><span class="p">,</span> <span class="n">innerRels</span> <span class="o">=</span> <span class="n">__parse_qualifier</span><span class="p">(</span><span class="n">relation</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span> <span class="n">qualifier</span><span class="p">:</span> <span class="n">parse_subclass_relationship</span><span class="p">(</span><span class="n">innerRels</span><span class="p">,</span> <span class="s2">&quot;inner&quot;</span><span class="p">)</span> <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Issue parsing relationship - case not caught: &quot;</span> <span class="o">+</span> <span class="n">relStr</span><span class="p">)</span>
+            
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">relationships</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;&amp;&#39;</span><span class="p">,</span> <span class="s1">&#39;|&#39;</span><span class="p">]:</span>
+            <span class="c1"># valid a | b or a &amp; b</span>
+            <span class="k">if</span> <span class="n">__phrase_type</span><span class="p">(</span><span class="n">relationships</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="s1">&#39;BROKEN_QUALIFIER&#39;</span><span class="p">:</span>
+                <span class="c1"># re- split again on first occurrence of logical operator</span>
+                <span class="c1"># trim spaces</span>
+                <span class="n">operator</span> <span class="o">=</span> <span class="n">relationships</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">relationships</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">relStr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">operator</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span> 
+                
+                <span class="c1"># recursively process left &amp; right side of operation</span>
+                <span class="k">return</span> <span class="p">{</span> <span class="s1">&#39;AND&#39;</span> <span class="k">if</span> <span class="n">operator</span> <span class="o">==</span> <span class="s1">&#39;&amp;&#39;</span> <span class="k">else</span> <span class="s1">&#39;OR&#39;</span><span class="p">:</span> 
+                            <span class="p">[</span><span class="n">parse_subclass_relationship</span><span class="p">(</span><span class="n">relationships</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;left&quot;</span><span class="p">),</span>
+                            <span class="n">parse_subclass_relationship</span><span class="p">(</span><span class="n">relationships</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;right&quot;</span><span class="p">)]</span>
+                        <span class="p">}</span>
+            
+            <span class="k">else</span><span class="p">:</span> <span class="c1"># logical operation is nested, splitting broke the qualifier</span>
+                <span class="n">qualifier</span><span class="p">,</span> <span class="n">innerRels</span> <span class="o">=</span> <span class="n">__parse_qualifier</span><span class="p">(</span><span class="n">relStr</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">{</span><span class="n">qualifier</span><span class="p">:</span> <span class="n">parse_subclass_relationship</span><span class="p">(</span><span class="n">innerRels</span><span class="p">,</span> <span class="s2">&quot;inner&quot;</span><span class="p">)}</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.ontologies.ontology_term</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.2.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

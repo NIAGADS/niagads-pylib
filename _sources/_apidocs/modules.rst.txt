@@ -1,0 +1,7 @@
+niagads
+=======
+
+.. toctree::
+   :maxdepth: 4
+
+   niagads
