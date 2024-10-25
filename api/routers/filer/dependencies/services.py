@@ -4,14 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from collections import OrderedDict
 
-from niagads.filer import FILERApiWrapper, FILEROverlaps
+from niagads.filer import FILERApiWrapper, FILERTrackOverlaps
 from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
 
 from api.internal.config import get_settings
 from api.dependencies.filter_params import tripleToPreparedStatement
 from api.dependencies.shared_params import OptionalParams
-from api.response_models.data_models import BEDFields
+from api.response_models.data_models import BEDFeature
 
 from ..models.track_metadata_cache import Track
 from ..constants import ROUTE_DATABASE, TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
@@ -29,16 +29,18 @@ class ApiWrapperService:
             dictObj = rename_key(dictObj, oldKey, newKey)
         return dictObj
     
-    def __clean_hit_result(self, hitList: List[FILEROverlaps]):
+    def __overlaps2features(self, overlaps: List[FILERTrackOverlaps]) -> List[BEDFeature]:
         
-        h = [t.Identifier for t in hitList]
+        features = []
+        for track in overlaps:
+            for f in track.features:
+                f.track_id = track.Identifier
+                features.append(BEDFeature(**f.model_dump()))
+        return features
         
-        hits = {record['Identifier']: record['features'] for record in hitList }
-        return hits
-        
-    async def get_track_hits(self, tracks: str, span: str):
+    async def get_track_hits(self, tracks: str, span: str) -> List[BEDFeature]:
         result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': tracks, 'span': span})
-        return self.__clean_hit_result(result)
+        return self.__overlaps2features(result)
     
     
     def get_informative_tracks(self, span: str, assembly: str, sort=False):

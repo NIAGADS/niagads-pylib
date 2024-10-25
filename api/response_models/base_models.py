@@ -21,7 +21,9 @@ class SerializableModel(BaseModel):
             pairedFields = [ f for f in fields if f + '_url' in fields]
             for f in pairedFields:
                 data.update({f: {'url': data.pop(f +'_url', None), 'value': data[f]}})
-            
+
+        if groupExtra:
+            raise NotImplementedError()  
         return data
 
 class RequestDataModel(SerializableModel, BaseModel):

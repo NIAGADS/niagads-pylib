@@ -71,7 +71,7 @@ async def get_track_browser_config(
 
 
 tags = TAGS + ["Track Data by ID"]
-@router.get("/data/{track}", tags=tags, 
+@router.get("/{track}/data", tags=tags, 
     name="Get track data", response_model=BEDResponse,
     description="retrieve functional genomics track data from FILER in the specified region")
 async def get_track_data(session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)], 
