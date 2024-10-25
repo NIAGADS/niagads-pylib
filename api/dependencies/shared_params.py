@@ -1,8 +1,11 @@
 from pydantic import BaseModel, model_validator
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Depends, Query
 from typing import Optional
 from typing_extensions import Self
-from fastapi import Query
 from enum import Enum
+
+from api.response_models.base_models import RequestDataModel
 
 from .param_validation import clean
 
@@ -19,6 +22,11 @@ class OptionalParams(BaseModel):
 class ExtendedOptionalParams(OptionalParams):
     idsOnly: Optional[bool] = Query(Query(default = False, description="return only the IDS (no annotation or metadata) for matching records"))
 
+class InternalRequestParameters(BaseModel, arbitrary_types_allowed=True):
+    requestData: RequestDataModel = Depends(RequestDataModel.from_request)
+    session: AsyncSession
+
+# FIXME: use internal model_validation instead of class method
 class ResponseType(str, Enum):
     """ enum for allowable response / output types"""
     JSON = "json"
@@ -32,6 +40,10 @@ class ResponseType(str, Enum):
                 return e.value
     
         raise ValueError("Invalid response `format`: " + value)
+    
+
 
 async def format_param(format: ResponseType = Query(ResponseType.JSON, description="type of response retured by the request")): 
     return ResponseType.validate(clean(format))
+
+

@@ -1,4 +1,3 @@
-
 from sqlmodel import SQLModel
 from fastapi.encoders import jsonable_encoder
 from datetime import datetime
@@ -7,7 +6,8 @@ from typing_extensions import Self
 
 from niagads.utils.list import find
 
-from api.response_models import id2title, PagedResponseModel, BaseResponseModel, SerializableModel
+from api.common.formatters import id2title
+from api.response_models import PagedResponseModel, BaseResponseModel, SerializableModel
 from .biosample_characteristics import BiosampleCharacteristics
 
 class FILERTrackBrief(SQLModel, SerializableModel):

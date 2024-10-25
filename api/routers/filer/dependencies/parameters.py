@@ -3,9 +3,15 @@ from fastapi import Depends, Request
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..constants import ROUTE_SESSION_MANAGER
+from api.dependencies.database import DatabaseSessionManager
+from api.response_models.base_models import RequestDataModel
+from api.dependencies.shared_params import InternalRequestParameters as BaseInternalRequestParameters
 
-class InternalServiceParameters(BaseModel, arbitrary_types_allowed=True):
-    request: Request
+from ..common.constants import ROUTE_DATABASE
+
+ROUTE_SESSION_MANAGER = DatabaseSessionManager(ROUTE_DATABASE)
+
+# override session to use the ROUTE_SESSION_MANAGER
+class InternalRequestParameters(BaseInternalRequestParameters, arbitrary_types_allowed=True):
     session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)]
     

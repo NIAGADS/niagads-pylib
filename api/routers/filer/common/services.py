@@ -14,7 +14,7 @@ from api.dependencies.shared_params import OptionalParams
 from api.response_models.data_models import BEDFeature
 
 from ..models.track_metadata_cache import Track
-from ..constants import ROUTE_DATABASE, TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
+from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 
 class ApiWrapperService:
     _OVERLAPS_ENDPOINT = 'get_overlaps'
@@ -30,7 +30,6 @@ class ApiWrapperService:
         return dictObj
     
     def __overlaps2features(self, overlaps: List[FILERTrackOverlaps]) -> List[BEDFeature]:
-        
         features = []
         for track in overlaps:
             for f in track.features:
@@ -41,8 +40,7 @@ class ApiWrapperService:
     async def get_track_hits(self, tracks: str, span: str) -> List[BEDFeature]:
         result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': tracks, 'span': span})
         return self.__overlaps2features(result)
-    
-    
+
     def get_informative_tracks(self, span: str, assembly: str, sort=False):
         result = self.__wrapper.make_request(self._INFORMATIVE_TRACKS_ENDPOINT, {'span': span, 'assembly': assembly})
         result = [{'track_id' : track['Identifier'], 'hit_count': track['numOverlaps']} for track in result]

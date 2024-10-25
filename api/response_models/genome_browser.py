@@ -3,7 +3,7 @@ from sqlmodel import SQLModel
 from typing import Optional, Dict, List, Union
 from typing_extensions import Self
 
-from api.response_models.formatters import id2title
+from api.common.formatters import id2title
 
 from .base_models import BaseResponseModel
 

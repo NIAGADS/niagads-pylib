@@ -4,7 +4,7 @@ from typing_extensions import Self
 
 from niagads.filer import BEDFeature as FILERApiBEDFeature, FILERTrackOverlaps
 
-from .formatters import id2title
+from ..common.formatters import id2title
 from .base_models import SerializableModel, PagedResponseModel, BaseResponseModel
 
 # see https://docs.pydantic.dev/latest/concepts/models/#extra-fields 
