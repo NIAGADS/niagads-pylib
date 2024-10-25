@@ -1,7 +1,7 @@
 import logging
 import requests
 from pydantic import BaseModel, ConfigDict
-from typing import List
+from typing import List, Dict, Any, Union
 from urllib.parse import urlencode
 
 from ..utils.dict import print_dict
@@ -29,13 +29,14 @@ class BEDFeature(BaseModel):
     chromStart: int
     chromEnd: int
     name: str
-    score: str
-    strand: str
+    score: Union[str, int, float]
+    strand: str 
     
+    __pydantic_extra__: Dict[str, Any]  
     model_config = ConfigDict(extra='allow')
 
 class FILERTrackOverlaps(BaseModel):
-    Indentifier: str
+    Identifier: str
     queryRegion: str
     features: List[BEDFeature]
 
@@ -94,7 +95,7 @@ class FILERApiWrapper():
                 self.logger.debug("SUCCESS: " + str(len(response.json()))) 
             if returnSuccess:
                 return True    
-            return response.json()
+            return [FILERTrackOverlaps(**r) for r in response.json()]
         except requests.JSONDecodeError as err:
             raise LookupError(f'Unable to parse FILER repsonse `{response.content}` for the following request: {requestUrl}')
         except requests.exceptions.HTTPError as err:
