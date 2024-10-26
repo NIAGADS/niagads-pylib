@@ -52,6 +52,7 @@ class DatabaseSessionManager:
         
 
     async def __call__(self):
+        session: AsyncSession # annotated type hint
         async with self.__session() as session:
             if session is None:
                 raise Exception("DatabaseSessionManager is not initialized")
@@ -59,10 +60,10 @@ class DatabaseSessionManager:
                 await session.execute(text("SELECT 1"))
                 yield session
             except Exception as err:
-                # b/c it catches errors having nothing to do w/the database
+                # sometimes this cataches errors having nothing to do w/the database
                 # that disrupt the yielded session
-                logger.error('Unexpected Error', exc_info=err, stack_info=True)
                 await session.rollback()
-                raise
+                logger.error('Unexpected Error', exc_info=err, stack_info=True)
+                raise RuntimeError(f'Unexpected Error: {str(err)}')
             finally:
                 await session.close()
