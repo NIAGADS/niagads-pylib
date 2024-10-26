@@ -18,13 +18,13 @@ def serialize(model: DataModel, record: SerializableModel):
     try:
         return model.value(**record)
     except:
-        raise KeyError('Invalid data model for NIAGADS-viz-js Table: %s' % model)       
+        raise RuntimeError('Invalid data model for NIAGADS-viz-js Table: %s' % model)       
         
 def columns(model: DataModel):
     try:
         return model.value.view_table_columns()
     except:
-        raise KeyError('Invalid data model for NIAGADS-viz-js Table: %s' % model)       
+        raise RuntimeError('Invalid data model for NIAGADS-viz-js Table: %s' % model)       
     """
     match model:
         case 'filer_track':
