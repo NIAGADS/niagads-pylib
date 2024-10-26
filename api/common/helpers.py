@@ -6,7 +6,7 @@ from api.response_models.base_models import RequestDataModel
 
 class HelperParameters(BaseModel, arbitrary_types_allowed=True):
     internal: InternalRequestParameters
-    responseModel: Any
+    model: Any
     format: ResponseType = ResponseType.JSON
     parameters: Dict[str, Any]
     

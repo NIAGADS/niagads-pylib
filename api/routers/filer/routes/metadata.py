@@ -33,18 +33,11 @@ async def get_track_metadata(
         format: str= Depends(format_param),
         internal: InternalRequestParameters = Depends()) -> FILERTrackResponse:
     
-    opts = HelperParameters(internal=internal, format=format, responseModel=FILERTrackResponse, parameters={'track': track})
+    opts = HelperParameters(internal=internal, format=format, model=FILERTrackResponse, parameters={'track': track})
     return await __get_track_metadata(opts)
 
-""" 
-    else:
-        # FIXME: cache in memory store; revisit when caching is set up
-        request.session[requestData.request_id + '_response'] = [t.serialize(promoteObjs=True, collapseUrls=True) for t in result]
-        request.session[requestData.request_id + '_request'] = requestData.serialize()
-        # redirectUrl = f'/view/table/filer_track?forwardingRequestId={requestData.request_id}'
-        # return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
-"""
 
+tags = TAGS + ["NIAGADS Genome Browser Configuration"]
 @router.get("/browser_config", tags=tags,  response_model=Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse],
     name="Get Genome Browser configuration for multiple tracks",
     description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) specified in the path")
@@ -56,5 +49,5 @@ async def get_track_browser_config(
         ) -> Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse]:
 
     responseModel = GenomeBrowserExtendedConfigResponse if inclMetadata else GenomeBrowserConfigResponse
-    opts = HelperParameters(internal=internal, format=format, responseModel=responseModel, parameters={'track': track})
+    opts = HelperParameters(internal=internal, format=format, model=responseModel, parameters={'track': track})
     return await __get_track_metadata(opts)

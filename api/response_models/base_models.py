@@ -10,7 +10,7 @@ class SerializableModel(BaseModel):
         collapseUrls -> looks for field and field_url pairs and then updates field to be {url: , value: } object
         groupExtra -> if extra fields are present, group into a JSON object
         """
-        data:dict = jsonable_encoder(self.model_dump())
+        data:dict = jsonable_encoder(self.model_dump()) # FIXME: not sure if encoder is necessary; check dates? maybe
         if promoteObjs:
             objFields = [ k for k, v in data.items() if isinstance(v, dict)]
             for f in objFields:
