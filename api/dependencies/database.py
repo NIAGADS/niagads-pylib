@@ -59,9 +59,11 @@ class DatabaseSessionManager:
             try: 
                 await session.execute(text("SELECT 1"))
                 yield session
+            except (NotImplementedError, ValueError, RuntimeError):
+                await session.rollback()
+                raise  
             except Exception as err:
-                # sometimes this cataches errors having nothing to do w/the database
-                # that disrupt the yielded session
+                # everything else for which we currently have no handler
                 await session.rollback()
                 logger.error('Unexpected Error', exc_info=err, stack_info=True)
                 raise RuntimeError(f'Unexpected Error: {str(err)}')
