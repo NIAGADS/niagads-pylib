@@ -2,25 +2,25 @@ from fastapi import APIRouter, Request
 from enum import Enum
 
 from api.dependencies.exceptions import RESPONSES
-from api.response_models import GenomeBrowserConfig, RequestDataModel, SerializableModel, \
+from api.response_models import GenomeBrowserConfig, SerializableModel, \
     VizTableResponse, VizTable, VizTableOptions
 
 from api.routers.filer.models.track_response_model import FILERTrackBrief, FILERTrack, FILERTrackOverlapSummary
 
-class DataModel(Enum):
-    FILER_TRACK_BRIEF = FILERTrackBrief
-    FILER_TRACK = FILERTrack
-    FILER_TRACK_OVERLAP_SUMMARY = FILERTrackOverlapSummary
-    GENOME_BROWSER_CONFIG = GenomeBrowserConfig
+class RowModel(Enum):
+    FILERTrackBrief = FILERTrackBrief
+    FILERTrack = FILERTrack
+    FILERTrackOverlapSummary = FILERTrackOverlapSummary
+    GenomeBrowserConfig = GenomeBrowserConfig
     
 
-def serialize(model: DataModel, record: SerializableModel):
+def serialize(model: RowModel, record: SerializableModel):
     try:
         return model.value(**record)
     except:
         raise RuntimeError('Invalid data model for NIAGADS-viz-js Table: %s' % model)       
         
-def columns(model: DataModel):
+def columns(model: RowModel):
     try:
         return model.value.view_table_columns()
     except:
@@ -46,24 +46,25 @@ router = APIRouter(
 )
 
 tags = TAGS + ["Redirect JSON responses to Visualization Tools"]
-@router.get("/table/{data_model}", tags=tags, response_model=VizTableResponse,
+@router.get("/table/{row_model}", tags=tags, response_model=VizTableResponse,
     name="Serialize and cache query response for a NIAGADS-viz-js Table")
 async def get_table_view(
-        data_model: str,
+        row_model: str,
         request: Request, # should have in memory store of the data
         forwardingRequestId: str, # serialized request data model 
     ) -> VizTableResponse:
 
     # get the original response from the request.session
     try:
+        # FIXME: use cache
         requestData = request.session.get(forwardingRequestId + '_request')
         requestData = request.session[forwardingRequestId + '_request']
         responseData = request.session[forwardingRequestId + '_response'] # TODO: pulled from session
         # try to convert the data
-        data = [ serialize(data_model, t) for t in responseData ] # convert Track to TrackPublic
+        data = [ serialize(row_model, t) for t in responseData ] # convert Track to TrackPublic
         
         # build the table object
-        columns = columns(data_model)
+        columns = columns(row_model)
         columnIds = [c['id'] for c in columns]   
         options = VizTableOptions(disableColumnFilters=True, defaultColumns=columnIds[:10])
         table = VizTable(id='tracks', data=data, columns=columns, options=options)
@@ -72,7 +73,7 @@ async def get_table_view(
         #TODO - cache
         return response
     except:
-        raise
+        raise NotImplementedError('Interactive table view coming soon')
     finally:
-        del request.session[forwardingRequestId + '_response']
-        del request.session[forwardingRequestId + '_request']
+        # TODO: any session clean up in case of error?
+        pass

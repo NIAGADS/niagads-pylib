@@ -1,21 +1,15 @@
-from fastapi import APIRouter, Depends, Path, Query, Request, status
-from fastapi.responses import RedirectResponse
-from typing import Annotated, List, Optional, Union
-from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.datastructures import URL
+from fastapi import APIRouter, Depends, Query
+from typing import Annotated, Optional, Union
 
-from api.dependencies.database import AsyncSession
-from api.dependencies.param_validation import convert_str2list, clean
-from api.dependencies.location_params import span_param
 from api.dependencies.exceptions import RESPONSES
-from api.dependencies.shared_params import ResponseType, format_param
-from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse, RequestDataModel, BEDResponse
+from api.dependencies.location_params import span_param
+from api.dependencies.shared_params import format_param
+from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse
 
 from ..common.helpers import HelperParameters, get_track_metadata as __get_track_metadata
 from ..common.constants import ROUTE_TAGS
-from ..common.services import MetadataQueryService, ApiWrapperService
 from ..models.track_response_model import FILERTrackResponse
-from ..dependencies import ROUTE_SESSION_MANAGER, InternalRequestParameters
+from ..dependencies import InternalRequestParameters
 
 TAGS = ROUTE_TAGS
 router = APIRouter(

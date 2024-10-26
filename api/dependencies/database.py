@@ -4,7 +4,6 @@ import logging
 from sqlmodel import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_scoped_session, AsyncSession, AsyncEngine, async_sessionmaker
 from asyncio import current_task
-from typing import AsyncIterator
 
 from api.internal.config import get_settings
 

@@ -15,7 +15,7 @@ from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtend
 from ..common.constants import ROUTE_TAGS
 from ..common.services import MetadataQueryService, ApiWrapperService
 from ..dependencies import ROUTE_SESSION_MANAGER, InternalRequestParameters
-from ..common.helpers import get_track_metadata as __get_track_metadata, HelperParameters
+from ..common.helpers import get_track_metadata as __get_track_metadata, get_track_data as __get_track_data, HelperParameters
 from ..models.track_response_model import FILERTrackResponse, FILERTrackBriefResponse
 
 TAGS = ROUTE_TAGS
@@ -74,11 +74,11 @@ tags = TAGS + ["Record by ID", "Track Data by ID"]
 async def get_track_data(
         track: Annotated[str, Path(description="FILER track identifier")],
         span: str=Depends(span_param),
+        format: str= Depends(format_param),
         internal: InternalRequestParameters = Depends()
         ) -> BEDResponse:
     
-    await MetadataQueryService(internal.session).validate_tracks(convert_str2list(track))
-    result = await ApiWrapperService().get_track_hits(clean(track), span)
-    return BEDResponse(request=internal.requestData, response=result)
+    opts = HelperParameters(internal=internal, format=format, model=BEDResponse, parameters={'track': track, 'span': span})
+    return await __get_track_data(opts)
 
 
