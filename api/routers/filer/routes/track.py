@@ -25,7 +25,7 @@ router = APIRouter(
     responses=RESPONSES
 )
 
-tags = TAGS + ["Record(s) by ID", "Track Metadata by ID"]
+tags = TAGS + ["Record by ID", "Track Metadata by ID"]
 @router.get("/{track}", tags=tags, response_model=FILERTrackBriefResponse,
     name="Get brief track description",
     description="retrieve simple track description for the FILER record identified by the `track` specified in the path")
@@ -34,11 +34,11 @@ async def get_track_summary(
         internal: InternalRequestParameters = Depends()
         ) -> FILERTrackBriefResponse:
     
-    opts = HelperParameters(internal=internal, responseModel=FILERTrackBriefResponse, parameters={'track': track})
+    opts = HelperParameters(internal=internal, model=FILERTrackBriefResponse, parameters={'track': track})
     return await __get_track_metadata(opts)
 
 
-tags = TAGS + ["Record(s) by ID", "Track Metadata by ID"]
+tags = TAGS + ["Record by ID", "Track Metadata by ID"]
 @router.get("/{track}/metadata", tags=tags, response_model=FILERTrackResponse,
     name="Get full track metadata",
     description="retrieve full metadata for the FILER record identified by the `track` specified in the path")
@@ -47,11 +47,11 @@ async def get_track_metadata(
         internal: InternalRequestParameters = Depends()
         ) -> FILERTrackResponse:
 
-    opts = HelperParameters(internal=internal, responseModel=FILERTrackResponse, parameters={'track': track})
+    opts = HelperParameters(internal=internal, model=FILERTrackResponse, parameters={'track': track})
     return await __get_track_metadata(opts)
 
 
-tags = TAGS + ["NIAGADS Genome Browser Configuration"]
+tags = TAGS + ["Record by ID", "NIAGADS Genome Browser Configuration"]
 @router.get("/{track}/browser_config", tags=tags, 
     response_model=Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse],
     name="Get track Genome Browser configuration",
@@ -63,11 +63,11 @@ async def get_track_browser_config(
     -> Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse]:
         
     responseModel = GenomeBrowserExtendedConfigResponse if inclMetadata else GenomeBrowserConfigResponse
-    opts = HelperParameters(internal=internal, responseModel=responseModel, parameters={'track': track})
+    opts = HelperParameters(internal=internal, model=responseModel, parameters={'track': track})
     return await __get_track_metadata(opts)
 
 
-tags = TAGS + ["Track Data by ID"]
+tags = TAGS + ["Record by ID", "Track Data by ID"]
 @router.get("/{track}/data", tags=tags, 
     name="Get track data", response_model=BEDResponse,
     description="retrieve functional genomics track data from FILER in the specified region")
