@@ -5,6 +5,7 @@ from api.common.helpers import HelperParameters as __BaseHelperParameters
 from api.common.formatters import clean, convert_str2list
 from api.dependencies.parameters.optional import ResponseType
 from api.response_models.base_models import BaseResponseModel, RequestDataModel
+from api.response_models.data_models import GenericData
 
 from .services import MetadataQueryService, ApiWrapperService
 from ..dependencies import InternalRequestParameters
@@ -20,9 +21,13 @@ async def cache_key(requestData: RequestDataModel, model: BaseResponseModel, suf
         raise NotImplementedError('Need to use auto-generated cache key based on endpoint and parameters')
     
 async def get_track_data(opts: HelperParameters):
-    await MetadataQueryService(opts.internal.session).validate_tracks(convert_str2list(opts.parameters.track))
-    result = await ApiWrapperService().get_track_hits(clean(opts.parameters.track), opts.parameters.span)
+    countsOnly = getattr(opts.parameters, 'countsOnly', False)
+    if countsOnly and opts.format != ResponseType.JSON:
+        raise ValueError(f'Invalid response format selected: `{opts.format.value}`; counts can only be returned in a `JSON` response')
     
+    await MetadataQueryService(opts.internal.session).validate_tracks(convert_str2list(opts.parameters.track))
+    result = await ApiWrapperService().get_track_hits(clean(opts.parameters.track), opts.parameters.span, countsOnly=countsOnly)
+
     # in all cases
     # TODO:
     # paged response; by requestId, others by auto-generated based on request and params?

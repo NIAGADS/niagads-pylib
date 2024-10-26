@@ -34,7 +34,7 @@ async def ids_only_param(idsOnly: Optional[bool] = Query(default = False,
     description="return only the IDS (no annotation or metadata) for matching records")) -> bool:
     return idsOnly
 
-async def counts_only(countsOnly: Optional[bool] = Query(default = False,
+async def counts_only_param(countsOnly: Optional[bool] = Query(default = False,
     description="return count of matching records")) -> bool:
     return countsOnly
 

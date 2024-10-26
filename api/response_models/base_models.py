@@ -66,3 +66,4 @@ class PagedResponseModel(BaseResponseModel):
     total_num_pages: int = 1
     number_records: int 
     total_num_records: int
+    

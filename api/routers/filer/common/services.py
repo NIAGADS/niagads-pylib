@@ -1,7 +1,7 @@
 from sqlmodel import select, col, or_, func, distinct
 from sqlalchemy import Values, String, column as sqla_column
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
+from typing import List, Optional, Union
 from collections import OrderedDict
 
 from niagads.filer import FILERApiWrapper, FILERTrackOverlaps
@@ -11,7 +11,7 @@ from niagads.utils.dict import rename_key
 from api.internal.config import get_settings
 from api.dependencies.parameters.filters import tripleToPreparedStatement
 from api.common.helpers import Parameters
-from api.response_models.data_models import BEDFeature
+from api.response_models.data_models import BEDFeature, GenericData
 
 from ..models.track_metadata_cache import Track
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
@@ -36,12 +36,18 @@ class ApiWrapperService:
                 f.track_id = track.Identifier
                 features.append(BEDFeature(**f.model_dump()))
         return features
-        
-    async def get_track_hits(self, tracks: str, span: str) -> List[BEDFeature]:
+    
+    
+    def __countOverlaps(self, overlaps: List[FILERTrackOverlaps]) -> List[GenericData]:   
+        return [GenericData(track_id= track.Identifier, num_overlaps=len(track.features)) for track in overlaps]
+    
+    async def get_track_hits(self, tracks: str, span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericData]]:
         result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': tracks, 'span': span})
+        if countsOnly:
+            return self.__countOverlaps(result)
         return self.__overlaps2features(result)
 
-    def get_informative_tracks(self, span: str, assembly: str, sort=False):
+    async def get_informative_tracks(self, span: str, assembly: str, sort=False):
         result = self.__wrapper.make_request(self._INFORMATIVE_TRACKS_ENDPOINT, {'span': span, 'assembly': assembly})
         result = [{'track_id' : track['Identifier'], 'hit_count': track['numOverlaps']} for track in result]
         # sort by most hits
