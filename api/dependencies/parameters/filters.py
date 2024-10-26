@@ -1,15 +1,12 @@
 from fastapi import Query
 from enum import Enum, auto
-from typing import List
 from sqlmodel import col, not_
 
 from pyparsing import Group, Keyword, OneOrMore, Optional, Word, alphas, nums, ParserElement
 from pyparsing.helpers import one_of
 
-from urllib.parse import unquote
 
-from .param_validation import clean
-from .exceptions import get_error_message
+from ..exceptions import get_error_message
 
 _NUMBER = Word(nums)
 _TEXT = Word(alphas + '_')

@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, Query
 from typing import Annotated, Optional, Union
 
 from api.dependencies.exceptions import RESPONSES
-from api.dependencies.location_params import span_param
-from api.dependencies.shared_params import format_param
+from api.dependencies.parameters.location import span_param
+from api.dependencies.parameters.optional import format_param
 from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse
+from api.common.helpers import Parameters
 
 from ..common.helpers import HelperParameters, get_track_metadata as __get_track_metadata
 from ..common.constants import ROUTE_TAGS
@@ -27,7 +28,7 @@ async def get_track_metadata(
         format: str= Depends(format_param),
         internal: InternalRequestParameters = Depends()) -> FILERTrackResponse:
     
-    opts = HelperParameters(internal=internal, format=format, model=FILERTrackResponse, parameters={'track': track})
+    opts = HelperParameters(internal=internal, format=format, model=FILERTrackResponse, parameters=Parameters(track=track))
     return await __get_track_metadata(opts)
 
 
@@ -42,6 +43,7 @@ async def get_track_browser_config(
         internal: InternalRequestParameters = Depends()
         ) -> Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse]:
 
-    responseModel = GenomeBrowserExtendedConfigResponse if inclMetadata else GenomeBrowserConfigResponse
-    opts = HelperParameters(internal=internal, format=format, model=responseModel, parameters={'track': track})
+    responseModel = GenomeBrowserExtendedConfigResponse if inclMetadata \
+        else GenomeBrowserConfigResponse
+    opts = HelperParameters(internal=internal, format=format, model=responseModel, parameters=Parameters(track=track))
     return await __get_track_metadata(opts)

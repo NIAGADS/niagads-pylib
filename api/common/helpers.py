@@ -1,14 +1,21 @@
 
-from pydantic import BaseModel, ConfigDict, field_validator
-from typing import Any, Optional, Dict
-from api.dependencies.shared_params import InternalRequestParameters, ResponseType
-from api.response_models.base_models import BaseResponseModel, RequestDataModel
+from pydantic import BaseModel, field_validator, ConfigDict
+from typing import Any, Dict
 
+from api.dependencies.parameters.services import InternalRequestParameters
+from api.dependencies.parameters.optional import ResponseType
+from api.response_models.base_models import BaseResponseModel
+
+# basically allow creation of an arbitrary namespace
+class Parameters(BaseModel):
+    __pydantic_extra__: Dict[str, Any]  
+    model_config = ConfigDict(extra='allow')
+    
 class HelperParameters(BaseModel, arbitrary_types_allowed=True):
     internal: InternalRequestParameters
     model: Any
     format: ResponseType = ResponseType.JSON
-    parameters: Dict[str, Any]
+    parameters: Parameters
     
     # __pydantic_extra__: Dict[str, Any]  
     # model_config = ConfigDict(extra='allow')
@@ -20,3 +27,5 @@ class HelperParameters(BaseModel, arbitrary_types_allowed=True):
         if issubclass(model, BaseResponseModel):
             return model
         raise RuntimeError(f'Wrong type for `model` : `{model}`; must be subclass of `BaseResponseModel`')
+
+

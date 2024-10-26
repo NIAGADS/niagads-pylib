@@ -64,3 +64,5 @@ class BaseResponseModel(SerializableModel, BaseModel):
 class PagedResponseModel(BaseResponseModel):
     page: int = 1
     total_num_pages: int = 1
+    number_records: int 
+    total_num_records: int

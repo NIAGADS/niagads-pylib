@@ -2,7 +2,8 @@ from enum import Enum
 from fastapi import Query
 from niagads.reference.chromosomes import Human as Chromosome
 from niagads.utils.reg_ex import matches
-from .param_validation import clean
+
+from api.common.formatters import clean
 
 class Assembly(str, Enum):
     """enum for genome builds"""

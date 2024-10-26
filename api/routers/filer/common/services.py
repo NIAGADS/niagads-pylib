@@ -9,8 +9,8 @@ from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
 
 from api.internal.config import get_settings
-from api.dependencies.filter_params import tripleToPreparedStatement
-from api.dependencies.shared_params import OptionalParams
+from api.dependencies.parameters.filters import tripleToPreparedStatement
+from api.common.helpers import Parameters
 from api.response_models.data_models import BEDFeature
 
 from ..models.track_metadata_cache import Track
@@ -113,7 +113,7 @@ class MetadataQueryService:
 
     async def query_track_metadata(self, assembly: str, 
             filters: List[str] | None, keyword: Optional[str], 
-            options: OptionalParams) -> List[Track]:
+            options: Parameters) -> List[Track]:
         
         if (options.idsOnly and options.countOnly):
             raise ValueError("please set only one of `idsOnly` or `countOnly` to `TRUE`")

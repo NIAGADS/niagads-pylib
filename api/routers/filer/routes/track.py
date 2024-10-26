@@ -1,21 +1,20 @@
-from fastapi import APIRouter, Depends, Path, Query, Request, status
-from fastapi.responses import RedirectResponse
-from typing import Annotated, List, Optional, Union
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, Path, Query
+from typing import Annotated, Optional, Union
 
 from api.dependencies.exceptions import RESPONSES
-from api.dependencies.database import AsyncSession
+from api.dependencies.parameters.location import span_param
+from api.dependencies.parameters.optional import format_param
+from api.common.helpers import Parameters
 
-from api.dependencies.param_validation import convert_str2list, clean
-from api.dependencies.location_params import span_param
-from api.dependencies.shared_params import ResponseType, format_param
-
-from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse, RequestDataModel, BEDResponse
+from api.response_models import (
+    GenomeBrowserConfigResponse, 
+    GenomeBrowserExtendedConfigResponse, 
+    BEDResponse)
 
 from ..common.constants import ROUTE_TAGS
-from ..common.services import MetadataQueryService, ApiWrapperService
-from ..dependencies import ROUTE_SESSION_MANAGER, InternalRequestParameters
-from ..common.helpers import get_track_metadata as __get_track_metadata, get_track_data as __get_track_data, HelperParameters
+from ..dependencies import InternalRequestParameters
+from ..common.helpers import (get_track_metadata as __get_track_metadata, 
+    get_track_data as __get_track_data, HelperParameters)
 from ..models.track_response_model import FILERTrackResponse, FILERTrackBriefResponse
 
 TAGS = ROUTE_TAGS
@@ -34,7 +33,7 @@ async def get_track_summary(
         internal: InternalRequestParameters = Depends()
         ) -> FILERTrackBriefResponse:
     
-    opts = HelperParameters(internal=internal, model=FILERTrackBriefResponse, parameters={'track': track})
+    opts = HelperParameters(internal=internal, model=FILERTrackBriefResponse, parameters=Parameters(track=track))
     return await __get_track_metadata(opts)
 
 
@@ -47,7 +46,7 @@ async def get_track_metadata(
         internal: InternalRequestParameters = Depends()
         ) -> FILERTrackResponse:
 
-    opts = HelperParameters(internal=internal, model=FILERTrackResponse, parameters={'track': track})
+    opts = HelperParameters(internal=internal, model=FILERTrackResponse, parameters=Parameters(track=track))
     return await __get_track_metadata(opts)
 
 
@@ -62,8 +61,9 @@ async def get_track_browser_config(
         internal: InternalRequestParameters = Depends()) \
     -> Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse]:
         
-    responseModel = GenomeBrowserExtendedConfigResponse if inclMetadata else GenomeBrowserConfigResponse
-    opts = HelperParameters(internal=internal, model=responseModel, parameters={'track': track})
+    responseModel = GenomeBrowserExtendedConfigResponse if inclMetadata \
+        else GenomeBrowserConfigResponse
+    opts = HelperParameters(internal=internal, model=responseModel, parameters=Parameters(track=track))
     return await __get_track_metadata(opts)
 
 
@@ -78,7 +78,8 @@ async def get_track_data(
         internal: InternalRequestParameters = Depends()
         ) -> BEDResponse:
     
-    opts = HelperParameters(internal=internal, format=format, model=BEDResponse, parameters={'track': track, 'span': span})
+    opts = HelperParameters(internal=internal, format=format, model=BEDResponse, 
+        parameters=Parameters(track=track, span=span))
     return await __get_track_data(opts)
 
 
