@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Union, Any
+from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
 
@@ -43,7 +44,23 @@ class BaseResponseModel(SerializableModel, BaseModel):
     request: RequestDataModel
     response: Any
     # TODO: session/user_id?
-
+    
+    @classmethod
+    def row_model(cls: Self, name=False):
+        """ get the type of the row model in the response """
+        
+        rowType = cls.model_fields['response'].annotation
+        try: # can't explicity test for List[rowType], so just try
+            rowType = rowType.__args__[0] # rowType = typing.List[RowType]
+        except:
+            rowType = rowType
+        
+        return rowType.__name__ if name == True else rowType
+    
+    @classmethod
+    def is_paged(cls: Self):
+        return 'page' in cls.model_fields
+        
 class PagedResponseModel(BaseResponseModel):
     page: int = 1
     total_num_pages: int = 1
