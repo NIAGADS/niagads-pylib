@@ -46,7 +46,7 @@ async def validation_exception_handler(request: Request, exc: RuntimeError):
         content=jsonable_encoder(
             {
                 "message": str(exc),  # optionally, include the pydantic errors
-                "error": "An unexpected error occurred.  Please report to help@niagads.org with subject API-Error",
+                "error": "An unexpected error occurred.  Please submit a `bug` GitHub issue containing this full error response at: https://github.com/NIAGADS/niagads-api/issues",
                 "stack_trace": [ t.replace('\n', '').replace('"', "'") for t in traceback.format_tb(exc.__traceback__) ],
                 "request": str(request.url)
             }), 
@@ -75,17 +75,19 @@ async def validation_exception_handler(request: Request, exc: ValueError):
     )
 
 # TODO: what is this handling? -- remove?
-@app.exception_handler(LookupError)
-async def validation_exception_handler(request: Request, exc: LookupError):
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
+
+@app.exception_handler(Exception)
+async def validation_exception_handler(request: Request, exc: Exception):
+   return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder(
             {
                 "message": str(exc),  # optionally, include the pydantic errors
-                "error": "Invalid external request"
-            }),
+                "error": "An unexpected error occurred.  Please submit a `bug` GitHub issue containing this full error response at: https://github.com/NIAGADS/niagads-api/issues",
+                "stack_trace": [ t.replace('\n', '').replace('"', "'") for t in traceback.format_tb(exc.__traceback__) ],
+                "request": str(request.url)
+            }), 
     )
-
 
 app.include_router(FILERRouter)
 app.include_router(ViewRouter)
