@@ -1,5 +1,6 @@
 import functools
 import yaml
+import traceback
 
 from io import StringIO
 from fastapi import FastAPI, Request, status
@@ -37,6 +38,30 @@ app = FastAPI(
 
 app.add_middleware(SessionMiddleware, secret_key=get_settings().SESSION_SECRET)
 app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
+
+@app.exception_handler(RuntimeError)
+async def validation_exception_handler(request: Request, exc: RuntimeError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder(
+            {
+                "message": str(exc),  # optionally, include the pydantic errors
+                "error": "An unexpected error occurred.  Please report to help@niagads.org with subject API-Error",
+                "stack_trace": [ t.replace('\n', '').replace('"', "'") for t in traceback.format_tb(exc.__traceback__) ],
+                "request": str(request.url)
+            }), 
+    )
+    
+@app.exception_handler(NotImplementedError)
+async def validation_exception_handler(request: Request, exc: NotImplementedError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder(
+            {
+                "message": str(exc),  # optionally, include the pydantic errors
+                "error": "Not yet implemented"
+            }), 
+    )
 
 @app.exception_handler(ValueError)
 async def validation_exception_handler(request: Request, exc: ValueError):
