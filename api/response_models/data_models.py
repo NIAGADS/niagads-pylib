@@ -34,7 +34,6 @@ class BEDFeature(SerializableModel, FILERApiBEDFeature):
         return columns
     
 
-    
 class BEDResponse(BaseResponseModel):
     response: List[BEDFeature]
     
@@ -42,3 +41,4 @@ class GenericData(SerializableModel, BaseModel):
     """ Generic JSON Response """
     __pydantic_extra__: Dict[str, Any]  
     model_config = ConfigDict(extra='allow')
+    

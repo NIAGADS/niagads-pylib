@@ -10,7 +10,7 @@ from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtend
 from api.response_models.base_models import BaseResponseModel
 
 from ..common.constants import ROUTE_TAGS
-from ..dependencies import InternalRequestParameters
+from ..dependencies import InternalRequestParameters, path_track_id
 from ..common.helpers import (get_track_metadata as __get_track_metadata, 
     get_track_data as __get_track_data, HelperParameters)
 from ..models.track_response_model import FILERTrackResponse, FILERTrackBriefResponse
@@ -27,7 +27,7 @@ tags = TAGS + ["Record by ID", "Track Metadata by ID"]
     name="Get brief track description",
     description="retrieve simple track description for the FILER record identified by the `track` specified in the path")
 async def get_track_summary(
-        track: Annotated[str, Path(description="FILER track identifier")],
+        track = Depends(path_track_id),
         internal: InternalRequestParameters = Depends()
         ) -> FILERTrackBriefResponse:
     
@@ -40,7 +40,7 @@ tags = TAGS + ["Record by ID", "Track Metadata by ID"]
     name="Get full track metadata",
     description="retrieve full metadata for the FILER record identified by the `track` specified in the path")
 async def get_track_metadata(
-        track: Annotated[str, Path(description="FILER track identifier")],
+        track = Depends(path_track_id),
         internal: InternalRequestParameters = Depends()
         ) -> FILERTrackResponse:
 
@@ -54,7 +54,7 @@ tags = TAGS + ["Record by ID", "NIAGADS Genome Browser Configuration"]
     name="Get track Genome Browser configuration",
     description="retrieve NIAGADS Genome Browser track configuration for the FILER `track` specified in the path")
 async def get_track_browser_config(
-        track: Annotated[str, Path(description="FILER track identifier")],
+        track = Depends(path_track_id),
         inclMetadata: Optional[bool] = Query(default=False, description="include filterable track metadata for the track selector display"),
         internal: InternalRequestParameters = Depends()) \
     -> Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse]:
@@ -70,7 +70,7 @@ tags = TAGS + ["Record by ID", "Track Data by ID"]
     name="Get track data", response_model=Union[BEDResponse, BaseResponseModel],
     description="retrieve functional genomics track data from FILER in the specified region; specify `countsOnly` to just retrieve a count of the number of hits in the specified region")
 async def get_track_data(
-        track: Annotated[str, Path(description="FILER track identifier")],
+        track = Depends(path_track_id),
         span: str=Depends(span_param),
         format: str= Depends(format_param),
         countsOnly: Optional[bool]=Depends(counts_only_param),

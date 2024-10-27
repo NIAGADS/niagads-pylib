@@ -4,7 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 
 from api.common.helpers import HelperParameters as __BaseHelperParameters, Parameters
-from api.common.formatters import clean, convert_str2list
+
 from api.dependencies.parameters.optional import ResponseType
 from api.response_models.base_models import BaseResponseModel, RequestDataModel, PaginationDataModel
 
@@ -57,14 +57,14 @@ async def get_track_data(opts: HelperParameters):
     __validate_params(opts.format, opts.parameters)
     countsOnly = getattr(opts, 'countsOnly', False)
     
-    await MetadataQueryService(opts.internal.session).validate_tracks(convert_str2list(opts.parameters.track))
-    result = await ApiWrapperService().get_track_hits(clean(opts.parameters.track), opts.parameters.span, countsOnly=countsOnly)
+    await MetadataQueryService(opts.internal.session).validate_tracks(opts.parameters.track.split(','))
+    result = await ApiWrapperService().get_track_hits(opts.parameters.track, opts.parameters.span, countsOnly=countsOnly)
 
     return __generate_response(result, opts)
 
 
 async def get_track_metadata(opts: HelperParameters):
-    result = await MetadataQueryService(opts.internal.session).get_track_metadata(convert_str2list(opts.parameters.track))
+    result = await MetadataQueryService(opts.internal.session).get_track_metadata(opts.parameters.track.split(','))
     return __generate_response(result, opts)
 
 

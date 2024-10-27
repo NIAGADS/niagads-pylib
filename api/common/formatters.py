@@ -10,5 +10,3 @@ def id2title(columnId: str):
 def clean(html: str):
     return nh3.clean_text(html)
 
-def convert_str2list(param: str):
-    return clean(param).split(',')

@@ -13,7 +13,7 @@ from api.response_models.base_models import BaseResponseModel
 from ..common.helpers import HelperParameters, get_track_metadata as __get_track_metadata, search_track_metadata as __search_track_metadata
 from ..common.constants import ROUTE_TAGS, TRACK_SEARCH_FILTER_FIELD_MAP
 from ..models.track_response_model import FILERTrackPagedResponse, FILERTrackResponse
-from ..dependencies import InternalRequestParameters
+from ..dependencies import InternalRequestParameters, query_track_id
 
 TAGS = ROUTE_TAGS
 router = APIRouter(
@@ -27,7 +27,7 @@ tags = TAGS + ["Track Metadata by ID"]
     name="Get metadata for multiple tracks",
     description="retrieve full metadata for one or more FILER track records")
 async def get_track_metadata(
-        track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")],
+        track: str = Depends(query_track_id),
         format: str= Depends(format_param),
         internal: InternalRequestParameters = Depends()) -> FILERTrackResponse:
     
@@ -69,7 +69,7 @@ tags = TAGS + ["NIAGADS Genome Browser Configuration"]
     name="Get Genome Browser configuration for multiple tracks",
     description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) specified in the path")
 async def get_track_browser_config(
-        track: Annotated[str, Query(description="comma separated list of one or more FILER track identifiers")],
+        track = Depends(query_track_id),
         inclMetadata: Optional[bool] = Query(default=False, description="include filterable track metadata for the track selector display"),
         format: str= Depends(format_param),
         internal: InternalRequestParameters = Depends()
