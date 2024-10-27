@@ -38,7 +38,6 @@ async def validate_response_content(contentEnum: CaseInsensitiveEnum, value):
     except:
         raise RequestValidationError(f'Invalid value provided for `content`: {value}.  Allowable values for this query are: {print_enum_values(contentEnum)}' )
 
-
 async def keyword_param(keyword: Optional[str] = Query(default=None, 
     description="search all text fields by keyword")) -> str:
     if keyword is not None:

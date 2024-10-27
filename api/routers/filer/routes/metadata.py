@@ -56,13 +56,11 @@ async def search_track_metadata(
     if filter is None and keyword is None:
         raise RequestValidationError('must specify either a `filter` and/or a `keyword` to search')
     
-    # note: not sure why this needs to be awaited, but having a async error
     content = await validate_response_content(content_enum, content)
-    
-    responseModel = BaseResponseModel if content != ResponseContent.FULL else FILERTrackResponse
+    responseModel = FILERTrackResponse if content == ResponseContent.FULL else BaseResponseModel
     
     opts = HelperParameters(internal=internal, pagination=pagination,
-        content=ResponseContent(content),
+        content=content,
         format=format, model=responseModel,
         parameters=Parameters(assembly=assembly, filter=filter, keyword=keyword))
     
