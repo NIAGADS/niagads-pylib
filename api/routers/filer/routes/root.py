@@ -12,6 +12,7 @@ from ..dependencies import ROUTE_SESSION_MANAGER
 from .track import router as TrackRouter
 from .metadata import router as MetadataRouter
 from .data import router as DataRouter
+from .browser_config import router as BrowserConfigRouter
 
 router = APIRouter(
     prefix=ROUTE_PREFIX,
@@ -37,3 +38,4 @@ async def read_root(
 router.include_router(TrackRouter)
 router.include_router(MetadataRouter)
 router.include_router(DataRouter)
+router.include_router(BrowserConfigRouter)

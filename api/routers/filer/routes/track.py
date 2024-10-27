@@ -28,7 +28,7 @@ tags = TAGS + ["Record by ID", "Track Metadata by ID"]
 # note: the content enum variables must have a distinct name or else the get overwritten in memory from initialization when requests are made
 get_track_metadata_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.COUNTS])
 @router.get("/{track}", tags=tags, response_model=Union[FILERTrackBriefResponse, FILERTrackResponse],
-    name="Get brief track description",
+    name="Get track metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response")
 async def get_track_metadata(
         track = Depends(path_track_id),
