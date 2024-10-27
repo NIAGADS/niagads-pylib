@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Union, Any
+from typing import Any
 from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
@@ -59,11 +59,14 @@ class BaseResponseModel(SerializableModel, BaseModel):
     
     @classmethod
     def is_paged(cls: Self):
-        return 'page' in cls.model_fields
-        
-class PagedResponseModel(BaseResponseModel):
+        return 'pagination' in cls.model_fields
+
+class PaginationDataModel(BaseModel):
     page: int = 1
     total_num_pages: int = 1
-    number_records: int 
+    paged_num_records: int 
     total_num_records: int
+
+class PagedResponseModel(BaseResponseModel):
+    pagination: PaginationDataModel
     
