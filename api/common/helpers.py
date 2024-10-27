@@ -1,7 +1,9 @@
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Any, Dict
 from enum import Enum
 
+from api.common.enums import ResponseContent
 from api.dependencies.parameters.services import InternalRequestParameters
 from api.dependencies.parameters.optional import PaginationParameters, ResponseFormat
 from api.response_models.base_models import BaseResponseModel
@@ -15,6 +17,7 @@ class HelperParameters(BaseModel, arbitrary_types_allowed=True):
     internal: InternalRequestParameters
     model: Any
     format: ResponseFormat = ResponseFormat.JSON
+    content: ResponseContent = ResponseContent.FULL
     pagination: PaginationParameters = None
     parameters: Parameters = None
     
@@ -28,4 +31,12 @@ class HelperParameters(BaseModel, arbitrary_types_allowed=True):
         if issubclass(model, BaseResponseModel):
             return model
         raise RuntimeError(f'Wrong type for `model` : `{model}`; must be subclass of `BaseResponseModel`')
+    
+    @field_validator("content")
+    def validate_content(cls, content):
+        try:
+            return ResponseContent(content)
+        except NameError:
+            raise RequestValidationError(f'Invalid value provided for `content`: {content}')
+        
 

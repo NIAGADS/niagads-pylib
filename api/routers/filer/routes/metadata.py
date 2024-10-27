@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import RequestValidationError
-from typing import Annotated, Optional, Union
+from typing import Annotated, List, Optional, Union
 
+from api.common.enums import ResponseContent
 from api.common.exceptions import RESPONSES
+from api.common.formatters import print_enum_values
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import Assembly, assembly_param
-from api.dependencies.parameters.optional import PaginationParameters, counts_only_param, format_param, ids_only_param, keyword_param
+from api.dependencies.parameters.optional import PaginationParameters, counts_only_param, format_param, get_response_content, ids_only_param, keyword_param, validate_response_content
 from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse
 from api.common.helpers import Parameters
 from api.response_models.base_models import BaseResponseModel
@@ -36,6 +38,8 @@ async def get_track_metadata(
 
 tags = TAGS + ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
+content_enum = get_response_content([ResponseContent.SUMMARY])
+
 @router.get("/search", tags=tags, response_model=Union[BaseResponseModel, FILERTrackResponse],
     name="Search for tracks", 
     description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata")
@@ -45,21 +49,22 @@ async def search_track_metadata(
         filter = Depends(filter_param), 
         keyword: str = Depends(keyword_param),
         format: str= Depends(format_param),
-        countsOnly = Depends(counts_only_param),
-        idsOnly = Depends(ids_only_param),
+        content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(content_enum)}'),
         internal: InternalRequestParameters = Depends(),
         ) -> Union[BaseResponseModel, FILERTrackResponse]:
     
     if filter is None and keyword is None:
         raise RequestValidationError('must specify either a `filter` and/or a `keyword` to search')
     
-    optionalParameters = Parameters(countsOnly=countsOnly, idsOnly=idsOnly)
+    # note: not sure why this needs to be awaited, but having a async error
+    content = await validate_response_content(content_enum, content)
     
-    responseModel = BaseResponseModel if countsOnly or idsOnly else FILERTrackResponse
+    responseModel = BaseResponseModel if content != ResponseContent.FULL else FILERTrackResponse
     
     opts = HelperParameters(internal=internal, pagination=pagination,
+        content=ResponseContent(content),
         format=format, model=responseModel,
-        parameters=Parameters(assembly=assembly, filter=filter, keyword=keyword, options=optionalParameters))
+        parameters=Parameters(assembly=assembly, filter=filter, keyword=keyword))
     
     return await __search_track_metadata(opts)
 

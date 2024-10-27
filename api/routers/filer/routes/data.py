@@ -50,3 +50,30 @@ async def get_track_data_summary(
     opts = HelperParameters(internal=internal, format=format, model=FILERTrackBriefResponse, 
         parameters=Parameters(track=track, span=span, summarize=True))
     return await __get_track_data(opts)
+
+@router.get("/search", tags=tags,
+    name="Get a summary of data from multiple tracks", response_model=FILERTrackBriefResponse,
+    description="retrieve a summary of track data (brief metadata and counts) from FILER tracks in the specified region")
+async def get_track_data_summary(
+        track: str = Depends(query_track_id),
+        span: str = Depends(span_param),
+        format: str = Depends(format_param),
+        internal: InternalRequestParameters = Depends()
+        ) -> FILERTrackBriefResponse:
+    opts = HelperParameters(internal=internal, format=format, model=FILERTrackBriefResponse, 
+        parameters=Parameters(track=track, span=span, summarize=True))
+    return await __get_track_data(opts)
+
+
+@router.get("/search/summary", tags=tags,
+    name="Get a summary of data from multiple tracks", response_model=FILERTrackBriefResponse,
+    description="retrieve a summary of track data (brief metadata and counts) from FILER tracks in the specified region")
+async def get_track_data_summary(
+        track: str = Depends(query_track_id),
+        span: str = Depends(span_param),
+        format: str = Depends(format_param),
+        internal: InternalRequestParameters = Depends()
+        ) -> FILERTrackBriefResponse:
+    opts = HelperParameters(internal=internal, format=format, model=FILERTrackBriefResponse, 
+        parameters=Parameters(track=track, span=span, summarize=True))
+    return await __get_track_data(opts)

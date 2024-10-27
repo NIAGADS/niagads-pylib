@@ -1,4 +1,5 @@
 from enum import Enum
+from itertools import chain
 
 class CaseInsensitiveEnum(str, Enum):
     # after from https://stackoverflow.com/a/76131490
@@ -10,14 +11,12 @@ class CaseInsensitiveEnum(str, Enum):
     
         raise KeyError(value)
     
-# FIXME: probably not going to use this
-class ResponseType(CaseInsensitiveEnum):
+class ResponseContent(CaseInsensitiveEnum):
     """ enum for allowable response types """
+    FULL = "full"
     COUNTS = "counts"
     IDS = "ids"
     SUMMARY = "summary"
-    FULL = "full"
-    
 
 class ResponseFormat(CaseInsensitiveEnum):
     """ enum for allowable response / output formats"""

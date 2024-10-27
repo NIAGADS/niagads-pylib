@@ -2,13 +2,12 @@ from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from pydantic import BaseModel, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, Query
-from typing import Optional
+from typing import List, Optional
 from typing_extensions import Self
 from enum import Enum
 
-from api.common.enums import ResponseFormat, ResponseType
-from api.response_models.base_models import RequestDataModel
-from api.common.formatters import clean
+from api.common.enums import CaseInsensitiveEnum, ResponseFormat, ResponseContent
+from api.common.formatters import clean, print_enum_values
 
 # TODO: common params: https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/
 
@@ -28,21 +27,17 @@ class PaginationParameters(BaseModel):
             raise RequestValidationError('Must specify both `page` and `queryId` to retun paged results')
         
         return self
-    
-    # TODO: some validator against response size?
-        
 
-async def ids_only_param(idsOnly: Optional[bool] = Query(default = False, 
-    description="return only the IDS (no annotation or metadata) for matching records")) -> bool:
-    return idsOnly
+def get_response_content(exclude: List[ResponseContent]):
+    return CaseInsensitiveEnum('content', { member.name: member.value for member in ResponseContent if member not in exclude })
 
-async def counts_only_param(countsOnly: Optional[bool] = Query(default = False,
-    description="return count of matching records")) -> bool:
-    return countsOnly
+async def validate_response_content(contentEnum: CaseInsensitiveEnum, value):
+    try:
+        validContent = contentEnum(value)
+        return ResponseContent(value)
+    except:
+        raise RequestValidationError(f'Invalid value provided for `content`: {value}.  Allowable values for this query are: {print_enum_values(contentEnum)}' )
 
-async def summary_only_param(summaryOnly: Optional[bool] = Query(default = False, 
-    description="return a brief summary of the result (e.g., simplified metadata with matching record counts)")) -> bool:
-    return summaryOnly
 
 async def keyword_param(keyword: Optional[str] = Query(default=None, 
     description="search all text fields by keyword")) -> str:
@@ -50,7 +45,8 @@ async def keyword_param(keyword: Optional[str] = Query(default=None,
         return clean(keyword)
     return keyword
 
-async def format_param(format: ResponseFormat = Query(ResponseFormat.JSON, description="format of response retured by the request")): 
+async def format_param(format: ResponseFormat = Query(ResponseFormat.JSON,
+    description="format of response retured by the request")): 
     try:
         return ResponseFormat(clean(format))
     except:
