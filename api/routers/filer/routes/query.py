@@ -2,9 +2,6 @@ from fastapi import APIRouter, Depends, Path, Query, Request
 from typing import Annotated, List, Optional
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
-from collections import OrderedDict, ChainMap
-from itertools import groupby
-from operator import itemgetter
 
 from api.common.formatters import clean
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
@@ -18,11 +15,6 @@ from ..common.services import MetadataQueryService, ApiWrapperService
 from ..dependencies import ROUTE_SESSION_MANAGER
 from ..models.track_response_model import FILERTrack, FILERTrackOverlapSummary
 
-def merge_track_lists(trackList1, trackList2):
-    matched = groupby(sorted(trackList1 + trackList2, key=itemgetter('track_id')), itemgetter('track_id'))
-    combinedLists = [dict(ChainMap(*g)) for k, g in matched]
-    return combinedLists
-    
 
 TAGS = ROUTE_TAGS 
 router = APIRouter(

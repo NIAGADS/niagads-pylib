@@ -5,12 +5,11 @@ from api.common.exceptions import RESPONSES
 from api.response_models import GenomeBrowserConfig, SerializableModel, \
     VizTableResponse, VizTable, VizTableOptions
 
-from api.routers.filer.models.track_response_model import FILERTrackBrief, FILERTrack, FILERTrackOverlapSummary
+from api.routers.filer.models.track_response_model import FILERTrackBrief, FILERTrack
 
 class RowModel(Enum):
     FILERTrackBrief = FILERTrackBrief
     FILERTrack = FILERTrack
-    FILERTrackOverlapSummary = FILERTrackOverlapSummary
     GenomeBrowserConfig = GenomeBrowserConfig
     
 

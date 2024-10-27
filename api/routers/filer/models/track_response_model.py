@@ -1,16 +1,18 @@
 from sqlmodel import SQLModel
 from fastapi.encoders import jsonable_encoder
 from datetime import datetime
-from typing import Optional, List
+from typing import Any, Dict, Optional, List
 from typing_extensions import Self
+from pydantic import model_validator
 
 from niagads.utils.list import find
 
 from api.common.formatters import id2title
-from api.response_models import PagedResponseModel, BaseResponseModel, SerializableModel
+from api.response_models import PagedResponseModel, BaseResponseModel, GenericDataModel
 from .biosample_characteristics import BiosampleCharacteristics
 
-class FILERTrackBrief(SQLModel, SerializableModel):
+# note this is a generic data model so that we can add summary fields (e.g., counts) as needed
+class FILERTrackBrief(SQLModel, GenericDataModel):
     track_id: str
     name: str
     genome_build: Optional[str]
@@ -19,6 +21,12 @@ class FILERTrackBrief(SQLModel, SerializableModel):
     data_source: Optional[str]
     data_category: Optional[str]
     assay: Optional[str]
+    
+    @model_validator(mode='before')
+    @classmethod
+    def allowable_extras(cls: Self, data: Dict[str, Any]):
+        modelFields = cls.model_fields.keys()
+        return {k:v for k, v in data.items() if k in modelFields or k.startswith('num_')}
 
     @classmethod
     def view_table_columns(cls: Self):
@@ -35,6 +43,19 @@ class FILERTrackBrief(SQLModel, SerializableModel):
         columns[index[0]].update({'type': 'boolean', 'description': 'data have been lifted over from an earlier genome build'})
         
         return columns
+    
+    def view_table_columns(self):
+        """ 
+        Return a column object for niagads-viz-js/Table; 
+        for cases with extra fields; needs to be called after instantiation
+        """
+        columns: List[dict] = self.__class__.view_table_columns()
+        if len(self.model_extra) > 0:
+            fields = list(self.model_extra.keys())
+            columns += [ {'id': f, 'header': id2title(f)} for f in fields]
+            
+        return columns
+    
 
 class FILERTrack(FILERTrackBrief):  
     description: Optional[str]   
@@ -72,27 +93,11 @@ class FILERTrack(FILERTrackBrief):
     file_schema: Optional[str]
 
 
-class FILERTrackOverlapSummary(FILERTrackBrief):
-    hit_count: int
-    """
-    life_stage: Optional[str] = None
-    system_category: Optional[str] = None
-    tissue_category: Optional[str] = None
-    biosample_term: Optional[str] = None
-    biosample_term_id: Optional[str] = None
-    """
-    
-class FILERTrackBriefResponse(BaseResponseModel):
-    response: List[FILERTrackBrief]
-
-class FILERTrackBriefPagedResponse(PagedResponseModel):
+class FILERTrackBriefResponse(PagedResponseModel):
     response: List[FILERTrackBrief]
     
-class FILERTrackResponse(BaseResponseModel):
+class FILERTrackResponse(PagedResponseModel):
     response: List[FILERTrack]
 
-class FILERTrackPagedResponse(PagedResponseModel):
-    response: List[FILERTrack]
 
-class FILERTrackOverlapPagedResponse(PagedResponseModel):
-    response: List[FILERTrackOverlapSummary]
+

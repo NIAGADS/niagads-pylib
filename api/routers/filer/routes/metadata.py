@@ -12,7 +12,7 @@ from api.response_models.base_models import BaseResponseModel
 
 from ..common.helpers import HelperParameters, get_track_metadata as __get_track_metadata, search_track_metadata as __search_track_metadata
 from ..common.constants import ROUTE_TAGS, TRACK_SEARCH_FILTER_FIELD_MAP
-from ..models.track_response_model import FILERTrackPagedResponse, FILERTrackResponse
+from ..models.track_response_model import FILERTrackResponse
 from ..dependencies import InternalRequestParameters, query_track_id
 
 TAGS = ROUTE_TAGS
@@ -36,7 +36,7 @@ async def get_track_metadata(
 
 tags = TAGS + ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
-@router.get("/search", tags=tags, response_model=Union[BaseResponseModel, FILERTrackPagedResponse],
+@router.get("/search", tags=tags, response_model=Union[BaseResponseModel, FILERTrackResponse],
     name="Search for tracks", 
     description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata")
 async def search_track_metadata(
@@ -48,14 +48,14 @@ async def search_track_metadata(
         countsOnly = Depends(counts_only_param),
         idsOnly = Depends(ids_only_param),
         internal: InternalRequestParameters = Depends(),
-        ) -> Union[BaseResponseModel, FILERTrackPagedResponse]:
+        ) -> Union[BaseResponseModel, FILERTrackResponse]:
     
     if filter is None and keyword is None:
         raise RequestValidationError('must specify either a `filter` and/or a `keyword` to search')
     
     optionalParameters = Parameters(countsOnly=countsOnly, idsOnly=idsOnly)
     
-    responseModel = BaseResponseModel if countsOnly or idsOnly else FILERTrackPagedResponse
+    responseModel = BaseResponseModel if countsOnly or idsOnly else FILERTrackResponse
     
     opts = HelperParameters(internal=internal, pagination=pagination,
         format=format, model=responseModel,

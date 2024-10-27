@@ -1,9 +1,9 @@
-
 from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Any, Dict
+from enum import Enum
 
 from api.dependencies.parameters.services import InternalRequestParameters
-from api.dependencies.parameters.optional import PaginationParameters, ResponseType
+from api.dependencies.parameters.optional import PaginationParameters, ResponseFormat
 from api.response_models.base_models import BaseResponseModel
 
 # basically allow creation of an arbitrary namespace
@@ -14,7 +14,7 @@ class Parameters(BaseModel):
 class HelperParameters(BaseModel, arbitrary_types_allowed=True):
     internal: InternalRequestParameters
     model: Any
-    format: ResponseType = ResponseType.JSON
+    format: ResponseFormat = ResponseFormat.JSON
     pagination: PaginationParameters = None
     parameters: Parameters = None
     
@@ -28,5 +28,4 @@ class HelperParameters(BaseModel, arbitrary_types_allowed=True):
         if issubclass(model, BaseResponseModel):
             return model
         raise RuntimeError(f'Wrong type for `model` : `{model}`; must be subclass of `BaseResponseModel`')
-
 

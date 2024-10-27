@@ -10,8 +10,8 @@ from ..common.services import MetadataQueryService
 from ..dependencies import ROUTE_SESSION_MANAGER
 
 from .track import router as TrackRouter
-from .query import router as QueryRouter
 from .metadata import router as MetadataRouter
+from .data import router as DataRouter
 
 router = APIRouter(
     prefix=ROUTE_PREFIX,
@@ -35,5 +35,5 @@ async def read_root(
 # CHIILD ROUTES
 # --------------------------------------------------------------
 router.include_router(TrackRouter)
-router.include_router(QueryRouter)
 router.include_router(MetadataRouter)
+router.include_router(DataRouter)

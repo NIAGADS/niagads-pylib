@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Any
+from pydantic import BaseModel, ConfigDict
+from typing import Any, Dict
 from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
@@ -26,8 +26,12 @@ class SerializableModel(BaseModel):
         if groupExtra:
             raise NotImplementedError()  
         return data
+    
+    def has_extras(self):
+        """ test if extra model fields are present """
+        return len(self.model_extra) > 0
 
-class RequestDataModel(SerializableModel, BaseModel):
+class RequestDataModel(SerializableModel):
     request_id: str
     endpoint: str
     parameters: str
@@ -40,7 +44,7 @@ class RequestDataModel(SerializableModel, BaseModel):
             endpoint=str(request.url.path)
         )
     
-class BaseResponseModel(SerializableModel, BaseModel):
+class BaseResponseModel(SerializableModel):
     request: RequestDataModel
     response: Any
     # TODO: session/user_id?
@@ -61,6 +65,13 @@ class BaseResponseModel(SerializableModel, BaseModel):
     def is_paged(cls: Self):
         return 'pagination' in cls.model_fields
 
+
+class GenericDataModel(SerializableModel):
+    """ Generic JSON Response """
+    __pydantic_extra__: Dict[str, Any]  
+    model_config = ConfigDict(extra='allow')
+    
+    
 class PaginationDataModel(BaseModel):
     page: int = 1
     total_num_pages: int = 1

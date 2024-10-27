@@ -12,7 +12,7 @@ from niagads.utils.dict import rename_key
 from api.internal.config import get_settings
 from api.dependencies.parameters.filters import tripleToPreparedStatement
 from api.common.helpers import Parameters
-from api.response_models.data_models import BEDFeature, GenericData
+from api.response_models import BEDFeature, GenericDataModel
 
 from ..models.track_metadata_cache import Track
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
@@ -39,10 +39,10 @@ class ApiWrapperService:
         return features
     
     
-    def __countOverlaps(self, overlaps: List[FILERTrackOverlaps]) -> List[GenericData]:   
-        return [GenericData(track_id= track.Identifier, num_overlaps=len(track.features)) for track in overlaps]
+    def __countOverlaps(self, overlaps: List[FILERTrackOverlaps]) -> List[GenericDataModel]:   
+        return [GenericDataModel(track_id= track.Identifier, num_overlaps=len(track.features)) for track in overlaps]
     
-    async def get_track_hits(self, tracks: str, span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericData]]:
+    async def get_track_hits(self, tracks: str, span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
         result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': tracks, 'span': span})
         if countsOnly:
             return self.__countOverlaps(result)

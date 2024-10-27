@@ -11,10 +11,10 @@ from .base_models import SerializableModel, PagedResponseModel, BaseResponseMode
 # for information about extra fields; basically we don't know what information might
 # be coming back
 
+
 # TODO -> export to table; need to serialize the extra as a dict b/c
 # it may vary in one response
 class BEDFeature(SerializableModel, FILERApiBEDFeature):
-    
     @classmethod
     def view_table_columns(cls: Self):
         """ Return a column object for niagads-viz-js/Table """
@@ -34,11 +34,7 @@ class BEDFeature(SerializableModel, FILERApiBEDFeature):
         return columns
     
 
-class BEDResponse(BaseResponseModel):
+class BEDResponse(PagedResponseModel):
     response: List[BEDFeature]
     
-class GenericData(SerializableModel, BaseModel):
-    """ Generic JSON Response """
-    __pydantic_extra__: Dict[str, Any]  
-    model_config = ConfigDict(extra='allow')
-    
+

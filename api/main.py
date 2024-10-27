@@ -46,8 +46,8 @@ async def validation_exception_handler(request: Request, exc: RuntimeError):
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder(
             {
-                "message": str(exc),  # optionally, include the pydantic errors
-                "error": "An unexpected error occurred.  Please submit a `bug` GitHub issue containing this full error response at: https://github.com/NIAGADS/niagads-api/issues",
+                "error": str(exc),  # optionally, include the pydantic errors
+                "msg": "An unexpected error occurred.  Please submit a `bug` GitHub issue containing this full error response at: https://github.com/NIAGADS/niagads-api/issues",
                 "stack_trace": [ t.replace('\n', '').replace('"', "'") for t in traceback.format_tb(exc.__traceback__) ],
                 "request": str(request.url)
             }), 
@@ -59,8 +59,8 @@ async def validation_exception_handler(request: Request, exc: NotImplementedErro
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder(
             {
-                "message": str(exc), 
-                "error": "Not yet implemented"
+                "error": str(exc), 
+                "msg": "Not yet implemented"
             }), 
     )
 
@@ -70,8 +70,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder(
             {
-                "message": str(exc), 
-                "error": "Invalid parameter value"
+                "error": str(exc), 
+                "msg": "Invalid parameter value"
             }), 
     )
 
