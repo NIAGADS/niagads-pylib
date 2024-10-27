@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 from enum import Enum
 
-from api.dependencies.exceptions import RESPONSES
+from api.common.exceptions import RESPONSES
 from api.response_models import GenomeBrowserConfig, SerializableModel, \
     VizTableResponse, VizTable, VizTableOptions
 

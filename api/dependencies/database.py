@@ -1,6 +1,7 @@
 # Middleware for choosing database based on endpoint
 # adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
 import logging
+from fastapi.exceptions import RequestValidationError
 from sqlmodel import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_scoped_session, AsyncSession, AsyncEngine, async_sessionmaker
 from asyncio import current_task
@@ -36,7 +37,7 @@ class DatabaseSessionManager:
             case 'metadata': 
                 return get_settings().API_STATICDB_URL.replace('postgresql:', 'postgresql+asyncpg:')
             case _:
-                raise ValueError('Need to specify endpoint database - one of: genomics, cache, or metadata')
+                raise RuntimeError('Need to specify endpoint database - one of: genomics, cache, or metadata')
             
     async def close(self):
         """ 
@@ -58,7 +59,7 @@ class DatabaseSessionManager:
             try: 
                 await session.execute(text("SELECT 1"))
                 yield session
-            except (NotImplementedError, ValueError, RuntimeError):
+            except (NotImplementedError, RequestValidationError, RuntimeError):
                 await session.rollback()
                 raise  
             except Exception as err:

@@ -1,12 +1,13 @@
 from fastapi import Query
 from enum import Enum, auto
+from fastapi.exceptions import RequestValidationError
 from sqlmodel import col, not_
 
 from pyparsing import Group, Keyword, OneOrMore, Optional, Word, alphas, nums, ParserElement
 from pyparsing.helpers import one_of
 
 
-from ..exceptions import get_error_message
+from ...common.exceptions import get_error_message
 
 _NUMBER = Word(nums)
 _TEXT = Word(alphas + '_')
@@ -79,7 +80,7 @@ class FilterParameter():
                 return None
         
         except Exception as e:
-            raise ValueError(f'Unable to parse `filter` expression: {filter}; {get_error_message(e)}.  Example expression: data_source eq GTEx and biosample like astrocyte.  Test conditions must substitute an underscore (_) for spaces, e.g., histone modification should be written as histone_modification')
+            raise RequestValidationError(f'Unable to parse `filter` expression: {filter}; {get_error_message(e)}.  Example expression: data_source eq GTEx and biosample like astrocyte.  Test conditions must substitute an underscore (_) for spaces, e.g., histone modification should be written as histone_modification')
                 
 
 

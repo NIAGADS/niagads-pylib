@@ -1,3 +1,4 @@
+from fastapi.exceptions import RequestValidationError
 from sqlmodel import select, col, or_, func, distinct
 from sqlalchemy import Values, String, column as sqla_column
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -69,7 +70,7 @@ class MetadataQueryService:
         
         result = (await self.__session.execute(statement)).all()
         if len(result) > 0:
-            raise ValueError(f'Invalid track identifiers found: {list_to_string(result)}')
+            raise RequestValidationError(f'Invalid track identifiers found: {list_to_string(result)}')
         else:
             return True
 
@@ -117,15 +118,17 @@ class MetadataQueryService:
                 
         return statement
 
-    async def query_track_metadata(self, assembly: str, 
-            filters: List[str] | None, keyword: Optional[str], 
+    async def query_track_metadata(self, 
+            assembly: str, 
+            filters: Optional[List[str]], 
+            keyword: Optional[str], 
             options: Parameters) -> List[Track]:
         
-        if (options.idsOnly and options.countOnly):
-            raise ValueError("please set only one of `idsOnly` or `countOnly` to `TRUE`")
+        if (options.idsOnly and options.countsOnly):
+            raise RequestValidationError("please set only one of `idsOnly` or `countsOnly` to `TRUE`")
         
         target = Track.track_id if options.idsOnly \
-            else func.count(Track.track_id) if options.countOnly else Track
+            else func.count(Track.track_id) if options.countsOnly else Track
 
         statement = select(target).filter(col(Track.genome_build) == assembly)
         if filters is not None:
@@ -136,14 +139,14 @@ class MetadataQueryService:
                 col(Track.searchable_text).regexp_match(keyword, 'i'),
                 col(Track.antibody_target).regexp_match(keyword, 'i')))
             
-        if not options.countOnly:
+        if not options.countsOnly:
             statement = statement.order_by(Track.track_id)
-            if options.limit:
-                statement = statement.limit(options.limit)
+            # if options.limit:
+            #     statement = statement.limit(options.limit)
 
         result = await self.__session.execute(statement)
 
-        if options.countOnly:
+        if options.countsOnly:
             return {'track_count': result.scalars().one() }
         else:
             return result.scalars().all()

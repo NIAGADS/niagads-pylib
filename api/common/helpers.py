@@ -3,7 +3,7 @@ from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Any, Dict
 
 from api.dependencies.parameters.services import InternalRequestParameters
-from api.dependencies.parameters.optional import ResponseType
+from api.dependencies.parameters.optional import PaginationParameters, ResponseType
 from api.response_models.base_models import BaseResponseModel
 
 # basically allow creation of an arbitrary namespace
@@ -15,7 +15,8 @@ class HelperParameters(BaseModel, arbitrary_types_allowed=True):
     internal: InternalRequestParameters
     model: Any
     format: ResponseType = ResponseType.JSON
-    parameters: Parameters
+    pagination: PaginationParameters = None
+    parameters: Parameters = None
     
     # __pydantic_extra__: Dict[str, Any]  
     # model_config = ConfigDict(extra='allow')

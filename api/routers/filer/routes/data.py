@@ -1,5 +1,8 @@
 
 
+from fastapi.exceptions import RequestValidationError
+
+
 @router.get("/data", tags=tags,
     name="Get data from multiple tracks",
     description="retrieve data from one or more functional genomics tracks from FILER in the specified region")
@@ -11,7 +14,7 @@ async def get_track_data(
 
     assembly = await MetadataQueryService(session).get_genome_build(convert_str2list(track), validate=True)
     if isinstance(assembly, dict):
-        raise ValueError(f'Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently')
+        raise RequestValidationError(f'Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently')
         # TODO: return assembly -> track mapping in error message and/or suggest endpoint to query to get the mapping
         
     return apiWrapperService.get_track_hits(clean(track), span)

@@ -1,5 +1,6 @@
 from enum import Enum
 from fastapi import Query
+from fastapi.exceptions import RequestValidationError
 from niagads.reference.chromosomes import Human as Chromosome
 from niagads.utils.reg_ex import matches
 
@@ -18,7 +19,7 @@ class Assembly(str, Enum):
             if e.value.lower() == value.lower(): # for GRCh37/38 -> value match
                 return "GRCh37" if value.lower() == 'hg19' else "GRCh38" if value.lower() == 'hg38' else e.value
     
-        raise ValueError("Invalid `assembly`: " + value)
+        raise RequestValidationError("Invalid `assembly`: " + value)
 
 async def assembly_param(assembly: Assembly = Query(Assembly.GRCh38, description="reference genome build (assembly)")): 
     return Assembly.validate(clean(assembly))
@@ -34,18 +35,18 @@ async def span_param(span: str = Query(alias="loc", description="genomic region 
     
     # check against regexp
     if matches(pattern, span) == False:
-        raise ValueError(f'Invalid genomic span: `{span}`; for a chromosome, N, please specify as chrN:start-end or N:start-end')
+        raise RequestValidationError(f'Invalid genomic span: `{span}`; for a chromosome, N, please specify as chrN:start-end or N:start-end')
 
     # split on :
     [chrm, coords] = span.split(':')
     validChrm = Chromosome.validate(chrm)
     if validChrm is None:
-        raise ValueError(f'Invalid genomic span: `{span}`; invalid chromosome `{chrm}`')
+        raise RequestValidationError(f'Invalid genomic span: `{span}`; invalid chromosome `{chrm}`')
 
     # validate start < end
     [start, end] = coords.split('-')
     if (int(start) > int(end)):
-        raise ValueError(f'Invalid genomic span: `{span}`; start coordinate must be <= end')
+        raise RequestValidationError(f'Invalid genomic span: `{span}`; start coordinate must be <= end')
     
     return validChrm + ':' + coords
 

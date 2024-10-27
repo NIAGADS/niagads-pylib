@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Depends, Query
+from fastapi.exceptions import RequestValidationError
 from typing import Annotated, Optional, Union
 
-from api.dependencies.exceptions import RESPONSES
-from api.dependencies.parameters.location import span_param
-from api.dependencies.parameters.optional import format_param
+from api.common.exceptions import RESPONSES
+from api.dependencies.parameters.filters import ExpressionType, FilterParameter
+from api.dependencies.parameters.location import Assembly, assembly_param
+from api.dependencies.parameters.optional import PaginationParameters, counts_only_param, format_param, ids_only_param, keyword_param
 from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse
 from api.common.helpers import Parameters
 
-from ..common.helpers import HelperParameters, get_track_metadata as __get_track_metadata
-from ..common.constants import ROUTE_TAGS
-from ..models.track_response_model import FILERTrackResponse
+from ..common.helpers import HelperParameters, get_track_metadata as __get_track_metadata, search_track_metadata as __search_track_metadata
+from ..common.constants import ROUTE_TAGS, TRACK_SEARCH_FILTER_FIELD_MAP
+from ..models.track_response_model import FILERTrackPagedResponse, FILERTrackResponse
 from ..dependencies import InternalRequestParameters
 
 TAGS = ROUTE_TAGS
@@ -30,6 +32,32 @@ async def get_track_metadata(
     
     opts = HelperParameters(internal=internal, format=format, model=FILERTrackResponse, parameters=Parameters(track=track))
     return await __get_track_metadata(opts)
+
+tags = TAGS + ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
+filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
+@router.get("/search", tags=tags, response_model=FILERTrackPagedResponse,
+    name="Search for tracks", 
+    description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata")
+async def search_track_metadata(
+        pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
+        assembly: Assembly = Depends(assembly_param), 
+        filter = Depends(filter_param), 
+        keyword: str = Depends(keyword_param),
+        format: str= Depends(format_param),
+        countsOnly = Depends(counts_only_param),
+        idsOnly = Depends(ids_only_param),
+        internal: InternalRequestParameters = Depends(),
+        ) -> FILERTrackPagedResponse:
+    
+    if filter is None and keyword is None:
+        raise RequestValidationError('must specify either a `filter` and/or a `keyword` to search')
+    
+    optionalParameters = Parameters(countsOnly=countsOnly, idsOnly=idsOnly)
+    
+    opts = HelperParameters(internal=internal, pagination=pagination,
+        format=format, model=FILERTrackPagedResponse,
+        parameters=Parameters(assembly=assembly, filter=filter, keyword=keyword, options=optionalParameters))
+    return await __search_track_metadata(opts)
 
 
 tags = TAGS + ["NIAGADS Genome Browser Configuration"]

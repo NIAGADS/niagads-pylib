@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Path, Query, Request
 from typing import Annotated, List, Optional
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from collections import OrderedDict, ChainMap
 from itertools import groupby
@@ -8,7 +9,7 @@ from operator import itemgetter
 from api.common.formatters import clean
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import assembly_param, span_param
-from api.dependencies.exceptions import RESPONSES
+from api.common.exceptions import RESPONSES
 # from api.dependencies.parameters.optional import SummaryResultParameter
 from api.internal.constants import FILER_N_TRACK_LOOKUP_LIMIT
 
@@ -30,21 +31,8 @@ router = APIRouter(
     responses=RESPONSES
 )
 
-tags = TAGS + ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
-filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
-@router.get("/tracks", tags=tags, response_model=List[FILERTrack],
-    name="Track Metadata Text Search", 
-    description="find functional genomics tracks using category filters or by a keyword search againts all text fields in the track metadata")
-async def query_track_metadata(
-        session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
-        assembly = Depends(assembly_param), filter = Depends(filter_param), 
-        keyword: Optional[str] = Query(default=None, description="search all text fields by keyword")):
-        # options: ExtendedOptionalParams = Depends()):
-    if filter is None and keyword is None:
-        raise ValueError('must specify either a `filter` and/or a `keyword` to search')
-    raise NotImplementedError("need to fix optional params")
-    # return await MetadataQueryService(session).query_track_metadata(assembly, filter, keyword, options)
 
+tags=TAGS
 
 @router.get('/region/summary', tags=tags, response_model=List[FILERTrackOverlapSummary], include_in_schema=False,
             name="Get a data summary for Tracks meeting Search Criteria", 
@@ -52,20 +40,20 @@ async def query_track_metadata(
 async def query_track_data_summary(request: Request, requestId: str):
     pass
 
-@router.get("/region", tags=tags, 
+@router.get("/region", tags='ab', 
     name="Get Data from Tracks meeting Search Criteria", 
     description="retrieve data in a region of interest from all functional genomics tracks whose metadata meets the search or filter criteria")
 async def query_track_data(
         request: Request,
         session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
         apiWrapperService: Annotated[ApiWrapperService, Depends(ApiWrapperService)],
-        assembly = Depends(assembly_param), filter = Depends(filter_param), 
+        assembly = Depends(assembly_param), filter = Depends(FilterParameter), 
         keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),
         span: str=Depends(span_param)):
         # options: OptionalParams = Depends()):
     
     if filter is None and keyword is None:
-        raise ValueError('must specify either a `filter` and/or a `keyword` to search')
+        raise RequestValidationError('must specify either a `filter` and/or a `keyword` to search')
     
     # get tracks that meet the filter criteria
     opts = ExtendedOptionalParams(idsOnly=False, countOnly=False, page=None, limit=None )

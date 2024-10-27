@@ -1,15 +1,13 @@
 from fastapi import APIRouter, Depends, Path, Query
 from typing import Annotated, Optional, Union
 
-from api.dependencies.exceptions import RESPONSES
+from api.common.exceptions import RESPONSES
 from api.dependencies.parameters.location import span_param
 from api.dependencies.parameters.optional import counts_only_param, format_param
 from api.common.helpers import Parameters
 
 from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse, BEDResponse
 from api.response_models.base_models import BaseResponseModel
-
-
 
 from ..common.constants import ROUTE_TAGS
 from ..dependencies import InternalRequestParameters
@@ -70,7 +68,7 @@ async def get_track_browser_config(
 tags = TAGS + ["Record by ID", "Track Data by ID"]
 @router.get("/{track}/data", tags=tags, 
     name="Get track data", response_model=Union[BEDResponse, BaseResponseModel],
-    description="retrieve functional genomics track data from FILER in the specified region")
+    description="retrieve functional genomics track data from FILER in the specified region; specify `countsOnly` to just retrieve a count of the number of hits in the specified region")
 async def get_track_data(
         track: Annotated[str, Path(description="FILER track identifier")],
         span: str=Depends(span_param),

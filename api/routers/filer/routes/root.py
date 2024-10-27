@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies.exceptions import RESPONSES
+from api.common.exceptions import RESPONSES
 from api.response_models import BaseResponseModel, RequestDataModel
 
 from ..common.constants import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX
