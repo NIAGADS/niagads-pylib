@@ -8,6 +8,7 @@ from itertools import groupby
 from operator import itemgetter
 
 
+from api.common.enums import ResponseContent
 from api.common.helpers import HelperParameters as __BaseHelperParameters, Parameters
 from api.dependencies.parameters.optional import ResponseFormat
 from api.response_models.base_models import BaseResponseModel, RequestDataModel, PaginationDataModel
@@ -44,16 +45,6 @@ async def __validate_tracks(session: AsyncSession, tracks: List[str]):
     assembly = await MetadataQueryService(session).get_genome_build(tracks, validate=True)
     if isinstance(assembly, dict):
         raise RequestValidationError(f'Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently')
-
-
-def __validate_optional_params(format: ResponseFormat, opts: Parameters ):
-    countsOnly = getattr(opts, 'countsOnly', False)
-    if countsOnly and format != ResponseFormat.JSON:
-        raise RequestValidationError(f'Invalid response format selected: `{format.value}`; counts can only be returned in a `JSON` response')
-    
-    paramValues = [countsOnly, getattr(opts, 'idsOnly', False )]
-    if sum(paramValues) > 1:
-        raise RequestValidationError("please set only one of `idsOnly`, `countsOnly` to `true`")
     
 
 def __generate_response(result: Any, opts:HelperParameters):
@@ -74,11 +65,9 @@ def __generate_response(result: Any, opts:HelperParameters):
             return opts.model(request=opts.internal.requestData, response=result)
 
 
-async def get_track_data(opts: HelperParameters):
-    __validate_optional_params(opts.format, opts.parameters)
-    
-    summarize = getattr(opts.parameters, 'summarize', False)
-    countsOnly = getattr(opts.parameters, 'countsOnly', False)  or summarize == True# if summarize is true, we only want counts
+async def get_track_data(opts: HelperParameters): 
+    summarize = opts.content == ResponseContent.SUMMARY
+    countsOnly = opts.content == ResponseContent.COUNTS  or summarize == True # if summarize is true, we only want counts
     tracks = opts.parameters.track.split(',')
     
     await __validate_tracks(opts.internal.session, tracks)  
@@ -100,7 +89,7 @@ async def get_track_metadata(opts: HelperParameters, rawResponse=False):
 async def search_track_metadata(opts: HelperParameters):
     result =  await MetadataQueryService(opts.internal.session) \
         .query_track_metadata(opts.parameters.assembly, 
-            opts.parameters.filter, opts.parameters.keyword, opts.parameters.options)
+            opts.parameters.filter, opts.parameters.keyword, opts.content)
         
     return __generate_response(result, opts)
 

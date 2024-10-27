@@ -9,6 +9,7 @@ from niagads.filer import FILERApiWrapper, FILERTrackOverlaps
 from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
 
+from api.common.enums import ResponseContent
 from api.internal.config import get_settings
 from api.dependencies.parameters.filters import tripleToPreparedStatement
 from api.common.helpers import Parameters
@@ -122,28 +123,25 @@ class MetadataQueryService:
             assembly: str, 
             filters: Optional[List[str]], 
             keyword: Optional[str], 
-            options: Parameters) -> List[Track]:
+            responseType: ResponseContent) -> List[Track]:
 
-        target = Track.track_id if options.idsOnly \
-            else func.count(Track.track_id) if options.countsOnly else Track
+        target = Track.track_id if responseType == ResponseContent.IDS \
+            else func.count(Track.track_id) if responseType == ResponseContent.COUNTS else Track
 
         statement = select(target).filter(col(Track.genome_build) == assembly)
         if filters is not None:
             statement = self.__add_statement_filters(statement, filters)
         if keyword is not None:
-            # TODO: add antibody targets to searchable text during cache build
             statement = statement.filter(or_(
                 col(Track.searchable_text).regexp_match(keyword, 'i'),
                 col(Track.antibody_target).regexp_match(keyword, 'i')))
             
-        if not options.countsOnly:
+        if responseType != ResponseContent.COUNTS:
             statement = statement.order_by(Track.track_id)
-            # if options.limit:
-            #     statement = statement.limit(options.limit)
 
         result = await self.__session.execute(statement)
 
-        if options.countsOnly:
+        if responseType == ResponseContent.COUNTS:
             return {'track_count': result.scalars().one() }
         else:
             return result.scalars().all()

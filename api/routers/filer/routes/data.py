@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import RequestValidationError
 from typing import Annotated, Optional, Union
 
+from api.common.enums import ResponseContent
 from api.common.exceptions import RESPONSES
+from api.common.formatters import print_enum_values
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import span_param
-from api.dependencies.parameters.optional import counts_only_param, format_param, keyword_param
+from api.dependencies.parameters.optional import format_param, get_response_content, keyword_param, validate_response_content
 from api.common.helpers import Parameters
 from api.response_models.base_models import BaseResponseModel
 from api.response_models.data_models import BEDResponse
@@ -23,57 +25,46 @@ router = APIRouter(
 )
 
 tags = TAGS + ["Track Data by ID"]
+content_enum = get_response_content(exclude=[ResponseContent.IDS])
 @router.get("/", tags=tags,
-    name="Get data from multiple tracks", response_model=Union[BEDResponse, BaseResponseModel],
+    name="Get data from multiple tracks", response_model=Union[BEDResponse, BaseResponseModel, FILERTrackBriefResponse],
     description="retrieve data from one or more FILER tracks in the specified region")
 async def get_track_data(
         track: str = Depends(query_track_id),
         span: str = Depends(span_param),
         format: str = Depends(format_param),
-        countsOnly: Optional[bool]=Depends(counts_only_param),
+        content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(content_enum)}'),
         internal: InternalRequestParameters = Depends()
-        ) -> Union[BEDResponse, BaseResponseModel]:
-    responseModel = BaseResponseModel if countsOnly else BEDResponse
-    opts = HelperParameters(internal=internal, format=format, model=responseModel, 
-        parameters=Parameters(track=track, span=span, countsOnly=countsOnly))
+        ) -> Union[BEDResponse, BaseResponseModel, FILERTrackBriefResponse]:
+    
+    content = await validate_response_content(content_enum, content)
+    responseModel = BEDResponse if content == ResponseContent.FULL \
+        else FILERTrackBriefResponse if content == ResponseContent.SUMMARY \
+            else BaseResponseModel
+    opts = HelperParameters(internal=internal, format=format, 
+            content=content, model=responseModel, 
+        parameters=Parameters(track=track, span=span))
     return await __get_track_data(opts)
 
-@router.get("/summary", tags=tags,
-    name="Get a summary of data from multiple tracks", response_model=FILERTrackBriefResponse,
-    description="retrieve a summary of track data (brief metadata and counts) from FILER tracks in the specified region")
-async def get_track_data_summary(
-        track: str = Depends(query_track_id),
-        span: str = Depends(span_param),
-        format: str = Depends(format_param),
-        internal: InternalRequestParameters = Depends()
-        ) -> FILERTrackBriefResponse:
-    opts = HelperParameters(internal=internal, format=format, model=FILERTrackBriefResponse, 
-        parameters=Parameters(track=track, span=span, summarize=True))
-    return await __get_track_data(opts)
 
 @router.get("/search", tags=tags,
-    name="Get a summary of data from multiple tracks", response_model=FILERTrackBriefResponse,
+    name="Get a summary of data from multiple tracks", response_model=Union[BEDResponse, BaseResponseModel, FILERTrackBriefResponse],
     description="retrieve a summary of track data (brief metadata and counts) from FILER tracks in the specified region")
 async def get_track_data_summary(
         track: str = Depends(query_track_id),
         span: str = Depends(span_param),
         format: str = Depends(format_param),
+        content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(content_enum)}'),
         internal: InternalRequestParameters = Depends()
-        ) -> FILERTrackBriefResponse:
-    opts = HelperParameters(internal=internal, format=format, model=FILERTrackBriefResponse, 
+        ) -> Union[BEDResponse, BaseResponseModel, FILERTrackBriefResponse]:
+    
+    content = await validate_response_content(content_enum, content)
+    responseModel = BEDResponse if content == ResponseContent.FULL \
+        else FILERTrackBriefResponse if content == ResponseContent.SUMMARY \
+            else BaseResponseModel
+    opts = HelperParameters(internal=internal, format=format, model=responseModel,
+        content = content, 
         parameters=Parameters(track=track, span=span, summarize=True))
     return await __get_track_data(opts)
 
 
-@router.get("/search/summary", tags=tags,
-    name="Get a summary of data from multiple tracks", response_model=FILERTrackBriefResponse,
-    description="retrieve a summary of track data (brief metadata and counts) from FILER tracks in the specified region")
-async def get_track_data_summary(
-        track: str = Depends(query_track_id),
-        span: str = Depends(span_param),
-        format: str = Depends(format_param),
-        internal: InternalRequestParameters = Depends()
-        ) -> FILERTrackBriefResponse:
-    opts = HelperParameters(internal=internal, format=format, model=FILERTrackBriefResponse, 
-        parameters=Parameters(track=track, span=span, summarize=True))
-    return await __get_track_data(opts)

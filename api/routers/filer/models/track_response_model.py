@@ -1,14 +1,14 @@
 from sqlmodel import SQLModel
 from fastapi.encoders import jsonable_encoder
 from datetime import datetime
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Union
 from typing_extensions import Self
 from pydantic import model_validator
 
 from niagads.utils.list import find
 
 from api.common.formatters import id2title
-from api.response_models import PagedResponseModel, BaseResponseModel, GenericDataModel
+from api.response_models import PagedResponseModel, GenericDataModel
 from .biosample_characteristics import BiosampleCharacteristics
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
@@ -24,7 +24,10 @@ class FILERTrackBrief(SQLModel, GenericDataModel):
     
     @model_validator(mode='before')
     @classmethod
-    def allowable_extras(cls: Self, data: Dict[str, Any]):
+    def allowable_extras(cls: Self, data: Union[Dict[str, Any]]):
+        """ for now, allowable extras are just counts, prefixed with `num_` """
+        if type(data).__base__ == SQLModel: # then there are no extra fields
+            return data
         modelFields = cls.model_fields.keys()
         return {k:v for k, v in data.items() if k in modelFields or k.startswith('num_')}
 

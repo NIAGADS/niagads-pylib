@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, Path, Query
-from typing import Annotated, Optional, Union
+from typing import Optional, Union
 
 from api.common.enums import ResponseContent
 from api.common.exceptions import RESPONSES
 from api.common.formatters import print_enum_values
 from api.dependencies.parameters.location import span_param
-from api.dependencies.parameters.optional import counts_only_param, format_param, get_response_content, validate_response_content
+from api.dependencies.parameters.optional import format_param, get_response_content, validate_response_content
 from api.common.helpers import Parameters
 
 from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse, BEDResponse
@@ -25,17 +25,18 @@ router = APIRouter(
 )
 
 tags = TAGS + ["Record by ID", "Track Metadata by ID"]
-content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.COUNTS])
+# note: the content enum variables must have a distinct name or else the get overwritten in memory from initialization when requests are made
+get_track_metadata_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.COUNTS])
 @router.get("/{track}", tags=tags, response_model=Union[FILERTrackBriefResponse, FILERTrackResponse],
     name="Get brief track description",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response")
-async def get_track_summary(
+async def get_track_metadata(
         track = Depends(path_track_id),
-        content: str = Query(ResponseContent.SUMMARY, description=f'response content; one of: {print_enum_values(content_enum)}'),
+        content: str = Query(ResponseContent.SUMMARY, description=f'response content; one of: {print_enum_values(get_track_metadata_content_enum)}'),
         internal: InternalRequestParameters = Depends()
         ) -> Union[FILERTrackBriefResponse, FILERTrackResponse]:
     
-    content = await validate_response_content(content_enum, content)
+    content = await validate_response_content(get_track_metadata_content_enum, content)
     responseModel = FILERTrackResponse if content == ResponseContent.FULL else FILERTrackBriefResponse
     opts = HelperParameters(internal=internal, 
         model=responseModel, content=content,
@@ -62,7 +63,7 @@ async def get_track_browser_config(
 
 tags = TAGS + ["Record by ID", "Track Data by ID"]
 
-content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.SUMMARY])
+get_track_data_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.SUMMARY])
 @router.get("/{track}/data", tags=tags, 
     name="Get track data", response_model=Union[BEDResponse, BaseResponseModel],
     description="retrieve functional genomics track data from FILER in the specified region; specify `content=counts` to just retrieve a count of the number of hits in the specified region")
@@ -70,11 +71,11 @@ async def get_track_data(
         track = Depends(path_track_id),
         span: str=Depends(span_param),
         format: str= Depends(format_param),
-        content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(content_enum)}'),
+        content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(get_track_data_content_enum)}'),
         internal: InternalRequestParameters = Depends()
         ) -> Union[BEDResponse, BaseResponseModel]:
     
-    content = await validate_response_content(content_enum, content)
+    content = await validate_response_content(get_track_data_content_enum, content)
     responseModel = BEDResponse if content == ResponseContent.FULL else BaseResponseModel
     opts = HelperParameters(internal=internal, format=format, 
         model=responseModel, content=content,

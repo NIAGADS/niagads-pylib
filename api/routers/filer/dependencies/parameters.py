@@ -3,6 +3,7 @@ from fastapi import Depends, Path, Query, Request
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.common.enums import CaseInsensitiveEnum
 from api.common.formatters import clean
 from api.dependencies.database import DatabaseSessionManager
 from api.dependencies.parameters.services import InternalRequestParameters as BaseInternalRequestParameters
