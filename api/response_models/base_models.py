@@ -1,9 +1,9 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Any, Dict
+from typing import Any, Dict, Union
 from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
-
+from urllib.parse import parse_qs
 class SerializableModel(BaseModel):
     def serialize(self, promoteObjs=False, collapseUrls=False, groupExtra=False):
         """Return a dict which contains only serializable fields.
@@ -34,13 +34,13 @@ class SerializableModel(BaseModel):
 class RequestDataModel(SerializableModel):
     request_id: str
     endpoint: str
-    parameters: str
+    parameters: Dict[str, Union[int, str, bool]]
     
     @classmethod
     async def from_request(cls, request: Request):
         return cls(
             request_id=request.headers.get("X-Request-ID"),
-            parameters=str(request.query_params),
+            parameters={k: v[0] for k, v in parse_qs(str(request.query_params)).items()},
             endpoint=str(request.url.path)
         )
     
