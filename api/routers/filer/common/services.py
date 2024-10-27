@@ -123,10 +123,7 @@ class MetadataQueryService:
             filters: Optional[List[str]], 
             keyword: Optional[str], 
             options: Parameters) -> List[Track]:
-        
-        if (options.idsOnly and options.countsOnly):
-            raise RequestValidationError("please set only one of `idsOnly` or `countsOnly` to `TRUE`")
-        
+
         target = Track.track_id if options.idsOnly \
             else func.count(Track.track_id) if options.countsOnly else Track
 
