@@ -28,6 +28,7 @@ tags = TAGS + ["NIAGADS Genome Browser Configuration"]
     name="Get Genome Browser configuration for multiple tracks",
     description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) specified in the path")
 async def get_track_browser_config(
+        # pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
         track = Depends(query_track_id),
         inclMetadata: Optional[bool] = Query(default=False, description="include filterable track metadata for the track selector display"),
         format: str= Depends(format_param),
@@ -37,7 +38,7 @@ async def get_track_browser_config(
     responseModel = GenomeBrowserExtendedConfigResponse if inclMetadata \
         else GenomeBrowserConfigResponse
     opts = HelperParameters(internal=internal, 
-        format=format, model=responseModel, 
+        format=format, model=responseModel, # pagination=pagination,
         parameters=Parameters(track=track))
     return await __get_track_metadata(opts)
 
@@ -49,7 +50,7 @@ search_track_config_content_enum = get_response_content(exclude=[ResponseContent
     name="Search for tracks", 
     description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata")
 async def search_track_metadata(
-        pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
+        # pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
         assembly: Assembly = Depends(assembly_param), 
         filter = Depends(filter_param), 
         keyword: str = Depends(keyword_param),
@@ -68,7 +69,7 @@ async def search_track_metadata(
         responseModel = GenomeBrowserExtendedConfigResponse if inclMetadata \
             else GenomeBrowserConfigResponse
             
-    opts = HelperParameters(internal=internal, pagination=pagination,
+    opts = HelperParameters(internal=internal, # pagination=pagination,
         content=content,
         format=format, model=responseModel,
         parameters=Parameters(assembly=assembly, filter=filter, keyword=keyword))
