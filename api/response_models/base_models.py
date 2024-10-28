@@ -35,7 +35,7 @@ class RequestDataModel(SerializableModel):
     request_id: str
     endpoint: str
     parameters: Dict[str, Union[int, str, bool]]
-    message: Optional[str] = None
+    msg: Optional[str] = None
     
     @classmethod
     async def from_request(cls, request: Request):
@@ -80,5 +80,5 @@ class PaginationDataModel(BaseModel):
     total_num_records: int
 
 class PagedResponseModel(BaseResponseModel):
-    pagination: PaginationDataModel
+    pagination: Optional[PaginationDataModel] = None
     

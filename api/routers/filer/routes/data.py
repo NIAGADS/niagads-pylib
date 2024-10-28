@@ -30,6 +30,7 @@ get_track_data_content_enum = get_response_content(exclude=[ResponseContent.IDS]
     name="Get data from multiple tracks", response_model=Union[BEDResponse, BaseResponseModel, FILERTrackBriefResponse],
     description="retrieve data from one or more FILER tracks in the specified region")
 async def get_track_data(
+        pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
         track: str = Depends(query_track_id),
         span: str = Depends(span_param),
         format: str = Depends(format_param),
@@ -41,8 +42,9 @@ async def get_track_data(
     responseModel = BEDResponse if content == ResponseContent.FULL \
         else FILERTrackBriefResponse if content == ResponseContent.SUMMARY \
             else BaseResponseModel
+            
     opts = HelperParameters(internal=internal, format=format, 
-            content=content, model=responseModel, 
+            content=content, model=responseModel, pagination=pagination,
         parameters=Parameters(track=track, span=span))
     return await __get_track_data(opts)
 
