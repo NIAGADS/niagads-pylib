@@ -40,7 +40,7 @@ class RequestDataModel(SerializableModel):
     msg: Optional[str] = None
     
     @classmethod
-    def __sort_query_parameters(cls, params: dict) -> str:
+    def sort_query_parameters(cls, params: dict) -> str:
         """ called by cache_key method to alphabetize the parameters """
         if len(params) == 0:
             return ''
@@ -54,13 +54,24 @@ class RequestDataModel(SerializableModel):
             parameters=dict(request.query_params),
             endpoint=str(request.url.path)
         )
-        
+
+class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
+    internal: str
+    external: str
+    namespace: str
+    
     @classmethod
-    async def cache_key(cls, request: Request):
-        parameters=cls.__sort_query_parameters(dict(request.query_params))
-        endpoint=str(request.url.path) # endpoint includes path parameters
-        cacheKey = endpoint + '?' + parameters
-        return cacheKey
+    async def from_request(cls, request: Request):
+        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params))
+        endpoint = str(request.url.path) # endpoint includes path parameters
+        
+        return cls(
+            internal = endpoint + '?' + parameters.replace(':','_'), # ':' delimitates keys in keydb
+            external = request.headers.get("X-Request-ID"),
+            namespace = request.url.path.split('/')[1]
+        )
+
+
     
 class BaseResponseModel(SerializableModel):
     request: RequestDataModel

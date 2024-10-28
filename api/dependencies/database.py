@@ -2,6 +2,7 @@
 # adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
 import logging
 from typing import Any, Union, Dict, List
+from typing_extensions import Self
 from fastapi.exceptions import RequestValidationError
 from sqlmodel import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_scoped_session, AsyncSession, AsyncEngine, async_sessionmaker
@@ -42,41 +43,48 @@ class CacheManager:
             * keyed on `requestId_view` or `_view_element`
     """
     __cache: RedisCache = None
-
+    __namespace: str = 'api_root'
     
-    def __init__(self, serializer: CacheSerializer):
+    def __init__(self, serializer: CacheSerializer, namespace: str=None):
         connectionString = get_settings().API_CACHEDB_URL
         config = self.__parse_uri_path(connectionString)
-        self.__cache = RedisCache(serializer=serializer.value, **config) 
-        
+        self.__cache = RedisCache(serializer=serializer.value(), **config)  # need to instantiat the serializer
+        if namespace is not None:
+            self.__namespace = namespace
     
     def __parse_uri_path(self, path):
         # RedisCache.parse_uri_path() does not work
         values = path.split("/")
         host, port = values[2].split(':')
         config = { 
-            'namespace': values[0][:-1],
+            'namespace': self.__namespace,
             'db': int(values[-1]),
             'port': int(port),
             'endpoint': host} # conceptually, endpoint here is the host IP
         return config
         
             
-    async def set(self, cacheKey:str, value: BaseResponseModel, ttl=CacheTTL.DEFAULT):
+    async def set(self, cacheKey:str, value: BaseResponseModel, ttl=CacheTTL.DEFAULT, namespace:str=None):
         if self.__cache is None:
             raise RuntimeError('In memory cache not initialized')
-        self.__cache.set(cacheKey, value, ttl)
+        ns = self.__namespace if namespace is None else namespace
+        await self.__cache.set(cacheKey, value, ttl=ttl.value, namespace=ns)
+
         
-    async def get(self, cacheKey: str) -> Union[BaseResponseModel, JSON_TYPE]:
+    async def get(self, cacheKey: str, namespace:str=None) -> Union[BaseResponseModel, JSON_TYPE]:
         if self.__cache is None:
             raise RuntimeError('In memory cache not initialized')
-        return self.__cache.get(cacheKey)
+        ns = self.__namespace if namespace is None else namespace
+        return await self.__cache.get(cacheKey, namespace=ns)
+
 
     async def get_cache(self) -> RedisCache:
         return self.__cache
 
-    async def __call__(self) -> RedisCache:
-        return self.__cache
+
+    async def __call__(self) -> Self:
+        return self
+    
 
 class DatabaseSessionManager:
     def __init__(self, route: str):
