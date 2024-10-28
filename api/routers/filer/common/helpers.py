@@ -1,7 +1,5 @@
-from typing import Any, List
-from fastapi import status
+from typing import List
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from collections import ChainMap
 from itertools import groupby
@@ -10,10 +8,8 @@ from operator import itemgetter
 from niagads.utils.list import cumulative_sum
 
 from api.common.enums import ResponseContent
-from api.common.helpers import HelperParameters as __BaseHelperParameters, Parameters
-from api.dependencies.parameters.optional import ResponseFormat
-from api.response_models.base_models import BaseResponseModel, RequestDataModel, PaginationDataModel
-from api.routers.filer.models.track_response_model import FILERTrackBrief
+from api.common.helpers import HelperParameters as __BaseHelperParameters, generate_response as __generate_response
+from api.response_models.base_models import BaseResponseModel, RequestDataModel
 
 from .services import MetadataQueryService, ApiWrapperService
 from ..dependencies import InternalRequestParameters
@@ -73,27 +69,6 @@ async def __validate_tracks(session: AsyncSession, tracks: List[str]):
     if isinstance(assembly, dict):
         raise RequestValidationError(f'Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently')
     
-
-def __generate_response(result: Any, opts:HelperParameters):
-    rowModel = opts.model.row_model(name=True)
-    requestId = opts.internal.requestData.request_id
-    isPaged = opts.model.is_paged()
-    if isPaged:
-        numRecords = len(result)
-        pagination = PaginationDataModel(page=opts.pagination.page, 
-            total_num_pages=opts.parameters.total_page_count, 
-            paged_num_records=numRecords, 
-            total_num_records=opts.parameters.expected_result_size)
-
-    match opts.format:
-        case ResponseFormat.TABLE:
-            redirectUrl = f'/view/table/{rowModel}?forwardingRequestId={requestId}'
-            return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
-        case _:
-            if isPaged:
-                return opts.model(request=opts.internal.requestData, pagination=pagination, response=result)
-            return opts.model(request=opts.internal.requestData, response=result)
-
 
 async def get_track_data(opts: HelperParameters, validate=True): 
     summarize = opts.content == ResponseContent.SUMMARY
@@ -156,5 +131,7 @@ async def search_track_data(opts: HelperParameters):
         opts.parameters.total_page_count = numPages
     else:
         opts.parameters.track = targetTrackIds
+        if opts.content == ResponseContent.IDS:
+            return __generate_response(targetTrackIds, opts)
         
     return await get_track_data(opts, validate=False)
