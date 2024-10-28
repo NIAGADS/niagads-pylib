@@ -1,26 +1,20 @@
 from fastapi import APIRouter, Depends, Path, Query, Request
 from typing import Annotated, List, Optional
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
-from collections import OrderedDict, ChainMap
-from itertools import groupby
-from operator import itemgetter
 
-from api.dependencies.filter_params import ExpressionType, FilterParameter
-from api.dependencies.param_validation import clean
-from api.dependencies.location_params import assembly_param, span_param
-from api.dependencies.exceptions import RESPONSES
-from api.dependencies.shared_params import ExtendedOptionalParams, OptionalParams
+from api.common.formatters import clean
+from api.dependencies.parameters.filters import ExpressionType, FilterParameter
+from api.dependencies.parameters.location import assembly_param, span_param
+from api.common.exceptions import RESPONSES
+# from api.dependencies.parameters.optional import SummaryResultParameter
 from api.internal.constants import FILER_N_TRACK_LOOKUP_LIMIT
 
-from ..constants import ROUTE_SESSION_MANAGER, TRACK_SEARCH_FILTER_FIELD_MAP, ROUTE_TAGS
-from ..dependencies import MetadataQueryService, ApiWrapperService
-from ..models import TrackPublic, TrackOverlapSummary
+from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP, ROUTE_TAGS
+from ..common.services import MetadataQueryService, ApiWrapperService
+from ..dependencies import ROUTE_SESSION_MANAGER
+from ..models.track_response_model import FILERTrack, FILERTrackOverlapSummary
 
-def merge_track_lists(trackList1, trackList2):
-    matched = groupby(sorted(trackList1 + trackList2, key=itemgetter('track_id')), itemgetter('track_id'))
-    combinedLists = [dict(ChainMap(*g)) for k, g in matched]
-    return combinedLists
-    
 
 TAGS = ROUTE_TAGS 
 router = APIRouter(
@@ -29,41 +23,29 @@ router = APIRouter(
     responses=RESPONSES
 )
 
-tags = TAGS + ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
-filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
-@router.get("/tracks", tags=tags, response_model=List[TrackPublic],
-    name="Track Metadata Text Search", 
-    description="find functional genomics tracks using category filters or by a keyword search againts all text fields in the track metadata")
-async def query_track_metadata(
-        session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
-        assembly = Depends(assembly_param), filter = Depends(filter_param), 
-        keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),
-        options: ExtendedOptionalParams = Depends()):
-    if filter is None and keyword is None:
-        raise ValueError('must specify either a `filter` and/or a `keyword` to search')
-    return await MetadataQueryService(session).query_track_metadata(assembly, filter, keyword, options)
 
+tags=TAGS
 
-@router.get('/region/summary', tags=tags, response_model=List[TrackOverlapSummary], include_in_schema=False,
+@router.get('/region/summary', tags=tags, response_model=List[FILERTrackOverlapSummary], include_in_schema=False,
             name="Get a data summary for Tracks meeting Search Criteria", 
             description="retrieve counts of hits/overlaps in a region of interest from all functional genomics tracks whose metadata meets the search or filter criteria")
 async def query_track_data_summary(request: Request, requestId: str):
     pass
 
-@router.get("/region", tags=tags, 
+@router.get("/region", tags='ab', 
     name="Get Data from Tracks meeting Search Criteria", 
     description="retrieve data in a region of interest from all functional genomics tracks whose metadata meets the search or filter criteria")
 async def query_track_data(
         request: Request,
         session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
         apiWrapperService: Annotated[ApiWrapperService, Depends(ApiWrapperService)],
-        assembly = Depends(assembly_param), filter = Depends(filter_param), 
+        assembly = Depends(assembly_param), filter = Depends(FilterParameter), 
         keyword: Optional[str] = Query(default=None, description="search all text fields by keyword"),
-        span: str=Depends(span_param),
-        options: OptionalParams = Depends()):
+        span: str=Depends(span_param)):
+        # options: OptionalParams = Depends()):
     
     if filter is None and keyword is None:
-        raise ValueError('must specify either a `filter` and/or a `keyword` to search')
+        raise RequestValidationError('must specify either a `filter` and/or a `keyword` to search')
     
     # get tracks that meet the filter criteria
     opts = ExtendedOptionalParams(idsOnly=False, countOnly=False, page=None, limit=None )
@@ -79,7 +61,7 @@ async def query_track_data(
 
     if options.countOnly:    
         result = merge_track_lists([t.serialize(expandObjects=True) for t in matchingTracks], informativeTracks)
-        result = [TrackOverlapSummary(**t) for t in result if t['track_id'] in targetTrackIds]
+        result = [FILERTrackOverlapSummary(**t) for t in result if t['track_id'] in targetTrackIds]
         # informativeTracks = OrderedDict(sorted(informativeTracks.items(), key = lambda item: item[1], reverse=True))
 
         # requestId = request.headers.get("X-Request-ID")

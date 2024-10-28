@@ -1,7 +1,4 @@
-from api.dependencies.database import DatabaseSessionManager
-
 ROUTE_DATABASE = 'metadata'
-ROUTE_SESSION_MANAGER = DatabaseSessionManager(ROUTE_DATABASE)
 
 ROUTE_PREFIX = "/filer"
 ROUTE_NAME = "FILER Functional Genomics Repository"

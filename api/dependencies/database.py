@@ -1,10 +1,10 @@
 # Middleware for choosing database based on endpoint
 # adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
 import logging
+from fastapi.exceptions import RequestValidationError
 from sqlmodel import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_scoped_session, AsyncSession, AsyncEngine, async_sessionmaker
 from asyncio import current_task
-from typing import AsyncIterator
 
 from api.internal.config import get_settings
 
@@ -37,7 +37,7 @@ class DatabaseSessionManager:
             case 'metadata': 
                 return get_settings().API_STATICDB_URL.replace('postgresql:', 'postgresql+asyncpg:')
             case _:
-                raise ValueError('Need to specify endpoint database - one of: genomics, cache, or metadata')
+                raise RuntimeError('Need to specify endpoint database - one of: genomics, cache, or metadata')
             
     async def close(self):
         """ 
@@ -52,17 +52,20 @@ class DatabaseSessionManager:
         
 
     async def __call__(self):
+        session: AsyncSession # annotated type hint
         async with self.__session() as session:
             if session is None:
                 raise Exception("DatabaseSessionManager is not initialized")
             try: 
                 await session.execute(text("SELECT 1"))
                 yield session
-            except Exception as err:
-                # b/c it catches errors having nothing to do w/the database
-                # that disrupt the yielded session
-                logger.error('Unexpected Error', exc_info=err, stack_info=True)
+            except (NotImplementedError, RequestValidationError, RuntimeError):
                 await session.rollback()
-                raise
+                raise  
+            except Exception as err:
+                # everything else for which we currently have no handler
+                await session.rollback()
+                logger.error('Unexpected Error', exc_info=err, stack_info=True)
+                raise RuntimeError(f'Unexpected Error: {str(err)}')
             finally:
                 await session.close()

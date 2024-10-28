@@ -1,11 +1,23 @@
 from pydantic import BaseModel
-from fastapi import Depends, Request
+from fastapi import Depends, Path, Query, Request
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..constants import ROUTE_SESSION_MANAGER
+from api.common.enums import CaseInsensitiveEnum
+from api.common.formatters import clean
+from api.dependencies.database import DatabaseSessionManager
+from api.dependencies.parameters.services import InternalRequestParameters as BaseInternalRequestParameters
 
-class InternalServiceParameters(BaseModel, arbitrary_types_allowed=True):
-    request: Request
+from ..common.constants import ROUTE_DATABASE
+
+ROUTE_SESSION_MANAGER = DatabaseSessionManager(ROUTE_DATABASE)
+
+# override session to use the ROUTE_SESSION_MANAGER
+class InternalRequestParameters(BaseInternalRequestParameters, arbitrary_types_allowed=True):
     session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)]
-    
+
+async def path_track_id(track: str = Path(description="FILER track identifier")) -> str:
+    return clean(track)
+
+async def query_track_id(track: str = Query(description="comma separated list of one or more FILER track identifiers")) -> str:
+    return clean(track)

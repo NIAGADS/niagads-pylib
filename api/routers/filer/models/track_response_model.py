@@ -1,45 +1,70 @@
-
 from sqlmodel import SQLModel
 from fastapi.encoders import jsonable_encoder
 from datetime import datetime
-from typing import Optional, List
+from typing import Any, Dict, Optional, List, Union
 from typing_extensions import Self
+from pydantic import model_validator
 
 from niagads.utils.list import find
 
-from api.response_models import id2title, PagedResponseModel, BaseResponseModel, SerializableModel
+from api.common.formatters import id2title
+from api.response_models import PagedResponseModel, GenericDataModel
 from .biosample_characteristics import BiosampleCharacteristics
 
-class TrackPublicBase(SQLModel):
+# note this is a generic data model so that we can add summary fields (e.g., counts) as needed
+class FILERTrackBrief(SQLModel, GenericDataModel):
     track_id: str
     name: str
-    description: Optional[str] 
     genome_build: Optional[str]
     feature_type: Optional[str]
-    data_category: Optional[str]
-    antibody_target: Optional[str]
-    assay: Optional[str]
     is_lifted: Optional[bool]
     data_source: Optional[str]
+    data_category: Optional[str]
+    assay: Optional[str]
+    
+    @model_validator(mode='before')
+    @classmethod
+    def allowable_extras(cls: Self, data: Union[Dict[str, Any]]):
+        """ for now, allowable extras are just counts, prefixed with `num_` """
+        if type(data).__base__ == SQLModel: # then there are no extra fields
+            return data
+        modelFields = cls.model_fields.keys()
+        return {k:v for k, v in data.items() if k in modelFields or k.startswith('num_')}
 
     @classmethod
     def view_table_columns(cls: Self):
         """ Return a column object for niagads-viz-js/Table """
-        fields = list(cls.model_fields.keys()) + list(BiosampleCharacteristics.model_fields.keys())
-        fields.remove('biosample_characteristics')
-        
-        # FIXME: may need to convert to Set and Back b/c I think the OverlapsSummary child will put the biosample stuff in twice
+        fields = list(cls.model_fields.keys())
+        if 'biosample_characteristics' in fields:
+            fields += list(BiosampleCharacteristics.model_fields.keys())
+            fields.remove('biosample_characteristics')
         
         columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields if f != 'data_souce_url']
             
-        # some additional formatting
+        # update type of is_lifted to boolean
         index: int = find(columns, 'is_lifted', 'id', returnValues=False)
         columns[index[0]].update({'type': 'boolean', 'description': 'data have been lifted over from an earlier genome build'})
         
         return columns
+    
+    def view_table_columns(self):
+        """ 
+        Return a column object for niagads-viz-js/Table; 
+        for cases with extra fields; needs to be called after instantiation
+        """
+        columns: List[dict] = self.__class__.view_table_columns()
+        if len(self.model_extra) > 0:
+            fields = list(self.model_extra.keys())
+            columns += [ {'id': f, 'header': id2title(f)} for f in fields]
+            
+        return columns
+    
 
-class TrackPublic(SerializableModel, TrackPublicBase):    
+class FILERTrack(FILERTrackBrief):  
+    description: Optional[str]   
+    
     # experimental design
+    antibody_target: Optional[str]
     replicates: Optional[dict]
     analysis: Optional[str]
     classification: Optional[str]
@@ -70,21 +95,12 @@ class TrackPublic(SerializableModel, TrackPublicBase):
     file_format: Optional[str]
     file_schema: Optional[str]
 
-        
-class TrackResponse(BaseResponseModel):
-    response: List[TrackPublic]
 
-
-class TrackOverlapSummary(SerializableModel, TrackPublicBase):
-    hit_count: int
-    life_stage: Optional[str] = None
-    biosample_term: Optional[str] = None
-    system_category: Optional[str] = None
-    tissue_category: Optional[str] = None
-    biosample_display: Optional[str] = None
-    biosample_summary: Optional[str] = None
-    biosample_term_id: Optional[str] = None
-
+class FILERTrackBriefResponse(PagedResponseModel):
+    response: List[FILERTrackBrief]
     
-class TrackOverlapResponse(PagedResponseModel):
-    response: List[TrackOverlapSummary]
+class FILERTrackResponse(PagedResponseModel):
+    response: List[FILERTrack]
+
+
+
