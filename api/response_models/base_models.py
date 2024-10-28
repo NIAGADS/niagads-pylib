@@ -4,6 +4,8 @@ from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
 from urllib.parse import parse_qs
+
+from niagads.utils.string import dict_to_string 
 class SerializableModel(BaseModel):
     def serialize(self, promoteObjs=False, collapseUrls=False, groupExtra=False):
         """Return a dict which contains only serializable fields.
@@ -38,12 +40,27 @@ class RequestDataModel(SerializableModel):
     msg: Optional[str] = None
     
     @classmethod
+    def __sort_query_parameters(cls, params: dict) -> str:
+        """ called by cache_key method to alphabetize the parameters """
+        if len(params) == 0:
+            return ''
+        sortedParams = dict(sorted(params.items())) # assuming Python 3+ where all dicts are ordered
+        return dict_to_string(sortedParams, nullStr='null', delimiter='&')
+    
+    @classmethod
     async def from_request(cls, request: Request):
         return cls(
             request_id=request.headers.get("X-Request-ID"),
-            parameters={k: v[0] for k, v in parse_qs(str(request.query_params)).items()},
+            parameters=dict(request.query_params),
             endpoint=str(request.url.path)
         )
+        
+    @classmethod
+    async def cache_key(cls, request: Request):
+        parameters=cls.__sort_query_parameters(dict(request.query_params))
+        endpoint=str(request.url.path) # endpoint includes path parameters
+        cacheKey = endpoint + '?' + parameters
+        return cacheKey
     
 class BaseResponseModel(SerializableModel):
     request: RequestDataModel
