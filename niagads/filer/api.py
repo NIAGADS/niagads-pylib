@@ -24,23 +24,6 @@ FILER_TRACK_FILTERS = {
     "tissue": "tissue associated with biosample"
 }
 
-class BEDFeature(BaseModel):
-    chrom: str
-    chromStart: int
-    chromEnd: int
-    name: str
-    score: Union[str, int, float]
-    strand: str 
-    
-    __pydantic_extra__: Dict[str, Any]  
-    model_config = ConfigDict(extra='allow')
-
-class FILERTrackOverlaps(BaseModel):
-    Identifier: str
-    queryRegion: str
-    features: List[BEDFeature]
-
-
 class FILERApiWrapper():
     """ Wrapper functions for FILER API, to help standardize, validate calls and protect from attacks """
     
@@ -84,7 +67,7 @@ class FILERApiWrapper():
 
 
     # TODO: error checking
-    def make_request(self, endpoint:str, params: dict, returnSuccess=False) -> List[FILERTrackOverlaps]:
+    def make_request(self, endpoint:str, params: dict, returnSuccess=False):
         ''' map request params and submit to FILER API'''
         requestParams = self.__map_request_params(params)
         requestUrl = self.__filerRequestUri + "/" + endpoint + ".php?" + urlencode(requestParams)
@@ -95,7 +78,7 @@ class FILERApiWrapper():
                 self.logger.debug("SUCCESS: " + str(len(response.json()))) 
             if returnSuccess:
                 return True    
-            return [FILERTrackOverlaps(**r) for r in response.json()]
+            return response.json()
         except requests.JSONDecodeError as err:
             raise LookupError(f'Unable to parse FILER repsonse `{response.content}` for the following request: {requestUrl}')
         except requests.exceptions.HTTPError as err:
