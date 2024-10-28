@@ -17,7 +17,7 @@ from api.common.formatters import clean, print_enum_values
 
 class PaginationParameters(BaseModel):
     # limit: Optional[int] = Query(Query(default=None, description="maximum number of results to return; please note that `pagination is not yet implemented`"))
-    page: Optional[int] = Query(Query(default=1, description="current page; please note that `pagination is not yet implemented`"))
+    page: Optional[int] = Query(Query(default=1, description="specify which page of the response to return, if response is paginated"))
     
     # TODO: queryId in case we allow queries to persist in cache and be later retrieved
     """
