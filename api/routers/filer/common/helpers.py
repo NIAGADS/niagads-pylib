@@ -3,10 +3,11 @@ from fastapi import status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from collections import ChainMap, OrderedDict
+from collections import ChainMap
 from itertools import groupby
 from operator import itemgetter
 
+from niagads.utils.list import cumulative_sum
 
 from api.common.enums import ResponseContent
 from api.common.helpers import HelperParameters as __BaseHelperParameters, Parameters
@@ -19,6 +20,7 @@ from ..dependencies import InternalRequestParameters
 from ..models.track_metadata_cache import Track
 
 DEFAULT_PAGE_SIZE = 5000
+MAX_NUM_PAGES = 500
 class HelperParameters(__BaseHelperParameters):
     internal: InternalRequestParameters
 
@@ -37,21 +39,27 @@ async def __generate_cache_key(requestData: RequestDataModel, model: BaseRespons
 
 
 def __page_track_data_query(trackSummary: dict, page: int, pageSize: int = DEFAULT_PAGE_SIZE):
-    expectedResultSize = sum([ t['num_overlaps'] for t in trackSummary])
-    if expectedResultSize < pageSize and page == 1:
-        return [t['track_id'] for t in trackSummary], None
-    
-    # TODO; page result, calc offset based on current page, etc.
-    pagedTracks = []
-    count = 0
     sortedTrackSummary = sorted(trackSummary, key = lambda item: item['num_overlaps'], reverse=True)
-    for track in trackSummary:
-        if count + track['num_overlaps'] <= pageSize:
-            pagedTracks.append(track['track_id'])
-            count += track['num_overlaps']
-            
-    message = 'Paging not yet implemented. Result has been truncated to 5000 records. To determine the most informative tracks in the search region, please run with `content=summary`'
-    return pagedTracks, message
+    cumulativeSum = cumulative_sum([t['num_overlaps'] for t in sortedTrackSummary])
+    expectedResultSize = cumulativeSum[-1]
+    if expectedResultSize < pageSize and page == 1:
+        return [t['track_id'] for t in trackSummary], expectedResultSize
+    
+    minRecordRowIndex = (page - 1) * pageSize
+    maxRecordRowIndex = minRecordRowIndex + pageSize
+    if maxRecordRowIndex > expectedResultSize:
+        maxRecordRowIndex = expectedResultSize
+    
+    expectedNumPages = next((p for p in range(1,500) if (p - 1) * pageSize > expectedResultSize)) - 1
+    if page > expectedNumPages:
+        raise RequestValidationError(f'Request `page` {page} does not exist; this query generates a maximum of {expectedNumPages} pages')
+    # () returns an iterator instead of a list; i.e. []
+    pageStartIndex = next((index for index, counts in enumerate(cumulativeSum) if counts >= minRecordRowIndex))
+    pageEndIndex = len(cumulativeSum) - 1 if maxRecordRowIndex == expectedResultSize \
+        else next((index for index, counts in enumerate(cumulativeSum) if counts >= maxRecordRowIndex)) - 1
+    pagedTracks = [t['track_id'] for t in sortedTrackSummary[pageStartIndex:pageEndIndex]]
+    
+    return pagedTracks, expectedResultSize, expectedNumPages
     
 
 # TODO:
@@ -72,7 +80,10 @@ def __generate_response(result: Any, opts:HelperParameters):
     isPaged = opts.model.is_paged()
     if isPaged:
         numRecords = len(result)
-        pagination = PaginationDataModel(page=1, total_num_pages=1, paged_num_records=numRecords, total_num_records=numRecords)
+        pagination = PaginationDataModel(page=opts.pagination.page, 
+            total_num_pages=opts.parameters.total_page_count, 
+            paged_num_records=numRecords, 
+            total_num_records=opts.parameters.expected_result_size)
 
     match opts.format:
         case ResponseFormat.TABLE:
@@ -139,11 +150,10 @@ async def search_track_data(opts: HelperParameters):
     targetTracks = [t for t in informativeTracks if t['track_id'] in targetTrackIds]
     
     if opts.content == ResponseContent.FULL:
-        pagedTrackIds, message = __page_track_data_query(targetTracks, page=1)
-        
-        if message is not None:
-            opts.internal.requestData.message = message
+        pagedTrackIds, resultSize, numPages = __page_track_data_query(targetTracks, page=opts.pagination.page)
         opts.parameters.track = pagedTrackIds
+        opts.parameters.expected_result_size = resultSize
+        opts.parameters.total_page_count = numPages
     else:
         opts.parameters.track = targetTrackIds
         

@@ -17,9 +17,12 @@ from api.common.formatters import clean, print_enum_values
 
 class PaginationParameters(BaseModel):
     # limit: Optional[int] = Query(Query(default=None, description="maximum number of results to return; please note that `pagination is not yet implemented`"))
-    page: Optional[int] = Query(Query(default=None, description="current page; please note that `pagination is not yet implemented`"))
-    queryId: Optional[str] = Query(Query(default=None, description="identifier for query being paged; please note that `pagination is not yet implemented`"))
+    page: Optional[int] = Query(Query(default=1, description="current page; please note that `pagination is not yet implemented`"))
     
+    # TODO: queryId in case we allow queries to persist in cache and be later retrieved
+    """
+    queryId: Optional[str] = Query(Query(default=None, description="identifier for query being paged; please note that `pagination is not yet implemented`"))
+
     @model_validator(mode = 'after')
     def check_required(self):
         setCount = sum([True for v in [self.page, self.queryId] if v is not None])
@@ -27,6 +30,7 @@ class PaginationParameters(BaseModel):
             raise RequestValidationError('Must specify both `page` and `queryId` to retun paged results')
         
         return self
+    """
 
 """
 # FIXME: would prefer this approach to handle content but challenge is documentation w/correct list of choices
