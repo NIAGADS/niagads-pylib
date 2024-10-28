@@ -1,24 +1,22 @@
-from typing import Any, List
-from fastapi import status
+from typing import List
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from collections import ChainMap, OrderedDict
+from collections import ChainMap
 from itertools import groupby
 from operator import itemgetter
 
+from niagads.utils.list import cumulative_sum
 
 from api.common.enums import ResponseContent
-from api.common.helpers import HelperParameters as __BaseHelperParameters, Parameters
-from api.dependencies.parameters.optional import ResponseFormat
-from api.response_models.base_models import BaseResponseModel, RequestDataModel, PaginationDataModel
-from api.routers.filer.models.track_response_model import FILERTrackBrief
+from api.common.helpers import HelperParameters as __BaseHelperParameters, generate_response as __generate_response
+from api.response_models.base_models import BaseResponseModel, RequestDataModel
 
 from .services import MetadataQueryService, ApiWrapperService
 from ..dependencies import InternalRequestParameters
 from ..models.track_metadata_cache import Track
 
 DEFAULT_PAGE_SIZE = 5000
+MAX_NUM_PAGES = 500
 class HelperParameters(__BaseHelperParameters):
     internal: InternalRequestParameters
 
@@ -29,29 +27,28 @@ def __merge_track_lists(trackList1, trackList2):
     return combinedLists
     
 
-async def __generate_cache_key(requestData: RequestDataModel, model: BaseResponseModel, suffix: str=None):
-    if model.is_paged():
-        return requestData.request_id + (f'_{suffix}' if suffix is not None else '')
-    else: 
-        raise NotImplementedError('Need to use auto-generated cache key based on endpoint and parameters')
-
-
 def __page_track_data_query(trackSummary: dict, page: int, pageSize: int = DEFAULT_PAGE_SIZE):
-    expectedResultSize = sum([ t['num_overlaps'] for t in trackSummary])
-    if expectedResultSize < pageSize and page == 1:
-        return [t['track_id'] for t in trackSummary], None
-    
-    # TODO; page result, calc offset based on current page, etc.
-    pagedTracks = []
-    count = 0
     sortedTrackSummary = sorted(trackSummary, key = lambda item: item['num_overlaps'], reverse=True)
-    for track in trackSummary:
-        if count + track['num_overlaps'] <= pageSize:
-            pagedTracks.append(track['track_id'])
-            count += track['num_overlaps']
-            
-    message = 'Paging not yet implemented. Result has been truncated to 5000 records. To determine the most informative tracks in the search region, please run with `content=summary`'
-    return pagedTracks, message
+    cumulativeSum = cumulative_sum([t['num_overlaps'] for t in sortedTrackSummary])
+    expectedResultSize = cumulativeSum[-1]
+    if expectedResultSize < pageSize and page == 1:
+        return [t['track_id'] for t in trackSummary], expectedResultSize
+    
+    minRecordRowIndex = (page - 1) * pageSize
+    maxRecordRowIndex = minRecordRowIndex + pageSize
+    if maxRecordRowIndex > expectedResultSize:
+        maxRecordRowIndex = expectedResultSize
+    
+    expectedNumPages = next((p for p in range(1,500) if (p - 1) * pageSize > expectedResultSize)) - 1
+    if page > expectedNumPages:
+        raise RequestValidationError(f'Request `page` {page} does not exist; this query generates a maximum of {expectedNumPages} pages')
+    # () returns an iterator instead of a list; i.e. []
+    pageStartIndex = next((index for index, counts in enumerate(cumulativeSum) if counts >= minRecordRowIndex))
+    pageEndIndex = len(cumulativeSum) - 1 if maxRecordRowIndex == expectedResultSize \
+        else next((index for index, counts in enumerate(cumulativeSum) if counts >= maxRecordRowIndex)) - 1
+    pagedTracks = [t['track_id'] for t in sortedTrackSummary[pageStartIndex:pageEndIndex]]
+    
+    return pagedTracks, expectedResultSize, expectedNumPages
     
 
 # TODO:
@@ -66,71 +63,95 @@ async def __validate_tracks(session: AsyncSession, tracks: List[str]):
         raise RequestValidationError(f'Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently')
     
 
-def __generate_response(result: Any, opts:HelperParameters):
-    rowModel = opts.model.row_model(name=True)
-    requestId = opts.internal.requestData.request_id
-    isPaged = opts.model.is_paged()
-    if isPaged:
-        numRecords = len(result)
-        pagination = PaginationDataModel(page=1, total_num_pages=1, paged_num_records=numRecords, total_num_records=numRecords)
-
-    match opts.format:
-        case ResponseFormat.TABLE:
-            redirectUrl = f'/view/table/{rowModel}?forwardingRequestId={requestId}'
-            return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
-        case _:
-            if isPaged:
-                return opts.model(request=opts.internal.requestData, pagination=pagination, response=result)
-            return opts.model(request=opts.internal.requestData, response=result)
-
-
 async def get_track_data(opts: HelperParameters, validate=True): 
-    summarize = opts.content == ResponseContent.SUMMARY
-    countsOnly = opts.content == ResponseContent.COUNTS or summarize == True # if summarize is true, we only want counts
-    tracks = opts.parameters.track.split(',') \
-        if isinstance(opts.parameters.track, str) \
-            else opts.parameters.track
-    
-    if validate: # for internal helper calls, don't always need to validate; already done
-        await __validate_tracks(opts.internal.session, tracks)  
-        
-    result = await ApiWrapperService().get_track_hits(tracks, opts.parameters.span, countsOnly=countsOnly)
+    isCached = True # assuming true from the start
+    result = await opts.internal.internalCache.get(opts.internal.cacheKey.internal, namespace=opts.internal.cacheKey.namespace)
 
-    if summarize:
-        metadata: List[Track] = await get_track_metadata(opts, rawResponse=True)
-        result = __merge_track_lists([t.serialize(promoteObjs=True) for t in metadata], [t.serialize() for t in result])
-        result = sorted(result, key = lambda item: item['num_overlaps'], reverse=True)
+    if result is None:
+        isCached = False
         
-    return __generate_response(result, opts)
+        summarize = opts.content == ResponseContent.SUMMARY
+        countsOnly = opts.content == ResponseContent.COUNTS or summarize == True # if summarize is true, we only want counts
+        tracks = opts.parameters.track.split(',') \
+            if isinstance(opts.parameters.track, str) \
+                else opts.parameters.track
+        tracks = sorted(tracks) # best for caching
+    
+        # we want to cache the external FILER api call as well
+        # to do so, we will add the tracks into the cache key b/c the tracks may not have 
+        # been part of the original request (i.e., called from another helper)
+        cacheNamespace = 'filer-external-api'
+        cacheTrackCheck = ','.join(tracks)
+        cacheKey = f'/data?countsOnly={countsOnly}&span={opts.parameters.span}&tracks={cacheTrackCheck}' 
+        cacheKey = cacheKey.replace(':', '_')
+        result = await opts.internal.internalCache.get(cacheKey, namespace=cacheNamespace)
+        if result is None: 
+            if validate: # for internal helper calls, don't always need to validate; already done
+                await __validate_tracks(opts.internal.session, tracks)         
+            result = await ApiWrapperService().get_track_hits(tracks, opts.parameters.span, countsOnly=countsOnly)
+            # cache this response from the FILER Api
+            await opts.internal.internalCache.set(cacheKey, result, namespace=cacheNamespace)
+            
+        if summarize:
+            metadata: List[Track] = await get_track_metadata(opts, rawResponse=True)
+            result = __merge_track_lists([t.serialize(promoteObjs=True) for t in metadata], [t.serialize() for t in result])
+            result = sorted(result, key = lambda item: item['num_overlaps'], reverse=True)
+            # this step will be cached in __generate_response
+        
+    return await __generate_response(result, opts, isCached=isCached)
 
 
 async def get_track_metadata(opts: HelperParameters, rawResponse=False):
-    tracks = opts.parameters.track.split(',') \
-        if isinstance(opts.parameters.track, str) \
-            else opts.parameters.track  
-    result = await MetadataQueryService(opts.internal.session).get_track_metadata(tracks)
+    isCached = True # assuming true from the start
+    result = await opts.internal.internalCache.get(opts.internal.cacheKey.internal, namespace=opts.internal.cacheKey.namespace)
+    if result is None:
+        isCached = False
+        tracks = opts.parameters.track.split(',') \
+            if isinstance(opts.parameters.track, str) \
+                else opts.parameters.track  
+        result = await MetadataQueryService(opts.internal.session).get_track_metadata(tracks)
+        
     if rawResponse:
         return result
-    return __generate_response(result, opts)
+    return await __generate_response(result, opts, isCached=isCached)
 
 
 async def search_track_metadata(opts: HelperParameters):
-    result =  await MetadataQueryService(opts.internal.session) \
-        .query_track_metadata(opts.parameters.assembly, 
-            opts.parameters.filter, opts.parameters.keyword, opts.content)
+    isCached = True # assuming true from the start
+    result = await opts.internal.internalCache.get(opts.internal.cacheKey.internal, namespace=opts.internal.cacheKey.namespace)
+    
+    if result is None:
+        isCached = False
+        result =  await MetadataQueryService(opts.internal.session) \
+            .query_track_metadata(opts.parameters.assembly, 
+                opts.parameters.filter, opts.parameters.keyword, opts.content)
         
-    return __generate_response(result, opts)
+    return await __generate_response(result, opts, isCached=isCached)
 
 
 async def search_track_data(opts: HelperParameters):
+    result = await opts.internal.internalCache.get(opts.internal.cacheKey.internal, namespace=opts.internal.cacheKey.namespace)
+    if result is not None: # just return the response
+        return await __generate_response(result, opts, isCached=True)
+    
     matchingTracks = await MetadataQueryService(opts.internal.session) \
         .query_track_metadata(opts.parameters.assembly,
             opts.parameters.filter, opts.parameters.keyword, 
             ResponseContent.IDS)
     
-    # get tracks with data in the region
-    informativeTracks = await ApiWrapperService() \
-        .get_informative_tracks(opts.parameters.span, opts.parameters.assembly)
+    # we want to cache the external FILER api call as well
+    # to do so, we will add the tracks into the cache key b/c the tracks may not have 
+    # been part of the original request (i.e., called from another helper)
+    cacheNamespace = 'filer-external-api'
+    cacheKey = f'/data_summary?assembly={opts.parameters.assembly}&span={opts.parameters.span}' 
+    cacheKey = cacheKey.replace(':','_')
+    informativeTracks = await opts.internal.internalCache.get(cacheKey, namespace=cacheNamespace)
+    if informativeTracks is None:
+        # get tracks with data in the region
+        informativeTracks = await ApiWrapperService() \
+            .get_informative_tracks(opts.parameters.span, opts.parameters.assembly)
+        # cache this response from the FILER Api
+        await opts.internal.internalCache.set(cacheKey, informativeTracks, namespace=cacheNamespace)
     
     # filter for tracks that match the filter
     matchingTrackIds = matchingTracks 
@@ -139,12 +160,13 @@ async def search_track_data(opts: HelperParameters):
     targetTracks = [t for t in informativeTracks if t['track_id'] in targetTrackIds]
     
     if opts.content == ResponseContent.FULL:
-        pagedTrackIds, message = __page_track_data_query(targetTracks, page=1)
-        
-        if message is not None:
-            opts.internal.requestData.message = message
+        pagedTrackIds, resultSize, numPages = __page_track_data_query(targetTracks, page=opts.pagination.page)
         opts.parameters.track = pagedTrackIds
+        opts.parameters.expected_result_size = resultSize
+        opts.parameters.total_page_count = numPages
     else:
         opts.parameters.track = targetTrackIds
+        if opts.content == ResponseContent.IDS:
+            return await __generate_response(targetTrackIds, opts)
         
     return await get_track_data(opts, validate=False)

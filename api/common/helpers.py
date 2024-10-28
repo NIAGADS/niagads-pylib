@@ -1,12 +1,13 @@
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import RedirectResponse
+from fastapi import status
 from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Any, Dict
-from enum import Enum
 
 from api.common.enums import ResponseContent
 from api.dependencies.parameters.services import InternalRequestParameters
 from api.dependencies.parameters.optional import PaginationParameters, ResponseFormat
-from api.response_models.base_models import BaseResponseModel
+from api.response_models.base_models import BaseResponseModel, PaginationDataModel
 
 # basically allow creation of an arbitrary namespace
 class Parameters(BaseModel):
@@ -38,5 +39,37 @@ class HelperParameters(BaseModel, arbitrary_types_allowed=True):
             return ResponseContent(content)
         except NameError:
             raise RequestValidationError(f'Invalid value provided for `content`: {content}')
-        
+
+
+def __set_pagination(opts: HelperParameters, resultSize):
+    if opts.model.is_paged():
+        page = 1 if opts.pagination is None else opts.pagination.page
+        nPages = getattr(opts.parameters, 'total_page_count', 1)
+        expectedResultSize = getattr(opts.parameters, 'expected_result_size', resultSize)
+        return PaginationDataModel(
+            page=page, 
+            total_num_pages= nPages, 
+            paged_num_records=resultSize, 
+            total_num_records=expectedResultSize
+        )
+    return None
+
+async def generate_response(result: Any, opts:HelperParameters, isCached=False):
+    if isCached:
+        return result
+    
+    match opts.format:
+        case ResponseFormat.TABLE:
+            rowModel = opts.model.row_model(name=True)
+            requestId = opts.internal.requestData.request_id
+            redirectUrl = f'/view/table/{rowModel}?forwardingRequestId={requestId}'
+            return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
+        case _:
+            if opts.model.is_paged():
+                pagination: PaginationDataModel = __set_pagination(opts, len(result))
+                response =  opts.model(request=opts.internal.requestData, pagination=pagination, response=result)
+            else: 
+                response = opts.model(request=opts.internal.requestData, response=result)
+            await opts.internal.internalCache.set(opts.internal.cacheKey.internal, response, namespace=opts.internal.cacheKey.namespace)
+            return response
 

@@ -1,14 +1,91 @@
 # Middleware for choosing database based on endpoint
 # adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
 import logging
+from typing import Any, Union, Dict, List
+from typing_extensions import Self
 from fastapi.exceptions import RequestValidationError
 from sqlmodel import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_scoped_session, AsyncSession, AsyncEngine, async_sessionmaker
 from asyncio import current_task
+from aiocache import RedisCache
+from aiocache.serializers import StringSerializer, JsonSerializer, PickleSerializer
+from enum import Enum
 
 from api.internal.config import get_settings
+from api.response_models.base_models import BaseResponseModel
 
 logger = logging.getLogger(__name__)
+
+#cache: Cache = Cache.from_url('url', serializer=JsonSerializer)
+#cache.get()
+
+JSON_TYPE = Union[Dict[str, Any], List[Any], int, float, str, bool, None]
+
+class CacheSerializer(Enum):
+    STRING = StringSerializer
+    JSON = JsonSerializer
+    PICKLE = PickleSerializer
+    
+class CacheTTL(Enum):
+    """ Time to Live (TTL) options for caching; in seconds """
+    DEFAULT = 3600 # 1 hr
+    SHORT = 300 # 5 minutes
+    DAY = 86400
+    
+class CacheManager:
+    """ KeyDB (Redis) cache for responses 
+    application will instantiate two CacheManagers
+        1.  internal cache - for internal use in the FAST-API application
+            * pickled responses
+            * auto generated key based on request & params
+        2. external cache -- for use by external (e.g., next.js) applications
+            * json serialization of transformed responses
+            * keyed on `requestId_view` or `_view_element`
+    """
+    __cache: RedisCache = None
+    __namespace: str = 'api_root'
+    
+    def __init__(self, serializer: CacheSerializer, namespace: str=None):
+        connectionString = get_settings().API_CACHEDB_URL
+        config = self.__parse_uri_path(connectionString)
+        self.__cache = RedisCache(serializer=serializer.value(), **config)  # need to instantiat the serializer
+        if namespace is not None:
+            self.__namespace = namespace
+    
+    def __parse_uri_path(self, path):
+        # RedisCache.parse_uri_path() does not work
+        values = path.split("/")
+        host, port = values[2].split(':')
+        config = { 
+            'namespace': self.__namespace,
+            'db': int(values[-1]),
+            'port': int(port),
+            'endpoint': host} # conceptually, endpoint here is the host IP
+        return config
+        
+            
+    async def set(self, cacheKey:str, value: BaseResponseModel, ttl=CacheTTL.DEFAULT, namespace:str=None):
+        if self.__cache is None:
+            raise RuntimeError('In memory cache not initialized')
+        ns = self.__namespace if namespace is None else namespace
+        await self.__cache.set(cacheKey, value, ttl=ttl.value, namespace=ns)
+
+        
+    async def get(self, cacheKey: str, namespace:str=None) -> Union[BaseResponseModel, JSON_TYPE]:
+        if self.__cache is None:
+            raise RuntimeError('In memory cache not initialized')
+        ns = self.__namespace if namespace is None else namespace
+        return await self.__cache.get(cacheKey, namespace=ns)
+
+
+    async def get_cache(self) -> RedisCache:
+        return self.__cache
+
+
+    async def __call__(self) -> Self:
+        return self
+    
+
 class DatabaseSessionManager:
     def __init__(self, route: str):
         self.__connectionString: str = self.__get_db_url(route)

@@ -4,6 +4,8 @@ from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
 from urllib.parse import parse_qs
+
+from niagads.utils.string import dict_to_string 
 class SerializableModel(BaseModel):
     def serialize(self, promoteObjs=False, collapseUrls=False, groupExtra=False):
         """Return a dict which contains only serializable fields.
@@ -35,15 +37,41 @@ class RequestDataModel(SerializableModel):
     request_id: str
     endpoint: str
     parameters: Dict[str, Union[int, str, bool]]
-    message: Optional[str] = None
+    msg: Optional[str] = None
+    
+    @classmethod
+    def sort_query_parameters(cls, params: dict) -> str:
+        """ called by cache_key method to alphabetize the parameters """
+        if len(params) == 0:
+            return ''
+        sortedParams = dict(sorted(params.items())) # assuming Python 3+ where all dicts are ordered
+        return dict_to_string(sortedParams, nullStr='null', delimiter='&')
     
     @classmethod
     async def from_request(cls, request: Request):
         return cls(
             request_id=request.headers.get("X-Request-ID"),
-            parameters={k: v[0] for k, v in parse_qs(str(request.query_params)).items()},
+            parameters=dict(request.query_params),
             endpoint=str(request.url.path)
         )
+
+class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
+    internal: str
+    external: str
+    namespace: str
+    
+    @classmethod
+    async def from_request(cls, request: Request):
+        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params))
+        endpoint = str(request.url.path) # endpoint includes path parameters
+        
+        return cls(
+            internal = endpoint + '?' + parameters.replace(':','_'), # ':' delimitates keys in keydb
+            external = request.headers.get("X-Request-ID"),
+            namespace = request.url.path.split('/')[1]
+        )
+
+
     
 class BaseResponseModel(SerializableModel):
     request: RequestDataModel
@@ -80,5 +108,5 @@ class PaginationDataModel(BaseModel):
     total_num_records: int
 
 class PagedResponseModel(BaseResponseModel):
-    pagination: PaginationDataModel
+    pagination: Optional[PaginationDataModel] = None
     
