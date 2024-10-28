@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
@@ -35,6 +35,7 @@ class RequestDataModel(SerializableModel):
     request_id: str
     endpoint: str
     parameters: Dict[str, Union[int, str, bool]]
+    message: Optional[str] = None
     
     @classmethod
     async def from_request(cls, request: Request):

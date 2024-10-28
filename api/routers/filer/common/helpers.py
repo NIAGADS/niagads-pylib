@@ -3,7 +3,7 @@ from fastapi import status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from collections import ChainMap
+from collections import ChainMap, OrderedDict
 from itertools import groupby
 from operator import itemgetter
 
@@ -12,12 +12,13 @@ from api.common.enums import ResponseContent
 from api.common.helpers import HelperParameters as __BaseHelperParameters, Parameters
 from api.dependencies.parameters.optional import ResponseFormat
 from api.response_models.base_models import BaseResponseModel, RequestDataModel, PaginationDataModel
+from api.routers.filer.models.track_response_model import FILERTrackBrief
 
 from .services import MetadataQueryService, ApiWrapperService
 from ..dependencies import InternalRequestParameters
 from ..models.track_metadata_cache import Track
 
-
+DEFAULT_PAGE_SIZE = 5000
 class HelperParameters(__BaseHelperParameters):
     internal: InternalRequestParameters
 
@@ -34,6 +35,24 @@ async def __generate_cache_key(requestData: RequestDataModel, model: BaseRespons
     else: 
         raise NotImplementedError('Need to use auto-generated cache key based on endpoint and parameters')
 
+
+def __page_track_data_query(trackSummary: dict, page: int, pageSize: int = DEFAULT_PAGE_SIZE):
+    expectedResultSize = sum([ t['num_overlaps'] for t in trackSummary])
+    if expectedResultSize < pageSize and page == 1:
+        return [t['track_id'] for t in trackSummary], None
+    
+    # TODO; page result, calc offset based on current page, etc.
+    pagedTracks = []
+    count = 0
+    sortedTrackSummary = sorted(trackSummary, key = lambda item: item['num_overlaps'], reverse=True)
+    for track in trackSummary:
+        if count + track['num_overlaps'] <= pageSize:
+            pagedTracks.append(track['track_id'])
+            count += track['num_overlaps']
+            
+    message = 'Paging not yet implemented. Result has been truncated to 5000 records. To determine the most informative tracks in the search region, please run with `content=summary`'
+    return pagedTracks, message
+    
 
 # TODO:
 # paged response; by requestId, others by auto-generated based on request and params?
@@ -65,22 +84,31 @@ def __generate_response(result: Any, opts:HelperParameters):
             return opts.model(request=opts.internal.requestData, response=result)
 
 
-async def get_track_data(opts: HelperParameters): 
+async def get_track_data(opts: HelperParameters, validate=True): 
     summarize = opts.content == ResponseContent.SUMMARY
-    countsOnly = opts.content == ResponseContent.COUNTS  or summarize == True # if summarize is true, we only want counts
-    tracks = opts.parameters.track.split(',')
+    countsOnly = opts.content == ResponseContent.COUNTS or summarize == True # if summarize is true, we only want counts
+    tracks = opts.parameters.track.split(',') \
+        if isinstance(opts.parameters.track, str) \
+            else opts.parameters.track
     
-    await __validate_tracks(opts.internal.session, tracks)  
-    result = await ApiWrapperService().get_track_hits(opts.parameters.track, opts.parameters.span, countsOnly=countsOnly)
+    if validate: # for internal helper calls, don't always need to validate; already done
+        await __validate_tracks(opts.internal.session, tracks)  
+        
+    result = await ApiWrapperService().get_track_hits(tracks, opts.parameters.span, countsOnly=countsOnly)
 
     if summarize:
         metadata: List[Track] = await get_track_metadata(opts, rawResponse=True)
         result = __merge_track_lists([t.serialize(promoteObjs=True) for t in metadata], [t.serialize() for t in result])
+        result = sorted(result, key = lambda item: item['num_overlaps'], reverse=True)
+        
     return __generate_response(result, opts)
 
 
 async def get_track_metadata(opts: HelperParameters, rawResponse=False):
-    result = await MetadataQueryService(opts.internal.session).get_track_metadata(opts.parameters.track.split(','))
+    tracks = opts.parameters.track.split(',') \
+        if isinstance(opts.parameters.track, str) \
+            else opts.parameters.track  
+    result = await MetadataQueryService(opts.internal.session).get_track_metadata(tracks)
     if rawResponse:
         return result
     return __generate_response(result, opts)
@@ -93,25 +121,30 @@ async def search_track_metadata(opts: HelperParameters):
         
     return __generate_response(result, opts)
 
-"""
-  if filter is None and keyword is None:
-        raise RequestValidationError('must specify either a `filter` and/or a `keyword` to search')
-    
-    # get tracks that meet the filter criteria
-    opts = ExtendedOptionalParams(idsOnly=False, countOnly=False, page=None, limit=None )
-    matchingTracks = await MetadataQueryService(session).query_track_metadata(assembly, filter, keyword, opts)
+
+async def search_track_data(opts: HelperParameters):
+    matchingTracks = await MetadataQueryService(opts.internal.session) \
+        .query_track_metadata(opts.parameters.assembly,
+            opts.parameters.filter, opts.parameters.keyword, 
+            ResponseContent.IDS)
     
     # get tracks with data in the region
-    informativeTracks = apiWrapperService.get_informative_tracks(span, assembly)
+    informativeTracks = await ApiWrapperService() \
+        .get_informative_tracks(opts.parameters.span, opts.parameters.assembly)
     
     # filter for tracks that match the filter
-    matchingTrackIds = [ t.track_id for t in matchingTracks] # Track object
+    matchingTrackIds = matchingTracks 
     informativeTrackIds = [t['track_id'] for t in informativeTracks] # dict
     targetTrackIds = list(set(matchingTrackIds).intersection(informativeTrackIds))
-
-    if options.countOnly:    
-        result = merge_track_lists([t.serialize(expandObjects=True) for t in matchingTracks], informativeTracks)
-        result = [FILERTrackOverlapSummary(**t) for t in result if t['track_id'] in targetTrackIds]
-        # informativeTracks = OrderedDict(sorted(informativeTracks.items(), key = lambda item: item[1], reverse=True))
+    targetTracks = [t for t in informativeTracks if t['track_id'] in targetTrackIds]
+    
+    if opts.content == ResponseContent.FULL:
+        pagedTrackIds, message = __page_track_data_query(targetTracks, page=1)
         
-"""
+        if message is not None:
+            opts.internal.requestData.message = message
+        opts.parameters.track = pagedTrackIds
+    else:
+        opts.parameters.track = targetTrackIds
+        
+    return await get_track_data(opts, validate=False)

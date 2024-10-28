@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional, Union
 from collections import OrderedDict
 
-from niagads.filer import FILERApiWrapper, FILERTrackOverlaps
+from niagads.filer import FILERApiWrapper
 from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
 
@@ -31,29 +31,32 @@ class ApiWrapperService:
             dictObj = rename_key(dictObj, oldKey, newKey)
         return dictObj
     
-    def __overlaps2features(self, overlaps: List[FILERTrackOverlaps]) -> List[BEDFeature]:
+    def __overlaps2features(self, overlaps) -> List[BEDFeature]:
         features = []
         for track in overlaps:
-            for f in track.features:
-                f.track_id = track.Identifier
-                features.append(BEDFeature(**f.model_dump()))
+            f:dict
+            for f in track['features']:
+                f.update({'track_id': track['Identifier']})
+                features.append(BEDFeature(**f))
         return features
     
     
-    def __countOverlaps(self, overlaps: List[FILERTrackOverlaps]) -> List[GenericDataModel]:   
-        return [GenericDataModel(track_id= track.Identifier, num_overlaps=len(track.features)) for track in overlaps]
+    def __countOverlaps(self, overlaps: List[dict]) -> List[GenericDataModel]:   
+        return [GenericDataModel(track_id=track['Identifier'], num_overlaps=len(track['features'])) for track in overlaps]
     
-    async def get_track_hits(self, tracks: str, span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
-        result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': tracks, 'span': span})
+    
+    async def get_track_hits(self, tracks: List[str], span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
+        result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': ','.join(tracks), 'span': span})
         if countsOnly:
             return self.__countOverlaps(result)
         return self.__overlaps2features(result)
 
+
     async def get_informative_tracks(self, span: str, assembly: str, sort=False):
         result = self.__wrapper.make_request(self._INFORMATIVE_TRACKS_ENDPOINT, {'span': span, 'assembly': assembly})
-        result = [{'track_id' : track['Identifier'], 'hit_count': track['numOverlaps']} for track in result]
+        result = [{'track_id' : track['Identifier'], 'num_overlaps': track['numOverlaps']} for track in result]
         # sort by most hits
-        return OrderedDict(sorted(result, key = lambda item: item.hit_count, reverse=True)) if sort else result
+        return sorted(result, key = lambda item: item['num_overlaps'], reverse=True) if sort else result
 
 
 

@@ -1,25 +1,18 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Union
 from typing_extensions import Self
 
-from niagads.filer import BEDFeature as FILERApiBEDFeature, FILERTrackOverlaps
-
 from ..common.formatters import id2title
-from .base_models import SerializableModel, PagedResponseModel, BaseResponseModel
+from .base_models import GenericDataModel, PagedResponseModel
 
-# see https://docs.pydantic.dev/latest/concepts/models/#extra-fields 
-# for information about extra fields; basically we don't know what information might
-# be coming back
-
-
-# TODO -> export to table; need to serialize the extra as a dict b/c
-# it may vary in one response
-class BEDFeature(SerializableModel, FILERApiBEDFeature):
-    @classmethod
-    def view_table_columns(cls: Self):
-        """ Return a column object for niagads-viz-js/Table """
-        raise NotImplementedError('Because a BEDFeature can have extra fields, must generate columns from instantiation')
-
+class BEDFeature(GenericDataModel):
+    chrom: str
+    chromStart: int
+    chromEnd: int
+    name: Optional[str] = '.'
+    score: Optional[Union[str, int, float]] = '.'
+    strand: Optional[str] = '.'
+    
     def view_table_columns(self, collapseExtras=True):
         """ Return a column object for niagads-viz-js/Table """
         # NOTE: self.model_fields_set will get both the fields and the extra fields
