@@ -1,5 +1,6 @@
 """ library of array, list, and set manipulation functions """
 from collections import OrderedDict, Counter
+from typing import List, Union
 from .string import xstr
 
 
@@ -173,3 +174,9 @@ def average_array_list(arrays):
 
     n = len(arrays)
     return [float(x) / float(n) for x in sum_array_list(arrays)]
+
+def cumulative_sum(array: List[Union[int, float]]):
+    """ calculates the cumulative sum array """
+    nElements = len(array)
+    cSum = [sum(array[0:x:1]) for x in range(0, nElements+1)] 
+    return cSum[1:]
