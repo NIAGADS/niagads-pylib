@@ -5,6 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi import Request
 from urllib.parse import parse_qs
 from hashlib import md5
+from abc import ABC, abstractmethod
 
 from niagads.utils.string import dict_to_string
 
@@ -39,20 +40,24 @@ class SerializableModel(BaseModel):
         return len(self.model_extra) > 0
     
 
-class RowModel(SerializableModel):
+class RowModel(SerializableModel, ABC):
     """
     NOTE: these abstract methods cannot be class methods 
     because sometimes the row models have extra fields 
     or objects that need to be promoted (e.g., experimental_design)
     that only exist when instantiated
     """
+    
+    @abstractmethod
     def get_view_config(self, view: ResponseFormat) -> JSON_TYPE:
         """ get configuration object required by the view """
         raise NotImplementedError('`RowModel` is an abstract class; override in child classes')
     
+    @abstractmethod
     def to_view_data(self, view: ResponseFormat) -> JSON_TYPE:
         """ covert row data to view formatted data """
         raise NotImplementedError('`RowModel` is an abstract class; override in child classes')
+    
 
     
 class RequestDataModel(SerializableModel):
