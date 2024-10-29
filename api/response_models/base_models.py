@@ -11,6 +11,7 @@ from niagads.utils.string import dict_to_string
 
 from api.common.constants import JSON_TYPE
 from api.common.enums import CacheNamespace, ResponseFormat
+from api.common.formatters import id2title
 
 class SerializableModel(BaseModel):
     def serialize(self, exclude: List[str] = None, promoteObjs=False, collapseUrls=False, groupExtra=False):
@@ -51,14 +52,14 @@ class RowModel(SerializableModel, ABC):
     """
     
     @abstractmethod
-    def get_view_config(self, view: ResponseFormat) -> JSON_TYPE:
+    def get_view_config(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
         """ get configuration object required by the view """
-        raise NotImplementedError('`RowModel` is an abstract class; override in child classes')
+        raise RuntimeError('`RowModel` is an abstract class; need to override abstract methods in child classes')
     
     @abstractmethod
-    def to_view_data(self, view: ResponseFormat) -> JSON_TYPE:
+    def to_view_data(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
         """ covert row data to view formatted data """
-        raise NotImplementedError('`RowModel` is an abstract class; override in child classes')
+        raise RuntimeError('`RowModel` is an abstract class; need to override abstract methods in child classes')
     
 
     
@@ -101,11 +102,11 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
         )
 
         
-class BaseResponseModel(SerializableModel):
-    request: RequestDataModel
+class AbstractResponse(ABC, BaseModel):
     response: Any
-        
-    def to_view(self, view:ResponseFormat):
+    
+    @abstractmethod 
+    def to_view(self, view:ResponseFormat, **kwargs):
         """ transform response to JSON expected by NIAGADS-viz-js Table """
         if len(self.response) == 0:
             raise RuntimeError('zero-length response; cannot generate view')
@@ -115,15 +116,19 @@ class BaseResponseModel(SerializableModel):
         row: RowModel # annotated type hint
         for index, row in enumerate(self.response):
             if index == 0:
-                viewResponse = row.get_view_config(view)
-            data.append(row.to_view_data(view))
+                viewResponse = row.get_view_config(view, **kwargs)
+            data.append(row.to_view_data(view, **kwargs))
         viewResponse.update({'data': data})
     
         if view == ResponseFormat.TABLE:
             viewResponse.update({'id': self.request.request_id})
             
         return viewResponse
+class BaseResponseModel(AbstractResponse, SerializableModel):
+    request: RequestDataModel
 
+    def to_view(self, view, **kwargs):
+        return super().to_view(view, **kwargs)
         
     @classmethod
     def row_model(cls: Self, name=False):
@@ -142,11 +147,34 @@ class BaseResponseModel(SerializableModel):
         return 'pagination' in cls.model_fields
 
 
-
-class GenericDataModel(SerializableModel):
+class GenericDataModel(RowModel, SerializableModel):
     """ Generic JSON Response """
     __pydantic_extra__: Dict[str, Any]  
     model_config = ConfigDict(extra='allow')
+    
+    def to_view_data(self, view, **kwargs):
+        return self.model_dump()
+    
+    def get_view_config(self, view, **kwargs):
+        """ get configuration object required by the view """
+        match view:
+            case view.TABLE:
+                fields = list(self.model_dump().keys())
+                columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields]
+                options =  {'disableColumnFilters': True}
+
+                if 'track_id' in fields:
+                    countsPresent = any([True for f in fields if f.startswith('num_')])
+                    if countsPresent:
+                        options.update({'rowSelect': {
+                                'header': 'Select',
+                                'enableRowMultiSelect': True,
+                                'rowId': 'track_id'
+                            }})
+                return {'columns': columns, 'options': options}
+            case _:
+                raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
+        
     
     
 class PaginationDataModel(BaseModel):
@@ -158,7 +186,8 @@ class PaginationDataModel(BaseModel):
 class PagedResponseModel(BaseResponseModel):
     pagination: Optional[PaginationDataModel] = None
 
-
+    def to_view(self, view, **kwargs):
+        return super().to_view(view, **kwargs)
 
 # possibly allows you to set a type hint to a class and all its subclasses
 T_SerializableModel = TypeVar('T_SerializableModel', bound=SerializableModel)

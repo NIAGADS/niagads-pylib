@@ -15,7 +15,7 @@ from api.response_models.base_models import RowModel
 from .biosample_characteristics import BiosampleCharacteristics
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
-class FILERTrackBrief(SQLModel, RowModel, GenericDataModel):
+class FILERTrackBrief(SQLModel, GenericDataModel):
     track_id: str
     name: str
     genome_build: Optional[str]
@@ -34,7 +34,7 @@ class FILERTrackBrief(SQLModel, RowModel, GenericDataModel):
         modelFields = cls.model_fields.keys()
         return {k:v for k, v in data.items() if k in modelFields or k.startswith('num_')}
 
-    def get_view_config(self, view: ResponseFormat) -> JSON_TYPE:
+    def get_view_config(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
         """ get configuration object required by the view """
         match view:
             case view.TABLE:
@@ -43,7 +43,7 @@ class FILERTrackBrief(SQLModel, RowModel, GenericDataModel):
                 raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
         
     
-    def to_view_data(self, view: ResponseFormat) -> JSON_TYPE:
+    def to_view_data(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
         """ covert row data to view formatted data """
         return self.serialize()
 
@@ -104,10 +104,10 @@ class FILERTrack(FILERTrackBrief):
     file_format: Optional[str]
     file_schema: Optional[str]
 
-    def get_view_config(self, view):
-        return super().get_view_config(view)
+    def get_view_config(self, view, **kwargs):
+        return super().get_view_config(view, **kwargs)
     
-    def to_view_data(self, view):
+    def to_view_data(self, view, **kwargs):
         return self.serialize(promoteObjs=True, exclude=['replicates'])
     
     def _build_table_config(self):
@@ -119,9 +119,14 @@ class FILERTrack(FILERTrackBrief):
 
 class FILERTrackBriefResponse(PagedResponseModel):
     response: List[FILERTrackBrief]
+
+    def to_view(self, view, **kwargs):
+        return super().to_view(view, **kwargs)
     
 class FILERTrackResponse(PagedResponseModel):
     response: List[FILERTrack]
 
+    def to_view(self, view, **kwargs):
+        return super().to_view(view, **kwargs)
 
 

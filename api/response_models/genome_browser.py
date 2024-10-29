@@ -20,7 +20,7 @@ class GenomeBrowserConfig(RowModel, SQLModel):
     url: str
     index_url: Optional[str]
     
-    def get_view_config(self, view: ResponseFormat) -> dict:
+    def get_view_config(self, view: ResponseFormat, options:dict = None) -> dict:
         """ get configuration object required by the view """
         match view:
             case view.TABLE:
@@ -28,7 +28,7 @@ class GenomeBrowserConfig(RowModel, SQLModel):
             case _:
                 raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
 
-    def to_view_data(self, view: ResponseFormat) -> dict:
+    def to_view_data(self, view: ResponseFormat, **kwargs) -> dict:
         # TODO match on response type for data transformations?
         return self.model_dump()
 
@@ -57,11 +57,11 @@ class GenomeBrowserExtendedConfig(GenomeBrowserConfig):
     biosample_characteristics: Optional[BiosampleCharacteristics] 
     experimental_design: Optional[ExperimentalDesign]
     
-    def to_view_data(self, view: ResponseFormat) -> dict:
+    def to_view_data(self, view: ResponseFormat, **kwargs) -> dict:
         # TODO match on response type for data transformations?
         return self.serialize(promoteObjs=True)
     
-    def get_view_config(self, view: ResponseFormat) -> dict:
+    def get_view_config(self, view: ResponseFormat, **kwargs) -> dict:
         """ get configuration object required by the view """
         match view:
             case view.TABLE:
@@ -97,6 +97,12 @@ class GenomeBrowserExtendedConfig(GenomeBrowserConfig):
 class GenomeBrowserConfigResponse(BaseResponseModel):
     response: List[GenomeBrowserConfig]
     
+    def to_view(self, view, **kwargs):
+        return super().to_view(view, **kwargs)
+    
 class GenomeBrowserExtendedConfigResponse(BaseResponseModel):
     response: List[GenomeBrowserExtendedConfig]
+    
+    def to_view(self, view, **kwargs):
+        return super().to_view(view, **kwargs)
 
