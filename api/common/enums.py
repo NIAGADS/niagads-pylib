@@ -1,7 +1,8 @@
-from enum import Enum
-from itertools import chain
+from enum import auto, Enum
+from strenum import StrEnum
+from aiocache.serializers import StringSerializer, JsonSerializer, PickleSerializer
 
-class CaseInsensitiveEnum(str, Enum):
+class CaseInsensitiveEnum(StrEnum):
     # after from https://stackoverflow.com/a/76131490
     @classmethod
     def _missing_(cls, value: str): # allow to be case insensitive
@@ -13,15 +14,15 @@ class CaseInsensitiveEnum(str, Enum):
     
 class ResponseContent(CaseInsensitiveEnum):
     """ enum for allowable response types """
-    FULL = "full"
-    COUNTS = "counts"
-    IDS = "ids"
-    SUMMARY = "summary"
+    FULL = auto()
+    COUNTS = auto()
+    IDS = auto()
+    SUMMARY = auto()
 
 class ResponseFormat(CaseInsensitiveEnum):
     """ enum for allowable response / output formats"""
-    JSON = "json"
-    TABLE = "table"
+    JSON = auto()
+    TABLE = auto()
     
 
 class Assembly(str, Enum):
@@ -34,3 +35,24 @@ class Assembly(str, Enum):
     def validate(self):
         return "GRCh37" if self.value.lower() == 'hg19' \
             else "GRCh38" if self.value.lower() == 'hg38' else self.value
+
+
+class CacheSerializer(Enum):
+    STRING = StringSerializer
+    JSON = JsonSerializer
+    PICKLE = PickleSerializer
+    
+class CacheTTL(Enum):
+    """ Time to Live (TTL) options for caching; in seconds """
+    DEFAULT = 3600 # 1 hr
+    SHORT = 300 # 5 minutes
+    DAY = 86400
+    
+class CacheNamespace(CaseInsensitiveEnum):
+    """ cache namespaces """
+    FILER = auto() # FILER endpoints
+    FILER_EXTERNAL_API = auto() # external FILER API endpoints
+    GENOMICS = auto() # genomics endpoints
+    ADVP = auto() # advp endpoints
+    VIEW = auto() # view redirect endpoints
+    ROOT = auto() # root api

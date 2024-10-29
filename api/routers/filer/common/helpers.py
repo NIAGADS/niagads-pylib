@@ -7,9 +7,8 @@ from operator import itemgetter
 
 from niagads.utils.list import cumulative_sum
 
-from api.common.enums import ResponseContent
+from api.common.enums import ResponseContent, CacheNamespace
 from api.common.helpers import HelperParameters as __BaseHelperParameters, generate_response as __generate_response
-from api.response_models.base_models import BaseResponseModel, RequestDataModel
 
 from .services import MetadataQueryService, ApiWrapperService
 from ..dependencies import InternalRequestParameters
@@ -80,17 +79,16 @@ async def get_track_data(opts: HelperParameters, validate=True):
         # we want to cache the external FILER api call as well
         # to do so, we will add the tracks into the cache key b/c the tracks may not have 
         # been part of the original request (i.e., called from another helper)
-        cacheNamespace = 'filer-external-api'
         cacheTrackCheck = ','.join(tracks)
         cacheKey = f'/data?countsOnly={countsOnly}&span={opts.parameters.span}&tracks={cacheTrackCheck}' 
         cacheKey = cacheKey.replace(':', '_')
-        result = await opts.internal.internalCache.get(cacheKey, namespace=cacheNamespace)
+        result = await opts.internal.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
         if result is None: 
             if validate: # for internal helper calls, don't always need to validate; already done
                 await __validate_tracks(opts.internal.session, tracks)         
             result = await ApiWrapperService().get_track_hits(tracks, opts.parameters.span, countsOnly=countsOnly)
             # cache this response from the FILER Api
-            await opts.internal.internalCache.set(cacheKey, result, namespace=cacheNamespace)
+            await opts.internal.internalCache.set(cacheKey, result, namespace=CacheNamespace.FILER_EXTERNAL_API)
             
         if summarize:
             metadata: List[Track] = await get_track_metadata(opts, rawResponse=True)
@@ -142,16 +140,15 @@ async def search_track_data(opts: HelperParameters):
     # we want to cache the external FILER api call as well
     # to do so, we will add the tracks into the cache key b/c the tracks may not have 
     # been part of the original request (i.e., called from another helper)
-    cacheNamespace = 'filer-external-api'
     cacheKey = f'/data_summary?assembly={opts.parameters.assembly}&span={opts.parameters.span}' 
     cacheKey = cacheKey.replace(':','_')
-    informativeTracks = await opts.internal.internalCache.get(cacheKey, namespace=cacheNamespace)
+    informativeTracks = await opts.internal.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
     if informativeTracks is None:
         # get tracks with data in the region
         informativeTracks = await ApiWrapperService() \
             .get_informative_tracks(opts.parameters.span, opts.parameters.assembly)
         # cache this response from the FILER Api
-        await opts.internal.internalCache.set(cacheKey, informativeTracks, namespace=cacheNamespace)
+        await opts.internal.internalCache.set(cacheKey, informativeTracks, namespace=CacheNamespace.FILER_EXTERNAL_API)
     
     # filter for tracks that match the filter
     matchingTrackIds = matchingTracks 

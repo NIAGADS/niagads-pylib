@@ -1,11 +1,14 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, TypeVar
 from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
 from urllib.parse import parse_qs
 
-from niagads.utils.string import dict_to_string 
+from niagads.utils.string import dict_to_string
+
+from api.common.enums import CacheNamespace
+
 class SerializableModel(BaseModel):
     def serialize(self, promoteObjs=False, collapseUrls=False, groupExtra=False):
         """Return a dict which contains only serializable fields.
@@ -32,6 +35,7 @@ class SerializableModel(BaseModel):
     def has_extras(self):
         """ test if extra model fields are present """
         return len(self.model_extra) > 0
+    
 
 class RequestDataModel(SerializableModel):
     request_id: str
@@ -58,7 +62,7 @@ class RequestDataModel(SerializableModel):
 class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
     internal: str
     external: str
-    namespace: str
+    namespace: CacheNamespace
     
     @classmethod
     async def from_request(cls, request: Request):
@@ -68,7 +72,7 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
         return cls(
             internal = endpoint + '?' + parameters.replace(':','_'), # ':' delimitates keys in keydb
             external = request.headers.get("X-Request-ID"),
-            namespace = request.url.path.split('/')[1]
+            namespace = CacheNamespace(request.url.path.split('/')[1])
         )
 
 
@@ -109,4 +113,9 @@ class PaginationDataModel(BaseModel):
 
 class PagedResponseModel(BaseResponseModel):
     pagination: Optional[PaginationDataModel] = None
-    
+
+
+
+# possibly allows you to set a type hint to a class and all its subclasses
+T_SerializableModel = TypeVar('T_SerializableModel', bound=SerializableModel)
+T_BaseResponseModel = TypeVar('T_BaseResponseModle', bound=BaseResponseModel)
