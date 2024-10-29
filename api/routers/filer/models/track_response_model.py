@@ -108,11 +108,11 @@ class FILERTrack(FILERTrackBrief):
         return super().get_view_config(view)
     
     def to_view_data(self, view):
-        return self.serialize(promoteObjs=True)
+        return self.serialize(promoteObjs=True, exclude=['replicates'])
     
     def _build_table_config(self):
         config = super()._build_table_config()
-        columns = [ c for c in config[columns] if c['id'] != 'biomaterial_characteristics' ] 
+        columns = [ c for c in config['columns'] if c['id'] not in ['biosample_characteristics', 'replicates'] ] 
         columns += [ {'id': f, 'header': id2title(f)} for f in BiosampleCharacteristics.model_fields]
         config.update({'columns': columns })
         return config

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Any, Dict, Optional, Type, Union, TypeVar
+from typing import Any, Dict, List, Optional, Type, Union, TypeVar
 from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
@@ -13,13 +13,14 @@ from api.common.constants import JSON_TYPE
 from api.common.enums import CacheNamespace, ResponseFormat
 
 class SerializableModel(BaseModel):
-    def serialize(self, promoteObjs=False, collapseUrls=False, groupExtra=False):
+    def serialize(self, exclude: List[str] = None, promoteObjs=False, collapseUrls=False, groupExtra=False):
         """Return a dict which contains only serializable fields.
+        exclude -> list of fields to exclude
         promoteObjs -> when True expands JSON fields; i.e., ds = {a:1, b:2} becomes a:1, b:2 and ds gets dropped
         collapseUrls -> looks for field and field_url pairs and then updates field to be {url: , value: } object
         groupExtra -> if extra fields are present, group into a JSON object
         """
-        data:dict = jsonable_encoder(self.model_dump()) # FIXME: not sure if encoder is necessary; check dates? maybe
+        data:dict = jsonable_encoder(self.model_dump(exclude=exclude)) # FIXME: not sure if encoder is necessary; check dates? maybe
         if promoteObjs:
             objFields = [ k for k, v in data.items() if isinstance(v, dict)]
             for f in objFields:
@@ -33,6 +34,7 @@ class SerializableModel(BaseModel):
 
         if groupExtra:
             raise NotImplementedError()  
+        
         return data
     
     def has_extras(self):
