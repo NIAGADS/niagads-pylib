@@ -52,13 +52,13 @@ def dict_to_info_string(obj):
     return dict_to_string(obj, '.')
 
 
-def dict_to_string(obj, nullStr):
+def dict_to_string(obj, nullStr, delimiter=';'):
     """ translate dict to attr=value; string list
     in string utils to avoid circular imports
     """
     pairs = [ k + "=" + xstr(v, nullStr=nullStr) for k,v in obj.items()]
     pairs.sort()
-    return ';'.join(pairs)
+    return delimiter.join(pairs)
 
 
 def reverse(s):
