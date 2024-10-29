@@ -8,6 +8,7 @@ from api.common.enums import ResponseContent, CacheNamespace
 from api.dependencies.parameters.services import InternalRequestParameters
 from api.dependencies.parameters.optional import PaginationParameters, ResponseFormat
 from api.response_models.base_models import BaseResponseModel, PaginationDataModel
+from api.routers.redirect.common.constants import RedirectEndpoints
 
 # basically allow creation of an arbitrary namespace
 class Parameters(BaseModel):
@@ -77,7 +78,7 @@ async def generate_response(result: Any, opts:HelperParameters, isCached=False):
             if not requestIsCached:  # then cache it
                 await opts.internal.internalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
             
-            redirectUrl = f'/view/table/{cacheKey}'
+            redirectUrl = f'/redirect{RedirectEndpoints.TABLE.value}/{cacheKey}'
             return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
         case _:  
             return response

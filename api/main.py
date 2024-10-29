@@ -12,7 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from asgi_correlation_id import CorrelationIdMiddleware
 
 from api.internal.config import get_settings
-from .routers import FILERRouter, ViewRouter
+from .routers import FILERRouter, RedirectRouter
 
 # FIXME -- needed for applications reading the openapi.json or openapi.yaml, but 
 # needs to be dynamic based on deployment
@@ -91,7 +91,7 @@ async def validation_exception_handler(request: Request, exc: Exception):
     )
 
 app.include_router(FILERRouter)
-app.include_router(ViewRouter)
+app.include_router(RedirectRouter)
 
 
 @app.get("/")

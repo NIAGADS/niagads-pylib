@@ -5,19 +5,21 @@ from api.common.exceptions import RESPONSES
 from api.dependencies.parameters.services import InternalRequestParameters
 from api.response_models.base_models import BaseResponseModel
 
-from api.routers.view.common.constants import ROUTE_TAGS
-from api.routers.view.dependencies.parameters import forwarding_request_param
+from api.routers.redirect.dependencies.parameters import forwarding_request_param
 
-TAGS = ROUTE_TAGS
+from ..common.constants import ROUTE_TAGS
+
+
+TAGS = ROUTE_TAGS + ["(Internal) Redirect JSON responses to Visualization Tools"]
 router = APIRouter(
-    prefix="/table",
+    prefix="/view",
     tags=TAGS,
     responses=RESPONSES
 )
 
 
-tags = TAGS + ['Interactive Tables']
-@router.get("/{forwardingRequestId}", tags=tags,
+tags = TAGS + ['(Internal) Redirect Response to NIAGADS-viz-js Interactive Table']
+@router.get("/table/{forwardingRequestId}", tags=tags,
     name="Serialize and cache query response for a NIAGADS-viz-js Table")
 async def get_table_view(
         request: Request,

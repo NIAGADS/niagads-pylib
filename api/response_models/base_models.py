@@ -98,7 +98,9 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
         return cls(
             internal = internalCacheKey,
             external = md5(internalCacheKey.encode('utf-8')).hexdigest(), # so that it is unique to the endpoint + params, unlike distinct requestId
-            namespace = CacheNamespace(request.url.path.split('/')[1])
+            namespace = CacheNamespace(request.url.path.split('/')[2]) \
+                if '/redirect/' in request.url.path \
+                    else CacheNamespace(request.url.path.split('/')[1])
         )
 
         
