@@ -64,6 +64,14 @@ class CacheManager:
         return await self.__cache.get(cacheKey, namespace=ns.value)
 
 
+    async def exists(self, cacheKey: str,
+        namespace:CacheNamespace=None) -> Union[BaseResponseModel, JSON_TYPE]:
+        if self.__cache is None:
+            raise RuntimeError('In memory cache not initialized')
+        ns = self.__namespace if namespace is None else namespace
+        return await self.__cache.exists(cacheKey, namespace=ns.value)
+
+
     async def get_cache(self) -> RedisCache:
         return self.__cache
 

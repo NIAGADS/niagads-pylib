@@ -1,13 +1,15 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Any, Dict, Optional, Union, TypeVar
+from typing import Any, Dict, Optional, Type, Union, TypeVar
 from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
 from urllib.parse import parse_qs
+from hashlib import md5
 
 from niagads.utils.string import dict_to_string
 
-from api.common.enums import CacheNamespace
+from api.common.constants import JSON_TYPE
+from api.common.enums import CacheNamespace, ResponseFormat
 
 class SerializableModel(BaseModel):
     def serialize(self, promoteObjs=False, collapseUrls=False, groupExtra=False):
@@ -37,6 +39,22 @@ class SerializableModel(BaseModel):
         return len(self.model_extra) > 0
     
 
+class RowModel(SerializableModel):
+    """
+    NOTE: these abstract methods cannot be class methods 
+    because sometimes the row models have extra fields 
+    or objects that need to be promoted (e.g., experimental_design)
+    that only exist when instantiated
+    """
+    def get_view_config(self, view: ResponseFormat) -> JSON_TYPE:
+        """ get configuration object required by the view """
+        raise NotImplementedError('`RowModel` is an abstract class; override in child classes')
+    
+    def to_view_data(self, view: ResponseFormat) -> JSON_TYPE:
+        """ covert row data to view formatted data """
+        raise NotImplementedError('`RowModel` is an abstract class; override in child classes')
+
+    
 class RequestDataModel(SerializableModel):
     request_id: str
     endpoint: str
@@ -68,20 +86,38 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
     async def from_request(cls, request: Request):
         parameters = RequestDataModel.sort_query_parameters(dict(request.query_params))
         endpoint = str(request.url.path) # endpoint includes path parameters
-        
+        internalCacheKey = endpoint + '?' + parameters.replace(':','_') # ':' delimitates keys in keydb
         return cls(
-            internal = endpoint + '?' + parameters.replace(':','_'), # ':' delimitates keys in keydb
-            external = request.headers.get("X-Request-ID"),
+            internal = internalCacheKey,
+            external = md5(internalCacheKey.encode('utf-8')).hexdigest(), # so that it is unique to the endpoint + params, unlike distinct requestId
             namespace = CacheNamespace(request.url.path.split('/')[1])
         )
 
-
-    
+        
 class BaseResponseModel(SerializableModel):
     request: RequestDataModel
     response: Any
-    # TODO: session/user_id?
+        
+    def to_view(self, view:ResponseFormat):
+        """ transform response to JSON expected by NIAGADS-viz-js Table """
+        if len(self.response) == 0:
+            raise RuntimeError('zero-length response; cannot generate view')
+        
+        viewResponse: Dict[str, Any] = {}
+        data = []
+        row: RowModel # annotated type hint
+        for index, row in enumerate(self.response):
+            if index == 0:
+                viewResponse = row.get_view_config(view)
+            data.append(row.to_view_data(view))
+        viewResponse.update({'data': data})
     
+        if view == ResponseFormat.TABLE:
+            viewResponse.update({'id': self.request.request_id})
+            
+        return viewResponse
+
+        
     @classmethod
     def row_model(cls: Self, name=False):
         """ get the type of the row model in the response """
@@ -97,6 +133,7 @@ class BaseResponseModel(SerializableModel):
     @classmethod
     def is_paged(cls: Self):
         return 'pagination' in cls.model_fields
+
 
 
 class GenericDataModel(SerializableModel):

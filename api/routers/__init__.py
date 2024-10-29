@@ -1,2 +1,2 @@
 from .filer import FILERRouter
-from .view_redirects import router as ViewRouter
+from .view.routes.root import router as ViewRouter
