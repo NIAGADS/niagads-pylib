@@ -3,9 +3,13 @@ from sqlmodel import SQLModel
 from typing import Optional, Dict, List, Union
 from typing_extensions import Self
 
+from niagads.utils.list import find
+
 from api.common.constants import JSON_TYPE
 from api.common.enums import ResponseFormat
 from api.common.formatters import id2title
+from api.routers.filer.models.biosample_characteristics import BiosampleCharacteristics
+from api.routers.filer.models.experimental_design import ExperimentalDesign # TODO: possibly move to API base_models
 
 from .base_models import BaseResponseModel, RowModel
 
@@ -20,7 +24,7 @@ class GenomeBrowserConfig(RowModel, SQLModel):
         """ get configuration object required by the view """
         match view:
             case view.TABLE:
-                return self.__build_table_config()
+                return self._build_table_config()
             case _:
                 raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
 
@@ -28,15 +32,16 @@ class GenomeBrowserConfig(RowModel, SQLModel):
         # TODO match on response type for data transformations?
         return self.model_dump()
 
-    def __build_table_config(self):
+    def _build_table_config(self):
         """ Return a column and options object for niagads-viz-js/Table """
         fields = list(self.model_fields.keys())
         columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields] 
+        
         # FIXME: maybe add these on the genome browser side of things in the javascript
         options: dict = {
             'disableColumnFilters': True, # FIXME: Remove when column filters are implemented
             'rowSelect': {
-                'header': 'Show/Hide Track',
+                'header': 'Add/Remove Track',
                 'enableRowMultiSelect': True,
                 'rowId': 'track_id'
             }
@@ -48,8 +53,9 @@ class GenomeBrowserExtendedConfig(GenomeBrowserConfig):
     feature_type: str
     data_source: str
     browser_track_category: Optional[str]
-    biosample_characteristics: Optional[Dict[str, str]]
-    experimental_design: Optional[Dict[str, str]]
+    subject_phenotype: Optional[dict] = None# TODO: for genomicsdb; need to create Phenotype type
+    biosample_characteristics: Optional[BiosampleCharacteristics] 
+    experimental_design: Optional[ExperimentalDesign]
     
     def to_view_data(self, view: ResponseFormat) -> dict:
         # TODO match on response type for data transformations?
@@ -67,16 +73,20 @@ class GenomeBrowserExtendedConfig(GenomeBrowserConfig):
         """ Return a column and options object for niagads-viz-js/Table """
         fields = [k for k in self.model_fields.keys() if k not in ['biosample_characteristics', 'experimental_design']]
         if self.biosample_characteristics is not None:
-            fields += list(self.biosample_characteristics.keys())
+            fields += list(BiosampleCharacteristics.model_fields.keys())
         if self.experimental_design is not None:
-            fields += list(self.experimental_design.keys())
+            fields += list(ExperimentalDesign.model_fields.keys())
             
         columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields] 
+        # update type of is_lifted to boolean
+        index: int = find(columns, 'is_lifted', 'id', returnValues=False)
+        columns[index[0]].update({'type': 'boolean', 'description': 'data have been lifted over from an earlier genome build'})
+        
         # FIXME: maybe add these on the genome browser side of things in the javascript
         options: dict = {
             'disableColumnFilters': True, # FIXME: Remove when column filters are implemented
             'rowSelect': {
-                'header': 'Show/Hide Track',
+                'header': 'Add/Remove Track',
                 'enableRowMultiSelect': True,
                 'rowId': 'track_id'
             }

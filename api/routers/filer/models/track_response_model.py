@@ -7,12 +7,15 @@ from pydantic import model_validator
 
 from niagads.utils.list import find
 
+from api.common.constants import JSON_TYPE
+from api.common.enums import ResponseFormat
 from api.common.formatters import id2title
 from api.response_models import PagedResponseModel, GenericDataModel
+from api.response_models.base_models import RowModel
 from .biosample_characteristics import BiosampleCharacteristics
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
-class FILERTrackBrief(SQLModel, GenericDataModel):
+class FILERTrackBrief(SQLModel, RowModel, GenericDataModel):
     track_id: str
     name: str
     genome_build: Optional[str]
@@ -31,35 +34,39 @@ class FILERTrackBrief(SQLModel, GenericDataModel):
         modelFields = cls.model_fields.keys()
         return {k:v for k, v in data.items() if k in modelFields or k.startswith('num_')}
 
-    @classmethod
-    def view_table_columns(cls: Self):
-        """ Return a column object for niagads-viz-js/Table """
-        fields = list(cls.model_fields.keys())
-        if 'biosample_characteristics' in fields:
-            fields += list(BiosampleCharacteristics.model_fields.keys())
-            fields.remove('biosample_characteristics')
+    def get_view_config(self, view: ResponseFormat) -> JSON_TYPE:
+        """ get configuration object required by the view """
+        match view:
+            case view.TABLE:
+                return self._build_table_config()
+            case _:
+                raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
         
-        columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields if f != 'data_souce_url']
+    
+    def to_view_data(self, view: ResponseFormat) -> JSON_TYPE:
+        """ covert row data to view formatted data """
+        return self.serialize()
+
+    def _build_table_config(self):
+        """ Return a column object for niagads-viz-js/Table """
+        fields = list(self.model_fields.keys())
+        if len(self.model_extra) > 0:
+            fields += list(self.model_extra.keys())
+        columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields]
             
         # update type of is_lifted to boolean
         index: int = find(columns, 'is_lifted', 'id', returnValues=False)
         columns[index[0]].update({'type': 'boolean', 'description': 'data have been lifted over from an earlier genome build'})
-        
-        return columns
-    
-    def view_table_columns(self):
-        """ 
-        Return a column object for niagads-viz-js/Table; 
-        for cases with extra fields; needs to be called after instantiation
-        """
-        columns: List[dict] = self.__class__.view_table_columns()
-        if len(self.model_extra) > 0:
-            fields = list(self.model_extra.keys())
-            columns += [ {'id': f, 'header': id2title(f)} for f in fields]
-            
-        return columns
-    
-    
+        options: dict = {
+            'disableColumnFilters': True, # FIXME: Remove when column filters are implemented
+        }
+        if 'num_overlaps' in fields:
+            options.update({'rowSelect': {
+                    'header': 'Select',
+                    'enableRowMultiSelect': True,
+                    'rowId': 'track_id'
+                }})
+        return {'columns': columns, 'options': options}
     
 
 class FILERTrack(FILERTrackBrief):  
@@ -97,6 +104,18 @@ class FILERTrack(FILERTrackBrief):
     file_format: Optional[str]
     file_schema: Optional[str]
 
+    def get_view_config(self, view):
+        return super().get_view_config(view)
+    
+    def to_view_data(self, view):
+        return self.serialize(promoteObjs=True)
+    
+    def _build_table_config(self):
+        config = super()._build_table_config()
+        columns = [ c for c in config[columns] if c['id'] != 'biomaterial_characteristics' ] 
+        columns += [ {'id': f, 'header': id2title(f)} for f in BiosampleCharacteristics.model_fields]
+        config.update({'columns': columns })
+        return config
 
 class FILERTrackBriefResponse(PagedResponseModel):
     response: List[FILERTrackBrief]
