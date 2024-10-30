@@ -35,6 +35,8 @@ async def get_table_view(
         requestResponse: BaseResponseModel = await internal.internalCache.get(forwardingRequestId, namespace=CacheNamespace.VIEW)
         response = requestResponse.to_view(ResponseFormat.TABLE, id=cacheKey)
         await internal.externalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
+        await internal.externalCache.set(f'{cacheKey}_request', requestResponse.request.model_dump(), namespace=CacheNamespace.VIEW)
+        
         
     return response
         

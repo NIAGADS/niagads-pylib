@@ -1,4 +1,4 @@
-from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from sqlmodel import select, col, or_, func, distinct
 from sqlalchemy import Values, String, column as sqla_column
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,6 +47,9 @@ class ApiWrapperService:
     
     async def get_track_hits(self, tracks: List[str], span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
         result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': ','.join(tracks), 'span': span})
+        if 'message' in result:
+            raise RuntimeError(result['message'])
+        
         if countsOnly:
             return self.__countOverlaps(result)
         return self.__overlaps2features(result)

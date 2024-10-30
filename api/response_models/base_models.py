@@ -170,7 +170,7 @@ class GenericDataModel(RowModel, SerializableModel):
                     if countsPresent:
                         options.update({'rowSelect': {
                                 'header': 'Select',
-                                'enableRowMultiSelect': True,
+                                'enableMultiRowSelect': True,
                                 'rowId': 'track_id'
                             }})
                 return {'columns': columns, 'options': options}

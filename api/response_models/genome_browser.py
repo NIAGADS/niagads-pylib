@@ -42,7 +42,7 @@ class GenomeBrowserConfig(RowModel, SQLModel):
             'disableColumnFilters': True, # FIXME: Remove when column filters are implemented
             'rowSelect': {
                 'header': 'Add/Remove Track',
-                'enableRowMultiSelect': True,
+                'enableMultiRowSelect': True,
                 'rowId': 'track_id'
             }
         }
@@ -87,7 +87,7 @@ class GenomeBrowserExtendedConfig(GenomeBrowserConfig):
             'disableColumnFilters': True, # FIXME: Remove when column filters are implemented
             'rowSelect': {
                 'header': 'Add/Remove Track',
-                'enableRowMultiSelect': True,
+                'enableMultiRowSelect': True,
                 'rowId': 'track_id'
             }
         }

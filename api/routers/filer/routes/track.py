@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, Path, Query
 from typing import Optional, Union
 
-from api.common.enums import ResponseContent
+from api.common.enums import ResponseContent, ResponseFormat
 from api.common.exceptions import RESPONSES
 from api.common.formatters import print_enum_values
 from api.dependencies.parameters.location import span_param
-from api.dependencies.parameters.optional import format_param, get_response_content, validate_response_content
+from api.dependencies.parameters.optional import format_param, get_response_content, get_response_format, validate_response_content
 from api.common.helpers import Parameters
 
 from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse, BEDResponse
@@ -23,6 +23,7 @@ router = APIRouter(
     tags=TAGS,
     responses=RESPONSES
 )
+
 
 tags = TAGS + ["Record by ID", "Track Metadata by ID"]
 # note: the content enum variables must have a distinct name or else the get overwritten in memory from initialization when requests are made

@@ -63,7 +63,7 @@ class FILERTrackBrief(SQLModel, GenericDataModel):
         if 'num_overlaps' in fields:
             options.update({'rowSelect': {
                     'header': 'Select',
-                    'enableRowMultiSelect': True,
+                    'enableMultiRowSelect': True,
                     'rowId': 'track_id'
                 }})
         return {'columns': columns, 'options': options}
