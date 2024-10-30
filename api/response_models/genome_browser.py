@@ -39,7 +39,6 @@ class GenomeBrowserConfig(RowModel, SQLModel):
         
         # FIXME: maybe add these on the genome browser side of things in the javascript
         options: dict = {
-            'disableColumnFilters': True, # FIXME: Remove when column filters are implemented
             'rowSelect': {
                 'header': 'Add/Remove Track',
                 'enableMultiRowSelect': True,
@@ -84,7 +83,6 @@ class GenomeBrowserExtendedConfig(GenomeBrowserConfig):
         
         # FIXME: maybe add these on the genome browser side of things in the javascript
         options: dict = {
-            'disableColumnFilters': True, # FIXME: Remove when column filters are implemented
             'rowSelect': {
                 'header': 'Add/Remove Track',
                 'enableMultiRowSelect': True,

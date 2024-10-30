@@ -163,7 +163,7 @@ class GenericDataModel(RowModel, SerializableModel):
             case view.TABLE:
                 fields = list(self.model_dump().keys())
                 columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields]
-                options =  {'disableColumnFilters': True}
+                options =  {}
 
                 if 'track_id' in fields:
                     countsPresent = any([True for f in fields if f.startswith('num_')])

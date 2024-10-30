@@ -57,15 +57,15 @@ class FILERTrackBrief(SQLModel, GenericDataModel):
         # update type of is_lifted to boolean
         index: int = find(columns, 'is_lifted', 'id', returnValues=False)
         columns[index[0]].update({'type': 'boolean', 'description': 'data have been lifted over from an earlier genome build'})
-        options: dict = {
-            'disableColumnFilters': True, # FIXME: Remove when column filters are implemented
-        }
+        options = {}
         if 'num_overlaps' in fields:
             options.update({'rowSelect': {
                     'header': 'Select',
                     'enableMultiRowSelect': True,
                     'rowId': 'track_id'
                 }})
+        if len(fields) > 8:
+            options.update({'defaultColumns': fields[:8]})
         return {'columns': columns, 'options': options}
     
 
