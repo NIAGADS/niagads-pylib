@@ -123,7 +123,7 @@ class AbstractResponse(ABC, BaseModel):
         viewResponse.update({'data': data})
     
         if view == ResponseFormat.TABLE:
-            viewResponse.update({'id': self.request.request_id})
+            viewResponse.update({'id': kwargs['id']})
             
         return viewResponse
 class BaseResponseModel(AbstractResponse, SerializableModel):

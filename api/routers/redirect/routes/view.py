@@ -27,12 +27,13 @@ async def get_table_view(
         internal: InternalRequestParameters = Depends()
     ):
     
-    cacheKey = forwardingRequestId + '_table_view'
+    # check to see if redirect response is cached
+    cacheKey = internal.cacheKey.external
     response = await internal.externalCache.get(cacheKey, namespace=CacheNamespace.VIEW)
     if response == None:    
         # original response store in internal cache
         requestResponse: BaseResponseModel = await internal.internalCache.get(forwardingRequestId, namespace=CacheNamespace.VIEW)
-        response = requestResponse.to_view(ResponseFormat.TABLE)
+        response = requestResponse.to_view(ResponseFormat.TABLE, id=cacheKey)
         await internal.externalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
         
     return response
