@@ -65,6 +65,18 @@ async def validate_response_content(contentEnum: CaseInsensitiveEnum, value):
     except:
         raise RequestValidationError(f'Invalid value provided for `content`: {value}.  Allowable values for this query are: {print_enum_values(contentEnum)}' )
 
+def get_response_format(exclude: List[ResponseFormat]):
+    return CaseInsensitiveEnum('format', { member.name: member.value for member in ResponseFormat if member not in exclude })
+
+async def validate_response_format(formatEnum: CaseInsensitiveEnum, value):
+    try:
+        formatEnum(value)
+        return ResponseFormat(value)
+    except:
+        raise RequestValidationError(f'Invalid value provided for `format`: {value}.  Allowable values for this query are: {print_enum_values(formatEnum)}' )
+
+
+
 async def keyword_param(keyword: Optional[str] = Query(default=None, 
     description="search all text fields by keyword")) -> str:
     if keyword is not None:

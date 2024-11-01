@@ -1,0 +1,1 @@
+from .routes.root import router as RedirectRouter

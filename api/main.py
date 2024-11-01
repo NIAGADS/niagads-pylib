@@ -1,5 +1,5 @@
 import functools
-from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import RequestValidationError, ResponseValidationError
 import yaml
 import traceback
 
@@ -12,7 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from asgi_correlation_id import CorrelationIdMiddleware
 
 from api.internal.config import get_settings
-from .routers import FILERRouter, ViewRouter
+from .routers import FILERRouter, RedirectRouter
 
 # FIXME -- needed for applications reading the openapi.json or openapi.yaml, but 
 # needs to be dynamic based on deployment
@@ -75,8 +75,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             }), 
     )
 
-# TODO: what is this handling? -- remove?
 
+
+# TODO: what is this handling? -- remove?
 @app.exception_handler(Exception)
 async def validation_exception_handler(request: Request, exc: Exception):
    return JSONResponse(
@@ -91,7 +92,7 @@ async def validation_exception_handler(request: Request, exc: Exception):
     )
 
 app.include_router(FILERRouter)
-app.include_router(ViewRouter)
+app.include_router(RedirectRouter)
 
 
 @app.get("/")

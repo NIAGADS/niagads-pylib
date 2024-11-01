@@ -8,30 +8,14 @@ from sqlmodel import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_scoped_session, AsyncSession, AsyncEngine, async_sessionmaker
 from asyncio import current_task
 from aiocache import RedisCache
-from aiocache.serializers import StringSerializer, JsonSerializer, PickleSerializer
-from enum import Enum
 
+from api.common.enums import CacheNamespace, CacheSerializer, CacheTTL
+from api.common.constants import JSON_TYPE
 from api.internal.config import get_settings
 from api.response_models.base_models import BaseResponseModel
 
 logger = logging.getLogger(__name__)
 
-#cache: Cache = Cache.from_url('url', serializer=JsonSerializer)
-#cache.get()
-
-JSON_TYPE = Union[Dict[str, Any], List[Any], int, float, str, bool, None]
-
-class CacheSerializer(Enum):
-    STRING = StringSerializer
-    JSON = JsonSerializer
-    PICKLE = PickleSerializer
-    
-class CacheTTL(Enum):
-    """ Time to Live (TTL) options for caching; in seconds """
-    DEFAULT = 3600 # 1 hr
-    SHORT = 300 # 5 minutes
-    DAY = 86400
-    
 class CacheManager:
     """ KeyDB (Redis) cache for responses 
     application will instantiate two CacheManagers
@@ -43,9 +27,9 @@ class CacheManager:
             * keyed on `requestId_view` or `_view_element`
     """
     __cache: RedisCache = None
-    __namespace: str = 'api_root'
+    __namespace: CacheNamespace = CacheNamespace.ROOT
     
-    def __init__(self, serializer: CacheSerializer, namespace: str=None):
+    def __init__(self, serializer: CacheSerializer, namespace: CacheNamespace=None):
         connectionString = get_settings().API_CACHEDB_URL
         config = self.__parse_uri_path(connectionString)
         self.__cache = RedisCache(serializer=serializer.value(), **config)  # need to instantiat the serializer
@@ -57,25 +41,35 @@ class CacheManager:
         values = path.split("/")
         host, port = values[2].split(':')
         config = { 
-            'namespace': self.__namespace,
+            'namespace': self.__namespace.value,
             'db': int(values[-1]),
             'port': int(port),
             'endpoint': host} # conceptually, endpoint here is the host IP
         return config
         
             
-    async def set(self, cacheKey:str, value: BaseResponseModel, ttl=CacheTTL.DEFAULT, namespace:str=None):
+    async def set(self, cacheKey:str, value: BaseResponseModel, 
+        ttl=CacheTTL.DEFAULT, namespace:CacheNamespace=None):
         if self.__cache is None:
             raise RuntimeError('In memory cache not initialized')
         ns = self.__namespace if namespace is None else namespace
-        await self.__cache.set(cacheKey, value, ttl=ttl.value, namespace=ns)
+        await self.__cache.set(cacheKey, value, ttl=ttl.value, namespace=ns.value)
 
         
-    async def get(self, cacheKey: str, namespace:str=None) -> Union[BaseResponseModel, JSON_TYPE]:
+    async def get(self, cacheKey: str,
+        namespace:CacheNamespace=None) -> Union[BaseResponseModel, JSON_TYPE]:
         if self.__cache is None:
             raise RuntimeError('In memory cache not initialized')
         ns = self.__namespace if namespace is None else namespace
-        return await self.__cache.get(cacheKey, namespace=ns)
+        return await self.__cache.get(cacheKey, namespace=ns.value)
+
+
+    async def exists(self, cacheKey: str,
+        namespace:CacheNamespace=None) -> Union[BaseResponseModel, JSON_TYPE]:
+        if self.__cache is None:
+            raise RuntimeError('In memory cache not initialized')
+        ns = self.__namespace if namespace is None else namespace
+        return await self.__cache.exists(cacheKey, namespace=ns.value)
 
 
     async def get_cache(self) -> RedisCache:

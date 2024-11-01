@@ -4,10 +4,11 @@ from fastapi import status
 from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Any, Dict
 
-from api.common.enums import ResponseContent
+from api.common.enums import ResponseContent, CacheNamespace
 from api.dependencies.parameters.services import InternalRequestParameters
 from api.dependencies.parameters.optional import PaginationParameters, ResponseFormat
 from api.response_models.base_models import BaseResponseModel, PaginationDataModel
+from api.routers.redirect.common.constants import RedirectEndpoints
 
 # basically allow creation of an arbitrary namespace
 class Parameters(BaseModel):
@@ -54,22 +55,31 @@ def __set_pagination(opts: HelperParameters, resultSize):
         )
     return None
 
+
 async def generate_response(result: Any, opts:HelperParameters, isCached=False):
-    if isCached:
-        return result
-    
+    if not isCached:
+        response = None
+        if opts.model.is_paged():
+            pagination: PaginationDataModel = __set_pagination(opts, len(result))
+            response =  opts.model(request=opts.internal.requestData, pagination=pagination, response=result)
+        else: 
+            response = opts.model(request=opts.internal.requestData, response=result)
+        # cache the response
+        await opts.internal.internalCache.set(opts.internal.cacheKey.internal, response, namespace=opts.internal.cacheKey.namespace)
+    else:
+        response = result
+        
     match opts.format:
         case ResponseFormat.TABLE:
-            rowModel = opts.model.row_model(name=True)
-            requestId = opts.internal.requestData.request_id
-            redirectUrl = f'/view/table/{rowModel}?forwardingRequestId={requestId}'
+            # cache the response again, this time by the requestId b/c 
+            # the cacheKey cannot be passed through the URL  
+            cacheKey = opts.internal.cacheKey.external   
+            requestIsCached = await opts.internal.internalCache.exists(cacheKey, namespace=CacheNamespace.VIEW)
+            if not requestIsCached:  # then cache it
+                await opts.internal.internalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
+            
+            redirectUrl = f'/redirect{RedirectEndpoints.TABLE.value}/{cacheKey}'
             return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
-        case _:
-            if opts.model.is_paged():
-                pagination: PaginationDataModel = __set_pagination(opts, len(result))
-                response =  opts.model(request=opts.internal.requestData, pagination=pagination, response=result)
-            else: 
-                response = opts.model(request=opts.internal.requestData, response=result)
-            await opts.internal.internalCache.set(opts.internal.cacheKey.internal, response, namespace=opts.internal.cacheKey.namespace)
+        case _:  
             return response
 

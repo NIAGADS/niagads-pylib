@@ -1,19 +1,27 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Type, Union, TypeVar
 from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
 from urllib.parse import parse_qs
+from hashlib import md5
+from abc import ABC, abstractmethod
 
-from niagads.utils.string import dict_to_string 
+from niagads.utils.string import dict_to_string
+
+from api.common.constants import JSON_TYPE
+from api.common.enums import CacheNamespace, ResponseFormat
+from api.common.formatters import id2title
+
 class SerializableModel(BaseModel):
-    def serialize(self, promoteObjs=False, collapseUrls=False, groupExtra=False):
+    def serialize(self, exclude: List[str] = None, promoteObjs=False, collapseUrls=False, groupExtra=False):
         """Return a dict which contains only serializable fields.
+        exclude -> list of fields to exclude
         promoteObjs -> when True expands JSON fields; i.e., ds = {a:1, b:2} becomes a:1, b:2 and ds gets dropped
         collapseUrls -> looks for field and field_url pairs and then updates field to be {url: , value: } object
         groupExtra -> if extra fields are present, group into a JSON object
         """
-        data:dict = jsonable_encoder(self.model_dump()) # FIXME: not sure if encoder is necessary; check dates? maybe
+        data:dict = jsonable_encoder(self.model_dump(exclude=exclude)) # FIXME: not sure if encoder is necessary; check dates? maybe
         if promoteObjs:
             objFields = [ k for k, v in data.items() if isinstance(v, dict)]
             for f in objFields:
@@ -27,12 +35,34 @@ class SerializableModel(BaseModel):
 
         if groupExtra:
             raise NotImplementedError()  
+        
         return data
     
     def has_extras(self):
         """ test if extra model fields are present """
         return len(self.model_extra) > 0
+    
 
+class RowModel(SerializableModel, ABC):
+    """
+    NOTE: these abstract methods cannot be class methods 
+    because sometimes the row models have extra fields 
+    or objects that need to be promoted (e.g., experimental_design)
+    that only exist when instantiated
+    """
+    
+    @abstractmethod
+    def get_view_config(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
+        """ get configuration object required by the view """
+        raise RuntimeError('`RowModel` is an abstract class; need to override abstract methods in child classes')
+    
+    @abstractmethod
+    def to_view_data(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
+        """ covert row data to view formatted data """
+        raise RuntimeError('`RowModel` is an abstract class; need to override abstract methods in child classes')
+    
+
+    
 class RequestDataModel(SerializableModel):
     request_id: str
     endpoint: str
@@ -58,26 +88,50 @@ class RequestDataModel(SerializableModel):
 class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
     internal: str
     external: str
-    namespace: str
+    namespace: CacheNamespace
     
     @classmethod
     async def from_request(cls, request: Request):
         parameters = RequestDataModel.sort_query_parameters(dict(request.query_params))
         endpoint = str(request.url.path) # endpoint includes path parameters
-        
+        internalCacheKey = endpoint + '?' + parameters.replace(':','_') # ':' delimitates keys in keydb
         return cls(
-            internal = endpoint + '?' + parameters.replace(':','_'), # ':' delimitates keys in keydb
-            external = request.headers.get("X-Request-ID"),
-            namespace = request.url.path.split('/')[1]
+            internal = internalCacheKey,
+            external = md5(internalCacheKey.encode('utf-8')).hexdigest(), # so that it is unique to the endpoint + params, unlike distinct requestId
+            namespace = CacheNamespace(request.url.path.split('/')[2]) \
+                if '/redirect/' in request.url.path \
+                    else CacheNamespace(request.url.path.split('/')[1])
         )
 
-
-    
-class BaseResponseModel(SerializableModel):
-    request: RequestDataModel
+        
+class AbstractResponse(ABC, BaseModel):
     response: Any
-    # TODO: session/user_id?
     
+    @abstractmethod 
+    def to_view(self, view:ResponseFormat, **kwargs):
+        """ transform response to JSON expected by NIAGADS-viz-js Table """
+        if len(self.response) == 0:
+            raise RuntimeError('zero-length response; cannot generate view')
+        
+        viewResponse: Dict[str, Any] = {}
+        data = []
+        row: RowModel # annotated type hint
+        for index, row in enumerate(self.response):
+            if index == 0:
+                viewResponse = row.get_view_config(view, **kwargs)
+            data.append(row.to_view_data(view, **kwargs))
+        viewResponse.update({'data': data})
+    
+        if view == ResponseFormat.TABLE:
+            viewResponse.update({'id': kwargs['id']})
+            
+        return viewResponse
+class BaseResponseModel(AbstractResponse, SerializableModel):
+    request: RequestDataModel
+
+    def to_view(self, view, **kwargs):
+        return super().to_view(view, **kwargs)
+        
     @classmethod
     def row_model(cls: Self, name=False):
         """ get the type of the row model in the response """
@@ -95,10 +149,34 @@ class BaseResponseModel(SerializableModel):
         return 'pagination' in cls.model_fields
 
 
-class GenericDataModel(SerializableModel):
+class GenericDataModel(RowModel, SerializableModel):
     """ Generic JSON Response """
     __pydantic_extra__: Dict[str, Any]  
     model_config = ConfigDict(extra='allow')
+    
+    def to_view_data(self, view, **kwargs):
+        return self.model_dump()
+    
+    def get_view_config(self, view, **kwargs):
+        """ get configuration object required by the view """
+        match view:
+            case view.TABLE:
+                fields = list(self.model_dump().keys())
+                columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields]
+                options =  {}
+
+                if 'track_id' in fields:
+                    countsPresent = any([True for f in fields if f.startswith('num_')])
+                    if countsPresent:
+                        options.update({'rowSelect': {
+                                'header': 'Select',
+                                'enableMultiRowSelect': True,
+                                'rowId': 'track_id'
+                            }})
+                return {'columns': columns, 'options': options}
+            case _:
+                raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
+        
     
     
 class PaginationDataModel(BaseModel):
@@ -109,4 +187,10 @@ class PaginationDataModel(BaseModel):
 
 class PagedResponseModel(BaseResponseModel):
     pagination: Optional[PaginationDataModel] = None
-    
+
+    def to_view(self, view, **kwargs):
+        return super().to_view(view, **kwargs)
+
+# possibly allows you to set a type hint to a class and all its subclasses
+T_SerializableModel = TypeVar('T_SerializableModel', bound=SerializableModel)
+T_BaseResponseModel = TypeVar('T_BaseResponseModle', bound=BaseResponseModel)
