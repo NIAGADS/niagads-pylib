@@ -1,14 +1,15 @@
-import functools
-from fastapi.exceptions import RequestValidationError, ResponseValidationError
 import yaml
 import traceback
+import functools
 
 from io import StringIO
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
+from fastapi.middleware.cors import CORSMiddleware
 
-from starlette.middleware.sessions import SessionMiddleware
+# from starlette.middleware.sessions import SessionMiddleware
 from asgi_correlation_id import CorrelationIdMiddleware
 
 from api.internal.config import get_settings
@@ -37,8 +38,13 @@ app = FastAPI(
         #swagger_ui_parameters={"docExpansion": "full"}
     )
 
-app.add_middleware(SessionMiddleware, secret_key=get_settings().SESSION_SECRET)
+# app.add_middleware(SessionMiddleware, secret_key=get_settings().SESSION_SECRET)
 app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
+app.add_middleware(CORSMiddleware, 
+    allow_origins=[get_settings().API_PUBLIC_URL],
+    # allow_credentials=True
+    allow_methods=['*'],
+    allow_headers=['*'])
 
 @app.exception_handler(RuntimeError)
 async def validation_exception_handler(request: Request, exc: RuntimeError):
