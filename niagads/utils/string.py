@@ -243,6 +243,11 @@ def is_null(value, naIsNull=False):
     return False
 
 
+def is_camel_case(s):
+    """ relaxed check for camel case b/c allows things like cRGB """
+    return s != s.lower() and s != s.upper() and "_" not in s
+
+
 def to_snake_case(key):
     ''' converts camel case or space delimited strings to snake case
     from https://stackoverflow.com/a/1176023 / advanced cases'''
