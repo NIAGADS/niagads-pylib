@@ -7,7 +7,7 @@ from api.response_models.base_models import BaseResponseModel
 
 from api.routers.redirect.dependencies.parameters import forwarding_request_param
 
-from ..common.constants import ROUTE_TAGS
+from ..common.constants import ROUTE_TAGS, RedirectEndpoints
 
 
 TAGS = ROUTE_TAGS + ["(Internal) Redirect JSON responses to Visualization Tools"]
@@ -37,6 +37,6 @@ async def get_table_view(
         await internal.externalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
         await internal.externalCache.set(f'{cacheKey}_request', requestResponse.request.model_dump(), namespace=CacheNamespace.VIEW)
         
-    return response
+    return {'queryId' : cacheKey, 'redirect': RedirectEndpoints.TABLE }
         
         
