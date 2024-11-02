@@ -58,3 +58,4 @@ CREATE INDEX FTM_IND08 ON ServerApplication.FILERTrack (project, track_id);
    
 -- Grants (may need to do them again here)
 
+GRANT SELECT ON ALL TABLES IN SCHEMA ServerApplication TO server_app;
