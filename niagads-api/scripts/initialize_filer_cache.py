@@ -96,9 +96,10 @@ def insert_record(track: dict):
 
 def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False):
     ''' initializes FILER metadta from the metadata template file '''
-    lineNum = 0
+    lineNum = 1
     insertCount = 0
     currentLine = None
+    processedTracks = {}
     try:
         # initialize parser    
         parser = FILERMetadataParser(debug=debug)
@@ -120,23 +121,35 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
         for line in metadata:
             lineNum += 1
             currentLine = line
-        
+            track = None # so that errors don't print out track from previous iteration
+
             # parse & create Metadata object
             parser.set_metadata(dict(zip(header, line.split('\t'))))
             track = parser.parse()
             
             # FIXME: log non-assembly associated tracks and skip for now
             if track['genome_build'] is None:
-                LOGGER.warning("SKIPPING track with `NoneType` value for Genome Build: " + currentLine)
+                LOGGER.warning("SKIPPING track with `NoneType` value for Genome Build (line %s): %s" % (lineNum, currentLine))
                 continue
             
+            if 'CADD' in track['name']: # no need; CADD annotation will come from GenomicsDB endpoints
+                LOGGER.warning("SKIPPING CADD Track (line %s): %s" % (lineNum, currentLine))
+                continue
+            
+            if track['track_id'] in processedTracks:
+                LOGGER.warning('SKIPPING duplicate track (line %s): %s' % (lineNum, currentLine))      
+                continue
+
             if args.skipLiveValidation or \
                     (liveMetadata is not None and \
                     track['track_id'] in liveMetadata[track['genome_build']]):
+                
                 insert_record(track)
                 insertCount = insertCount + 1
+                processedTracks[track['track_id']] = 1
+                
             else:
-                LOGGER.info("Track not found in FILER: " + currentLine)
+                LOGGER.info("Track not found in FILER: (line %s): %s" % (lineNum, currentLine))
             
             if lineNum % 10000 == 0:
                 LOGGER.debug("Processed metadata for " + str(lineNum) +" tracks")
