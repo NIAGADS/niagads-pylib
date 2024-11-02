@@ -6,17 +6,17 @@
 * `docker-compose`
 * if running on a Windows or Mac, the `project folder` needs to be in a directory for which `file sharing` has been enabled for `Docker Desktop`
 
-## create a project folder, 
+## create a project folder
 
-Suggested name: `niagads-api-<version>`, e.g.: 
+Suggested name: `niagads-api-<version>`, e.g.
 
-```
+```bash
 mkdir niagads-api-alpha
 ```
 
 ## Clone the NIAGADS API code and the NIAGADS docker-repo from the `GitHub` repository into the project folder
 
-```
+```bash
 cd niagads-api-<version>
 git clone https://github.com/NIAGADS/niagads-api.git
 git clone https://github.com/NIAGADS/docker-repo.git
@@ -26,7 +26,7 @@ git clone https://github.com/NIAGADS/docker-repo.git
 
 First create the `.env` file for the `niagads-api` app from the provided `sample.env` file:
 
-```
+```bash
 cp niagads-api/config/sample.env niagads-api/config/.env
 ```
 
@@ -53,7 +53,7 @@ And then edit the `.env` file as follows:
 
 First create the `.env` file for the `docker-repo/niagads-api` project from the provided `sample.env` file:
 
-```
+```bash
 cp docker-repo/niagads-api/sample.env .env
 ```
 
@@ -67,7 +67,7 @@ And edit the `.env` as follows:
 
 ## Run  `docker-compose` to build the `API` docker container. 
 
-```
+```bash
 docker-compose -f "niagads-api/docker-compose.yaml" up -d --build
 ```
 
@@ -79,15 +79,3 @@ docker-compose -f "niagads-api/docker-compose.yaml" up -d --build
 
 On the host run the following:
 
-```
-cd niagads-api
-docker run -v $PWD:/app --env FLASK_APP="app:create_app(initCacheDB='all')" --env FLASK_DEBUG=TRUE -it --rm niagads-api_alpha flask run
-```
-
-> NOTE: the `--env FLASK_DEBUG=TRUE` is not necessary, but it will let you track the metadata parsing progress for `FILER`
-
-* setting `initCacheDB` to `all` will initialize (or refresh) both caches
-
-* `filer` -> `FILER` only (e.g., if you want to change the `FILER_METADATA_TEMPLATE_FILE` in the API `.env` file and regenerate the metadata cache)
-
-* `cache` -> `pagination cache` only, e.g, can set a CRON job do do this & clear every day
