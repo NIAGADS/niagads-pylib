@@ -48,6 +48,9 @@ app.add_middleware(CORSMiddleware,
 
 @app.exception_handler(RuntimeError)
 async def validation_exception_handler(request: Request, exc: RuntimeError):
+    query = request.url.path 
+    if request.url.query != '':
+        query += '?' + request.url.query
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder(
@@ -55,7 +58,7 @@ async def validation_exception_handler(request: Request, exc: RuntimeError):
                 "error": str(exc),  # optionally, include the pydantic errors
                 "msg": "An unexpected error occurred.  Please submit a `bug` GitHub issue containing this full error response at: https://github.com/NIAGADS/niagads-api/issues",
                 "stack_trace": [ t.replace('\n', '').replace('"', "'") for t in traceback.format_tb(exc.__traceback__) ],
-                "request": str(request.url)
+                "request": str(query)
             }), 
     )
     
@@ -86,14 +89,17 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 # TODO: what is this handling? -- remove?
 @app.exception_handler(Exception)
 async def validation_exception_handler(request: Request, exc: Exception):
-   return JSONResponse(
+    query = request.url.path 
+    if request.url.query != '':
+        query += '?' + request.url.query
+    return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder(
             {
                 "message": str(exc),  # optionally, include the pydantic errors
                 "error": "An unexpected error occurred.  Please submit a `bug` GitHub issue containing this full error response at: https://github.com/NIAGADS/niagads-api/issues",
                 "stack_trace": [ t.replace('\n', '').replace('"', "'") for t in traceback.format_tb(exc.__traceback__) ],
-                "request": str(request.url)
+                "request": str(query)
             }), 
     )
 
