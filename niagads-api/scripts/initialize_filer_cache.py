@@ -106,7 +106,7 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
         parser.set_primary_key_label('track_id')
         parser.set_biosample_props_as_json()
         parser.set_dates_as_strings()
-        parser.set_biosample_mapper(read_reference_file(args.biosampleMapping))
+        # parser.set_biosample_mapper(read_reference_file(args.biosampleMapping))
         
         # fetch the template file 
         metadata = read_reference_file(args.metadataTemplate)
@@ -159,8 +159,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Initialize FILER Track Metadata Cache", allow_abbrev=False)
     parser.add_argument("--metadataTemplate", required=True,
         help="metadata template file; if file name includes '/', assumes local otherwise assumes it will needed to be fetched from the server")
-    parser.add_argument("--biosampleMapping", required=True, 
-        help="biosample mapping file; if file name includes '/', assumes local otherwise assumes it will needed to be fetched from the server")
+    # parser.add_argument("--biosampleMapping", required=True, 
+    #    help="biosample mapping file; if file name includes '/', assumes local otherwise assumes it will needed to be fetched from the server")
     parser.add_argument("--connectionString", help="postgres connection string", required=True)
     parser.add_argument("--commit", action="store_true")
     parser.add_argument("--debug", action="store_true")
