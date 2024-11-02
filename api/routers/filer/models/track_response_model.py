@@ -8,7 +8,7 @@ from pydantic import model_validator
 from niagads.utils.list import find
 
 from api.common.constants import JSON_TYPE
-from api.common.enums import ResponseFormat
+from api.common.enums import OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
 from api.response_models import PagedResponseModel, GenericDataModel
 
@@ -64,7 +64,8 @@ class FILERTrackBrief(SQLModel, GenericDataModel):
             options.update({'rowSelect': {
                     'header': 'Select',
                     'enableMultiRowSelect': True,
-                    'rowId': 'track_id'
+                    'rowId': 'track_id',
+                    'onRowSelect': [OnRowSelect.GET_DATA, OnRowSelect.LOAD_DATA_VIEW]
                 }})
         if len(fields) > 8:
             options.update({'defaultColumns': fields[:8]})

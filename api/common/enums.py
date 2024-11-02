@@ -37,6 +37,13 @@ class Assembly(str, Enum):
         return "GRCh37" if self.value.lower() == 'hg19' \
             else "GRCh38" if self.value.lower() == 'hg38' else self.value
 
+class OnRowSelect(CaseInsensitiveEnum):
+    """ enum for allowable NIAGADS-viz-js/Table onRowSelect actions """
+    GET_DATA = auto()
+    UPDATE_GENOME_BROWSER = auto()
+    LOAD_DATA_VIEW = auto()
+    UPDATE_LOCUSZOOM = auto()
+    
 
 class CacheSerializer(Enum):
     STRING = StringSerializer

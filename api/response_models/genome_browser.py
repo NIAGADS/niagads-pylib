@@ -6,7 +6,7 @@ from typing_extensions import Self
 from niagads.utils.list import find
 
 from api.common.constants import JSON_TYPE
-from api.common.enums import ResponseFormat
+from api.common.enums import OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
 from api.routers.filer.models.biosample_characteristics import BiosampleCharacteristics
 from api.routers.filer.models.experimental_design import ExperimentalDesign # TODO: possibly move to API base_models
@@ -42,7 +42,8 @@ class GenomeBrowserConfig(RowModel, SQLModel):
             'rowSelect': {
                 'header': 'Add/Remove Track',
                 'enableMultiRowSelect': True,
-                'rowId': 'track_id'
+                'rowId': 'track_id',
+                'onRowSelect': [OnRowSelect.UPDATE_GENOME_BROWSER]
             }
         }
         return {'columns': columns, 'options': options}
@@ -86,7 +87,8 @@ class GenomeBrowserExtendedConfig(GenomeBrowserConfig):
             'rowSelect': {
                 'header': 'Add/Remove Track',
                 'enableMultiRowSelect': True,
-                'rowId': 'track_id'
+                'rowId': 'track_id',
+                'onRowSelect': [OnRowSelect.UPDATE_GENOME_BROWSER]
             }
         }
         return {'columns': columns, 'options': options}

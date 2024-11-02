@@ -171,7 +171,8 @@ class GenericDataModel(RowModel, SerializableModel):
                         options.update({'rowSelect': {
                                 'header': 'Select',
                                 'enableMultiRowSelect': True,
-                                'rowId': 'track_id'
+                                'rowId': 'track_id',
+                                'onRowSelect': kwargs['on_row_select']
                             }})
                 return {'columns': columns, 'options': options}
             case _:

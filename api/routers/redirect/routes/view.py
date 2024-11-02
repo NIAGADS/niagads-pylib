@@ -32,10 +32,15 @@ async def get_table_view(
     response = await internal.externalCache.get(cacheKey, namespace=CacheNamespace.VIEW)
     if response == None:    
         # original response store in internal cache
-        requestResponse: BaseResponseModel = await internal.internalCache.get(forwardingRequestId, namespace=CacheNamespace.VIEW)
-        response = requestResponse.to_view(ResponseFormat.TABLE, id=cacheKey)
+        originatingResponse: BaseResponseModel = await internal.internalCache.get(forwardingRequestId, namespace=CacheNamespace.VIEW)
+        response = originatingResponse.to_view(ResponseFormat.TABLE, id=cacheKey)
         await internal.externalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
-        await internal.externalCache.set(f'{cacheKey}_request', requestResponse.request.model_dump(), namespace=CacheNamespace.VIEW)
+        
+        # need to save response and pagination information
+        originatingRequestDetails = originatingResponse.request.model_dump(exclude=['request_id', 'msg'])
+        if 'pagination' in originatingResponse:
+            originatingRequestDetails.update(originatingResponse.pagination.model_dump())
+        await internal.externalCache.set(f'{cacheKey}_request', originatingRequestDetails, namespace=CacheNamespace.VIEW)
         
     return {'queryId' : cacheKey, 'redirect': RedirectEndpoints.TABLE }
         
