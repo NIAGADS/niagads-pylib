@@ -432,7 +432,7 @@ class FILERMetadataParser:
 
         name = self._get_metadata('identifier') + ': ' + ' '.join(drop_nulls(nameInfo)) 
         
-        self.__metadata.update({"name": name})
+        self.__metadata.update({"name": name, "description": self._get_metadata('track_name') })
 
 
     def __parse_experiment_info(self):
@@ -615,7 +615,7 @@ class FILERMetadataParser:
 
     def __remove_internal_attributes(self):
         ''' remove internal attributes '''
-        internalKeys = ['link_out_url', 'processed_file_download_url', 
+        internalKeys = ['link_out_url', 'processed_file_download_url', 'track_name',
                 'track_description', 'wget_command', 'tabix_index_download', 'encode_experiment_id',
                 'cell_type', 'biosamples_term_id', 'filepath', 'raw_file_download']
         
