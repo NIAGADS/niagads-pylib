@@ -259,7 +259,8 @@ class FILERMetadataParser:
                 
                 # check track_description
                 # e.g., All lncRNA annotations
-                if 'annotation' in self._get_metadata("track_description"):
+                trackDescription = self._get_metadata("track_description") 
+                if trackDescription is not None and 'annotation' in trackDescription:
                     return re.regex_extract("All (.+) annotation" , self._get_metadata("track_description"))
             if 'QTL' in analysis:
                 return analysis
@@ -359,7 +360,7 @@ class FILERMetadataParser:
         
         
     def __parse_data_category(self):
-        category = self._get_metadata('data_category')
+        category = self._get_metadata('assigned_data_category')
         if category is not None:
             category = category.lower()
             if category == 'called peaks expression': 
@@ -483,7 +484,8 @@ class FILERMetadataParser:
     
     def __parse_generic_url(self, url):
         ''' handle common fixes to all URL fields '''
-        if 'wget' in url:
+        
+        if url is not None and 'wget' in url:
             url = url.split(' ')[1]
             
         return url
@@ -615,7 +617,7 @@ class FILERMetadataParser:
 
     def __remove_internal_attributes(self):
         ''' remove internal attributes '''
-        internalKeys = ['link_out_url', 'processed_file_download_url', 'track_name',
+        internalKeys = ['link_out_url', 'processed_file_download_url', 'track_name', 'assigned_data_category',
                 'track_description', 'wget_command', 'tabix_index_download', 'encode_experiment_id',
                 'cell_type', 'biosamples_term_id', 'filepath', 'raw_file_download']
         
