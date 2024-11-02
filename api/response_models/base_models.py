@@ -172,7 +172,7 @@ class GenericDataModel(RowModel, SerializableModel):
                                 'header': 'Select',
                                 'enableMultiRowSelect': True,
                                 'rowId': 'track_id',
-                                'onRowSelect': kwargs['on_row_select']
+                                'onRowSelectAction': kwargs['on_row_select']
                             }})
                 return {'columns': columns, 'options': options}
             case _:

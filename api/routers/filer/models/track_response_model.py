@@ -65,7 +65,7 @@ class FILERTrackBrief(SQLModel, GenericDataModel):
                     'header': 'Select',
                     'enableMultiRowSelect': True,
                     'rowId': 'track_id',
-                    'onRowSelect': [OnRowSelect.GET_DATA, OnRowSelect.LOAD_DATA_VIEW]
+                    'onRowSelectAction': [OnRowSelect.GET_DATA, OnRowSelect.LOAD_DATA_VIEW]
                 }})
         if len(fields) > 8:
             options.update({'defaultColumns': fields[:8]})
