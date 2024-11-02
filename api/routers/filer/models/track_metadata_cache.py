@@ -47,7 +47,6 @@ class Track(SQLModel, SerializableModel, table=True):
     download_url: Optional[str]
     download_date: Optional[datetime] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
     release_date: Optional[datetime] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
-    filer_release_date: Optional[datetime] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
     experiment_id: Optional[str]
     project: Optional[str]
     
@@ -62,6 +61,7 @@ class Track(SQLModel, SerializableModel, table=True):
     file_size: Optional[int]
     file_format: Optional[str]
     file_schema: Optional[str]
+    filer_release_date: Optional[datetime] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
 
     searchable_text: Optional[str] = Field(sa_column=Column(TEXT))
     
@@ -92,6 +92,19 @@ class Track(SQLModel, SerializableModel, table=True):
             return { "biological": biological}
         
         return { "technical": technical, "biological": biological}
+    
+    @computed_field
+    @property
+    def provenance(self) -> dict:
+        return {
+            'data_source' : self.data_source,
+            'data_source_version': self.data_source_version,
+            'download_url': self.download_url,
+            'download_date': self.download_date,
+            'release_date': self.release_date,
+            'experiment_id': self.experiment_id,
+            'project': self.project
+        }
     
     # =================================
     # GENOME BROWSER FIELDS

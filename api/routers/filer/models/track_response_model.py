@@ -11,7 +11,8 @@ from api.common.constants import JSON_TYPE
 from api.common.enums import ResponseFormat
 from api.common.formatters import id2title
 from api.response_models import PagedResponseModel, GenericDataModel
-from api.response_models.base_models import RowModel
+
+from .provenance import Provenance
 from .biosample_characteristics import BiosampleCharacteristics
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
@@ -24,6 +25,7 @@ class FILERTrackBrief(SQLModel, GenericDataModel):
     data_source: Optional[str]
     data_category: Optional[str]
     assay: Optional[str]
+    url: Optional[str]
     
     @model_validator(mode='before')
     @classmethod
@@ -81,19 +83,12 @@ class FILERTrack(FILERTrackBrief):
     experiment_info: Optional[str]
     # biosample
     biosample_characteristics: Optional[BiosampleCharacteristics]
+    
     # provenance
-    data_source_version: Optional[str]
-    data_source_url: Optional[str]
-    download_url: Optional[str]
-    download_date: Optional[datetime]
-    release_date: Optional[datetime] 
-    filer_release_date: Optional[datetime] 
-    experiment_id: Optional[str]
-    project: Optional[str]
+    provenance: Optional[Provenance]
     
     # FILER properties
     file_name: Optional[str]
-    url: Optional[str]
     index_url: Optional[str]
     md5sum: Optional[str]
     raw_file_url: Optional[str]
@@ -103,6 +98,7 @@ class FILERTrack(FILERTrackBrief):
     file_size: Optional[int]
     file_format: Optional[str]
     file_schema: Optional[str]
+    
 
     def get_view_config(self, view, **kwargs):
         return super().get_view_config(view, **kwargs)
