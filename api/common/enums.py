@@ -39,9 +39,8 @@ class Assembly(str, Enum):
 
 class OnRowSelect(CaseInsensitiveEnum):
     """ enum for allowable NIAGADS-viz-js/Table onRowSelect actions """
-    GET_DATA = auto()
+    ACCESS_ROW_DATA = auto()
     UPDATE_GENOME_BROWSER = auto()
-    LOAD_DATA_VIEW = auto()
     UPDATE_LOCUSZOOM = auto()
     
 

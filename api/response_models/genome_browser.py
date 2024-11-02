@@ -43,7 +43,7 @@ class GenomeBrowserConfig(RowModel, SQLModel):
                 'header': 'Add/Remove Track',
                 'enableMultiRowSelect': True,
                 'rowId': 'track_id',
-                'onRowSelectAction': [OnRowSelect.UPDATE_GENOME_BROWSER]
+                'onRowSelectAction': OnRowSelect.UPDATE_GENOME_BROWSER
             }
         }
         return {'columns': columns, 'options': options}
@@ -88,7 +88,7 @@ class GenomeBrowserExtendedConfig(GenomeBrowserConfig):
                 'header': 'Add/Remove Track',
                 'enableMultiRowSelect': True,
                 'rowId': 'track_id',
-                'onRowSelectAction': [OnRowSelect.UPDATE_GENOME_BROWSER]
+                'onRowSelectAction': OnRowSelect.UPDATE_GENOME_BROWSER
             }
         }
         return {'columns': columns, 'options': options}
