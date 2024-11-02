@@ -40,7 +40,7 @@ CREATE TABLE ServerApplication.FILERTrack (
         raw_file_md5sum CHARACTER VARYING(250),
         bp_covered BIGINT,
         number_of_intervals BIGINT,
-        file_size INTEGER,
+        file_size BIGINT,
         file_format CHARACTER VARYING(25),
         file_schema CHARACTER VARYING(50),
         searchable_text TEXT  
