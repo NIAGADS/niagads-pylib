@@ -12,7 +12,7 @@ from aiocache import RedisCache
 from api.common.enums import CacheNamespace, CacheSerializer, CacheTTL
 from api.common.constants import JSON_TYPE
 from api.internal.config import get_settings
-from api.response_models.base_models import BaseResponseModel
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class CacheManager:
     __cache: RedisCache = None
     __namespace: CacheNamespace = CacheNamespace.ROOT
     
-    def __init__(self, serializer: CacheSerializer, namespace: CacheNamespace=None):
+    def __init__(self, serializer:CacheSerializer=CacheSerializer.JSON, namespace: CacheNamespace=None):
         connectionString = get_settings().API_CACHEDB_URL
         config = self.__parse_uri_path(connectionString)
         self.__cache = RedisCache(serializer=serializer.value(), **config)  # need to instantiat the serializer
@@ -48,7 +48,7 @@ class CacheManager:
         return config
         
             
-    async def set(self, cacheKey:str, value: BaseResponseModel, 
+    async def set(self, cacheKey:str, value: any, 
         ttl=CacheTTL.DEFAULT, namespace:CacheNamespace=None):
         if self.__cache is None:
             raise RuntimeError('In memory cache not initialized')
@@ -57,7 +57,7 @@ class CacheManager:
 
         
     async def get(self, cacheKey: str,
-        namespace:CacheNamespace=None) -> Union[BaseResponseModel, JSON_TYPE]:
+        namespace:CacheNamespace=None) -> any:
         if self.__cache is None:
             raise RuntimeError('In memory cache not initialized')
         ns = self.__namespace if namespace is None else namespace
@@ -65,7 +65,7 @@ class CacheManager:
 
 
     async def exists(self, cacheKey: str,
-        namespace:CacheNamespace=None) -> Union[BaseResponseModel, JSON_TYPE]:
+        namespace:CacheNamespace=None) -> any:
         if self.__cache is None:
             raise RuntimeError('In memory cache not initialized')
         ns = self.__namespace if namespace is None else namespace
