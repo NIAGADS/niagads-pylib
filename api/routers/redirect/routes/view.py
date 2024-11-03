@@ -38,8 +38,9 @@ async def get_table_view(
         
         # need to save response and pagination information
         originatingRequestDetails = originatingResponse.request.model_dump(exclude=['request_id', 'msg'])
-        if 'pagination' in originatingResponse:
-            originatingRequestDetails.update(originatingResponse.pagination.model_dump())
+        pagination = getattr(originatingResponse, 'pagination', None)
+        if pagination is not None:
+            originatingRequestDetails.update({'pagination': originatingResponse.pagination.model_dump()})
         await internal.externalCache.set(f'{cacheKey}_request', originatingRequestDetails, namespace=CacheNamespace.VIEW)
         
     return {'queryId' : cacheKey, 'redirect': RedirectEndpoints.TABLE }
