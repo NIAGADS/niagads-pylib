@@ -24,7 +24,9 @@ def __merge_track_lists(trackList1, trackList2):
     matched = groupby(sorted(trackList1 + trackList2, key=itemgetter('track_id')), itemgetter('track_id'))
     combinedLists = [dict(ChainMap(*g)) for k, g in matched]
     return combinedLists
-    
+
+def __page_response_data(responseData: dict, page: int, pageSize: int= DEFAULT_PAGE_SIZE):
+    pass
 
 def __page_track_data_query(trackSummary: dict, page: int, pageSize: int = DEFAULT_PAGE_SIZE):
     sortedTrackSummary = sorted(trackSummary, key = lambda item: item['num_overlaps'], reverse=True)
