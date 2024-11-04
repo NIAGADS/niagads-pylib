@@ -42,7 +42,7 @@ async def get_table_view(
         if pagination is not None:
             originatingRequestDetails.update({'pagination': originatingResponse.pagination.model_dump()})
         await internal.externalCache.set(f'{cacheKey}_request', originatingRequestDetails, namespace=CacheNamespace.VIEW)
-        
+    
     return {'queryId' : cacheKey, 'redirect': RedirectEndpoints.TABLE }
         
         

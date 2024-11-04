@@ -109,8 +109,10 @@ class FILERTrack(FILERTrackBrief):
     
     def _build_table_config(self):
         config = super()._build_table_config()
-        columns = [ c for c in config['columns'] if c['id'] not in ['biosample_characteristics', 'replicates'] ] 
+        columns = [ c for c in config['columns'] if c['id'] not in ['biosample_characteristics', 
+            'replicates', 'provenance', 'data_source'] ] # data source will be promoted from provenance 
         columns += [ {'id': f, 'header': id2title(f)} for f in BiosampleCharacteristics.model_fields]
+        columns += [ {'id': f, 'header': id2title(f)} for f in Provenance.model_fields]
         config.update({'columns': columns })
         return config
 
