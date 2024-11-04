@@ -2,6 +2,7 @@
 # adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
 import logging
 from typing import Any, Union, Dict, List
+import asyncpg
 from typing_extensions import Self
 from fastapi.exceptions import RequestValidationError
 from sqlmodel import text
@@ -133,6 +134,10 @@ class DatabaseSessionManager:
             except (NotImplementedError, RequestValidationError, RuntimeError):
                 await session.rollback()
                 raise  
+            except asyncpg.InvalidPasswordError as err:
+                await session.rollback()
+                logger.error('Database Error', exc_info=err, stack_info=True)
+                raise OSError(f'Database Error')
             except Exception as err:
                 # everything else for which we currently have no handler
                 await session.rollback()

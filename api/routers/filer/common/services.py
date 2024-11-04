@@ -129,7 +129,9 @@ class MetadataQueryService:
             assembly: str, 
             filters: Optional[List[str]], 
             keyword: Optional[str], 
-            responseType: ResponseContent) -> List[Track]:
+            responseType: ResponseContent,
+            limit:int = None,
+            offset:int = None) -> List[Track]:
 
         target = Track.track_id if responseType == ResponseContent.IDS \
             else func.count(Track.track_id) if responseType == ResponseContent.COUNTS else Track
@@ -144,6 +146,12 @@ class MetadataQueryService:
             
         if responseType != ResponseContent.COUNTS:
             statement = statement.order_by(Track.track_id)
+
+        if limit != None:
+            statement = statement.limit(limit)
+        
+        if offset != None:
+            statement = statement.offset(offset)
 
         result = await self.__session.execute(statement)
 

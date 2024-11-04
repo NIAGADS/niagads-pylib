@@ -87,8 +87,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 # TODO: what is this handling? -- remove?
-@app.exception_handler(Exception)
-async def validation_exception_handler(request: Request, exc: Exception):
+@app.exception_handler(OSError)
+async def validation_exception_handler(request: Request, exc: OSError):
     query = request.url.path 
     if request.url.query != '':
         query += '?' + request.url.query
@@ -97,7 +97,7 @@ async def validation_exception_handler(request: Request, exc: Exception):
         content=jsonable_encoder(
             {
                 "message": str(exc),  # optionally, include the pydantic errors
-                "error": "An unexpected error occurred.  Please submit a `bug` GitHub issue containing this full error response at: https://github.com/NIAGADS/niagads-api/issues",
+                "error": "An system error occurred.  Please email this error response to `help@niagads.org` with the subject 'NIAGADS API Systems Error' and we will try and resolve the isse as soon as possible.",
                 "stack_trace": [ t.replace('\n', '').replace('"', "'") for t in traceback.format_tb(exc.__traceback__) ],
                 "request": str(query)
             }), 

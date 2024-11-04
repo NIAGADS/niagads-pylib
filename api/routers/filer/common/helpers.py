@@ -9,6 +9,7 @@ from niagads.utils.list import cumulative_sum
 
 from api.common.enums import ResponseContent, CacheNamespace
 from api.common.helpers import HelperParameters as __BaseHelperParameters, generate_response as __generate_response
+from api.dependencies.parameters.optional import PaginationParameters
 
 from .services import MetadataQueryService, ApiWrapperService
 from ..dependencies import InternalRequestParameters
@@ -25,15 +26,29 @@ def __merge_track_lists(trackList1, trackList2):
     combinedLists = [dict(ChainMap(*g)) for k, g in matched]
     return combinedLists
 
-def __page_response_data(responseData: dict, page: int, pageSize: int= DEFAULT_PAGE_SIZE):
-    pass
 
+def __page_metadata_query(expectedResultSize, page: int, pageSize:int = DEFAULT_PAGE_SIZE):
+    """ XXX: not satisfied w/this solution; revisit
+    FIXME: template out the common elements w/__page_track_data_query
+    Returns
+        OFFSET, LIMIT, expectedResultSize, expectedNumPages
+    """
+    if expectedResultSize < pageSize and page == 1:
+        return None, None, expectedResultSize, 1
+    
+    expectedNumPages = next((p for p in range(1,500) if (p - 1) * pageSize > expectedResultSize)) - 1
+    if page > expectedNumPages:
+        raise RequestValidationError(f'Request `page` {page} does not exist; this query generates a maximum of {expectedNumPages} pages')
+    
+    return pageSize, (page - 1) * pageSize, expectedNumPages
+
+    
 def __page_track_data_query(trackSummary: dict, page: int, pageSize: int = DEFAULT_PAGE_SIZE):
     sortedTrackSummary = sorted(trackSummary, key = lambda item: item['num_overlaps'], reverse=True)
     cumulativeSum = cumulative_sum([t['num_overlaps'] for t in sortedTrackSummary])
     expectedResultSize = cumulativeSum[-1]
     if expectedResultSize < pageSize and page == 1:
-        return [t['track_id'] for t in trackSummary], expectedResultSize
+        return [t['track_id'] for t in trackSummary], expectedResultSize, 1
     
     minRecordRowIndex = (page - 1) * pageSize
     maxRecordRowIndex = minRecordRowIndex + pageSize
@@ -106,9 +121,11 @@ async def get_track_metadata(opts: HelperParameters, rawResponse=False):
     result = await opts.internal.internalCache.get(opts.internal.cacheKey.internal, namespace=opts.internal.cacheKey.namespace)
     if result is None:
         isCached = False
+                
         tracks = opts.parameters.track.split(',') \
             if isinstance(opts.parameters.track, str) \
                 else opts.parameters.track  
+        
         result = await MetadataQueryService(opts.internal.session).get_track_metadata(tracks)
         
     if rawResponse:
@@ -122,9 +139,20 @@ async def search_track_metadata(opts: HelperParameters):
     
     if result is None:
         isCached = False
+        limit = None
+        offset = None
+        if opts.content != ResponseContent.COUNTS:
+            counts =  await MetadataQueryService(opts.internal.session) \
+                .query_track_metadata(opts.parameters.assembly, 
+                    opts.parameters.filter, opts.parameters.keyword, ResponseContent.COUNTS)
+            limit, offset, numPages = __page_metadata_query(counts['track_count'], opts.pagination.page)
+            opts.parameters.expected_result_size = counts['track_count']
+            opts.parameters.total_page_count = numPages
+
         result =  await MetadataQueryService(opts.internal.session) \
             .query_track_metadata(opts.parameters.assembly, 
-                opts.parameters.filter, opts.parameters.keyword, opts.content)
+                opts.parameters.filter, opts.parameters.keyword, opts.content, limit, offset)
+
         
     return await __generate_response(result, opts, isCached=isCached)
 
