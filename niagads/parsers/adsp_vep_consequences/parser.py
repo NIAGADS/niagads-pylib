@@ -391,7 +391,7 @@ class VEPConsequenceParser(object):
         the consequence combination according to a numerially indexed 
         dictionary of consequences in the assigned group
 
-        # NOTE: all terms should be in the rankingDict by this time / errors should
+        # XXX: all terms should be in the rankingDict by this time / errors should
         # have been caught when list of consequences was split into groups
         """
         return [rankingDict[c] for c in terms]
