@@ -108,13 +108,14 @@ app.include_router(FILERRouter)
 app.include_router(RedirectRouter)
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def read_root():
     return {"messge": "NIAGADS API Route"}
 
 # get yaml version of openapi.json
 # from https://github.com/tiangolo/fastapi/issues/1140#issuecomment-659469034
-@app.get('/openapi.yaml', include_in_schema=False)
+
+@app.get('/openapi.yaml', tags=["OpenAPI Specification"], name="YAML", description="Get openapi.yaml")
 @functools.lru_cache()
 def read_openapi_yaml() -> Response:
     openapi_json= app.openapi()

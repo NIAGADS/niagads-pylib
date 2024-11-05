@@ -10,7 +10,8 @@ TAGS = ROUTE_TAGS
 router = APIRouter(
     prefix="/redirect",
     tags=TAGS,
-    responses=RESPONSES
+    responses=RESPONSES,
+    include_in_schema=False
 )
 
 @router.get("/", name="about",
