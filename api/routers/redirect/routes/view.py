@@ -10,7 +10,7 @@ from api.routers.redirect.dependencies.parameters import forwarding_request_para
 from ..common.constants import ROUTE_TAGS, RedirectEndpoints
 
 
-TAGS = ROUTE_TAGS + ["(Internal) Redirect JSON responses to Visualization Tools"]
+TAGS = ["(Internal) Redirect JSON responses to Visualization Tools"]
 router = APIRouter(
     prefix="/view",
     tags=TAGS,
@@ -18,7 +18,7 @@ router = APIRouter(
 )
 
 
-tags = TAGS + ['(Internal) Redirect Response to NIAGADS-viz-js Interactive Table']
+tags = ['(Internal) Redirect Response to NIAGADS-viz-js Interactive Table']
 @router.get("/table/{forwardingRequestId}", tags=tags,
     name="Serialize and cache query response for a NIAGADS-viz-js Table")
 async def get_table_view(

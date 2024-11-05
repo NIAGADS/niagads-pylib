@@ -16,14 +16,14 @@ from ..common.helpers import HelperParameters, get_track_metadata as __get_track
 from ..common.constants import ROUTE_TAGS, TRACK_SEARCH_FILTER_FIELD_MAP
 from ..dependencies import InternalRequestParameters, query_track_id
 
-TAGS = ROUTE_TAGS
+# TAGS = ROUTE_TAGS
 router = APIRouter(
     prefix="/browser_config",
-    tags=TAGS,
+#     tags=TAGS,
     responses=RESPONSES
 )
 
-tags = TAGS + ["NIAGADS Genome Browser Configuration"]
+tags = ["NIAGADS Genome Browser Configuration"]
 @router.get("/", tags=tags, response_model=Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse],
     name="Get Genome Browser configuration for multiple tracks",
     description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) specified in the path")

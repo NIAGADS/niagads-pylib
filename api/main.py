@@ -5,6 +5,7 @@ import functools
 from io import StringIO
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, Response
+from fastapi.openapi.models import Server
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,8 +34,8 @@ app = FastAPI(
             "name": "Apache 2.0",
             "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
         },
+        # servers=[{"url": get_settings().API_PUBLIC_URL}]
         # root_path="/api",
-        # servers=[SERVER],
         #swagger_ui_parameters={"docExpansion": "full"}
     )
 
