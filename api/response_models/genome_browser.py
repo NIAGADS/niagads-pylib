@@ -22,6 +22,11 @@ class GenomeBrowserConfig(RowModel, SQLModel):
     index_url: Optional[str]
     
     @computed_field
+    @property 
+    def indexURL(self)->str:
+        return self.index_url
+    
+    @computed_field
     @property
     def id(self) -> str:
         return self.track_id
