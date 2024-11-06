@@ -23,6 +23,12 @@ class GenomeBrowserConfig(RowModel, SQLModel):
     
     @computed_field
     @property
+    def id(self) -> str:
+        return self.track_id
+    
+    # FIXME: this is schema & things like narrowpeak
+    @computed_field
+    @property
     def format(self) -> str:
         return "bed6+13" if self.browser_track_format == 'qtl' \
             else "bed"
