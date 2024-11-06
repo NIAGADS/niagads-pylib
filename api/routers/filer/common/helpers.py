@@ -1,5 +1,6 @@
 from typing import List
 from fastapi.exceptions import RequestValidationError
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from collections import ChainMap
 from itertools import groupby
@@ -108,7 +109,8 @@ async def get_track_data(opts: HelperParameters, validate=True):
             if partialResult is None: 
                 if validate: # for internal helper calls, don't always need to validate; already done
                     await __validate_tracks(opts.internal.session, c)         
-                partialResult = await ApiWrapperService().get_track_hits(c, opts.parameters.span, countsOnly=countsOnly)
+                partialResult = await run_in_threadpool(ApiWrapperService().get_track_hits, c, opts.parameters.span, countsOnly=countsOnly)
+                # await ApiWrapperService().get_track_hits(c, opts.parameters.span, countsOnly=countsOnly)
                 # cache this response from the FILER Api
                 await opts.internal.internalCache.set(cacheKey, partialResult, namespace=CacheNamespace.FILER_EXTERNAL_API)
         

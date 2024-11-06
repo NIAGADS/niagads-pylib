@@ -44,8 +44,8 @@ class ApiWrapperService:
     def __countOverlaps(self, overlaps: List[dict]) -> List[GenericDataModel]:   
         return [GenericDataModel(track_id=track['Identifier'], num_overlaps=len(track['features'])) for track in overlaps]
     
-    
-    async def get_track_hits(self, tracks: List[str], span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
+    # TODO: async?
+    def get_track_hits(self, tracks: List[str], span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
         result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': ','.join(tracks), 'span': span})
         if 'message' in result:
             raise RuntimeError(result['message'])
