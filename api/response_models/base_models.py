@@ -64,7 +64,7 @@ class RowModel(SerializableModel, ABC):
 
     
 class RequestDataModel(SerializableModel):
-    request_id: str
+    request_id: str 
     endpoint: str
     parameters: Dict[str, Union[int, str, bool]]
     msg: Optional[str] = None

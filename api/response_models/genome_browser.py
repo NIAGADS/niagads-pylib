@@ -1,4 +1,5 @@
 from fastapi.encoders import jsonable_encoder
+from pydantic import computed_field
 from sqlmodel import SQLModel
 from typing import Optional, Dict, List, Union
 from typing_extensions import Self
@@ -19,6 +20,11 @@ class GenomeBrowserConfig(RowModel, SQLModel):
     browser_track_format: Optional[str]
     url: str
     index_url: Optional[str]
+    
+    @computed_field
+    @property
+    def type(self) -> str:
+        return self.browser_track_format
     
     def get_view_config(self, view: ResponseFormat, options:dict = None) -> dict:
         """ get configuration object required by the view """
