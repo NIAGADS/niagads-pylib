@@ -5,7 +5,7 @@ from collections import ChainMap
 from itertools import groupby
 from operator import itemgetter
 
-from niagads.utils.list import cumulative_sum
+from niagads.utils.list import cumulative_sum, chunker
 
 from api.common.enums import ResponseContent, CacheNamespace
 from api.common.helpers import HelperParameters as __BaseHelperParameters, generate_response as __generate_response
@@ -15,6 +15,7 @@ from .services import MetadataQueryService, ApiWrapperService
 from ..dependencies import InternalRequestParameters
 from ..models.track_metadata_cache import Track
 
+TRACKS_PER_REQUEST_LIMIT = 200
 DEFAULT_PAGE_SIZE = 5000
 MAX_NUM_PAGES = 500
 class HelperParameters(__BaseHelperParameters):
@@ -34,7 +35,7 @@ def __page_metadata_query(expectedResultSize, page: int, pageSize:int = DEFAULT_
         OFFSET, LIMIT, expectedResultSize, expectedNumPages
     """
     if expectedResultSize < pageSize and page == 1:
-        return None, None, expectedResultSize, 1
+        return None, None, 1
     
     expectedNumPages = next((p for p in range(1,500) if (p - 1) * pageSize > expectedResultSize)) - 1
     if page > expectedNumPages:
@@ -92,22 +93,28 @@ async def get_track_data(opts: HelperParameters, validate=True):
             if isinstance(opts.parameters.track, str) \
                 else opts.parameters.track
         tracks = sorted(tracks) # best for caching
-    
-        # we want to cache the external FILER api call as well
-        # to do so, we will add the tracks into the cache key b/c the tracks may not have 
-        # been part of the original request (i.e., called from another helper)
-        cacheTrackCheck = ','.join(tracks)
-        cacheKey = f'/data?countsOnly={countsOnly}&span={opts.parameters.span}&tracks={cacheTrackCheck}' 
-        cacheKey = cacheKey.replace(':', '_')
-        result = await opts.internal.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
-        if result is None: 
-            if validate: # for internal helper calls, don't always need to validate; already done
-                await __validate_tracks(opts.internal.session, tracks)         
-            result = await ApiWrapperService().get_track_hits(tracks, opts.parameters.span, countsOnly=countsOnly)
-            # cache this response from the FILER Api
-            await opts.internal.internalCache.set(cacheKey, result, namespace=CacheNamespace.FILER_EXTERNAL_API)
-            
-        if summarize:
+        
+        # do we need to make multiple calls? i.e. if the # of tracks is too many (exceeds URL length)
+        chunks = chunker(tracks, TRACKS_PER_REQUEST_LIMIT, returnIterator=True)
+        result = []
+        for c in chunks:
+            # we want to cache the external FILER api call as well
+            # to do so, we will add the tracks into the cache key b/c the tracks may not have 
+            # been part of the original request (i.e., called from another helper)
+            cacheTrackCheck = ','.join(c)
+            cacheKey = f'/data?countsOnly={countsOnly}&span={opts.parameters.span}&tracks={cacheTrackCheck}' 
+            cacheKey = cacheKey.replace(':', '_')
+            partialResult = await opts.internal.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
+            if partialResult is None: 
+                if validate: # for internal helper calls, don't always need to validate; already done
+                    await __validate_tracks(opts.internal.session, c)         
+                partialResult = await ApiWrapperService().get_track_hits(c, opts.parameters.span, countsOnly=countsOnly)
+                # cache this response from the FILER Api
+                await opts.internal.internalCache.set(cacheKey, partialResult, namespace=CacheNamespace.FILER_EXTERNAL_API)
+        
+            result = result + partialResult
+                
+        if summarize: # summarize doesn't need to be chunked b/c DB query
             metadata: List[Track] = await get_track_metadata(opts, rawResponse=True)
             result = __merge_track_lists([t.serialize(promoteObjs=True) for t in metadata], [t.serialize() for t in result])
             result = sorted(result, key = lambda item: item['num_overlaps'], reverse=True)
@@ -141,7 +148,7 @@ async def search_track_metadata(opts: HelperParameters):
         isCached = False
         limit = None
         offset = None
-        if opts.content != ResponseContent.COUNTS:
+        if opts.pagination is not None and opts.content != ResponseContent.COUNTS:
             counts =  await MetadataQueryService(opts.internal.session) \
                 .query_track_metadata(opts.parameters.assembly, 
                     opts.parameters.filter, opts.parameters.keyword, ResponseContent.COUNTS)
