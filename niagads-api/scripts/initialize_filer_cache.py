@@ -12,9 +12,7 @@ from requests.exceptions import HTTPError
 from niagads.db.postgres import Database, PreparedStatement
 from niagads.filer import FILERMetadataParser, FILERApiWrapper
 from niagads.utils.logging import ExitOnExceptionHandler
-from niagads.utils.dict import print_dict
 from niagads.utils.list import flatten
-from niagads.utils.string import xstr
 
 from constants import URLS, SCHEMA, FILER_TABLE
 
@@ -54,6 +52,8 @@ def fetch_live_FILER_metadata(debug:bool=False):
         for d in api.make_request("get_metadata", {'assembly':'hg19'})])
     GRCh38 = flatten([[ v for k, v in d.items() if k == '#Identifier' or k == 'Identifier'] \
         for d in api.make_request("get_metadata", {'assembly':'hg38'})])
+    GRCh38 = GRCh38 + flatten([[ v for k, v in d.items() if k == '#Identifier' or k == 'Identifier'] \
+        for d in api.make_request("get_metadata", {'assembly':'hg38-lifted'})])
 
     LOGGER.info("Found " + str(len(GRCh37)) + " GRCh37 live tracks.")
     LOGGER.info("Found " + str(len(GRCh38)) + " GRCh38 live tracks.")
@@ -127,11 +127,12 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
             parser.set_metadata(dict(zip(header, line.split('\t'))))
             track = parser.parse()
             
-            # FIXME: log non-assembly associated tracks and skip for now
+
             if track['genome_build'] is None:
+                # FIXME: log non-assembly associated tracks and skip for now
                 LOGGER.warning("SKIPPING track with `NoneType` value for Genome Build (line %s): %s" % (lineNum, currentLine))
                 continue
-            
+
             if 'CADD' in track['name']: # no need; CADD annotation will come from GenomicsDB endpoints
                 LOGGER.warning("SKIPPING CADD Track (line %s): %s" % (lineNum, currentLine))
                 continue
@@ -139,7 +140,7 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
             if track['track_id'] in processedTracks:
                 LOGGER.warning('SKIPPING duplicate track (line %s): %s' % (lineNum, currentLine))      
                 continue
-
+            
             if args.skipLiveValidation or \
                     (liveMetadata is not None and \
                     track['track_id'] in liveMetadata[track['genome_build']]):

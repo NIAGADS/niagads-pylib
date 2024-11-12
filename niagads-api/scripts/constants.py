@@ -21,7 +21,7 @@ __urls = ({
         'pubmed': 'https://pubmed.ncbi.nlm.nih.gov', 
         'niagads': 'https://www.niagads.org', 
         'advp': 'https://advp.niagads.org',
-        'filer_api': 'https://tf.lisanwanglab.org/FILER',
+        'filer_api': 'https://tf.lisanwanglab.org/FILER2',
         'filer': 'https://tf.lisanwanglab.org/FILER2',
         'filer_downloads': 'https://tf.lisanwanglab.org/GADB',
         'pubmed_api':'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id='
