@@ -1,4 +1,5 @@
 from fastapi.encoders import jsonable_encoder
+from pydantic import computed_field
 from sqlmodel import SQLModel
 from typing import Optional, Dict, List, Union
 from typing_extensions import Self
@@ -6,7 +7,7 @@ from typing_extensions import Self
 from niagads.utils.list import find
 
 from api.common.constants import JSON_TYPE
-from api.common.enums import ResponseFormat
+from api.common.enums import OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
 from api.routers.filer.models.biosample_characteristics import BiosampleCharacteristics
 from api.routers.filer.models.experimental_design import ExperimentalDesign # TODO: possibly move to API base_models
@@ -19,6 +20,28 @@ class GenomeBrowserConfig(RowModel, SQLModel):
     browser_track_format: Optional[str]
     url: str
     index_url: Optional[str]
+    
+    @computed_field
+    @property 
+    def indexURL(self)->str:
+        return self.index_url
+    
+    @computed_field
+    @property
+    def id(self) -> str:
+        return self.track_id
+    
+    # FIXME: this is schema & things like narrowpeak
+    @computed_field
+    @property
+    def format(self) -> str:
+        return "bed6+13" if self.browser_track_format == 'qtl' \
+            else "bed"
+    
+    @computed_field
+    @property
+    def type(self) -> str:
+        return self.browser_track_format
     
     def get_view_config(self, view: ResponseFormat, options:dict = None) -> dict:
         """ get configuration object required by the view """
@@ -42,7 +65,8 @@ class GenomeBrowserConfig(RowModel, SQLModel):
             'rowSelect': {
                 'header': 'Add/Remove Track',
                 'enableMultiRowSelect': True,
-                'rowId': 'track_id'
+                'rowId': 'track_id',
+                'onRowSelectAction': OnRowSelect.UPDATE_GENOME_BROWSER
             }
         }
         return {'columns': columns, 'options': options}
@@ -86,7 +110,8 @@ class GenomeBrowserExtendedConfig(GenomeBrowserConfig):
             'rowSelect': {
                 'header': 'Add/Remove Track',
                 'enableMultiRowSelect': True,
-                'rowId': 'track_id'
+                'rowId': 'track_id',
+                'onRowSelectAction': OnRowSelect.UPDATE_GENOME_BROWSER
             }
         }
         return {'columns': columns, 'options': options}

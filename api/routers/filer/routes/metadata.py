@@ -18,14 +18,14 @@ from ..common.constants import ROUTE_TAGS, TRACK_SEARCH_FILTER_FIELD_MAP
 from ..models.track_response_model import FILERTrackBriefResponse, FILERTrackResponse
 from ..dependencies import InternalRequestParameters, query_track_id
 
-TAGS = ROUTE_TAGS
+# TAGS = ROUTE_TAGS
 router = APIRouter(
     prefix="/metadata",
-    tags=TAGS,
+#   tags=TAGS,
     responses=RESPONSES
 )
 
-tags = TAGS + ["Track Metadata by ID"]
+tags = ["Track Metadata by ID"]
 get_track_metadata_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.COUNTS])
 @router.get("/", tags=tags, response_model=Union[FILERTrackResponse, FILERTrackBriefResponse],
     name="Get metadata for multiple tracks",
@@ -45,7 +45,7 @@ async def get_track_metadata(
         model=responseModel, parameters=Parameters(track=track))
     return await __get_track_metadata(opts)
 
-tags = TAGS + ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
+tags = ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
 @router.get("/search", tags=tags, response_model=Union[BaseResponseModel, FILERTrackBriefResponse, FILERTrackResponse],
     name="Search for tracks", 

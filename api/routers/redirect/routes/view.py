@@ -7,10 +7,10 @@ from api.response_models.base_models import BaseResponseModel
 
 from api.routers.redirect.dependencies.parameters import forwarding_request_param
 
-from ..common.constants import ROUTE_TAGS
+from ..common.constants import ROUTE_TAGS, RedirectEndpoints
 
 
-TAGS = ROUTE_TAGS + ["(Internal) Redirect JSON responses to Visualization Tools"]
+TAGS = ["(Internal) Redirect JSON responses to Visualization Tools"]
 router = APIRouter(
     prefix="/view",
     tags=TAGS,
@@ -18,7 +18,7 @@ router = APIRouter(
 )
 
 
-tags = TAGS + ['(Internal) Redirect Response to NIAGADS-viz-js Interactive Table']
+tags = ['(Internal) Redirect Response to NIAGADS-viz-js Interactive Table']
 @router.get("/table/{forwardingRequestId}", tags=tags,
     name="Serialize and cache query response for a NIAGADS-viz-js Table")
 async def get_table_view(
@@ -32,11 +32,17 @@ async def get_table_view(
     response = await internal.externalCache.get(cacheKey, namespace=CacheNamespace.VIEW)
     if response == None:    
         # original response store in internal cache
-        requestResponse: BaseResponseModel = await internal.internalCache.get(forwardingRequestId, namespace=CacheNamespace.VIEW)
-        response = requestResponse.to_view(ResponseFormat.TABLE, id=cacheKey)
+        originatingResponse: BaseResponseModel = await internal.internalCache.get(forwardingRequestId, namespace=CacheNamespace.VIEW)
+        response = originatingResponse.to_view(ResponseFormat.TABLE, id=cacheKey)
         await internal.externalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
-        await internal.externalCache.set(f'{cacheKey}_request', requestResponse.request.model_dump(), namespace=CacheNamespace.VIEW)
         
-    return response
+        # need to save response and pagination information
+        originatingRequestDetails = originatingResponse.request.model_dump(exclude=['request_id', 'msg'])
+        pagination = getattr(originatingResponse, 'pagination', None)
+        if pagination is not None:
+            originatingRequestDetails.update({'pagination': originatingResponse.pagination.model_dump()})
+        await internal.externalCache.set(f'{cacheKey}_request', originatingRequestDetails, namespace=CacheNamespace.VIEW)
+    
+    return {'queryId' : cacheKey, 'redirect': RedirectEndpoints.TABLE }
         
         

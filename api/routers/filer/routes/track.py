@@ -17,15 +17,15 @@ from ..common.helpers import (get_track_metadata as __get_track_metadata,
     get_track_data as __get_track_data, HelperParameters)
 from ..models.track_response_model import FILERTrackResponse, FILERTrackBriefResponse
 
-TAGS = ROUTE_TAGS
+# TAGS = ROUTE_TAGS
 router = APIRouter(
     prefix="/track",
-    tags=TAGS,
+#     tags=TAGS,
     responses=RESPONSES
 )
 
 
-tags = TAGS + ["Record by ID", "Track Metadata by ID"]
+tags = ["Record by ID", "Track Metadata by ID"]
 # note: the content enum variables must have a distinct name or else the get overwritten in memory from initialization when requests are made
 get_track_metadata_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.COUNTS])
 @router.get("/{track}", tags=tags, response_model=Union[FILERTrackBriefResponse, FILERTrackResponse],
@@ -45,7 +45,7 @@ async def get_track_metadata(
     return await __get_track_metadata(opts)
 
 
-tags = TAGS + ["Record by ID", "NIAGADS Genome Browser Configuration"]
+tags = ["Record by ID", "NIAGADS Genome Browser Configuration"]
 @router.get("/{track}/browser_config", tags=tags, 
     response_model=Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse],
     name="Get track Genome Browser configuration",
@@ -62,7 +62,7 @@ async def get_track_browser_config(
     return await __get_track_metadata(opts)
 
 
-tags = TAGS + ["Record by ID", "Track Data by ID"]
+tags = ["Record by ID", "Track Data by ID"]
 
 get_track_data_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.SUMMARY])
 @router.get("/{track}/data", tags=tags, 

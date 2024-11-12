@@ -17,17 +17,17 @@ from ..common.helpers import HelperParameters, get_track_data as __get_track_dat
 from ..common.constants import ROUTE_TAGS, TRACK_SEARCH_FILTER_FIELD_MAP
 from ..dependencies import InternalRequestParameters, query_track_id
 
-TAGS = ROUTE_TAGS
+# TAGS = ROUTE_TAGS
 router = APIRouter(
     prefix="/data",
-    tags=TAGS,
+#     tags=TAGS,
     responses=RESPONSES
 )
 
-tags = TAGS + ["Track Data by ID"]
+tags = ["Track Data by ID"]
 get_track_data_content_enum = get_response_content(exclude=[ResponseContent.IDS])
 @router.get("/", tags=tags,
-    name="Get data from multiple tracks", response_model=Union[BEDResponse, BaseResponseModel, FILERTrackBriefResponse],
+    name="Get data from multiple tracks by ID", response_model=Union[BEDResponse, BaseResponseModel, FILERTrackBriefResponse],
     description="retrieve data from one or more FILER tracks in the specified region")
 async def get_track_data(
         pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
@@ -49,10 +49,10 @@ async def get_track_data(
     return await __get_track_data(opts)
 
 
-tags = TAGS + ['Record(s) by Text Search'] + ['Track Data by Text Search']
+tags = ['Record(s) by Text Search'] + ['Track Data by Text Search']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
 @router.get("/search", tags=tags, response_model=Union[BaseResponseModel, FILERTrackBriefResponse, BEDResponse],
-    name="Search for tracks", 
+    name="Get data from multiple tracks by Search", 
     description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata")
 async def search_track_metadata(
         pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],

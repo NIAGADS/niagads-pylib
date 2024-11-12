@@ -10,10 +10,11 @@ TAGS = ROUTE_TAGS
 router = APIRouter(
     prefix="/redirect",
     tags=TAGS,
-    responses=RESPONSES
+    responses=RESPONSES,
+    include_in_schema=False
 )
 
-@router.get("/", tags=TAGS, name="about",
+@router.get("/", name="about",
             description="About Redirects")
 async def read_root():
     return {"msg": "`/views` endpoints are internal redirects that pass responses to visualizations"}

@@ -44,8 +44,8 @@ class ApiWrapperService:
     def __countOverlaps(self, overlaps: List[dict]) -> List[GenericDataModel]:   
         return [GenericDataModel(track_id=track['Identifier'], num_overlaps=len(track['features'])) for track in overlaps]
     
-    
-    async def get_track_hits(self, tracks: List[str], span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
+    # TODO: async?
+    def get_track_hits(self, tracks: List[str], span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
         result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': ','.join(tracks), 'span': span})
         if 'message' in result:
             raise RuntimeError(result['message'])
@@ -129,7 +129,9 @@ class MetadataQueryService:
             assembly: str, 
             filters: Optional[List[str]], 
             keyword: Optional[str], 
-            responseType: ResponseContent) -> List[Track]:
+            responseType: ResponseContent,
+            limit:int = None,
+            offset:int = None) -> List[Track]:
 
         target = Track.track_id if responseType == ResponseContent.IDS \
             else func.count(Track.track_id) if responseType == ResponseContent.COUNTS else Track
@@ -144,6 +146,12 @@ class MetadataQueryService:
             
         if responseType != ResponseContent.COUNTS:
             statement = statement.order_by(Track.track_id)
+
+        if limit != None:
+            statement = statement.limit(limit)
+        
+        if offset != None:
+            statement = statement.offset(offset)
 
         result = await self.__session.execute(statement)
 

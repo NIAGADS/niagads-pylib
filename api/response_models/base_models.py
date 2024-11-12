@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from niagads.utils.string import dict_to_string
 
 from api.common.constants import JSON_TYPE
-from api.common.enums import CacheNamespace, ResponseFormat
+from api.common.enums import CacheNamespace, OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
 
 class SerializableModel(BaseModel):
@@ -64,7 +64,7 @@ class RowModel(SerializableModel, ABC):
 
     
 class RequestDataModel(SerializableModel):
-    request_id: str
+    request_id: str 
     endpoint: str
     parameters: Dict[str, Union[int, str, bool]]
     msg: Optional[str] = None
@@ -112,7 +112,11 @@ class AbstractResponse(ABC, BaseModel):
         """ transform response to JSON expected by NIAGADS-viz-js Table """
         if len(self.response) == 0:
             raise RuntimeError('zero-length response; cannot generate view')
-        
+        if 'on_row_select' not in kwargs:
+            if 'num_overlaps' in self.response[0].model_fields.keys() or \
+                'num_overlaps' in self.response[0].model_extra.keys():
+                kwargs['on_row_select'] = OnRowSelect.ACCESS_ROW_DATA
+                
         viewResponse: Dict[str, Any] = {}
         data = []
         row: RowModel # annotated type hint
@@ -171,7 +175,8 @@ class GenericDataModel(RowModel, SerializableModel):
                         options.update({'rowSelect': {
                                 'header': 'Select',
                                 'enableMultiRowSelect': True,
-                                'rowId': 'track_id'
+                                'rowId': 'track_id',
+                                'onRowSelectAction': kwargs['on_row_select']
                             }})
                 return {'columns': columns, 'options': options}
             case _:

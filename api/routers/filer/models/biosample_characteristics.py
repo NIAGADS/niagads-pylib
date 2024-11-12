@@ -12,4 +12,6 @@ class BiosampleCharacteristics(SerializableModel, BaseModel):
     biosample_summary: Optional[str] = None
     biosample_term_id: Optional[str] = Field(default=None, description='mapped ontology term identifier')
     
+
+    
     

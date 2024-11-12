@@ -20,8 +20,8 @@ router = APIRouter(
     responses=RESPONSES,
 )
 
-@router.get("/", tags=ROUTE_TAGS, name="about", response_model=BaseResponseModel,
-            description="about the " + ROUTE_NAME)
+@router.get("/", name="about", response_model=BaseResponseModel,
+            description="brief summary about the " + ROUTE_NAME)
 async def read_root(
     session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
     requestData: RequestDataModel = Depends(RequestDataModel.from_request)

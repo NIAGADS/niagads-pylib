@@ -16,17 +16,17 @@ from ..common.helpers import HelperParameters, get_track_metadata as __get_track
 from ..common.constants import ROUTE_TAGS, TRACK_SEARCH_FILTER_FIELD_MAP
 from ..dependencies import InternalRequestParameters, query_track_id
 
-TAGS = ROUTE_TAGS
+# TAGS = ROUTE_TAGS
 router = APIRouter(
     prefix="/browser_config",
-    tags=TAGS,
+#     tags=TAGS,
     responses=RESPONSES
 )
 
-tags = TAGS + ["NIAGADS Genome Browser Configuration"]
+tags = ["NIAGADS Genome Browser Configuration"]
 @router.get("/", tags=tags, response_model=Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse],
-    name="Get Genome Browser configuration for multiple tracks",
-    description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) specified in the path")
+    name="Get Genome Browser configuration for multiple tracks by ID",
+    description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s)")
 async def get_track_browser_config(
         # pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
         track = Depends(query_track_id),
@@ -47,8 +47,8 @@ tags = tags + ['Record(s) by Text Search']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
 search_track_config_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.SUMMARY])
 @router.get("/search", tags=tags, response_model=Union[BaseResponseModel, GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse],
-    name="Search for tracks", 
-    description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata")
+    name="Get Genome Browser configuration for multiple tracks by Search",
+    description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) identified by keyword search or filters")
 async def search_track_metadata(
         # pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
         assembly: Assembly = Depends(assembly_param), 
