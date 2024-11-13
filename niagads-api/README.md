@@ -75,7 +75,10 @@ docker-compose -f "niagads-api/docker-compose.yaml" up -d --build
 
 > NOTE: This will build and deploy the API service, but `FILER` queries and `pagination` will not work because the `cache DB` has not yet been instantiated.  See next section.
 
-## Initialize the `FILER Metadata` and `API Query Cache`
+## Initialize the `FILER Metadata Query Cache`
 
 On the host run the following:
 
+```bash
+docker exec init-beta python3 initialize_filer_cache.py --metadataTemplate /files/<file> --logFilePath /logs --connectionString postgresql://<user:pwd>@api-static-db:5432/apistaticdb --commit
+```
