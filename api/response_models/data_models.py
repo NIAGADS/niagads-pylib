@@ -45,7 +45,7 @@ class BEDFeature(GenericDataModel):
                 
         columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields]
         return {'columns': columns, 
-            'options': { 'disableColumnFilters': True}}
+            'options': { 'defaultColumns': fields[:8] }}
     
 
 class BEDResponse(PagedResponseModel):
