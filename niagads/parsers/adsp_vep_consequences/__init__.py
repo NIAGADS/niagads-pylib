@@ -1,1 +1,1 @@
-from consequence_groups import ConseqGroup
+from .consequence_groups import ConseqGroup

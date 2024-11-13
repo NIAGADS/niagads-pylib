@@ -111,10 +111,10 @@ class ConseqGroup(Enum):
                 for term in c.split(','): # determine which specific term failed
                     if term not in validTerms:
                         raise IndexError("Consequence combination `" + c \
-                                             + "` contains an invalid consequence: `" + term \
-                                             + "`. Please update the `ConseqGroup` enum " \
-                                             + "(conseq_group_enum.py) after reviewing " \
-                                             + "https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html")
+                            + "` contains an invalid consequence: `" + term \
+                            + "`. Please update the `ConseqGroup` enum " \
+                            + "(conseq_group_enum.py) after reviewing " \
+                            + "https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html")
 
         return True
 
