@@ -1,0 +1,29 @@
+niagads.filer package
+=====================
+
+Submodules
+----------
+
+niagads.filer.api module
+------------------------
+
+.. automodule:: niagads.filer.api
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.filer.parser module
+---------------------------
+
+.. automodule:: niagads.filer.parser
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niagads.filer
+   :members:
+   :undoc-members:
+   :show-inheritance:
