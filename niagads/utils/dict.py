@@ -26,6 +26,15 @@ def rename_key(dictObj:dict, oldKey: str, newKey: str, ordered: bool=False): # n
     dictObj[newKey] = dictObj.pop(oldKey)
     return dictObj
 
+def __prune(value, prune):
+    """
+    wrapper so we only test strings for na values 
+    note: does not treat empty lists or objs as null
+    """
+    if value is None: return True
+    if isinstance(value, str):
+        return is_null(value, naIsNull=True) or value in prune
+    return False
 
 def prune(dictObj:dict, removeNulls:bool=True, prune:list=[]):
     """
@@ -40,8 +49,8 @@ def prune(dictObj:dict, removeNulls:bool=True, prune:list=[]):
         cleaned up dict
     """
     return {key: value for key, value in dictObj.items() 
-        if (removeNulls and value is not None and not is_null(value, naIsNull=True))
-        and value not in prune}
+        if (removeNulls and value is not None and not __prune(value, prune))
+    }
 
 
 def print_dict(dictObj, pretty=True):
