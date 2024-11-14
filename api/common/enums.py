@@ -25,18 +25,19 @@ class ResponseFormat(CaseInsensitiveEnum):
     TABLE = auto()
     DATA_BROWSER = auto()
     
-
-class Assembly(str, Enum):
+class Assembly(CaseInsensitiveEnum, Enum):
     """enum for genome builds"""
     GRCh37 = "GRCh37"
     GRCh38 = "GRCh38"
-    hg19 = "hg19"
-    hg38 = "hg38"
         
-    def validate(self):
-        return "GRCh37" if self.value.lower() == 'hg19' \
-            else "GRCh38" if self.value.lower() == 'hg38' else self.value
+    @classmethod
+    def _missing_(cls, value: str): # allow to be case insensitive
+        if value.lower() == 'hg19': return cls.GRCh37
+        if value.lower() == 'hg38': return cls.GRCh38
+        return super(Assembly, cls)._missing_(value)
 
+
+# FIXME: is this really necessary? onRowSelect can be driven by the target view
 class OnRowSelect(CaseInsensitiveEnum):
     """ enum for allowable NIAGADS-viz-js/Table onRowSelect actions """
     ACCESS_ROW_DATA = auto()
@@ -63,3 +64,4 @@ class CacheNamespace(CaseInsensitiveEnum):
     ADVP = auto() # advp endpoints
     VIEW = auto() # view redirect endpoints
     ROOT = auto() # root api
+    
