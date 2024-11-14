@@ -456,10 +456,14 @@ class FILERMetadataParser:
         dsInfo = self._get_metadata('data_source').split('_', 1)
         source = dsInfo[0]
         version = dsInfo[1] if len(dsInfo) > 1 else None
-        if source == 'FANTOM5'and 'slide' in self._get_metadata('link_out_url'):
+        
+        if source == 'FANTOM5' and 'slide' in self._get_metadata('link_out_url'):
             version = version + '_SlideBase'
-        if 'INFERNO' in source: # don't split on the _
-            source = self._get_metadata('data_source')
+            
+        if array_in_string(source, ['INFERNO', 'eQTL']):
+            # don't split on the _
+            source = self._get_metadata('data_source').replace('_', ' ')
+            version = None
         
         self.__metadata.update( {
                 "data_source": source,
