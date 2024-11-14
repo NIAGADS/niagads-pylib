@@ -9,18 +9,16 @@ from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import assembly_param, span_param
 from api.dependencies.parameters.optional import PaginationParameters, format_param, get_response_content, keyword_param, validate_response_content
 from api.common.helpers import Parameters
-from api.response_models.base_models import BaseResponseModel
+from api.response_models.base_models import BaseResponseModel, PaginationDataModel
 from api.response_models.data_models import BEDResponse
-from api.routers.filer.models.track_response_model import FILERTrackBriefResponse, FILERTrackResponse
 
 from ..common.helpers import HelperParameters, get_track_data as __get_track_data, search_track_data as __search_track_data
-from ..common.constants import ROUTE_TAGS, TRACK_SEARCH_FILTER_FIELD_MAP
+from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
 from ..dependencies import InternalRequestParameters, query_track_id
+from ..models.track_response_model import FILERTrackBriefResponse
 
-# TAGS = ROUTE_TAGS
 router = APIRouter(
     prefix="/data",
-#     tags=TAGS,
     responses=RESPONSES
 )
 
@@ -44,7 +42,7 @@ async def get_track_data(
             else BaseResponseModel
             
     opts = HelperParameters(internal=internal, format=format, 
-            content=content, model=responseModel, pagination=pagination,
+            content=content, model=responseModel, pagination=PaginationDataModel(page=pagination.page),
         parameters=Parameters(track=track, span=span))
     return await __get_track_data(opts)
 
@@ -54,7 +52,7 @@ filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEX
 @router.get("/search", tags=tags, response_model=Union[BaseResponseModel, FILERTrackBriefResponse, BEDResponse],
     name="Get data from multiple tracks by Search", 
     description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata")
-async def search_track_metadata(
+async def get_track_data_by_metadata_search(
         pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
         assembly: Assembly = Depends(assembly_param), 
         span: str = Depends(span_param),
@@ -73,7 +71,7 @@ async def search_track_metadata(
         else FILERTrackBriefResponse if content == ResponseContent.SUMMARY \
             else BaseResponseModel
     
-    opts = HelperParameters(internal=internal, pagination=pagination,
+    opts = HelperParameters(internal=internal, pagination=PaginationDataModel(page=pagination.page),
         content=content,
         format=format, model=responseModel,
         parameters=Parameters(assembly=assembly, filter=filter, keyword=keyword, span=span))

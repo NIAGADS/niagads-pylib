@@ -8,6 +8,7 @@ from hashlib import md5
 from abc import ABC, abstractmethod
 
 from niagads.utils.string import dict_to_string
+from niagads.utils.dict import prune
 
 from api.common.constants import JSON_TYPE
 from api.common.enums import CacheNamespace, OnRowSelect, ResponseFormat
@@ -68,6 +69,10 @@ class RequestDataModel(SerializableModel):
     endpoint: str
     parameters: Dict[str, Union[int, str, bool]]
     msg: Optional[str] = None
+    
+    def update_parameters(self, params: dict) -> str:
+        """ default parameter values are not in the original request, so need to be added later """
+        self.parameters.update(prune(params.model_dump()))
     
     @classmethod
     def sort_query_parameters(cls, params: dict) -> str:
@@ -187,8 +192,8 @@ class GenericDataModel(RowModel, SerializableModel):
 class PaginationDataModel(BaseModel):
     page: int = 1
     total_num_pages: int = 1
-    paged_num_records: int 
-    total_num_records: int
+    paged_num_records: Optional[int] = None
+    total_num_records: Optional[int] = None
 
 class PagedResponseModel(BaseResponseModel):
     pagination: Optional[PaginationDataModel] = None

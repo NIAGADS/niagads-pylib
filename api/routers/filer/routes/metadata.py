@@ -7,10 +7,9 @@ from api.common.exceptions import RESPONSES
 from api.common.formatters import print_enum_values
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import Assembly, assembly_param
-from api.dependencies.parameters.optional import PaginationParameters, format_param, get_response_content, keyword_param, validate_response_content
-from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse
+from api.dependencies.parameters.optional import PaginationParameters, get_response_content, keyword_param, validate_response_content
 from api.common.helpers import Parameters
-from api.response_models.base_models import BaseResponseModel
+from api.response_models.base_models import BaseResponseModel, PaginationDataModel
 from api.routers.filer.dependencies.parameters import non_data_format_param
 
 from ..common.helpers import HelperParameters, get_track_metadata as __get_track_metadata, search_track_metadata as __search_track_metadata
@@ -68,7 +67,7 @@ async def search_track_metadata(
         else FILERTrackBriefResponse if content == ResponseContent.SUMMARY \
             else BaseResponseModel
     
-    opts = HelperParameters(internal=internal, pagination=pagination,
+    opts = HelperParameters(internal=internal, pagination=PaginationDataModel(page=pagination.page),
         content=content,
         format=format, model=responseModel,
         parameters=Parameters(assembly=assembly, filter=filter, keyword=keyword))
