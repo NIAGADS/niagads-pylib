@@ -12,7 +12,7 @@ from ..utils.dict import print_dict
 
 DEFAULT_REQUEST_URI = 'https://tf.lisanwanglab.org/FILER'
 
-SUPPORTED_GENOME_BUILDS = ["GRCh37", "GRCh38", "grch38", "grch37", "hg38", "hg19"]
+SUPPORTED_GENOME_BUILDS = ["GRCh37", "GRCh38", "grch38", "grch37", "hg38", "hg19", "hg38-lifted"]
 VALID_FILER_ENDPOINTS = []
 
 FILER_TRACK_FILTERS = {
@@ -35,9 +35,11 @@ class FILERApiWrapper():
 
     def map_genome_build(self, genomeBuild: str):
         ''' return genome build in format filer expects '''
-        if '38' in genomeBuild:
+        if genomeBuild not in SUPPORTED_GENOME_BUILDS:
+            raise KeyError('Invalid Genome Build: %s' % genomeBuild)
+        if genomeBuild.lower() in ['grch38', 'hg38']:
             return 'hg38'
-        if genomeBuild == 'GRCh37':
+        if genomeBuild.lower() in ['grch37', 'hg19']:
             return 'hg19'
         return genomeBuild
 
@@ -71,6 +73,7 @@ class FILERApiWrapper():
         ''' map request params and submit to FILER API'''
         requestParams = self.__map_request_params(params)
         requestUrl = self.__filerRequestUri + "/" + endpoint + ".php?" + urlencode(requestParams)
+        self.logger.info("FILER Request: " + requestUrl)
         try:
             response = requests.get(requestUrl)
             response.raise_for_status()     
