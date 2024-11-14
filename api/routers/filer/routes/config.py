@@ -18,13 +18,13 @@ from ..dependencies import InternalRequestParameters, query_track_id
 
 # TAGS = ROUTE_TAGS
 router = APIRouter(
-    prefix="/browser_config",
+    prefix="/config",
 #     tags=TAGS,
     responses=RESPONSES
 )
 
 tags = ["NIAGADS Genome Browser Configuration"]
-@router.get("/", tags=tags, response_model=Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse],
+@router.get("/igvbrowser", tags=tags, response_model=Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse],
     name="Get Genome Browser configuration for multiple tracks by ID",
     description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s)")
 async def get_track_browser_config(
@@ -46,7 +46,7 @@ async def get_track_browser_config(
 tags = tags + ['Record(s) by Text Search']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
 search_track_config_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.SUMMARY])
-@router.get("/search", tags=tags, response_model=Union[BaseResponseModel, GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse],
+@router.get("/igvbrowser/search", tags=tags, response_model=Union[BaseResponseModel, GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse],
     name="Get Genome Browser configuration for multiple tracks by Search",
     description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) identified by keyword search or filters")
 async def search_track_metadata(

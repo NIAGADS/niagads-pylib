@@ -1,7 +1,7 @@
 from fastapi.encoders import jsonable_encoder
-from pydantic import computed_field
+from pydantic import ConfigDict, Field, computed_field
 from sqlmodel import SQLModel
-from typing import Optional, Dict, List, Union
+from typing import Any, Optional, Dict, List, Union
 from typing_extensions import Self
 
 from niagads.utils.list import find
@@ -14,35 +14,17 @@ from api.routers.filer.models.experimental_design import ExperimentalDesign # TO
 
 from .base_models import BaseResponseModel, RowModel
 
-class GenomeBrowserConfig(RowModel, SQLModel):
-    track_id: str
-    name: str
-    browser_track_format: Optional[str]
-    url: str
-    index_url: Optional[str]
+class GenomeBrowserConfig(RowModel,SQLModel):
+    track_id: str = Field(alias='id')
+    name: str  
+    url: str 
+    description: str
+    index_url: str = Field(alias='indexUrl')
+    browser_track_type: str = Field(alias='type')
+    browser_track_format: str = Field(alias='format')
     
-    @computed_field
-    @property 
-    def indexURL(self)->str:
-        return self.index_url
-    
-    @computed_field
-    @property
-    def id(self) -> str:
-        return self.track_id
-    
-    # FIXME: this is schema & things like narrowpeak
-    @computed_field
-    @property
-    def format(self) -> str:
-        return "bed6+13" if self.browser_track_format == 'qtl' \
-            else "bed"
-    
-    @computed_field
-    @property
-    def type(self) -> str:
-        return self.browser_track_format
-    
+    model_config = ConfigDict(populate_by_name=True)
+
     def get_view_config(self, view: ResponseFormat, options:dict = None) -> dict:
         """ get configuration object required by the view """
         match view:

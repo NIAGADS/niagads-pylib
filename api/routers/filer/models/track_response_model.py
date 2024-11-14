@@ -67,6 +67,8 @@ class FILERTrackBrief(SQLModel, GenericDataModel):
                     'rowId': 'track_id',
                     'onRowSelectAction': OnRowSelect.ACCESS_ROW_DATA
                 }})
+            fields.remove('num_overlaps')
+            fields.insert(0, 'num_overlaps') # so that it is in the first 8 and displayed by default
         if len(fields) > 8:
             options.update({'defaultColumns': fields[:8]})
         return {'columns': columns, 'options': options}

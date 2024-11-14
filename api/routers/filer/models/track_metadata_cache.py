@@ -121,19 +121,18 @@ class Track(SQLModel, SerializableModel, table=True):
             
     @computed_field
     @property
-    def browser_track_schema(self) -> str:    
+    def browser_track_format(self) -> str:    
         if self.file_schema is None:
-            return None
+            return 'bed'
         schema = self.file_schema.split('|')
-        return schema[0]
-    
+        return schema[0]    
     
     @computed_field
     @property 
-    def browser_track_format(self) -> str:
-        # TODO: interactions
-        if 'QTL' in self.feature_type:
-            return 'qtl'
-        else:
-            return 'annotation'
+    def browser_track_type(self) -> str:
+        trackType = 'annotation'
+        if '|' in self.file_schema:
+            schema = self.file_schema.split('|')
+            trackType = schema[1]
+        return trackType
     
