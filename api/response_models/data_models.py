@@ -16,13 +16,17 @@ class BEDFeature(GenericDataModel):
     strand: Optional[str] = '.'
     
     def to_view_data(self, view, **kwargs):
-        if kwargs['collapseExtras']:
-            data: dict = { k:v for k, v in self.model_dump().items() if k in list(self.model_fields.keys())}
-            extraData =  { k:v for k, v in self.model_dump().items() if k in list(self.model_extra.keys()) and k != 'track_id'}
-            data.update({'additional_fields': dict_to_info_string(extraData), 'track_id': self.track_id})
-            return data
-        else:
-            return self.model_dump()
+        match view:
+            case view.TABLE:
+                if kwargs['collapseExtras']:
+                    data: dict = { k:v for k, v in self.model_dump().items() if k in list(self.model_fields.keys())}
+                    extraData =  { k:v for k, v in self.model_dump().items() if k in list(self.model_extra.keys()) and k != 'track_id'}
+                    data.update({'additional_fields': dict_to_info_string(extraData), 'track_id': self.track_id})
+                    return data
+                else:
+                    return self.model_dump()
+            case _:
+                raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
 
     def get_view_config(self, view: ResponseFormat, **kwargs):
         """ get configuration object required by the view """

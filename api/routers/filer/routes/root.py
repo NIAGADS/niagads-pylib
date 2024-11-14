@@ -12,7 +12,7 @@ from ..dependencies import ROUTE_SESSION_MANAGER
 from .track import router as TrackRouter
 from .metadata import router as MetadataRouter
 from .data import router as DataRouter
-from .browser_config import router as BrowserConfigRouter
+from .config import router as BrowserConfigRouter
 
 router = APIRouter(
     prefix=ROUTE_PREFIX,

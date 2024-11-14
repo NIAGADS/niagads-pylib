@@ -9,7 +9,7 @@ from api.common.enums import Assembly
 
 async def assembly_param(assembly: Assembly = Query(Assembly.GRCh38, description="reference genome build (assembly)")): 
     try:
-        return Assembly(clean(assembly)).validate()
+        return Assembly(clean(assembly))
     except:
         raise ResponseValidationError(f'Invalid value provided for `assembly`: {assembly}')
 

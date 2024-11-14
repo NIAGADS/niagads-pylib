@@ -58,6 +58,7 @@ class ResponseContentParameter(BaseModel):
 def get_response_content(exclude: List[ResponseContent]):
     return CaseInsensitiveEnum('content', { member.name: member.value for member in ResponseContent if member not in exclude })
 
+
 async def validate_response_content(contentEnum: CaseInsensitiveEnum, value):
     try:
         contentEnum(value)
@@ -65,8 +66,10 @@ async def validate_response_content(contentEnum: CaseInsensitiveEnum, value):
     except:
         raise RequestValidationError(f'Invalid value provided for `content`: {value}.  Allowable values for this query are: {print_enum_values(contentEnum)}' )
 
+
 def get_response_format(exclude: List[ResponseFormat]):
     return CaseInsensitiveEnum('format', { member.name: member.value for member in ResponseFormat if member not in exclude })
+
 
 async def validate_response_format(formatEnum: CaseInsensitiveEnum, value):
     try:
@@ -74,7 +77,6 @@ async def validate_response_format(formatEnum: CaseInsensitiveEnum, value):
         return ResponseFormat(value)
     except:
         raise RequestValidationError(f'Invalid value provided for `format`: {value}.  Allowable values for this query are: {print_enum_values(formatEnum)}' )
-
 
 
 async def keyword_param(keyword: Optional[str] = Query(default=None, 

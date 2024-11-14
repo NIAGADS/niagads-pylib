@@ -11,12 +11,17 @@ def get_error_message(ex:Exception) -> None:
 
 async def too_many_requests(request: Request, response: Response, pexpire: int):
     """
-    default callback when too many requests
-    :param request:
-    :param pexpire: The remaining milliseconds
-    :param response:
-    :return:
+    default callback when requests exceed rate limit
+
+    Args:
+        request (Request): 
+        response (Response): 
+        pexpire (int): remaining milliseconds
+
+    Raises:
+        StarletteHTTPException
     """
+
     expire = ceil(pexpire / 1000)
 
     raise StarletteHTTPException(

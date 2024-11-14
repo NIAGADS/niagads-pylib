@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from api.common.enums import ResponseContent, CacheNamespace
 from api.dependencies.parameters.services import InternalRequestParameters
-from api.dependencies.parameters.optional import PaginationParameters, ResponseFormat
+from api.dependencies.parameters.optional import ResponseFormat
 from api.response_models.base_models import BaseResponseModel, PaginationDataModel
 from api.routers.redirect.common.constants import RedirectEndpoints
 
@@ -20,7 +20,7 @@ class HelperParameters(BaseModel, arbitrary_types_allowed=True):
     model: Any
     format: ResponseFormat = ResponseFormat.JSON
     content: ResponseContent = ResponseContent.FULL
-    pagination: PaginationParameters = None
+    pagination: PaginationDataModel = None
     parameters: Parameters = None
     
     # __pydantic_extra__: Dict[str, Any]  
@@ -45,8 +45,8 @@ class HelperParameters(BaseModel, arbitrary_types_allowed=True):
 def __set_pagination(opts: HelperParameters, resultSize):
     if opts.model.is_paged():
         page = 1 if opts.pagination is None else opts.pagination.page
-        nPages = getattr(opts.parameters, 'total_page_count', 1)
-        expectedResultSize = getattr(opts.parameters, 'expected_result_size', resultSize)
+        nPages = getattr(opts.pagination, 'total_num_pages', 1)
+        expectedResultSize = getattr(opts.pagination, 'total_num_records', resultSize)
         return PaginationDataModel(
             page=page, 
             total_num_pages= nPages, 
@@ -59,6 +59,7 @@ def __set_pagination(opts: HelperParameters, resultSize):
 async def generate_response(result: Any, opts:HelperParameters, isCached=False):
     if not isCached:
         response = None
+        opts.internal.requestData.update_parameters(opts.parameters)
         if opts.model.is_paged():
             pagination: PaginationDataModel = __set_pagination(opts, len(result))
             response =  opts.model(request=opts.internal.requestData, pagination=pagination, response=result)

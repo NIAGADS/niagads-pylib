@@ -155,8 +155,8 @@ async def search_track_metadata(opts: HelperParameters):
                 .query_track_metadata(opts.parameters.assembly, 
                     opts.parameters.filter, opts.parameters.keyword, ResponseContent.COUNTS)
             limit, offset, numPages = __page_metadata_query(counts['track_count'], opts.pagination.page)
-            opts.parameters.expected_result_size = counts['track_count']
-            opts.parameters.total_page_count = numPages
+            opts.pagination.total_num_records = counts['track_count']
+            opts.pagination.total_num_pages = numPages
 
         result =  await MetadataQueryService(opts.internal.session) \
             .query_track_metadata(opts.parameters.assembly, 
@@ -198,8 +198,9 @@ async def search_track_data(opts: HelperParameters):
     if opts.content == ResponseContent.FULL:
         pagedTrackIds, resultSize, numPages = __page_track_data_query(targetTracks, page=opts.pagination.page)
         opts.parameters.track = pagedTrackIds
-        opts.parameters.expected_result_size = resultSize
-        opts.parameters.total_page_count = numPages
+        opts.pagination.total_num_records = resultSize
+        opts.pagination.total_num_pages = numPages
+
     else:
         opts.parameters.track = targetTrackIds
         if opts.content == ResponseContent.IDS:

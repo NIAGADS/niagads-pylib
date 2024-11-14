@@ -5,7 +5,7 @@ from api.common.enums import ResponseContent, ResponseFormat
 from api.common.exceptions import RESPONSES
 from api.common.formatters import print_enum_values
 from api.dependencies.parameters.location import span_param
-from api.dependencies.parameters.optional import format_param, get_response_content, get_response_format, validate_response_content
+from api.dependencies.parameters.optional import format_param, get_response_content, validate_response_content
 from api.common.helpers import Parameters
 
 from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse, BEDResponse
@@ -46,7 +46,7 @@ async def get_track_metadata(
 
 
 tags = ["Record by ID", "NIAGADS Genome Browser Configuration"]
-@router.get("/{track}/browser_config", tags=tags, 
+@router.get("/{track}/config/igvbrowser", tags=tags, 
     response_model=Union[GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse],
     name="Get track Genome Browser configuration",
     description="retrieve NIAGADS Genome Browser track configuration for the FILER `track` specified in the path")

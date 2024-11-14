@@ -8,6 +8,7 @@ from hashlib import md5
 from abc import ABC, abstractmethod
 
 from niagads.utils.string import dict_to_string
+from niagads.utils.dict import prune
 
 from api.common.constants import JSON_TYPE
 from api.common.enums import CacheNamespace, OnRowSelect, ResponseFormat
@@ -23,7 +24,7 @@ class SerializableModel(BaseModel):
         """
         data:dict = jsonable_encoder(self.model_dump(exclude=exclude)) # FIXME: not sure if encoder is necessary; check dates? maybe
         if promoteObjs:
-            objFields = [ k for k, v in data.items() if isinstance(v, dict)]
+            objFields = [k for k, v in data.items() if isinstance(v, dict)]
             for f in objFields:
                 data.update(data.pop(f, None))
 
@@ -62,12 +63,15 @@ class RowModel(SerializableModel, ABC):
         raise RuntimeError('`RowModel` is an abstract class; need to override abstract methods in child classes')
     
 
-    
 class RequestDataModel(SerializableModel):
     request_id: str 
     endpoint: str
     parameters: Dict[str, Union[int, str, bool]]
     msg: Optional[str] = None
+    
+    def update_parameters(self, params: BaseModel) -> str:
+        """ default parameter values are not in the original request, so need to be added later """
+        self.parameters.update(prune(params.model_dump()))
     
     @classmethod
     def sort_query_parameters(cls, params: dict) -> str:
@@ -104,7 +108,7 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
         )
 
         
-class AbstractResponse(ABC, BaseModel):
+class AbstractResponse(ABC, SerializableModel):
     response: Any
     
     @abstractmethod 
@@ -130,7 +134,8 @@ class AbstractResponse(ABC, BaseModel):
             viewResponse.update({'id': kwargs['id']})
             
         return viewResponse
-class BaseResponseModel(AbstractResponse, SerializableModel):
+
+class BaseResponseModel(AbstractResponse):
     request: RequestDataModel
 
     def to_view(self, view, **kwargs):
@@ -153,7 +158,7 @@ class BaseResponseModel(AbstractResponse, SerializableModel):
         return 'pagination' in cls.model_fields
 
 
-class GenericDataModel(RowModel, SerializableModel):
+class GenericDataModel(RowModel):
     """ Generic JSON Response """
     __pydantic_extra__: Dict[str, Any]  
     model_config = ConfigDict(extra='allow')
@@ -165,33 +170,35 @@ class GenericDataModel(RowModel, SerializableModel):
         """ get configuration object required by the view """
         match view:
             case view.TABLE:
-                fields = list(self.model_dump().keys())
-                columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields]
-                options =  {}
-
-                if 'track_id' in fields:
-                    countsPresent = any([True for f in fields if f.startswith('num_')])
-                    if countsPresent:
-                        options.update({'rowSelect': {
-                                'header': 'Select',
-                                'enableMultiRowSelect': True,
-                                'rowId': 'track_id',
-                                'onRowSelectAction': kwargs['on_row_select']
-                            }})
-                return {'columns': columns, 'options': options}
+                self.get_table_view_config(kwargs)
             case _:
                 raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
         
-    
+    def get_table_view_config(self, **kwargs):
+        fields = list(self.model_dump().keys())
+        columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields]
+        options =  {}
+
+        if 'track_id' in fields:
+            countsPresent = any([True for f in fields if f.startswith('num_')])
+            if countsPresent:
+                options.update({'rowSelect': {
+                        'header': 'Select',
+                        'enableMultiRowSelect': True,
+                        'rowId': 'track_id',
+                        'onRowSelectAction': kwargs['on_row_select']
+                    }})
+        return {'columns': columns, 'options': options}
+        
     
 class PaginationDataModel(BaseModel):
     page: int = 1
     total_num_pages: int = 1
-    paged_num_records: int 
-    total_num_records: int
+    paged_num_records: Optional[int] = None
+    total_num_records: Optional[int] = None
 
 class PagedResponseModel(BaseResponseModel):
-    pagination: Optional[PaginationDataModel] = None
+    pagination: PaginationDataModel
 
     def to_view(self, view, **kwargs):
         return super().to_view(view, **kwargs)
