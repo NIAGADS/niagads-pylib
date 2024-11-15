@@ -15,7 +15,7 @@ from ..common.constants import ROUTE_TAGS
 from ..dependencies import InternalRequestParameters, path_track_id
 from ..common.helpers import (get_track_metadata as __get_track_metadata, 
     get_track_data as __get_track_data, HelperParameters)
-from ..models.track_response_model import FILERTrackResponse, FILERTrackBriefResponse
+from ..models.response.filer_track import FILERTrackResponse, FILERTrackBriefResponse
 
 # TAGS = ROUTE_TAGS
 router = APIRouter(

@@ -13,7 +13,7 @@ from api.internal.constants import FILER_N_TRACK_LOOKUP_LIMIT
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP, ROUTE_TAGS
 from ..common.services import MetadataQueryService, ApiWrapperService
 from ..dependencies import ROUTE_SESSION_MANAGER
-from ..models.track_response_model import FILERTrack, FILERTrackOverlapSummary
+from ..models.response.filer_track import FILERTrack, FILERTrackOverlapSummary
 
 
 TAGS = ROUTE_TAGS 

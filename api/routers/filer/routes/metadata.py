@@ -13,14 +13,12 @@ from api.response_models.base_models import BaseResponseModel, PaginationDataMod
 from api.routers.filer.dependencies.parameters import non_data_format_param
 
 from ..common.helpers import HelperParameters, get_track_metadata as __get_track_metadata, search_track_metadata as __search_track_metadata
-from ..common.constants import ROUTE_TAGS, TRACK_SEARCH_FILTER_FIELD_MAP
-from ..models.track_response_model import FILERTrackBriefResponse, FILERTrackResponse
+from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
+from ..models.response.filer_track import FILERTrackBriefResponse, FILERTrackResponse
 from ..dependencies import InternalRequestParameters, query_track_id
 
-# TAGS = ROUTE_TAGS
 router = APIRouter(
     prefix="/metadata",
-#   tags=TAGS,
     responses=RESPONSES
 )
 

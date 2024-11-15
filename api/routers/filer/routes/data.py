@@ -15,7 +15,7 @@ from api.response_models.data_models import BEDResponse
 from ..common.helpers import HelperParameters, get_track_data as __get_track_data, search_track_data as __search_track_data
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
 from ..dependencies import InternalRequestParameters, query_track_id
-from ..models.track_response_model import FILERTrackBriefResponse
+from ..models.response.filer_track import FILERTrackBriefResponse
 
 router = APIRouter(
     prefix="/data",

@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing import Optional
 
-from ....response_models.base_models import SerializableModel
+from .base_models import SerializableModel
 
-class BiosampleCharacteristics(SerializableModel, BaseModel):
+class BiosampleCharacteristics(SerializableModel):
     life_stage: Optional[str] = Field(default=None, description='donor/sample life stage: adult, fetal, embryo')
     biosample_term: Optional[str] = Field(default=None, description='mapped ontology term')
     system_category: Optional[str] = None

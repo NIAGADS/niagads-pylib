@@ -11,7 +11,7 @@ from niagads.utils.list import qw
 from niagads.utils.string import xstr
 
 from api.internal.constants import DATASOURCE_URLS
-from api.response_models import SerializableModel
+from api.response_models import SerializableModel, Provenance, ExperimentalDesign
 
 EXPERIMENTAL_DESIGN_FIELDS = qw('project experiment_id antibody_target assay analysis classification data_category output_type is_lifted')
 
@@ -95,7 +95,7 @@ class Track(SQLModel, SerializableModel, table=True):
     
     @computed_field
     @property
-    def provenance(self) -> dict:
+    def provenance(self) -> Provenance:
         return {
             'data_source' : self.data_source,
             'data_source_version': self.data_source_version,
@@ -116,7 +116,7 @@ class Track(SQLModel, SerializableModel, table=True):
     
     @computed_field 
     @property
-    def experimental_design(self) -> dict: # required for browser config
+    def experimental_design(self) -> ExperimentalDesign: # required for browser config
         return { field : xstr(getattr(self, field), nullStr="NA") for field in EXPERIMENTAL_DESIGN_FIELDS }
             
     @computed_field
