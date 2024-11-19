@@ -59,7 +59,7 @@ def __set_pagination(opts: HelperParameters, resultSize):
 async def generate_response(result: Any, opts:HelperParameters, isCached=False):
     if not isCached:
         response = None
-        opts.internal.requestData.update_parameters(opts.parameters)
+        opts.internal.requestData.update_parameters(opts.parameters, exclude=['span', '_track'])
         if opts.model.is_paged():
             pagination: PaginationDataModel = __set_pagination(opts, len(result))
             response =  opts.model(request=opts.internal.requestData, pagination=pagination, response=result)
