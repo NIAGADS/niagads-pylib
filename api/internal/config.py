@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     
     # required by Pydantic
     model_config = SettingsConfigDict(env_file=ENV_FILE_PATH)
-  
+
 
 
 @lru_cache # memoization of functions

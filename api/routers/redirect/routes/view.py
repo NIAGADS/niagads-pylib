@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Path, Request
 from api.common.enums import CacheNamespace, ResponseFormat
 from api.common.exceptions import RESPONSES
 from api.dependencies.parameters.services import InternalRequestParameters
-from api.response_models.base_models import BaseResponseModel
+from api.models.base_models import BaseResponseModel
 
 from api.routers.redirect.dependencies.parameters import forwarding_request_param
 

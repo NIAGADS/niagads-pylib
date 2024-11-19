@@ -3,9 +3,9 @@ from typing import Any, List, Optional, Union
 from niagads.utils.string import dict_to_info_string
 
 from api.common.enums import ResponseFormat
+from api.common.formatters import id2title
 
-from ..common.formatters import id2title
-from .base_models import GenericDataModel, PagedResponseModel, RowModel
+from .base_models import GenericDataModel, PagedResponseModel
 
 class BEDFeature(GenericDataModel):
     chrom: str

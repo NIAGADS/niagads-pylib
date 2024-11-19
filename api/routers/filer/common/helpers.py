@@ -90,9 +90,8 @@ async def get_track_data(opts: HelperParameters, validate=True):
         
         summarize = opts.content == ResponseContent.SUMMARY
         countsOnly = opts.content == ResponseContent.COUNTS or summarize == True # if summarize is true, we only want counts
-        tracks = opts.parameters.track.split(',') \
-            if isinstance(opts.parameters.track, str) \
-                else opts.parameters.track
+        tracks = opts.parameters.track if 'track' in opts.parameters else opts.parameters._track
+        tracks = tracks.split(',') if isinstance(tracks, str) else tracks
         tracks = sorted(tracks) # best for caching
         
         # do we need to make multiple calls? i.e. if the # of tracks is too many (exceeds URL length)
@@ -197,13 +196,15 @@ async def search_track_data(opts: HelperParameters):
     
     if opts.content == ResponseContent.FULL:
         pagedTrackIds, resultSize, numPages = __page_track_data_query(targetTracks, page=opts.pagination.page)
-        opts.parameters.track = pagedTrackIds
+        opts.parameters._track = pagedTrackIds
         opts.pagination.total_num_records = resultSize
         opts.pagination.total_num_pages = numPages
 
     else:
-        opts.parameters.track = targetTrackIds
+        opts.parameters._track = targetTrackIds
         if opts.content == ResponseContent.IDS:
             return await __generate_response(targetTrackIds, opts)
         
-    return await get_track_data(opts, validate=False)
+    result = await get_track_data(opts, validate=False)
+    return result
+

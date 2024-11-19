@@ -10,10 +10,7 @@ from niagads.utils.list import find
 from api.common.constants import JSON_TYPE
 from api.common.enums import OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
-from api.response_models import PagedResponseModel, GenericDataModel
-
-from .provenance import Provenance
-from .biosample_characteristics import BiosampleCharacteristics
+from api.models import PagedResponseModel, GenericDataModel, Provenance, BiosampleCharacteristics
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
 class FILERTrackBrief(SQLModel, GenericDataModel):

@@ -69,9 +69,9 @@ class RequestDataModel(SerializableModel):
     parameters: Dict[str, Union[int, str, bool]]
     msg: Optional[str] = None
     
-    def update_parameters(self, params: BaseModel) -> str:
+    def update_parameters(self, params: BaseModel, exclude=List[str]) -> str:
         """ default parameter values are not in the original request, so need to be added later """
-        self.parameters.update(prune(params.model_dump()))
+        self.parameters.update(prune(params.model_dump(exclude=exclude)))
     
     @classmethod
     def sort_query_parameters(cls, params: dict) -> str:

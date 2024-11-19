@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing import Optional
 
-from ....response_models.base_models import SerializableModel
+from api.models.base_models import SerializableModel
 
-class ExperimentalDesign(SerializableModel, BaseModel):
+class ExperimentalDesign(SerializableModel):
     project: Optional[str] = None
     experiment_id: Optional[str] = None
     antibody_target: Optional[str] = None

@@ -1,18 +1,15 @@
-from fastapi.encoders import jsonable_encoder
-from pydantic import ConfigDict, Field, computed_field
+from pydantic import ConfigDict, Field
 from sqlmodel import SQLModel
-from typing import Any, Optional, Dict, List, Union
-from typing_extensions import Self
+from typing import Optional, List
 
 from niagads.utils.list import find
 
-from api.common.constants import JSON_TYPE
 from api.common.enums import OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
-from api.routers.filer.models.biosample_characteristics import BiosampleCharacteristics
-from api.routers.filer.models.experimental_design import ExperimentalDesign # TODO: possibly move to API base_models
 
 from .base_models import BaseResponseModel, RowModel
+from .biosample_characteristics import BiosampleCharacteristics
+from .experimental_design import ExperimentalDesign 
 
 class GenomeBrowserConfig(RowModel,SQLModel):
     track_id: str = Field(alias='id')

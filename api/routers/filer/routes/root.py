@@ -3,7 +3,7 @@ from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.common.exceptions import RESPONSES
-from api.response_models import BaseResponseModel, RequestDataModel
+from api.models import BaseResponseModel, RequestDataModel
 
 from ..common.constants import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX
 from ..common.services import MetadataQueryService

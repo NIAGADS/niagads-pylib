@@ -9,13 +9,13 @@ from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import assembly_param, span_param
 from api.dependencies.parameters.optional import PaginationParameters, format_param, get_response_content, keyword_param, validate_response_content
 from api.common.helpers import Parameters
-from api.response_models.base_models import BaseResponseModel, PaginationDataModel
-from api.response_models.data_models import BEDResponse
+from api.models.base_models import BaseResponseModel, PaginationDataModel
+from api.models.data_models import BEDResponse
 
 from ..common.helpers import HelperParameters, get_track_data as __get_track_data, search_track_data as __search_track_data
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
 from ..dependencies import InternalRequestParameters, query_track_id
-from ..models.track_response_model import FILERTrackBriefResponse
+from ..models.response.filer_track import FILERTrackBriefResponse
 
 router = APIRouter(
     prefix="/data",

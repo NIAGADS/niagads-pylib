@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, Request
 
-from api.response_models.base_models import CacheKeyDataModel, RequestDataModel
+from api.models.base_models import CacheKeyDataModel, RequestDataModel
 from api.common.formatters import clean
 from ..database import CacheManager, CacheSerializer
 
