@@ -11,7 +11,7 @@ from niagads.utils.list import qw
 from niagads.utils.string import xstr
 
 from api.internal.constants import DATASOURCE_URLS
-from api.response_models import SerializableModel, Provenance, ExperimentalDesign
+from api.models import SerializableModel, Provenance, ExperimentalDesign
 
 EXPERIMENTAL_DESIGN_FIELDS = qw('project experiment_id antibody_target assay analysis classification data_category output_type is_lifted')
 

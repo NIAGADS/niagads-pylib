@@ -1,9 +1,7 @@
-
 from datetime import datetime
 from typing import Optional
 
 from .base_models import SerializableModel
-
 
 class Provenance(SerializableModel):
     data_source: Optional[str]

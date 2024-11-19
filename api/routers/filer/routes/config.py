@@ -8,9 +8,9 @@ from api.common.formatters import print_enum_values
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import Assembly, assembly_param
 from api.dependencies.parameters.optional import PaginationParameters, format_param, get_response_content, keyword_param, validate_response_content
-from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse
+from api.models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse
 from api.common.helpers import Parameters
-from api.response_models.base_models import BaseResponseModel
+from api.models.base_models import BaseResponseModel
 
 from ..common.helpers import HelperParameters, get_track_metadata as __get_track_metadata, search_track_metadata as __search_track_metadata
 from ..common.constants import ROUTE_TAGS, TRACK_SEARCH_FILTER_FIELD_MAP

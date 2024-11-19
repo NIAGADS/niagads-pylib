@@ -8,8 +8,8 @@ from api.dependencies.parameters.location import span_param
 from api.dependencies.parameters.optional import format_param, get_response_content, validate_response_content
 from api.common.helpers import Parameters
 
-from api.response_models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse, BEDResponse
-from api.response_models.base_models import BaseResponseModel
+from api.models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse, BEDResponse
+from api.models.base_models import BaseResponseModel
 
 from ..common.constants import ROUTE_TAGS
 from ..dependencies import InternalRequestParameters, path_track_id

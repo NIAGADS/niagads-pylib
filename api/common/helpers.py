@@ -7,7 +7,7 @@ from typing import Any, Dict
 from api.common.enums import ResponseContent, CacheNamespace
 from api.dependencies.parameters.services import InternalRequestParameters
 from api.dependencies.parameters.optional import ResponseFormat
-from api.response_models.base_models import BaseResponseModel, PaginationDataModel
+from api.models.base_models import BaseResponseModel, PaginationDataModel
 from api.routers.redirect.common.constants import RedirectEndpoints
 
 # basically allow creation of an arbitrary namespace

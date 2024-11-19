@@ -13,7 +13,7 @@ from api.common.enums import ResponseContent
 from api.internal.config import get_settings
 from api.dependencies.parameters.filters import tripleToPreparedStatement
 from api.common.helpers import Parameters
-from api.response_models import BEDFeature, GenericDataModel
+from api.models import BEDFeature, GenericDataModel
 
 from ..models.track_metadata_cache import Track
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS

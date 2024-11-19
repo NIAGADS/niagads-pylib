@@ -1,7 +1,7 @@
 from pydantic import Field
 from typing import Optional
 
-from api.response_models.base_models import SerializableModel
+from api.models.base_models import SerializableModel
 
 class ExperimentalDesign(SerializableModel):
     project: Optional[str] = None
