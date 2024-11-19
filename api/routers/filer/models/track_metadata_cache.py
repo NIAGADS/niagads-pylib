@@ -2,7 +2,7 @@ from sqlmodel import Field, SQLModel, Column
 
 from sqlalchemy import BigInteger
 from sqlalchemy.dialects.postgresql import TEXT, JSONB, TIMESTAMP
-from datetime import datetime
+from datetime import date
 from typing import Optional
 from pydantic import computed_field
 
@@ -45,8 +45,8 @@ class Track(SQLModel, SerializableModel, table=True):
     data_source: Optional[str]
     data_source_version: Optional[str]
     download_url: Optional[str]
-    download_date: Optional[datetime] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
-    release_date: Optional[datetime] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
+    download_date: Optional[date] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
+    release_date: Optional[date] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
     experiment_id: Optional[str]
     project: Optional[str]
     

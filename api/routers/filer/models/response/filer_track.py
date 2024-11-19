@@ -1,6 +1,4 @@
 from sqlmodel import SQLModel
-from fastapi.encoders import jsonable_encoder
-from datetime import datetime
 from typing import Any, Dict, Optional, List, Union
 from typing_extensions import Self
 from pydantic import model_validator
