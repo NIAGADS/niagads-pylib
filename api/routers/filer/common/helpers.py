@@ -129,10 +129,9 @@ async def get_track_metadata(opts: HelperParameters, rawResponse=False):
     result = await opts.internal.internalCache.get(opts.internal.cacheKey.internal, namespace=opts.internal.cacheKey.namespace)
     if result is None:
         isCached = False
-                
-        tracks = opts.parameters.track.split(',') \
-            if isinstance(opts.parameters.track, str) \
-                else opts.parameters.track  
+        
+        tracks = opts.parameters.track if 'track' in opts.parameters else opts.parameters._track
+        tracks = tracks.split(',') if isinstance(tracks, str) else tracks
         
         result = await MetadataQueryService(opts.internal.session).get_track_metadata(tracks)
         
