@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Any, Dict, List, Optional, Type, Union, TypeVar
 from typing_extensions import Self
 from fastapi.encoders import jsonable_encoder
@@ -64,10 +64,10 @@ class RowModel(SerializableModel, ABC):
     
 
 class RequestDataModel(SerializableModel):
-    request_id: str 
-    endpoint: str
-    parameters: Dict[str, Union[int, str, bool]]
-    msg: Optional[str] = None
+    request_id: str = Field(description="unique request identifier")
+    endpoint: str = Field(description="queried endpoint")
+    parameters: Dict[str, Union[int, str, bool]] = Field(description="request path and query parameters, includes unspecified defaults")
+    msg: Optional[str] = Field(default=None, description="warning or info message qualifying the response")
     
     def update_parameters(self, params: BaseModel, exclude=List[str]) -> str:
         """ default parameter values are not in the original request, so need to be added later """
@@ -89,10 +89,11 @@ class RequestDataModel(SerializableModel):
             endpoint=str(request.url.path)
         )
 
+# TODO: create Enum for the namespaces
 class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
-    internal: str
-    external: str
-    namespace: CacheNamespace
+    internal: str = Field(description="in-memory cache key for internal access to cached data")
+    external: str = Field(description="in-memory cache key for external access to a cached response")
+    namespace: CacheNamespace = Field(description="namespace in the in-memory cache")
     
     @classmethod
     async def from_request(cls, request: Request):
@@ -107,9 +108,9 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
                     else CacheNamespace(request.url.path.split('/')[1])
         )
 
-        
+# FIXME: 'Any' or 'SerializableModel' for response
 class AbstractResponse(ABC, SerializableModel):
-    response: Any
+    response: Any = Field(description="result (data) from the request")
     
     @abstractmethod 
     def to_view(self, view:ResponseFormat, **kwargs):
@@ -136,7 +137,7 @@ class AbstractResponse(ABC, SerializableModel):
         return viewResponse
 
 class BaseResponseModel(AbstractResponse):
-    request: RequestDataModel
+    request: RequestDataModel = Field(description="details about the originating request that generated the response")
 
     def to_view(self, view, **kwargs):
         return super().to_view(view, **kwargs)
@@ -192,13 +193,13 @@ class GenericDataModel(RowModel):
         
     
 class PaginationDataModel(BaseModel):
-    page: int = 1
-    total_num_pages: int = 1
-    paged_num_records: Optional[int] = None
-    total_num_records: Optional[int] = None
+    page: int = Field(default=1, description="if result is paged, indicates the current page of the result; defaults to 1")
+    total_num_pages: int = Field(default=1, description="if the result is paged, reports total number of pages in the full result set (response); defaults to 1")
+    paged_num_records: Optional[int] = Field(default=None, description="number of records in the current paged result set (response)")
+    total_num_records: Optional[int] = Field(default=None, description="total number of records in the full result set (response)")
 
 class PagedResponseModel(BaseResponseModel):
-    pagination: PaginationDataModel
+    pagination: PaginationDataModel = Field(description="pagination details, if the result is paged")
 
     def to_view(self, view, **kwargs):
         return super().to_view(view, **kwargs)
