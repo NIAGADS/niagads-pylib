@@ -8,7 +8,7 @@ from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import assembly_param, span_param
 from api.common.exceptions import RESPONSES
 # from api.dependencies.parameters.optional import SummaryResultParameter
-from api.internal.constants import FILER_N_TRACK_LOOKUP_LIMIT
+from api.common.constants import FILER_N_TRACK_LOOKUP_LIMIT
 
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP, ROUTE_TAGS
 from ..common.services import MetadataQueryService, ApiWrapperService

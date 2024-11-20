@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # from starlette.middleware.sessions import SessionMiddleware
 from asgi_correlation_id import CorrelationIdMiddleware
 
-from api.internal.config import get_settings
+from api.config.settings import get_settings
 from .routers import FILERRouter, RedirectRouter
 
 # FIXME -- needed for applications reading the openapi.json or openapi.yaml, but 
