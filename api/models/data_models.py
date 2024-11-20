@@ -1,6 +1,7 @@
 from typing import Any, List, Optional, Union
 
 from niagads.utils.string import dict_to_info_string
+from pydantic import Field
 
 from api.common.enums import ResponseFormat
 from api.common.formatters import id2title
@@ -8,12 +9,12 @@ from api.common.formatters import id2title
 from .base_models import GenericDataModel, PagedResponseModel
 
 class BEDFeature(GenericDataModel):
-    chrom: str
-    chromStart: int
-    chromEnd: int
-    name: Optional[str] = '.'
-    score: Optional[Union[str, int, float]] = '.'
-    strand: Optional[str] = '.'
+    chrom: str = Field(description="name of the chromosome or scaffold")
+    chromStart: int = Field(description="starting position of the feature in the chromosomse. 0-based")
+    chromEnd: int = Field(description="ending position of the feature; not included in the display")
+    name: Optional[str] = Field(default='.', description="display label for the feature")
+    score: Optional[Union[str, int, float]] = Field(default='.', description="a score between 0 and 1000")
+    strand: Optional[str] = Field(default='.', description="forward (+) or reverse (-) direction")
     
     def to_view_data(self, view, **kwargs):
         match view:
