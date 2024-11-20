@@ -16,6 +16,9 @@ from .services import MetadataQueryService, ApiWrapperService
 from ..dependencies import InternalRequestParameters
 from ..models.track_metadata_cache import Track
 
+import logging
+LOGGER = logging.getLogger(__name__)
+
 TRACKS_PER_REQUEST_LIMIT = 200
 DEFAULT_PAGE_SIZE = 5000
 MAX_NUM_PAGES = 500
@@ -90,7 +93,13 @@ async def get_track_data(opts: HelperParameters, validate=True):
         
         summarize = opts.content == ResponseContent.SUMMARY
         countsOnly = opts.content == ResponseContent.COUNTS or summarize == True # if summarize is true, we only want counts
-        tracks = opts.parameters.track if 'track' in opts.parameters else opts.parameters._track
+        
+        # FIXME: getattr raises KeyError / ternary not working either -> related to Pydantic
+        tracks = None
+        if 'track' in opts.parameters:
+            tracks = opts.parameters.track
+        else:
+            tracks = opts.parameters._track
         tracks = tracks.split(',') if isinstance(tracks, str) else tracks
         tracks = sorted(tracks) # best for caching
         
@@ -130,7 +139,12 @@ async def get_track_metadata(opts: HelperParameters, rawResponse=False):
     if result is None:
         isCached = False
         
-        tracks = opts.parameters.track if 'track' in opts.parameters else opts.parameters._track
+        # FIXME: get/getattr not working w/default -- Pydantic issue / also ternary not working
+        tracks = None
+        if 'track' in opts.parameters:
+            tracks = opts.parameters.track
+        else:
+            tracks = opts.parameters._track
         tracks = tracks.split(',') if isinstance(tracks, str) else tracks
         
         result = await MetadataQueryService(opts.internal.session).get_track_metadata(tracks)
@@ -174,6 +188,8 @@ async def search_track_data(opts: HelperParameters):
             opts.parameters.filter, opts.parameters.keyword, 
             ResponseContent.IDS)
     
+    LOGGER.info("matching tracks found")
+    
     # we want to cache the external FILER api call as well
     # to do so, we will add the tracks into the cache key b/c the tracks may not have 
     # been part of the original request (i.e., called from another helper)
@@ -192,6 +208,8 @@ async def search_track_data(opts: HelperParameters):
     informativeTrackIds = [t['track_id'] for t in informativeTracks] # dict
     targetTrackIds = list(set(matchingTrackIds).intersection(informativeTrackIds))
     targetTracks = [t for t in informativeTracks if t['track_id'] in targetTrackIds]
+    
+    LOGGER.info("target tracks found")
     
     if opts.content == ResponseContent.FULL:
         pagedTrackIds, resultSize, numPages = __page_track_data_query(targetTracks, page=opts.pagination.page)
