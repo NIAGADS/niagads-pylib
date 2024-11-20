@@ -2,7 +2,7 @@ from sqlmodel import Field, SQLModel, Column
 
 from sqlalchemy import BigInteger
 from sqlalchemy.dialects.postgresql import TEXT, JSONB, TIMESTAMP
-from datetime import datetime
+from datetime import date
 from typing import Optional
 from pydantic import computed_field
 
@@ -10,7 +10,7 @@ from niagads.filer.parser import split_replicates
 from niagads.utils.list import qw
 from niagads.utils.string import xstr
 
-from api.internal.constants import DATASOURCE_URLS
+from api.config.urls import DATASOURCE_URLS
 from api.models import SerializableModel, Provenance, ExperimentalDesign
 
 EXPERIMENTAL_DESIGN_FIELDS = qw('project experiment_id antibody_target assay analysis classification data_category output_type is_lifted')
@@ -45,8 +45,8 @@ class Track(SQLModel, SerializableModel, table=True):
     data_source: Optional[str]
     data_source_version: Optional[str]
     download_url: Optional[str]
-    download_date: Optional[datetime] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
-    release_date: Optional[datetime] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
+    download_date: Optional[date] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
+    release_date: Optional[date] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
     experiment_id: Optional[str]
     project: Optional[str]
     
@@ -61,7 +61,7 @@ class Track(SQLModel, SerializableModel, table=True):
     file_size: Optional[int]
     file_format: Optional[str]
     file_schema: Optional[str]
-    filer_release_date: Optional[datetime] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
+    filer_release_date: Optional[date] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
 
     searchable_text: Optional[str] = Field(sa_column=Column(TEXT))
     

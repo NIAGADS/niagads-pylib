@@ -1,23 +1,5 @@
 from types import SimpleNamespace
 
-FILER_N_TRACK_LOOKUP_LIMIT = 50
-
-CHR_NS = [str(x) for x in [*range(1,22)]] + ['X', 'Y', 'N']
-CHR_IDS = [ 'chr' + str(x) for x in CHR_NS]
-CHROMOSOMES = [*CHR_NS, *CHR_IDS]
-DATASET_TYPES = ["GWAS_sumstats", "QTL_sumstats"]
-GENOME_BUILDS = ["GRCh37", "GRCh38", "grch38", "grch37", "hg38", "hg19"]
-ALLOWABLE_FILER_TRACK_FILTERS = {
-    "dataSource": "original data source ", 
-    "assay": "assay type", 
-    "featureType": "feature type", 
-    "antibodyTarget": "target of ChIP-seq or other immunoprecipitation assay",
-    "project": "member of a collection of related tracks, often an ENCODE project",
-    "tissue": "tissue associated with biosample"
-    }
-
-ADSP_VARIANTS_ACCESSION = "NG00067"
-
 __urls = ({
         'pubmed': 'https://pubmed.ncbi.nlm.nih.gov', 
         'niagads': 'https://www.niagads.org', 
