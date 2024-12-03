@@ -4,7 +4,6 @@ from sqlalchemy import Values, String, column as sqla_column
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional, Union
 
-from niagads.filer import FILERApiWrapper
 from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
 
@@ -13,16 +12,16 @@ from api.config.settings import get_settings
 from api.dependencies.parameters.filters import tripleToPreparedStatement
 from api.models import BEDFeature, GenericDataModel
 
-from ..models.track_metadata_cache import Track
+
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
+from .enums import FILERApiEndpoint
+from ..dependencies.api_session import FILERApiSessionManager
+from ..models.track_metadata_cache import Track
+
 
 class ApiWrapperService:
-    _OVERLAPS_ENDPOINT = 'get_overlaps'
-    _INFORMATIVE_TRACKS_ENDPOINT = 'get_overlapping_tracks_by_coord'
-    
-    def __init__(self):
-        self.__request_uri = get_settings().FILER_REQUEST_URI
-        self.__wrapper = FILERApiWrapper(self.__request_uri)
+    def __init__(self, wrapper):
+        self.__wrapper: FILERApiSessionManager = wrapper
         
     def __rename_keys(self, dictObj, keyMapping):
         for oldKey, newKey in keyMapping.items():
@@ -44,7 +43,7 @@ class ApiWrapperService:
     
     # TODO: async?
     def get_track_hits(self, tracks: List[str], span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
-        result = self.__wrapper.make_request(self._OVERLAPS_ENDPOINT, {'id': ','.join(tracks), 'span': span})
+        result = self.__wrapper.fetch(FILERApiEndpoint.OVERLAPS, {'track': ','.join(tracks), 'span': span})
         if 'message' in result:
             raise RuntimeError(result['message'])
         
@@ -54,7 +53,7 @@ class ApiWrapperService:
 
 
     async def get_informative_tracks(self, span: str, assembly: str, sort=False):
-        result = self.__wrapper.make_request(self._INFORMATIVE_TRACKS_ENDPOINT, {'span': span, 'assembly': assembly})
+        result = self.__wrapper.fetch(FILERApiEndpoint.INFORMATIVE_TRACKS, {'span': span, 'assembly': assembly})
         result = [{'track_id' : track['Identifier'], 'num_overlaps': track['numOverlaps']} for track in result]
         # sort by most hits
         return sorted(result, key = lambda item: item['num_overlaps'], reverse=True) if sort else result

@@ -12,6 +12,7 @@ from api.common.enums import ResponseContent, CacheNamespace
 from api.common.helpers import HelperParameters as __BaseHelperParameters, generate_response as __generate_response
 from api.dependencies.parameters.optional import PaginationParameters
 
+from .enums import FILERApiEndpoint
 from .services import MetadataQueryService, ApiWrapperService
 from ..dependencies import InternalRequestParameters
 from ..models.track_metadata_cache import Track
@@ -111,7 +112,7 @@ async def get_track_data(opts: HelperParameters, validate=True):
             # to do so, we will add the tracks into the cache key b/c the tracks may not have 
             # been part of the original request (i.e., called from another helper)
             cacheTrackCheck = ','.join(c)
-            cacheKey = f'/data?countsOnly={countsOnly}&span={opts.parameters.span}&tracks={cacheTrackCheck}' 
+            cacheKey = f'/{ApiWrapperService.OVERLAPS_ENDPOINT}?countsOnly={countsOnly}&span={opts.parameters.span}&tracks={cacheTrackCheck}' 
             cacheKey = cacheKey.replace(':', '_')
             partialResult = await opts.internal.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
             if partialResult is None: 
@@ -187,13 +188,11 @@ async def search_track_data(opts: HelperParameters):
         .query_track_metadata(opts.parameters.assembly,
             opts.parameters.filter, opts.parameters.keyword, 
             ResponseContent.IDS)
-    
-    LOGGER.info("matching tracks found")
-    
+        
     # we want to cache the external FILER api call as well
     # to do so, we will add the tracks into the cache key b/c the tracks may not have 
     # been part of the original request (i.e., called from another helper)
-    cacheKey = f'/data_summary?assembly={opts.parameters.assembly}&span={opts.parameters.span}' 
+    cacheKey = f'/{FILERApiEndpoint.INFORMATIVE_TRACKS}?genomeBuild={opts.parameters.assembly}&span={opts.parameters.span}' 
     cacheKey = cacheKey.replace(':','_')
     informativeTracks = await opts.internal.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
     if informativeTracks is None:
