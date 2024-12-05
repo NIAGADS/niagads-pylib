@@ -2,12 +2,13 @@ from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from sqlmodel import select, col, or_, func, distinct
 from sqlalchemy import Values, String, column as sqla_column
 from sqlalchemy.ext.asyncio import AsyncSession
+from aiohttp import ClientSession
 from typing import List, Optional, Union
 
 from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
 
-from api.common.enums import ResponseContent
+from api.common.enums import Assembly, ResponseContent
 from api.config.settings import get_settings
 from api.dependencies.parameters.filters import tripleToPreparedStatement
 from api.models import BEDFeature, GenericDataModel
@@ -15,13 +16,55 @@ from api.models import BEDFeature, GenericDataModel
 
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint
-from ..dependencies.api_session import FILERApiSessionManager
 from ..models.track_metadata_cache import Track
 
 
 class ApiWrapperService:
-    def __init__(self, wrapper):
-        self.__wrapper: FILERApiSessionManager = wrapper
+    def __init__(self, session):
+        self.__session: ClientSession = session
+        
+    def __map_genome_build(self, assembly: Assembly):
+        ''' return genome build value FILER expects '''
+        return 'hg19' if assembly == Assembly.GRCh37 \
+            else 'hg38'
+
+    def __build_request_params(self, parameters: dict):
+        ''' map request params to format expected by FILER'''
+        requestParams = {'outputFormat': 'json'}
+        
+        if 'assembly' in parameters:
+            requestParams['genomeBuild'] = self.__map_genome_build(parameters['assembly'])
+
+        if 'track' in parameters:
+            # key = "trackIDs" if ',' in params['track_id'] else "trackID"
+            requestParams['trackIDs'] = parameters['track']
+            
+        if 'span' in parameters:
+            requestParams['region'] = parameters['span']
+
+        return requestParams
+
+    async def __fetch(self, endpoint: FILERApiEndpoint, params: dict):
+        ''' map request params and submit to FILER API'''
+        try:
+            requestParams = self.__build_request_params(params)
+
+            async with self.__session.get(str(endpoint), params=requestParams) as response:
+                result = await response.json() 
+            return result
+        except Exception as e:
+            raise LookupError(f'Unable to parse FILER response `{response.content}` for the following request: {str(response.url)}')
+    
+    async def __parallel_fetch(self, endpoint: FILERApiEndpoint, params: dict):
+        """    tasks = []
+        for c in colors:
+            tasks.append(get(session=session, color=c, **kwargs))
+        # asyncio.gather() will wait on the entire task set to be
+        # completed.  If you want to process results greedily as they come in,
+        # loop over asyncio.as_completed()
+        htmls = await asyncio.gather(*tasks, return_exceptions=True)
+        return htmls"""
+        pass
         
     def __rename_keys(self, dictObj, keyMapping):
         for oldKey, newKey in keyMapping.items():
