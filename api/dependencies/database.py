@@ -126,7 +126,7 @@ class DatabaseSessionManager:
             if session is None:
                 raise Exception("DatabaseSessionManager is not initialized")
             try: 
-                await session.execute(text("SELECT 1"))
+                # await session.execute(text("SELECT 1"))
                 yield session
             except (NotImplementedError, RequestValidationError, RuntimeError):
                 await session.rollback()
