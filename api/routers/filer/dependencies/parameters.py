@@ -13,7 +13,8 @@ from api.dependencies.parameters.services import InternalRequestParameters as Ba
 
 from ..common.constants import ROUTE_DATABASE
 
-# override session to use the ROUTE_SESSION_MANAGER
+# initialize database and api wrapper session managers; this allows us to 
+# use connection pooling
 ROUTE_SESSION_MANAGER = DatabaseSessionManager(ROUTE_DATABASE)
 API_CLIENT_SESSION_MANAGER = HttpClientSessionManager(get_settings().FILER_REQUEST_URI)
 class InternalRequestParameters(BaseInternalRequestParameters, arbitrary_types_allowed=True):
