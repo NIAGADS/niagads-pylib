@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     FILER_REQUEST_URI: str
     SESSION_SECRET: str
     API_PUBLIC_URL: str
+    CACHE_TTL: str = 'DEFAULT'
     
     # required by Pydantic
     model_config = SettingsConfigDict(env_file=ENV_FILE_PATH)

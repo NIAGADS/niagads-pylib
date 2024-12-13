@@ -26,13 +26,19 @@ class CacheManager:
     """
     __cache: RedisCache = None
     __namespace: CacheNamespace = CacheNamespace.ROOT
+    __ttl: CacheTTL = CacheTTL.DEFAULT
     
-    def __init__(self, serializer:CacheSerializer=CacheSerializer.JSON, namespace: CacheNamespace=None):
+    def __init__(self, serializer:CacheSerializer=CacheSerializer.JSON, namespace: CacheNamespace=None, ttl=CacheTTL.DEFAULT):
         connectionString = get_settings().API_CACHEDB_URL
         config = self.__parse_uri_path(connectionString)
         self.__cache = RedisCache(serializer=serializer.value(), **config)  # need to instantiat the serializer
         if namespace is not None:
             self.__namespace = namespace
+        self.__ttl = ttl
+            
+    def set_TTL(self, ttl: CacheTTL):
+        """ set time to life: Options: DEFAULT -> hour, SHORT -> 5 mins, DAY -> 24 hrs """
+        self.__ttl = ttl
     
     def __parse_uri_path(self, path):
         # RedisCache.parse_uri_path() does not work
@@ -47,7 +53,9 @@ class CacheManager:
         
             
     async def set(self, cacheKey:str, value: any, 
-        ttl=CacheTTL.DEFAULT, namespace:CacheNamespace=None):
+        ttl=None, namespace:CacheNamespace=None):
+        if ttl is None:
+            ttl = self.__ttl
         if self.__cache is None:
             raise RuntimeError('In memory cache not initialized')
         ns = self.__namespace if namespace is None else namespace
