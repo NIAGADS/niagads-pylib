@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, Path, Query
-from typing import Optional, Union
+from fastapi import APIRouter, Depends, Query
+from typing import Union
 
-from api.common.enums import ResponseContent, ResponseFormat
+from api.common.enums import ResponseContent
 from api.common.exceptions import RESPONSES
 from api.common.formatters import print_enum_values
 from api.dependencies.parameters.location import span_param
@@ -11,18 +11,12 @@ from api.common.helpers import Parameters, ResponseConfiguration
 from api.models import GenomeBrowserConfigResponse, GenomeBrowserExtendedConfigResponse, BEDResponse
 from api.models.base_models import BaseResponseModel
 
-from ..common.constants import ROUTE_TAGS
-from ..dependencies import InternalRequestParameters, path_track_id
+from ..dependencies.parameters import InternalRequestParameters, path_track_id
 from ..common.helpers import FILERRouteHelper
 from ..models.response.filer_track import FILERTrackResponse, FILERTrackBriefResponse
 
-# TAGS = ROUTE_TAGS
-router = APIRouter(
-    prefix="/track",
-#     tags=TAGS,
-    responses=RESPONSES
-)
 
+router = APIRouter(prefix="/track", responses=RESPONSES)
 
 tags = ["Record by ID", "Track Metadata by ID"]
 # note: the content enum variables must have a distinct name or else the get overwritten in memory from initialization when requests are made
@@ -88,13 +82,13 @@ async def get_track_data(
         internal: InternalRequestParameters = Depends()
         ) -> Union[BEDResponse, BaseResponseModel]:
     
-    rContent = await validate_response_content(get_track_data_content_enum, content)
+    rContent = validate_response_content(get_track_data_content_enum, content)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
             content=rContent,
             format=format,
-            model=BEDResponse if content == ResponseContent.FULL \
+            model=BEDResponse if rContent == ResponseContent.FULL \
                 else BaseResponseModel
         ),
         Parameters(track=track, span=span)
