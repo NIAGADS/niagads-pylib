@@ -3,7 +3,7 @@ from sqlmodel import select, col, or_, func, distinct
 from sqlalchemy import Values, String, column as sqla_column
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiohttp import ClientSession
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
@@ -14,7 +14,7 @@ from api.dependencies.parameters.filters import tripleToPreparedStatement
 from api.models import BEDFeature, GenericDataModel
 
 
-from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
+from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS, TRACKS_PER_API_REQUEST_LIMIT
 from .enums import FILERApiEndpoint
 from ..models.track_metadata_cache import Track
 
@@ -48,7 +48,6 @@ class ApiWrapperService:
         ''' map request params and submit to FILER API'''
         try:
             requestParams = self.__build_request_params(params)
-
             async with self.__session.get(str(endpoint), params=requestParams) as response:
                 result = await response.json() 
             return result
@@ -71,7 +70,7 @@ class ApiWrapperService:
             dictObj = rename_key(dictObj, oldKey, newKey)
         return dictObj
     
-    def __overlaps2features(self, overlaps) -> List[BEDFeature]:
+    def __overlaps_to_features(self, overlaps) -> List[BEDFeature]:
         features = []
         for track in overlaps:
             f:dict
@@ -81,25 +80,40 @@ class ApiWrapperService:
         return features
     
     
-    def __countOverlaps(self, overlaps: List[dict]) -> List[GenericDataModel]:   
-        return [GenericDataModel(track_id=track['Identifier'], num_overlaps=len(track['features'])) for track in overlaps]
+    async def __count_track_overlaps(self, span: str, assembly: str, tracks: List[str]) -> List[GenericDataModel]:   
+        response:dict = await self.get_informative_tracks(span, assembly, sort=True)   
+        
+        # need to filter all informative tracks for the ones that were requested
+        # and add in the zero counts for the ones that have no hits
+        informativeTracks = set([t['track_id'] for t in response]) # all informative tracks
+        nonInformativeTracks = set(tracks).difference(informativeTracks) # tracks with no hits in the span
+        informativeTracks = set(tracks).intersection(informativeTracks) # informative tracks in the requested list
+        
+        result = [GenericDataModel(tc) for tc in response if tc['track_id'] in informativeTracks] \
+            + [GenericDataModel(track_id=t, num_overlaps=0) for t in nonInformativeTracks]
+        
+        return result
     
-    # TODO: async?
-    def get_track_hits(self, tracks: List[str], span: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
-        result = self.__wrapper.fetch(FILERApiEndpoint.OVERLAPS, {'track': ','.join(tracks), 'span': span})
+    def __sort_track_counts(self, trackCountsObj):
+        return sorted(trackCountsObj, key = lambda item: item['num_overlaps'], reverse=True)
+
+
+    async def get_track_hits(self, tracks: List[str], span: str, assembly: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
+        if countsOnly:
+            return await self.__count_track_overlaps(span, assembly, tracks)
+        
+        result = await self.__fetch(FILERApiEndpoint.OVERLAPS, {'track': ','.join(tracks), 'span': span})
         if 'message' in result:
             raise RuntimeError(result['message'])
         
-        if countsOnly:
-            return self.__countOverlaps(result)
-        return self.__overlaps2features(result)
+        return self.__overlaps_to_features(result)
 
 
     async def get_informative_tracks(self, span: str, assembly: str, sort=False):
         result = self.__wrapper.fetch(FILERApiEndpoint.INFORMATIVE_TRACKS, {'span': span, 'assembly': assembly})
         result = [{'track_id' : track['Identifier'], 'num_overlaps': track['numOverlaps']} for track in result]
         # sort by most hits
-        return sorted(result, key = lambda item: item['num_overlaps'], reverse=True) if sort else result
+        return self.__sort_track_counts(result) if sort else result
 
 
 
