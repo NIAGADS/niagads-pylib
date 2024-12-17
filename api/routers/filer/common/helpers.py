@@ -160,8 +160,7 @@ class FILERRouteHelper(RouteHelper):
 
 
     async def search_track_metadata(self, rawResponse=False):
-        """ retrieve track metadata based on filter/keyword searches
-        """
+        """ retrieve track metadata based on filter/keyword searches """
         isCached = True # assuming true from the start
         cacheKey = self._managers.cacheKey.internal
         content = ResponseContent.IDS if rawResponse else self._responseConfig.content

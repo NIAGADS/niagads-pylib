@@ -1,26 +1,22 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import RequestValidationError
-from typing import Annotated, List, Optional, Union
+from typing import Annotated, Union
 
 from api.common.enums import ResponseContent
 from api.common.exceptions import RESPONSES
 from api.common.formatters import print_enum_values
+from api.common.helpers import Parameters, ResponseConfiguration
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import Assembly, assembly_param
 from api.dependencies.parameters.optional import PaginationParameters, get_response_content, keyword_param, validate_response_content
-from api.common.helpers import Parameters
 from api.models.base_models import BaseResponseModel, PaginationDataModel
-from api.routers.filer.dependencies.parameters import non_data_format_param
 
-from ..common.helpers import HelperParameters, get_track_metadata as __get_track_metadata, search_track_metadata as __search_track_metadata
+from ..common.helpers import FILERRouteHelper
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
 from ..models.response.filer_track import FILERTrackBriefResponse, FILERTrackResponse
-from ..dependencies import InternalRequestParameters, query_track_id
+from ..dependencies.parameters import InternalRequestParameters, query_track_id, non_data_format_param
 
-router = APIRouter(
-    prefix="/metadata",
-    responses=RESPONSES
-)
+router = APIRouter(prefix="/metadata", responses=RESPONSES)
 
 tags = ["Track Metadata by ID"]
 get_track_metadata_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.COUNTS])
@@ -33,14 +29,18 @@ async def get_track_metadata(
         content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(get_track_metadata_content_enum)}'),
         internal: InternalRequestParameters = Depends()) -> Union[FILERTrackBriefResponse, FILERTrackResponse]:
     
-    content = await validate_response_content(get_track_metadata_content_enum, content)
-    responseModel = FILERTrackResponse if content == ResponseContent.FULL \
-        else FILERTrackBriefResponse 
-    
-    opts = HelperParameters(internal=internal, 
-        format=format, content=content,
-        model=responseModel, parameters=Parameters(track=track))
-    return await __get_track_metadata(opts)
+    rContent = validate_response_content(get_track_metadata_content_enum, content)
+    helper = FILERRouteHelper(
+        internal,
+        ResponseConfiguration(
+            format=format,
+            content=rContent,
+            model=FILERTrackResponse if rContent == ResponseContent.FULL \
+                else FILERTrackBriefResponse 
+        ), 
+        Parameters(track=track)
+    )
+    return await helper.get_track_metadata()
 
 tags = ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
@@ -60,15 +60,22 @@ async def search_track_metadata(
     if filter is None and keyword is None:
         raise RequestValidationError('must specify either a `filter` and/or a `keyword` to search')
     
-    content = await validate_response_content(ResponseContent, content)
-    responseModel = FILERTrackResponse if content == ResponseContent.FULL \
-        else FILERTrackBriefResponse if content == ResponseContent.SUMMARY \
-            else BaseResponseModel
+    rContent = validate_response_content(ResponseContent, content)
+    helper = FILERRouteHelper(
+        internal,
+        ResponseConfiguration(
+            format=format,
+            content=rContent,
+            model=FILERTrackResponse if rContent == ResponseContent.FULL \
+                else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
+                    else BaseResponseModel
+        ),
+        Parameters(
+            page=pagination.page,
+            assembly=assembly,
+            filter=filter,
+            keyword=keyword)
+    )
     
-    opts = HelperParameters(internal=internal, pagination=PaginationDataModel(page=pagination.page),
-        content=content,
-        format=format, model=responseModel,
-        parameters=Parameters(assembly=assembly, filter=filter, keyword=keyword))
-    
-    return await __search_track_metadata(opts)
+    return await helper.search_track_metadata()
 
