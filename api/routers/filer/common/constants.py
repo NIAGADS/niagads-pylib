@@ -6,6 +6,10 @@ ROUTE_ABBREVIATION = "FILER"
 ROUTE_DESCRIPTION = {}
 ROUTE_TAGS = [ROUTE_NAME]
 
+TRACKS_PER_API_REQUEST_LIMIT = 200
+DEFAULT_PAGE_SIZE = 5000
+MAX_NUM_PAGES = 500
+
 BIOSAMPLE_FIELDS = ["life_stage", "biosample_term", "system_category",
     "tissue_category", "biosample_display",
     "biosample_summary", "biosample_term_id"]
