@@ -9,7 +9,7 @@ from api.common.helpers import Parameters, ResponseConfiguration
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import Assembly, assembly_param
 from api.dependencies.parameters.optional import PaginationParameters, get_response_content, keyword_param, validate_response_content
-from api.models.base_models import BaseResponseModel, PaginationDataModel
+from api.models.base_models import BaseResponseModel
 
 from ..common.helpers import FILERRouteHelper
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
