@@ -15,7 +15,7 @@ from api.common.utils import get_attribute
 from .constants import TRACKS_PER_API_REQUEST_LIMIT
 from .enums import FILERApiEndpoint
 from .services import MetadataQueryService, ApiWrapperService
-from ..dependencies import InternalRequestParameters
+from ..dependencies.parameters import InternalRequestParameters
 from ..models.track_metadata_cache import Track
 
 import logging

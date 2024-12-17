@@ -8,10 +8,11 @@ from api.common.formatters import print_enum_values
 from api.common.helpers import Parameters, ResponseConfiguration
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import Assembly, assembly_param
-from api.dependencies.parameters.optional import PaginationParameters, get_response_content, keyword_param, validate_response_content
+from api.dependencies.parameters.optional import PaginationParameters, keyword_param, validate_response_content
 from api.models.base_models import BaseResponseModel
 
 from ..common.helpers import FILERRouteHelper
+from ..common.enums import METADATA_CONTENT_ENUM
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
 from ..models.response.filer_track import FILERTrackBriefResponse, FILERTrackResponse
 from ..dependencies.parameters import InternalRequestParameters, query_track_id, non_data_format_param
@@ -19,17 +20,16 @@ from ..dependencies.parameters import InternalRequestParameters, query_track_id,
 router = APIRouter(prefix="/metadata", responses=RESPONSES)
 
 tags = ["Track Metadata by ID"]
-get_track_metadata_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.COUNTS])
 @router.get("/", tags=tags, response_model=Union[FILERTrackResponse, FILERTrackBriefResponse],
     name="Get metadata for multiple tracks",
     description="retrieve full metadata for one or more FILER track records")
 async def get_track_metadata(
         track: str = Depends(query_track_id),
         format: str= Depends(non_data_format_param),
-        content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(get_track_metadata_content_enum)}'),
+        content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(METADATA_CONTENT_ENUM)}'),
         internal: InternalRequestParameters = Depends()) -> Union[FILERTrackBriefResponse, FILERTrackResponse]:
     
-    rContent = validate_response_content(get_track_metadata_content_enum, content)
+    rContent = validate_response_content(METADATA_CONTENT_ENUM, content)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(

@@ -7,7 +7,7 @@ from api.models import BaseResponseModel, RequestDataModel
 
 from ..common.constants import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX
 from ..common.services import MetadataQueryService
-from ..dependencies import ROUTE_SESSION_MANAGER
+from ..dependencies.parameters import ROUTE_SESSION_MANAGER
 
 from .track import router as TrackRouter
 from .metadata import router as MetadataRouter
