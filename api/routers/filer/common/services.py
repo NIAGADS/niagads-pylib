@@ -141,7 +141,7 @@ class MetadataQueryService:
         return result
         
     
-    async def get_track_metadata(self, tracks: List[str], validate=True) -> Track:
+    async def get_track_metadata(self, tracks: List[str], validate=True) -> List[Track]:
         statement = select(Track).filter(col(Track.track_id).in_(tracks)).order_by(Track.track_id)
         # statement = select(Track).where(col(Track.track_id) == trackId) 
         # if trackId is not None else select(Track).limit(100) # TODO: pagination
@@ -150,6 +150,7 @@ class MetadataQueryService:
 
         result = (await self.__session.execute(statement)).scalars().all()
         return result
+    
     
     def __add_biosample_filters(self, statement, triple: List[str]):
         conditions = []

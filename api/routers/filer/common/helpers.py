@@ -29,7 +29,7 @@ class FILERRouteHelper(RouteHelper):
         self._managers: InternalRequestParameters = managers
     
 
-    def __page_data_query(self, trackSummary: dict, page: int):
+    def __page_data_query(self, trackSummary: dict):
         """ calculate expected result size, number of pages; 
             returns current set of paged tracks"""
         
@@ -45,16 +45,13 @@ class FILERRouteHelper(RouteHelper):
             pagedTracks = [t['track_id'] for t in trackSummary]
         
         else:
-            minRecordRowIndex = (page - 1) * self._pageSize
-            maxRecordRowIndex = minRecordRowIndex + self._pageSize
-            if maxRecordRowIndex > self._resultSize:
-                maxRecordRowIndex = self._resultSize
+            pageRange = self.page_array()
             
             # NOTE: () in the `next` returns an iterator instead of a list 
             # (i.e. instead of []) for dictionary comprehension
-            pageStartIndex = next((index for index, counts in enumerate(cumulativeSum) if counts >= minRecordRowIndex))
-            pageEndIndex = len(cumulativeSum) - 1 if maxRecordRowIndex == self._resultSize \
-                else next((index for index, counts in enumerate(cumulativeSum) if counts >= maxRecordRowIndex)) - 1
+            pageStartIndex = next((index for index, counts in enumerate(cumulativeSum) if counts >= pageRange.start))
+            pageEndIndex = len(cumulativeSum) - 1 if pageRange.end == self._resultSize \
+                else next((index for index, counts in enumerate(cumulativeSum) if counts >= pageRange.start)) - 1
             pagedTracks = [t['track_id'] for t in sortedTrackSummary[pageStartIndex:pageEndIndex]]
         
         return pagedTracks
@@ -95,7 +92,7 @@ class FILERRouteHelper(RouteHelper):
             summarize = self._responseConfig.content == ResponseContent.SUMMARY
             countsOnly = self._responseConfig.content == ResponseContent.COUNTS or summarize == True 
             
-            tracks = get_attribute(self._parameters, 'track', get_attribute(self._parameters, '_track'))
+            tracks = get_attribute(self._parameters, '_paged_tracks', get_attribute(self._parameters, 'track'))
             tracks = tracks.split(',') if isinstance(tracks, str) else tracks
             tracks = sorted(tracks) # best for caching
             
@@ -128,92 +125,116 @@ class FILERRouteHelper(RouteHelper):
     async def get_track_metadata(self, rawResponse=False):
         """ fetch track metadata; expects a list of track identifiers in the parameters"""
         isCached = True # assuming true from the start
+        cacheKey = self._managers.cacheKey.internal
+        if rawResponse:
+            cacheKey = cacheKey + '&raw'    
         
         result = await self._managers.internalCache.get(
-            self._managers.cacheKey.internal, 
+            cacheKey, 
             namespace=self._managers.cacheKey.namespace)
         
         if result is None:
             isCached = False
         
-            tracks = get_attribute(self._parameters, 'track', get_attribute(self._parameters, '_track'))
+            tracks = get_attribute(self._parameters, '_paged_tracks', get_attribute(self._parameters, 'track'))
             tracks = tracks.split(',') if isinstance(tracks, str) else tracks
-            tracks = sorted(tracks) # best for caching
-
+            tracks = sorted(tracks) # best for caching & pagination
+            
             result = await MetadataQueryService(self._managers.session).get_track_metadata(tracks)
             
+            if not rawResponse and len(tracks) > self._pageSize:
+                self.initialize_pagination()
+                pageRange = self.page_array()
+                result = result[pageRange.start:pageRange.end]
+            
         if rawResponse:
+            # cache the raw response
+            await self._managers.internalCache.set(
+                cacheKey,
+                result, 
+                namespace=self._managers.cacheKey.namespace)
+            
             return result
-        
-        else:
-            pass # TODO: paginate
+
         return await self.generate_response(result, isCached=isCached)
 
 
-    async def search_track_metadata(self, opts: HelperParameters):
+    async def search_track_metadata(self, rawResponse=False):
+        """ retrieve track metadata based on filter/keyword searches
+        """
         isCached = True # assuming true from the start
-        result = await opts.internal.internalCache.get(opts.internal.cacheKey.internal, namespace=opts.internal.cacheKey.namespace)
+        cacheKey = self._managers.cacheKey.internal
+        content = ResponseContent.IDS if rawResponse else self._responseConfig.content
+        if rawResponse:
+            cacheKey = cacheKey + '&raw'    
+        
+        result = await self._managers.internalCache.get(
+            cacheKey, 
+            namespace=self._managers.cacheKey.namespace)
         
         if result is None:
             isCached = False
-            if opts.pagination is not None and opts.content != ResponseContent.COUNTS:
-                counts = await MetadataQueryService(opts.internal.session) \
-                    .query_track_metadata(opts.parameters.assembly, 
-                        opts.parameters.filter, opts.parameters.keyword, ResponseContent.COUNTS)
-                self._resultSize = counts['track_count']
-                self.__page_metadata_query(opts.pagination.page)
-                opts.pagination.total_num_records = self._resultSize
-                opts.pagination.total_num_pages = self.__totalNumPages
+            offset = None
 
-            result = await MetadataQueryService(opts.internal.session) \
-                .query_track_metadata(opts.parameters.assembly, 
-                    opts.parameters.filter, opts.parameters.keyword, opts.content, self.__limit, self.__offset)
+            result = await MetadataQueryService(self._managers.session) \
+                .query_track_metadata(self._parameters.assembly, 
+                    self._parameters.filter, self._parameters.keyword, ResponseContent.COUNTS)
+            
+            if content == ResponseContent.COUNTS:
+                return self.generate_response(result, isCached=isCached)
+            
+            self._resultSize = result['track_count']
+            
+            self.initialize_pagination()
+            offset = None if rawResponse else self.offset()
+            limit = None if rawResponse else self._pageSize
+            
+            result = await MetadataQueryService(self._managers.session) \
+                .query_track_metadata(self._parameters.assembly, 
+                    self._parameters.filter, self._parameters.keyword, content, limit, offset)
 
-        return await __generate_response(result, opts, isCached=isCached)
+        if rawResponse:
+            # cache the raw response
+            await self._managers.internalCache.set(
+                cacheKey,
+                result, 
+                namespace=self._managers.cacheKey.namespace)
+            return result
+            
+        return await self.generate_response(result, isCached=isCached)
 
 
     async def search_track_data(self):
-        result = await opts.internal.internalCache.get(opts.internal.cacheKey.internal, namespace=opts.internal.cacheKey.namespace)
-        if result is not None: # just return the response
-            return await __generate_response(result, opts, isCached=True)
+        result = await self._managers.internalCache.get(self._managers.cacheKey.internal, namespace=self._managers.cacheKey.namespace)
+        if result is not None: # just return the cached response
+            return await self.generate_response(result, isCached=True)
         
-        matchingTracks = await MetadataQueryService(opts.internal.session) \
-            .query_track_metadata(opts.parameters.assembly,
-                opts.parameters.filter, opts.parameters.keyword, 
-                ResponseContent.IDS)
+        # get list of tracks that match the search filter
+        matchingTracks = await self.search_track_metadata(rawResponse=True)
             
-        # we want to cache the external FILER api call as well
-        # to do so, we will add the tracks into the cache key b/c the tracks may not have 
-        # been part of the original request (i.e., called from another helper)
-        cacheKey = f'/{FILERApiEndpoint.INFORMATIVE_TRACKS}?genomeBuild={opts.parameters.assembly}&span={opts.parameters.span}' 
+        # get informative tracks from the FILER API & cache
+        cacheKey = f'/{FILERApiEndpoint.INFORMATIVE_TRACKS}?genomeBuild={self._parameters.assembly}&span={self._parameters.span}' 
         cacheKey = cacheKey.replace(':','_')
-        informativeTracks = await opts.internal.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
+        informativeTracks = await self._managers.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
         if informativeTracks is None:
             # get tracks with data in the region
-            informativeTracks = await ApiWrapperService() \
-                .get_informative_tracks(opts.parameters.span, opts.parameters.assembly)
+            informativeTracks = await ApiWrapperService(self._managers.apiClientSession) \
+                .get_informative_tracks(self._parameters.span, self._parameters.assembly)
             # cache this response from the FILER Api
-            await opts.internal.internalCache.set(cacheKey, informativeTracks, namespace=CacheNamespace.FILER_EXTERNAL_API)
+            await self._managers.internalCache.set(cacheKey, informativeTracks, namespace=CacheNamespace.FILER_EXTERNAL_API)
         
         # filter for tracks that match the filter
         matchingTrackIds = matchingTracks 
-        informativeTrackIds = [t['track_id'] for t in informativeTracks] # dict
+        informativeTrackIds = [t['track_id'] for t in informativeTracks] 
         targetTrackIds = list(set(matchingTrackIds).intersection(informativeTrackIds))
         targetTracks = [t for t in informativeTracks if t['track_id'] in targetTrackIds]
         
-        LOGGER.info("target tracks found")
+        # page the result
+        self._parameters._paged_tracks = self.__page_data_query(targetTracks)
         
-        if opts.content == ResponseContent.FULL:
-            pagedTrackIds = self.__page_data_query(targetTracks, page=opts.pagination.page)
-            opts.parameters._track = pagedTrackIds
-            opts.pagination.total_num_records = resultSize
-            opts.pagination.total_num_pages = numPages
+        if self._responseConfig.content == ResponseContent.IDS:
+            return await self.generate_response(self._parameters._paged_tracks)
 
-        else:
-            opts.parameters._track = targetTrackIds
-            if opts.content == ResponseContent.IDS:
-                return await __generate_response(targetTrackIds, opts)
-            
-        result = await get_track_data(opts, validate=False)
-        return result
+        return await self.get_track_data(validate=False)
 
+    

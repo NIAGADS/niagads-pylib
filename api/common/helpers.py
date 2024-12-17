@@ -6,11 +6,14 @@ from typing import Any, Dict
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from api.common.enums import ResponseContent, CacheNamespace
+from api.common.types import Range
 from api.common.utils import get_attribute
 from api.dependencies.parameters.services import InternalRequestParameters
 from api.dependencies.parameters.optional import ResponseFormat
 from api.models.base_models import BaseResponseModel, PaginationDataModel
 from api.routers.redirect.common.constants import RedirectEndpoints
+
+INTERNAL_PARAMETERS = ['span', '_paged_tracks']
 
 class Parameters(BaseModel):
     """ arbitrary namespace to store request parameters and pass them to helpers """
@@ -110,11 +113,23 @@ class RouteHelper():
         return None if self._pagination.page == 1 \
             else (self._pagination.page - 1) * self._pageSize
 
+
+    def page_array(self) -> Range:
+        """ calculates start and end indexes for paging an array """
+        self._pagination_exists()
+        
+        start = (self._pagination.page - 1) * self._pageSize
+        end = start + self._pageSize
+        if end > self._resultSize:
+            end = self._resultSize
+            
+        return Range(start=start, end=end)
+    
     
     async def generate_response(self, result: Any, isCached=False):
         response = result if isCached else None
         if response is None:
-            self._managers.requestData.update_parameters(self._parameters, exclude=['span', '_track'])
+            self._managers.requestData.update_parameters(self._parameters, exclude=INTERNAL_PARAMETERS)
 
             if self._pagination_exists():
                 self.set_paged_num_records(len(result))
