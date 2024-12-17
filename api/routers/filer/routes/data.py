@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import RequestValidationError
-from typing import Annotated, Optional, Union
+from typing import Annotated, Union
 
 from api.common.enums import Assembly, ResponseContent
 from api.common.exceptions import RESPONSES
@@ -8,19 +8,16 @@ from api.common.formatters import print_enum_values
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import assembly_param, span_param
 from api.dependencies.parameters.optional import PaginationParameters, format_param, get_response_content, keyword_param, validate_response_content
-from api.common.helpers import Parameters
-from api.models.base_models import BaseResponseModel, PaginationDataModel
+from api.common.helpers import Parameters, ResponseConfiguration
+from api.models.base_models import BaseResponseModel
 from api.models.data_models import BEDResponse
 
-from ..common.helpers import HelperParameters, get_track_data as __get_track_data, search_track_data as __search_track_data
+from ..common.helpers import FILERRouteHelper
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
-from ..dependencies import InternalRequestParameters, query_track_id
+from ..dependencies.parameters import InternalRequestParameters, query_track_id
 from ..models.response.filer_track import FILERTrackBriefResponse
 
-router = APIRouter(
-    prefix="/data",
-    responses=RESPONSES
-)
+router = APIRouter(prefix="/data", responses=RESPONSES)
 
 tags = ["Track Data by ID"]
 get_track_data_content_enum = get_response_content(exclude=[ResponseContent.IDS])
@@ -36,15 +33,20 @@ async def get_track_data(
         internal: InternalRequestParameters = Depends()
         ) -> Union[BEDResponse, BaseResponseModel, FILERTrackBriefResponse]:
     
-    content = await validate_response_content(get_track_data_content_enum, content)
-    responseModel = BEDResponse if content == ResponseContent.FULL \
-        else FILERTrackBriefResponse if content == ResponseContent.SUMMARY \
-            else BaseResponseModel
-            
-    opts = HelperParameters(internal=internal, format=format, 
-            content=content, model=responseModel, pagination=PaginationDataModel(page=pagination.page),
-        parameters=Parameters(track=track, span=span))
-    return await __get_track_data(opts)
+    rContent = validate_response_content(get_track_data_content_enum, content)
+    helper = FILERRouteHelper(
+        internal,
+        ResponseConfiguration(
+            format=format,
+            content=rContent,
+            model=BEDResponse if rContent == ResponseContent.FULL \
+                else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
+                    else BaseResponseModel
+        ), 
+        Parameters(track=track, span=span, page=pagination.page)
+    )
+    
+    return await helper.get_track_data()
 
 
 tags = ['Record(s) by Text Search'] + ['Track Data by Text Search']
@@ -64,16 +66,19 @@ async def get_track_data_by_metadata_search(
         ) -> Union[BaseResponseModel, FILERTrackBriefResponse, BEDResponse]:
     
     if filter is None and keyword is None:
-        raise RequestValidationError('must specify either a `filter` and/or a `keyword` to search')
+        raise RequestValidationError('must specify a `filter` and/or a `keyword` to search')
     
-    content = await validate_response_content(ResponseContent, content)
-    responseModel = BEDResponse if content == ResponseContent.FULL \
-        else FILERTrackBriefResponse if content == ResponseContent.SUMMARY \
-            else BaseResponseModel
+    rContent = validate_response_content(ResponseContent, content)
+    helper = FILERRouteHelper(
+        internal,
+        ResponseConfiguration(
+            format=format,
+            content=rContent,
+            model=BEDResponse if rContent == ResponseContent.FULL \
+                else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
+                    else BaseResponseModel
+        ),
+        Parameters(assembly=assembly, filter=filter, keyword=keyword, span=span, page=pagination.page)
+    )
     
-    opts = HelperParameters(internal=internal, pagination=PaginationDataModel(page=pagination.page),
-        content=content,
-        format=format, model=responseModel,
-        parameters=Parameters(assembly=assembly, filter=filter, keyword=keyword, span=span))
-    
-    return await __search_track_data(opts)
+    return await helper.search_track_data()
