@@ -97,6 +97,7 @@ def insert_record(track: dict):
 def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False):
     ''' initializes FILER metadta from the metadata template file '''
     lineNum = 1
+    skipCount = 0
     insertCount = 0
     currentLine = None
     processedTracks = {}
@@ -131,15 +132,18 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
 
             if track['genome_build'] is None:
                 # FIXME: log non-assembly associated tracks and skip for now
-                LOGGER.warning("SKIPPING track with `NoneType` value for Genome Build (line %s): %s" % (lineNum, currentLine))
+                LOGGER.debug("SKIPPING track with `NoneType` value for Genome Build (line %s): %s" % (lineNum, currentLine))
+                skipCount += 1
                 continue
 
             if 'CADD' in track['name']: # no need; CADD annotation will come from GenomicsDB endpoints
-                LOGGER.warning("SKIPPING CADD Track (line %s): %s" % (lineNum, currentLine))
+                LOGGER.debug("SKIPPING CADD Track (line %s): %s" % (lineNum, currentLine))
+                skipCount += 1
                 continue
             
             if track['track_id'] in processedTracks:
                 LOGGER.warning('SKIPPING duplicate track (line %s): %s' % (lineNum, currentLine))      
+                skipCount += 1
                 continue
             
             if args.skipLiveValidation or \
@@ -167,7 +171,7 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
         raise RuntimeError("Unable to parse FILER metadata, problem with line #: " 
                 + str(lineNum), currentLine , track, err)
         
-    return insertCount
+    return insertCount, skipCount
 
 
 if __name__ == "__main__":
@@ -197,8 +201,9 @@ if __name__ == "__main__":
     try:
         database = Database(connectionString=args.connectionString)
         database.connect()
-        nInserts = initialize_metadata_cache(args.metadataTemplate, args.test, args.debug)
+        nInserts, nSkips = initialize_metadata_cache(args.metadataTemplate, args.test, args.debug)
         LOGGER.info("INSERTED " + str(nInserts) + " rows.")
+        LOGGER.info("SKIPPED " + str(nSkips) + " rows.")
         if args.commit:
             LOGGER.info("COMMITTING")
             database.commit()
