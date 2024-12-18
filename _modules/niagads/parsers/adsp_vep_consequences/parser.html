@@ -1,0 +1,553 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.parsers.adsp_vep_consequences.parser &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.adsp_vep_consequences.parser</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.parsers.adsp_vep_consequences.parser</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;! @brief ADSP VEP Consequence Parser and Ranker&quot;&quot;&quot;</span>
+
+<span class="c1">##</span>
+<span class="c1"># @package parsers</span>
+<span class="c1"># @file adsp_consequence_parser.py</span>
+<span class="c1">#</span>
+<span class="c1"># @brief  ADSP VEP Consequence Parser and Ranker</span>
+<span class="c1"># </span>
+<span class="c1"># @section adsp_consequence_parser Description</span>
+<span class="c1"># Some python functions for ranking consequence combinations</span>
+<span class="c1">#</span>
+<span class="c1"># modifed by EGA/fossilfriend (2021-2022) as follows:</span>
+<span class="c1">#  - wrap in class</span>
+<span class="c1">#  - moved file/load parsing &amp; consequence matching / fetching from vep_parser.py</span>
+<span class="c1">#  - added save option</span>
+<span class="c1">#  - removed unnecessary string parsing which accounts for by JSON &amp; parsing UTF-8 encoding on file reads</span>
+<span class="c1">#  - replace original code dependency on pandas w/set operations &amp; OrderedDict</span>
+<span class="c1">#  - introduced ConseqGroup enum to facilitate ranking</span>
+<span class="c1">#  - introduced readable variable names to follow conventions of GenomicsDB coding</span>
+<span class="c1">#  - NOTE: to improve readability adopted the following conventions</span>
+<span class="c1">#    + `terms`: a single consequence combination of one or more terms; in list format</span>
+<span class="c1">#    + `conseq`: a single consequence combination, in comma separated string form</span>
+<span class="c1">#    + `conseqs`: a list of consequence combinations</span>
+<span class="c1">#</span>
+<span class="c1"># @section todo_adsp_consequence_parser TODO</span>
+<span class="c1">#</span>
+<span class="c1"># - none</span>
+<span class="c1">#</span>
+<span class="c1"># @section libraries_adsp_consequence_parser Libraries/Modules</span>
+<span class="c1"># - csv: csv file reading and writing</span>
+<span class="c1"># - collections: container datatypes (e.g., OrderedDict)</span>
+<span class="c1"># - datetime: for putting timestamps on updates to consequence ranking file</span>
+<span class="c1"># - [GenomicsDBData.Util.utils](https://github.com/NIAGADS/GenomicsDBData/blob/master/Util/lib/python/utils.py)</span>
+<span class="c1">#   + provides variety of wrappers for standard file, string, list, and logging operations</span>
+<span class="c1"># - [GenomicsDBData.Util.list_utils](https://github.com/NIAGADS/GenomicsDBData/blob/master/Util/lib/python/list_utils.py)</span>
+<span class="c1">#   + provides variety of wrappers for set and list operations</span>
+<span class="c1"># - [AnnotatedVDB.Util.enums](https://github.com/NIAGADS/AnnotatedVDB/tree/master/Util/lib/python/enums)</span>
+<span class="c1">#   + enum listing groupings of consequence terms required to determine ADSP rankings</span>
+<span class="c1">#</span>
+<span class="c1"># @section author_adsp_consequence_parser Author(s)</span>
+<span class="c1"># - Created by Emily Greenfest-Allen (fossilfriend) 2021-2022</span>
+<span class="c1"># - Modified from code by Nick Wheeler, Case Western (W. Bush Group)</span>
+
+<span class="c1"># pylint: disable=line-too-long,invalid-name,no-self-use</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">date</span>
+
+<span class="kn">from</span> <span class="nn">...utils.sys</span> <span class="kn">import</span> <span class="n">warning</span><span class="p">,</span> <span class="n">die</span><span class="p">,</span> <span class="n">verify_path</span>
+<span class="kn">from</span> <span class="nn">...utils.string</span> <span class="kn">import</span> <span class="n">to_numeric</span><span class="p">,</span> <span class="n">int_to_alpha</span><span class="p">,</span> <span class="n">xstr</span>
+<span class="kn">from</span> <span class="nn">...utils.dict</span> <span class="kn">import</span> <span class="n">print_dict</span>
+<span class="kn">from</span> <span class="nn">...utils.list</span> <span class="kn">import</span> <span class="n">is_equivalent_list</span><span class="p">,</span> <span class="n">qw</span><span class="p">,</span> <span class="n">alphabetize_string_list</span><span class="p">,</span> <span class="n">list_to_indexed_dict</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">ConseqGroup</span>
+
+<div class="viewcode-block" id="VEPConsequenceParser">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser">[docs]</a>
+<span class="k">class</span> <span class="nc">VEPConsequenceParser</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;! Parser for reading and re-ranking ADSP ranked consequences of VEP output &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rankingFileName</span><span class="p">,</span> <span class="n">saveOnAddConseq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rankOnLoad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! ConsequenceParser base class initializer</span>
+
+<span class="sd">        @param rankingFileName           file containing initial consequence ranks, or newline delim list of consequences</span>
+<span class="sd">        @param saveOnAddConseq           flag to save new version of the file after adding a new consequence</span>
+<span class="sd">        @param rankOnLoad                flag to re-rank consequences when loading file</span>
+<span class="sd">        @param verbose                   flag for verbose output</span>
+<span class="sd">        @param debug                     flag for debug output</span>
+
+<span class="sd">        @returns                         An instance of the ConsequenceParser class with loaded consequence rankings</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__rankingFileName</span> <span class="o">=</span> <span class="n">rankingFileName</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceRankings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__parse_ranking_file</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__addedConsequences</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__saveOnAddConsequence</span> <span class="o">=</span> <span class="n">saveOnAddConseq</span>
+        
+        <span class="k">if</span> <span class="n">rankOnLoad</span><span class="p">:</span> <span class="c1"># re-rank file on load (e.g., first time using a ranking file)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">:</span>
+                <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;INFO:&quot;</span><span class="p">,</span> <span class="s2">&quot;rankOnLoad = True&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__update_rankings</span><span class="p">()</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">_matchedConseqTerms</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># for already matched/to speed up lookups</span>
+
+
+<div class="viewcode-block" id="VEPConsequenceParser.save_ranking_file">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.save_ranking_file">[docs]</a>
+    <span class="k">def</span> <span class="nf">save_ranking_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileName</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! save ranking if file</span>
+<span class="sd">        @param fileName   output file name; if no file name is provided, will upate original file name with current date </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">header</span> <span class="o">=</span> <span class="n">qw</span><span class="p">(</span><span class="s1">&#39;consequence rank&#39;</span><span class="p">)</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;_v&quot;</span> <span class="o">+</span> <span class="n">xstr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_new_conseq_count</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">fileName</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fileName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__rankingFileName</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> \
+                <span class="o">+</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%m-</span><span class="si">%d</span><span class="s2">-%Y&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.txt&quot;</span>
+
+        <span class="k">if</span> <span class="n">verify_path</span><span class="p">(</span><span class="n">fileName</span><span class="p">):</span> <span class="c1"># file already exists / add versioning for each newly added conseq</span>
+            <span class="n">fileName</span> <span class="o">=</span> <span class="n">fileName</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">version</span>  <span class="o">+</span> <span class="s2">&quot;.txt&quot;</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">ofh</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">header</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">ofh</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">conseq</span><span class="p">,</span> <span class="n">rank</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceRankings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">conseq</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">ofh</span><span class="p">)</span></div>
+
+            
+
+    <span class="k">def</span> <span class="nf">__parse_ranking_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! parse ranking file &amp; save as dict </span>
+<span class="sd">        @returns dictionary of conseqs:rank</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Parsing ranking file: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__rankingFileName</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">rank</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__rankingFileName</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+                <span class="n">conseq</span> <span class="o">=</span> <span class="n">alphabetize_string_list</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;consequence&#39;</span><span class="p">])</span> <span class="c1"># ensures unique keys</span>
+                <span class="k">if</span> <span class="s1">&#39;rank&#39;</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">conseq</span><span class="p">]</span> <span class="o">=</span> <span class="n">to_numeric</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;rank&#39;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span> <span class="c1"># assume load order is rank order</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">conseq</span><span class="p">]</span> <span class="o">=</span> <span class="n">rank</span>
+                    <span class="n">rank</span> <span class="o">=</span> <span class="n">rank</span> <span class="o">+</span> <span class="mi">1</span>
+
+                
+        <span class="k">return</span> <span class="n">result</span>
+
+
+    <span class="c1"># =========== accessors ==================</span>
+
+<div class="viewcode-block" id="VEPConsequenceParser.get_new_conseq_count">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_new_conseq_count">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_new_conseq_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>    
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! retrieve count of newly added consequences</span>
+<span class="sd">        @returns count of newly added consequences&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__addedConsequences</span><span class="p">)</span></div>
+
+    
+
+<div class="viewcode-block" id="VEPConsequenceParser.new_consequences_added">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.new_consequences_added">[docs]</a>
+    <span class="k">def</span> <span class="nf">new_consequences_added</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! check if new consequences were added</span>
+<span class="sd">        @returns True if new consequences were added&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__addedConsequences</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span></div>
+
+
+    
+<div class="viewcode-block" id="VEPConsequenceParser.get_added_consequences">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_added_consequences">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_added_consequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mostRecent</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! retrieve list of newly added consequences</span>
+<span class="sd">        @return list of new consequences&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__addedConsequences</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">mostRecent</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">__addedConsequences</span></div>
+
+        
+        
+<div class="viewcode-block" id="VEPConsequenceParser.get_rankings">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_rankings">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_rankings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! retrieve consequence rankings</span>
+<span class="sd">        @return OrderedDict of conseqs:rank &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceRankings</span></div>
+
+
+
+<div class="viewcode-block" id="VEPConsequenceParser.get_consequence_rank">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_consequence_rank">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_consequence_rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conseq</span><span class="p">,</span> <span class="n">failOnError</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! retrieve value from consequence rank map for the specified consequence</span>
+<span class="sd">        @param conseq       the consequence combination to look up</span>
+<span class="sd">        @param failOnError  flag indicating whether to raise an error if consequence is not found</span>
+<span class="sd">        @return return value from consequence rank map for the specified or None if not found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">conseq</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceRankings</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceRankings</span><span class="p">[</span><span class="n">conseq</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">failOnError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;Consequence &#39;</span> <span class="o">+</span> <span class="n">conseq</span> <span class="o">+</span> <span class="s1">&#39; not found in ADSP rankings.&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+        
+
+<div class="viewcode-block" id="VEPConsequenceParser.find_matching_consequence">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.find_matching_consequence">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_matching_consequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">terms</span><span class="p">,</span> <span class="n">failOnMissing</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! match list of consequences against those in the</span>
+<span class="sd">        rankings and return ranking info associated with match</span>
+
+<span class="sd">        attempt to integrate into the rankings if not found &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_consequence_rank</span><span class="p">(</span><span class="n">terms</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="n">conseqKey</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span>
+        <span class="c1"># storing matches b/c this step is slow (checking equivalent lists etc)</span>
+        <span class="k">if</span> <span class="n">conseqKey</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_matchedConseqTerms</span><span class="p">:</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">conseqStr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceRankings</span><span class="p">:</span>
+                <span class="n">conseqList</span> <span class="o">=</span> <span class="n">conseqStr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">is_equivalent_list</span><span class="p">(</span><span class="n">terms</span><span class="p">,</span> <span class="n">conseqList</span><span class="p">):</span>
+                    <span class="n">match</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_consequence_rank</span><span class="p">(</span><span class="n">conseqStr</span><span class="p">)</span>
+                    <span class="k">break</span>
+                
+            <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># no match found</span>
+                <span class="k">if</span> <span class="n">failOnMissing</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;Consequence combination &#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; not found in ADSP rankings.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span> <span class="c1"># add term &amp; make recursive cal</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">:</span>
+                        <span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Consequence combination &#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; not found in ADSP rankings.&#39;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__update_rankings</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_matching_consequence</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span>
+                
+            <span class="bp">self</span><span class="o">.</span><span class="n">_matchedConseqTerms</span><span class="p">[</span><span class="n">conseqKey</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_matchedConseqTerms</span><span class="p">[</span><span class="n">conseqKey</span><span class="p">]</span></div>
+
+
+        
+    <span class="c1"># =========== reranking functions  ==================</span>
+
+<div class="viewcode-block" id="VEPConsequenceParser.get_known_consequences">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_known_consequences">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_known_consequences</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! extract the known consequences/combos </span>
+<span class="sd">            replaces `ret_sort_combos`</span>
+
+<span class="sd">            returns as set to try and prevent duplicates</span>
+
+<span class="sd">            b/c these are keys to a hash, they are unique</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__consequenceRankings</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="c1"># convert from odict_keys object</span></div>
+
+
+
+    <span class="k">def</span> <span class="nf">__add_consequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">terms</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! add new consequence (combination) to the list of known consequences &quot;&quot;&quot;</span>
+
+        <span class="c1"># extract list of known consequences &amp; add the new one</span>
+        <span class="n">referenceConseqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_known_consequences</span><span class="p">()</span>
+        <span class="n">conseqStr</span> <span class="o">=</span> <span class="n">alphabetize_string_list</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">conseqStr</span> <span class="ow">in</span> <span class="n">referenceConseqs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;Attempted to add consequence combination &#39;</span> \
+                                <span class="o">+</span> <span class="n">conseqStr</span> <span class="o">+</span> <span class="s1">&#39;, but already in ADSP rankings.&#39;</span><span class="p">)</span>
+        
+        <span class="n">referenceConseqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conseqStr</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__addedConsequences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conseqStr</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">referenceConseqs</span>
+
+        
+    <span class="k">def</span> <span class="nf">__update_rankings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">terms</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! update rankings, adding in new term combination if specified,</span>
+<span class="sd">        where terms is a list of one or more consequences</span>
+<span class="sd">        get</span>
+<span class="sd">        ranks are applied according to the following logic:</span>
+
+<span class="sd">        1. Split all consequence combos into 4 groups:</span>
+<span class="sd">           - GRP1 - nmd: contains `NMD_transcript_variant` - ConseqGroup.NMD</span>
+<span class="sd">           - GRP2 - nct: contains `non_coding_transcript_variant` - ConseqGroup.NON_CODING_TRANSCRIPT</span>
+<span class="sd">           - GRP3 - low: contains ONLY consequences in ConseqGroup.MODIFIER</span>
+<span class="sd">           - GRP4 - high: includes at least one ConseqGroup.HIGH_IMPACT / should not overlap with groups 1&amp;2</span>
+
+<span class="sd">        2. Process GRPS in descending order</span>
+
+<span class="sd">        NOTE: iterating over the ConseqGroup enum will allow processing of GRPS in expected order</span>
+
+<span class="sd">        TODO: fill in documentation from notes from N. Wheeler</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Updating consequence rankings&quot;</span><span class="p">)</span>
+            
+        <span class="n">conseqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__add_consequence</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span> <span class="k">if</span> <span class="n">terms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_known_consequences</span><span class="p">()</span>
+
+        <span class="n">sortedConseqs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">grp</span> <span class="ow">in</span> <span class="n">ConseqGroup</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">:</span>
+                <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Ranking&quot;</span><span class="p">,</span> <span class="n">grp</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;consequences.&quot;</span><span class="p">)</span>
+            <span class="n">requireSubset</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">grp</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;MODIFIER&#39;</span> <span class="k">else</span> <span class="kc">False</span>
+            <span class="n">members</span> <span class="o">=</span> <span class="n">grp</span><span class="o">.</span><span class="n">get_group_members</span><span class="p">(</span><span class="n">conseqs</span><span class="p">,</span> <span class="n">requireSubset</span><span class="p">)</span> <span class="c1"># extract conseqs belonging to current group</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">:</span>
+                <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Found &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="n">members</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">sortedConseqs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__sort_consequences</span><span class="p">(</span><span class="n">members</span><span class="p">,</span> <span class="n">grp</span><span class="p">)</span>
+                
+        <span class="c1"># convert to dict &amp; update</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;FINAL SORTED CONSEQUENCES&quot;</span><span class="p">,</span> <span class="n">sortedConseqs</span><span class="p">)</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceRankings</span> <span class="o">=</span> <span class="n">list_to_indexed_dict</span><span class="p">(</span><span class="n">sortedConseqs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">terms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">__saveOnAddConsequence</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">:</span>
+                <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Added new consequence `&quot;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;`. Saving version:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_new_conseq_count</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_ranking_file</span><span class="p">()</span>
+
+            
+    <span class="k">def</span> <span class="nf">__sort_consequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conseqs</span><span class="p">,</span> <span class="n">conseqGrp</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! </span>
+<span class="sd">        sort an input list of consequence terms (a consequence combination) according </span>
+<span class="sd">        to a numerially indexed dictionary of their rankings</span>
+<span class="sd">        </span>
+<span class="sd">        dictionary of their rankings based on the </span>
+<span class="sd">        conseqGrp (type ConseqGroup enum) toDict()`</span>
+
+<span class="sd">        returns a list of consequence terms sorted as follows:</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># if MODIFIER (GRP 3) use MODIFIER,</span>
+        <span class="c1"># else use HIGH_IMPACT</span>
+        <span class="c1"># ranking dicts are retrieved here so that the calculation</span>
+        
+        <span class="n">grpRankingDict</span> <span class="o">=</span> <span class="n">ConseqGroup</span><span class="o">.</span><span class="n">HIGH_IMPACT</span><span class="o">.</span><span class="n">toDict</span><span class="p">()</span> \
+          <span class="k">if</span> <span class="n">conseqGrp</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s1">&#39;MODIFIER&#39;</span> \
+          <span class="k">else</span> <span class="n">conseqGrp</span><span class="o">.</span><span class="n">toDict</span><span class="p">()</span>
+
+        <span class="n">completeRankingDict</span> <span class="o">=</span> <span class="n">ConseqGroup</span><span class="o">.</span><span class="n">get_complete_indexed_dict</span><span class="p">()</span> <span class="c1"># needed for non-exclusive grps</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;GRP Dict:&quot;</span><span class="p">,</span> <span class="n">print_dict</span><span class="p">(</span><span class="n">grpRankingDict</span><span class="p">,</span> <span class="n">pretty</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+        <span class="n">indexedConseqs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">conseqs</span><span class="p">:</span>
+            <span class="n">indexedConseqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__calculate_ranking_indexes</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">grpRankingDict</span><span class="p">,</span> <span class="n">completeRankingDict</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Indexed&quot;</span><span class="p">,</span> <span class="n">conseqGrp</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;consequences:&quot;</span><span class="p">,</span> <span class="n">indexedConseqs</span><span class="p">)</span>
+
+        <span class="n">sortedConseqs</span> <span class="o">=</span> <span class="n">indexedConseqs</span>
+        <span class="n">sortedConseqs</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># sorts normally by alphabetical order            </span>
+        <span class="n">sortedConseqs</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># sorts by descending length</span>
+        <span class="n">sortedConseqs</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="c1"># sorts by first character</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Sorted&quot;</span><span class="p">,</span> <span class="n">conseqGrp</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;consequences:&quot;</span><span class="p">,</span> <span class="n">sortedConseqs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sc</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">sc</span> <span class="ow">in</span> <span class="n">sortedConseqs</span><span class="p">]</span> <span class="c1"># (alpha index, term) tuples; return term as str</span>
+
+
+    <span class="k">def</span> <span class="nf">__calculate_ranking_indexes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conseq</span><span class="p">,</span> <span class="n">grpDict</span><span class="p">,</span> <span class="n">refDict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;!  return tuple of alphabetic representation, internally sorted consequence combo as a list)</span>
+
+<span class="sd">        given a set of input consequences </span>
+<span class="sd">        and a numerically indexed dictionary of their ranking based on grp and reference dict</span>
+<span class="sd">        for non-group members</span>
+<span class="sd">    </span>
+<span class="sd">        the alphabetic representation allows to rank on order &amp; sum of term ranks</span>
+
+<span class="sd">        modified from N. Wheeler&#39;s code as follows:</span>
+<span class="sd">        * if terms are not present in the ranking dict in the original code,</span>
+<span class="sd">          they are alphabetized &amp; appended to the ranking dict, with new indexes</span>
+<span class="sd">          --&gt; here, a ranking dictionary containing all terms is passed for evaluating</span>
+<span class="sd">          sets with non-exclusive group membership, and the alphabetized non-member terms</span>
+<span class="sd">          are ranked according that dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">terms</span> <span class="o">=</span> <span class="n">conseq</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span>
+        <span class="n">memberTerms</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">terms</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">grpDict</span><span class="p">]</span>
+        <span class="n">nonMemberTerms</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">terms</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">grpDict</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;member terms:&quot;</span><span class="p">,</span> <span class="n">memberTerms</span><span class="p">)</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;nonmember terms:&quot;</span><span class="p">,</span> <span class="n">nonMemberTerms</span><span class="p">)</span>
+            
+        <span class="n">indexes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_consequence_rank_list</span><span class="p">(</span><span class="n">memberTerms</span><span class="p">,</span> <span class="n">grpDict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nonMemberTerms</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">indexes</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_consequence_rank_list</span><span class="p">(</span><span class="n">nonMemberTerms</span><span class="p">,</span> <span class="n">refDict</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;indexes:&quot;</span><span class="p">,</span> <span class="n">indexes</span><span class="p">)</span>
+            
+        <span class="c1"># get alphabetic representation</span>
+        <span class="n">alphaIndexes</span> <span class="o">=</span> <span class="p">[</span><span class="n">int_to_alpha</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">indexes</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;alpha representation:&quot;</span><span class="p">,</span> <span class="n">alphaIndexes</span><span class="p">)</span>
+        <span class="n">alphaIndexes</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+        <span class="c1"># sort consequences in the combination by their ranking indexes</span>
+    
+        <span class="n">indexedConseq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__internal_consequence_sort</span><span class="p">(</span><span class="n">memberTerms</span> <span class="o">+</span> <span class="n">nonMemberTerms</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">returnStr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;indexed&quot;</span><span class="p">,</span> <span class="n">indexedConseq</span><span class="p">)</span>
+            
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">alphaIndexes</span><span class="p">),</span> <span class="n">indexedConseq</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">__internal_consequence_sort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">terms</span><span class="p">,</span> <span class="n">rankings</span><span class="p">,</span> <span class="n">returnStr</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! sort a consequence list by a list of rankings</span>
+<span class="sd">        rankings are based on ConseqGroup indexes / hence &#39;internal&#39;</span>
+<span class="sd">        if returnStr = true, return comma separated string, else return sorted list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rankingDict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">terms</span><span class="p">,</span> <span class="n">rankings</span><span class="p">))</span>
+        <span class="n">sortedDict</span> <span class="o">=</span>  <span class="n">OrderedDict</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">rankingDict</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">kv</span><span class="p">:</span> <span class="n">kv</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span> <span class="c1"># sort by values</span>
+        <span class="k">if</span> <span class="n">returnStr</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">sortedDict</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">sortedDict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    
+
+    <span class="k">def</span> <span class="nf">__get_consequence_rank_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">terms</span><span class="p">,</span> <span class="n">rankingDict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;!</span>
+<span class="sd">        retrieve a list of consequence rankings for each term in </span>
+<span class="sd">        the consequence combination according to a numerially indexed </span>
+<span class="sd">        dictionary of consequences in the assigned group</span>
+
+<span class="sd">        # XXX: all terms should be in the rankingDict by this time / errors should</span>
+<span class="sd">        # have been caught when list of consequences was split into groups</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">rankingDict</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">]</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.adsp_vep_consequences.parser</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

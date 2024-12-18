@@ -1,0 +1,829 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.filer.parser &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.filer.parser</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.filer.parser</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="kn">import</span> <span class="n">unquote</span>
+
+
+<span class="kn">from</span> <span class="nn">..utils.list</span> <span class="kn">import</span> <span class="n">array_in_string</span><span class="p">,</span> <span class="n">remove_duplicates</span><span class="p">,</span> <span class="n">drop_nulls</span>
+<span class="kn">from</span> <span class="nn">..utils.dict</span> <span class="kn">import</span> <span class="n">prune</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">string</span> <span class="k">as</span> <span class="n">str_utils</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">reg_ex</span> <span class="k">as</span> <span class="n">re</span>
+
+<div class="viewcode-block" id="metadata_parser">
+<a class="viewcode-back" href="../../../_apidocs/niagads.filer.html#niagads.filer.parser.metadata_parser">[docs]</a>
+<span class="k">def</span> <span class="nf">metadata_parser</span><span class="p">(</span><span class="n">metadata</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; iterate over list of one or more raw metadata </span>
+<span class="sd">    objects from FILER API and standardize; returns array of standardized metadata objects&#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="p">[</span> <span class="n">FILERMetadataParser</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">metadata</span> <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="split_replicates">
+<a class="viewcode-back" href="../../../_apidocs/niagads.filer.html#niagads.filer.parser.split_replicates">[docs]</a>
+<span class="k">def</span> <span class="nf">split_replicates</span><span class="p">(</span><span class="n">replicates</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">str_utils</span><span class="o">.</span><span class="n">is_null</span><span class="p">(</span><span class="n">replicates</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+    <span class="k">if</span> <span class="n">str_utils</span><span class="o">.</span><span class="n">is_non_numeric</span><span class="p">(</span><span class="n">replicates</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">replicates</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">replicates</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">replicates</span><span class="p">)]</span> <span class="c1"># covert to list of 1 string</span></div>
+
+
+
+<div class="viewcode-block" id="is_searchable_string">
+<a class="viewcode-back" href="../../../_apidocs/niagads.filer.html#niagads.filer.parser.is_searchable_string">[docs]</a>
+<span class="k">def</span> <span class="nf">is_searchable_string</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">skipFieldsWith</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">        checks to see if key: value field contains, searchable text</span>
+<span class="sd">        based on 1) field name and 2) field contents </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;need to handle nested string values when looking for searchable text&quot;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">array_in_string</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">skipFieldsWith</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">if</span> <span class="n">str_utils</span><span class="o">.</span><span class="n">is_bool</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">if</span> <span class="n">str_utils</span><span class="o">.</span><span class="n">is_number</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+
+<div class="viewcode-block" id="FILERMetadataParser">
+<a class="viewcode-back" href="../../../_apidocs/niagads.filer.html#niagads.filer.parser.FILERMetadataParser">[docs]</a>
+<span class="k">class</span> <span class="nc">FILERMetadataParser</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; parser for FILER metadata:</span>
+<span class="sd">    standardizes keys, extracts non-name info from name, cleans up</span>
+<span class="sd">    </span>
+<span class="sd">        keys:</span>
+<span class="sd">            -- replace spaces with _</span>
+<span class="sd">            -- lower case</span>
+<span class="sd">            -- camelCase to snake_case</span>
+<span class="sd">            -- rename fields, e.g., antibody -&gt; antibody_target</span>
+<span class="sd">            -- remove (s)</span>
+<span class="sd">        </span>
+<span class="sd">        values:</span>
+<span class="sd">            -- genome build: hg38 -&gt; GRCh38, hg19 -&gt; GRCh37</span>
+<span class="sd">            -- build biosample object</span>
+<span class="sd">            -- build file info object</span>
+<span class="sd">            -- build data source object</span>
+<span class="sd">            -- extract [] fields from trackName</span>
+<span class="sd">            -- original trackName --&gt; description</span>
+<span class="sd">            -- add feature type</span>
+<span class="sd">            -- remove TF etc from assay</span>
+<span class="sd">    </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span><span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span> <span class="o">=</span> <span class="n">debug</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__datesAsStrings</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__biosamplePropsAsJson</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__filerDownloadUrl</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__primaryKeyLabel</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__searchableTextValues</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># needed to save biosample info, if converting to JSON</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__biosampleMapper</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        
+<div class="viewcode-block" id="FILERMetadataParser.set_biosample_mapper">
+<a class="viewcode-back" href="../../../_apidocs/niagads.filer.html#niagads.filer.parser.FILERMetadataParser.set_biosample_mapper">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_biosample_mapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapper</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_biosample_mapper</span><span class="p">(</span><span class="n">mapper</span><span class="p">)</span></div>
+
+        
+        
+<div class="viewcode-block" id="FILERMetadataParser.set_metadata">
+<a class="viewcode-back" href="../../../_apidocs/niagads.filer.html#niagads.filer.parser.FILERMetadataParser.set_metadata">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span> <span class="o">=</span> <span class="n">data</span></div>
+
+        
+        
+<div class="viewcode-block" id="FILERMetadataParser.set_dates_as_strings">
+<a class="viewcode-back" href="../../../_apidocs/niagads.filer.html#niagads.filer.parser.FILERMetadataParser.set_dates_as_strings">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_dates_as_strings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__datesAsStrings</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+        
+        
+<div class="viewcode-block" id="FILERMetadataParser.set_biosample_props_as_json">
+<a class="viewcode-back" href="../../../_apidocs/niagads.filer.html#niagads.filer.parser.FILERMetadataParser.set_biosample_props_as_json">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_biosample_props_as_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__biosamplePropsAsJson</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+        
+        
+<div class="viewcode-block" id="FILERMetadataParser.set_primary_key_label">
+<a class="viewcode-back" href="../../../_apidocs/niagads.filer.html#niagads.filer.parser.FILERMetadataParser.set_primary_key_label">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_primary_key_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pkLabel</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; default is &#39;identifier&#39;, use to override &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__primaryKeyLabel</span> <span class="o">=</span> <span class="n">pkLabel</span></div>
+
+        
+        
+<div class="viewcode-block" id="FILERMetadataParser.set_filer_download_url">
+<a class="viewcode-back" href="../../../_apidocs/niagads.filer.html#niagads.filer.parser.FILERMetadataParser.set_filer_download_url">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_filer_download_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; set value of FILER file download URL (base path) &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__filerDownloadUrl</span> <span class="o">=</span> <span class="n">url</span></div>
+
+        
+
+    <span class="k">def</span> <span class="nf">_get_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attribute</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; for debugging, to access private member &amp; also to handle KeyErrors&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">attribute</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span>
+        
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="p">[</span><span class="n">attribute</span><span class="p">]</span> \
+                <span class="k">if</span> <span class="n">attribute</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span> <span class="k">else</span> <span class="kc">None</span>
+    
+
+    <span class="k">def</span> <span class="nf">__parse_biosample_mapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapper</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        translates array of lines from biosample mapper file into hash</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            mapper (list): result from reading biosample mapper file into array   </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># de type      </span>
+        <span class="c1"># Proposed cell type      </span>
+        <span class="c1"># Tissue of origin info   </span>
+        <span class="c1"># Biosample info  </span>
+        <span class="c1"># Life stage info </span>
+        <span class="c1"># Derivation info notes   </span>
+        <span class="c1"># final cell type</span>
+
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span> <span class="n">value</span><span class="p">:</span> <span class="n">index</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="n">str_utils</span><span class="o">.</span><span class="n">to_snake_case</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">mapper</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)])}</span>
+        <span class="k">if</span> <span class="n">mapper</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span> <span class="n">mapper</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>    <span class="c1"># file may end with empty line</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__biosampleMapper</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">mapper</span><span class="p">:</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">mappedCellType</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;final_cell_type&#39;</span><span class="p">]]</span>
+            <span class="k">if</span> <span class="n">mappedCellType</span><span class="p">:</span> <span class="c1"># check for empty string</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__biosampleMapper</span><span class="p">[</span><span class="n">entry</span><span class="p">[</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;original_cell_type&#39;</span><span class="p">]]]</span> <span class="o">=</span> <span class="n">mappedCellType</span>
+        
+
+
+    <span class="k">def</span> <span class="nf">__parse_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39; catch numbers, booleans, nulls and html entities (b/c of text search) &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">str_utils</span><span class="o">.</span><span class="n">is_null</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">naIsNull</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="k">if</span> <span class="n">str_utils</span><span class="o">.</span><span class="n">is_number</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s1">&#39;replicate&#39;</span> <span class="ow">in</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="k">return</span> <span class="n">value</span> <span class="c1"># leave as string</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">str_utils</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="s1">&#39;date&#39;</span> <span class="ow">in</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">and</span> <span class="n">str_utils</span><span class="o">.</span><span class="n">is_date</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">str_utils</span><span class="o">.</span><span class="n">to_date</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">returnStr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__datesAsStrings</span><span class="p">)</span>
+
+            
+        <span class="k">return</span> <span class="n">unquote</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="c1"># html entities</span>
+    
+    
+    <span class="c1"># TODO map ontology terms to correct     </span>
+    <span class="c1"># TODO validate ontology terms against GenomicsDB</span>
+    <span class="c1"># TODO handle tissue categories, systems to be list</span>
+    <span class="k">def</span> <span class="nf">__parse_biosamples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39; &quot;cell type&quot;: &quot;Middle frontal area 46&quot;,</span>
+<span class="sd">        &quot;Biosample type&quot;: &quot;Tissue&quot;,</span>
+<span class="sd">        &quot;Biosamples term id&quot;: &quot;UBERON:0006483&quot;,            </span>
+<span class="sd">        &quot;Tissue category&quot;: &quot;Brain&quot;,</span>
+<span class="sd">        &quot;Track Description&quot;: &quot;Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system;Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD&quot;,</span>
+<span class="sd">        &quot;system category&quot;: &quot;Nervous&quot;,</span>
+<span class="sd">        &quot;life stage&quot;: &quot;Adult&quot;, &#39;&#39;&#39;</span>
+        
+        <span class="c1"># TODO - remove mapper; template files are now pre-mapped</span>
+        
+        <span class="n">displayTerm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s2">&quot;cell_type&quot;</span><span class="p">)</span>
+        <span class="n">biosampleType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;biosample_type&#39;</span><span class="p">)</span>
+        <span class="n">cellLine</span> <span class="o">=</span> <span class="n">biosample</span> <span class="k">if</span> <span class="n">biosampleType</span> <span class="o">==</span> <span class="s1">&#39;cell_line&#39;</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">trackDescription</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;track_description&#39;</span><span class="p">)</span>
+        <span class="n">biosampleSummary</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">regex_extract</span><span class="p">(</span><span class="s1">&#39;Biosample_summary=([^;]*)&#39;</span><span class="p">,</span> <span class="n">trackDescription</span> <span class="p">)</span> \
+            <span class="k">if</span> <span class="n">trackDescription</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">biosample</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">regex_extract</span><span class="p">(</span><span class="s1">&#39;premapping_cell_type=([^;]*)&#39;</span><span class="p">,</span> <span class="n">trackDescription</span> <span class="p">)</span> \
+            <span class="k">if</span> <span class="n">trackDescription</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">biosample</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">biosample</span> <span class="o">=</span> <span class="n">displayTerm</span>
+    
+        <span class="k">if</span> <span class="n">displayTerm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">str_utils</span><span class="o">.</span><span class="n">is_number</span><span class="p">(</span><span class="n">displayTerm</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Found numeric cell_type - &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">displayTerm</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; - for track &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;identifier&#39;</span><span class="p">))</span>
+            <span class="n">displayTerm</span> <span class="o">=</span> <span class="n">unquote</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;file_name&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span><span class="s1">&#39; - &#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;cell_type&#39;</span><span class="p">:</span> <span class="n">displayTerm</span><span class="p">})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Updated to &quot;</span> <span class="o">+</span> <span class="n">displayTerm</span> <span class="o">+</span> <span class="s2">&quot; from file name = &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;file_name&#39;</span><span class="p">))</span>
+            
+        <span class="n">biosampleCharacteristics</span>  <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;biosample_term&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">biosample</span><span class="p">),</span> 
+            <span class="s2">&quot;biosample_term_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;biosamples_term_id&#39;</span><span class="p">),</span>
+            <span class="s2">&quot;biosample_display&quot;</span><span class="p">:</span> <span class="n">displayTerm</span><span class="p">,</span> 
+                <span class="c1"># str(self.__biosampleMapper[biosample] if biosample in self.__biosampleMapper else biosample),</span>
+            <span class="s2">&quot;biosample_type&quot;</span><span class="p">:</span> <span class="n">biosampleType</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">if</span> <span class="n">biosampleType</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;cell_line&quot;</span><span class="p">:</span> <span class="n">cellLine</span><span class="p">,</span>
+            <span class="s2">&quot;tissue_category&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;tissue_category&#39;</span><span class="p">),</span>
+            <span class="s2">&quot;system_category&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;system_category&#39;</span><span class="p">),</span>
+            <span class="s2">&quot;life_stage&quot;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s2">&quot;life_stage&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;biosample_summary&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__clean_list</span><span class="p">(</span><span class="n">biosampleSummary</span><span class="p">,</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+        <span class="p">}</span>
+        
+        <span class="n">biosampleCharacteristics</span> <span class="o">=</span> <span class="n">prune</span><span class="p">(</span><span class="n">biosampleCharacteristics</span><span class="p">,</span> <span class="n">prune</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Unknown&#39;</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__biosamplePropsAsJson</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;biosample_characteristics&quot;</span><span class="p">:</span>  <span class="n">biosampleCharacteristics</span><span class="p">})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__searchableTextValues</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__clean_text</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> 
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">biosampleCharacteristics</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> 
+                <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__remove_attributes</span><span class="p">([</span><span class="s1">&#39;biosample_term&#39;</span><span class="p">,</span> <span class="s1">&#39;biosample_term_id&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;biosample_display&#39;</span><span class="p">,</span> <span class="s1">&#39;biosample_type&#39;</span><span class="p">,</span> <span class="s1">&#39;cell_line&#39;</span><span class="p">,</span> <span class="s1">&#39;life_stage&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;tissue_category&#39;</span><span class="p">,</span> <span class="s1">&#39;system_category&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">biosampleCharacteristics</span><span class="p">)</span>
+        
+            
+    <span class="k">def</span> <span class="nf">__assign_feature_by_assay</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">assay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;assay&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">assay</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;QTL&#39;</span> <span class="ow">in</span> <span class="n">assay</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">assay</span>
+            <span class="k">if</span> <span class="s1">&#39;TF&#39;</span> <span class="ow">in</span> <span class="n">assay</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;transcription factor binding site&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;Histone&#39;</span> <span class="ow">in</span> <span class="n">assay</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;histone modification&quot;</span>
+            <span class="k">if</span> <span class="n">assay</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;Small RNA-seq&quot;</span><span class="p">,</span> <span class="s2">&quot;short total RNA-seq&quot;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="s2">&quot;small non-coding RNA&quot;</span>   
+            <span class="k">if</span> <span class="n">assay</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;FAIRE-seq&#39;</span><span class="p">,</span> <span class="s1">&#39;DNase-seq&#39;</span><span class="p">,</span> <span class="s1">&#39;ATAC-seq&#39;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="s2">&quot;chromatin accessibility&quot;</span>
+            <span class="k">if</span> <span class="n">assay</span> <span class="o">==</span> <span class="s1">&#39;PRO-seq&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;enhancer&quot;</span>
+            <span class="k">if</span> <span class="n">assay</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;eCLIP&#39;</span><span class="p">,</span> <span class="s1">&#39;iCLIP&#39;</span><span class="p">,</span> <span class="s1">&#39;RIP-seq&#39;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="s2">&quot;protein-RNA crosslink or binding sites&quot;</span>
+        
+        <span class="k">return</span> <span class="kc">None</span>
+    
+    
+    <span class="k">def</span> <span class="nf">__assign_feature_by_analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">analysis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;analysis&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">analysis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">analysis</span> <span class="o">==</span> <span class="s2">&quot;annotation&quot;</span><span class="p">:</span>
+                <span class="c1"># check output type</span>
+                <span class="k">if</span> <span class="s1">&#39;gene&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s2">&quot;output_type&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                    <span class="k">return</span> <span class="s2">&quot;gene&quot;</span>
+                
+                <span class="c1"># check track_description</span>
+                <span class="c1"># e.g., All lncRNA annotations</span>
+                <span class="n">trackDescription</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s2">&quot;track_description&quot;</span><span class="p">)</span> 
+                <span class="k">if</span> <span class="n">trackDescription</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;annotation&#39;</span> <span class="ow">in</span> <span class="n">trackDescription</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">regex_extract</span><span class="p">(</span><span class="s2">&quot;All (.+) annotation&quot;</span> <span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s2">&quot;track_description&quot;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="s1">&#39;QTL&#39;</span> <span class="ow">in</span> <span class="n">analysis</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">analysis</span>
+        
+        <span class="k">return</span> <span class="kc">None</span>
+    
+    
+    <span class="k">def</span> <span class="nf">__assign_feature_by_output_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">outputType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s2">&quot;output_type&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;enhancer&#39;</span> <span class="ow">in</span> <span class="n">outputType</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;enhancer&quot;</span>    
+        <span class="k">if</span> <span class="s1">&#39;methylation state&#39;</span> <span class="ow">in</span> <span class="n">outputType</span><span class="p">:</span>
+            <span class="n">state</span><span class="p">,</span> <span class="n">loc</span> <span class="o">=</span> <span class="n">outputType</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; at &#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">loc</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">state</span>
+        <span class="k">if</span> <span class="s1">&#39;microrna target&#39;</span> <span class="ow">in</span> <span class="n">outputType</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s1">&#39;microRNA target&#39;</span>  
+        <span class="k">if</span> <span class="s1">&#39;microRNA&#39;</span> <span class="ow">in</span> <span class="n">outputType</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="s2">&quot;microRNA&quot;</span>     
+        <span class="k">if</span> <span class="s1">&#39;exon&#39;</span> <span class="ow">in</span> <span class="n">outputType</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;exon&quot;</span>        
+        <span class="k">if</span> <span class="s1">&#39;transcription start sites&#39;</span> <span class="ow">in</span> <span class="n">outputType</span> <span class="ow">or</span> <span class="s1">&#39;TSS&#39;</span> <span class="ow">in</span> <span class="n">outputType</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;transcription start site&quot;</span>      
+        <span class="k">if</span> <span class="s1">&#39;transcribed fragments&#39;</span> <span class="ow">in</span> <span class="n">outputType</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;transcribed fragment&#39;</span>
+        
+        <span class="k">if</span> <span class="n">outputType</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;footprints&quot;</span><span class="p">,</span> <span class="s2">&quot;hotspots&quot;</span><span class="p">]:</span>
+            <span class="c1"># TODO: this may need to be updated, as it varies based on the assay type</span>
+            <span class="k">return</span> <span class="n">outputType</span>
+        
+        <span class="c1"># should have been already handled, but just in case</span>
+        <span class="k">if</span> <span class="n">outputType</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;clusters&quot;</span><span class="p">,</span> <span class="s2">&quot;ChromHMM&quot;</span><span class="p">,</span> <span class="s2">&quot;Genomic Partition&quot;</span><span class="p">]:</span> 
+            <span class="k">return</span> <span class="kc">None</span> 
+        
+        <span class="k">if</span> <span class="n">outputType</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Chromatin&quot;</span><span class="p">):</span> <span class="c1"># standardize case</span>
+            <span class="k">return</span> <span class="n">outputType</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        
+        <span class="c1"># peaks are too generic</span>
+        <span class="c1"># TODO: handle peaks &amp; correctly map, for now</span>
+        <span class="c1"># just return</span>
+        <span class="c1"># but there are some &quot;enhancer peaks&quot;, which is why</span>
+        <span class="c1"># this test is 2nd</span>
+        <span class="k">if</span> <span class="s1">&#39;peaks&#39;</span> <span class="ow">in</span> <span class="n">outputType</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">outputType</span>  
+        
+        <span class="k">return</span> <span class="n">outputType</span>
+    
+    
+    <span class="k">def</span> <span class="nf">__assign_feature_by_classification</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">classification</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;classification&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s1">&#39;histone-mark&#39;</span> <span class="ow">in</span> <span class="n">classification</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;histone modification&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;chip-seq&#39;</span> <span class="ow">in</span> <span class="n">classification</span> <span class="ow">or</span> <span class="s1">&#39;chia-pet&#39;</span> <span class="ow">in</span> <span class="n">classification</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;ctcf&#39;</span> <span class="ow">in</span> <span class="n">classification</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;CTCF-biding site&#39;</span>
+            <span class="k">if</span> <span class="s1">&#39;ctcfl&#39;</span> <span class="ow">in</span> <span class="n">classification</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;CTCFL-binding site&#39;</span>
+            <span class="k">if</span> <span class="n">classification</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;tf &#39;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="s1">&#39;transcription factor binding site&#39;</span>
+            <span class="k">if</span> <span class="s1">&#39;chromhmm&#39;</span> <span class="ow">in</span> <span class="n">classification</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;enhancer&#39;</span>
+            
+            <span class="c1"># next options should have been  caught earier, but just in case</span>
+            <span class="n">assay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;assay&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;Histone&#39;</span> <span class="ow">in</span> <span class="n">assay</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;histone modification&#39;</span>
+            <span class="k">if</span> <span class="s1">&#39;TF&#39;</span> <span class="ow">in</span> <span class="n">assay</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;transcription factor binding site&#39;</span>
+
+        <span class="k">if</span> <span class="n">classification</span> <span class="o">==</span> <span class="s2">&quot;rna-pet clusters&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;RNA-PET cluster&quot;</span>
+        
+        <span class="k">return</span> <span class="kc">None</span>
+    
+        
+    <span class="k">def</span> <span class="nf">__parse_feature_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> 
+        <span class="n">feature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__assign_feature_by_assay</span><span class="p">()</span>        
+        <span class="k">if</span> <span class="n">feature</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">feature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__assign_feature_by_analysis</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">feature</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">feature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__assign_feature_by_classification</span><span class="p">()</span> 
+        <span class="k">if</span> <span class="n">feature</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">feature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__assign_feature_by_output_type</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">feature</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No feature type mapped for track: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="p">)</span>
+        
+        <span class="c1"># variants have unnecessary prefixes</span>
+        <span class="c1"># SAS GIH INDEL</span>
+        <span class="c1"># SAS GIH SNV</span>
+        <span class="c1"># SAS GIH SV</span>
+        <span class="c1"># SAS SV</span>
+        <span class="k">if</span> <span class="n">feature</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39; INDEL&#39;</span><span class="p">):</span>
+            <span class="n">feature</span> <span class="o">=</span> <span class="s1">&#39;insertion/deletion variant (INDEL)&#39;</span>
+        <span class="k">if</span> <span class="n">feature</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39; SNV&#39;</span><span class="p">):</span>
+            <span class="n">feature</span> <span class="o">=</span> <span class="s1">&#39;single nucleotide variant (SNV)&#39;</span>
+        <span class="k">if</span> <span class="n">feature</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39; SV&#39;</span><span class="p">):</span>
+            <span class="n">feature</span> <span class="o">=</span> <span class="s1">&#39;structural variant (SV)&#39;</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;feature_type&quot;</span><span class="p">:</span> <span class="n">feature</span><span class="p">})</span>
+        
+        
+    <span class="k">def</span> <span class="nf">__parse_data_category</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">category</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;assigned_data_category&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">category</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">category</span> <span class="o">=</span> <span class="n">category</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">category</span> <span class="o">==</span> <span class="s1">&#39;called peaks expression&#39;</span><span class="p">:</span> 
+                <span class="n">category</span> <span class="o">=</span> <span class="s1">&#39;called peaks&#39;</span>
+            <span class="k">if</span> <span class="n">category</span> <span class="o">==</span> <span class="s1">&#39;qtl&#39;</span><span class="p">:</span>
+                <span class="n">category</span> <span class="o">=</span> <span class="s1">&#39;QTL&#39;</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;data_category&quot;</span><span class="p">:</span> <span class="n">category</span><span class="p">})</span>
+        
+
+    <span class="k">def</span> <span class="nf">__parse_assay</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">analysis</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">classification</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;classification&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">classification</span> <span class="o">==</span> <span class="s1">&#39;ChIP-seq consolidated ChromHMM&#39;</span><span class="p">:</span>
+            <span class="n">analysis</span> <span class="o">=</span> <span class="s1">&#39;ChromHMM&#39;</span>
+            
+        <span class="n">assay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;assay&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">assay</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">assay</span> <span class="o">=</span> <span class="n">assay</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-Seq&#39;</span><span class="p">,</span> <span class="s1">&#39;-seq&#39;</span><span class="p">)</span> <span class="c1"># consistency </span>
+            
+            <span class="k">if</span> <span class="s1">&#39;ChromHMM&#39;</span> <span class="ow">in</span> <span class="n">assay</span><span class="p">:</span>
+                <span class="n">analysis</span> <span class="o">=</span> <span class="n">assay</span>
+                <span class="n">assay</span> <span class="o">=</span> <span class="s2">&quot;ChIP-seq&quot;</span>
+                
+            <span class="k">elif</span> <span class="n">assay</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;annotation&#39;</span><span class="p">:</span>
+                <span class="n">assay</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">analysis</span> <span class="o">=</span> <span class="s2">&quot;annotation&quot;</span>
+            
+            <span class="k">elif</span> <span class="n">assay</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;eQTL&quot;</span><span class="p">,</span> <span class="s2">&quot;sQTL&quot;</span><span class="p">]:</span>
+                <span class="n">analysis</span> <span class="o">=</span> <span class="n">assay</span>
+                <span class="n">assay</span> <span class="o">=</span> <span class="kc">None</span>
+            
+            <span class="c1"># TODO: need to check output type b/c assay type may need to be updated</span>
+            <span class="c1"># e.g. DNASeq Footprinting if output_type == footprints</span>
+            <span class="k">elif</span> <span class="s1">&#39;DNase&#39;</span> <span class="ow">in</span> <span class="n">assay</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;DNase-seq&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;assay&quot;</span><span class="p">:</span> <span class="n">assay</span><span class="p">,</span> <span class="s2">&quot;analysis&quot;</span><span class="p">:</span> <span class="n">analysis</span><span class="p">})</span>
+
+
+    <span class="k">def</span> <span class="nf">__parse_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1">#     &quot;trackName&quot;: &quot;ENCODE Middle frontal area 46 (repl. 1) TF ChIP-seq CTCF IDR thresholded peaks (narrowPeak) </span>
+        <span class="c1"># [Experiment: ENCSR778NDP] [Orig: Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system;Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD] [Life stage: Adult]&quot;,</span>
+        
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;track_name&#39;</span><span class="p">)</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; split points:</span>
+<span class="sd">        bed*</span>
+<span class="sd">        broadPeak</span>
+<span class="sd">        idr_peak</span>
+<span class="sd">        narrowPeak</span>
+<span class="sd">        tss_peak</span>
+<span class="sd">        </span>
+<span class="sd">        pattern adapted from: https://stackoverflow.com/a/68862249 to only match closest parentheses</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="s2">&quot;\s[(\[][^()\[\]]*?eak\)\s|\s\(bed[^()\[\]]*[)\]]\s&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">regex_split</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;track_name&#39;</span><span class="p">)</span> <span class="p">})</span>
+
+
+    <span class="k">def</span> <span class="nf">__parse_experiment_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># [Experiment: ENCSR778NDP] [Orig: Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue \</span>
+        <span class="c1"># female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system; \</span>
+        <span class="c1"># Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD]&quot;,</span>
+        <span class="nb">id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;encode_experiment_id&#39;</span><span class="p">)</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__clean_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;track_description&#39;</span><span class="p">),</span> <span class="n">delim</span><span class="o">=</span><span class="s2">&quot;;&quot;</span><span class="p">)</span>
+        <span class="n">project</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">regex_extract</span><span class="p">(</span><span class="s1">&#39;Project=([^;]*)&#39;</span><span class="p">,</span> <span class="n">info</span><span class="p">)</span> \
+                <span class="k">if</span> <span class="n">info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                <span class="s2">&quot;experiment_id&quot;</span><span class="p">:</span> <span class="nb">id</span><span class="p">,</span>
+                <span class="s2">&quot;experiment_info&quot;</span><span class="p">:</span> <span class="n">info</span><span class="p">,</span>
+                <span class="s2">&quot;project&quot;</span><span class="p">:</span> <span class="n">project</span>
+        <span class="p">})</span>
+        
+
+    <span class="k">def</span> <span class="nf">__parse_data_source</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">dsInfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;data_source&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">dsInfo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">dsInfo</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dsInfo</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">None</span>
+        
+        <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s1">&#39;FANTOM5&#39;</span> <span class="ow">and</span> <span class="s1">&#39;slide&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;link_out_url&#39;</span><span class="p">):</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="n">version</span> <span class="o">+</span> <span class="s1">&#39;_SlideBase&#39;</span>
+            
+        <span class="k">if</span> <span class="n">array_in_string</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;INFERNO&#39;</span><span class="p">,</span> <span class="s1">&#39;eQTL&#39;</span><span class="p">]):</span>
+            <span class="c1"># don&#39;t split on the _</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;data_source&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">(</span> <span class="p">{</span>
+                <span class="s2">&quot;data_source&quot;</span><span class="p">:</span> <span class="n">source</span><span class="p">,</span>
+                <span class="s2">&quot;data_source_version&quot;</span><span class="p">:</span> <span class="n">version</span>
+        <span class="p">})</span>
+    
+    
+    <span class="k">def</span> <span class="nf">__parse_file_format</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">formatInfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;file_format&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+        <span class="nb">format</span> <span class="o">=</span> <span class="n">formatInfo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>      
+        <span class="n">schema</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">formatInfo</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;bed&#39;</span> <span class="ow">in</span> <span class="nb">format</span><span class="p">:</span>
+                <span class="n">schema</span> <span class="o">=</span> <span class="nb">format</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="s1">&#39;bed&#39;</span>    
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">schema</span> <span class="o">=</span> <span class="n">formatInfo</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">formatInfo</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">formatInfo</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;|&quot;</span> <span class="o">+</span> <span class="n">formatInfo</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;file_format&quot;</span><span class="p">:</span> <span class="nb">format</span><span class="p">,</span> <span class="s2">&quot;file_schema&quot;</span><span class="p">:</span> <span class="n">schema</span><span class="p">})</span>
+    
+    
+    <span class="k">def</span> <span class="nf">__parse_generic_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39; handle common fixes to all URL fields &#39;&#39;&#39;</span>
+        
+        <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;wget&#39;</span> <span class="ow">in</span> <span class="n">url</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            
+        <span class="k">return</span> <span class="n">url</span>
+    
+    
+    <span class="k">def</span> <span class="nf">__parse_internal_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39; correct domain and other formatting issues</span>
+<span class="sd">        &#39;&#39;&#39;</span> 
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__parse_generic_url</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>           
+        <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="s1">&#39;^[^GADB]*\/GADB&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__filerDownloadUrl</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+    
+    
+    <span class="k">def</span> <span class="nf">__parse_urls</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__parse_internal_url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;processed_file_download_url&#39;</span><span class="p">)),</span>
+                <span class="s2">&quot;raw_file_url&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__parse_internal_url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;raw_file_download&#39;</span><span class="p">)),</span>
+                <span class="s2">&quot;download_url&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__parse_generic_url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;raw_file_url&#39;</span><span class="p">))</span>
+        <span class="p">})</span>
+        
+
+    <span class="k">def</span> <span class="nf">__parse_genome_build</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">genomeBuild</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;genome_build&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">genomeBuild</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">genomeBuild</span> <span class="o">=</span> <span class="s1">&#39;GRCh38&#39;</span> <span class="k">if</span> <span class="s1">&#39;hg38&#39;</span> <span class="ow">in</span> <span class="n">genomeBuild</span> <span class="k">else</span> <span class="s1">&#39;GRCh37&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;genome_build&quot;</span><span class="p">:</span> <span class="n">genomeBuild</span><span class="p">})</span>
+    
+    
+    <span class="k">def</span> <span class="nf">__parse_is_lifted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">genomeBuild</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;genome_build&#39;</span><span class="p">)</span>
+        <span class="n">dataSource</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;data_source&#39;</span><span class="p">)</span>
+        
+        <span class="n">lifted</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">genomeBuild</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lifted</span> <span class="o">=</span> <span class="s1">&#39;lifted&#39;</span> <span class="ow">in</span> <span class="n">genomeBuild</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">lifted</span> <span class="ow">and</span> <span class="n">dataSource</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lifted</span> <span class="o">=</span> <span class="s1">&#39;lifted&#39;</span> <span class="ow">in</span> <span class="n">dataSource</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;is_lifted&quot;</span><span class="p">:</span> <span class="n">lifted</span><span class="p">})</span>
+
+
+    <span class="k">def</span> <span class="nf">__parse_output_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">outputType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;output_type&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">outputType</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;chromatin interactions&#39;</span><span class="p">,</span> <span class="s1">&#39;genomic partition&#39;</span><span class="p">,</span> <span class="s1">&#39;enhancer peaks&#39;</span><span class="p">]:</span>
+            <span class="n">outputType</span> <span class="o">=</span> <span class="n">outputType</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;output_type&quot;</span><span class="p">:</span> <span class="n">outputType</span><span class="p">})</span>   
+        
+        
+    <span class="k">def</span> <span class="nf">__clean_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        clean text to remove symbols (;:,) and extra spaces </span>
+<span class="sd">        Args:</span>
+<span class="sd">            value (str): string to clean</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            cleaned string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cleanStr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="s1">&#39;;|,|:&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cleanStr</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="c1"># hack to remove multiple consecutive spaces</span>
+        
+        
+    <span class="k">def</span> <span class="nf">__clean_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">delim</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;;&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        wrapper to clean &#39;;&#39; delimited list of values; removes extra spaces</span>
+<span class="sd">        can change delimiter w/ delim option</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            s (str): string to clean</span>
+<span class="sd">            delim (str, optional): new delimiter. Defaults to &#39;;&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">s</span>
+
+        <span class="n">cleanStr</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="s1">&#39;;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">delim</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cleanStr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">))</span> <span class="c1"># hack to remove multiple consecutive spaces</span>
+       
+        
+
+    <span class="k">def</span> <span class="nf">__add_text_search_field</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; concatenate everything that isn&#39;t a date or url &quot;&quot;&quot;</span>
+        <span class="n">skipFieldsWith</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="s1">&#39;url&#39;</span><span class="p">,</span> <span class="s1">&#39;md5&#39;</span><span class="p">,</span> <span class="s1">&#39;path&#39;</span><span class="p">,</span> <span class="s1">&#39;file&#39;</span><span class="p">,</span> <span class="s1">&#39;description&#39;</span><span class="p">]</span>
+        
+        <span class="c1"># sum(list, []) is a python hack for flattening a nested list</span>
+        <span class="n">textValues</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__clean_text</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> 
+                <span class="k">if</span> <span class="n">is_searchable_string</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">skipFieldsWith</span><span class="p">)]</span>
+
+        <span class="c1"># some field have the same info</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;searchable_text&quot;</span><span class="p">:</span> <span class="s1">&#39;;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">remove_duplicates</span><span class="p">(</span><span class="n">textValues</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__searchableTextValues</span><span class="p">))})</span>
+        
+
+    <span class="k">def</span> <span class="nf">__rename_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">match</span> <span class="n">key</span><span class="p">:</span>
+            <span class="k">case</span> <span class="s1">&#39;antibody&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;antibody_target&#39;</span>
+            <span class="k">case</span> <span class="s1">&#39;downloaded_date&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;download_date&#39;</span>
+            <span class="k">case</span> <span class="s1">&#39;processed_file_md5&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;md5sum&#39;</span>
+            <span class="k">case</span> <span class="s1">&#39;raw_file_md5&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;raw_file_md5sum&#39;</span>
+            <span class="k">case</span> <span class="s1">&#39;technical_replicate&#39;</span><span class="p">:</span> <span class="c1"># for consistency</span>
+                <span class="k">return</span> <span class="s1">&#39;technical_replicates&#39;</span>
+            <span class="k">case</span> <span class="s1">&#39;date_added_to_filer&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;filer_release_date&#39;</span>
+            <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">key</span>
+            
+
+    <span class="k">def</span> <span class="nf">__transform_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="c1"># camel -&gt; snake + lower case</span>
+        <span class="n">tValue</span> <span class="o">=</span> <span class="n">str_utils</span><span class="o">.</span><span class="n">to_snake_case</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">tValue</span> <span class="o">=</span> <span class="n">tValue</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+        <span class="n">tValue</span> <span class="o">=</span> <span class="n">tValue</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;(s)&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">)</span>
+        <span class="n">tValue</span> <span class="o">=</span> <span class="n">tValue</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__rename_key</span><span class="p">(</span><span class="n">tValue</span><span class="p">)</span>
+        
+        
+    <span class="k">def</span> <span class="nf">__transform_key_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39; transform keys and since iterating over </span>
+<span class="sd">            the metadata anyway, catch nulls, numbers and convert from string</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span> <span class="o">=</span> <span class="p">{</span> <span class="bp">self</span><span class="o">.</span><span class="n">__transform_key</span><span class="p">(</span><span class="n">key</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">__parse_value</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        
+
+    <span class="k">def</span> <span class="nf">__remove_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attributes</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; remove attributes by name/key &quot;&quot;&quot;</span>    
+        <span class="c1"># add check b/c chance a key could have been removed earlier</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">attributes</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__remove_internal_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39; remove internal attributes &#39;&#39;&#39;</span>
+        <span class="n">internalKeys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;link_out_url&#39;</span><span class="p">,</span> <span class="s1">&#39;processed_file_download_url&#39;</span><span class="p">,</span> <span class="s1">&#39;track_name&#39;</span><span class="p">,</span> <span class="s1">&#39;assigned_data_category&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;track_description&#39;</span><span class="p">,</span> <span class="s1">&#39;wget_command&#39;</span><span class="p">,</span> <span class="s1">&#39;tabix_index_download&#39;</span><span class="p">,</span> <span class="s1">&#39;encode_experiment_id&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;cell_type&#39;</span><span class="p">,</span> <span class="s1">&#39;biosamples_term_id&#39;</span><span class="p">,</span> <span class="s1">&#39;filepath&#39;</span><span class="p">,</span> <span class="s1">&#39;raw_file_download&#39;</span><span class="p">]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__remove_attributes</span><span class="p">(</span><span class="n">internalKeys</span><span class="p">)</span>
+        
+
+    <span class="k">def</span> <span class="nf">__update_primary_key_label</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; change label of primary key field from &#39;identifier&#39; to value of self.__primaryKeyLabel &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__primaryKeyLabel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="bp">self</span><span class="o">.</span><span class="n">__primaryKeyLabel</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">(</span><span class="s1">&#39;identifier&#39;</span><span class="p">)})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__remove_attributes</span><span class="p">([</span><span class="s1">&#39;identifier&#39;</span><span class="p">])</span>
+            
+    
+<div class="viewcode-block" id="FILERMetadataParser.parse">
+<a class="viewcode-back" href="../../../_apidocs/niagads.filer.html#niagads.filer.parser.FILERMetadataParser.parse">[docs]</a>
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39; parse the FILER metadata &amp; transform/clean up </span>
+<span class="sd">        returns parsed / transformed metadata </span>
+<span class="sd">        </span>
+<span class="sd">        if verifyTrack = True will query FILER to make sure that the track exists</span>
+<span class="sd">        parser will return None if the track is not valid</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must set metadata before parsing FILERMetadataParser.set_metadata()&quot;</span><span class="p">)</span>
+        
+        
+        <span class="c1"># standardize keys &amp; convert nulls &amp; numbers from__parse_replicates string</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__transform_key_values</span><span class="p">()</span>
+                        
+        <span class="c1"># parse concatenated data points into separate attributes</span>
+        <span class="c1"># standardize others (e.g., urls, data sources)</span>
+        <span class="c1"># dropping description; allow use cases to piece together out of the other info</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_is_lifted</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_genome_build</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_data_source</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_biosamples</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_urls</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_file_format</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_experiment_info</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_name</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_assay</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_data_category</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_feature_type</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_output_type</span><span class="p">()</span>
+        
+        <span class="c1"># remove private info</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__remove_internal_attributes</span><span class="p">()</span>
+        <span class="c1"># generate text search field</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__add_text_search_field</span><span class="p">()</span>
+        
+        <span class="c1"># update primary key label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__update_primary_key_label</span><span class="p">()</span>     
+
+        <span class="c1"># return the parsed metadata</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metadata</span></div>
+</div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.filer.parser</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2024, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>
