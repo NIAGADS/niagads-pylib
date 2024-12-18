@@ -1,8 +1,9 @@
 import logging
 from urllib.parse import unquote
 
+
 from ..utils.list import array_in_string, remove_duplicates, drop_nulls
-from ..utils.dict import print_dict, prune
+from ..utils.dict import prune
 from ..utils import string as str_utils
 from ..utils import reg_ex as re
 
@@ -408,8 +409,20 @@ class FILERMetadataParser:
         # [Experiment: ENCSR778NDP] [Orig: Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system;Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD] [Life stage: Adult]",
         
         name = self._get_metadata('track_name')
-        name = name.split(' (bed')[0]
-        self.__metadata.update({"name": name, "description": self._get_metadata('track_name') })
+
+        """ split points:
+        bed*
+        broadPeak
+        idr_peak
+        narrowPeak
+        tss_peak
+        
+        pattern adapted from: https://stackoverflow.com/a/68862249 to only match closest parentheses
+        """
+        pattern = "\s[(\[][^()\[\]]*?eak\)\s|\s\(bed[^()\[\]]*[)\]]\s"
+        name = re.regex_split(pattern, name)
+        
+        self.__metadata.update({"name": name[0], "description": self._get_metadata('track_name') })
 
 
     def __parse_experiment_info(self):
