@@ -34,7 +34,7 @@ class CacheManager:
         self.__cache = RedisCache(serializer=serializer.value(), **config)  # need to instantiat the serializer
         if namespace is not None:
             self.__namespace = namespace
-        self.__ttl = ttl
+        self.__ttl = CacheTTL[ttl]
             
     def set_TTL(self, ttl: CacheTTL):
         """ set time to life: Options: DEFAULT -> hour, SHORT -> 5 mins, DAY -> 24 hrs """
@@ -53,7 +53,7 @@ class CacheManager:
         
             
     async def set(self, cacheKey:str, value: any, 
-        ttl=None, namespace:CacheNamespace=None):
+        ttl:CacheTTL=None, namespace:CacheNamespace=None):
         if ttl is None:
             ttl = self.__ttl
         if self.__cache is None:
