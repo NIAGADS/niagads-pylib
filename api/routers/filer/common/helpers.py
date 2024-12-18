@@ -10,7 +10,6 @@ from niagads.utils.list import cumulative_sum, chunker
 
 from api.common.enums import ResponseContent, CacheNamespace
 from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper
-from api.common.utils import get_attribute
 
 from .constants import TRACKS_PER_API_REQUEST_LIMIT
 from .enums import FILERApiEndpoint
@@ -92,11 +91,11 @@ class FILERRouteHelper(RouteHelper):
             summarize = self._responseConfig.content == ResponseContent.SUMMARY
             countsOnly = self._responseConfig.content == ResponseContent.COUNTS or summarize == True 
             
-            tracks = get_attribute(self._parameters, '_paged_tracks', get_attribute(self._parameters, 'track'))
+            tracks = self._parameters.get('_paged_tracks', self._parameters.get('track'))
             tracks = tracks.split(',') if isinstance(tracks, str) else tracks
             tracks = sorted(tracks) # best for caching
             
-            assembly = get_attribute(self._parameters, 'assembly')
+            assembly = self._parameters.get('assembly')
             if validate or assembly is None: # for internal helper calls, don't always need to validate; already done
                 assembly = await self.__validate_tracks(tracks)         
                 
@@ -136,7 +135,7 @@ class FILERRouteHelper(RouteHelper):
         if result is None:
             isCached = False
         
-            tracks = get_attribute(self._parameters, '_paged_tracks', get_attribute(self._parameters, 'track'))
+            tracks = self._parameters.get('_paged_tracks',  self._parameters.get('track'))
             tracks = tracks.split(',') if isinstance(tracks, str) else tracks
             tracks = sorted(tracks) # best for caching & pagination
             

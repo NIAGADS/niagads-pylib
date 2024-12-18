@@ -7,7 +7,7 @@ from typing import Any, Dict
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from api.common.enums import ResponseContent, CacheNamespace
 from api.common.types import Range
-from api.common.utils import get_attribute
+
 from api.dependencies.parameters.services import InternalRequestParameters
 from api.dependencies.parameters.optional import ResponseFormat
 from api.models.base_models import BaseResponseModel, PaginationDataModel
@@ -19,6 +19,12 @@ class Parameters(BaseModel):
     """ arbitrary namespace to store request parameters and pass them to helpers """
     __pydantic_extra__: Dict[str, Any]  
     model_config = ConfigDict(extra='allow')
+    
+    def get(self, attribute:str, default: Any=None):
+        if attribute in self.model_extra:
+            return self.model_extra[attribute]
+        else:
+            return default
     
     
 class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
@@ -77,7 +83,7 @@ class RouteHelper():
     
     def page(self):
         if self._parameters is not None:
-            return get_attribute(self._parameters, 'page', 1)
+            return self._parameters.get('page', 1)
         return 1
     
     
