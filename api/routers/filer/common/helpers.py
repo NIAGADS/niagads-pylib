@@ -1,7 +1,6 @@
 import asyncio
-from typing import Any, List
+from typing import List
 from fastapi.exceptions import RequestValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
 from collections import ChainMap
 from itertools import groupby
 from operator import itemgetter
