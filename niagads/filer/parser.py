@@ -406,33 +406,9 @@ class FILERMetadataParser:
     def __parse_name(self):
         #     "trackName": "ENCODE Middle frontal area 46 (repl. 1) TF ChIP-seq CTCF IDR thresholded peaks (narrowPeak) 
         # [Experiment: ENCSR778NDP] [Orig: Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system;Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD] [Life stage: Adult]",
-        nameInfo = [self._get_metadata('data_source')]
         
-        if self._get_metadata('data_source_version'):
-            nameInfo.append('(' + self._get_metadata('data_source_version') + ')')
-        
-        if self._get_metadata('cell_type'):    
-            biosample = self._get_metadata('cell_type')
-            nameInfo.append(biosample)
-            
-        if self._get_metadata('antibody_target'):
-            nameInfo.append(self._get_metadata('antibody_target'))
-        
-        if 'DASHR2' in self._get_metadata('output_type'):
-            nameInfo.append(self._get_metadata('output_type').replace('DASHR2 ', ''))
-        else:
-            nameInfo.append(self._get_metadata('assay'))
-            nameInfo.append(self._get_metadata('output_type'))
-                    
-        bReps = str_utils.is_null(self._get_metadata('biological_replicates'), True)
-        tReps = str_utils.is_null(self._get_metadata('technical_replicates'), True)
-        replicates = bReps is bReps if not None else None
-        replicates = tReps if replicates is None and tReps is not None else None
-        if replicates is not None:
-            nameInfo.append('(repl. ' + str(replicates) + ')')
-
-        name = self._get_metadata('identifier') + ': ' + ' '.join(drop_nulls(nameInfo)) 
-        
+        name = self._get_metadata('track_name')
+        name = name.split(' (bed')[0]
         self.__metadata.update({"name": name, "description": self._get_metadata('track_name') })
 
 
@@ -570,7 +546,7 @@ class FILERMetadataParser:
 
     def __add_text_search_field(self):
         """ concatenate everything that isn't a date or url """
-        skipFieldsWith = ['date', 'url', 'md5', 'path', 'file']
+        skipFieldsWith = ['date', 'url', 'md5', 'path', 'file', 'description']
         
         # sum(list, []) is a python hack for flattening a nested list
         textValues = [self.__clean_text(v) for k,v in self.__metadata.items() 
@@ -627,7 +603,6 @@ class FILERMetadataParser:
         
         self.__remove_attributes(internalKeys)
         
-
 
     def __update_primary_key_label(self):
         """ change label of primary key field from 'identifier' to value of self.__primaryKeyLabel """
