@@ -127,6 +127,7 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
             parser.set_metadata(dict(zip(header, line.split('\t'))))
             track = parser.parse()
             
+            LOGGER.debug("Parsed track %s" % track)
 
             if track['genome_build'] is None:
                 # FIXME: log non-assembly associated tracks and skip for now
