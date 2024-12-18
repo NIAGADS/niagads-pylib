@@ -9,6 +9,8 @@ from api.common.constants import JSON_TYPE
 from api.common.enums import OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
 from api.models import PagedResponseModel, GenericDataModel, Provenance, BiosampleCharacteristics
+from api.models.base_models import SerializableModel
+from api.models.experimental_design import ExperimentalDesign
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
 class FILERTrackBrief(SQLModel, GenericDataModel):
@@ -70,15 +72,8 @@ class FILERTrackBrief(SQLModel, GenericDataModel):
     
 
 class FILERTrack(FILERTrackBrief):  
-    description: Optional[str]   
+    experimental_design: Optional[ExperimentalDesign]
     
-    # experimental design
-    antibody_target: Optional[str]
-    replicates: Optional[dict]
-    analysis: Optional[str]
-    classification: Optional[str]
-    output_type: Optional[str]
-    experiment_info: Optional[str]
     # biosample
     biosample_characteristics: Optional[BiosampleCharacteristics]
     

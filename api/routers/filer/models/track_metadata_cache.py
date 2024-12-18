@@ -13,8 +13,6 @@ from niagads.utils.string import xstr
 from api.config.urls import DATASOURCE_URLS
 from api.models import SerializableModel, Provenance, ExperimentalDesign
 
-EXPERIMENTAL_DESIGN_FIELDS = qw('project experiment_id antibody_target assay analysis classification data_category output_type is_lifted')
-
 class Track(SQLModel, SerializableModel, table=True):
     __tablename__ = "filertrack"
     __bind_key__ = 'filer'
@@ -93,32 +91,32 @@ class Track(SQLModel, SerializableModel, table=True):
         
         return { "technical": technical, "biological": biological}
     
+    
     @computed_field
     @property
     def provenance(self) -> Provenance:
-        return {
-            'data_source' : self.data_source,
-            'data_source_version': self.data_source_version,
-            'download_url': self.download_url,
-            'download_date': self.download_date,
-            'release_date': self.release_date,
-            'experiment_id': self.experiment_id,
-            'project': self.project
-        }
+        return { field: getattr(self, field) for field in Provenance.model_fields }
+
+        
+    @computed_field 
+    @property
+    def experimental_design(self) -> ExperimentalDesign: # required for browser config
+        return { field : getattr(self, field) for field in ExperimentalDesign.model_fields }
     
     # =================================
     # GENOME BROWSER FIELDS
     # =================================
     @computed_field
     @property
+    def browser_track_name(self) -> str:
+        return self.track_id + ': ' + self.name
+    
+    @computed_field
+    @property
     def browser_track_category(self) -> str: # TODO: be more specific? e.g., data category?
         return 'Functional Genomics'
     
-    @computed_field 
-    @property
-    def experimental_design(self) -> ExperimentalDesign: # required for browser config
-        return { field : xstr(getattr(self, field), nullStr="NA") for field in EXPERIMENTAL_DESIGN_FIELDS }
-            
+
     @computed_field
     @property
     def browser_track_format(self) -> str:    
