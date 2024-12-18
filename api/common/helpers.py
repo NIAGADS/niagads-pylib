@@ -54,7 +54,7 @@ class RouteHelper():
         self._responseConfig: ResponseConfiguration = responseConfig
         self._pagination: PaginationDataModel = None
         self._parameters: Parameters = params
-        self._pageSize: int = MAX_NUM_PAGES
+        self._pageSize: int = DEFAULT_PAGE_SIZE
         self._resultSize: int = None
     
     
@@ -62,9 +62,13 @@ class RouteHelper():
         self._pageSize = pageSize
         
     
-    def _pagination_exists(self):
+    def _pagination_exists(self, raiseError: bool = True):
         if self._pagination is None:
-            raise RuntimeError('Attempting to modify or access pagination before initializing')
+            if raiseError:
+                raise RuntimeError('Attempting to modify or access pagination before initializing')
+            else:
+                return False
+        return True
 
 
     def _is_valid_page(self, page: int):
@@ -137,8 +141,15 @@ class RouteHelper():
         if response is None:
             self._managers.requestData.update_parameters(self._parameters, exclude=INTERNAL_PARAMETERS)
 
-            if self._pagination_exists():
+            if self._responseConfig.model.is_paged():
+                if not self._pagination_exists(raiseError=False):
+                    if self._resultSize is None:
+                        self._resultSize = len(result)
+                        
+                    self.initialize_pagination() 
+                    
                 self.set_paged_num_records(len(result))
+                
                 response = self._responseConfig.model(
                     request=self._managers.requestData,
                     pagination=self._pagination,
