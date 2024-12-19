@@ -115,7 +115,10 @@ class FILERRouteHelper(RouteHelper):
             else: # make parallel calls for large lists of tracks
                 chunks = chunker(tracks, TRACKS_PER_API_REQUEST_LIMIT, returnIterator=True)
                 tasks = [self.__get_track_data_task(c, assembly, self._parameters.span, countsOnly, cacheKey) for c in chunks]
-                result = await asyncio.gather(tasks)
+                chunkedResults = await asyncio.gather(*tasks)
+                result = []
+                for r in chunkedResults:
+                    result.extend(r)
                 
         return await self.generate_response(result, isCached=isCached)
 
