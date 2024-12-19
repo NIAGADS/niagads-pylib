@@ -7,7 +7,7 @@ class FILERApiEndpoint(CaseInsensitiveEnum):
     METADATA = 'get_metadata'
     
     def __str__(self):
-        return f"{self.name}.php"
+        return f"{self.value}.php"
     
 METADATA_CONTENT_ENUM = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.COUNTS])
 TRACK_DATA_CONTENT_ENUM = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.SUMMARY])
