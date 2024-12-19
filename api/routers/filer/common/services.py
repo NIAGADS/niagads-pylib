@@ -54,21 +54,12 @@ class ApiWrapperService:
         except Exception as e:
             raise LookupError(f'Unable to parse FILER response `{response.content}` for the following request: {str(response.url)}')
     
-    async def __parallel_fetch(self, endpoint: FILERApiEndpoint, params: dict):
-        """    tasks = []
-        for c in colors:
-            tasks.append(get(session=session, color=c, **kwargs))
-        # asyncio.gather() will wait on the entire task set to be
-        # completed.  If you want to process results greedily as they come in,
-        # loop over asyncio.as_completed()
-        htmls = await asyncio.gather(*tasks, return_exceptions=True)
-        return htmls"""
-        pass
-        
+            
     def __rename_keys(self, dictObj, keyMapping):
         for oldKey, newKey in keyMapping.items():
             dictObj = rename_key(dictObj, oldKey, newKey)
         return dictObj
+    
     
     def __overlaps_to_features(self, overlaps) -> List[BEDFeature]:
         features = []
@@ -110,7 +101,7 @@ class ApiWrapperService:
 
 
     async def get_informative_tracks(self, span: str, assembly: str, sort=False):
-        result = self.__wrapper.fetch(FILERApiEndpoint.INFORMATIVE_TRACKS, {'span': span, 'assembly': assembly})
+        result = await self.__fetch(FILERApiEndpoint.INFORMATIVE_TRACKS, {'span': span, 'assembly': assembly})
         result = [{'track_id' : track['Identifier'], 'num_overlaps': track['numOverlaps']} for track in result]
         # sort by most hits
         return self.__sort_track_counts(result) if sort else result
@@ -244,5 +235,5 @@ class MetadataQueryService:
             result = (await self.__session.execute(statement)).all()
             return {row[0]: row[1] for row in result}
         else:
-            return result[0]
+            return result[0][0]
             
