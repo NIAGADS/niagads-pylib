@@ -72,18 +72,22 @@ class ApiWrapperService:
     
     
     async def __count_track_overlaps(self, span: str, assembly: str, tracks: List[str]) -> List[GenericDataModel]:   
-        response:dict = await self.get_informative_tracks(span, assembly, sort=True)   
+        if len(tracks) <= 10: # for now, probably faster to retrieve the data and count
+            response = await self.__fetch(FILERApiEndpoint.OVERLAPS, {'track': ','.join(tracks), 'span': span})
+            return [GenericDataModel(track_id=t['Identifier'], num_overlaps=len(t['features'])) for t in response]
         
-        # need to filter all informative tracks for the ones that were requested
-        # and add in the zero counts for the ones that have no hits
-        informativeTracks = set([t['track_id'] for t in response]) # all informative tracks
-        nonInformativeTracks = set(tracks).difference(informativeTracks) # tracks with no hits in the span
-        informativeTracks = set(tracks).intersection(informativeTracks) # informative tracks in the requested list
+        else:
+            response = await self.get_informative_tracks(span, assembly, sort=True)   
+            
+            # need to filter all informative tracks for the ones that were requested
+            # and add in the zero counts for the ones that have no hits
+            informativeTracks = set([t['track_id'] for t in response]) # all informative tracks
+            nonInformativeTracks = set(tracks).difference(informativeTracks) # tracks with no hits in the span
+            informativeTracks = set(tracks).intersection(informativeTracks) # informative tracks in the requested list
         
-        result = [GenericDataModel(tc) for tc in response if tc['track_id'] in informativeTracks] \
-            + [GenericDataModel(track_id=t, num_overlaps=0) for t in nonInformativeTracks]
-        
-        return result
+            return [GenericDataModel(tc) for tc in response if tc['track_id'] in informativeTracks] \
+                + [GenericDataModel(track_id=t, num_overlaps=0) for t in nonInformativeTracks]
+
     
     def __sort_track_counts(self, trackCountsObj):
         return sorted(trackCountsObj, key = lambda item: item['num_overlaps'], reverse=True)
