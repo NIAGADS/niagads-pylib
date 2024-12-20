@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     SESSION_SECRET: str
     API_PUBLIC_URL: str
     CACHE_TTL: str = 'DEFAULT'
+    ADMIN_EMAIL: str = 'help@niagads.org'
     
     # required by Pydantic
     model_config = SettingsConfigDict(env_file=ENV_FILE_PATH)
