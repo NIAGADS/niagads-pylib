@@ -175,31 +175,36 @@ class FILERRouteHelper(RouteHelper):
         if result is None:
             isCached = False
             offset = None
-
+            limit = None
+            
+            if content != ResponseContent.IDS:
+                # get counts to either return or determine pagination
+                result = await MetadataQueryService(self._managers.session) \
+                    .query_track_metadata(self._parameters.assembly, 
+                        self._parameters.filter, self._parameters.keyword, ResponseContent.COUNTS)
+            
+                if content == ResponseContent.COUNTS:
+                    return await self.generate_response(result, isCached=isCached)
+                
+                self._resultSize = result['track_count']
+                self.initialize_pagination()
+                
+                if not rawResponse:
+                    offset = self.offset()
+                    limit = self._pageSize
+                
             result = await MetadataQueryService(self._managers.session) \
                 .query_track_metadata(self._parameters.assembly, 
-                    self._parameters.filter, self._parameters.keyword, ResponseContent.COUNTS)
-            
-            if content == ResponseContent.COUNTS:
-                return await self.generate_response(result, isCached=isCached)
-            
-            self._resultSize = result['track_count']
-            
-            self.initialize_pagination()
-            offset = None if rawResponse else self.offset()
-            limit = None if rawResponse else self._pageSize
-            
-            result = await MetadataQueryService(self._managers.session) \
-                .query_track_metadata(self._parameters.assembly, 
-                    self._parameters.filter, self._parameters.keyword, content, limit, offset)
+                    self._parameters.filter, self._parameters.keyword, 
+                    content, limit, offset)
 
-        if rawResponse:
-            # cache the raw response
-            await self._managers.internalCache.set(
-                cacheKey,
-                result, 
-                namespace=self._managers.cacheKey.namespace)
-            return result
+            if rawResponse:
+                # cache the raw response
+                await self._managers.internalCache.set(
+                    cacheKey,
+                    result, 
+                    namespace=self._managers.cacheKey.namespace)
+                return result
             
         return await self.generate_response(result, isCached=isCached)
 
