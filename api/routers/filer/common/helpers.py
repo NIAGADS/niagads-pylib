@@ -181,7 +181,7 @@ class FILERRouteHelper(RouteHelper):
                     self._parameters.filter, self._parameters.keyword, ResponseContent.COUNTS)
             
             if content == ResponseContent.COUNTS:
-                return self.generate_response(result, isCached=isCached)
+                return await self.generate_response(result, isCached=isCached)
             
             self._resultSize = result['track_count']
             
