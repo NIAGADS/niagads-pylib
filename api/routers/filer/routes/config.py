@@ -7,7 +7,7 @@ from api.common.exceptions import RESPONSES
 from api.common.formatters import print_enum_values
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import Assembly, assembly_param
-from api.dependencies.parameters.optional import format_param, get_response_content, keyword_param, validate_response_content
+from api.dependencies.parameters.optional import keyword_param, validate_response_content
 from api.models import IGVBrowserConfigResponse, IGVBrowserExtendedConfigResponse
 from api.common.helpers import Parameters, ResponseConfiguration
 from api.models.base_models import BaseResponseModel
