@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Dict
 from pydantic import BaseModel, model_validator
 
 class Range(BaseModel):
@@ -6,6 +6,8 @@ class Range(BaseModel):
     end: int
     
     @model_validator(mode="before")
-    def validate(self):
-        if self.start > self.end:
-            raise RuntimeError(f'Invalid Range: {self.start} > {self.end}')
+    @classmethod
+    def validate(self, range: Dict[str, int]):
+        if range['start'] > range['end']:
+            raise RuntimeError(f"Invalid Range: {range['start']} > {range['end']}")
+        return range
