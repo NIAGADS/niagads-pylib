@@ -72,7 +72,8 @@ class ApiWrapperService:
     
     
     async def __count_track_overlaps(self, span: str, assembly: str, tracks: List[str]) -> List[GenericDataModel]:   
-        if len(tracks) <= 10: # for now, probably faster to retrieve the data and count
+        # TODO: new FILER endpoint, count overlaps for specific track ID?
+        if len(tracks) <= 3: # for now, probably faster to retrieve the data and count, but may depend on span
             response = await self.__fetch(FILERApiEndpoint.OVERLAPS, {'track': ','.join(tracks), 'span': span})
             return [GenericDataModel(track_id=t['Identifier'], num_overlaps=len(t['features'])) for t in response]
         
