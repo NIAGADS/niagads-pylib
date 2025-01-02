@@ -26,6 +26,9 @@ class Parameters(BaseModel):
         else:
             return default
     
+    def update(self, attribute: str, value: Any):
+        self.model_extra[attribute] = value
+        
     
 class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     format: ResponseFormat = ResponseFormat.JSON
