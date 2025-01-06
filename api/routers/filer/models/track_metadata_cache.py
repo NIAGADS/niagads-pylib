@@ -95,13 +95,15 @@ class Track(SQLModel, SerializableModel, table=True):
     @computed_field
     @property
     def provenance(self) -> Provenance:
-        return { field: getattr(self, field) for field in Provenance.model_fields }
+        props = { field: getattr(self, field) for field in Provenance.model_fields }
+        return Provenance(**props)
 
         
     @computed_field 
     @property
     def experimental_design(self) -> ExperimentalDesign: # required for browser config
-        return { field : getattr(self, field) for field in ExperimentalDesign.model_fields }
+        props = { field : getattr(self, field) for field in ExperimentalDesign.model_fields }
+        return ExperimentalDesign(**props)
     
     # =================================
     # GENOME BROWSER FIELDS
