@@ -74,11 +74,15 @@ class RequestDataModel(SerializableModel):
         self.parameters.update(prune(params.model_dump(exclude=exclude)))
     
     @classmethod
-    def sort_query_parameters(cls, params: dict) -> str:
+    def sort_query_parameters(cls, params: dict, exclude:bool=False) -> str:
         """ called by cache_key method to alphabetize the parameters """
         if len(params) == 0:
             return ''
         sortedParams = dict(sorted(params.items())) # assuming Python 3+ where all dicts are ordered
+        if exclude:
+            for param in exclude:
+                if param in sortedParams:
+                    del sortedParams[param]
         return dict_to_string(sortedParams, nullStr='null', delimiter='&')
     
     @classmethod
@@ -92,16 +96,23 @@ class RequestDataModel(SerializableModel):
 # TODO: create Enum for the namespaces
 class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
     internal: str = Field(description="in-memory cache key for internal access to cached data")
+    internal_raw: str = Field(default=None, description="in-memory cache key for cached raw data / no pagination or formatting")
     external: str = Field(description="in-memory cache key for external access to a cached response")
     namespace: CacheNamespace = Field(description="namespace in the in-memory cache")
     
     @classmethod
     async def from_request(cls, request: Request):
-        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params))
         endpoint = str(request.url.path) # endpoint includes path parameters
+        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params))
         internalCacheKey = endpoint + '?' + parameters.replace(':','_') # ':' delimitates keys in keydb
+        
+        # for 'raw' results; remove pagination and formatting 
+        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params), exclude=['format', 'page', 'content'])
+        internalRawCacheKey = endpoint + '?' + parameters.replace(':', '_')
+        
         return cls(
             internal = internalCacheKey,
+            internal_raw = internalRawCacheKey,
             external = md5(internalCacheKey.encode('utf-8')).hexdigest(), # so that it is unique to the endpoint + params, unlike distinct requestId
             namespace = CacheNamespace(request.url.path.split('/')[2]) \
                 if '/redirect/' in request.url.path \

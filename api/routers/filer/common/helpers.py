@@ -11,7 +11,7 @@ from api.common.enums import ResponseContent, CacheNamespace
 from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper
 from api.models.base_models import SerializableModel
 
-from .constants import TRACKS_PER_API_REQUEST_LIMIT
+from .constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
 from .enums import FILERApiEndpoint
 from .services import MetadataQueryService, ApiWrapperService
 from ..dependencies.parameters import InternalRequestParameters
@@ -26,7 +26,7 @@ class FILERRouteHelper(RouteHelper):
     def __init__(self, managers: InternalRequestParameters, responseConfig: ResponseConfiguration, params: Parameters):
         super().__init__(managers, responseConfig, params)
         self._managers: InternalRequestParameters = managers
-    
+
 
     def __page_data_query(self, trackSummary: dict):
         """ calculate expected result size, number of pages; 
@@ -79,10 +79,10 @@ class FILERRouteHelper(RouteHelper):
 
     async def __get_track_data_task(self, tracks, assembly: str, span: str, countsOnly: bool, cacheKey: str):
         cacheKey += ','.join(tracks)
-        result = await self._managers.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
+        result = await self._managers.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
         if result is None:   
             result = await ApiWrapperService(self._managers.apiClientSession).get_track_hits(tracks, span, assembly, countsOnly=countsOnly)
-            await self._managers.internalCache.set(cacheKey, result, namespace=CacheNamespace.FILER_EXTERNAL_API)
+            await self._managers.internalCache.set(cacheKey, result, namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
         return result
 
 
@@ -157,6 +157,7 @@ class FILERRouteHelper(RouteHelper):
             result = await MetadataQueryService(self._managers.session).get_track_metadata(tracks)
             
             if not rawResponse:
+                self._resultSize = len(result)
                 self.initialize_pagination()
                 pageRange = self.page_array()
                 result = result[pageRange.start:pageRange.end]
@@ -177,9 +178,11 @@ class FILERRouteHelper(RouteHelper):
         """ retrieve track metadata based on filter/keyword searches """
         isCached = True # assuming true from the start
         cacheKey = self._managers.cacheKey.internal
-        content = rawResponse if rawResponse else self._responseConfig.content
+        content = self._responseConfig.content
+        
         if rawResponse is not None:
-            cacheKey = cacheKey + '&return=' + str(rawResponse)    
+            content = rawResponse
+            cacheKey = self._managers.cacheKey.internal_raw + '&internal=' + str(rawResponse)    
         
         result = await self._managers.internalCache.get(
             cacheKey, 
@@ -246,6 +249,7 @@ class FILERRouteHelper(RouteHelper):
             # cache this response from the FILER Api
             await self._managers.internalCache.set(cacheKey, informativeTracks, namespace=CacheNamespace.FILER_EXTERNAL_API)
         
+        # TODO: cache this?
         # filter for tracks that match the filter
         matchingTrackIds = [t.track_id for t in matchingTracks] if rawResponse != ResponseContent.IDS else matchingTracks
         informativeTrackIds = [t['track_id'] for t in informativeTracks] 
@@ -284,9 +288,6 @@ class FILERRouteHelper(RouteHelper):
         pagedTracks = self.__page_data_query(targetTracks)
         self._parameters.update('_paged_tracks', pagedTracks)
         
-        if self._responseConfig.content == ResponseContent.IDS:
-            return await self.generate_response(pagedTracks)
-
         return await self.get_track_data(validate=False)
 
     
