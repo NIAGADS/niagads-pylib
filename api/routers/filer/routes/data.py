@@ -9,7 +9,7 @@ from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import assembly_param, span_param
 from api.dependencies.parameters.optional import PaginationParameters, format_param, get_response_content, keyword_param, validate_response_content
 from api.common.helpers import Parameters, ResponseConfiguration
-from api.models.base_models import BaseResponseModel
+from api.models.base_models import PagedResponseModel
 from api.models.data_models import BEDResponse
 
 from ..common.helpers import FILERRouteHelper
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/data", responses=RESPONSES)
 tags = ["Track Data by ID"]
 get_track_data_content_enum = get_response_content(exclude=[ResponseContent.IDS])
 @router.get("/", tags=tags,
-    name="Get data from multiple tracks by ID", response_model=Union[BEDResponse, BaseResponseModel, FILERTrackBriefResponse],
+    name="Get data from multiple tracks by ID", response_model=Union[BEDResponse, PagedResponseModel, FILERTrackBriefResponse],
     description="retrieve data from one or more FILER tracks in the specified region")
 async def get_track_data(
         pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
@@ -31,7 +31,7 @@ async def get_track_data(
         format: str = Depends(format_param),
         content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(get_track_data_content_enum)}'),
         internal: InternalRequestParameters = Depends()
-        ) -> Union[BEDResponse, BaseResponseModel, FILERTrackBriefResponse]:
+        ) -> Union[BEDResponse, PagedResponseModel, FILERTrackBriefResponse]:
     
     rContent = validate_response_content(get_track_data_content_enum, content)
     helper = FILERRouteHelper(
@@ -41,7 +41,7 @@ async def get_track_data(
             content=rContent,
             model=BEDResponse if rContent == ResponseContent.FULL \
                 else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
-                    else BaseResponseModel
+                    else PagedResponseModel
         ), 
         Parameters(track=track, span=span, page=pagination.page)
     )
@@ -51,7 +51,7 @@ async def get_track_data(
 
 tags = ['Record(s) by Text Search'] + ['Track Data by Text Search']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
-@router.get("/search", tags=tags, response_model=Union[BaseResponseModel, FILERTrackBriefResponse, BEDResponse],
+@router.get("/search", tags=tags, response_model=Union[PagedResponseModel, FILERTrackBriefResponse, BEDResponse],
     name="Get data from multiple tracks by Search", 
     description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata")
 async def get_track_data_by_metadata_search(
@@ -63,7 +63,7 @@ async def get_track_data_by_metadata_search(
         format: str= Depends(format_param),
         content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(ResponseContent)}'),
         internal: InternalRequestParameters = Depends(),
-        ) -> Union[BaseResponseModel, FILERTrackBriefResponse, BEDResponse]:
+        ) -> Union[PagedResponseModel, FILERTrackBriefResponse, BEDResponse]:
     
     if filter is None and keyword is None:
         raise RequestValidationError('must specify a `filter` and/or a `keyword` to search')
@@ -76,7 +76,7 @@ async def get_track_data_by_metadata_search(
             content=rContent,
             model=BEDResponse if rContent == ResponseContent.FULL \
                 else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
-                    else BaseResponseModel
+                    else PagedResponseModel
         ),
         Parameters(assembly=assembly, filter=filter, keyword=keyword, span=span, page=pagination.page)
     )

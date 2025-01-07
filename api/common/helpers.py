@@ -102,7 +102,7 @@ class RouteHelper():
             else next((p for p in range(1, MAX_NUM_PAGES) if (p - 1) * self._pageSize > self._resultSize)) - 1
             
 
-    def initialize_pagination(self,):
+    def initialize_pagination(self):
         if self._responseConfig.model.is_paged():
             self._pagination = PaginationDataModel(
                 page=self.page(),
@@ -127,11 +127,20 @@ class RouteHelper():
             else (self._pagination.page - 1) * self._pageSize
 
 
-    def page_array(self) -> Range:
+    def cursor(self):
+        """ for array pagination; calcs endIndex of previous page as a cursor """
+        if self._pagination.page == 1:
+            return None
+        
+        pageRange = self.page_array(self._pagination.page - 1)
+        return pageRange.end
+    
+
+    def page_array(self, page: int=None) -> Range:
         """ calculates start and end indexes for paging an array """
         self._pagination_exists()
-        
-        start = (self._pagination.page - 1) * self._pageSize
+        targetPage = self._pagination.page if page is None else page 
+        start = (targetPage - 1) * self._pageSize
         end = start + self._pageSize
         if end > self._resultSize:
             end = self._resultSize
