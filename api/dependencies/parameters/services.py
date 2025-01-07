@@ -5,13 +5,15 @@ from fastapi import Depends, Request
 
 from api.models.base_models import CacheKeyDataModel, RequestDataModel
 from api.common.formatters import clean
+from api.config.settings import get_settings
 from ..database import CacheManager, CacheSerializer
 
 # internal cache; stores responses as is 
-INTERNAL_CACHE = CacheManager(serializer=CacheSerializer.PICKLE)
+INTERNAL_CACHE = CacheManager(serializer=CacheSerializer.PICKLE, ttl=get_settings().CACHE_TTL)
 
 # for cache data that will be accessed by external applications (e.g., next.js)
-EXTERNAL_CACHE = CacheManager(serializer=CacheSerializer.JSON) 
+EXTERNAL_CACHE = CacheManager(serializer=CacheSerializer.JSON, ttl=get_settings().CACHE_TTL) 
+
 
 def get_none():
     return None

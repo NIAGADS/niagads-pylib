@@ -1,6 +1,7 @@
 # Middleware for choosing database based on endpoint
 # adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
 import logging
+from typing import Union
 import asyncpg
 from typing_extensions import Self
 from fastapi.exceptions import RequestValidationError
@@ -9,6 +10,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_scoped_session, As
 from asyncio import current_task
 from aiocache import RedisCache
 
+from api.common.constants import CACHEDB_TIMEOUT
 from api.common.enums import CacheNamespace, CacheSerializer, CacheTTL
 from api.config.settings import get_settings
 
@@ -26,13 +28,19 @@ class CacheManager:
     """
     __cache: RedisCache = None
     __namespace: CacheNamespace = CacheNamespace.ROOT
+    __ttl: CacheTTL = CacheTTL.DEFAULT
     
-    def __init__(self, serializer:CacheSerializer=CacheSerializer.JSON, namespace: CacheNamespace=None):
+    def __init__(self, serializer:CacheSerializer=CacheSerializer.JSON, namespace: CacheNamespace=None, ttl=CacheTTL.DEFAULT):
         connectionString = get_settings().API_CACHEDB_URL
         config = self.__parse_uri_path(connectionString)
         self.__cache = RedisCache(serializer=serializer.value(), **config)  # need to instantiat the serializer
         if namespace is not None:
             self.__namespace = namespace
+        self.__ttl = CacheTTL[ttl]
+            
+    def set_TTL(self, ttl: CacheTTL):
+        """ set time to life: Options: DEFAULT -> hour, SHORT -> 5 mins, DAY -> 24 hrs """
+        self.__ttl = ttl
     
     def __parse_uri_path(self, path):
         # RedisCache.parse_uri_path() does not work
@@ -47,27 +55,30 @@ class CacheManager:
         
             
     async def set(self, cacheKey:str, value: any, 
-        ttl=CacheTTL.DEFAULT, namespace:CacheNamespace=None):
+        ttl:CacheTTL=None, namespace:CacheNamespace=None,
+        timeout:float=CACHEDB_TIMEOUT):
+        if ttl is None:
+            ttl = self.__ttl
         if self.__cache is None:
             raise RuntimeError('In memory cache not initialized')
         ns = self.__namespace if namespace is None else namespace
-        await self.__cache.set(cacheKey, value, ttl=ttl.value, namespace=ns.value)
+        await self.__cache.set(cacheKey, value, ttl=ttl.value, namespace=ns.value, timeout=timeout)
 
         
-    async def get(self, cacheKey: str,
-        namespace:CacheNamespace=None) -> any:
+    async def get(self, cacheKey: str, namespace:CacheNamespace=None,
+        timeout:float=CACHEDB_TIMEOUT) -> any:
         if self.__cache is None:
             raise RuntimeError('In memory cache not initialized')
         ns = self.__namespace if namespace is None else namespace
-        return await self.__cache.get(cacheKey, namespace=ns.value)
+        return await self.__cache.get(cacheKey, namespace=ns.value, timeout=timeout)
 
 
-    async def exists(self, cacheKey: str,
-        namespace:CacheNamespace=None) -> any:
+    async def exists(self, cacheKey: str, namespace:CacheNamespace=None,
+        timeout:float=CACHEDB_TIMEOUT) -> any:
         if self.__cache is None:
             raise RuntimeError('In memory cache not initialized')
         ns = self.__namespace if namespace is None else namespace
-        return await self.__cache.exists(cacheKey, namespace=ns.value)
+        return await self.__cache.exists(cacheKey, namespace=ns.value, timeout=timeout)
 
 
     async def get_cache(self) -> RedisCache:
@@ -126,7 +137,7 @@ class DatabaseSessionManager:
             if session is None:
                 raise Exception("DatabaseSessionManager is not initialized")
             try: 
-                await session.execute(text("SELECT 1"))
+                # await session.execute(text("SELECT 1"))
                 yield session
             except (NotImplementedError, RequestValidationError, RuntimeError):
                 await session.rollback()

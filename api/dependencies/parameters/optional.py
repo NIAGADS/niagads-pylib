@@ -59,7 +59,7 @@ def get_response_content(exclude: List[ResponseContent]):
     return CaseInsensitiveEnum('content', { member.name: member.value for member in ResponseContent if member not in exclude })
 
 
-async def validate_response_content(contentEnum: CaseInsensitiveEnum, value):
+def validate_response_content(contentEnum: CaseInsensitiveEnum, value):
     try:
         contentEnum(value)
         return ResponseContent(value)

@@ -18,3 +18,14 @@ ALLOWABLE_FILER_TRACK_FILTERS = {
 ADSP_VARIANTS_ACCESSION = "NG00067"
 
 FILER_N_TRACK_LOOKUP_LIMIT = 50
+
+# pagination
+DEFAULT_PAGE_SIZE = 10000
+MAX_NUM_PAGES = 500
+
+# http client 
+HTTP_CLIENT_TIMEOUT=30 # timeout in seconds
+
+# cache db
+# int or float in seconds specifying maximum timeout for the operations to last. By default (aiocache) its 5. Use 0 or None if you want to disable it.
+CACHEDB_TIMEOUT=5 

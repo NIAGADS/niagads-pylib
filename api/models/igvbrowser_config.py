@@ -11,9 +11,9 @@ from .base_models import BaseResponseModel, RowModel
 from .biosample_characteristics import BiosampleCharacteristics
 from .experimental_design import ExperimentalDesign 
 
-class GenomeBrowserConfig(RowModel,SQLModel):
+class IGVBrowserConfig(RowModel,SQLModel):
     track_id: str = Field(alias='id')
-    name: str  
+    browser_track_name: str = Field(alias='name')  
     url: str 
     description: str
     index_url: str = Field(alias='indexUrl')
@@ -50,7 +50,7 @@ class GenomeBrowserConfig(RowModel,SQLModel):
         }
         return {'columns': columns, 'options': options}
     
-class GenomeBrowserExtendedConfig(GenomeBrowserConfig):
+class IGVBrowserExtendedConfig(IGVBrowserConfig):
     description: Optional[str]
     feature_type: str
     data_source: str
@@ -96,14 +96,14 @@ class GenomeBrowserExtendedConfig(GenomeBrowserConfig):
         return {'columns': columns, 'options': options}
     
     
-class GenomeBrowserConfigResponse(BaseResponseModel):
-    response: List[GenomeBrowserConfig]
+class IGVBrowserConfigResponse(BaseResponseModel):
+    response: List[IGVBrowserConfig]
     
     def to_view(self, view, **kwargs):
         return super().to_view(view, **kwargs)
     
-class GenomeBrowserExtendedConfigResponse(BaseResponseModel):
-    response: List[GenomeBrowserExtendedConfig]
+class IGVBrowserExtendedConfigResponse(BaseResponseModel):
+    response: List[IGVBrowserExtendedConfig]
     
     def to_view(self, view, **kwargs):
         return super().to_view(view, **kwargs)

@@ -6,6 +6,11 @@ ROUTE_ABBREVIATION = "FILER"
 ROUTE_DESCRIPTION = {}
 ROUTE_TAGS = [ROUTE_NAME]
 
+TRACKS_PER_API_REQUEST_LIMIT = 50
+
+FILER_HTTP_CLIENT_TIMEOUT=60
+CACHEDB_PARALLEL_TIMEOUT=30
+
 BIOSAMPLE_FIELDS = ["life_stage", "biosample_term", "system_category",
     "tissue_category", "biosample_display",
     "biosample_summary", "biosample_term_id"]

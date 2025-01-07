@@ -20,6 +20,7 @@ from .routers import FILERRouter, RedirectRouter
 # needs to be dynamic based on deployment
 # SERVER = {'url' :"http://localhost:8000/api"}
 
+
 app = FastAPI(
         title="NIAGADS Open Access - API",
         description="an application programming interface (API) that provides programmatic access to Open-Access resources at the NIA Genetics of Alzheimer's Disease Data Storage Site (NIAGADS)",
@@ -28,7 +29,7 @@ app = FastAPI(
         terms_of_service="http://example.com/terms/",
         contact={
             "name": "NIAGADS Support",
-            "email": "help@niagads.org",
+            "email": get_settings().ADMIN_EMAIL
         },
         license_info={
             "name": "Apache 2.0",
@@ -98,7 +99,7 @@ async def validation_exception_handler(request: Request, exc: OSError):
         content=jsonable_encoder(
             {
                 "message": str(exc),  # optionally, include the pydantic errors
-                "error": "An system error occurred.  Please email this error response to `help@niagads.org` with the subject 'NIAGADS API Systems Error' and we will try and resolve the isse as soon as possible.",
+                "error": f'An system error occurred.  Please email this error response to {get_settings().ADMIN_EMAIL} with the subject `NIAGADS API Systems Error` and we will try and resolve the issue as soon as possible.',
                 "stack_trace": [ t.replace('\n', '').replace('"', "'") for t in traceback.format_tb(exc.__traceback__) ],
                 "request": str(query)
             }), 
