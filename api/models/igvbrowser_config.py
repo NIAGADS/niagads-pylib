@@ -7,7 +7,8 @@ from niagads.utils.list import find
 from api.common.enums import OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
 
-from .base_models import BaseResponseModel, RowModel
+from .base_models import RowModel
+from .base_response_models import BaseResponseModel
 from .biosample_characteristics import BiosampleCharacteristics
 from .experimental_design import ExperimentalDesign 
 

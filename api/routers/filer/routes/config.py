@@ -5,12 +5,14 @@ from typing import Optional, Union
 from api.common.enums import ResponseContent
 from api.common.exceptions import RESPONSES
 from api.common.formatters import print_enum_values
+from api.common.helpers import Parameters, ResponseConfiguration
+
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import Assembly, assembly_param
 from api.dependencies.parameters.optional import keyword_param, validate_response_content
-from api.models import IGVBrowserConfigResponse, IGVBrowserExtendedConfigResponse
-from api.common.helpers import Parameters, ResponseConfiguration
-from api.models.base_models import BaseResponseModel
+from api.models.base_response_models import BaseResponseModel
+from api.models.igvbrowser_config import IGVBrowserConfigResponse, IGVBrowserExtendedConfigResponse
+
 
 from ..common.enums import METADATA_CONTENT_ENUM
 from ..common.helpers import FILERRouteHelper

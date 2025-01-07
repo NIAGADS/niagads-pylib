@@ -4,17 +4,19 @@ from typing import Union
 from api.common.enums import ResponseContent
 from api.common.exceptions import RESPONSES
 from api.common.formatters import print_enum_values
-from api.dependencies.parameters.location import span_param
-from api.dependencies.parameters.optional import format_param, get_response_content, validate_response_content
 from api.common.helpers import Parameters, ResponseConfiguration
 
-from api.models import IGVBrowserConfigResponse, IGVBrowserExtendedConfigResponse, BEDResponse
-from api.models.base_models import BaseResponseModel
+from api.dependencies.parameters.location import span_param
+from api.dependencies.parameters.optional import format_param, validate_response_content
+from api.models.base_response_models import BaseResponseModel
+from api.models.bed_features import BEDResponse
+from api.models.igvbrowser_config import IGVBrowserConfigResponse, IGVBrowserExtendedConfigResponse
+
 
 from ..dependencies.parameters import InternalRequestParameters, path_track_id
 from ..common.helpers import FILERRouteHelper
 from ..common.enums import METADATA_CONTENT_ENUM, TRACK_DATA_CONTENT_ENUM
-from ..models.response.filer_track import FILERTrackResponse, FILERTrackBriefResponse
+from ..models.filer_track import FILERTrackResponse, FILERTrackBriefResponse
 
 
 router = APIRouter(prefix="/track", responses=RESPONSES)

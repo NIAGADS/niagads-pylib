@@ -9,12 +9,12 @@ from api.common.helpers import Parameters, ResponseConfiguration
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import Assembly, assembly_param
 from api.dependencies.parameters.optional import PaginationParameters, keyword_param, validate_response_content
-from api.models.base_models import BaseResponseModel
+from api.models.base_response_models import BaseResponseModel
 
 from ..common.helpers import FILERRouteHelper
 from ..common.enums import METADATA_CONTENT_ENUM
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
-from ..models.response.filer_track import FILERTrackBriefResponse, FILERTrackResponse
+from ..models.filer_track import FILERTrackBriefResponse, FILERTrackResponse
 from ..dependencies.parameters import InternalRequestParameters, query_track_id, non_data_format_param
 
 router = APIRouter(prefix="/metadata", responses=RESPONSES)
