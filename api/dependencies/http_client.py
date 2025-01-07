@@ -1,12 +1,15 @@
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 from aiohttp.connector import TCPConnector
+
+from api.common.constants import CLIENT_TIMEOUT
 
 class HttpClientSessionManager():
     """ Create Http connection pool and request a session """
     
-    def __init__(self, baseUrl):
+    def __init__(self, baseUrl, timeout=CLIENT_TIMEOUT):
         self.__baseUrl = baseUrl
         self.__connector: TCPConnector = TCPConnector(limit=50)   
+        self.__timeout: ClientTimeout = ClientTimeout(total=timeout)
         self.__session: ClientSession = ClientSession(self.__baseUrl, connector=self.__connector, raise_for_status=True)
         
     async def close(self):
