@@ -9,12 +9,11 @@ from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
 
 from api.common.enums import Assembly, ResponseContent
-from api.config.settings import get_settings
 from api.dependencies.parameters.filters import tripleToPreparedStatement
-from api.models import BEDFeature, GenericDataModel
+from api.models import BEDFeature
+from api.models.base_models import GenericDataModel
 
-
-from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS, TRACKS_PER_API_REQUEST_LIMIT
+from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint
 from ..models.track_metadata_cache import Track
 
