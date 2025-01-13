@@ -8,7 +8,7 @@ from api.common.enums import OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
 
 from .base_models import RowModel
-from .base_response_models import BaseResponseModel
+from .base_response_models import PagedResponseModel
 from .biosample_characteristics import BiosampleCharacteristics
 from .experimental_design import ExperimentalDesign 
 
@@ -97,13 +97,13 @@ class IGVBrowserExtendedConfig(IGVBrowserConfig):
         return {'columns': columns, 'options': options}
     
     
-class IGVBrowserConfigResponse(BaseResponseModel):
+class IGVBrowserConfigResponse(PagedResponseModel):
     response: List[IGVBrowserConfig]
     
     def to_view(self, view, **kwargs):
         return super().to_view(view, **kwargs)
     
-class IGVBrowserExtendedConfigResponse(BaseResponseModel):
+class IGVBrowserExtendedConfigResponse(PagedResponseModel):
     response: List[IGVBrowserExtendedConfig]
     
     def to_view(self, view, **kwargs):
