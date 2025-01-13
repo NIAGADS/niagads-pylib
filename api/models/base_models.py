@@ -1,3 +1,4 @@
+from fastapi.datastructures import QueryParams
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Any, Dict, List, Optional, Union, TypeVar
 from fastapi.encoders import jsonable_encoder
@@ -11,6 +12,9 @@ from niagads.utils.dict import prune
 from api.common.constants import JSON_TYPE
 from api.common.enums import CacheNamespace, OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
+
+
+    
 
 class SerializableModel(BaseModel):
     def serialize(self, exclude: List[str] = None, promoteObjs=False, collapseUrls=False, groupExtra=False):
@@ -67,8 +71,9 @@ class RequestDataModel(SerializableModel):
     parameters: Dict[str, Union[int, str, bool]] = Field(description="request path and query parameters, includes unspecified defaults")
     msg: Optional[str] = Field(default=None, description="warning or info message qualifying the response")
     
-    def update_parameters(self, params: BaseModel, exclude=List[str]) -> str:
+    def update_parameters(self, params: BaseModel, exclude:List[str]=[]) -> str:
         """ default parameter values are not in the original request, so need to be added later """
+        exclude = exclude + ['filter'] # do not overwrite original filter string with parsed tokens
         self.parameters.update(prune(params.model_dump(exclude=exclude)))
     
     @classmethod
@@ -83,6 +88,7 @@ class RequestDataModel(SerializableModel):
                     del sortedParams[param]
         return dict_to_string(sortedParams, nullStr='null', delimiter='&')
     
+
     @classmethod
     async def from_request(cls, request: Request):
         return cls(
@@ -185,6 +191,7 @@ class PaginationDataModel(BaseModel):
     total_num_pages: int = Field(default=1, description="if the result is paged, reports total number of pages in the full result set (response); defaults to 1")
     paged_num_records: Optional[int] = Field(default=None, description="number of records in the current paged result set (response)")
     total_num_records: Optional[int] = Field(default=None, description="total number of records in the full result set (response)")
+    key: Optional[str] = Field(default=None, description="encrypted keyset for key-based pagination") 
 
 
 # possibly allows you to set a type hint to a class and all its subclasses
