@@ -1,22 +1,21 @@
-from fastapi.exceptions import RequestValidationError, ResponseValidationError
+from fastapi.exceptions import RequestValidationError
 from sqlmodel import select, col, or_, func, distinct
 from sqlalchemy import Values, String, column as sqla_column
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiohttp import ClientSession
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 from niagads.utils.list import list_to_string
 from niagads.utils.dict import rename_key
 
 from api.common.enums import Assembly, ResponseContent
-from api.config.settings import get_settings
 from api.dependencies.parameters.filters import tripleToPreparedStatement
-from api.models import BEDFeature, GenericDataModel
+from api.models.base_models import GenericDataModel
 
-
-from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS, TRACKS_PER_API_REQUEST_LIMIT
+from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint
 from ..models.track_metadata_cache import Track
+from ..models.bed_features import BEDFeature
 
 
 class ApiWrapperService:

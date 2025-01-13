@@ -11,7 +11,8 @@ from niagads.utils.list import qw
 from niagads.utils.string import xstr
 
 from api.config.urls import DATASOURCE_URLS
-from api.models import SerializableModel, Provenance, ExperimentalDesign
+from api.models import Provenance, ExperimentalDesign
+from api.models.base_models import SerializableModel
 
 class Track(SQLModel, SerializableModel, table=True):
     __tablename__ = "filertrack"

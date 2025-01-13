@@ -10,7 +10,8 @@ from api.common.types import Range
 
 from api.dependencies.parameters.services import InternalRequestParameters
 from api.dependencies.parameters.optional import ResponseFormat
-from api.models.base_models import BaseResponseModel, PaginationDataModel
+from api.models.base_models import PaginationDataModel
+from api.models.base_response_models import BaseResponseModel
 from api.routers.redirect.common.constants import RedirectEndpoints
 
 INTERNAL_PARAMETERS = ['span', '_paged_tracks']
