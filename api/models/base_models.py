@@ -107,7 +107,7 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
     @classmethod
     async def from_request(cls, request: Request):
         endpoint = str(request.url.path) # endpoint includes path parameters
-        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params))
+        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params), exclude=['format'])
         internalCacheKey = endpoint + '?' + parameters.replace(':','_') # ':' delimitates keys in keydb
         
         # for 'raw' results; remove pagination and formatting 
