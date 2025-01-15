@@ -2,6 +2,7 @@ import logging
 import json
 
 from os import path
+from typing import Union
 from pandas import read_excel, DataFrame
 from openpyxl import Workbook as wb, load_workbook
 
@@ -41,7 +42,7 @@ class ExcelFileParser:
         """
         # data_only=True -> values, not formulas & formatting
         self.__workbook = load_workbook(self.__file, data_only=True)
-        self.__worksheets = self.__workbook.get_sheet_names()
+        self.__worksheets = self.__workbook.sheetnames
  
  
     def na(self, value: str):
@@ -150,7 +151,7 @@ class ExcelFileParser:
         df.to_csv(fileName, sep=sep, index=False, encoding='utf-8', na_rep=self.__na)
     
     
-    def worksheet_to_json(self, worksheet, transpose=False, returnStr=False, **kwargs):
+    def worksheet_to_json(self, worksheet:Union[str, int], transpose=False, returnStr=False, **kwargs):
         """
         converts the EXCEL file to JSON
         

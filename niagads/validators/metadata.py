@@ -2,7 +2,7 @@ import logging
 from json import dumps as j_dumps
 from abc import ABC, abstractmethod 
 
-from typing import List, Set
+from typing import List, Set, Union
 
 from jsonschema import exceptions as jsExceptions
 
@@ -76,14 +76,13 @@ class MetadataValidator(CSVValidator):
     def __init__(self, fileName:str, schema, debug:bool=False):
         super().__init__(fileName, schema, debug)
 
-    def load(self, worksheet:str=None):
+    def load(self, worksheet:Union[str, int]='Sheet1'):
         """
         load the metadata from a file, if EXCEL file specify name of worksheet to be extracted
         and convert to JSON
-        
-        worksheet (str|int, optional): worksheet name or index, starting from 0. Required for EXCEL files only.
+    
         Args:
-            worksheet (str, optional): name of worksheet in EXCEL file to be validated. Defaults to None.
+            worksheet (str|int, optional): name or zero-based index of worksheet in EXCEL file to be validated. Required for EXCEL files only.  Defaults to 'Sheet1'.
         """
         if is_xlsx(self._file):
             parser = ExcelFileParser(self._file)
