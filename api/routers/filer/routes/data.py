@@ -12,12 +12,12 @@ from api.dependencies.parameters.location import assembly_param, span_param
 from api.dependencies.parameters.optional import PaginationParameters, format_param, get_response_content, keyword_param, validate_response_content
 
 from api.models.base_response_models import PagedResponseModel
-from api.models.bed_features import BEDResponse
 
 from ..common.helpers import FILERRouteHelper
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
 from ..dependencies.parameters import InternalRequestParameters, query_track_id
 from ..models.filer_track import FILERTrackBriefResponse
+from ..models.bed_features import BEDResponse
 
 router = APIRouter(prefix="/data", responses=RESPONSES)
 

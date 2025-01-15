@@ -51,7 +51,7 @@ filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEX
 @router.get("/igvbrowser/search", tags=tags, response_model=Union[BaseResponseModel, IGVBrowserConfigResponse, IGVBrowserExtendedConfigResponse],
     name="Get Genome Browser configuration for multiple tracks by Search",
     description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) identified by keyword search or filters")
-async def search_track_metadata(
+async def get_track_browser_config_by_metadata_search(
         assembly: Assembly = Depends(assembly_param), 
         filter = Depends(filter_param), 
         keyword: str = Depends(keyword_param),

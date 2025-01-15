@@ -6,8 +6,8 @@ from pydantic import Field
 from api.common.enums import ResponseFormat
 from api.common.formatters import id2title
 
-from .base_response_models import PagedResponseModel
-from .base_models import GenericDataModel
+from api.models.base_response_models import PagedResponseModel
+from api.models.base_models import GenericDataModel
 
 class BEDFeature(GenericDataModel):
     chrom: str = Field(description="name of the chromosome or scaffold")
