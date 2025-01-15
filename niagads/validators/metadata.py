@@ -10,7 +10,7 @@ from . import JSONValidator
 from ..parsers import ExcelFileParser, CSVFileParser
 from ..utils.sys import is_xlsx
 from ..utils.string import xstr
-from ..utils.list import list_to_string
+from ..utils.list import list_to_string, get_duplicates
 from ..utils.exceptions import ValidationError
 
 class CSVValidator(ABC):
@@ -252,11 +252,21 @@ class BiosourcePropertiesValidator(TableValidator):
     def __init__(self, fileName, schema, debug:bool=False):
         super().__init__(fileName, schema, debug)
         self.__sampleField = 'sample_id'
-        
     
     def set_sample_field(self, sampleField: str):
         self.__sampleField = sampleField
-    
+        
+        
+    def unqiue_samples(self, failOnError:bool=False):
+        duplicates = get_duplicates(self.get_sample_ids())
+        if len(duplicates) > 0:
+            error = ValidationError(f'Duplicate samples found in Sample Info file (n = {len(duplicates)}): {list_to_string(duplicates, delim=', ')}')
+            if failOnError:
+                raise error
+            else:
+                return error.message          
+        return True
+        
     
     def get_sample_ids(self):
         """
