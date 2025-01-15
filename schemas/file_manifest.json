@@ -1,0 +1,86 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "File Manifest",
+    "description": "description of required fields and field values for DSS Data Sumbission File Manifests",
+    "$comment": "",
+    "properties": {
+        "file_category": {
+            "type": "string",
+            "description": "DSS File Classification: single- or multi-sample results, sample-independent annotations, or something else (other)",
+            "enum": [
+                "single-sample",
+                "multi-sample",
+                "sample-independent",
+                "other"
+            ]
+        },
+        "file_name": {
+            "type": "string",
+            "description": "Must include file extension.  If this file is a tar-ball, .zip or other compressed directory, please provide an additional file manifest listing the contents of the directory."
+        },
+        "analysis_category": {
+            "type": "string",
+            "description": "broad categorization of the type of analysis / experimental design",
+            "enum": ["Genotyping", "Phenotyping", "Sequencing", "GWAS"]
+        },
+        "data_type": {
+            "type": "string",
+            "description": "kind of data being captured",
+            "$comment": "TODO: controlled vocab"
+        },
+        "file_format": {
+            "type": "string",
+            "description": "file format; not always the same as the extension",
+            "$comment": "TODO: controlled vocabulary"
+        },
+        "sample_id": {
+            "description": "required for single-sample results",
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "md5sum": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{32}$",
+            "description": "md5sum for the file"
+        },
+        "comment": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "file_category",
+        "file_name",
+        "analysis_category",
+        "data_type",
+        "file_format",
+        "sample_id",
+        "md5"
+    ],
+
+
+    "if": {
+        "properties": {
+            "file_category": {
+                "const": [
+                    "single-sample"
+                ]
+            }
+        },
+        "required": ["file_category"]
+    },
+    "then": {
+        "properties": {
+            "sample_id": {
+                "type": "string",
+                "description": "sample_id for the single-sample result; must match a value in the `sample_info` metadata file for this experiment"
+            }
+        }
+    }
+}

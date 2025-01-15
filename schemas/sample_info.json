@@ -1,0 +1,41 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "Sample Information",
+    "description": "description of required fields and field values for DSS Data Sumbission Sample Info Metadata",
+    "$comment": "Additional fields regarding the experimental details (e.g., assay, platform, array) may be added to elucidate sample-data-relationships",
+    "properties": {
+        "sample_id": {
+            "type": "string",
+            "description": "sample IDs must be unique for each subject-source-experiment triple across the submission."
+        },
+        "subject_id": {
+            "type": "string",
+            "description": "must match a subject ID in the `Subject Info` metadata file."
+        },
+        "sample_source": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "(Optional) biosource for the sample; e.g., blood, brain tissue, plasma"
+        },
+        "comment": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "any additional notes or caveats about the sample"
+        }
+    },
+    "additionalProperties": {
+        "type": [
+            "string",
+            "null"
+        ]
+    },
+    "required": [
+        "sample_id",
+        "subject_id"
+    ]
+}

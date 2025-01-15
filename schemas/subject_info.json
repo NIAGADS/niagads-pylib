@@ -1,0 +1,104 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "Subject Information",
+    "description": "description of required fields and field values for DSS Data Sumbission Subject Info Metadata",
+    "$comment": "enums for disease, diagnosis, APOE, age",
+    "properties": {
+        "subject_id": {
+            "type": "string"
+        },
+        "cohort": {
+            "type": "string"
+        },
+        "consent": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "$comment": "allowing nulls because the submitter may not know the consent information"
+        },
+        "sex": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "enum": [
+                "Male",
+                "Female",
+                "Other",
+                "Not reported",
+                null
+            ],
+            "$comment": "`Not reported` (information not collected) vs `null` (not applicable, missing)"
+        },
+        "race": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "enum": [
+                "American Indian or Alaska Native",
+                "Asian",
+                "Black or African American",
+                "Native Hawaiian or Other Pacific Islander",
+                "White",
+                "Not reported",
+                null
+            ]
+        },
+        "ethnicity": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "enum": [
+                "Hispanic or Latino",
+                "Not Hispanic or Latino",
+                "Not reported",
+                null
+            ]
+        },
+        "disease": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "diagnosis": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "APOE": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "age": {
+            "type": [
+                "integer",
+                "null"
+            ]
+        },
+        "comment": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "sample_id",
+        "subject_id",
+        "consent",
+        "sex",
+        "race",
+        "ethnicity",
+        "disease",
+        "APOE"
+    ]
+}
