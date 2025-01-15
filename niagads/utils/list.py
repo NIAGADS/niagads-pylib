@@ -135,6 +135,11 @@ def drop_nulls(arr):
     return list(filter(None, arr))
 
 
+def get_duplicates(array):
+    """ get duplicate values in an array """
+    return [k for k, v in Counter(array).items() if v > 1]    
+
+
 def remove_duplicates(array):
     """ remove duplicates from a list by transforming to set and back """
     return [*set(array)]
