@@ -158,9 +158,10 @@ class FILERRouteHelper(RouteHelper):
             
             if not rawResponse:
                 self._resultSize = len(result)
-                self.initialize_pagination()
-                pageRange = self.page_array()
-                result = result[pageRange.start:pageRange.end]
+                pageResponse = self.initialize_pagination(raiseError=False)
+                if pageResponse:
+                    pageRange = self.page_array()
+                    result = result[pageRange.start:pageRange.end]
             
         if rawResponse:
             # cache the raw response

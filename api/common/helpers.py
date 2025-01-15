@@ -103,7 +103,8 @@ class RouteHelper():
             else next((p for p in range(1, MAX_NUM_PAGES) if (p - 1) * self._pageSize > self._resultSize)) - 1
             
 
-    def initialize_pagination(self):
+    def initialize_pagination(self, raiseError=True):
+        """ returns False if not a paged model and raiseError = False """
         if self._responseConfig.model.is_paged():
             self._pagination = PaginationDataModel(
                 page=self.page(),
@@ -111,9 +112,11 @@ class RouteHelper():
                 paged_num_records=None,
                 total_num_records=self._resultSize)
             
-            self._is_valid_page(self._pagination.page)
+            return self._is_valid_page(self._pagination.page)
         else:
-            raise RuntimeError('Attempt to page a non-pageable response model')
+            if raiseError:
+                raise RuntimeError('Attempt to page a non-pageable response model')
+            return False
 
 
     def set_paged_num_records(self, numRecords: int):
