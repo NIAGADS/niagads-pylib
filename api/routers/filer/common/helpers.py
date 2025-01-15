@@ -187,7 +187,7 @@ class FILERRouteHelper(RouteHelper):
         result = await self._managers.internalCache.get(
             cacheKey, 
             namespace=self._managers.cacheKey.namespace)
-        
+                
         if result is None:
             isCached = False
             offset = None
@@ -221,7 +221,8 @@ class FILERRouteHelper(RouteHelper):
                     namespace=self._managers.cacheKey.namespace)
                 return result
             
-        return await self.generate_response(result, isCached=isCached)
+        return await self.generate_response(result, isCached=isCached) \
+            if rawResponse is None else result
 
 
     async def search_track_data(self):
