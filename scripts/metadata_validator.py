@@ -7,7 +7,7 @@ from typing import List
 from niagads.utils.logging import ExitOnExceptionHandler
 from niagads.validators import MetadataValidator, FileManifestValidator, BiosourcePropertiesValidator
 from niagads.utils.dict import print_dict
-from niagads.utils.list import list_to_string
+from niagads.utils.list import list_to_string, drop_nulls
 from niagads.utils.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -24,11 +24,12 @@ def initialize_biosource_validator(metadataType: str, idField:str):
         _type_: _description_
     """
     schemaFile = path.join(args.schemaDir, f'{metadataType}.json')
-    metadataFile = path.join(args.metadataFileDir, f'{metadataType}.txt')
+    metadataFile = path.join(args.metadataFileDir, f'{args.filePrefix}{metadataType}.{args.fileType}')
     log_start_validation(metadataType, metadataFile)
     
     bsValidator = BiosourcePropertiesValidator(metadataFile, schemaFile, args.debug)
     bsValidator.set_biosource_id(idField, requireUnique=True)
+    bsValidator.load()
     
     log_parsed_metadata(bsValidator) # debugging
     
@@ -69,21 +70,21 @@ def validate_sample_info(expectedSubjectIds: List[str]):
     # extract the subjectIds by setting them to the `sample_id` of the validator
     sampleValidator.set_biosource_id('subject_id')
     subjectIds = sampleValidator.get_biosource_ids()
-    expectedSet = set(expectedSubjectIds)
-    sampleSet = set(subjectIds)
+    expectedSet = set(drop_nulls(expectedSubjectIds))
+    sampleSet = set(drop_nulls(subjectIds))
     
-    missingExpectedSubjects = expectedSet - sampleSet
-    invalidSampleSubjects = sampleSet - expectedSet
+    missingExpectedSubjects = list(expectedSet - sampleSet)
+    invalidSampleSubjects = list(sampleSet - expectedSet)
     
     if len(invalidSampleSubjects) > 0:
-        error = ValidationError(f'Duplicate biosource identifiers found in the metadata file (n = {len(invalidSampleSubjects)}): {list_to_string(invalidSampleSubjects, delim=', ')}')
+        error = ValidationError(f'Invalid subjects found in the sample file: {list_to_string(invalidSampleSubjects, delim=', ')}')
         if args.failAtFirst:
                 raise error
         else:
-            result.append(error.message)
+            result.append(f'ERROR: {error.message}')
 
     if len(missingExpectedSubjects) > 0:
-        message = f'WARNING: Expected subjects missing from the sample info file (n = {len(missingExpectedSubjects)}): {list_to_string(missingExpectedSubjects, delim=', ')}' 
+        message = f'WARNING: Expected subjects missing from the sample info file: {list_to_string(missingExpectedSubjects, delim=', ')}' 
         result.append(message)
 
     if len(result) == 0:
@@ -104,10 +105,11 @@ def validate_file_manifest(expectedSampleIds: List[str]):
     """
     metadataType = 'file_manifest'
     schemaFile = path.join(args.schemaDir, f'{metadataType}.json')
-    metadataFile = path.join(args.metadataFileDir, f'{metadataType}.txt')
+    metadataFile = path.join(args.metadataFileDir, f'{args.filePrefix}{metadataType}.{args.fileType}')
     log_start_validation(metadataType, metadataFile)
 
     fmValidator = FileManifestValidator(metadataFile, schemaFile, args.debug)
+    fmValidator.load()
     
     log_parsed_metadata(fmValidator) # debugging
         
@@ -134,7 +136,7 @@ def run():
         result['subject_info'] = validationResult
 
         # Samples
-        validationResult, sampleIds = validate_sample_info()
+        validationResult, sampleIds = validate_sample_info(subjectIds)
         result['sample_info'] = validationResult
         
         # File Manifest
@@ -152,6 +154,8 @@ if __name__ == "__main__":
     argParser = argparse.ArgumentParser(description="EXCEL to JSON w/Validation test", allow_abbrev=False)
     argParser.add_argument('--metadataFileDir', help="full path to directory containing metadata files", required=True)
     argParser.add_argument('--schemaDir', help="full path to directory containing schema files", required=True)
+    argParser.add_argument('--filePrefix', help="prefix to add to file names", default='')
+    argParser.add_argument('--fileType', choices=['xlsx', 'tab'], help="file type; assuming `file type == fil extension`", default="tab")
     argParser.add_argument('--logFile', help="log file name (full path).  Default log saves to current working directory", 
         default="validation_test.log")
     argParser.add_argument('--failAtFirst', help="fail on first error; otherwise generatese a list of errors", action='store_true')
@@ -166,7 +170,7 @@ if __name__ == "__main__":
                 encoding='utf-8',
             )],
             format='%(asctime)s %(funcName)s %(levelname)-8s %(message)s',
-            level=logging.DEBUG)
+            level=logging.DEBUG if args.debug else logging.INFO)
     
     run()
     
