@@ -224,6 +224,7 @@ class FileManifestValidator(TableValidator):
                 return error.message          
 
 
+
     def run(self, failOnError:bool=False):
         """
         run validation on each row
@@ -250,16 +251,22 @@ class BiosourcePropertiesValidator(TableValidator):
     """
     def __init__(self, fileName, schema, debug:bool=False):
         super().__init__(fileName, schema, debug)
-        self.__sampleField = 'sample_id'
+        self.__biosourceID = 'sample_id'
+        self.__requireUniqueIDs = False
     
-    def set_sample_field(self, sampleField: str):
-        self.__sampleField = sampleField
+    def set_biosource_id(self, idField: str, requireUnique: bool=False):
+        self.__biosourceID = idField
+        self.__requireUniqueIDs = requireUnique
         
+
+    def require_unique_identifiers(self):
+        self.__requireUniqueIDs = True
+
         
-    def unqiue_samples(self, failOnError:bool=False):
-        duplicates = get_duplicates(self.get_sample_ids())
+    def validate_unqiue_identifiers(self, failOnError:bool=False):
+        duplicates = get_duplicates(self.get_biosource_ids())
         if len(duplicates) > 0:
-            error = ValidationError(f'Duplicate samples found in Sample Info file (n = {len(duplicates)}): {list_to_string(duplicates, delim=', ')}')
+            error = ValidationError(f'Duplicate biosource identifiers found in the metadata file (n = {len(duplicates)}): {list_to_string(duplicates, delim=', ')}')
             if failOnError:
                 raise error
             else:
@@ -267,14 +274,31 @@ class BiosourcePropertiesValidator(TableValidator):
         return True
         
     
-    def get_sample_ids(self):
+    def get_biosource_ids(self):
         """
-        extract sample IDs
+        extract biosource IDs
         """
         if self._metadata is None:
             raise TypeError("metadata not loaded; run `.load` before extracting sample IDs")
         
-        return [ r[self.__sampleField] for r in self._metadata ] 
+        return [ r[self.__biosourceID] for r in self._metadata ] 
     
+    
+    def run(self, failOnError:bool=False):
+        """
+        run validation on each row
+
+        wrapper of TableValidator.riun that also does sample validation
+        """
+        result = super().run(failOnError)
+        if self.__requireUniqueIDs is not None:
+            sampleValidationResult = self.validate_unqiue_identifiers(failOnError)
+            if isinstance(sampleValidationResult, list):
+                if isinstance(result, list):
+                    return result + [sampleValidationResult]
+                else:
+                    return [sampleValidationResult]
+        
+        return result        
     
     
