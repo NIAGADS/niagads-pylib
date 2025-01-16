@@ -26,7 +26,8 @@
                 "Genotyping",
                 "Phenotyping",
                 "Sequencing",
-                "GWAS"
+                "GWAS",
+                "Annotation"
             ]
         },
         "data_type": {
@@ -70,7 +71,7 @@
         "data_type",
         "file_format",
         "sample_id",
-        "md5"
+        "md5sum"
     ],
     "allOf": [
         {

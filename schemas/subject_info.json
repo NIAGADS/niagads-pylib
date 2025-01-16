@@ -92,7 +92,6 @@
     },
     "additionalProperties": false,
     "required": [
-        "sample_id",
         "subject_id",
         "consent",
         "sex",
