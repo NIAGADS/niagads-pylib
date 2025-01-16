@@ -4,24 +4,65 @@
 
 |                           |             |
 | ------------------------- | ----------- |
-| **Type**                  | `object`    |
+| **Type**                  | `combining` |
 | **Required**              | No          |
 | **Additional properties** | Not allowed |
 
 **Description:** description of required fields and field values for DSS Data Sumbission File Manifests
 
-| Property                                   | Pattern | Type             | Deprecated | Definition | Title/Description                                                                                                                                                               |
-| ------------------------------------------ | ------- | ---------------- | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| + [file_category](#file_category )         | No      | enum (of string) | No         | -          | DSS File Classification: single- or multi-sample results, sample-independent annotations, or something else (other)                                                             |
-| + [file_name](#file_name )                 | No      | string           | No         | -          | Must include file extension.  If this file is a tar-ball, .zip or other compressed directory, please provide an additional file manifest listing the contents of the directory. |
-| + [analysis_category](#analysis_category ) | No      | enum (of string) | No         | -          | broad categorization of the type of analysis / experimental design                                                                                                              |
-| + [data_type](#data_type )                 | No      | string           | No         | -          | kind of data being captured                                                                                                                                                     |
-| + [file_format](#file_format )             | No      | string           | No         | -          | file format; not always the same as the extension                                                                                                                               |
-| + [sample_id](#sample_id )                 | No      | string or null   | No         | -          | required for single-sample results                                                                                                                                              |
-| - [md5sum](#md5sum )                       | No      | string           | No         | -          | md5sum for the file                                                                                                                                                             |
-| - [comment](#comment )                     | No      | string or null   | No         | -          | -                                                                                                                                                                               |
+| Property                                           | Pattern | Type             | Deprecated | Definition | Title/Description                                                                                                                                                                       |
+| -------------------------------------------------- | ------- | ---------------- | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| + [file_category](#file_category )                 | No      | enum (of string) | No         | -          | DSS File Classification: single- or multi-sample results, sample-independent annotations, or something else (other)                                                                     |
+| + [file_name](#file_name )                         | No      | string           | No         | -          | Must include file extension.  If this file is a tar-ball, .zip or other compressed directory/package, please provide an additional file manifest listing the contents of the directory. |
+| + [analysis_category](#analysis_category )         | No      | enum (of string) | No         | -          | broad categorization of the type of analysis / experimental design                                                                                                                      |
+| + [data_type](#data_type )                         | No      | string           | No         | -          | kind of data being captured                                                                                                                                                             |
+| + [file_format](#file_format )                     | No      | string           | No         | -          | file format; not always the same as the extension                                                                                                                                       |
+| + [sample_id](#sample_id )                         | No      | string or null   | No         | -          | required for single-sample results                                                                                                                                                      |
+| + [md5sum](#md5sum )                               | No      | string           | No         | -          | md5sum for the file                                                                                                                                                                     |
+| - [package_file_manifest](#package_file_manifest ) | No      | string or null   | No         | -          | name of file manifest containing contents of a packaged directory                                                                                                                       |
+| - [comment](#comment )                             | No      | string or null   | No         | -          | -                                                                                                                                                                                       |
 
-## <a name="autogenerated_heading_2"></a>1. If (file_category = [
+| All of(Requirement) |
+| ------------------- |
+| [item 0](#allOf_i0) |
+| [item 1](#allOf_i1) |
+
+## <a name="allOf_i0"></a>1. Property `File Manifest > allOf > item 0`
+
+|                           |                  |
+| ------------------------- | ---------------- |
+| **Type**                  | `object`         |
+| **Required**              | No               |
+| **Additional properties** | Any type allowed |
+
+### <a name="autogenerated_heading_2"></a>1.1. If (file_name = null)
+
+|                           |                  |
+| ------------------------- | ---------------- |
+| **Type**                  | `object`         |
+| **Required**              | No               |
+| **Additional properties** | Any type allowed |
+
+| Property                                                         | Pattern | Type   | Deprecated | Definition | Title/Description |
+| ---------------------------------------------------------------- | ------- | ------ | ---------- | ---------- | ----------------- |
+| + [package_file_manifest](#allOf_i0_then_package_file_manifest ) | No      | string | No         | -          | -                 |
+
+#### <a name="allOf_i0_then_package_file_manifest"></a>1.1.1. Property `File Manifest > allOf > item 0 > then > package_file_manifest`
+
+|              |          |
+| ------------ | -------- |
+| **Type**     | `string` |
+| **Required** | Yes      |
+
+## <a name="allOf_i1"></a>2. Property `File Manifest > allOf > item 1`
+
+|                           |                  |
+| ------------------------- | ---------------- |
+| **Type**                  | `object`         |
+| **Required**              | No               |
+| **Additional properties** | Any type allowed |
+
+### <a name="autogenerated_heading_3"></a>2.1. If (file_category = [
     "single-sample"
 ])
 
@@ -31,11 +72,11 @@
 | **Required**              | No               |
 | **Additional properties** | Any type allowed |
 
-| Property                        | Pattern | Type   | Deprecated | Definition | Title/Description                                                                                                   |
-| ------------------------------- | ------- | ------ | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------- |
-| - [sample_id](#then_sample_id ) | No      | string | No         | -          | sample_id for the single-sample result; must match a value in the \`sample_info\` metadata file for this experiment |
+| Property                                 | Pattern | Type   | Deprecated | Definition | Title/Description                                                                                                   |
+| ---------------------------------------- | ------- | ------ | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------- |
+| - [sample_id](#allOf_i1_then_sample_id ) | No      | string | No         | -          | sample_id for the single-sample result; must match a value in the \`sample_info\` metadata file for this experiment |
 
-### <a name="then_sample_id"></a>1.1. Property `File Manifest > then > sample_id`
+#### <a name="allOf_i1_then_sample_id"></a>2.1.1. Property `File Manifest > allOf > item 1 > then > sample_id`
 
 |              |          |
 | ------------ | -------- |
@@ -43,9 +84,6 @@
 | **Required** | No       |
 
 **Description:** sample_id for the single-sample result; must match a value in the `sample_info` metadata file for this experiment
-
-## <a name="autogenerated_heading_3"></a>2. The following properties are required
-* md5
 
 ## <a name="file_category"></a>3. Property `File Manifest > file_category`
 
@@ -69,7 +107,7 @@ Must be one of:
 | **Type**     | `string` |
 | **Required** | Yes      |
 
-**Description:** Must include file extension.  If this file is a tar-ball, .zip or other compressed directory, please provide an additional file manifest listing the contents of the directory.
+**Description:** Must include file extension.  If this file is a tar-ball, .zip or other compressed directory/package, please provide an additional file manifest listing the contents of the directory.
 
 ## <a name="analysis_category"></a>5. Property `File Manifest > analysis_category`
 
@@ -85,6 +123,7 @@ Must be one of:
 * "Phenotyping"
 * "Sequencing"
 * "GWAS"
+* "Annotation"
 
 ## <a name="data_type"></a>6. Property `File Manifest > data_type`
 
@@ -118,7 +157,7 @@ Must be one of:
 |              |          |
 | ------------ | -------- |
 | **Type**     | `string` |
-| **Required** | No       |
+| **Required** | Yes      |
 
 **Description:** md5sum for the file
 
@@ -126,7 +165,16 @@ Must be one of:
 | --------------------------------- | ----------------------------------------------------------------------------------------- |
 | **Must match regular expression** | ```^[a-fA-F0-9]{32}$``` [Test](https://regex101.com/?regex=%5E%5Ba-fA-F0-9%5D%7B32%7D%24) |
 
-## <a name="comment"></a>10. Property `File Manifest > comment`
+## <a name="package_file_manifest"></a>10. Property `File Manifest > package_file_manifest`
+
+|              |                  |
+| ------------ | ---------------- |
+| **Type**     | `string or null` |
+| **Required** | No               |
+
+**Description:** name of file manifest containing contents of a packaged directory
+
+## <a name="comment"></a>11. Property `File Manifest > comment`
 
 |              |                  |
 | ------------ | ---------------- |
@@ -134,4 +182,4 @@ Must be one of:
 | **Required** | No               |
 
 ----------------------------------------------------------------------------------------------------------------------------
-Generated using [json-schema-for-humans](https://github.com/coveooss/json-schema-for-humans) on 2025-01-15 at 12:30:43 -0500
+Generated using [json-schema-for-humans](https://github.com/coveooss/json-schema-for-humans) on 2025-01-16 at 17:07:01 -0500

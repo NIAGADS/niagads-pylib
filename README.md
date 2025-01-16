@@ -19,14 +19,14 @@ For `HTML`:
 
 ```bash
 cd metadata/dss
-generate-schema-doc --config template_name=js_offline expand_buttons=true schemas/ docs/
+generate-schema-doc --config template_name=js_offline --config expand_buttons=true schemas/ docs/
 ```
 
 For `Markdown`:
 
 ```bash
 cd metadata/dss
-generate-schema-doc --config template_name=md show_toc=true schemas/ docs/
+generate-schema-doc --config template_name=md --config show_toc=false schemas/ docs/
 ```
 
 ## Running the test script
