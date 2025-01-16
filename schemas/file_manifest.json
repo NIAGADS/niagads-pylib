@@ -17,12 +17,17 @@
         },
         "file_name": {
             "type": "string",
-            "description": "Must include file extension.  If this file is a tar-ball, .zip or other compressed directory, please provide an additional file manifest listing the contents of the directory."
+            "description": "Must include file extension.  If this file is a tar-ball, .zip or other compressed directory/package, please provide an additional file manifest listing the contents of the directory."
         },
         "analysis_category": {
             "type": "string",
             "description": "broad categorization of the type of analysis / experimental design",
-            "enum": ["Genotyping", "Phenotyping", "Sequencing", "GWAS"]
+            "enum": [
+                "Genotyping",
+                "Phenotyping",
+                "Sequencing",
+                "GWAS"
+            ]
         },
         "data_type": {
             "type": "string",
@@ -46,6 +51,10 @@
             "pattern": "^[a-fA-F0-9]{32}$",
             "description": "md5sum for the file"
         },
+        "package_file_manifest": {
+            "type": ["string","null"],
+            "description": "name of file manifest containing contents of a packaged directory"
+        },
         "comment": {
             "type": [
                 "string",
@@ -63,24 +72,47 @@
         "sample_id",
         "md5"
     ],
-
-
-    "if": {
-        "properties": {
-            "file_category": {
-                "const": [
-                    "single-sample"
-                ]
+    "allOf": [
+        {
+            "if": {
+                "properties": {
+                    "file_name": {
+                        "pattern": ".+(\\.tar\\.gz|\\.tgz|\\.zip)"
+                    }
+                },
+                "required": ["file_name"]
+            },
+            "then": {
+                "properties": {
+                    "package_file_manifest": {
+                        "type": "string"
+                    }
+                },
+                "required": ["package_file_manifest"]
             }
         },
-        "required": ["file_category"]
-    },
-    "then": {
-        "properties": {
-            "sample_id": {
-                "type": "string",
-                "description": "sample_id for the single-sample result; must match a value in the `sample_info` metadata file for this experiment"
+
+        {
+            "if": {
+                "properties": {
+                    "file_category": {
+                        "const": [
+                            "single-sample"
+                        ]
+                    }
+                },
+                "required": [
+                    "file_category"
+                ]
+            },
+            "then": {
+                "properties": {
+                    "sample_id": {
+                        "type": "string",
+                        "description": "sample_id for the single-sample result; must match a value in the `sample_info` metadata file for this experiment"
+                    }
+                }
             }
         }
-    }
+    ]
 }
