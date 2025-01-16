@@ -10,7 +10,7 @@ from . import JSONValidator
 from ..parsers import ExcelFileParser, CSVFileParser
 from ..utils.sys import is_xlsx
 from ..utils.string import xstr
-from ..utils.list import list_to_string, get_duplicates
+from ..utils.list import drop_nulls, list_to_string, get_duplicates
 from ..utils.exceptions import ValidationError
 
 class CSVValidator(ABC):
@@ -76,13 +76,13 @@ class MetadataValidator(CSVValidator):
     def __init__(self, fileName:str, schema, debug:bool=False):
         super().__init__(fileName, schema, debug)
 
-    def load(self, worksheet:Union[str, int]='Sheet1'):
+    def load(self, worksheet:Union[str, int]=0):
         """
         load the metadata from a file, if EXCEL file specify name of worksheet to be extracted
         and convert to JSON
     
         Args:
-            worksheet (str|int, optional): name or zero-based index of worksheet in EXCEL file to be validated. Required for EXCEL files only.  Defaults to 'Sheet1'.
+            worksheet (str|int, optional): name or zero-based index of worksheet in EXCEL file to be validated. Required for EXCEL files only.  Defaults to the first sheet.
         """
         if is_xlsx(self._file):
             parser = ExcelFileParser(self._file)
@@ -126,15 +126,15 @@ class TableValidator(CSVValidator):
     def __init__(self, fileName, schema, debug:bool=False):
         super().__init__(fileName, schema, debug)
         
-    def load(self, worksheet:str=None):
+    def load(self, worksheet:Union[str, int]=0):
         """
         load the metadata from a file, if EXCEL file specify name of worksheet to be extracted
         and convert to JSON
         
-        worksheet (str|int, optional): worksheet name or index, starting from 0. Required for EXCEL files only.
+        worksheet (str|int, optional): worksheet name or index, starting from 0. Required for EXCEL files only. Defaults to first sheet.
 
         Args:
-            worksheet (str, optional): name of worksheet in EXCEL file to be validated. Defaults to None.
+            worksheet (str, optional): name of worksheet in EXCEL file to be validated. Defaults to first sheet.
         """
         if is_xlsx(self._file):
             parser = ExcelFileParser(self._file)
@@ -209,34 +209,45 @@ class FileManifestValidator(TableValidator):
             list of invalid samples
         """
         
-        sampleSet = { r[self.__sampleField] for r in self._metadata }
-        referenceSet  = set(self.__sampleReference)
-    
-        if referenceSet.issuperset(sampleSet):
+        sampleIds = [ r[self.__sampleField] for r in self._metadata ]
+        sampleSet = set(drop_nulls(sampleIds))
+        referenceSet  = set(drop_nulls(self.__sampleReference))
+        
+        invalidSamples = list(sampleSet - referenceSet)
+        missingSamples = list(referenceSet - sampleSet)
+        
+        if len(invalidSamples) == 0 and len(missingSamples) == 0:
             return True
-        else:
-            invalidSamples = list(sampleSet.difference(referenceSet))
-            
-            error = ValidationError("invalid samples found in file manifest: " + list_to_string(invalidSamples, delim=', '))
+        
+        messages = []
+        if len(invalidSamples) > 0:
+            error = ValidationError("Invalid samples found: " + list_to_string(invalidSamples, delim=', '))
             if failOnError:
                 raise error
             else:
-                return error.message          
-
+                messages.append(f'ERROR: {error.message}')
+                
+        if len(missingSamples) > 0:
+            msg = "WARNING: Files not found for all samples: " + list_to_string(missingSamples, delim=', ')
+            messages.append(msg)
+        
+        return messages
 
 
     def run(self, failOnError:bool=False):
         """
         run validation on each row
 
-        wrapper of TableValidator.riun that also does sample validation
+        wrapper of TableValidator.run that also does sample validation
         """
         result = super().run(failOnError)
+        
         if self.__sampleReference is not None:
             sampleValidationResult = self.validate_samples(failOnError)
-            if isinstance(sampleValidationResult, list):
+            if not isinstance(sampleValidationResult, bool):
+                result = [] if isinstance(result, bool) else result
                 if isinstance(result, list):
-                    return result + [sampleValidationResult]
+                    return result + sampleValidationResult
                 else:
                     return [sampleValidationResult]
         
@@ -266,11 +277,11 @@ class BiosourcePropertiesValidator(TableValidator):
     def validate_unqiue_identifiers(self, failOnError:bool=False):
         duplicates = get_duplicates(self.get_biosource_ids())
         if len(duplicates) > 0:
-            error = ValidationError(f'Duplicate biosource identifiers found in the metadata file (n = {len(duplicates)}): {list_to_string(duplicates, delim=', ')}')
+            error = ValidationError(f'Duplicate biosource identifiers found: {list_to_string(duplicates, delim=', ')}')
             if failOnError:
                 raise error
             else:
-                return error.message          
+                return f'ERROR: {error.message}'
         return True
         
     
@@ -279,7 +290,7 @@ class BiosourcePropertiesValidator(TableValidator):
         extract biosource IDs
         """
         if self._metadata is None:
-            raise TypeError("metadata not loaded; run `.load` before extracting sample IDs")
+            raise TypeError("metadata not loaded; run `[validator].load()` before extracting sample IDs")
         
         return [ r[self.__biosourceID] for r in self._metadata ] 
     
@@ -291,11 +302,11 @@ class BiosourcePropertiesValidator(TableValidator):
         wrapper of TableValidator.riun that also does sample validation
         """
         result = super().run(failOnError)
-        if self.__requireUniqueIDs is not None:
+        if self.__requireUniqueIDs:
             sampleValidationResult = self.validate_unqiue_identifiers(failOnError)
-            if isinstance(sampleValidationResult, list):
+            if not isinstance(sampleValidationResult, bool):
                 if isinstance(result, list):
-                    return result + [sampleValidationResult]
+                    return result + sampleValidationResult
                 else:
                     return [sampleValidationResult]
         
