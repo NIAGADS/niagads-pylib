@@ -76,14 +76,14 @@ def validate_sample_info(expectedSubjectIds: List[str]):
     invalidSampleSubjects = list(sampleSet - expectedSet)
     
     if len(invalidSampleSubjects) > 0:
-        error = ValidationError(f'Invalid subjects found in the sample file: {list_to_string(invalidSampleSubjects, delim=', ')}')
+        error = ValidationError(f'Invalid subjects found in the sample file: {list_to_string(invalidSampleSubjects, delim=", ")}')
         if args.failAtFirst:
                 raise error
         else:
             result.append(f'ERROR: {error.message}')
 
     if len(missingExpectedSubjects) > 0:
-        message = f'WARNING: Expected subjects missing from the sample info file: {list_to_string(missingExpectedSubjects, delim=', ')}' 
+        message = f'WARNING: Expected subjects missing from the sample info file: {list_to_string(missingExpectedSubjects, delim=", ")}' 
         result.append(message)
 
     if len(result) == 0:
