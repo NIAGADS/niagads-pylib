@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "title": "File Manifest",
-    "description": "description of required fields and field values for DSS Data Sumbission File Manifests",
+    "description": "description of required fields and field values for DSS Data Submission File Manifests",
     "$comment": "",
     "properties": {
         "file_category": {

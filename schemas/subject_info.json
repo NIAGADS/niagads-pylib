@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "title": "Subject Information",
-    "description": "description of required fields and field values for DSS Data Sumbission Subject Info Metadata",
+    "description": "description of required fields and field values for DSS Data Submission Subject Info Metadata",
     "$comment": "enums for disease, diagnosis, APOE, age",
     "properties": {
         "subject_id": {

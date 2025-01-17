@@ -8,7 +8,7 @@
 | **Required**              | No                                                                           |
 | **Additional properties** | [Each additional property must conform to the schema](#additionalProperties) |
 
-**Description:** description of required fields and field values for DSS Data Sumbission Sample Info Metadata
+**Description:** description of required fields and field values for DSS Data Submission Sample Info Metadata
 
 | Property                           | Pattern | Type           | Deprecated | Definition | Title/Description                                                                          |
 | ---------------------------------- | ------- | -------------- | ---------- | ---------- | ------------------------------------------------------------------------------------------ |
@@ -62,4 +62,4 @@
 | **Required** | No               |
 
 ----------------------------------------------------------------------------------------------------------------------------
-Generated using [json-schema-for-humans](https://github.com/coveooss/json-schema-for-humans) on 2025-01-16 at 17:07:01 -0500
+Generated using [json-schema-for-humans](https://github.com/coveooss/json-schema-for-humans) on 2025-01-17 at 10:24:20 -0500

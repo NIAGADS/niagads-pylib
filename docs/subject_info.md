@@ -8,7 +8,7 @@
 | **Required**              | No          |
 | **Additional properties** | Not allowed |
 
-**Description:** description of required fields and field values for DSS Data Sumbission Subject Info Metadata
+**Description:** description of required fields and field values for DSS Data Submission Subject Info Metadata
 
 | Property                     | Pattern | Type                     | Deprecated | Definition | Title/Description |
 | ---------------------------- | ------- | ------------------------ | ---------- | ---------- | ----------------- |
@@ -124,4 +124,4 @@ Must be one of:
 | **Required** | No               |
 
 ----------------------------------------------------------------------------------------------------------------------------
-Generated using [json-schema-for-humans](https://github.com/coveooss/json-schema-for-humans) on 2025-01-16 at 17:07:01 -0500
+Generated using [json-schema-for-humans](https://github.com/coveooss/json-schema-for-humans) on 2025-01-17 at 10:24:20 -0500

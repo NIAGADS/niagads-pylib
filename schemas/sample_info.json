@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "title": "Sample Information",
-    "description": "description of required fields and field values for DSS Data Sumbission Sample Info Metadata",
+    "description": "description of required fields and field values for DSS Data Submission Sample Info Metadata",
     "$comment": "Additional fields regarding the experimental details (e.g., assay, platform, array) may be added to elucidate sample-data-relationships",
     "properties": {
         "sample_id": {
