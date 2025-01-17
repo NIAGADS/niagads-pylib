@@ -4,7 +4,6 @@ import json
 from jsonschema import Draft7Validator as DraftValidator, exceptions as jsExceptions, validators as jsValidators
 from typing import List
 
-from ...utils.string import xstr
 from ...utils.dict import print_dict
 from ...utils.list import list_to_string
 
@@ -158,9 +157,9 @@ class JSONValidator:
         if error.message.startswith('None is not of type'):
             field = error.path.popleft()
             if field in requiredFields:
-                return "required field '" + field + "' cannot be empty / null"
+                return f'required field `{field}` cannot be empty / null'
             else:
-                return "'" + field + "' contains an empty string / null value.  Check specification - are nulls allowed?"
+                return f'optional `{field}` contains an empty string / null value; check specification - the value may be required to qualify other data'
     
         return error.message
         
