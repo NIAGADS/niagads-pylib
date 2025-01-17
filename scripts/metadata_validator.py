@@ -7,7 +7,7 @@ from typing import List
 from niagads.utils.logging import ExitOnExceptionHandler
 from niagads.validators import MetadataValidator, FileManifestValidator, BiosourcePropertiesValidator
 from niagads.utils.dict import print_dict
-from niagads.utils.list import list_to_string, drop_nulls
+from niagads.utils.list import list_to_string
 from niagads.utils.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -67,11 +67,10 @@ def validate_sample_info(expectedSubjectIds: List[str]):
     # Sample-Subject ID not in Expected Subject -> Error
     # Expected Subject missing from Sample-Subjects -> Warning
     
-    # extract the subjectIds by setting them to the `sample_id` of the validator
-    sampleValidator.set_biosource_id('subject_id')
-    subjectIds = sampleValidator.get_biosource_ids()
-    expectedSet = set(drop_nulls(expectedSubjectIds))
-    sampleSet = set(drop_nulls(subjectIds))
+    # extract the subjectIds 
+    subjectIds = sampleValidator.get_field_values('subject_id', dropNulls=True)
+    expectedSet = set(expectedSubjectIds)
+    sampleSet = set(subjectIds)
     
     missingExpectedSubjects = list(expectedSet - sampleSet)
     invalidSampleSubjects = list(sampleSet - expectedSet)
