@@ -1,8 +1,32 @@
 # JSON Schemas for validating metadata files accompanying DSS Data Submissions
 
+## Running the test script
+
+Test scripts are available in the `dss/scripts` directory:
+
+* [metadata_validatory.py](./scripts/metadata_validator.py)
+
+Validation depends on:
+
+* Python 3.10+
+* git
+* [niagads-pylib](https://github.com/NIAGADS/niagads-pylib)
+
+> Developer recommendation: install `niagads-pylib` in a Python virtual environment (venv)
+
+```bash
+pip install git+https://github.com/NIAGADS/niagads-pylib.git
+```
+
+For usage information run:
+
+```bash
+./scripts/metadata_validatory.py --help
+```
+
 ## Auto-generated documentation from JSON Schema Files
 
-Documentation generation epends on:
+Documentation generation depends on:
 
 * Python 3.10+
 * [json-schema-for-humans](https://github.com/coveooss/json-schema-for-humans)
@@ -27,30 +51,6 @@ For `Markdown`:
 ```bash
 cd metadata/dss
 generate-schema-doc --config template_name=md --config show_toc=false schemas/ docs/
-```
-
-## Running the test script
-
-Test scripts are available in the `dss/scripts` directory:
-
-* [metadata_validatory.py](./scripts/metadata_validator.py)
-
-Validation depends on:
-
-* Python 3.10+
-* git
-* [niagads-pylib](https://github.com/NIAGADS/niagads-pylib)
-
-> Developer recommendation: install `niagads-pylib` in a Python virtual environment (venv)
-
-```bash
-pip install git+https://github.com/NIAGADS/niagads-pylib.git
-```
-
-For usage information run:
-
-```bash
-./scripts/metadata_validatory.py --help
 ```
 
 ## Developer Notes
