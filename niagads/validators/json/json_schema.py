@@ -153,7 +153,10 @@ class JSONValidator:
         """
         requiredFields = [f for f in self.__schema['required']] \
             if 'required' in self.__schema else []
-                
+
+        if "is not of type 'null'" in error.message:
+            field = error.path.popleft()
+            return f'unexpected value for `{field}`; field is not relevant for this record; please set to an empty string in a metadata .tab/.xlsx file; `null` in a .json file'
         if error.message.startswith('None is not of type'):
             field = error.path.popleft()
             if field in requiredFields:
