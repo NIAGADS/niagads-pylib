@@ -64,4 +64,15 @@ class CacheNamespace(CaseInsensitiveEnum):
     ADVP = auto() # advp endpoints
     VIEW = auto() # view redirect endpoints
     ROOT = auto() # root api
+    QUERY_CACHE = auto() # for server-side pagination, sorting, filtering
+    
+    
+class CacheKeyQualifier(CaseInsensitiveEnum):
+    PAGINATION = auto() 
+    CURSOR = "pagination-cursor"
+    RAW = auto()
+    QUERY_CACHE = auto()
+    
+    def __str__(self):
+        return f'_{self.value}'
     
