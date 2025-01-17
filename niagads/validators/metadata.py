@@ -2,7 +2,7 @@ import logging
 from json import dumps as j_dumps
 from abc import ABC, abstractmethod 
 
-from typing import List, Set, Union
+from typing import List, Union
 
 from jsonschema import exceptions as jsExceptions
 
@@ -126,6 +126,34 @@ class TableValidator(CSVValidator):
     def __init__(self, fileName, schema, debug:bool=False):
         super().__init__(fileName, schema, debug)
         
+        
+    def get_field_values(self, field: str, dropNulls: bool=False):
+        """
+        fetch all values in a table field
+
+        Args:
+            field (str): field name
+            dropNulls (bool, Optional): drop null values from return. Defaults to False.
+
+        Raises:
+            TypeError: NullValue error if the metadata is not loaded
+            KeyError: if the field does not exist in the table
+
+        Returns:
+            list of values in the field
+        """
+        
+        if self._metadata is None:
+            raise TypeError("metadata not loaded; run `[validator].load()` before extracting sample IDs")
+        
+        if field not in self._metadata[0]: # metadata is a list of dicts
+            raise KeyError(f'invalid metadata field `{field}`; cannot extract values')
+        
+        fieldValues = [ r[field] for r in self._metadata ] 
+        return drop_nulls(fieldValues) if dropNulls \
+            else fieldValues
+    
+        
     def load(self, worksheet:Union[str, int]=0):
         """
         load the metadata from a file, if EXCEL file specify name of worksheet to be extracted
@@ -209,9 +237,9 @@ class FileManifestValidator(TableValidator):
             list of invalid samples
         """
         
-        sampleIds = [ r[self.__sampleField] for r in self._metadata ]
-        sampleSet = set(drop_nulls(sampleIds))
-        referenceSet  = set(drop_nulls(self.__sampleReference))
+        sampleIds = self.get_field_values(self.__sampleField, dropNulls=True)
+        sampleSet = set(sampleIds)
+        referenceSet  = set(self.__sampleReference)
         
         invalidSamples = list(sampleSet - referenceSet)
         missingSamples = list(referenceSet - sampleSet)
@@ -289,10 +317,7 @@ class BiosourcePropertiesValidator(TableValidator):
         """
         extract biosource IDs
         """
-        if self._metadata is None:
-            raise TypeError("metadata not loaded; run `[validator].load()` before extracting sample IDs")
-        
-        return [ r[self.__biosourceID] for r in self._metadata ] 
+        return self.get_field_values(self.__biosourceID)
     
     
     def run(self, failOnError:bool=False):
