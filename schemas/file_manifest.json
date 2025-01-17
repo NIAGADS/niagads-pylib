@@ -64,9 +64,6 @@
                 "string",
                 "null"
             ]
-        },
-        "test": {
-            "type": "string"
         }
     },
     "additionalProperties": false,
@@ -113,6 +110,24 @@
                 "properties": {
                     "sample_id": {
                         "$ref": "#/definitions/nonEmptyString"
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "file_category": {
+                        "not": {"enum": [
+                            "single-sample"
+                        ]}
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "sample_id": {
+                        "type": "null"
                     }
                 }
             }
