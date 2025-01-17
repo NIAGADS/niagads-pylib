@@ -131,6 +131,7 @@ class RouteHelper():
             else (self._pagination.page - 1) * self._pageSize
 
 
+    # FIXME: not used
     def cursor(self):
         """ for array pagination; calcs endIndex of previous page as a cursor """
         if self._pagination.page == 1:
@@ -145,7 +146,7 @@ class RouteHelper():
         self._pagination_exists()
         targetPage = self._pagination.page if page is None else page 
         start = (targetPage - 1) * self._pageSize
-        end = start + self._pageSize
+        end = start + self._pageSize # don't subtract 1 b/c python slices are not end-range inclusive
         if end > self._resultSize:
             end = self._resultSize
             
