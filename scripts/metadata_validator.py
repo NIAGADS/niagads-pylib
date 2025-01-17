@@ -123,7 +123,7 @@ def log_start_validation(metadataType, metadataFile):
     
     
 def log_parsed_metadata(validator: MetadataValidator):
-    logger.debug(print_dict(validator.get_metadata(), pretty=False))
+    logger.debug(print_dict(validator.get_metadata(), pretty=True))
 
     
 def run():
