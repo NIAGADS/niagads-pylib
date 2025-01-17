@@ -7,7 +7,7 @@ from operator import itemgetter
 
 from niagads.utils.list import cumulative_sum, chunker
 
-from api.common.enums import ResponseContent, CacheNamespace
+from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace
 from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper
 from api.models.base_models import SerializableModel
 
@@ -28,21 +28,38 @@ class FILERRouteHelper(RouteHelper):
         self._managers: InternalRequestParameters = managers
 
 
-    def __page_data_query(self, trackSummary: dict):
+    async def __page_data_query(self, trackSummary: dict):
         """ calculate expected result size, number of pages; 
             returns current set of paged tracks"""
         
-        # calculate cumulative sum of expected hits per track 
-        sortedTrackSummary = sorted(trackSummary, key = lambda item: item['num_overlaps'], reverse=True)
-        cumulativeSum = cumulative_sum([t['num_overlaps'] for t in sortedTrackSummary])
-        self._resultSize = cumulativeSum[-1] # last element is total number of hits
+        # check to see if pagination has been cached
+        cacheKey = self._managers.cacheKey.query_cache + CacheKeyQualifier.CURSOR
+        cursors = await self._managers.internalCache.get(cacheKey, 
+            namespace=CacheNamespace.QUERY_CACHE, 
+            timeout=CACHEDB_PARALLEL_TIMEOUT)
         
-        # TODO: layout all scenarios for single tracks returning > pageSize results
-        # FIXME: when do we throw a result size too large error?
-        if cumulativeSum[0] > self._pageSize:
-            raise RequestValidationError(f'Response size too large [n = {self._resultSize}]; please refine your search')
+        if cursors is not None:
+            # cursors were cached, exctract the current cursor from the cache
+            self.initialize_pagination()
+            currentCursor = cursors[self._pagination.page]
         
-        self.initialize_pagination()
+        else: # determine pagination cursors
+            # calculate cumulative sum of expected hits per track 
+            sortedTrackSummary = sorted(trackSummary, key = lambda item: item['num_overlaps'], reverse=True)
+            cumulativeSum = cumulative_sum([t['num_overlaps'] for t in sortedTrackSummary])
+            self._resultSize = cumulativeSum[-1] # last element is total number of hits      
+    
+            self.initialize_pagination()
+            
+            if self._resultSize <= self._pageSize:
+                # last track, last record
+                cursors = [f'{sortedTrackSummary[-1]['track_id']}_{cumulativeSum[-1]}']    
+            else: # one cursor per page
+                cursors = [f'{sortedTrackSummary[0]['track_id']}_0']
+                p: int # annotated type hint
+                for p in range(2, self._pagination.total_num_pages):
+                    pRange = self.page_array(p + 1)
+                    trackIndex = next((index for index, counts in enumerate(cumulativeSum) if counts >= pRange.start))
         
         pagedTracks = None
         if self._resultSize <= self._pageSize:
@@ -50,6 +67,8 @@ class FILERRouteHelper(RouteHelper):
         
         else:
             pageRange = self.page_array()
+            
+            
             # cursor = self.cursor()
             
             # NOTE: () in the `next` returns an iterator instead of a list 
@@ -141,7 +160,7 @@ class FILERRouteHelper(RouteHelper):
         isCached = True # assuming true from the start
         cacheKey = self._managers.cacheKey.internal
         if rawResponse:
-            cacheKey = cacheKey + '&raw'    
+            cacheKey = cacheKey + CacheKeyQualifier.RAW
         
         result = await self._managers.internalCache.get(
             cacheKey, 
