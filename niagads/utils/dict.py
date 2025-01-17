@@ -1,10 +1,12 @@
 """ library of object / dictionary / hash manipulation functions """
 
 import json
+from typing import Union
 import warnings
 from collections import abc
 from types import SimpleNamespace
-from niagads.utils.string import is_null
+
+from niagads.utils.string import is_bool, is_null, to_bool, to_number
 
 
 def rename_key(dictObj:dict, oldKey: str, newKey: str, ordered: bool=False): # note does not preserve python3+ ordering
@@ -18,7 +20,7 @@ def rename_key(dictObj:dict, oldKey: str, newKey: str, ordered: bool=False): # n
         ordered (bool, optional): keep ordering; slower. Defaults to False.
 
     Returns:
-       updated dict object
+        updated dict object
     """
     if ordered:
         return {newKey if k == oldKey else k:v for k,v in dictObj.items()} 
@@ -119,7 +121,7 @@ def deep_update(d, u):
 
 
 
-def convert_str2numeric_values(cdict, nanAsStr=True, infAsStr=True):
+def convert_str2numeric_values(cdict: dict, nanAsStr=True, infAsStr=True):
     """converts numeric values in dictionary stored as strings 
     to numeric
 
@@ -131,21 +133,20 @@ def convert_str2numeric_values(cdict, nanAsStr=True, infAsStr=True):
     Returns:
         updated dict object
     """
+    value: Union[str, float, bool]
     for key, value in cdict.items():
+        if value is None:
+            continue
         if str(value).upper() == 'NAN' and nanAsStr:
             # is_float test will be true for NaN/NAN/nan/Nan etc
             continue
         if 'inf' in str(value).lower() and infAsStr:
             # is_float test will be true for Infinity / -Infinity
             continue
+        if is_bool(value):
+            cdict[key] = to_bool(value)
         if value.isnumeric():
-            if isinstance(value, float): # must check float first b/c integers are a subset
-                cdict[key] = float(value)
-            if isinstance(value, int):
-                cdict[key] = int(value)
-                continue
-            if isinstance(value, bool): # treat 0 & 1 as integer, so test last
-                cdict[key] = bool(value)
+            cdict[key] = to_number(value)
 
     return cdict
 
