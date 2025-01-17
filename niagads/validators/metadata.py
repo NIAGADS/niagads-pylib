@@ -305,7 +305,7 @@ class BiosourcePropertiesValidator(TableValidator):
     def validate_unqiue_identifiers(self, failOnError:bool=False):
         duplicates = get_duplicates(self.get_biosource_ids())
         if len(duplicates) > 0:
-            error = ValidationError(f'Duplicate biosource identifiers found: {list_to_string(duplicates, delim=', ')}')
+            error = ValidationError(f'Duplicate biosource identifiers found: {list_to_string(duplicates, delim=", ")}')
             if failOnError:
                 raise error
             else:
