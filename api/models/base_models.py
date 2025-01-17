@@ -101,6 +101,7 @@ class RequestDataModel(SerializableModel):
 class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
     internal: str = Field(description="in-memory cache key for internal access to cached data")
     internal_raw: str = Field(default=None, description="in-memory cache key for cached raw data / no pagination or formatting")
+    query_cache: str = Field(default=None, description="in-memory cache key to support server-side query caching for paging, sorting, and filtering")
     external: str = Field(description="in-memory cache key for external access to a cached response")
     namespace: CacheNamespace = Field(description="namespace in the in-memory cache")
     
@@ -114,9 +115,15 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
         parameters = RequestDataModel.sort_query_parameters(dict(request.query_params), exclude=['format', 'page', 'content'])
         internalRawCacheKey = endpoint + '?' + parameters.replace(':', '_')
         
+        # for the 'query_cache' (to support server side pagination, sorting, filtering)
+        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params), exclude=['format', 'page'])
+        queryCacheKey = endpoint + '?' + parameters.replace(':', '_') + '-query_cache'
+        
+        # for pagination and 
         return cls(
             internal = internalCacheKey,
             internal_raw = internalRawCacheKey,
+            query_cache = queryCacheKey,
             external = md5(internalCacheKey.encode('utf-8')).hexdigest(), # so that it is unique to the endpoint + params, unlike distinct requestId
             namespace = CacheNamespace(request.url.path.split('/')[2]) \
                 if '/redirect/' in request.url.path \
