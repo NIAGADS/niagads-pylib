@@ -5,6 +5,7 @@ from os import path
 from csv import Sniffer, Dialect
 from pandas import read_csv, DataFrame
 
+from ..utils.dict import convert_str2numeric_values
 from ..utils.pd_dataframe import strip
 
 class CSVFileParser:
@@ -39,8 +40,8 @@ class CSVFileParser:
             value (str): value to fill (e.g., 'NULL', 'NA', '.')
         """
         self.__na = value
- 
- 
+
+
     def strip(self, strip=True):
         """
         flag indicating whether to iterate over all fields and 
@@ -68,7 +69,15 @@ class CSVFileParser:
 
         # orient='records' returns indexes; e.g. [index: {row data}] so need to extract the values
         jsonStr = self.to_pandas_df(transpose, **kwargs).to_json(orient = 'records')
-        return jsonStr if returnStr else json.loads(jsonStr)
+        
+        # convert strings to numeric so can do typing validation
+        jsonObj = json.loads(jsonStr)
+        if isinstance(jsonObj, list):
+            jsonObj = [convert_str2numeric_values(r) for r in json.loads(jsonStr)]
+        else:
+            jsonObj = convert_str2numeric_values(jsonObj)
+        
+        return json.dumps(jsonObj) if returnStr else json.loads(jsonStr)
 
 
     def __trim(self, df: DataFrame):

@@ -6,6 +6,7 @@ from typing import Union
 from pandas import read_excel, DataFrame
 from openpyxl import Workbook as wb, load_workbook
 
+from ..utils.dict import convert_str2numeric_values
 from ..utils.string import xstr, to_snake_case
 from ..utils.pd_dataframe import strip
 
@@ -169,7 +170,15 @@ class ExcelFileParser:
         
         # orient='records' returns indexes; e.g. [index: {row data}] so need to extract the values
         jsonStr = self.to_pandas_df(ws, transpose, **kwargs).to_json(orient = 'records')
-        return jsonStr if returnStr else json.loads(jsonStr)
+        
+        # convert strings to numeric so can do typing validation
+        jsonObj = json.loads(jsonStr)
+        if isinstance(jsonObj, list):
+            jsonObj = [convert_str2numeric_values(r) for r in json.loads(jsonStr)]
+        else:
+            jsonObj = convert_str2numeric_values(jsonObj)
+        
+        return json.dumps(jsonObj) if returnStr else json.loads(jsonStr)
 
 
     def __trim(self, df: DataFrame):
