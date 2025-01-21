@@ -198,7 +198,7 @@ class TableValidator(CSVValidator):
                 if failOnError:
                     validator.validation_error(rowValidation, prefix="row " + xstr(index) + " - " + xstr(row))
                 else:
-                    result.append({index: rowValidation})
+                    result.append({index + 1: rowValidation})
         
         return True if len(result) == 0 else result # empty array; all rows passed
         
@@ -285,7 +285,7 @@ class FileManifestValidator(TableValidator):
 class BiosourcePropertiesValidator(TableValidator):
     """
     validate biosource properties in a CSV format file, with column names
-    and 1 row per sample or subject
+    and 1 row per sample or participant
     
     """
     def __init__(self, fileName, schema, debug:bool=False):
