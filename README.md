@@ -65,12 +65,12 @@ JSON schema can only validate a single cell or dependencies among cells in a sin
   * <code style="color : green">**DONE**</code>
   * see [niagads-pylib:BiosourcePropertiesValidator.unique_samples](https://github.com/NIAGADS/niagads-pylib/blob/c2d4edf6af105ad46057e670e86a040953da8f25/niagads/validators/metadata.py#L259C1-L267C20)
   
-* _sample_ids_ must be unique for the whole experiment (across all `subject_info` files)
+* _sample_ids_ must be unique for the whole experiment (across all `participant_info` files)
   * <code style="color : green">**DONE**</code>
-  * are there cases in which multiple `subject_info` files will be submitted?
+  * are there cases in which multiple `participant_info` files will be submitted?
   
-#### `subject_info`
+#### `participant_info`
 
-* _subject_ids_ must be unique within the `subject_info` file
+* _participant_ids_ must be unique within the `participant_info` file
   * <code style="color : green">**DONE**</code>
   * see [niagads-pylib:BiosourcePropertiesValidator.unique_samples](https://github.com/NIAGADS/niagads-pylib/blob/c2d4edf6af105ad46057e670e86a040953da8f25/niagads/validators/metadata.py#L259C1-L267C20)

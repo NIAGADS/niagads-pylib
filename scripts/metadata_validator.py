@@ -36,25 +36,25 @@ def initialize_biosource_validator(metadataType: str, idField:str):
     return bsValidator, bsValidator.get_biosource_ids()
 
 
-def validate_subject_info():
+def validate_participant_info():
     """
-    validates subject_info metadata file
+    validates participant_info metadata file
 
     Returns:
-        tuple of the validation result and the subject IDs so they can be used to validate the subjects in the sample_info file
+        tuple of the validation result and the participant IDs so they can be used to validate the participants in the sample_info file
     """
-    subjectValidator, subjectIds = initialize_biosource_validator('subject_info', 'subject_id')
-    validationResult = subjectValidator.run(failOnError=args.failAtFirst)
+    participantValidator, participantIds = initialize_biosource_validator('participant_info', 'participant_id')
+    validationResult = participantValidator.run(failOnError=args.failAtFirst)
     result = "PASSED" if isinstance(validationResult, bool) else validationResult
-    return result, subjectIds
+    return result, participantIds
 
 
-def validate_sample_info(expectedSubjectIds: List[str]):
+def validate_sample_info(expectedParticipantIds: List[str]):
     """
     validates the sample_info metadata file
 
     Args:
-        expectedSubjectIds (List[str]): subject ids expected from the subject_info_file
+        expectedParticipantIds (List[str]): participant ids expected from the participant_info_file
 
     Returns:
         tuple of the validation reuslt and the sample IDS so they can be used to validate the file manifest
@@ -63,27 +63,27 @@ def validate_sample_info(expectedSubjectIds: List[str]):
     validationResult = sampleValidator.run(failOnError=args.failAtFirst)
     result = [] if isinstance(validationResult, bool) else validationResult
     
-    # Compare Subject IDS in the sample_info file to Expected Subject IDS from the subject_info file
-    # Sample-Subject ID not in Expected Subject -> Error
-    # Expected Subject missing from Sample-Subjects -> Warning
+    # Compare Participant IDS in the sample_info file to Expected Participant IDS from the participant_info file
+    # Sample-Participant ID not in Expected Participant -> Error
+    # Expected Participant missing from Sample-Participants -> Warning
     
-    # extract the subjectIds 
-    subjectIds = sampleValidator.get_field_values('subject_id', dropNulls=True)
-    expectedSet = set(expectedSubjectIds)
-    sampleSet = set(subjectIds)
+    # extract the participantIds 
+    participantIds = sampleValidator.get_field_values('participant_id', dropNulls=True)
+    expectedSet = set(expectedParticipantIds)
+    sampleSet = set(participantIds)
     
-    missingExpectedSubjects = list(expectedSet - sampleSet)
-    invalidSampleSubjects = list(sampleSet - expectedSet)
+    missingExpectedParticipants = list(expectedSet - sampleSet)
+    invalidSampleParticipants = list(sampleSet - expectedSet)
     
-    if len(invalidSampleSubjects) > 0:
-        error = ValidationError(f'Invalid subjects found in the sample file: {list_to_string(invalidSampleSubjects, delim=", ")}')
+    if len(invalidSampleParticipants) > 0:
+        error = ValidationError(f'Invalid participants found in the sample file: {list_to_string(invalidSampleParticipants, delim=", ")}')
         if args.failAtFirst:
                 raise error
         else:
             result.append(f'ERROR: {error.message}')
 
-    if len(missingExpectedSubjects) > 0:
-        message = f'WARNING: Expected subjects missing from the sample info file: {list_to_string(missingExpectedSubjects, delim=", ")}' 
+    if len(missingExpectedParticipants) > 0:
+        message = f'WARNING: Expected participants missing from the sample info file: {list_to_string(missingExpectedParticipants, delim=", ")}' 
         result.append(message)
 
     if len(result) == 0:
@@ -130,12 +130,12 @@ def run():
     try:
         result = {}
 
-        # Subjects
-        validationResult, subjectIds = validate_subject_info()
-        result['subject_info'] = validationResult
+        # Participants
+        validationResult, participantIds = validate_participant_info()
+        result['participant_info'] = validationResult
 
         # Samples
-        validationResult, sampleIds = validate_sample_info(subjectIds)
+        validationResult, sampleIds = validate_sample_info(participantIds)
         result['sample_info'] = validationResult
         
         # File Manifest

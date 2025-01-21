@@ -7,11 +7,11 @@
     "properties": {
         "sample_id": {
             "type": "string",
-            "description": "sample IDs must be unique for each subject-source-experiment triple across the submission."
+            "description": "sample IDs must be unique for each participant-source-experiment triple across the submission."
         },
-        "subject_id": {
+        "participant_id": {
             "type": "string",
-            "description": "must match a subject ID in the `Subject Info` metadata file."
+            "description": "must match a participant ID in the `Participant Info` metadata file."
         },
         "sample_source": {
             "type": [
@@ -36,6 +36,6 @@
     },
     "required": [
         "sample_id",
-        "subject_id"
+        "participant_id"
     ]
 }

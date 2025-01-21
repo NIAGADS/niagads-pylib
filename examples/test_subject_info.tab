@@ -1,4 +1,4 @@
-subject_id	cohort	consent	sex	race	ethnicity	diagnosis	disease	APOE	comment
+participant_id	cohort	consent	sex	race	ethnicity	diagnosis	disease	APOE	comment
 DONOR1	KNIGHT-ADRC		Male	Asian	Hispanic or Latino		AD		clinical diagnosis
 DONOR2	ROSMAP		Female	White	Not Hispanic or Latino		AD		
 DONOR3	KNIGHT-ADRC		Male	White	Hispanic or Latino		AD		

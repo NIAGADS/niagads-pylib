@@ -1,11 +1,11 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
-    "title": "Subject Information",
-    "description": "description of required fields and field values for DSS Data Submission Subject Info Metadata",
+    "title": "Participant Information",
+    "description": "description of required fields and field values for DSS Data Submission Participant Info Metadata",
     "$comment": "enums for disease, diagnosis, APOE, age",
     "properties": {
-        "subject_id": {
+        "participant_id": {
             "type": "string"
         },
         "cohort": {
@@ -92,7 +92,7 @@
     },
     "additionalProperties": false,
     "required": [
-        "subject_id",
+        "participant_id",
         "consent",
         "sex",
         "race",
