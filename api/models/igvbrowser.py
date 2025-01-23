@@ -9,6 +9,7 @@ from api.common.formatters import id2title
 from api.models import BiosampleCharacteristics, ExperimentalDesign
 from api.models.base_models import GenericDataModel, RowModel
 from api.models.base_response_models import PagedResponseModel, BaseResponseModel
+from api.models.view_models import Table
 
 class IGVBrowserTrackConfig(SQLModel, RowModel):
     track_id: str = Field(serialization_alias="id")
@@ -71,38 +72,33 @@ class IGVBrowserTrackMetadata(RowModel):
         
 
 
-    
 # TODO: allowable views: direct to genome browser   
 # TODO: create truncated response instead of paging
-class IGVBrowserTrackConfigResponse(PagedResponseModel):
+class IGVBrowserTrackConfigResponse(BaseResponseModel):
     response: List[IGVBrowserTrackConfig]
     
     def to_view(self, view, **kwargs):
         raise NotImplementedError('IGVBrowser view coming soon')
         # return super().to_view(view, **kwargs)
         # NOTE: super().to_view call w/result in error; expects non null config
-    
-class IGVBrowserApplicationConfigResponse(PagedResponseModel):
-    response: Dict[str, Any]
+
+
+class IGVBrowserTrackSelecterResponse(BaseResponseModel):
+    response: Table
     
     @classmethod
-    def build_application_config(cls, metadata: RowModel):
+    def build_table(cls, metadata: RowModel):
         tableData = []
-        config = []
         track: RowModel
         for track in metadata:
             rowData = track.serialize()
-            config.append(IGVBrowserTrackConfig(**rowData).to_view_data(ResponseFormat.JSON))
             rowData = IGVBrowserTrackMetadata(**rowData)
             tableData.append(rowData.serialize(promoteObjs=True, byAlias=True))
                         
         columns = IGVBrowserTrackMetadata.get_table_columns()
         options = IGVBrowserTrackMetadata.get_table_options()
 
-        return {
-            'track_config': config,
-            'track_selector_table': {'data': tableData, 'columns': columns, 'options': options}
-        }
+        return {'data': tableData, 'columns': columns, 'options': options}
         
             
     def to_view(self, view, **kwargs):

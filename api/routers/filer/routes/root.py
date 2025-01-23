@@ -13,7 +13,7 @@ from ..dependencies.parameters import ROUTE_SESSION_MANAGER
 from .track import router as TrackRouter
 from .metadata import router as MetadataRouter
 from .data import router as DataRouter
-from .config import router as BrowserConfigRouter
+from .igvbrowser import router as IGVBrowserRouter
 
 router = APIRouter(
     prefix=ROUTE_PREFIX,
@@ -39,4 +39,4 @@ async def read_root(
 router.include_router(TrackRouter)
 router.include_router(MetadataRouter)
 router.include_router(DataRouter)
-router.include_router(BrowserConfigRouter)
+router.include_router(IGVBrowserRouter)
