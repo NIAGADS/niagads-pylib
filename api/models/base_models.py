@@ -13,18 +13,15 @@ from api.common.constants import JSON_TYPE
 from api.common.enums import CacheNamespace, OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
 
-
-    
-
 class SerializableModel(BaseModel):
-    def serialize(self, exclude: List[str] = None, promoteObjs=False, collapseUrls=False, groupExtra=False):
+    def serialize(self, exclude: List[str] = None, promoteObjs=False, collapseUrls=False, groupExtra=False, byAlias=False):
         """Return a dict which contains only serializable fields.
         exclude -> list of fields to exclude
         promoteObjs -> when True expands JSON fields; i.e., ds = {a:1, b:2} becomes a:1, b:2 and ds gets dropped
         collapseUrls -> looks for field and field_url pairs and then updates field to be {url: , value: } object
         groupExtra -> if extra fields are present, group into a JSON object
         """
-        data:dict = jsonable_encoder(self.model_dump(exclude=exclude)) # FIXME: not sure if encoder is necessary; check dates? maybe
+        data:dict = jsonable_encoder(self.model_dump(exclude=exclude, by_alias=byAlias)) # FIXME: not sure if encoder is necessary; check dates? maybe
         if promoteObjs:
             objFields = [k for k, v in data.items() if isinstance(v, dict)]
             for f in objFields:
@@ -166,6 +163,8 @@ class GenericDataModel(RowModel):
         match view:
             case view.TABLE:
                 self.get_table_view_config(kwargs)
+            case view.IGV_BROWSER:
+                return None
             case _:
                 raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
         

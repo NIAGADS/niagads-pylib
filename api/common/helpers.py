@@ -12,6 +12,7 @@ from api.dependencies.parameters.services import InternalRequestParameters
 from api.dependencies.parameters.optional import ResponseFormat
 from api.models.base_models import PaginationDataModel
 from api.models.base_response_models import BaseResponseModel
+from api.models.igvbrowser_config import IGVBrowserApplicationConfigResponse
 from api.routers.redirect.common.constants import RedirectEndpoints
 
 INTERNAL_PARAMETERS = ['span', '_paged_tracks']
@@ -166,14 +167,21 @@ class RouteHelper():
                     
                 self.set_paged_num_records(len(result))
                 
+                # FIXME: fix pagination for IGVBrowserConfig
                 response = self._responseConfig.model(
                     request=self._managers.requestData,
                     pagination=self._pagination,
-                    response=result)
+                    response=IGVBrowserApplicationConfigResponse.build_application_config(result) \
+                        if self._responseConfig.model == IGVBrowserApplicationConfigResponse \
+                            else result)
             else: 
                 response = self._responseConfig.model(
-                    request=self._managers.requestData, 
-                    response=result)
+                    request=self._managers.requestData,
+                    response=IGVBrowserApplicationConfigResponse.build_application_config(result) \
+                        if self._responseConfig.model == IGVBrowserApplicationConfigResponse \
+                            else result
+                    )
+
                 
             # cache the response
             await self._managers.internalCache.set(
