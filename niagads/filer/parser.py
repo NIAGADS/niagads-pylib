@@ -622,8 +622,28 @@ class FILERMetadataParser:
         if self.__primaryKeyLabel is not None:
             self.__metadata.update({self.__primaryKeyLabel: self._get_metadata('identifier')})
             self.__remove_attributes(['identifier'])
-            
+
+    def __clean_qtl_text(self):
+        """ xQTL track names/descriptions have consecutive duplicate text: 
+        e.g. NG00102_Cruchaga_pQTLs Cerebrospinal fluid pQTL pQTL INDEL nominally significant associations
+        remove the duplicate feature type from the text field
+        """
+        featureType = self._get_metadata('feature_type')
+        if 'QTL' in featureType:
+            self.__metadata.update({
+                'name': self._get_metadata('name').replace(f'${featureType} ${featureType}', featureType),
+                'description': self._get_metadata('description').replace(f'${featureType} ${featureType}', featureType),
+                'searchable_text': self._get_metadata('searchable_text').replace(f'${featureType} ${featureType}', featureType),
+            })
+
+
+    def __final_patches(self):   
+        # misc corrections to the data  
+        # update primary key label
+        self.__update_primary_key_label()    
+        self.__clean_qtl_text()
     
+        
     def parse(self):
         ''' parse the FILER metadata & transform/clean up 
         returns parsed / transformed metadata 
@@ -660,8 +680,8 @@ class FILERMetadataParser:
         # generate text search field
         self.__add_text_search_field()
         
-        # update primary key label
-        self.__update_primary_key_label()     
+        # patchees
+        self.__final_patches()
 
         # return the parsed metadata
         return self.__metadata
