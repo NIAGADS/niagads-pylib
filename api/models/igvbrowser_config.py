@@ -6,6 +6,7 @@ from niagads.utils.list import find
 
 from api.common.enums import OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
+from api.config.settings import get_settings
 
 from .base_models import RowModel
 from .base_response_models import PagedResponseModel
@@ -17,9 +18,10 @@ class IGVBrowserConfig(RowModel,SQLModel):
     browser_track_name: str = Field(alias='name')  
     url: str 
     description: str
-    index_url: str = Field(alias='indexUrl')
+    index_url: str = Field(alias='indexURL')
     browser_track_type: str = Field(alias='type')
     browser_track_format: str = Field(alias='format')
+    infoURL: str = get_settings().IGV_BROWSER_INFO_URL
     
     model_config = ConfigDict(populate_by_name=True)
 

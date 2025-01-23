@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     API_PUBLIC_URL: str
     CACHE_TTL: str = 'DEFAULT'
     ADMIN_EMAIL: str = 'help@niagads.org'
+    IGV_BROWSER_INFO_URL: str = '/record'
     
     # required by Pydantic
     model_config = SettingsConfigDict(env_file=ENV_FILE_PATH)
