@@ -6,9 +6,10 @@ from niagads.utils.list import find
 
 from api.common.enums import OnRowSelect, ResponseFormat
 from api.common.formatters import id2title
+from api.config.settings import get_settings
 from api.models import BiosampleCharacteristics, ExperimentalDesign
-from api.models.base_models import GenericDataModel, RowModel
-from api.models.base_response_models import PagedResponseModel, BaseResponseModel
+from api.models.base_models import RowModel
+from api.models.base_response_models import BaseResponseModel
 from api.models.view_models import Table
 
 class IGVBrowserTrackConfig(SQLModel, RowModel):
@@ -19,6 +20,7 @@ class IGVBrowserTrackConfig(SQLModel, RowModel):
     index_url: str = Field(serialization_alias ='indexURL')
     browser_track_type: str = Field(serialization_alias = 'type')
     browser_track_format: str = Field(serialization_alias ='format')
+    infoURL: str = get_settings().IGV_BROWSER_INFO_URL
     
     # model_config = ConfigDict(populate_by_name=True)
 
