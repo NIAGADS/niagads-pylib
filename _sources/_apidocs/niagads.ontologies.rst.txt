@@ -1,0 +1,29 @@
+niagads.ontologies package
+==========================
+
+Submodules
+----------
+
+niagads.ontologies.constants module
+-----------------------------------
+
+.. automodule:: niagads.ontologies.constants
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niagads.ontologies.ontology\_term module
+----------------------------------------
+
+.. automodule:: niagads.ontologies.ontology_term
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niagads.ontologies
+   :members:
+   :undoc-members:
+   :show-inheritance:

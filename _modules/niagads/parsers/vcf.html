@@ -1,0 +1,387 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.parsers.vcf &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.vcf</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.parsers.vcf</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;! @brief VCF Entry Parser&quot;&quot;&quot;</span>
+
+<span class="c1">##</span>
+<span class="c1"># @package parsers</span>
+<span class="c1"># @file vcf.py</span>
+<span class="c1">#</span>
+<span class="c1"># @brief  VCF Entry Parser</span>
+<span class="c1"># </span>
+<span class="c1"># @section vcf_parser Description</span>
+<span class="c1"># utils for parsing VCF entries (a line in a VCF file)</span>
+<span class="c1">#</span>
+<span class="c1"># @section todo_vcf_parser TODO</span>
+<span class="c1">#</span>
+<span class="c1"># - None</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="c1"># @section author_vcf_parser Author(s)</span>
+<span class="c1"># - Created by Emily Greenfest-Allen (fossilfriend) 2019</span>
+<span class="c1"># - Modified to remove consequence ranking to the ConsequenceParser class by EGA 2022</span>
+
+<span class="c1"># pylint: disable=line-too-long,invalid-name,no-self-use</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">types</span> <span class="kn">import</span> <span class="n">SimpleNamespace</span>
+
+<span class="kn">from</span> <span class="nn">..utils.exceptions</span> <span class="kn">import</span> <span class="n">ParserError</span>
+<span class="kn">from</span> <span class="nn">..utils.string</span> <span class="kn">import</span> <span class="n">xstr</span><span class="p">,</span> <span class="n">to_numeric</span>
+<span class="kn">from</span> <span class="nn">..utils.dict</span> <span class="kn">import</span> <span class="n">convert_str2numeric_values</span>
+<span class="kn">from</span> <span class="nn">..utils.list</span> <span class="kn">import</span> <span class="n">qw</span>
+<span class="kn">from</span> <span class="nn">..annotators</span> <span class="kn">import</span> <span class="n">VariantAnnotator</span>
+
+
+<div class="viewcode-block" id="VCFEntryParser">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser">[docs]</a>
+<span class="k">class</span> <span class="nc">VCFEntryParser</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;! utils for parse a single line of a vcf file &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">,</span> <span class="n">headerFields</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! VcfEntryParser base class initializer</span>
+<span class="sd">        @param entry       VCF Entry (row) in string format</span>
+<span class="sd">        @param headerFields array of fields if pVCF or non-standard VCF</span>
+<span class="sd">        @param verbose     flag for verbose output</span>
+<span class="sd">        @param debug       flag for debug output</span>
+<span class="sd">        @returns           An instance of the VcfEntryParser class with parsed entry if entry is not None</span>
+<span class="sd">        &quot;&quot;&quot;</span>   
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__headerFields</span> <span class="o">=</span> <span class="n">qw</span><span class="p">(</span><span class="s1">&#39;chrom pos id ref alt qual filter info&#39;</span><span class="p">)</span> \
+            <span class="k">if</span> <span class="n">headerFields</span> <span class="ow">is</span> <span class="kc">None</span> \
+            <span class="k">else</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">headerFields</span><span class="p">]</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">__entry</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">entry</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_entry</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+
+        
+<div class="viewcode-block" id="VCFEntryParser.debug">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser.debug">[docs]</a>
+    <span class="k">def</span> <span class="nf">debug</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__debug</span></div>
+
+    
+    
+<div class="viewcode-block" id="VCFEntryParser.verbose">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser.verbose">[docs]</a>
+    <span class="k">def</span> <span class="nf">verbose</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__verbose</span></div>
+
+    
+    
+<div class="viewcode-block" id="VCFEntryParser.parse_entry">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser.parse_entry">[docs]</a>
+    <span class="k">def</span> <span class="nf">parse_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputStr</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! processes the VCF input string and return map</span>
+<span class="sd">        </span>
+<span class="sd">        - Example VCF entry</span>
+<span class="sd">        </span>
+<span class="sd">        ~~~~~~~~~~~~~{.txt}</span>
+<span class="sd">        CHROM POS     ID        REF ALT    QUAL FILTER INFO</span>
+<span class="sd">        `X\t605409\trs780063150\tC\tA\t.\t.\tRS=780063150;RSPOS=605409;dbSNPBuildID=144;SSR=0;SAO=0;VP=0x05000088000d000026000100;GENEINFO=SHOX:6473;WGT=1;VC=SNV;U3;INT;CFL;ASP;KGPhase3;CAF=0.9996,0.0003994;COMMON=0;TOPMED=0.99999203618756371,0.00000796381243628`</span>
+<span class="sd">        ~~~~~~~~~~~~~</span>
+<span class="sd">        </span>
+<span class="sd">        @param inputStr             the line from the VCF file     </span>
+<span class="sd">        @returns                    the string parsed into a dict</span>
+<span class="sd">        @exception                  raises error when run into problems parsing the INFO field</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__headerFields</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">inputStr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">convert_str2numeric_values</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">fields</span><span class="p">,</span> <span class="n">values</span><span class="p">)))</span>
+
+        
+        <span class="c1"># now unpack the info field and save as its own</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;info&#39;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+                <span class="n">infoStr</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;info&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">x2c&#39;</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="p">)</span> <span class="c1"># \x escape causes JSON parsing issues</span>
+                <span class="n">infoStr</span> <span class="o">=</span> <span class="n">infoStr</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">x59&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span> <span class="c1"># \x59 is a semi-colon, but b/c its a delimiter can&#39;t use</span>
+                <span class="n">infoStr</span> <span class="o">=</span> <span class="n">infoStr</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">)</span> <span class="c1"># b/c using pound sign as COPY delimiter</span>
+                <span class="n">info</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;=&#39;</span> <span class="ow">in</span> <span class="n">item</span> <span class="k">else</span> <span class="p">[</span><span class="n">item</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">infoStr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">))</span>
+                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;info&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_str2numeric_values</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;info&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ParserError</span><span class="p">(</span><span class="s2">&quot;ERROR parsing variant -&quot;</span> \
+                <span class="o">+</span> <span class="n">xstr</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>  \
+                <span class="o">+</span> <span class="s2">&quot; - unable to split item in VCF entry INFO field:&quot;</span> \
+                <span class="o">+</span> <span class="n">xstr</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;info&#39;</span><span class="p">]),</span>
+                <span class="n">err</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+
+<div class="viewcode-block" id="VCFEntryParser.update_chromosome">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser.update_chromosome">[docs]</a>
+    <span class="k">def</span> <span class="nf">update_chromosome</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chrmMap</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! update chromosome in entry based upon provided mapping</span>
+<span class="sd">        @param chrmMap          ChromosomeMap object mapping sequenceID =&gt; chrm number</span>
+<span class="sd">        @exception TypeError if entry is not set / AttributeError if chromosome number not in the map</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__verify_entry</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">chrmMap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__entry</span><span class="p">[</span><span class="s1">&#39;chrom&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chrmMap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__entry</span><span class="p">[</span><span class="s1">&#39;chrom&#39;</span><span class="p">])</span></div>
+
+
+            
+<div class="viewcode-block" id="VCFEntryParser.get_variant">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser.get_variant">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_variant</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dbSNP</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! extract basic variant attributes from a VCF entry </span>
+<span class="sd">        @param dbSNP                  dbSNP VCF (expect fields that may not be in a generic VCF)</span>
+<span class="sd">        @param namespace              if True return SimpleNamespace, else return dict</span>
+<span class="sd">        @returns attributes as a simple namespace so they can be accessed in dot notation&quot;&quot;&quot;</span>
+
+        <span class="n">attributes</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">chrom</span> <span class="o">=</span> <span class="n">xstr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;chrom&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">chrom</span> <span class="o">==</span> <span class="s1">&#39;MT&#39;</span><span class="p">:</span>
+            <span class="n">chrom</span> <span class="o">=</span> <span class="s1">&#39;M&#39;</span>
+        <span class="n">altAlleles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;alt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        
+        <span class="nb">id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">id</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span> <span class="ow">or</span> <span class="nb">id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;rs&#39;</span><span class="p">):</span> <span class="c1"># refSnp will be stored in different field</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="s1">&#39;:&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">chrom</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;chr&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="n">xstr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">)),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ref&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;alt&#39;</span><span class="p">)))</span>
+                    
+        <span class="n">variant</span> <span class="o">=</span>  <span class="p">{</span>
+            <span class="s1">&#39;id&#39;</span> <span class="p">:</span> <span class="nb">id</span><span class="p">,</span>
+            <span class="s1">&#39;ref_snp_id&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_refsnp</span><span class="p">(),</span>
+            <span class="s1">&#39;ref_allele&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ref&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;alt_alleles&#39;</span> <span class="p">:</span> <span class="n">altAlleles</span><span class="p">,</span>
+            <span class="s1">&#39;is_multi_allelic&#39;</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">altAlleles</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">&#39;chromosome&#39;</span> <span class="p">:</span> <span class="n">xstr</span><span class="p">(</span><span class="n">chrom</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;chr&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;position&#39;</span> <span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">)),</span>
+            <span class="s1">&#39;rs_position&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_info</span><span class="p">(</span><span class="s1">&#39;RSPOS&#39;</span><span class="p">)</span> 
+        <span class="p">}</span>
+        
+        <span class="k">return</span> <span class="n">SimpleNamespace</span><span class="p">(</span><span class="o">**</span><span class="n">variant</span><span class="p">)</span> <span class="k">if</span> <span class="n">namespace</span> <span class="k">else</span> <span class="n">variant</span></div>
+
+    
+
+<div class="viewcode-block" id="VCFEntryParser.get_refsnp">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser.get_refsnp">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_refsnp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! extract refsnp id from vcf entry dictionary</span>
+<span class="sd">        @returns ref_snp_id </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__verify_entry</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="s1">&#39;rs&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__entry</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__entry</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;RS&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__entry</span><span class="p">[</span><span class="s1">&#39;info&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="s1">&#39;rs&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__entry</span><span class="p">[</span><span class="s1">&#39;info&#39;</span><span class="p">][</span><span class="s1">&#39;RS&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="VCFEntryParser.get_entry">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser.get_entry">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! return the parsed entry </span>
+<span class="sd">        @returns the parsed entry &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__entry</span></div>
+
+
+    
+<div class="viewcode-block" id="VCFEntryParser.get">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser.get">[docs]</a>
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! get the entry value associated with the key &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__verify_entry</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__entry</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="VCFEntryParser.get_info">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser.get_info">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! get the INFO value associated with the key &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__verify_entry</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s1">&#39;info&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__entry</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__entry</span><span class="p">[</span><span class="s1">&#39;info&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__entry</span><span class="p">[</span><span class="s1">&#39;info&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+        
+        
+<div class="viewcode-block" id="VCFEntryParser.get_frequencies">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser.get_frequencies">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_frequencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">allele</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! retrieve allele frequencies reported in INFO FREQ field</span>
+<span class="sd">        @param allele          allele to match (not normalized)</span>
+<span class="sd">        @param vcfGMAFs         global minor allele frequencies from the VCF FREQ info field</span>
+<span class="sd">        @returns               dict of source:frequency for the allele</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">vcfGMAFs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_info</span><span class="p">(</span><span class="s1">&#39;FREQ&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">vcfGMAFs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="n">zeroValues</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">]</span>
+
+        <span class="c1"># FREQ=GnomAD:0.9986,0.001353|Korea1K:0.9814,0.01861|dbGaP_PopFreq:0.9994,0.0005901</span>
+        <span class="c1"># altIndex needs to be incremented as first value is for the ref allele)</span>
+        <span class="n">altAlleles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;alt&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="n">altIndex</span> <span class="o">=</span> <span class="n">altAlleles</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">allele</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">populationFrequencies</span> <span class="o">=</span> <span class="p">{</span><span class="n">pop</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span><span class="n">pop</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="n">vcfGMAFs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">)}</span>
+        <span class="n">vcfFreqs</span> <span class="o">=</span> <span class="p">{</span><span class="n">pop</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;gmaf&#39;</span><span class="p">:</span> <span class="n">to_numeric</span><span class="p">(</span><span class="n">freq</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)[</span><span class="n">altIndex</span><span class="p">])}</span> \
+                    <span class="k">for</span> <span class="n">pop</span><span class="p">,</span> <span class="n">freq</span> <span class="ow">in</span> <span class="n">populationFrequencies</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> \
+                    <span class="k">if</span> <span class="n">freq</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)[</span><span class="n">altIndex</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">zeroValues</span><span class="p">}</span>
+    
+        <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vcfFreqs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">vcfFreqs</span></div>
+
+
+
+<div class="viewcode-block" id="VCFEntryParser.infer_variant_end_location">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vcf.VCFEntryParser.infer_variant_end_location">[docs]</a>
+    <span class="k">def</span> <span class="nf">infer_variant_end_location</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alt</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! use variant annotator to get end location</span>
+<span class="sd">        @param alt          allele to match (not normalized)</span>
+<span class="sd">        @returns inferred end location</span>
+<span class="sd">        @exception   failed assertion &quot;&quot;&quot;</span>
+        <span class="n">annotator</span> <span class="o">=</span> <span class="n">VariantAnnotator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ref&#39;</span><span class="p">),</span> <span class="n">alt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;chrom&#39;</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">),</span> <span class="n">debug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">annotator</span><span class="o">.</span><span class="n">infer_variant_end_location</span><span class="p">()</span></div>
+
+
+
+    <span class="k">def</span> <span class="nf">__verify_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! check that entry is set </span>
+<span class="sd">        @returns boolean if entry has a value </span>
+<span class="sd">        @exception   failed assertion &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">__entry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> \
+            <span class="s2">&quot;DEBUG - must set value of _entry in the VCF parser before attempting to access&quot;</span></div>
+
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.vcf</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

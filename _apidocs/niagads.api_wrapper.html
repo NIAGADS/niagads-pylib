@@ -1,0 +1,446 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>niagads.api_wrapper package &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="niagads.api_wrapper.records package" href="niagads.api_wrapper.records.html" />
+    <link rel="prev" title="niagads.annotators package" href="niagads.annotators.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.api_wrapper.records.html" title="niagads.api_wrapper.records package"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.annotators.html" title="niagads.annotators package"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" accesskey="U">niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.api_wrapper package</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="niagads-api-wrapper-package">
+<h1>niagads.api_wrapper package<a class="headerlink" href="#niagads-api-wrapper-package" title="Link to this heading">¶</a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="niagads.api_wrapper.records.html">niagads.api_wrapper.records package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="niagads.api_wrapper.records.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="niagads.api_wrapper.records.html#module-niagads.api_wrapper.records.record">niagads.api_wrapper.records.record module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record"><code class="docutils literal notranslate"><span class="pre">Record</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.fetch"><code class="docutils literal notranslate"><span class="pre">Record.fetch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.get_database"><code class="docutils literal notranslate"><span class="pre">Record.get_database()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.get_ids"><code class="docutils literal notranslate"><span class="pre">Record.get_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.get_page_size"><code class="docutils literal notranslate"><span class="pre">Record.get_page_size()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.get_params"><code class="docutils literal notranslate"><span class="pre">Record.get_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.get_query_size"><code class="docutils literal notranslate"><span class="pre">Record.get_query_size()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.get_request_url"><code class="docutils literal notranslate"><span class="pre">Record.get_request_url()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.get_response"><code class="docutils literal notranslate"><span class="pre">Record.get_response()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.get_response_format"><code class="docutils literal notranslate"><span class="pre">Record.get_response_format()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.get_type"><code class="docutils literal notranslate"><span class="pre">Record.get_type()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.set_database"><code class="docutils literal notranslate"><span class="pre">Record.set_database()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.set_ids"><code class="docutils literal notranslate"><span class="pre">Record.set_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.set_null_str"><code class="docutils literal notranslate"><span class="pre">Record.set_null_str()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.set_page_size"><code class="docutils literal notranslate"><span class="pre">Record.set_page_size()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.set_params"><code class="docutils literal notranslate"><span class="pre">Record.set_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.set_request_url"><code class="docutils literal notranslate"><span class="pre">Record.set_request_url()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.set_response_format"><code class="docutils literal notranslate"><span class="pre">Record.set_response_format()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.Record.write_response"><code class="docutils literal notranslate"><span class="pre">Record.write_response()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.RecordParser"><code class="docutils literal notranslate"><span class="pre">RecordParser</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.RecordParser.get"><code class="docutils literal notranslate"><span class="pre">RecordParser.get()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.RecordParser.get_record"><code class="docutils literal notranslate"><span class="pre">RecordParser.get_record()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.RecordParser.get_record_attributes"><code class="docutils literal notranslate"><span class="pre">RecordParser.get_record_attributes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.record.RecordParser.set_record"><code class="docutils literal notranslate"><span class="pre">RecordParser.set_record()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="niagads.api_wrapper.records.html#module-niagads.api_wrapper.records.variant">niagads.api_wrapper.records.variant module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.GenomicsVariantRecordParser"><code class="docutils literal notranslate"><span class="pre">GenomicsVariantRecordParser</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.GenomicsVariantRecordParser.get_allele_frequencies"><code class="docutils literal notranslate"><span class="pre">GenomicsVariantRecordParser.get_allele_frequencies()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.GenomicsVariantRecordParser.get_associations"><code class="docutils literal notranslate"><span class="pre">GenomicsVariantRecordParser.get_associations()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.GenomicsVariantRecordParser.get_consequences"><code class="docutils literal notranslate"><span class="pre">GenomicsVariantRecordParser.get_consequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord"><code class="docutils literal notranslate"><span class="pre">VariantRecord</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord.build_parser"><code class="docutils literal notranslate"><span class="pre">VariantRecord.build_parser()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord.retrieve_full_annotation"><code class="docutils literal notranslate"><span class="pre">VariantRecord.retrieve_full_annotation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord.run"><code class="docutils literal notranslate"><span class="pre">VariantRecord.run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord.set_ids"><code class="docutils literal notranslate"><span class="pre">VariantRecord.set_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord.write_response"><code class="docutils literal notranslate"><span class="pre">VariantRecord.write_response()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecordParser"><code class="docutils literal notranslate"><span class="pre">VariantRecordParser</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecordParser.get_annotation_types"><code class="docutils literal notranslate"><span class="pre">VariantRecordParser.get_annotation_types()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecordParser.has_annotation_field"><code class="docutils literal notranslate"><span class="pre">VariantRecordParser.has_annotation_field()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecordParser.set_record"><code class="docutils literal notranslate"><span class="pre">VariantRecordParser.set_record()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="niagads.api_wrapper.records.html#module-niagads.api_wrapper.records">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-niagads.api_wrapper.constants">
+<span id="niagads-api-wrapper-constants-module"></span><h2>niagads.api_wrapper.constants module<a class="headerlink" href="#module-niagads.api_wrapper.constants" title="Link to this heading">¶</a></h2>
+<p>constants used by the API wrapper</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.Databases">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.api_wrapper.constants.</span></span><span class="sig-name descname"><span class="pre">Databases</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names=&lt;not</span> <span class="pre">given&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/api_wrapper/constants.html#Databases"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.api_wrapper.constants.Databases" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="niagads.utils.html#niagads.utils.enums.CustomStrEnum" title="niagads.utils.enums.CustomStrEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">CustomStrEnum</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.Databases.ADVP">
+<span class="sig-name descname"><span class="pre">ADVP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'ADVP'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.Databases.ADVP" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.Databases.FILER">
+<span class="sig-name descname"><span class="pre">FILER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'FILER'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.Databases.FILER" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.Databases.GENOMICS">
+<span class="sig-name descname"><span class="pre">GENOMICS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'GENOMICS'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.Databases.GENOMICS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.FileFormats">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.api_wrapper.constants.</span></span><span class="sig-name descname"><span class="pre">FileFormats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names=&lt;not</span> <span class="pre">given&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/api_wrapper/constants.html#FileFormats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.api_wrapper.constants.FileFormats" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="niagads.utils.html#niagads.utils.enums.CustomStrEnum" title="niagads.utils.enums.CustomStrEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">CustomStrEnum</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.FileFormats.JSON">
+<span class="sig-name descname"><span class="pre">JSON</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'JSON'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.FileFormats.JSON" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.FileFormats.TABLE">
+<span class="sig-name descname"><span class="pre">TABLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'TABLE'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.FileFormats.TABLE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.RecordTypes">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.api_wrapper.constants.</span></span><span class="sig-name descname"><span class="pre">RecordTypes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names=&lt;not</span> <span class="pre">given&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/api_wrapper/constants.html#RecordTypes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.api_wrapper.constants.RecordTypes" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="niagads.utils.html#niagads.utils.enums.CustomStrEnum" title="niagads.utils.enums.CustomStrEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">CustomStrEnum</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
+<p>StrEnum - values can used as strings
+auto() sets enum value = ENUM</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.RecordTypes.COLLECTION">
+<span class="sig-name descname"><span class="pre">COLLECTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'COLLECTION'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.RecordTypes.COLLECTION" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.RecordTypes.GENE">
+<span class="sig-name descname"><span class="pre">GENE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'GENE'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.RecordTypes.GENE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.RecordTypes.SPAN">
+<span class="sig-name descname"><span class="pre">SPAN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'SPAN'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.RecordTypes.SPAN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.RecordTypes.TRACK">
+<span class="sig-name descname"><span class="pre">TRACK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'TRACK'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.RecordTypes.TRACK" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.RecordTypes.VARIANT">
+<span class="sig-name descname"><span class="pre">VARIANT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'VARIANT'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.RecordTypes.VARIANT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.VariantConsequenceTypes">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.api_wrapper.constants.</span></span><span class="sig-name descname"><span class="pre">VariantConsequenceTypes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names=&lt;not</span> <span class="pre">given&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/api_wrapper/constants.html#VariantConsequenceTypes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.api_wrapper.constants.VariantConsequenceTypes" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="niagads.utils.html#niagads.utils.enums.CustomStrEnum" title="niagads.utils.enums.CustomStrEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">CustomStrEnum</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.VariantConsequenceTypes.ALL">
+<span class="sig-name descname"><span class="pre">ALL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'ranked_consequences'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.VariantConsequenceTypes.ALL" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.VariantConsequenceTypes.MOST_SEVERE">
+<span class="sig-name descname"><span class="pre">MOST_SEVERE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'most_severe_consequence'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.VariantConsequenceTypes.MOST_SEVERE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.VariantConsequenceTypes.MOTIF">
+<span class="sig-name descname"><span class="pre">MOTIF</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'motif_feature_consequences'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.VariantConsequenceTypes.MOTIF" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.VariantConsequenceTypes.REGULATORY">
+<span class="sig-name descname"><span class="pre">REGULATORY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'regulatory_feature_consequences'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.VariantConsequenceTypes.REGULATORY" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.api_wrapper.constants.VariantConsequenceTypes.TRANSCRIPT">
+<span class="sig-name descname"><span class="pre">TRANSCRIPT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'transcript_consequences'</span></em><a class="headerlink" href="#niagads.api_wrapper.constants.VariantConsequenceTypes.TRANSCRIPT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-niagads.api_wrapper.utils">
+<span id="niagads-api-wrapper-utils-module"></span><h2>niagads.api_wrapper.utils module<a class="headerlink" href="#module-niagads.api_wrapper.utils" title="Link to this heading">¶</a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="niagads.api_wrapper.utils.ResponseError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.api_wrapper.utils.</span></span><span class="sig-name descname"><span class="pre">ResponseError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/api_wrapper/utils.html#ResponseError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.api_wrapper.utils.ResponseError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Exception raised for successful API requests that return error messages.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">requestUri</span> <span class="pre">--</span> <span class="pre">request</span> <span class="pre">made</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">response</span> <span class="pre">--</span> <span class="pre">JSON</span> <span class="pre">response</span> <span class="pre">containing</span> <span class="pre">error</span> <span class="pre">message</span></span></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.api_wrapper.utils.log_JSON_error">
+<span class="sig-prename descclassname"><span class="pre">niagads.api_wrapper.utils.</span></span><span class="sig-name descname"><span class="pre">log_JSON_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">requestUrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/api_wrapper/utils.html#log_JSON_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.api_wrapper.utils.log_JSON_error" title="Link to this definition">¶</a></dt>
+<dd><p>logs JSON error</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>requestUrl</strong> (<em>string</em>) – request URL</p></li>
+<li><p><strong>response</strong> (<em>obj</em>) – response object</p></li>
+<li><p><strong>error</strong> (<em>obj</em>) – error object</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.api_wrapper.utils.make_request">
+<span class="sig-prename descclassname"><span class="pre">niagads.api_wrapper.utils.</span></span><span class="sig-name descname"><span class="pre">make_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">requestUri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/api_wrapper/utils.html#make_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.api_wrapper.utils.make_request" title="Link to this definition">¶</a></dt>
+<dd><p>wrapper to build and make a request against the NIAGADS API
+includes error check</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>requestUri</strong> (<em>string</em>) – base url for the api</p></li>
+<li><p><strong>endpoint</strong> (<em>string</em>) – endpoint to be queried</p></li>
+<li><p><strong>params</strong> (<em>dict</em>) – dict of param_name:value pairs</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>requests.exceptions.HTTPError</strong> – </p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>JSON response if successful</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-niagads.api_wrapper">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-niagads.api_wrapper" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><div class="sphinx-toc sphinxlocaltoc">
+    <h3><a href="../index.html">Page contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">niagads.api_wrapper package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-niagads.api_wrapper.constants">niagads.api_wrapper.constants module</a><ul>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.Databases"><code class="docutils literal notranslate"><span class="pre">Databases</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.Databases.ADVP"><code class="docutils literal notranslate"><span class="pre">Databases.ADVP</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.Databases.FILER"><code class="docutils literal notranslate"><span class="pre">Databases.FILER</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.Databases.GENOMICS"><code class="docutils literal notranslate"><span class="pre">Databases.GENOMICS</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.FileFormats"><code class="docutils literal notranslate"><span class="pre">FileFormats</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.FileFormats.JSON"><code class="docutils literal notranslate"><span class="pre">FileFormats.JSON</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.FileFormats.TABLE"><code class="docutils literal notranslate"><span class="pre">FileFormats.TABLE</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.RecordTypes"><code class="docutils literal notranslate"><span class="pre">RecordTypes</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.RecordTypes.COLLECTION"><code class="docutils literal notranslate"><span class="pre">RecordTypes.COLLECTION</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.RecordTypes.GENE"><code class="docutils literal notranslate"><span class="pre">RecordTypes.GENE</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.RecordTypes.SPAN"><code class="docutils literal notranslate"><span class="pre">RecordTypes.SPAN</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.RecordTypes.TRACK"><code class="docutils literal notranslate"><span class="pre">RecordTypes.TRACK</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.RecordTypes.VARIANT"><code class="docutils literal notranslate"><span class="pre">RecordTypes.VARIANT</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.VariantConsequenceTypes"><code class="docutils literal notranslate"><span class="pre">VariantConsequenceTypes</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.VariantConsequenceTypes.ALL"><code class="docutils literal notranslate"><span class="pre">VariantConsequenceTypes.ALL</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.VariantConsequenceTypes.MOST_SEVERE"><code class="docutils literal notranslate"><span class="pre">VariantConsequenceTypes.MOST_SEVERE</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.VariantConsequenceTypes.MOTIF"><code class="docutils literal notranslate"><span class="pre">VariantConsequenceTypes.MOTIF</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.VariantConsequenceTypes.REGULATORY"><code class="docutils literal notranslate"><span class="pre">VariantConsequenceTypes.REGULATORY</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.constants.VariantConsequenceTypes.TRANSCRIPT"><code class="docutils literal notranslate"><span class="pre">VariantConsequenceTypes.TRANSCRIPT</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.api_wrapper.utils">niagads.api_wrapper.utils module</a><ul>
+<li><a class="reference internal" href="#niagads.api_wrapper.utils.ResponseError"><code class="docutils literal notranslate"><span class="pre">ResponseError</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.utils.log_JSON_error"><code class="docutils literal notranslate"><span class="pre">log_JSON_error()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.api_wrapper.utils.make_request"><code class="docutils literal notranslate"><span class="pre">make_request()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.api_wrapper">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="niagads.annotators.html"
+                          title="Previous page">&larr; niagads.annotators package</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="niagads.api_wrapper.records.html"
+                          title="Next page">&rarr; niagads.api_wrapper.records package</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/_apidocs/niagads.api_wrapper.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.api_wrapper.records.html" title="niagads.api_wrapper.records package"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.annotators.html" title="niagads.annotators package"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" >niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.api_wrapper package</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>
