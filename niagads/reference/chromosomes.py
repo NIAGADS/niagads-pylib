@@ -35,7 +35,12 @@ class Human(str, Enum):
     chrX = 'X'
     chrY = 'Y'
     chrM = 'M'
-
+    
+    @classmethod
+    def sort_order(self):
+        """ returns a {chr:order} mapping to faciliate chr based sorting"""
+        return {chr: index for index, chr in enumerate(self.__members__)}
+            
     @classmethod
     def validate(self, value:str, inclPrefix:bool=True):
         """
