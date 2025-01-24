@@ -70,6 +70,7 @@ class CacheNamespace(CaseInsensitiveEnum):
 class CacheKeyQualifier(CaseInsensitiveEnum):
     PAGINATION = auto() 
     CURSOR = "pagination-cursor"
+    RESULT_SIZE = "pagination-result-size"
     RAW = auto()
     QUERY_CACHE = auto()
     
