@@ -8,6 +8,7 @@ from api.models.base_response_models import BaseResponseModel
 class Collection(SQLModel, RowModel):
     name:str 
     description:str 
+    num_tracks: int
     
     def to_view_data(self, view, **kwargs):
         return self.model_dump()

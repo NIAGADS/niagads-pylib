@@ -175,7 +175,8 @@ class FILERRouteHelper(RouteHelper):
         return await self.generate_response(result, isCached=isCached)
 
 
-    async def get_collection_metadata(self, rawResponse=False):
+    # FIXME: not sure if this will ever need a "rawResponse"
+    async def get_collection_track_metadata(self, rawResponse=False):
         """ fetch track metadata for a specific collection """
         isCached = True # assuming true from the start
         cacheKey = self._managers.cacheKey.internal
@@ -189,11 +190,7 @@ class FILERRouteHelper(RouteHelper):
         if result is None:
             isCached = False
         
-            tracks = self._parameters.get('_paged_tracks',  self._parameters.get('track'))
-            tracks = tracks.split(',') if isinstance(tracks, str) else tracks
-            tracks = sorted(tracks) # best for caching & pagination
-            
-            result = await MetadataQueryService(self._managers.session).get_track_metadata(tracks)
+            result = await MetadataQueryService(self._managers.session).get_collection_track_metadata(self._parameters.collection)
             
             if not rawResponse:
                 self._resultSize = len(result)

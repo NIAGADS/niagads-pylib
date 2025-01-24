@@ -29,8 +29,8 @@ class TrackCollection(SQLModel, SerializableModel, table=True):
     __table_args__ = {'schema': 'serverapplication'}
     
     collection_track_link_id: str = Field(default=None, primary_key=True)
-    track_id: str
-    collection_id: int
+    track_id: str = Field(foreign_key="track.track_id")
+    collection_id: int = Field(foreign_key="collection.collection_id")
     
 
 class Track(SQLModel, SerializableModel, table=True):

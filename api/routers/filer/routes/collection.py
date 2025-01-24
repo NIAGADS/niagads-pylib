@@ -15,7 +15,7 @@ from api.models.collection import CollectionResponse
 from ..common.enums import METADATA_CONTENT_ENUM
 from ..common.helpers import FILERRouteHelper
 from ..common.services import MetadataQueryService
-from ..dependencies.parameters import InternalRequestParameters, non_data_format_param
+from ..dependencies.parameters import InternalRequestParameters, non_data_format_param, path_collection_name
 from ..models.filer_track import FILERTrackBriefResponse, FILERTrackResponse
 
 router = APIRouter(prefix="/collection", tags = ["Collections"], responses=RESPONSES)
@@ -45,9 +45,10 @@ async def get_collections(format: str = Depends(non_data_format_param), internal
     name="Get track metadata by collection", 
     description="retrieve full metadata for FILER track records associated with a collection")
 async def get_collection_track_metadata(
-        format: str = Depends(non_data_format_param), 
-        content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(METADATA_CONTENT_ENUM)}'),
-        internal: InternalRequestParameters = Depends())-> CollectionResponse:
+    collection: str = Depends(path_collection_name),
+    format: str = Depends(non_data_format_param), 
+    content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(METADATA_CONTENT_ENUM)}'),
+    internal: InternalRequestParameters = Depends())-> CollectionResponse:
     
     rContent = validate_response_content(METADATA_CONTENT_ENUM, content)
     helper = FILERRouteHelper(
@@ -58,7 +59,7 @@ async def get_collection_track_metadata(
             model=FILERTrackResponse if rContent == ResponseContent.FULL \
                 else FILERTrackBriefResponse 
         ), 
-        Parameters()
+        Parameters(collection=collection)
     )
     
     return await helper.get_collection_track_metadata()

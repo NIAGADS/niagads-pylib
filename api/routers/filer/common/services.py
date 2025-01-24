@@ -14,7 +14,7 @@ from api.models.base_models import GenericDataModel
 
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint
-from ..models.track_metadata_cache import Track, Collection
+from ..models.track_metadata_cache import Track, Collection, TrackCollection
 from ..models.bed_features import BEDFeature
 
 
@@ -129,6 +129,28 @@ class MetadataQueryService:
             raise RequestValidationError(f'Invalid track identifiers found: {list_to_string(result)}')
         else:
             return True
+        
+    
+    async def validate_collection(self, name: str) -> int:
+        """
+        validate a collection by name
+
+        Args:
+            name (str): name of the collection
+
+        Raises:
+            RequestValidationError: if the collection name is not matched
+
+        Returns:
+            internal collectionId
+        """
+        statement = select(Collection.collection_id).where(col(Collection.name).ilike(name))
+        collectionId = (await self.__session.execute(statement)).scalar_one()
+        if collectionId is None:
+            raise RequestValidationError(f'Invalid collection: {name}')
+        else:
+            return collectionId
+        
 
     async def get_track_count(self) -> int:
         statement = select(func.count(Track.track_id))
@@ -136,20 +158,25 @@ class MetadataQueryService:
         return result
         
     
-    async def get_collections(self) -> List[Collection]:
-        statement = select(Collection)
+    async def get_collections(self):
+        statement = select(Collection.name, Collection.description, func.count(TrackCollection.track_id).label('num_tracks')).join(TrackCollection, TrackCollection.collection_id == Collection.collection_id)
+        statement = statement.group_by(Collection).order_by(Collection.collection_id)
+        result = (await self.__session.execute(statement)).all()
+        return result
+    
+    
+    async def get_collection_track_metadata(self, collectionName:str) -> List[Track]:
+        collectionId = await self.validate_collection(collectionName)
+        
+        statement = select(Track).join(TrackCollection, TrackCollection.track_id == Track.track_id).where(TrackCollection.collection_id == collectionId)
+        
         result = (await self.__session.execute(statement)).scalars().all()
         return result
     
     
-    async def get_collection_track_metadata(self) -> List[Track]:
-        pass
-    
-    
     async def get_track_metadata(self, tracks: List[str], validate=True) -> List[Track]:
         statement = select(Track).filter(col(Track.track_id).in_(tracks)).order_by(Track.track_id)
-        # statement = select(Track).where(col(Track.track_id) == trackId) 
-        # if trackId is not None else select(Track).limit(100) # TODO: pagination
+
         if validate:
             await self.validate_tracks(tracks)
 
