@@ -152,7 +152,6 @@ class MetadataQueryService:
         except NoResultFound as e:
             raise RequestValidationError(f'Invalid collection: {name}')
 
-        
 
     async def get_track_count(self) -> int:
         statement = select(func.count(Track.track_id))

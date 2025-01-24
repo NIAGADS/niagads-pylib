@@ -2,7 +2,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from fastapi import status
 from pydantic import BaseModel, field_validator, ConfigDict
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from api.common.enums import ResponseContent, CacheNamespace
@@ -15,7 +15,12 @@ from api.models.base_response_models import BaseResponseModel
 from api.models.igvbrowser import IGVBrowserTrackSelecterResponse
 from api.routers.redirect.common.constants import RedirectEndpoints
 
-INTERNAL_PARAMETERS = ['span', '_paged_tracks']
+INTERNAL_PARAMETERS = ['span', '_tracks']
+
+class PaginationCursor(BaseModel):
+    """ pagination cursor """
+    start: Union[str, int]
+    end: Union[str, int]
 
 class Parameters(BaseModel):
     """ arbitrary namespace to store request parameters and pass them to helpers """
@@ -132,17 +137,7 @@ class RouteHelper():
             else (self._pagination.page - 1) * self._pageSize
 
 
-    # FIXME: not used
-    def cursor(self):
-        """ for array pagination; calcs endIndex of previous page as a cursor """
-        if self._pagination.page == 1:
-            return None
-        
-        pageRange = self.page_array(self._pagination.page - 1)
-        return pageRange.end
-    
-
-    def page_array(self, page: int=None) -> Range:
+    def slice_result_by_page(self, page: int=None) -> Range:
         """ calculates start and end indexes for paging an array """
         self._pagination_exists()
         targetPage = self._pagination.page if page is None else page 
@@ -183,7 +178,7 @@ class RouteHelper():
                 
             # cache the response
             await self._managers.internalCache.set(
-                self._managers.cacheKey.internal, 
+                self._managers.cacheKey.key, 
                 response, 
                 namespace=self._managers.cacheKey.namespace)
             
@@ -191,7 +186,7 @@ class RouteHelper():
             case ResponseFormat.TABLE:
                 # cache the response again, this time by the requestId b/c 
                 # the cacheKey cannot be passed through the URL  
-                cacheKey = self._managers.cacheKey.external   
+                cacheKey = self._managers.cacheKey.encrypt()   
                 requestIsCached = await self._managers.internalCache.exists(cacheKey, namespace=CacheNamespace.VIEW)
                 if not requestIsCached:  # then cache it
                     await self._managers.internalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)

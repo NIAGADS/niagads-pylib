@@ -68,11 +68,12 @@ class CacheNamespace(CaseInsensitiveEnum):
     
     
 class CacheKeyQualifier(CaseInsensitiveEnum):
-    PAGINATION = auto() 
+    PAGE = "pagination-page" 
     CURSOR = "pagination-cursor"
     RESULT_SIZE = "pagination-result-size"
     RAW = auto()
     QUERY_CACHE = auto()
+    REQUEST_PARAMETERS = "request"
     
     def __str__(self):
         return f'_{self.value}'
