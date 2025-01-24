@@ -22,6 +22,11 @@ class IGVBrowserTrackConfig(SQLModel, RowModel):
     browser_track_format: str = Field(serialization_alias ='format')
     infoURL: str = get_settings().IGV_BROWSER_INFO_URL
     
+    @computed_field
+    @property
+    def autoscale(self) -> bool:
+        return self.browser_track_type == 'qtl'
+    
     # model_config = ConfigDict(populate_by_name=True)
 
     def get_view_config(self, view: ResponseFormat, **kwargs):
