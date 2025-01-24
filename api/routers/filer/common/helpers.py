@@ -234,20 +234,20 @@ class FILERRouteHelper(RouteHelper):
                 # get counts to either return or determine pagination
                 result = await MetadataQueryService(self._managers.session) \
                     .query_track_metadata(self._parameters.assembly, 
-                        self._parameters.filter, self._parameters.keyword, ResponseContent.COUNTS)
+                        self._parameters.get('filter', None), self._parameters.get('keyword', None), ResponseContent.COUNTS)
             
                 if content == ResponseContent.COUNTS:
                     return await self.generate_response(result, isCached=isCached)
                 
                 self._resultSize = result['track_count']
-                self.initialize_pagination()
-                
-                offset = self.offset()
-                limit = self._pageSize
+                pageResponse = self.initialize_pagination(raiseError=False)
+                if pageResponse: # will return true if model can be paged and page is valid
+                    offset = self.offset()
+                    limit = self._pageSize
                 
             result = await MetadataQueryService(self._managers.session) \
                 .query_track_metadata(self._parameters.assembly, 
-                    self._parameters.filter, self._parameters.keyword, 
+                    self._parameters.get('filter', None), self._parameters.get('keyword', None), 
                     content, limit, offset)
 
             if rawResponse is not None:
