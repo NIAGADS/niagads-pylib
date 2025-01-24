@@ -23,7 +23,7 @@ class ResponseFormat(CaseInsensitiveEnum):
     """ enum for allowable response / output formats"""
     JSON = auto()
     TABLE = auto()
-    DATA_BROWSER = auto()
+    IGV_BROWSER = auto()
     
 class Assembly(CaseInsensitiveEnum, Enum):
     """enum for genome builds"""

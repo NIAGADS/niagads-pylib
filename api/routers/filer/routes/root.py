@@ -13,7 +13,8 @@ from ..dependencies.parameters import ROUTE_SESSION_MANAGER
 from .track import router as TrackRouter
 from .metadata import router as MetadataRouter
 from .data import router as DataRouter
-from .config import router as BrowserConfigRouter
+from .igvbrowser import router as IGVBrowserRouter
+from .collection import router as CollectionRouter
 
 router = APIRouter(
     prefix=ROUTE_PREFIX,
@@ -21,7 +22,8 @@ router = APIRouter(
     responses=RESPONSES,
 )
 
-@router.get("/", name="about", response_model=BaseResponseModel,
+tags=['Route Information']
+@router.get("/", name="about", response_model=BaseResponseModel, tags=tags,
             description="brief summary about the " + ROUTE_NAME)
 async def read_root(
     session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
@@ -33,10 +35,12 @@ async def read_root(
 
 
 
+
 # --------------------------------------------------------------
 # CHIILD ROUTES
 # --------------------------------------------------------------
 router.include_router(TrackRouter)
 router.include_router(MetadataRouter)
 router.include_router(DataRouter)
-router.include_router(BrowserConfigRouter)
+router.include_router(IGVBrowserRouter)
+router.include_router(CollectionRouter)

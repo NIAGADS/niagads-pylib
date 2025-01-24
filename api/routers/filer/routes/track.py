@@ -9,7 +9,6 @@ from api.common.helpers import Parameters, ResponseConfiguration
 from api.dependencies.parameters.location import span_param
 from api.dependencies.parameters.optional import format_param, validate_response_content
 from api.models.base_response_models import BaseResponseModel
-from api.models.igvbrowser_config import IGVBrowserConfigResponse, IGVBrowserExtendedConfigResponse
 
 
 from ..dependencies.parameters import InternalRequestParameters, path_track_id
@@ -44,31 +43,6 @@ async def get_track_metadata(
     
     return await helper.get_track_metadata()
 
-
-tags = ["Record by ID", "NIAGADS Genome Browser Configuration"]
-@router.get("/{track}/config/igvbrowser", tags=tags, 
-    response_model=Union[IGVBrowserConfigResponse, IGVBrowserExtendedConfigResponse],
-    name="Get track Genome Browser configuration",
-    description="retrieve NIAGADS Genome Browser track configuration for the FILER `track` specified in the path")
-async def get_track_browser_config(
-        track = Depends(path_track_id),
-        content: str = Query(ResponseContent.SUMMARY, description=f'response content; one of: {print_enum_values(METADATA_CONTENT_ENUM)}'),
-        internal: InternalRequestParameters = Depends()) \
-    -> Union[IGVBrowserConfigResponse, IGVBrowserExtendedConfigResponse]:
-        
-    rContent = validate_response_content(METADATA_CONTENT_ENUM, content)
-    helper = FILERRouteHelper(
-        internal,
-        ResponseConfiguration(
-            content=rContent,
-            model=IGVBrowserExtendedConfigResponse \
-                if rContent == ResponseContent.FULL \
-                else IGVBrowserConfigResponse
-        ),
-        Parameters(track=track)
-    )
-    
-    return await helper.get_track_metadata()
 
 
 tags = ["Record by ID", "Track Data by ID"]

@@ -15,7 +15,7 @@ from api.models.base_response_models import PagedResponseModel
 
 from ..common.helpers import FILERRouteHelper
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
-from ..dependencies.parameters import InternalRequestParameters, query_track_id
+from ..dependencies.parameters import InternalRequestParameters, required_query_track_id
 from ..models.filer_track import FILERTrackBriefResponse
 from ..models.bed_features import BEDResponse
 
@@ -28,7 +28,7 @@ get_track_data_content_enum = get_response_content(exclude=[ResponseContent.IDS]
     description="retrieve data from one or more FILER tracks in the specified region")
 async def get_track_data(
         pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
-        track: str = Depends(query_track_id),
+        track: str = Depends(required_query_track_id),
         span: str = Depends(span_param),
         format: str = Depends(format_param),
         content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(get_track_data_content_enum)}'),

@@ -7,12 +7,31 @@ from typing import Optional
 from pydantic import computed_field
 
 from niagads.filer.parser import split_replicates
-from niagads.utils.list import qw
-from niagads.utils.string import xstr
+from niagads.utils.reg_ex import regex_extract
 
 from api.config.urls import DATASOURCE_URLS
 from api.models import Provenance, ExperimentalDesign
 from api.models.base_models import SerializableModel
+
+class Collection(SQLModel, SerializableModel, table=True):
+    __tablename__ = "filercollection"
+    __bind_key__ = 'filer'
+    __table_args__ = {'schema': 'serverapplication'}
+    
+    collection_id: int = Field(default=None, primary_key=True)
+    name: str
+    description: str = Field(sa_column=Column(TEXT))
+    
+
+class TrackCollection(SQLModel, SerializableModel, table=True):
+    __tablename__ = "filercollectiontracklink"
+    __bind_key__ = 'filer'
+    __table_args__ = {'schema': 'serverapplication'}
+    
+    collection_track_link_id: str = Field(default=None, primary_key=True)
+    track_id: str = Field(foreign_key="track.track_id")
+    collection_id: int = Field(foreign_key="collection.collection_id")
+    
 
 class Track(SQLModel, SerializableModel, table=True):
     __tablename__ = "filertrack"
@@ -112,7 +131,7 @@ class Track(SQLModel, SerializableModel, table=True):
     @computed_field
     @property
     def browser_track_name(self) -> str:
-        return self.track_id + ': ' + self.name
+        return self.track_id + ': ' + self.name.replace(f'{self.feature_type} {self.feature_type}', self.feature_type)
     
     @computed_field
     @property
