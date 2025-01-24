@@ -194,6 +194,42 @@ class FILERRouteHelper(RouteHelper):
         return await self.generate_response(result, isCached=isCached)
 
 
+    # FIXME: not sure if this will ever need a "rawResponse"
+    async def get_collection_track_metadata(self, rawResponse=False):
+        """ fetch track metadata for a specific collection """
+        isCached = True # assuming true from the start
+        cacheKey = self._managers.cacheKey.internal
+        if rawResponse:
+            cacheKey = cacheKey + '&raw'    
+        
+        result = await self._managers.internalCache.get(
+            cacheKey, 
+            namespace=self._managers.cacheKey.namespace)
+        
+        if result is None:
+            isCached = False
+        
+            result = await MetadataQueryService(self._managers.session).get_collection_track_metadata(self._parameters.collection)
+            
+            if not rawResponse:
+                self._resultSize = len(result)
+                pageResponse = self.initialize_pagination(raiseError=False)
+                if pageResponse:
+                    pageRange = self.page_array()
+                    result = result[pageRange.start:pageRange.end]
+            
+        if rawResponse:
+            # cache the raw response
+            await self._managers.internalCache.set(
+                cacheKey,
+                result, 
+                namespace=self._managers.cacheKey.namespace)
+            
+            return result
+
+        return await self.generate_response(result, isCached=isCached)
+    
+
     async def search_track_metadata(self, rawResponse:Optional[ResponseContent] = None):
         """ retrieve track metadata based on filter/keyword searches """
         isCached = True # assuming true from the start
@@ -217,20 +253,20 @@ class FILERRouteHelper(RouteHelper):
                 # get counts to either return or determine pagination
                 result = await MetadataQueryService(self._managers.session) \
                     .query_track_metadata(self._parameters.assembly, 
-                        self._parameters.filter, self._parameters.keyword, ResponseContent.COUNTS)
+                        self._parameters.get('filter', None), self._parameters.get('keyword', None), ResponseContent.COUNTS)
             
                 if content == ResponseContent.COUNTS:
                     return await self.generate_response(result, isCached=isCached)
                 
                 self._resultSize = result['track_count']
-                self.initialize_pagination()
-                
-                offset = self.offset()
-                limit = self._pageSize
+                pageResponse = self.initialize_pagination(raiseError=False)
+                if pageResponse: # will return true if model can be paged and page is valid
+                    offset = self.offset()
+                    limit = self._pageSize
                 
             result = await MetadataQueryService(self._managers.session) \
                 .query_track_metadata(self._parameters.assembly, 
-                    self._parameters.filter, self._parameters.keyword, 
+                    self._parameters.get('filter', None), self._parameters.get('keyword', None), 
                     content, limit, offset)
 
             if rawResponse is not None:

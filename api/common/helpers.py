@@ -12,6 +12,7 @@ from api.dependencies.parameters.services import InternalRequestParameters
 from api.dependencies.parameters.optional import ResponseFormat
 from api.models.base_models import PaginationDataModel
 from api.models.base_response_models import BaseResponseModel
+from api.models.igvbrowser import IGVBrowserTrackSelecterResponse
 from api.routers.redirect.common.constants import RedirectEndpoints
 
 INTERNAL_PARAMETERS = ['span', '_paged_tracks']
@@ -173,8 +174,12 @@ class RouteHelper():
                     response=result)
             else: 
                 response = self._responseConfig.model(
-                    request=self._managers.requestData, 
-                    response=result)
+                    request=self._managers.requestData,
+                    response=IGVBrowserTrackSelecterResponse.build_table(result) \
+                        if self._responseConfig.model == IGVBrowserTrackSelecterResponse \
+                            else result
+                    )
+
                 
             # cache the response
             await self._managers.internalCache.set(

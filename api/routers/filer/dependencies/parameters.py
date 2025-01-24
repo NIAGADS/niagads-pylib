@@ -1,5 +1,5 @@
 from fastapi import Depends, Path, Query
-from typing import Annotated
+from typing import Annotated, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiohttp import ClientSession
 
@@ -24,10 +24,19 @@ class InternalRequestParameters(BaseInternalRequestParameters, arbitrary_types_a
 async def path_track_id(track: str = Path(description="FILER track identifier")) -> str:
     return clean(track)
 
-async def query_track_id(track: str = Query(description="comma separated list of one or more FILER track identifiers")) -> str:
+async def query_collection_name(collection: Optional[str] = Query(default=None, description="FILER collection name")) -> str:
+    return clean(collection)
+
+async def path_collection_name(collection: str = Path(description="FILER collection name")) -> str:
+    return clean(collection)
+
+async def required_query_track_id(track: str = Query(description="comma separated list of one or more FILER track identifiers")) -> str:
     return clean(track)
 
-get_non_data_format_enum = get_response_format(exclude=[ResponseFormat.DATA_BROWSER])
+async def optional_query_track_id(track: Optional[str] = Query(default=None, description="comma separated list of one or more FILER track identifiers")) -> str:
+    return clean(track)
+
+get_non_data_format_enum = get_response_format(exclude=[ResponseFormat.IGV_BROWSER])
 
 async def non_data_format_param(format: str = Query(ResponseFormat.JSON, 
     description=f'response content; one of: {print_enum_values(get_non_data_format_enum)}')) -> str:
