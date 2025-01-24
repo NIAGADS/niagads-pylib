@@ -14,7 +14,7 @@ from api.models.base_models import GenericDataModel
 
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint
-from ..models.track_metadata_cache import Track
+from ..models.track_metadata_cache import Track, Collection
 from ..models.bed_features import BEDFeature
 
 
@@ -135,6 +135,16 @@ class MetadataQueryService:
         result = (await self.__session.execute(statement)).scalars().first()
         return result
         
+    
+    async def get_collections(self) -> List[Collection]:
+        statement = select(Collection)
+        result = (await self.__session.execute(statement)).scalars().all()
+        return result
+    
+    
+    async def get_collection_track_metadata(self) -> List[Track]:
+        pass
+    
     
     async def get_track_metadata(self, tracks: List[str], validate=True) -> List[Track]:
         statement = select(Track).filter(col(Track.track_id).in_(tracks)).order_by(Track.track_id)
