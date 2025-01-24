@@ -1,6 +1,7 @@
 from fastapi.exceptions import RequestValidationError
 from sqlmodel import select, col, or_, func, distinct
 from sqlalchemy import Values, String, column as sqla_column
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiohttp import ClientSession
 from typing import List, Optional, Union
@@ -145,11 +146,12 @@ class MetadataQueryService:
             internal collectionId
         """
         statement = select(Collection.collection_id).where(col(Collection.name).ilike(name))
-        collectionId = (await self.__session.execute(statement)).scalar_one()
-        if collectionId is None:
-            raise RequestValidationError(f'Invalid collection: {name}')
-        else:
+        try:
+            collectionId = (await self.__session.execute(statement)).scalar_one()
             return collectionId
+        except NoResultFound as e:
+            raise RequestValidationError(f'Invalid collection: {name}')
+
         
 
     async def get_track_count(self) -> int:

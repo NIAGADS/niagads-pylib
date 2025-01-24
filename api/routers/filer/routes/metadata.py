@@ -15,7 +15,7 @@ from ..common.helpers import FILERRouteHelper
 from ..common.enums import METADATA_CONTENT_ENUM
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
 from ..models.filer_track import FILERTrackBriefResponse, FILERTrackResponse
-from ..dependencies.parameters import InternalRequestParameters, query_track_id, non_data_format_param
+from ..dependencies.parameters import InternalRequestParameters, required_query_track_id, non_data_format_param
 
 router = APIRouter(prefix="/metadata", responses=RESPONSES)
 
@@ -24,7 +24,7 @@ tags = ["Track Metadata by ID"]
     name="Get metadata for multiple tracks",
     description="retrieve full metadata for one or more FILER track records")
 async def get_track_metadata(
-        track: str = Depends(query_track_id),
+        track: str = Depends(required_query_track_id),
         format: str= Depends(non_data_format_param),
         content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(METADATA_CONTENT_ENUM)}'),
         internal: InternalRequestParameters = Depends()) -> Union[FILERTrackBriefResponse, FILERTrackResponse]:
