@@ -14,8 +14,10 @@ def id2title(columnId: str):
         title = title + '?'
     return title
 
-def clean(html: str):
-    return nh3.clean_text(html)
+def clean(value: str):
+    if value is None:
+        return value
+    return nh3.clean_text(value)
 
 def print_enum_values(enumClass):
     return ','.join([f'`{m.value}`' for m in enumClass])
