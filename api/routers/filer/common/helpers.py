@@ -6,17 +6,17 @@ from itertools import groupby
 from operator import itemgetter
 
 from niagads.utils.list import cumulative_sum, chunker
-from pydantic import computed_field
+from pydantic import BaseModel, computed_field
 
 from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace
-from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, PaginationCursor as BaseCursor
+from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, PaginationCursor
 from api.common.types import Range
-from api.dependencies.database import CacheManager
 from api.models.base_models import CacheKeyDataModel
+from api.routers.filer.models.bed_features import BEDFeature
 
 from .constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
 from .enums import FILERApiEndpoint
-from .services import MetadataQueryService, ApiWrapperService
+from .services import FILERApiDataResponse, TrackOverlap, MetadataQueryService, ApiWrapperService
 from ..dependencies.parameters import InternalRequestParameters
 from ..models.track_metadata_cache import Track
 
@@ -24,13 +24,16 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 
-class DataPaginationCursor(BaseCursor):
+class FILERPaginationCursor(BaseModel):
     tracks: List[str]
+    start: PaginationCursor
+    end: PaginationCursor
     
     def start_track_id(self):
-        return self.tracks[0]
+        return self.tracks[self.start.key]
+    
     def end_track_id(self):
-        return self.tracks[-1]
+        return self.tracks[self.end.key]
 
 class FILERRouteHelper(RouteHelper):  
     
@@ -39,7 +42,7 @@ class FILERRouteHelper(RouteHelper):
         self._managers: InternalRequestParameters = managers
 
 
-    async def __initialize_data_query_pagination(self, trackSummary: dict) -> DataPaginationCursor:
+    async def __initialize_data_query_pagination(self, trackOverlaps: List[TrackOverlap]) -> DataPaginationCursor:
         """ calculate expected result size, number of pages; 
             determines and caches cursor-based pagination
             
@@ -47,14 +50,14 @@ class FILERRouteHelper(RouteHelper):
             
             1. sort track summary in DESC order by number of data points
             2. calculate cumulative sum to estimate result size
-            3. create array of `ordered_track_index`:`record_index` pairs defining the end point for the current page
+            3. create array of `ordered_track_index`:`offset` pairs defining the end point for the current page
                 (start point is cursor[page - 1], with cursor[0] always being `0:0`)
             
             returns current set of pagedTracks, and start/end points for slicing within track results
         """
             
         # sort the track summary
-        sortedTrackSummary = sorted(trackSummary, key = lambda item: item['num_overlaps'], reverse=True)
+        sortedTrackOverlaps: List[TrackOverlap] = self.__sort_track_overlaps(trackOverlaps)
         
         # check to see if pagination has been cached
         noPageCacheKey = self._managers.cacheKey.no_page()
@@ -68,38 +71,52 @@ class FILERRouteHelper(RouteHelper):
             self._resultSize = await self._managers.internalCache.get(cacheKey,
                 namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
         
-        if cursors is None or self._resultSize is None: # determine pagination cursors
-            # if either is uncached the data may be out of sync so recalculate cache size
-            
+        # if either is uncached, the data may be out of sync so recalculate cache size
+        if cursors is None or self._resultSize is None: 
             # calculate cumulative sum of expected hits per track 
-            cumulativeSum = cumulative_sum([t['num_overlaps'] for t in sortedTrackSummary])
+            cumulativeSum = cumulative_sum([t.num_overlaps for t in sortedTrackOverlaps])
             self._resultSize = cumulativeSum[-1] # last element is total number of hits      
             
             # last time we set cachKey was to check RESULT_SIZE so still should be good
             await self._managers.internalCache.set(cacheKey, self._resultSize,
                 namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
             
+            self.initialize_pagination() # need total number of pages to find cursors
+            
             cursors = ['0:0']
             if self._resultSize <= self._pageSize:  # last track, last record
-                cursors.append([f'{len(sortedTrackSummary)-1}:{cumulativeSum[-1]}'])
+                cursors.append([f'{len(sortedTrackOverlaps)-1}:{cumulativeSum[-1]}'])
             else: # generate list per-page cursors
-                p: int # annotated type hint
                 for p in range(1, self._pagination.total_num_pages):
                     sliceRange = self.slice_result_by_page(p)
-                    trackIndex = next((index for index, counts in enumerate(cumulativeSum) if counts >= sliceRange.start))
-                    cursors.append(f'{trackIndex}:{sliceRange.end}')
-        
+
+                    for index, counts in enumerate(cumulativeSum):
+                        if counts > sliceRange.end: 
+                            offset = sliceRange.end 
+                            cursors.append(f'{index}:{offset}')
+                            break
+                        
+                        if counts >= sliceRange.start: 
+                            diff = sliceRange.end - cumulativeSum[index]
+                            offset = len(sortedTrackOverlaps[index] - diff)
+                            cursors.append(f'{index}:{offset}')
+                            break
+    
             # cache the pagination cursor
             cacheKey = CacheKeyDataModel.encrypt(noPageCacheKey + CacheKeyQualifier.CURSOR)
             await self._managers.internalCache.set(cacheKey, cursors,
                 namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
 
-        self.initialize_pagination()     
-        startTrackIndex, startRecordIndex = cursors[self._pagination.page - 1].split(':')
-        endTrackIndex, endRecordIndex = cursors[self._pagination.page].split(':')
-        pagedTracks = [t['track_id'] for t in trackSummary[startTrackIndex:endTrackIndex + 1]]
+        else:
+            self.initialize_pagination()
         
-        return DataPaginationCursor(start=startRecordIndex, end=endRecordIndex, tracks=pagedTracks)
+        startTrackIndex, startOffset = cursors[self._pagination.page - 1].split(':')
+        endTrackIndex, endOffset = cursors[self._pagination.page].split(':')
+        pagedTracks = [t.track_id for t in sortedTrackOverlaps[startTrackIndex:endTrackIndex + 1]]
+        
+        return FILERPaginationCursor(tracks=pagedTracks,
+            start=PaginationCursor(key=startTrackIndex,offset=startOffset),
+            end=PaginationCursor(key=endTrackIndex, offset=endOffset))
     
     
     def __merge_track_lists(self, trackList1, trackList2):
@@ -116,6 +133,19 @@ class FILERRouteHelper(RouteHelper):
         return assembly
 
 
+    def __page_data_result(self, cursor: DataPaginationCursor, response: FILERApiDataResponse) -> List[BEDFeature]:
+        features = []
+        startTrack = cursor.start_track_id()
+        endTrack = cursor.end_track_id()
+        
+        for track in response:
+            f:dict
+            for f in track['features']:
+                f.update({'track_id': track['Identifier']})
+                features.append(BEDFeature(**f))
+        return features
+    
+
     async def __get_track_data_task(self, tracks, assembly: str, span: str, countsOnly: bool, cacheKey: str):
         cacheKey += ','.join(tracks)
         result = await self._managers.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
@@ -125,37 +155,33 @@ class FILERRouteHelper(RouteHelper):
         return result
 
 
-    async def get_paged_track_data(self, cursor:DataPaginationCursor, assembly, validate=True):
+    async def get_paged_track_data(self, trackOverlaps:List[TrackOverlap], assembly, validate=True):
         cacheKey = self._managers.cacheKey
         
         result = await self._managers.internalCache.get(cacheKey.key, namespace=cacheKey.namespace)
         if result is not None:
             return await self.generate_response(result, isCached=True)
         
+        cursor: DataPaginationCursor = self.__initialize_data_query_pagination(trackOverlaps)
+        
         assembly = self._parameters.get('assembly')
         if validate or assembly is None: # for internal helper calls, don't always need to validate; already done
             assembly = await self.__validate_tracks(cursor.tracks)     
-        
+            
         cacheKey = f'/{FILERApiEndpoint.OVERLAPS}?countsOnly=False&span={self._parameters.span}&tracks=' 
         cacheKey = cacheKey.replace(':', '_')
+        
         chunks = chunker(cursor.tracks, TRACKS_PER_API_REQUEST_LIMIT, returnIterator=True)
         tasks = [self.__get_track_data_task(c, assembly, self._parameters.span, False, cacheKey) for c in chunks]
         chunkedResults = await asyncio.gather(*tasks, return_exceptions=False)
-        result = []
+        
+        response: List[FILERApiDataResponse] = []
         for r in chunkedResults:
-            result.extend(r)
+            response.append(r)
 
-        # results are gathered; so we need to do the data transformation from bedfeature -> table row 
-        # how do we order? pandas -> back?
-        #  custom sort on track_id by order in cursor.track
-        # followed by chr, start, end
-        # for sort by value: {trackId: index for index, trackId in enumerate(cursor.tracks)}
-        # use Human.sort_order() from niagads pylib for chromosomse
+        result = self.__page_data_result(cursor, result)
         
-        # or cache to database, sort and retrieve?
-        # store track, chr, pos, start, end, json
-        
-        raise NotImplementedError("Pagination of data queries under development")
+        return await self.generate_response(result, isCached=False)
     
         
     async def get_track_data(self, validate=True): 
@@ -179,35 +205,37 @@ class FILERRouteHelper(RouteHelper):
     
         cacheKey = f'/{FILERApiEndpoint.OVERLAPS}?countsOnly={countsOnly}&span={self._parameters.span}&tracks=' 
         cacheKey = cacheKey.replace(':', '_')
-        overlapCounts = await self.__get_track_data_task(tracks, assembly, self._parameters.span, countsOnly, cacheKey)
+        trackOverlaps = await self.__get_track_data_task(tracks, assembly, self._parameters.span, countsOnly, cacheKey)
         
         if self._responseConfig.content == ResponseContent.FULL:
-            cursor = self.__initialize_data_query_pagination(overlapCounts)
-            return await self.get_paged_track_data(cursor, validate=validate)
+            return await self.get_paged_track_data(trackOverlaps, validate=validate)
 
         # to ensure pagination order, need to sort by counts
-        sortedOverlapCounts = sorted(overlapCounts, key = lambda item: item['num_overlaps'], reverse=True)       
-        self._resultSize = len(sortedOverlapCounts)
+        sortedTrackOverlaps = self.__sort_track_overlaps(trackOverlaps)
+        self._resultSize = len(sortedTrackOverlaps)
         self.initialize_pagination()
         sliceRange = self.slice_result_by_page()
         
         match self._responseConfig.content:
             case ResponseContent.IDS:
-                result = [t['track_id'] for t in sortedOverlapCounts[sliceRange.start:sliceRange.end]]
+                result = [t['track_id'] for t in sortedTrackOverlaps[sliceRange.start:sliceRange.end]]
                 return await self.generate_response(result)
             
             case ResponseContent.COUNTS:
                 # sort by counts to ensure pagination order
-                return await self.generate_response(sortedOverlapCounts[sliceRange.start:sliceRange.end])
+                return await self.generate_response(sortedTrackOverlaps[sliceRange.start:sliceRange.end])
             
             case ResponseContent.SUMMARY: 
                 metadata: List[Track] = await self.get_track_metadata(rawResponse=ResponseContent.SUMMARY)
-                result = self.__generate_track_overlap_summary(metadata, sortedOverlapCounts)
+                result = self.__generate_track_overlap_summary(metadata, sortedTrackOverlaps)
                 return await self.generate_response(result[sliceRange.start:sliceRange.end])
             
             case _:
                 raise RuntimeError('Invalid response content specified')
 
+
+    def __sort_track_overlaps(self, trackOverlaps: List[TrackOverlap], reverse=True) -> List[TrackOverlap]:
+        return sorted(trackOverlaps, key = lambda item: item.num_overlaps, reverse=reverse)     
 
 
     def __generate_track_overlap_summary(self, metadata: List[Track], data):
@@ -356,34 +384,33 @@ class FILERRouteHelper(RouteHelper):
         # get informative tracks from the FILER API & cache
         cacheKey = f'/{FILERApiEndpoint.INFORMATIVE_TRACKS}?genomeBuild={self._parameters.assembly}&span={self._parameters.span}' 
         cacheKey = cacheKey.replace(':','_')
-        informativeTracks = await self._managers.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
-        if informativeTracks is None:
-            informativeTracks = await ApiWrapperService(self._managers.apiClientSession) \
+        informativeTrackOverlaps: List[TrackOverlap] = await self._managers.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
+        if informativeTrackOverlaps is None:
+            informativeTrackOverlaps = await ApiWrapperService(self._managers.apiClientSession) \
                 .get_informative_tracks(self._parameters.span, self._parameters.assembly)
-            await self._managers.internalCache.set(cacheKey, informativeTracks, namespace=CacheNamespace.FILER_EXTERNAL_API)
+            await self._managers.internalCache.set(cacheKey, informativeTrackOverlaps, namespace=CacheNamespace.FILER_EXTERNAL_API)
             
-        if len(informativeTracks) == 0:
+        if len(informativeTrackOverlaps) == 0:
             return await self.generate_response([], isCached=False)
         
         # filter for tracks that match the filter
         matchingTrackIds = [t.track_id for t in matchingTracks] if rawResponse != ResponseContent.IDS else matchingTracks
-        informativeTrackIds = [t['track_id'] for t in informativeTracks] 
+        informativeTrackIds = [t.track_id for t in informativeTrackOverlaps] 
         targetTrackIds = list(set(matchingTrackIds).intersection(informativeTrackIds))
-        targetTracks = [t for t in informativeTracks if t['track_id'] in targetTrackIds]
+        targetTrackOverlaps: List[TrackOverlap] = [t for t in informativeTrackOverlaps if t.track_id in targetTrackIds]
         
         if self._responseConfig.content == ResponseContent.FULL:
-            cursor: DataPaginationCursor = self.__initialize_data_query_pagination(targetTracks)
-            return await self.get_paged_track_data(cursor)
+            return await self.get_paged_track_data(targetTrackOverlaps)
         
         # to ensure pagination order, need to sort by counts
-        result = sorted(targetTracks, key = lambda item: item['num_overlaps'], reverse=True)       
+        result: List[TrackOverlap] = self.__sort_track_overlaps(targetTrackOverlaps)
         self._resultSize = len(result)
         self.initialize_pagination()
         sliceRange = self.slice_result_by_page()
         
         match self._responseConfig.content:
             case ResponseContent.IDS:
-                result = [t['track_id'] for t in result[sliceRange.start:sliceRange.end]]
+                result = [t.track_id for t in result[sliceRange.start:sliceRange.end]]
                 return await self.generate_response(result)
             
             case ResponseContent.COUNTS:
@@ -391,7 +418,7 @@ class FILERRouteHelper(RouteHelper):
                 return await self.generate_response(result[sliceRange.start:sliceRange.end])
             
             case ResponseContent.SUMMARY: 
-                metadata:List[Track] = [t for t in matchingTracks if t['track_id'] in targetTrackIds]
+                metadata:List[Track] = [t for t in matchingTracks if t.track_id in targetTrackIds]
                 result = self.__generate_track_overlap_summary(metadata, result)
                 return await self.generate_response(result[sliceRange.start:sliceRange.end])
             

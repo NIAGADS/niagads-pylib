@@ -1,4 +1,5 @@
 from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel
 from sqlmodel import select, col, or_, func, distinct
 from sqlalchemy import Values, String, column as sqla_column
 from sqlalchemy.exc import NoResultFound
@@ -11,13 +12,20 @@ from niagads.utils.dict import rename_key
 
 from api.common.enums import Assembly, ResponseContent
 from api.dependencies.parameters.filters import tripleToPreparedStatement
-from api.models.base_models import GenericDataModel
+from api.models.base_models import GenericDataModel, RowModel
 
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint
 from ..models.track_metadata_cache import Track, Collection, TrackCollection
 from ..models.bed_features import BEDFeature
 
+class FILERApiDataResponse(BaseModel):
+    Identifier: str
+    features: List[BEDFeature]
+    
+class TrackOverlap(RowModel):
+    track_id: str
+    num_overlaps: int
 
 class ApiWrapperService:
     def __init__(self, session):
@@ -54,28 +62,13 @@ class ApiWrapperService:
         except Exception as e:
             raise LookupError(f'Unable to parse FILER response `{response.content}` for the following request: {str(response.url)}')
     
-            
-    def __rename_keys(self, dictObj, keyMapping):
-        for oldKey, newKey in keyMapping.items():
-            dictObj = rename_key(dictObj, oldKey, newKey)
-        return dictObj
+
     
-    
-    def __overlaps_to_features(self, overlaps) -> List[BEDFeature]:
-        features = []
-        for track in overlaps:
-            f:dict
-            for f in track['features']:
-                f.update({'track_id': track['Identifier']})
-                features.append(BEDFeature(**f))
-        return features
-    
-    
-    async def __count_track_overlaps(self, span: str, assembly: str, tracks: List[str]) -> List[GenericDataModel]:   
+    async def __count_track_overlaps(self, span: str, assembly: str, tracks: List[str]) -> List[TrackOverlap]:   
         # TODO: new FILER endpoint, count overlaps for specific track ID?
         if len(tracks) <= 3: # for now, probably faster to retrieve the data and count, but may depend on span
             response = await self.__fetch(FILERApiEndpoint.OVERLAPS, {'track': ','.join(tracks), 'span': span})
-            return [GenericDataModel(track_id=t['Identifier'], num_overlaps=len(t['features'])) for t in response]
+            return [TrackOverlap(track_id=t['Identifier'], num_overlaps=len(t['features'])) for t in response]
         
         else:
             response = await self.get_informative_tracks(span, assembly, sort=True)   
@@ -94,15 +87,20 @@ class ApiWrapperService:
         return sorted(trackCountsObj, key = lambda item: item['num_overlaps'], reverse=True)
 
 
-    async def get_track_hits(self, tracks: List[str], span: str, assembly: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
+    async def get_track_hits(self, tracks: List[str], span: str,
+        assembly: str, countsOnly: bool=False) -> Union[FILERApiDataResponse, List[TrackOverlap]]: 
+        
         if countsOnly:
             return await self.__count_track_overlaps(span, assembly, tracks)
         
         result = await self.__fetch(FILERApiEndpoint.OVERLAPS, {'track': ','.join(tracks), 'span': span})
+        
         if 'message' in result:
             raise RuntimeError(result['message'])
         
-        return self.__overlaps_to_features(result)
+        return result
+        
+        # return self.__overlaps_to_features(result)
 
 
     async def get_informative_tracks(self, span: str, assembly: str, sort=False):
