@@ -2,7 +2,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from fastapi import status
 from pydantic import BaseModel, field_validator, ConfigDict
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from api.common.enums import ResponseContent, CacheNamespace
@@ -19,8 +19,8 @@ INTERNAL_PARAMETERS = ['span', '_tracks']
 
 class PaginationCursor(BaseModel):
     """ pagination cursor """
-    start: Union[str, int]
-    end: Union[str, int]
+    key: str
+    offset: Optional[int]
 
 class Parameters(BaseModel):
     """ arbitrary namespace to store request parameters and pass them to helpers """
