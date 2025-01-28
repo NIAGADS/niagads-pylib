@@ -24,6 +24,9 @@ class ResponseFormat(CaseInsensitiveEnum):
     JSON = auto()
     TABLE = auto()
     IGV_BROWSER = auto()
+    DOWNLOAD = auto()
+    VCF = auto()
+    BED = auto()
     
 class Assembly(CaseInsensitiveEnum, Enum):
     """enum for genome builds"""

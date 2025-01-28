@@ -1,6 +1,6 @@
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
-from fastapi import status
+from fastapi import Response, status
 from pydantic import BaseModel, field_validator, ConfigDict
 from typing import Any, Dict
 
@@ -197,6 +197,9 @@ class RouteHelper():
                 
                 redirectUrl = f'/redirect{RedirectEndpoints.TABLE.value}/{cacheKey}'
                 return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
+            case ResponseFormat.DOWNLOAD:
+                
+                return Response(response.to_text(ResponseFormat.DOWNLOAD), media_type='text/plain')
             case _:  
                 return response
 

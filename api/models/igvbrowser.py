@@ -35,6 +35,9 @@ class IGVBrowserTrackConfig(SQLModel, RowModel):
     
     def to_view_data(self, view: ResponseFormat, **kwargs):
         return self.model_dump(by_alias=True)
+    
+    def to_text(self, format, **kwargs):
+        return super().to_text(format, **kwargs)
 
 
 # sole purpose of this model is to assemble the information for the track selector
@@ -76,7 +79,9 @@ class IGVBrowserTrackMetadata(RowModel):
     
     def to_view_data(self, view: ResponseFormat, **kwargs):
         return self.model_dump(by_alias=True)
-        
+    
+    def to_text(self, format, **kwargs):
+        return super().to_text(format, **kwargs)
 
 
 # TODO: allowable views: direct to genome browser   
@@ -89,7 +94,7 @@ class IGVBrowserTrackConfigResponse(BaseResponseModel):
         # return super().to_view(view, **kwargs)
         # NOTE: super().to_view call w/result in error; expects non null config
 
-
+    
 class IGVBrowserTrackSelecterResponse(BaseResponseModel):
     response: Table
     

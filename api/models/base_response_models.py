@@ -9,6 +9,9 @@ class BaseResponseModel(AbstractResponse):
 
     def to_view(self, view, **kwargs):
         return super().to_view(view, **kwargs)
+    
+    def to_text(self, format, **kwargs):
+        return super().to_text(format, **kwargs)
         
     @classmethod
     def row_model(cls: Self, name=False):
@@ -29,8 +32,9 @@ class BaseResponseModel(AbstractResponse):
 class PagedResponseModel(BaseResponseModel):
     pagination: PaginationDataModel = Field(description="pagination details, if the result is paged")
 
-    def to_view(self, view, **kwargs):
-        return super().to_view(view, **kwargs)
-
+    # def to_view(self, view, **kwargs):
+    #     return super().to_view(view, **kwargs)
+    
+    
 # possibly allows you to set a type hint to a class and all its subclasses
 T_BaseResponseModel = TypeVar('T_BaseResponseModle', bound=BaseResponseModel)

@@ -40,7 +40,6 @@ class FILERTrackBrief(SQLModel, GenericDataModel):
                 return self._build_table_config()
             case _:
                 raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
-        
     
     def to_view_data(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
         """ covert row data to view formatted data """

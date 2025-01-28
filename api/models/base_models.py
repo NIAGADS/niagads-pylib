@@ -61,6 +61,11 @@ class RowModel(SerializableModel, ABC):
         """ covert row data to view formatted data """
         raise RuntimeError('`RowModel` is an abstract class; need to override abstract methods in child classes')
     
+    @abstractmethod
+    def to_text(self, format: ResponseFormat, **kwargs) -> str:
+        """ covert row data to a text string """
+        raise RuntimeError('`RowModel` is an abstract class; need to override abstract methods in child classes')
+    
 
 class RequestDataModel(SerializableModel):
     request_id: str = Field(description="unique request identifier")
@@ -124,6 +129,21 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
 class AbstractResponse(ABC, SerializableModel):
     response: Any = Field(description="result (data) from the request")
     
+    @abstractmethod
+    def to_text(self, format:ResponseFormat, **kwargs):
+        """ return a text response (e.g., BED, VCF, Download script) """
+        
+        responseStr = "" 
+        rowText = [] 
+        if len(self.response) > 0:
+            row: RowModel
+            for row in self.response:
+                rowText.append(row.to_text(format, **kwargs))        
+            responseStr = '\n'.join(rowText)
+        
+        return responseStr
+        
+    
     @abstractmethod 
     def to_view(self, view:ResponseFormat, **kwargs):
         """ transform response to JSON expected by NIAGADS-viz-js Table """
@@ -158,15 +178,32 @@ class GenericDataModel(RowModel):
     def to_view_data(self, view, **kwargs):
         return self.model_dump()
     
-    def get_view_config(self, view, **kwargs):
+    
+    def to_text(self, format: ResponseFormat, **kwargs):
+        match format:
+            case ResponseFormat.DOWNLOAD:
+                fields = list(self.model_dump().keys())
+                if 'url' not in fields:
+                    raise RuntimeError("No url field available for record.  Unable to generate a list of URLs")
+                return f'{self.url}'
+            # case ResponseFormat.BED:
+            #     pass
+            # case ResponseFormat.VCF:
+            #    pass
+            case _:
+                raise NotImplementedError(f'Text transformation `{format.value}` not yet supported')
+            
+    
+    def get_view_config(self, view: ResponseFormat, **kwargs):
         """ get configuration object required by the view """
         match view:
-            case view.TABLE:
+            case ResponseFormat.TABLE:
                 self.get_table_view_config(kwargs)
-            case view.IGV_BROWSER:
+            case ResponseFormat.IGV_BROWSER:
                 return None
             case _:
                 raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
+            
         
     def get_table_view_config(self, **kwargs):
         fields = list(self.model_dump().keys())
