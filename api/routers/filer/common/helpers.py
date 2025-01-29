@@ -42,7 +42,7 @@ class FILERRouteHelper(RouteHelper):
         self._managers: InternalRequestParameters = managers
 
 
-    async def __initialize_data_query_pagination(self, trackOverlaps: List[TrackOverlap]) -> DataPaginationCursor:
+    async def __initialize_data_query_pagination(self, trackOverlaps: List[TrackOverlap]) -> FILERPaginationCursor:
         """ calculate expected result size, number of pages; 
             determines and caches cursor-based pagination
             
@@ -133,7 +133,7 @@ class FILERRouteHelper(RouteHelper):
         return assembly
 
 
-    def __page_data_result(self, cursor: DataPaginationCursor, response: FILERApiDataResponse) -> List[BEDFeature]:
+    def __page_data_result(self, cursor: FILERPaginationCursor, response: FILERApiDataResponse) -> List[BEDFeature]:
         features = []
         startTrack = cursor.start_track_id()
         endTrack = cursor.end_track_id()
@@ -162,7 +162,7 @@ class FILERRouteHelper(RouteHelper):
         if result is not None:
             return await self.generate_response(result, isCached=True)
         
-        cursor: DataPaginationCursor = self.__initialize_data_query_pagination(trackOverlaps)
+        cursor: FILERPaginationCursor = self.__initialize_data_query_pagination(trackOverlaps)
         
         assembly = self._parameters.get('assembly')
         if validate or assembly is None: # for internal helper calls, don't always need to validate; already done
