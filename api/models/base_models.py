@@ -124,13 +124,14 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
 
     
     @staticmethod
-    def remove_query_props(self, key:str, prop: str):
-        pattern = r"\b" + property + r"=[^&]*&?\s*"
-        return regex_replace(pattern, key)
+    def remove_query_props(key:str, prop: str):
+        pattern = r"\b" + prop + r"=[^&]*&?\s*"
+        newKey = regex_replace(pattern, '', key)
+        return regex_replace('&$', '', newKey) # remove terminal '&' if present
     
     
     @staticmethod
-    def encrypt_key(self, key:str=None):
+    def encrypt_key(key:str=None):
         return md5(key.encode('utf-8')).hexdigest()
     
     

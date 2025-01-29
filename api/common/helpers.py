@@ -17,9 +17,10 @@ from api.routers.redirect.common.constants import RedirectEndpoints
 
 INTERNAL_PARAMETERS = ['span', '_tracks']
 
+
 class PaginationCursor(BaseModel):
     """ pagination cursor """
-    key: str
+    key: Union[str, int]
     offset: Optional[int]
 
 class Parameters(BaseModel):
