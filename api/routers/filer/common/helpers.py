@@ -129,8 +129,14 @@ class FILERRouteHelper(RouteHelper):
 
 
     def __page_data_result(self, cursor: FILERPaginationCursor, response: List[FILERApiDataResponse]) -> List[BEDFeature]:
+        
+        # sort the response by the cursor pagedTracks so the track order is correct
+        # FILER currently processes sequentially so this is unecessary but if updated
+        # to process in parallel, it will be required
+        sortedResponse = sorted(response, key=lambda  x:cursor.tracks == x.Identifier)
+
         result: List[BEDFeature] = []
-        for trackIndex, track in enumerate(response):
+        for trackIndex, track in enumerate(sortedResponse):
             sliceStart = cursor.start.offset if trackIndex == cursor.start.key \
                 else None
             sliceEnd = cursor.end.offset if trackIndex == cursor.end.key \
@@ -362,16 +368,24 @@ class FILERRouteHelper(RouteHelper):
         result = await self._managers.internalCache.get(self._managers.cacheKey.key, namespace=self._managers.cacheKey.namespace)
         if result is not None: # just return the cached response
             return await self.generate_response(result, isCached=True)
+    
+        hasMetadataFilters = self._parameters.keyword is not None or self._parameters.filter is not None
         
-        # get list of tracks that match the search filter
-        rawResponse = ResponseContent.IDS
-        if self._responseConfig.content == ResponseContent.SUMMARY:
-            rawResponse = ResponseContent.SUMMARY
-        matchingTracks: List[Track] = await self.search_track_metadata(rawResponse=rawResponse) 
+        # note: we test for metadata filters twice so we don't
+        # need to do the informativeTrack lookup if metadata filters return nothing
         
-        if len(matchingTracks) == 0:
-            return await self.generate_response([], isCached=False)
+        # apply metadata filters, if valid
+        if hasMetadataFilters:
+            # get list of tracks that match the search filter
+            rawResponse = ResponseContent.IDS
+            if self._responseConfig.content == ResponseContent.SUMMARY:
+                rawResponse = ResponseContent.SUMMARY
+            matchingTracks: List[Track] = await self.search_track_metadata(rawResponse=rawResponse) 
             
+            if len(matchingTracks) == 0:
+                return await self.generate_response([], isCached=False)
+        
+        
         # get informative tracks from the FILER API & cache
         cacheKey = f'/{FILERApiEndpoint.INFORMATIVE_TRACKS}?genomeBuild={self._parameters.assembly}&span={self._parameters.span}' 
         cacheKey = cacheKey.replace(':','_')
@@ -384,11 +398,14 @@ class FILERRouteHelper(RouteHelper):
         if len(informativeTrackOverlaps) == 0:
             return await self.generate_response([], isCached=False)
         
-        # filter for tracks that match the filter
-        matchingTrackIds = [t.track_id for t in matchingTracks] if rawResponse != ResponseContent.IDS else matchingTracks
-        informativeTrackIds = [t.track_id for t in informativeTrackOverlaps] 
-        targetTrackIds = list(set(matchingTrackIds).intersection(informativeTrackIds))
-        targetTrackOverlaps: List[TrackOverlap] = [t for t in informativeTrackOverlaps if t.track_id in targetTrackIds]
+        targetTrackOverlaps = informativeTrackOverlaps
+        
+        if hasMetadataFilters:
+            # filter for tracks that match the filter
+            matchingTrackIds = [t.track_id for t in matchingTracks] if rawResponse != ResponseContent.IDS else matchingTracks
+            informativeTrackIds = [t.track_id for t in informativeTrackOverlaps] 
+            targetTrackIds = list(set(matchingTrackIds).intersection(informativeTrackIds))
+            targetTrackOverlaps: List[TrackOverlap] = [t for t in informativeTrackOverlaps if t.track_id in targetTrackIds]
         
         if self._responseConfig.content == ResponseContent.FULL:
             return await self.get_paged_track_data(targetTrackOverlaps)
