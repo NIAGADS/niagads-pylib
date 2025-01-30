@@ -85,11 +85,11 @@ class ApiWrapperService:
             
             # need to filter all informative tracks for the ones that were requested
             # and add in the zero counts for the ones that have no hits
-            informativeTracks = set([t['track_id'] for t in response]) # all informative tracks
+            informativeTracks = set([t.track_id for t in response]) # all informative tracks
             nonInformativeTracks = set(tracks).difference(informativeTracks) # tracks with no hits in the span
             informativeTracks = set(tracks).intersection(informativeTracks) # informative tracks in the requested list
         
-            return [TrackOverlap(**tc) for tc in response if tc['track_id'] in informativeTracks] \
+            return [TrackOverlap(**tc) for tc in response if tc.track_id in informativeTracks] \
                 + [TrackOverlap(track_id=t, num_overlaps=0) for t in nonInformativeTracks]
 
 
@@ -104,14 +104,12 @@ class ApiWrapperService:
         if 'message' in result:
             raise RuntimeError(result['message'])
         
-        # order result by track ID since they may have been sorted when the request was made
-        result = sorted(result, key = lambda item: item['Identifier'])     
         return [FILERApiDataResponse(**r) for r in result]
 
 
     async def get_informative_tracks(self, span: str, assembly: str, sort=False) -> List[TrackOverlap]:
         result = await self.__fetch(FILERApiEndpoint.INFORMATIVE_TRACKS, {'span': span, 'assembly': assembly})
-        result = [TrackOverlap(track_id=t['Identifier'], num_overlaps=len(t['features'])) for t in result]
+        result = [TrackOverlap(track_id=t['Identifier'], num_overlaps=t['numOverlaps']) for t in result]
         return sort_track_overlaps(result) if sort else result
 
 
