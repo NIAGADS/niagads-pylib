@@ -17,6 +17,10 @@ class BEDFeature(GenericDataModel):
     score: Optional[Union[str, int, float]] = Field(default='.', description="a score between 0 and 1000")
     strand: Optional[str] = Field(default='.', description="forward (+) or reverse (-) direction")
     
+    
+    def add_track(self, trackId: Any):
+        self.model_extra['track_id'] = trackId
+    
     def to_view_data(self, view, **kwargs):
         match view:
             case view.TABLE:

@@ -129,8 +129,7 @@ class FILERRouteHelper(RouteHelper):
 
 
     def __page_data_result(self, cursor: FILERPaginationCursor, response: List[FILERApiDataResponse]) -> List[BEDFeature]:
-        result = []
-        cursor.start.offset
+        result: List[BEDFeature] = []
         for trackIndex, track in enumerate(response):
             sliceStart = cursor.start.offset if trackIndex == cursor.start.key \
                 else None
@@ -139,7 +138,7 @@ class FILERRouteHelper(RouteHelper):
             
             features: List[BEDFeature] = track.features[sliceStart:sliceEnd]
             for f in features:
-                f.update({'track_id': track.track_id})
+                f.add_track(track.Identifier)
                 result.append(f)
                 
         return result
