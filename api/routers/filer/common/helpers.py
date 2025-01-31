@@ -50,30 +50,27 @@ class FILERRouteHelper(RouteHelper):
             
             returns current set of pagedTracks, and start/end points for slicing within track results
         """
-            
         # sort the track summary
         sortedTrackOverlaps: List[TrackOverlap] = sort_track_overlaps(trackOverlaps)
         
-        # check to see if pagination has been cached
+        # generate cache keys
         noPageCacheKey = self._managers.cacheKey.no_page()
+        cursorCacheKey = CacheKeyDataModel.encrypt_key(noPageCacheKey + CacheKeyQualifier.CURSOR)
+        rsCacheKey = CacheKeyDataModel.encrypt_key(noPageCacheKey + CacheKeyQualifier.RESULT_SIZE)
         
-        cacheKey = CacheKeyDataModel.encrypt_key(noPageCacheKey + CacheKeyQualifier.CURSOR)
-        cursors = await self._managers.internalCache.get(cacheKey, 
+        # check to see if pagination has been cached
+        cursors = await self._managers.internalCache.get(cursorCacheKey, 
             namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
-        
-        if cursors is not None: # get the result size
-            cacheKey = CacheKeyDataModel.encrypt_key(noPageCacheKey + CacheKeyQualifier.RESULT_SIZE)
-            self._resultSize = await self._managers.internalCache.get(cacheKey,
+        self._resultSize = await self._managers.internalCache.get(rsCacheKey,
                 namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
         
         # if either is uncached, the data may be out of sync so recalculate cache size
         if cursors is None or self._resultSize is None: 
             # calculate cumulative sum of expected hits per track 
             cumulativeSum = cumulative_sum([t.num_overlaps for t in sortedTrackOverlaps])
-            self._resultSize = cumulativeSum[-1] # last element is total number of hits      
             
-            # last time we set cachKey was to check RESULT_SIZE so still should be good
-            await self._managers.internalCache.set(cacheKey, self._resultSize,
+            self._resultSize = cumulativeSum[-1] # last element is total number of hits      
+            await self._managers.internalCache.set(rsCacheKey, self._resultSize,
                 namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
             
             self.initialize_pagination() # need total number of pages to find cursors
@@ -81,8 +78,8 @@ class FILERRouteHelper(RouteHelper):
             cursors = ['0:0']
             if self._resultSize <= self._pageSize:  # last track, last record
                 cursors.append(f'{len(sortedTrackOverlaps)-1}:{cumulativeSum[-1]}')
-            else: # generate list per-page cursors
-                for p in range(1, self._pagination.total_num_pages):
+            else: # generate list of per-page cursors
+                for p in range(1, self._pagination.total_num_pages + 1):
                     sliceRange = self.slice_result_by_page(p)
 
                     for index, counts in enumerate(cumulativeSum):
@@ -93,16 +90,15 @@ class FILERRouteHelper(RouteHelper):
                         
                         if counts >= sliceRange.start: 
                             diff = sliceRange.end - cumulativeSum[index]
-                            offset = len(sortedTrackOverlaps[index] - diff)
+                            offset = sortedTrackOverlaps[index].num_overlaps - diff
                             cursors.append(f'{index}:{offset}')
                             break
     
             # cache the pagination cursor
-            cacheKey = CacheKeyDataModel.encrypt_key(noPageCacheKey + CacheKeyQualifier.CURSOR)
-            await self._managers.internalCache.set(cacheKey, cursors,
+            await self._managers.internalCache.set(cursorCacheKey, cursors,
                 namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
 
-        else:
+        else: # initialize from cached pagination
             self.initialize_pagination()
         
         startTrackIndex, startOffset = [int(x) for x in cursors[self._pagination.page - 1].split(':')]
