@@ -76,10 +76,8 @@ class FILERRouteHelper(RouteHelper):
             self.initialize_pagination() # need total number of pages to find cursors
             
             cursors = ['0:0']
-            if self._resultSize <= self._pageSize:  # last track, last record
-                cursors.append(f'{len(sortedTrackOverlaps)-1}:{cumulativeSum[-1]}')
-            else: # generate list of per-page cursors
-                for p in range(1, self._pagination.total_num_pages + 1):
+            if self._resultSize > self._pageSize:  # figure out page cursors
+                for p in range(1, self._pagination.total_num_pages):
                     sliceRange = self.slice_result_by_page(p)
 
                     for index, counts in enumerate(cumulativeSum):
@@ -88,12 +86,17 @@ class FILERRouteHelper(RouteHelper):
                             cursors.append(f'{index}:{offset}')
                             break
                         
-                        if counts >= sliceRange.start: 
+                        """
+                        if counts >= sliceRange.start and counts < sliceRange.end:
                             diff = sliceRange.end - cumulativeSum[index]
                             offset = sortedTrackOverlaps[index].num_overlaps - diff
                             cursors.append(f'{index}:{offset}')
                             break
-    
+                        """
+                        
+            # end of final page is always the last rack, last feature
+            cursors.append(f'{len(sortedTrackOverlaps)-1}:{sortedTrackOverlaps[-1].num_overlaps}') 
+
             # cache the pagination cursor
             await self._managers.internalCache.set(cursorCacheKey, cursors,
                 namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
@@ -106,8 +109,9 @@ class FILERRouteHelper(RouteHelper):
         pagedTracks = [t.track_id for t in sortedTrackOverlaps[startTrackIndex:endTrackIndex + 1]]
         
         return FILERPaginationCursor(tracks=pagedTracks,
-            start=PaginationCursor(key=startTrackIndex, offset=startOffset),
-            end=PaginationCursor(key=endTrackIndex, offset=endIndex))
+            # cursor list & start/endTrackIndex is based on all tracks; need to adjust for pagedTrack slice
+            start=PaginationCursor(key=0, offset=startOffset),
+            end=PaginationCursor(key=endTrackIndex - startTrackIndex, offset=endIndex))
     
     
     def __merge_track_lists(self, trackList1, trackList2):
@@ -130,12 +134,12 @@ class FILERRouteHelper(RouteHelper):
         # FILER currently processes sequentially so this is unecessary but if updated
         # to process in parallel, it will be required
         sortedResponse = sorted(response, key=lambda  x:cursor.tracks == x.Identifier)
-
-        result: List[BEDFeature] = []
+        
+        result: List[BEDFeature] = [] 
         for trackIndex, track in enumerate(sortedResponse):
             sliceStart = cursor.start.offset if trackIndex == cursor.start.key \
                 else None
-            sliceEnd = cursor.end.offset if trackIndex == cursor.end.key \
+            sliceEnd = cursor.end.offset if  trackIndex == cursor.end.key \
                 else None
             
             features: List[BEDFeature] = track.features[sliceStart:sliceEnd]
