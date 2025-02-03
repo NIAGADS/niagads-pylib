@@ -10,6 +10,6 @@ class FILERApiEndpoint(CaseInsensitiveEnum):
         return f"{self.value}.php"
     
 METADATA_FORMAT_ENUM = get_response_format(exclude=[ResponseFormat.BED, ResponseFormat.VCF])
-METADATA_CONTENT_ENUM = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.COUNTS])
+METADATA_CONTENT_ENUM = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.COUNTS, ResponseContent.URLS])
 
-TRACK_DATA_CONTENT_ENUM = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.SUMMARY])
+TRACK_DATA_CONTENT_ENUM = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.SUMMARY, ResponseContent.URLS])

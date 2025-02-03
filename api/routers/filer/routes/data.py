@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import RequestValidationError
 from typing import Annotated, Union
 
-from api.common.enums import Assembly, ResponseContent
+from api.common.enums import Assembly, ResponseContent, ResponseFormat
 from api.common.exceptions import RESPONSES
 from api.common.formatters import print_enum_values
 from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import assembly_param, span_param
-from api.dependencies.parameters.optional import PaginationParameters, format_param, get_response_content, keyword_param, validate_response_content
+from api.dependencies.parameters.optional import PaginationParameters, get_response_content, get_response_format, keyword_param, validate_response_content
 
 from api.models.base_response_models import PagedResponseModel
 
@@ -21,19 +21,24 @@ from ..models.bed_features import BEDResponse
 
 router = APIRouter(prefix="/data", responses=RESPONSES)
 
+DATA_FORMAT_ENUM = get_response_format(exclude=[ResponseFormat.VCF])
+
+
 tags = ["Track Data by ID"]
-get_track_data_content_enum = get_response_content(exclude=[ResponseContent.IDS])
+get_track_data_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.URLS])
+
 @router.get("/", tags=tags,
     name="Get data from multiple tracks by ID", response_model=Union[BEDResponse, PagedResponseModel, FILERTrackBriefResponse],
     description="retrieve data from one or more FILER tracks in the specified region")
+
 async def get_track_data(
         pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
         track: str = Depends(required_query_track_id),
         span: str = Depends(span_param),
-        format: str = Depends(format_param),
+        format: str = Query(ResponseFormat.JSON, description=f'response content; one of: {print_enum_values(DATA_FORMAT_ENUM)}'),
         content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(get_track_data_content_enum)}'),
         internal: InternalRequestParameters = Depends()
-        ) -> Union[BEDResponse, PagedResponseModel, FILERTrackBriefResponse]:
+    ) -> Union[BEDResponse, PagedResponseModel, FILERTrackBriefResponse]:
     
     rContent = validate_response_content(get_track_data_content_enum, content)
     helper = FILERRouteHelper(
@@ -62,7 +67,7 @@ async def get_track_data_by_metadata_search(
         span: str = Depends(span_param),
         filter = Depends(filter_param), 
         keyword: str = Depends(keyword_param),
-        format: str= Depends(format_param),
+        format: str = Query(ResponseFormat.JSON, description=f'response content; one of: {print_enum_values(DATA_FORMAT_ENUM)}'),
         content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(ResponseContent)}'),
         internal: InternalRequestParameters = Depends(),
         ) -> Union[PagedResponseModel, FILERTrackBriefResponse, BEDResponse]:

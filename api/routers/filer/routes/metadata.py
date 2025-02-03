@@ -9,7 +9,7 @@ from api.common.helpers import Parameters, ResponseConfiguration
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import Assembly, assembly_param
 from api.dependencies.parameters.optional import PaginationParameters, format_param, keyword_param, validate_response_content
-from api.models.base_response_models import BaseResponseModel
+from api.models.base_response_models import BaseResponseModel, PagedResponseModel
 
 from ..common.helpers import FILERRouteHelper
 from ..common.enums import METADATA_CONTENT_ENUM
@@ -20,14 +20,17 @@ from ..dependencies.parameters import InternalRequestParameters, required_query_
 router = APIRouter(prefix="/metadata", responses=RESPONSES)
 
 tags = ["Track Metadata by ID"]
+
 @router.get("/", tags=tags, response_model=Union[FILERTrackResponse, FILERTrackBriefResponse],
     name="Get metadata for multiple tracks",
     description="retrieve full metadata for one or more FILER track records")
+
 async def get_track_metadata(
         track: str = Depends(required_query_track_id),
         format: str= Depends(format_param),
         content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(METADATA_CONTENT_ENUM)}'),
-        internal: InternalRequestParameters = Depends()) -> Union[FILERTrackBriefResponse, FILERTrackResponse]:
+        internal: InternalRequestParameters = Depends()
+    ) -> Union[FILERTrackBriefResponse, FILERTrackResponse]:
     
     rContent = validate_response_content(METADATA_CONTENT_ENUM, content)
     helper = FILERRouteHelper(
@@ -42,11 +45,14 @@ async def get_track_metadata(
     )
     return await helper.get_track_metadata()
 
+
 tags = ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
-@router.get("/search", tags=tags, response_model=Union[BaseResponseModel, FILERTrackBriefResponse, FILERTrackResponse],
+
+@router.get("/search", tags=tags, response_model=Union[PagedResponseModel, FILERTrackBriefResponse, FILERTrackResponse],
     name="Search for tracks", 
     description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata")
+
 async def search_track_metadata(
         pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
         assembly: Assembly = Depends(assembly_param), 
@@ -55,7 +61,7 @@ async def search_track_metadata(
         format: str= Depends(format_param),
         content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(ResponseContent)}'),
         internal: InternalRequestParameters = Depends(),
-        ) -> Union[BaseResponseModel, FILERTrackBriefResponse, FILERTrackResponse]:
+    ) -> Union[PagedResponseModel, FILERTrackBriefResponse, FILERTrackResponse]:
     
     if filter is None and keyword is None:
         raise RequestValidationError('must specify either a `filter` and/or a `keyword` to search')
@@ -68,7 +74,7 @@ async def search_track_metadata(
             content=rContent,
             model=FILERTrackResponse if rContent == ResponseContent.FULL \
                 else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
-                    else BaseResponseModel
+                    else PagedResponseModel
         ),
         Parameters(
             page=pagination.page,
