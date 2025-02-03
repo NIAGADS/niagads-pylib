@@ -11,7 +11,7 @@ from niagads.utils.dict import prune
 from niagads.utils.reg_ex import regex_replace
 
 from api.common.constants import JSON_TYPE
-from api.common.enums import CacheKeyQualifier, CacheNamespace, OnRowSelect, ResponseContent, ResponseFormat
+from api.common.enums import CacheKeyQualifier, CacheNamespace, OnRowSelect, ResponseContent, ResponseFormat, ResponseView
 from api.common.formatters import id2title
 
 class SerializableModel(BaseModel):
@@ -53,12 +53,12 @@ class RowModel(SerializableModel, ABC):
     """
     
     @abstractmethod
-    def get_view_config(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
+    def get_view_config(self, view: ResponseView, **kwargs) -> JSON_TYPE:
         """ get configuration object required by the view """
         raise RuntimeError('`RowModel` is an abstract class; need to override abstract methods in child classes')
     
     @abstractmethod
-    def to_view_data(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
+    def to_view_data(self, view: ResponseView, **kwargs) -> JSON_TYPE:
         """ covert row data to view formatted data """
         raise RuntimeError('`RowModel` is an abstract class; need to override abstract methods in child classes')
     
@@ -72,8 +72,15 @@ class RequestDataModel(SerializableModel):
     request_id: str = Field(description="unique request identifier")
     endpoint: str = Field(description="queried endpoint")
     parameters: Dict[str, Union[int, str, bool]] = Field(description="request path and query parameters, includes unspecified defaults")
-    msg: Optional[str] = Field(default=None, description="warning or info message qualifying the response")
+    msg: Optional[List[str]] = Field(default=None, description="warning or info message qualifying the response")
     
+
+    def add_message(self, msg):
+        if self.msg is None:
+            self.msg = []
+        self.msg.append(msg)   
+        
+
     def update_parameters(self, params: BaseModel, exclude:List[str]=[]) -> str:
         """ default parameter values are not in the original request, so need to be added later """
         exclude = exclude + ['filter'] # do not overwrite original filter string with parsed tokens
@@ -142,57 +149,13 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
     
 
 
-# FIXME: 'Any' or 'SerializableModel' for response
-class AbstractResponse(ABC, SerializableModel):
-    response: Any = Field(description="result (data) from the request")
-    
-    @abstractmethod
-    def to_text(self, format:ResponseFormat, **kwargs):
-        """ return a text response (e.g., BED, VCF, Download script) """
-        
-        responseStr = "" 
-        rowText = [] 
-        if len(self.response) > 0:
-            row: RowModel
-            for row in self.response:
-                rowText.append(row.to_text(format, **kwargs))        
-            responseStr = '\n'.join(rowText)
-        
-        return responseStr
-        
-    
-    @abstractmethod 
-    def to_view(self, view:ResponseFormat, **kwargs):
-        """ transform response to JSON expected by NIAGADS-viz-js Table """
-        if len(self.response) == 0:
-            raise RuntimeError('zero-length response; cannot generate view')
-        if 'on_row_select' not in kwargs:
-            if 'num_overlaps' in self.response[0].model_fields.keys() or \
-                'num_overlaps' in self.response[0].model_extra.keys():
-                kwargs['on_row_select'] = OnRowSelect.ACCESS_ROW_DATA
-                
-        viewResponse: Dict[str, Any] = {}
-        data = []
-        row: RowModel # annotated type hint
-        for index, row in enumerate(self.response):
-            if index == 0:
-                viewResponse = row.get_view_config(view, **kwargs)
-            data.append(row.to_view_data(view, **kwargs))
-        viewResponse.update({'data': data})
-    
-        if view == ResponseFormat.TABLE:
-            viewResponse.update({'id': kwargs['id']})
-            
-        return viewResponse
-
-
 
 class GenericDataModel(RowModel):
     """ Generic JSON Response """
     __pydantic_extra__: Dict[str, Any]  
     model_config = ConfigDict(extra='allow')
     
-    def to_view_data(self, view, **kwargs):
+    def to_view_data(self, view: ResponseView, **kwargs):
         return self.model_dump()
     
     
@@ -211,12 +174,12 @@ class GenericDataModel(RowModel):
                 raise NotImplementedError(f'Text transformation `{format.value}` not yet supported')
             
     
-    def get_view_config(self, view: ResponseFormat, **kwargs):
+    def get_view_config(self, view: ResponseView, **kwargs):
         """ get configuration object required by the view """
         match view:
-            case ResponseFormat.TABLE:
+            case ResponseView.TABLE:
                 self.get_table_view_config(kwargs)
-            case ResponseFormat.IGV_BROWSER:
+            case ResponseView.IGV_BROWSER:
                 return None
             case _:
                 raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
