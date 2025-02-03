@@ -51,11 +51,11 @@ async def get_track_data(
     return await helper.get_track_data()
 
 
-tags = ['Record(s) by Text Search'] + ['Track Data by Text Search']
+tags = ['Record(s) by Text Search'] + ['Track Data by Text Search'] + ['Track Data by Genomic Region']
 filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
 @router.get("/search", tags=tags, response_model=Union[PagedResponseModel, FILERTrackBriefResponse, BEDResponse],
     name="Get data from multiple tracks by Search", 
-    description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata")
+    description="find functional genomics tracks with data in specified region; qualify using category filters or by a keyword search against all text fields in the track metadata")
 async def get_track_data_by_metadata_search(
         pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
         assembly: Assembly = Depends(assembly_param), 
@@ -67,8 +67,8 @@ async def get_track_data_by_metadata_search(
         internal: InternalRequestParameters = Depends(),
         ) -> Union[PagedResponseModel, FILERTrackBriefResponse, BEDResponse]:
     
-    if filter is None and keyword is None:
-        raise RequestValidationError('must specify a `filter` and/or a `keyword` to search')
+    # if filter is None and keyword is None:
+    #     raise RequestValidationError('must specify a `filter` and/or a `keyword` to search')
     
     rContent = validate_response_content(ResponseContent, content)
     helper = FILERRouteHelper(

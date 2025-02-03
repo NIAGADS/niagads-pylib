@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Path, Request
 
-from api.common.enums import CacheNamespace, ResponseFormat
+from api.common.enums import CacheKeyQualifier, CacheNamespace, ResponseFormat
 from api.common.exceptions import RESPONSES
 from api.dependencies.parameters.services import InternalRequestParameters
 
@@ -28,7 +28,7 @@ async def get_table_view(
     ):
     
     # check to see if redirect response is cached
-    cacheKey = internal.cacheKey.external
+    cacheKey = internal.cacheKey.encrypt()
     response = await internal.externalCache.get(cacheKey, namespace=CacheNamespace.VIEW)
     if response == None:    
         # original response store in internal cache
@@ -41,7 +41,8 @@ async def get_table_view(
         pagination = getattr(originatingResponse, 'pagination', None)
         if pagination is not None:
             originatingRequestDetails.update({'pagination': originatingResponse.pagination.model_dump()})
-        await internal.externalCache.set(f'{cacheKey}_request', originatingRequestDetails, namespace=CacheNamespace.VIEW)
+        await internal.externalCache.set(f'{cacheKey}{CacheKeyQualifier.REQUEST_PARAMETERS}', 
+            originatingRequestDetails, namespace=CacheNamespace.VIEW)
     
     return {'queryId' : cacheKey, 'redirect': RedirectEndpoints.TABLE }
         

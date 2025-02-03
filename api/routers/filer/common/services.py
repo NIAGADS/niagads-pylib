@@ -1,4 +1,5 @@
 from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel
 from sqlmodel import select, col, or_, func, distinct
 from sqlalchemy import Values, String, column as sqla_column
 from sqlalchemy.exc import NoResultFound
@@ -7,21 +8,38 @@ from aiohttp import ClientSession
 from typing import List, Optional, Union
 
 from niagads.utils.list import list_to_string
-from niagads.utils.dict import rename_key
 
-from api.common.enums import Assembly, ResponseContent
+from api.common.enums import Assembly, ResponseContent, ResponseFormat
 from api.dependencies.parameters.filters import tripleToPreparedStatement
-from api.models.base_models import GenericDataModel
+from api.models.base_models import RowModel
 
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint
 from ..models.track_metadata_cache import Track, Collection, TrackCollection
 from ..models.bed_features import BEDFeature
 
+class FILERApiDataResponse(BaseModel):
+    Identifier: str
+    features: List[BEDFeature]
+    
+class TrackOverlap(RowModel):
+    track_id: str
+    num_overlaps: int
+    
+    def get_view_config(self, view: ResponseFormat, **kwargs):
+        raise NotImplementedError('View transformations not implemented for this row model')
+    
+    def to_view_data(self, view: ResponseFormat, **kwargs):
+        raise RuntimeError('View transformations not implemented for this row model')
+    
 
+def sort_track_overlaps(trackOverlaps: List[TrackOverlap], reverse=True) -> List[TrackOverlap]:
+    return sorted(trackOverlaps, key = lambda item: item.num_overlaps, reverse=reverse)    
+ 
 class ApiWrapperService:
     def __init__(self, session):
         self.__session: ClientSession = session
+    
         
     def __map_genome_build(self, assembly: Assembly):
         ''' return genome build value FILER expects '''
@@ -44,6 +62,7 @@ class ApiWrapperService:
 
         return requestParams
 
+
     async def __fetch(self, endpoint: FILERApiEndpoint, params: dict):
         ''' map request params and submit to FILER API'''
         try:
@@ -54,62 +73,44 @@ class ApiWrapperService:
         except Exception as e:
             raise LookupError(f'Unable to parse FILER response `{response.content}` for the following request: {str(response.url)}')
     
-            
-    def __rename_keys(self, dictObj, keyMapping):
-        for oldKey, newKey in keyMapping.items():
-            dictObj = rename_key(dictObj, oldKey, newKey)
-        return dictObj
     
-    
-    def __overlaps_to_features(self, overlaps) -> List[BEDFeature]:
-        features = []
-        for track in overlaps:
-            f:dict
-            for f in track['features']:
-                f.update({'track_id': track['Identifier']})
-                features.append(BEDFeature(**f))
-        return features
-    
-    
-    async def __count_track_overlaps(self, span: str, assembly: str, tracks: List[str]) -> List[GenericDataModel]:   
+    async def __count_track_overlaps(self, span: str, assembly: str, tracks: List[str]) -> List[TrackOverlap]:   
         # TODO: new FILER endpoint, count overlaps for specific track ID?
         if len(tracks) <= 3: # for now, probably faster to retrieve the data and count, but may depend on span
             response = await self.__fetch(FILERApiEndpoint.OVERLAPS, {'track': ','.join(tracks), 'span': span})
-            return [GenericDataModel(track_id=t['Identifier'], num_overlaps=len(t['features'])) for t in response]
+            return [TrackOverlap(track_id=t['Identifier'], num_overlaps=len(t['features'])) for t in response]
         
         else:
             response = await self.get_informative_tracks(span, assembly, sort=True)   
             
             # need to filter all informative tracks for the ones that were requested
             # and add in the zero counts for the ones that have no hits
-            informativeTracks = set([t['track_id'] for t in response]) # all informative tracks
+            informativeTracks = set([t.track_id for t in response]) # all informative tracks
             nonInformativeTracks = set(tracks).difference(informativeTracks) # tracks with no hits in the span
             informativeTracks = set(tracks).intersection(informativeTracks) # informative tracks in the requested list
         
-            return [GenericDataModel(tc) for tc in response if tc['track_id'] in informativeTracks] \
-                + [GenericDataModel(track_id=t, num_overlaps=0) for t in nonInformativeTracks]
-
-    
-    def __sort_track_counts(self, trackCountsObj):
-        return sorted(trackCountsObj, key = lambda item: item['num_overlaps'], reverse=True)
+            return [tc for tc in response if tc.track_id in informativeTracks] \
+                + [TrackOverlap(track_id=t, num_overlaps=0) for t in nonInformativeTracks]
 
 
-    async def get_track_hits(self, tracks: List[str], span: str, assembly: str, countsOnly: bool=False) -> Union[List[BEDFeature], List[GenericDataModel]]:
+    async def get_track_hits(self, tracks: List[str], span: str,
+        assembly: str, countsOnly: bool=False) -> Union[List[FILERApiDataResponse], List[TrackOverlap]]: 
+        
         if countsOnly:
             return await self.__count_track_overlaps(span, assembly, tracks)
         
         result = await self.__fetch(FILERApiEndpoint.OVERLAPS, {'track': ','.join(tracks), 'span': span})
+        
         if 'message' in result:
             raise RuntimeError(result['message'])
         
-        return self.__overlaps_to_features(result)
+        return [FILERApiDataResponse(**r) for r in result]
 
 
-    async def get_informative_tracks(self, span: str, assembly: str, sort=False):
+    async def get_informative_tracks(self, span: str, assembly: str, sort=False) -> List[TrackOverlap]:
         result = await self.__fetch(FILERApiEndpoint.INFORMATIVE_TRACKS, {'span': span, 'assembly': assembly})
-        result = [{'track_id' : track['Identifier'], 'num_overlaps': track['numOverlaps']} for track in result]
-        # sort by most hits
-        return self.__sort_track_counts(result) if sort else result
+        result = [TrackOverlap(track_id=t['Identifier'], num_overlaps=t['numOverlaps']) for t in result]
+        return sort_track_overlaps(result) if sort else result
 
 
 
@@ -133,18 +134,7 @@ class MetadataQueryService:
         
     
     async def validate_collection(self, name: str) -> int:
-        """
-        validate a collection by name
-
-        Args:
-            name (str): name of the collection
-
-        Raises:
-            RequestValidationError: if the collection name is not matched
-
-        Returns:
-            internal collectionId
-        """
+        """ validate a collection by name """
         statement = select(Collection.collection_id).where(col(Collection.name).ilike(name))
         try:
             collectionId = (await self.__session.execute(statement)).scalar_one()
@@ -152,7 +142,6 @@ class MetadataQueryService:
         except NoResultFound as e:
             raise RequestValidationError(f'Invalid collection: {name}')
 
-        
 
     async def get_track_count(self) -> int:
         statement = select(func.count(Track.track_id))
