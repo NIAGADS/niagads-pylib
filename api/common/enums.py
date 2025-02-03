@@ -18,15 +18,35 @@ class ResponseContent(CaseInsensitiveEnum):
     COUNTS = auto()
     IDS = auto()
     SUMMARY = auto()
+    URLS = auto()
 
 class ResponseFormat(CaseInsensitiveEnum):
     """ enum for allowable response / output formats"""
     JSON = auto()
-    TABLE = auto()
-    IGV_BROWSER = auto()
-    DOWNLOAD = auto()
+    TEXT = auto()
     VCF = auto()
     BED = auto()
+    
+class ResponseView(CaseInsensitiveEnum):
+    """ enum for allowable views """
+    TABLE = auto()
+    IGV_BROWSER = auto()
+    DEFAULT = auto()
+    
+class RedirectEndpoint(str, Enum):
+    TABLE = '/view/table'
+    IGV_BROWSER = '/view/igvbrowser'
+    
+    @classmethod
+    def from_view(cls, view: ResponseView):
+        """ get the correct redirect endpoint given a view"""
+        match view:
+            case ResponseView.TABLE:
+                return cls.TABLE
+            case ResponseView.IGV_BROWSER:
+                return cls.IGV_BROWSER
+            case _:
+                raise NotImplementedError(f'No endpoint implemented for view: {view.value}')
     
 class Assembly(CaseInsensitiveEnum, Enum):
     """enum for genome builds"""

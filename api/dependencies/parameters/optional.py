@@ -4,9 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, Query
 from typing import List, Optional
 from typing_extensions import Self
-from enum import Enum
 
-from api.common.enums import CaseInsensitiveEnum, ResponseFormat, ResponseContent
+from api.common.enums import CaseInsensitiveEnum, ResponseFormat, ResponseContent, ResponseView
 from api.common.formatters import clean, print_enum_values
 
 # TODO: common params: https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/
@@ -31,29 +30,6 @@ class PaginationParameters(BaseModel):
         
         return self
     """
-
-"""
-# FIXME: would prefer this approach to handle content but challenge is documentation w/correct list of choices
-class ResponseContentParameter(BaseModel):
-    __choices: CaseInsensitiveEnum = ResponseContent
-    content: ResponseContent 
-    
-    def __init__(self, exclude: List[ResponseContent], default=ResponseContent.FULL):
-        self.__choices = CaseInsensitiveEnum('content', { member.name: member.value for member in ResponseContent if member not in exclude })
-        self.content = default
-    
-    @field_validator('content', mode='after')
-    def validate_content(self, value):
-        try:
-            self.__choices(value)
-            self.content = ResponseContent(value)
-            return self
-        except:
-            raise RequestValidationError(f'Invalid value provided for `content`: {value}.  Allowable values for this query are: {print_enum_values(self.__choices)}' )
-
-    def __call__(self):
-        return self.content
-"""
         
 def get_response_content(exclude: List[ResponseContent]):
     return CaseInsensitiveEnum('content', { member.name: member.value for member in ResponseContent if member not in exclude })
@@ -77,6 +53,18 @@ async def validate_response_format(formatEnum: CaseInsensitiveEnum, value):
         return ResponseFormat(value)
     except:
         raise RequestValidationError(f'Invalid value provided for `format`: {value}.  Allowable values for this query are: {print_enum_values(formatEnum)}' )
+
+
+def get_response_view(exclude: List[ResponseView]):
+    return CaseInsensitiveEnum('content', { member.name: member.value for member in ResponseView if member not in exclude })
+
+
+def validate_response_view(contentEnum: CaseInsensitiveEnum, value):
+    try:
+        contentEnum(value)
+        return ResponseView(value)
+    except:
+        raise RequestValidationError(f'Invalid value provided for `content`: {value}.  Allowable values for this query are: {print_enum_values(contentEnum)}' )
 
 
 async def keyword_param(keyword: Optional[str] = Query(default=None, 

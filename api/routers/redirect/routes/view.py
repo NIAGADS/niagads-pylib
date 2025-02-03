@@ -1,13 +1,11 @@
 from fastapi import APIRouter, Depends, Path, Request
 
-from api.common.enums import CacheKeyQualifier, CacheNamespace, ResponseFormat
+from api.common.enums import CacheKeyQualifier, CacheNamespace, RedirectEndpoint, ResponseView
 from api.common.exceptions import RESPONSES
 from api.dependencies.parameters.services import InternalRequestParameters
 
 from api.models.base_response_models import BaseResponseModel
 from api.routers.redirect.dependencies.parameters import forwarding_request_param
-
-from ..common.constants import ROUTE_TAGS, RedirectEndpoints
 
 
 TAGS = ["(Internal) Redirect JSON responses to Visualization Tools"]
@@ -33,7 +31,7 @@ async def get_table_view(
     if response == None:    
         # original response store in internal cache
         originatingResponse: BaseResponseModel = await internal.internalCache.get(forwardingRequestId, namespace=CacheNamespace.VIEW)
-        response = originatingResponse.to_view(ResponseFormat.TABLE, id=cacheKey)
+        response = originatingResponse.to_view(ResponseView.TABLE, id=cacheKey)
         await internal.externalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
         
         # need to save response and pagination information
@@ -44,6 +42,6 @@ async def get_table_view(
         await internal.externalCache.set(f'{cacheKey}{CacheKeyQualifier.REQUEST_PARAMETERS}', 
             originatingRequestDetails, namespace=CacheNamespace.VIEW)
     
-    return {'queryId' : cacheKey, 'redirect': RedirectEndpoints.TABLE }
+    return {'queryId' : cacheKey, 'redirect': RedirectEndpoint.TABLE }
         
         

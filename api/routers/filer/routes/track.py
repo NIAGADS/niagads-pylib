@@ -21,15 +21,15 @@ from ..models.bed_features import BEDResponse
 router = APIRouter(prefix="/track", responses=RESPONSES)
 
 tags = ["Record by ID", "Track Metadata by ID"]
-# note: the content enum variables must have a distinct name or else the get overwritten in memory from initialization when requests are made
-@router.get("/{track}", tags=tags, response_model=Union[FILERTrackBriefResponse, FILERTrackResponse],
+responseModels = Union[FILERTrackBriefResponse, FILERTrackResponse, BaseResponseModel]
+@router.get("/{track}", tags=tags, response_model=responseModels,
     name="Get track metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response")
 async def get_track_metadata(
         track = Depends(path_track_id),
         content: str = Query(ResponseContent.SUMMARY, description=f'response content; one of: {print_enum_values(METADATA_CONTENT_ENUM)}'),
         internal: InternalRequestParameters = Depends()
-        ) -> Union[FILERTrackBriefResponse, FILERTrackResponse]:
+        ) -> responseModels:
     
     rContent = validate_response_content(METADATA_CONTENT_ENUM, content)
     helper = FILERRouteHelper(
@@ -37,7 +37,8 @@ async def get_track_metadata(
         ResponseConfiguration(
             content=rContent,
             model = FILERTrackResponse if rContent == ResponseContent.FULL \
-                else FILERTrackBriefResponse
+                else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
+                    else BaseResponseModel
         ),
         Parameters(track=track))
     

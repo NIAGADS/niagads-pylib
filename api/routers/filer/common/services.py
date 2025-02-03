@@ -9,7 +9,7 @@ from typing import List, Optional, Union
 
 from niagads.utils.list import list_to_string
 
-from api.common.enums import Assembly, ResponseContent, ResponseFormat
+from api.common.enums import Assembly, ResponseContent, ResponseFormat, ResponseView
 from api.dependencies.parameters.filters import tripleToPreparedStatement
 from api.models.base_models import RowModel
 
@@ -26,10 +26,10 @@ class TrackOverlap(RowModel):
     track_id: str
     num_overlaps: int
     
-    def get_view_config(self, view: ResponseFormat, **kwargs):
+    def get_view_config(self, view: ResponseView, **kwargs):
         raise NotImplementedError('View transformations not implemented for this row model')
     
-    def to_view_data(self, view: ResponseFormat, **kwargs):
+    def to_view_data(self, view: ResponseView, **kwargs):
         raise RuntimeError('View transformations not implemented for this row model')
     
 
@@ -165,8 +165,9 @@ class MetadataQueryService:
         return result
     
     
-    async def get_track_metadata(self, tracks: List[str], validate=True) -> List[Track]:
-        statement = select(Track).filter(col(Track.track_id).in_(tracks)).order_by(Track.track_id)
+    async def get_track_metadata(self, tracks: List[str], responseType=ResponseContent.FULL, validate=True) -> List[Track]:
+        target = self.__set_query_target(responseType)
+        statement = select(target).filter(col(Track.track_id).in_(tracks)).order_by(Track.track_id)
 
         if validate:
             await self.validate_tracks(tracks)
@@ -203,6 +204,18 @@ class MetadataQueryService:
                 
         return statement
 
+    @staticmethod
+    def __set_query_target(responseType: ResponseContent):
+        match responseType:
+            case ResponseContent.IDS:
+                return Track.track_id
+            case ResponseContent.COUNTS:
+                return func.count(Track.track_id)
+            case ResponseContent.URLS:
+                return Track.url
+            case _:
+                return Track
+
     async def query_track_metadata(self, 
             assembly: str, 
             filters: Optional[List[str]], 
@@ -211,10 +224,9 @@ class MetadataQueryService:
             limit:int = None,
             offset:int = None) -> List[Track]:
 
-        target = Track.track_id if responseType == ResponseContent.IDS \
-            else func.count(Track.track_id) if responseType == ResponseContent.COUNTS else Track
-
+        target = self.__set_query_target(responseType)
         statement = select(target).filter(col(Track.genome_build) == assembly)
+        
         if filters is not None:
             statement = self.__add_statement_filters(statement, filters)
         if keyword is not None:
@@ -234,7 +246,7 @@ class MetadataQueryService:
         result = await self.__session.execute(statement)
 
         if responseType == ResponseContent.COUNTS:
-            return {'track_count': result.scalars().one() }
+            return {'num_tracks': result.scalars().one() }
         else:
             return result.scalars().all()
 

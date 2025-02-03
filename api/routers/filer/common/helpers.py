@@ -13,6 +13,7 @@ from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, P
 from api.common.types import Range
 from api.models.base_models import CacheKeyDataModel
 from api.routers.filer.models.bed_features import BEDFeature
+from api.routers.filer.models.filer_track import FILERTrackBrief
 
 from .constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
 from .enums import FILERApiEndpoint
@@ -225,13 +226,16 @@ class FILERRouteHelper(RouteHelper):
                 # sort by counts to ensure pagination order
                 return await self.generate_response(sortedTrackOverlaps[sliceRange.start:sliceRange.end])
             
-            case ResponseContent.SUMMARY: 
+            case ResponseContent.SUMMARY | ResponseContent.URLS: 
                 metadata: List[Track] = await self.get_track_metadata(rawResponse=ResponseContent.SUMMARY)
-                result = self.__generate_track_overlap_summary(metadata, sortedTrackOverlaps)
-                return await self.generate_response(result[sliceRange.start:sliceRange.end])
+                summary = self.__generate_track_overlap_summary(metadata, sortedTrackOverlaps)
+                result = [t['url'] for t in summary[sliceRange.start:sliceRange.end]] if ResponseContent.URLS \
+                    else summary[sliceRange.start:sliceRange.end] 
+                return await self.generate_response(result)
             
             case _:
                 raise RuntimeError('Invalid response content specified')
+
 
     def __generate_track_overlap_summary(self, metadata: List[Track], data):
         result = self.__merge_track_lists(
@@ -258,7 +262,7 @@ class FILERRouteHelper(RouteHelper):
             tracks = tracks.split(',') if isinstance(tracks, str) else tracks
             tracks = sorted(tracks) # best for caching & pagination
             
-            result = await MetadataQueryService(self._managers.session).get_track_metadata(tracks)
+            result = await MetadataQueryService(self._managers.session).get_track_metadata(tracks, responseType=self._responseConfig.content)
             
             if not rawResponse:
                 self._resultSize = len(result)
@@ -315,7 +319,6 @@ class FILERRouteHelper(RouteHelper):
 
     async def search_track_metadata(self, rawResponse:Optional[ResponseContent] = None):
         """ retrieve track metadata based on filter/keyword searches """
-        isCached = True # assuming true from the start
         cacheKey = self._managers.cacheKey.key
         content = self._responseConfig.content
         
@@ -325,42 +328,39 @@ class FILERRouteHelper(RouteHelper):
         
         result = await self._managers.internalCache.get(
             cacheKey, namespace=self._managers.cacheKey.namespace)
+        
+        if result is not None:
+            return result if rawResponse else await self.generate_response(result, isCached=True) 
                 
-        if result is None:
-            isCached = False
-            offset = None
-            limit = None
-            
-            if content != ResponseContent.IDS and rawResponse is None:
-                # get counts to either return or determine pagination
-                result = await MetadataQueryService(self._managers.session) \
-                    .query_track_metadata(self._parameters.assembly, 
-                        self._parameters.get('filter', None), self._parameters.get('keyword', None), ResponseContent.COUNTS)
-            
-                if content == ResponseContent.COUNTS:
-                    return await self.generate_response(result, isCached=isCached)
-                
-                self._resultSize = result['track_count']
-                pageResponse = self.initialize_pagination(raiseError=False)
-                if pageResponse: # will return true if model can be paged and page is valid
-                    offset = self.offset()
-                    limit = self._pageSize
-                
+        offset = None
+        limit = None
+        if rawResponse is None:
+            # get counts to either return or determine pagination
             result = await MetadataQueryService(self._managers.session) \
                 .query_track_metadata(self._parameters.assembly, 
-                    self._parameters.get('filter', None), self._parameters.get('keyword', None), 
-                    content, limit, offset)
-
-            if rawResponse is not None:
-                # cache the raw response
-                await self._managers.internalCache.set(
-                    cacheKey, result, 
-                    namespace=self._managers.cacheKey.namespace)
-                return result
+                    self._parameters.get('filter', None), self._parameters.get('keyword', None), ResponseContent.COUNTS)
+        
+            if content == ResponseContent.COUNTS:
+                return await self.generate_response(result, isCached=False)
             
-        return await self.generate_response(result, isCached=isCached) \
-            if rawResponse is None else result
+            self._resultSize = result['num_tracks']
+            pageResponse = self.initialize_pagination(raiseError=False)
+            if pageResponse: # will return true if model can be paged and page is valid
+                offset = self.offset()
+                limit = self._pageSize
+            
+        result = await MetadataQueryService(self._managers.session) \
+            .query_track_metadata(self._parameters.assembly, 
+                self._parameters.get('filter', None), self._parameters.get('keyword', None), 
+                content, limit, offset)
 
+        if rawResponse is None:
+            return await self.generate_response(result, isCached=False) 
+        else: # cache the raw response before returning
+            await self._managers.internalCache.set(cacheKey, result, 
+                namespace=self._managers.cacheKey.namespace)
+            return result
+        
 
     async def search_track_data(self):
         result = await self._managers.internalCache.get(self._managers.cacheKey.key, namespace=self._managers.cacheKey.namespace)
@@ -381,8 +381,8 @@ class FILERRouteHelper(RouteHelper):
             matchingTracks: List[Track] = await self.search_track_metadata(rawResponse=rawResponse) 
             
             if len(matchingTracks) == 0:
+                self._managers.requestData.add_message('No tracks meet the specified metadata filter criteria.')
                 return await self.generate_response([], isCached=False)
-        
         
         # get informative tracks from the FILER API & cache
         cacheKey = f'/{FILERApiEndpoint.INFORMATIVE_TRACKS}?genomeBuild={self._parameters.assembly}&span={self._parameters.span}' 
@@ -394,6 +394,7 @@ class FILERRouteHelper(RouteHelper):
             await self._managers.internalCache.set(cacheKey, informativeTrackOverlaps, namespace=CacheNamespace.FILER_EXTERNAL_API)
             
         if len(informativeTrackOverlaps) == 0:
+            self._managers.requestData.add_message('No overlapping features found in the query region.')
             return await self.generate_response([], isCached=False)
         
         targetTrackOverlaps = informativeTrackOverlaps
@@ -423,10 +424,12 @@ class FILERRouteHelper(RouteHelper):
                 # sort by counts to ensure pagination order
                 return await self.generate_response(result[sliceRange.start:sliceRange.end])
             
-            case ResponseContent.SUMMARY: 
+            case ResponseContent.SUMMARY | ResponseContent.URLS: 
                 metadata:List[Track] = [t for t in matchingTracks if t.track_id in targetTrackIds]
-                result = self.__generate_track_overlap_summary(metadata, result)
-                return await self.generate_response(result[sliceRange.start:sliceRange.end])
+                summary = self.__generate_track_overlap_summary(metadata, result)
+                result = [t['url'] for t in summary[sliceRange.start:sliceRange.end]] if ResponseContent.URLS \
+                    else summary[sliceRange.start:sliceRange.end] 
+                return await self.generate_response(result)
             
             case _:
                 raise RuntimeError('Invalid response content specified')

@@ -1,22 +1,22 @@
+from traceback import print_list
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from fastapi import Response, status
-from pydantic import BaseModel, field_validator, ConfigDict
+from pydantic import BaseModel, field_validator, ConfigDict, model_validator
 from typing import Any, Dict, Optional, Union
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
-from api.common.enums import ResponseContent, CacheNamespace
+from api.common.enums import ResponseContent, CacheNamespace, ResponseView, RedirectEndpoint, ResponseFormat
 from api.common.types import Range
 
 from api.dependencies.parameters.services import InternalRequestParameters
-from api.dependencies.parameters.optional import ResponseFormat
 from api.models.base_models import PaginationDataModel
 from api.models.base_response_models import BaseResponseModel
 from api.models.igvbrowser import IGVBrowserTrackSelecterResponse
-from api.routers.redirect.common.constants import RedirectEndpoints
+
 
 INTERNAL_PARAMETERS = ['span', '_tracks']
-
+ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMARY]
 
 class PaginationCursor(BaseModel):
     """ pagination cursor """
@@ -41,10 +41,27 @@ class Parameters(BaseModel):
 class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     format: ResponseFormat = ResponseFormat.JSON
     content: ResponseContent = ResponseContent.FULL
+    view: ResponseView = ResponseView.DEFAULT
     model: Any = None
     
+    # make changes or do validation after instantiation
+    # https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_post_init
+    def model_post_init(self, __context):
+        # adjust the format, content, or view depending on specific combinations
+        if self.view != ResponseView.DEFAULT: # all visualizations require JSON responses
+            self.format = ResponseFormat.JSON
+        
+
+    @model_validator(mode='after')
+    def validate_model(self):
+        if self.content not in ALLOWABLE_VIEW_RESPONSE_CONTENTS and self.view != ResponseView.DEFAULT:
+            raise RequestValidationError(f'Can only generate a `{str(self.view)}` `view` of query result for `{print_list(ALLOWABLE_VIEW_RESPONSE_CONTENTS)}` response content (see `content`)')
+    
+        if self.content != ResponseContent.FULL and self.format in [ResponseFormat.VCF, ResponseFormat.BED]:
+            raise RequestValidationError(f'Can only generate a `{str(ResponseContent.format)}` response for a `FULL` data query (see `content`)')
+    
     # from https://stackoverflow.com/a/67366461
-    # allows ensurance taht model is always a child of BaseResponseModel
+    # allows ensurance that model is always a child of BaseResponseModel
     @field_validator("model")
     def validate_model(cls, model):
         if issubclass(model, BaseResponseModel):
@@ -57,6 +74,21 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
             return ResponseContent(content)
         except NameError:
             raise RequestValidationError(f'Invalid value provided for `content`: {content}')
+        
+    @field_validator("format")
+    def validate_foramt(cls, format):
+        try:
+            return ResponseFormat(format)
+        except NameError:
+            raise RequestValidationError(f'Invalid value provided for `format`: {format}')
+    
+    @field_validator("view")
+    def validate_view(cls, view):
+        try:
+            return ResponseView(view)
+        except NameError:
+            raise RequestValidationError(f'Invalid value provided for `view`: {format}')
+
 
 class RouteHelper():
     
@@ -176,27 +208,34 @@ class RouteHelper():
                             else result
                     )
 
-                
             # cache the response
             await self._managers.internalCache.set(
                 self._managers.cacheKey.key, 
                 response, 
                 namespace=self._managers.cacheKey.namespace)
             
-        match self._responseConfig.format:
-            case ResponseFormat.TABLE:
-                # cache the response again, this time by the requestId b/c 
-                # the cacheKey cannot be passed through the URL  
+        match self._responseConfig.view:
+            case ResponseView.TABLE | ResponseView.IGV_BROWSER:
+                # cache the response again, this time encrypted b/c to allow to be passed through URL
                 cacheKey = self._managers.cacheKey.encrypt()   
                 requestIsCached = await self._managers.internalCache.exists(cacheKey, namespace=CacheNamespace.VIEW)
                 if not requestIsCached:  # then cache it
                     await self._managers.internalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
                 
-                redirectUrl = f'/redirect{RedirectEndpoints.TABLE.value}/{cacheKey}'
-                return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
-            case ResponseFormat.DOWNLOAD:
+                endpoint = RedirectEndpoint.from_view(self._responseConfig.view)
+                redirectUrl = f'/redirect{str(endpoint)}/{cacheKey}'
                 
-                return Response(response.to_text(ResponseFormat.DOWNLOAD), media_type='text/plain')
-            case _:  
-                return response
+                return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
+                        
+            case ResponseView.DEFAULT:
+                if self._responseConfig.format in [ResponseFormat.TEXT, ResponseFormat.BED, ResponseFormat.VCF]:
+                    return Response(response.to_text(self._responseConfig.format))
+                else: # JSON
+                    return response
 
+            case _:  # JSON
+                raise NotImplementedError(f'Cannot generate a response for view of type {str(self._responseConfig.view)}')
+
+            
+
+    

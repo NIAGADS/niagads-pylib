@@ -8,14 +8,14 @@ from api.common.formatters import print_enum_values
 from api.common.helpers import Parameters, ResponseConfiguration
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import Assembly, assembly_param
-from api.dependencies.parameters.optional import PaginationParameters, keyword_param, validate_response_content
+from api.dependencies.parameters.optional import PaginationParameters, format_param, keyword_param, validate_response_content
 from api.models.base_response_models import BaseResponseModel
 
 from ..common.helpers import FILERRouteHelper
 from ..common.enums import METADATA_CONTENT_ENUM
 from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
 from ..models.filer_track import FILERTrackBriefResponse, FILERTrackResponse
-from ..dependencies.parameters import InternalRequestParameters, required_query_track_id, non_data_format_param
+from ..dependencies.parameters import InternalRequestParameters, required_query_track_id
 
 router = APIRouter(prefix="/metadata", responses=RESPONSES)
 
@@ -25,7 +25,7 @@ tags = ["Track Metadata by ID"]
     description="retrieve full metadata for one or more FILER track records")
 async def get_track_metadata(
         track: str = Depends(required_query_track_id),
-        format: str= Depends(non_data_format_param),
+        format: str= Depends(format_param),
         content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(METADATA_CONTENT_ENUM)}'),
         internal: InternalRequestParameters = Depends()) -> Union[FILERTrackBriefResponse, FILERTrackResponse]:
     
@@ -52,7 +52,7 @@ async def search_track_metadata(
         assembly: Assembly = Depends(assembly_param), 
         filter = Depends(filter_param), 
         keyword: str = Depends(keyword_param),
-        format: str= Depends(non_data_format_param),
+        format: str= Depends(format_param),
         content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(ResponseContent)}'),
         internal: InternalRequestParameters = Depends(),
         ) -> Union[BaseResponseModel, FILERTrackBriefResponse, FILERTrackResponse]:

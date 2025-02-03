@@ -3,7 +3,7 @@ from typing import Any, List, Optional, Union
 from niagads.utils.string import dict_to_info_string
 from pydantic import Field
 
-from api.common.enums import ResponseFormat
+from api.common.enums import ResponseFormat, ResponseView
 from api.common.formatters import id2title
 
 from api.models.base_response_models import PagedResponseModel
@@ -21,7 +21,7 @@ class BEDFeature(GenericDataModel):
     def add_track(self, trackId: Any):
         self.model_extra['track_id'] = trackId
     
-    def to_view_data(self, view, **kwargs):
+    def to_view_data(self, view: ResponseView, **kwargs):
         match view:
             case view.TABLE:
                 if kwargs['collapseExtras']:
@@ -34,7 +34,7 @@ class BEDFeature(GenericDataModel):
             case _:
                 raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
 
-    def get_view_config(self, view: ResponseFormat, **kwargs):
+    def get_view_config(self, view: ResponseView, **kwargs):
         """ get configuration object required by the view """
         match view:
             case view.TABLE:
@@ -61,7 +61,7 @@ class BEDFeature(GenericDataModel):
 class BEDResponse(PagedResponseModel):
     response: List[BEDFeature]
     
-    def to_view(self, view: ResponseFormat, **kwargs):
+    def to_view(self, view: ResponseView, **kwargs):
         dynamicExtras = False
         if view == view.TABLE:
             # need to override here b/c each row may have different fields

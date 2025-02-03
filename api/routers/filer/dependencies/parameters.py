@@ -36,8 +36,10 @@ async def required_query_track_id(track: str = Query(description="comma separate
 async def optional_query_track_id(track: Optional[str] = Query(default=None, description="comma separated list of one or more FILER track identifiers")) -> str:
     return clean(track)
 
+"""
 get_non_data_format_enum = get_response_format(exclude=[ResponseFormat.IGV_BROWSER])
 
 async def non_data_format_param(format: str = Query(ResponseFormat.JSON, 
     description=f'response content; one of: {print_enum_values(get_non_data_format_enum)}')) -> str:
     return format
+"""
