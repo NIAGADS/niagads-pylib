@@ -207,8 +207,6 @@ class PaginationDataModel(BaseModel):
     total_num_pages: int = Field(default=1, description="if the result is paged, reports total number of pages in the full result set (response); defaults to 1")
     paged_num_records: Optional[int] = Field(default=None, description="number of records in the current paged result set (response)")
     total_num_records: Optional[int] = Field(default=None, description="total number of records in the full result set (response)")
-    key: Optional[str] = Field(default=None, description="encrypted keyset for key-based pagination") 
-
 
 # possibly allows you to set a type hint to a class and all its subclasses
 T_SerializableModel = TypeVar('T_SerializableModel', bound=SerializableModel)

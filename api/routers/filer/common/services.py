@@ -89,7 +89,7 @@ class ApiWrapperService:
             nonInformativeTracks = set(tracks).difference(informativeTracks) # tracks with no hits in the span
             informativeTracks = set(tracks).intersection(informativeTracks) # informative tracks in the requested list
         
-            return [TrackOverlap(**tc) for tc in response if tc.track_id in informativeTracks] \
+            return [tc for tc in response if tc.track_id in informativeTracks] \
                 + [TrackOverlap(track_id=t, num_overlaps=0) for t in nonInformativeTracks]
 
 

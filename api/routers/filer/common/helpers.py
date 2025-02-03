@@ -66,10 +66,9 @@ class FILERRouteHelper(RouteHelper):
         
         # if either is uncached, the data may be out of sync so recalculate cache size
         if cursors is None or self._resultSize is None: 
-            # calculate cumulative sum of expected hits per track 
             cumulativeSum = cumulative_sum([t.num_overlaps for t in sortedTrackOverlaps])
-            
-            self._resultSize = cumulativeSum[-1] # last element is total number of hits      
+            self._resultSize = cumulativeSum[-1] # last element is total number of hits    
+
             await self._managers.internalCache.set(rsCacheKey, self._resultSize,
                 namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
             
@@ -77,24 +76,23 @@ class FILERRouteHelper(RouteHelper):
             
             cursors = ['0:0']
             if self._resultSize > self._pageSize:  # figure out page cursors
+                residualRecords = 0
+                priorTrackIndex = 0
+                offset = 0
                 for p in range(1, self._pagination.total_num_pages):
                     sliceRange = self.slice_result_by_page(p)
-
                     for index, counts in enumerate(cumulativeSum):
-                        if counts > sliceRange.end: 
-                            offset = sliceRange.end 
+                        if counts > sliceRange.end: # end of page  
+                            offset = offset + self._pageSize if priorTrackIndex == index \
+                                else self._pageSize - residualRecords 
                             cursors.append(f'{index}:{offset}')
+                            
+                            residualRecords = sortedTrackOverlaps[index].num_overlaps - offset
+                            priorTrackIndex = index
+
                             break
                         
-                        """
-                        if counts >= sliceRange.start and counts < sliceRange.end:
-                            diff = sliceRange.end - cumulativeSum[index]
-                            offset = sortedTrackOverlaps[index].num_overlaps - diff
-                            cursors.append(f'{index}:{offset}')
-                            break
-                        """
-                        
-            # end of final page is always the last rack, last feature
+            # end of final page is always the last track, last feature
             cursors.append(f'{len(sortedTrackOverlaps)-1}:{sortedTrackOverlaps[-1].num_overlaps}') 
 
             # cache the pagination cursor
