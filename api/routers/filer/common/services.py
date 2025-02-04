@@ -156,10 +156,10 @@ class MetadataQueryService:
         return result
     
     
-    async def get_collection_track_metadata(self, collectionName:str) -> List[Track]:
+    async def get_collection_track_metadata(self, collectionName:str, responseType=ResponseContent.FULL) -> List[Track]:
         collectionId = await self.validate_collection(collectionName)
-        
-        statement = select(Track).join(TrackCollection, TrackCollection.track_id == Track.track_id).where(TrackCollection.collection_id == collectionId)
+        target = self.__set_query_target(responseType)
+        statement = select(target).join(TrackCollection, TrackCollection.track_id == Track.track_id).where(TrackCollection.collection_id == collectionId)
         
         result = (await self.__session.execute(statement)).scalars().all()
         return result

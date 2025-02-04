@@ -54,7 +54,7 @@ async def get_collection_track_metadata(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
     view: str =  Query(ResponseView.DEFAULT, description=ResponseView.table(description=True)),
     internal: InternalRequestParameters = Depends()
-)-> CollectionResponse:
+)-> Union[BaseResponseModel, FILERTrackBriefResponse, FILERTrackResponse]:
     
     rContent = ResponseContent.validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
@@ -64,7 +64,8 @@ async def get_collection_track_metadata(
             content=rContent,
             view=ResponseView.table().validate(view, 'view', ResponseView), 
             model=FILERTrackResponse if rContent == ResponseContent.FULL \
-                else FILERTrackBriefResponse 
+                else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
+                    else BaseResponseModel
         ), 
         Parameters(collection=collection, page=page)
     )
