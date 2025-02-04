@@ -1,6 +1,9 @@
 from enum import auto, Enum
+from fastapi.exceptions import RequestValidationError
 from strenum import StrEnum
 from aiocache.serializers import StringSerializer, JsonSerializer, PickleSerializer
+
+from api.common.formatters import clean, print_enum_values
 
 class CaseInsensitiveEnum(StrEnum):
     # after from https://stackoverflow.com/a/76131490
@@ -12,6 +15,24 @@ class CaseInsensitiveEnum(StrEnum):
     
         raise KeyError(value)
     
+    @classmethod
+    def exclude(cls, name, exclude):
+        return CaseInsensitiveEnum(name, { member.name: member.value for member in cls if member not in exclude })
+
+    @classmethod
+    def get_description(cls):
+        return f'One of: {print_enum_values(cls)}.'
+    
+    @classmethod
+    def validate(cls, value, label: str, returnCls: Enum):
+        try:
+            cls(clean(value))
+            return returnCls(value)
+        except:
+            raise RequestValidationError(f'Invalid value provided for `{label}`: {value}.  Allowable values for this query are: {print_enum_values(cls)}' )
+
+
+    
 class ResponseContent(CaseInsensitiveEnum):
     """ enum for allowable response types """
     FULL = auto()
@@ -19,6 +40,30 @@ class ResponseContent(CaseInsensitiveEnum):
     IDS = auto()
     SUMMARY = auto()
     URLS = auto()
+    
+    @classmethod
+    def get_description(cls, inclValues=True):
+        msg = 'Type of information returned by the query.'    
+        return msg + f' {super().get_description()}' if inclValues else msg
+    
+    @classmethod
+    def descriptive(cls, description=False):
+        """ return descriptive formats only (usually for metadata)"""
+        subset = cls.exclude('descriptive_only_content', [ResponseContent.IDS, ResponseContent.URLS, ResponseContent.COUNTS] )
+        if description:
+            return cls.get_description(False) + ' ' + subset.get_description()
+        else:
+            return subset
+        
+    @classmethod
+    def data(cls, description=False):
+        """ return data formats only"""
+        subset = cls.exclude('descriptive_only_content', [ResponseContent.IDS, ResponseContent.URLS] )
+        if description:
+            return cls.get_description(False) + ' ' + subset.get_description()
+        else:
+            return subset
+        
 
 class ResponseFormat(CaseInsensitiveEnum):
     """ enum for allowable response / output formats"""
@@ -27,11 +72,38 @@ class ResponseFormat(CaseInsensitiveEnum):
     VCF = auto()
     BED = auto()
     
+    @classmethod
+    def get_description(cls, inclValues=True):
+        msg = 'Response format.  If a non-text `view` is specified, the response format will default to `JSON`'    
+        return msg + f' {super().get_description()}' if inclValues else msg
+    
+    @classmethod
+    def generic(cls, description=False):
+        subset = cls.exclude('generic_formats', [ResponseFormat.VCF, ResponseFormat.BED] )
+        if description:
+            return cls.get_description(False) + ' ' + subset.get_description()
+        else:
+            return subset
+    
+    @classmethod
+    def functional_genomics(cls, description=False):
+        subset = cls.exclude('functional_genomics_formats', [ResponseFormat.VCF] )
+        if description:
+            return cls.get_description(False) + ' ' + subset.get_description()
+        else:
+            return subset
+
+    
 class ResponseView(CaseInsensitiveEnum):
     """ enum for allowable views """
     TABLE = auto()
     IGV_BROWSER = auto()
     DEFAULT = auto()
+    
+    @classmethod
+    def get_description(cls, inclValues=True):
+        msg = 'Visual representation of the data.  Select `DEFAULT` for TEXT or JSON response.'    
+        return msg + f' {super().get_description()}' if inclValues else msg
     
 class RedirectEndpoint(str, Enum):
     TABLE = '/view/table'

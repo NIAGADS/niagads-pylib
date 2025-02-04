@@ -8,7 +8,6 @@ from api.common.enums import ResponseFormat
 from api.common.formatters import clean, print_enum_values
 from api.dependencies.database import DatabaseSessionManager
 from api.dependencies.http_client import HttpClientSessionManager
-from api.dependencies.parameters.optional import get_response_format
 from api.dependencies.parameters.services import InternalRequestParameters as BaseInternalRequestParameters
 
 from ..common.constants import FILER_HTTP_CLIENT_TIMEOUT, ROUTE_DATABASE

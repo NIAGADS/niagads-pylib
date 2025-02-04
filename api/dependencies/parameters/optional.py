@@ -31,41 +31,6 @@ class PaginationParameters(BaseModel):
         return self
     """
         
-def get_response_content(exclude: List[ResponseContent]):
-    return CaseInsensitiveEnum('content', { member.name: member.value for member in ResponseContent if member not in exclude })
-
-
-def validate_response_content(contentEnum: CaseInsensitiveEnum, value):
-    try:
-        contentEnum(value)
-        return ResponseContent(value)
-    except:
-        raise RequestValidationError(f'Invalid value provided for `content`: {value}.  Allowable values for this query are: {print_enum_values(contentEnum)}' )
-
-
-def get_response_format(exclude: List[ResponseFormat]):
-    return CaseInsensitiveEnum('format', { member.name: member.value for member in ResponseFormat if member not in exclude })
-
-
-async def validate_response_format(formatEnum: CaseInsensitiveEnum, value):
-    try:
-        formatEnum(value)
-        return ResponseFormat(value)
-    except:
-        raise RequestValidationError(f'Invalid value provided for `format`: {value}.  Allowable values for this query are: {print_enum_values(formatEnum)}' )
-
-
-def get_response_view(exclude: List[ResponseView]):
-    return CaseInsensitiveEnum('content', { member.name: member.value for member in ResponseView if member not in exclude })
-
-
-def validate_response_view(contentEnum: CaseInsensitiveEnum, value):
-    try:
-        contentEnum(value)
-        return ResponseView(value)
-    except:
-        raise RequestValidationError(f'Invalid value provided for `content`: {value}.  Allowable values for this query are: {print_enum_values(contentEnum)}' )
-
 
 async def keyword_param(keyword: Optional[str] = Query(default=None, 
     description="search all text fields by keyword")) -> str:
@@ -73,11 +38,5 @@ async def keyword_param(keyword: Optional[str] = Query(default=None,
         return clean(keyword)
     return keyword
 
-async def format_param(format: ResponseFormat = Query(ResponseFormat.JSON,
-    description="format of response retured by the request")): 
-    try:
-        return ResponseFormat(clean(format))
-    except:
-        raise ResponseValidationError(f'Invalid value provided for `format`: {format}')
 
 
