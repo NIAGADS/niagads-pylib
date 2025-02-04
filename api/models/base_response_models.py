@@ -48,14 +48,17 @@ class BaseResponseModel(AbstractResponse):
         return viewResponse
     
     def to_text(self, format: ResponseFormat, **kwargs):
-        """ return a text response (e.g., BED, VCF, Download script) """
+        """ return a text response (e.g., BED, VCF, plain text) """
         
         responseStr = "" 
         rowText = [] 
         if len(self.response) > 0:
-            row: RowModel
             for row in self.response:
-                rowText.append(row.to_text(format, **kwargs))        
+                if isinstance(row, str):
+                    rowText.append(row)
+                else:
+                    row: RowModel
+                    rowText.append(row.to_text(format, **kwargs))        
             responseStr = '\n'.join(rowText)
         
         return responseStr

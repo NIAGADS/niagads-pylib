@@ -6,7 +6,7 @@ from fastapi import Request
 from hashlib import md5
 from abc import ABC, abstractmethod
 
-from niagads.utils.string import dict_to_string
+from niagads.utils.string import dict_to_string, xstr
 from niagads.utils.dict import prune
 from niagads.utils.reg_ex import regex_replace
 
@@ -115,7 +115,7 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
     @classmethod
     async def from_request(cls, request: Request):
         endpoint = str(request.url.path) # endpoint includes path parameters
-        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params), exclude=['format'])
+        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params), exclude=['format', 'view'])
         rawKey = endpoint + '?' + parameters.replace(':','_') # ':' delimitates keys in keydb
         
         # for pagination and 
@@ -156,11 +156,13 @@ class GenericDataModel(RowModel):
         return self.model_dump()
     
     
+    # FIXME: dates -> in xstr? maybe
     def to_text(self, format: ResponseFormat, **kwargs):
+        nullStr = kwargs.get('nullStr', '.')
         match format:
             case ResponseFormat.TEXT:
                 fields = list(self.model_dump().values())
-                return '\t'.join(fields) + '\n'
+                return '\t'.join([xstr(f, nullStr=nullStr) for f in fields])
             case _:
                 raise NotImplementedError(f'Text transformation `{format.value}` not supported for a generic data response')
             

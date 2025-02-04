@@ -229,7 +229,7 @@ class RouteHelper():
                         
             case ResponseView.DEFAULT:
                 if self._responseConfig.format in [ResponseFormat.TEXT, ResponseFormat.BED, ResponseFormat.VCF]:
-                    return Response(response.to_text(self._responseConfig.format))
+                    return Response(response.to_text(self._responseConfig.format), media_type="text/plain")
                 else: # JSON
                     return response
 
