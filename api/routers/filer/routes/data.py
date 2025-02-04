@@ -1,28 +1,21 @@
 from fastapi import APIRouter, Depends, Query
-from fastapi.exceptions import RequestValidationError
-from typing import Annotated, Union
+from typing import Union
 
-from api.common.enums import Assembly, ResponseContent, ResponseFormat
+from api.common.enums import Assembly, ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
-from api.common.formatters import print_enum_values
 from api.common.helpers import Parameters, ResponseConfiguration
 
-from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.location import assembly_param, span_param
-from api.dependencies.parameters.optional import PaginationParameters, keyword_param
+from api.dependencies.parameters.optional import keyword_param, page_param
 
 from api.models.base_response_models import PagedResponseModel
 
 from ..common.helpers import FILERRouteHelper
-from ..common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
-from ..dependencies.parameters import InternalRequestParameters, required_query_track_id
+from ..dependencies.parameters import METADATA_FILTER_PARAM, InternalRequestParameters, required_query_track_id
 from ..models.filer_track import FILERTrackBriefResponse
 from ..models.bed_features import BEDResponse
 
 router = APIRouter(prefix="/data", responses=RESPONSES)
-
-# DATA_FORMAT_ENUM = get_response_format(exclude=[ResponseFormat.VCF])
-
 
 tags = ["Track Data by ID"]
 # get_track_data_content_enum = get_response_content(exclude=[ResponseContent.IDS, ResponseContent.URLS])
@@ -32,60 +25,62 @@ tags = ["Track Data by ID"]
     description="retrieve data from one or more FILER tracks in the specified region")
 
 async def get_track_data(
-        format: str, # = Query(ResponseFormat.JSON, description=f'response content; one of: {print_enum_values(DATA_FORMAT_ENUM)}'),
-        content: str, # = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(get_track_data_content_enum)}'),
-        pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
-        track: str = Depends(required_query_track_id),
-        span: str = Depends(span_param),
-        internal: InternalRequestParameters = Depends()
-    ) -> Union[BEDResponse, PagedResponseModel, FILERTrackBriefResponse]:
+    track: str = Depends(required_query_track_id),
+    span: str = Depends(span_param),
+    page: int = Depends(page_param),
+    content: str = Query(ResponseContent.FULL, description=ResponseContent.data(description=True)),
+    format: str = Query(ResponseFormat.JSON, description=ResponseFormat.functional_genomics(description=True)),
+    view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
+    internal: InternalRequestParameters = Depends()
+) -> Union[BEDResponse, PagedResponseModel, FILERTrackBriefResponse]:
     
-    rContent = content # validate_response_content(get_track_data_content_enum, content)
+    rContent = ResponseContent.data().validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
-            format=format,
+            format=ResponseFormat.functional_genomics().validate(format, 'format', ResponseFormat),
             content=rContent,
+            view=ResponseView.validate(view, 'view', ResponseView),
             model=BEDResponse if rContent == ResponseContent.FULL \
                 else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
                     else PagedResponseModel
         ), 
-        Parameters(track=track, span=span, page=pagination.page)
+        Parameters(track=track, span=span, page=page)
     )
     
     return await helper.get_track_data()
 
 
 tags = ['Record(s) by Text Search'] + ['Track Data by Text Search'] + ['Track Data by Genomic Region']
-filter_param = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
+
 @router.get("/search", tags=tags, response_model=Union[PagedResponseModel, FILERTrackBriefResponse, BEDResponse],
     name="Get data from multiple tracks by Search", 
     description="find functional genomics tracks with data in specified region; qualify using category filters or by a keyword search against all text fields in the track metadata")
+
 async def get_track_data_by_metadata_search(
-        pagination: Annotated[PaginationParameters, Depends(PaginationParameters)],
-        assembly: Assembly = Depends(assembly_param), 
-        span: str = Depends(span_param),
-        filter = Depends(filter_param), 
-        keyword: str = Depends(keyword_param),
-        format: str = ResponseFormat.JSON, # = Query(ResponseFormat.JSON, description=f'response content; one of: {print_enum_values(DATA_FORMAT_ENUM)}'),
-        content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(ResponseContent)}'),
-        internal: InternalRequestParameters = Depends(),
-        ) -> Union[PagedResponseModel, FILERTrackBriefResponse, BEDResponse]:
+    assembly: Assembly = Depends(assembly_param), 
+    span: str = Depends(span_param),
+    filter = Depends(METADATA_FILTER_PARAM), 
+    keyword: str = Depends(keyword_param),
+    page:int=Depends(page_param),
+    content: str = Query(ResponseContent.FULL, description=ResponseContent.data(description=True)),
+    format: str = Query(ResponseFormat.JSON, description=ResponseFormat.functional_genomics(description=True)),
+    view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
+    internal: InternalRequestParameters = Depends(),
+) -> Union[PagedResponseModel, FILERTrackBriefResponse, BEDResponse]:
     
-    # if filter is None and keyword is None:
-    #     raise RequestValidationError('must specify a `filter` and/or a `keyword` to search')
-    
-    rContent = content # validate_response_content(ResponseContent, content)
+    rContent = ResponseContent.data().validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
-            format=format,
+            format=ResponseFormat.functional_genomics().validate(format, 'format', ResponseFormat),
             content=rContent,
+            view=ResponseView.validate(view, 'view', ResponseView),
             model=BEDResponse if rContent == ResponseContent.FULL \
                 else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
                     else PagedResponseModel
         ),
-        Parameters(assembly=assembly, filter=filter, keyword=keyword, span=span, page=pagination.page)
+        Parameters(assembly=assembly, filter=filter, keyword=keyword, span=span, page=page)
     )
     
     return await helper.search_track_data()

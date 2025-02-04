@@ -47,9 +47,11 @@ class ResponseContent(CaseInsensitiveEnum):
         return msg + f' {super().get_description()}' if inclValues else msg
     
     @classmethod
-    def descriptive(cls, description=False):
+    def descriptive(cls, inclUrls=False, description=False):
         """ return descriptive formats only (usually for metadata)"""
-        subset = cls.exclude('descriptive_only_content', [ResponseContent.IDS, ResponseContent.URLS, ResponseContent.COUNTS] )
+        exclude = [ResponseContent.IDS, ResponseContent.COUNTS] if inclUrls \
+            else [ResponseContent.IDS, ResponseContent.URLS, ResponseContent.COUNTS]
+        subset = cls.exclude('descriptive_only_content', exclude )
         if description:
             return cls.get_description(False) + ' ' + subset.get_description()
         else:
@@ -104,6 +106,15 @@ class ResponseView(CaseInsensitiveEnum):
     def get_description(cls, inclValues=True):
         msg = 'Visual representation of the data.  Select `DEFAULT` for TEXT or JSON response.'    
         return msg + f' {super().get_description()}' if inclValues else msg
+    
+    @classmethod
+    def table(cls, description=False):
+        subset = cls.exclude('table_views', [ResponseView.IGV_BROWSER] )
+        if description:
+            return cls.get_description(False) + ' ' + subset.get_description()
+        else:
+            return subset
+        
     
 class RedirectEndpoint(str, Enum):
     TABLE = '/view/table'

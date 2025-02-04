@@ -1,35 +1,33 @@
 from fastapi import APIRouter, Depends, Query
-from typing import Annotated, Union
+from typing import Union
 
 from api.common.enums import ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
-from api.common.formatters import print_enum_values
 from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.location import span_param
+from api.dependencies.parameters.optional import page_param
 from api.models.base_response_models import BaseResponseModel
-
 
 from ..dependencies.parameters import InternalRequestParameters, path_track_id
 from ..common.helpers import FILERRouteHelper
 from ..models.filer_track import FILERTrackResponse, FILERTrackBriefResponse
 from ..models.bed_features import BEDResponse
 
-
 router = APIRouter(prefix="/track", responses=RESPONSES)
 
 tags = ["Record by ID", "Track Metadata by ID"]
-responseModels = Union[FILERTrackBriefResponse, FILERTrackResponse, BaseResponseModel]
-@router.get("/{track}", tags=tags, response_model=responseModels,
+@router.get("/{track}", tags=tags,
+    response_model=Union[FILERTrackBriefResponse, FILERTrackResponse, BaseResponseModel],
     name="Get track metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response")
 
 async def get_track_metadata(
-        track = Depends(path_track_id),
-        content: str = Query(ResponseContent.SUMMARY, description=ResponseContent.descriptive(description=True)),
-        format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
-        internal: InternalRequestParameters = Depends()
-    ) -> responseModels:
+    track = Depends(path_track_id),
+    content: str = Query(ResponseContent.SUMMARY, description=ResponseContent.descriptive(description=True)),
+    format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
+    internal: InternalRequestParameters = Depends()
+) -> Union[FILERTrackBriefResponse, FILERTrackResponse, BaseResponseModel]:
     
     rContent = ResponseContent.descriptive().validate(content, 'content', ResponseContent)
     rFormat = ResponseFormat.generic().validate(format, 'format', ResponseFormat)
@@ -46,7 +44,6 @@ async def get_track_metadata(
     return await helper.get_track_metadata()
 
 
-
 tags = ["Record by ID", "Track Data by ID"]
 
 @router.get("/{track}/data", tags=tags, 
@@ -54,13 +51,14 @@ tags = ["Record by ID", "Track Data by ID"]
     description="retrieve functional genomics track data from FILER in the specified region; specify `content=counts` to just retrieve a count of the number of hits in the specified region")
 
 async def get_track_data(
-        track = Depends(path_track_id),
-        span:str=Depends(span_param),
-        content: str = Query(ResponseContent.FULL, description=ResponseContent.data(description=True)),
-        format: str = Query(ResponseFormat.JSON, description=ResponseFormat.functional_genomics(description=True)),
-        view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
-        internal: InternalRequestParameters = Depends()
-    ) -> Union[BEDResponse, BaseResponseModel]:
+    track = Depends(path_track_id),
+    span:str=Depends(span_param),
+    page:int=Depends(page_param),
+    content: str = Query(ResponseContent.FULL, description=ResponseContent.data(description=True)),
+    format: str = Query(ResponseFormat.JSON, description=ResponseFormat.functional_genomics(description=True)),
+    view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
+    internal: InternalRequestParameters = Depends()
+) -> Union[BEDResponse, BaseResponseModel]:
     
     rContent = ResponseContent.data().validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
@@ -72,7 +70,7 @@ async def get_track_data(
             model=BEDResponse if rContent == ResponseContent.FULL \
                 else BaseResponseModel
         ),
-        Parameters(track=track, span=span)
+        Parameters(track=track, span=span, page=page)
     )
 
     return await helper.get_track_data()

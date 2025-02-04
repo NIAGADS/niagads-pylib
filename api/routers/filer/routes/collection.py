@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, Query
-from typing import Annotated, Union
+from typing import Union
 
-from api.common.enums import Assembly, ResponseContent
+from api.common.enums import ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
-from api.common.formatters import print_enum_values
 from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.location import assembly_param, span_param
-from api.dependencies.parameters.optional import PaginationParameters,  keyword_param
+from api.dependencies.parameters.optional import keyword_param, page_param
 
 from api.models.base_response_models import BaseResponseModel
 from api.models.collection import CollectionResponse
@@ -23,13 +22,16 @@ router = APIRouter(prefix="/collection", tags = ["Collections"], responses=RESPO
     response_model=CollectionResponse, 
     name="Get FILER Track Collections", 
     description="list available collections of related FILER tracks")
-async def get_collections(format: str, # = Depends(format_param), 
-        internal: InternalRequestParameters = Depends())-> CollectionResponse:
+
+async def get_collections(
+    format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)), 
+    internal: InternalRequestParameters = Depends()
+)-> CollectionResponse:
     
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
-            format=format,
+            format=ResponseFormat.generic().validate(format, 'format', ResponseFormat),
             content=ResponseContent.FULL,
             model=CollectionResponse
         ), 
@@ -44,22 +46,27 @@ async def get_collections(format: str, # = Depends(format_param),
     response_model=Union[BaseResponseModel, FILERTrackBriefResponse, FILERTrackResponse],
     name="Get track metadata by collection", 
     description="retrieve full metadata for FILER track records associated with a collection")
+
 async def get_collection_track_metadata(
-    format: str, # = Depends(format_param), 
     collection: str = Depends(path_collection_name),
-    content: str = ResponseContent.FULL, # Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(METADATA_CONTENT_ENUM)}'),
-    internal: InternalRequestParameters = Depends())-> CollectionResponse:
+    page: int=Depends(page_param),
+    content: str = Query(ResponseContent.FULL, description=ResponseContent.get_description(True)),
+    format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
+    view: str =  Query(ResponseView.DEFAULT, description=ResponseView.table(description=True)),
+    internal: InternalRequestParameters = Depends()
+)-> CollectionResponse:
     
-    rContent = content # validate_response_content(METADATA_CONTENT_ENUM, content)
+    rContent = ResponseContent.validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
-            format=format,
+            format=ResponseFormat.generic().validate(format, 'format', ResponseFormat),
             content=rContent,
+            view=ResponseView.table().validate(view, 'view', ResponseView), 
             model=FILERTrackResponse if rContent == ResponseContent.FULL \
                 else FILERTrackBriefResponse 
         ), 
-        Parameters(collection=collection)
+        Parameters(collection=collection, page=page)
     )
     
     return await helper.get_collection_track_metadata()
