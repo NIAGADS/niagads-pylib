@@ -1,19 +1,17 @@
 from fastapi import APIRouter, Depends, Query
-from typing import Union
+from typing import Annotated, Union
 
-from api.common.enums import ResponseContent
+from api.common.enums import ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
 from api.common.formatters import print_enum_values
 from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.location import span_param
-from api.dependencies.parameters.optional import format_param, validate_response_content
 from api.models.base_response_models import BaseResponseModel
 
 
 from ..dependencies.parameters import InternalRequestParameters, path_track_id
 from ..common.helpers import FILERRouteHelper
-from ..common.enums import TRACK_DATA_CONTENT_ENUM, METADATA_CONTENT_ENUM
 from ..models.filer_track import FILERTrackResponse, FILERTrackBriefResponse
 from ..models.bed_features import BEDResponse
 
@@ -28,15 +26,18 @@ responseModels = Union[FILERTrackBriefResponse, FILERTrackResponse, BaseResponse
 
 async def get_track_metadata(
         track = Depends(path_track_id),
-        content: str = Query(ResponseContent.SUMMARY, description=f'response content; one of: {print_enum_values(METADATA_CONTENT_ENUM)}'),
+        content: str = Query(ResponseContent.SUMMARY, description=ResponseContent.descriptive(description=True)),
+        format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
         internal: InternalRequestParameters = Depends()
     ) -> responseModels:
     
-    rContent = validate_response_content(METADATA_CONTENT_ENUM, content)
+    rContent = ResponseContent.descriptive().validate(content, 'content', ResponseContent)
+    rFormat = ResponseFormat.generic().validate(format, 'format', ResponseFormat)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
             content=rContent,
+            format=rFormat,
             model = FILERTrackResponse if rContent == ResponseContent.FULL \
                 else FILERTrackBriefResponse
         ),
@@ -54,18 +55,20 @@ tags = ["Record by ID", "Track Data by ID"]
 
 async def get_track_data(
         track = Depends(path_track_id),
-        span: str=Depends(span_param),
-        format: str= Depends(format_param),
-        content: str = Query(ResponseContent.FULL, description=f'response content; one of: {print_enum_values(TRACK_DATA_CONTENT_ENUM)}'),
+        span:str=Depends(span_param),
+        content: str = Query(ResponseContent.FULL, description=ResponseContent.data(description=True)),
+        format: str = Query(ResponseFormat.JSON, description=ResponseFormat.functional_genomics(description=True)),
+        view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
         internal: InternalRequestParameters = Depends()
     ) -> Union[BEDResponse, BaseResponseModel]:
     
-    rContent = validate_response_content(TRACK_DATA_CONTENT_ENUM, content)
+    rContent = ResponseContent.data().validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
             content=rContent,
-            format=format,
+            format=ResponseFormat.functional_genomics().validate(format, 'format', ResponseFormat),
+            view=ResponseView.validate(view, 'view', ResponseView),
             model=BEDResponse if rContent == ResponseContent.FULL \
                 else BaseResponseModel
         ),
