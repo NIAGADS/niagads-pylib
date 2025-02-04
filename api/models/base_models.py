@@ -147,9 +147,6 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
         return md5(key.encode('utf-8')).hexdigest()
     
     
-
-
-
 class GenericDataModel(RowModel):
     """ Generic JSON Response """
     __pydantic_extra__: Dict[str, Any]  
@@ -161,17 +158,11 @@ class GenericDataModel(RowModel):
     
     def to_text(self, format: ResponseFormat, **kwargs):
         match format:
-            case ResponseFormat.DOWNLOAD:
-                fields = list(self.model_dump().keys())
-                if 'url' not in fields:
-                    raise RuntimeError("No url field available for record.  Unable to generate a list of URLs")
-                return f'{self.url}'
-            # case ResponseFormat.BED:
-            #     pass
-            # case ResponseFormat.VCF:
-            #    pass
+            case ResponseFormat.TEXT:
+                fields = list(self.model_dump().values())
+                return '\t'.join(fields) + '\n'
             case _:
-                raise NotImplementedError(f'Text transformation `{format.value}` not yet supported')
+                raise NotImplementedError(f'Text transformation `{format.value}` not supported for a generic data response')
             
     
     def get_view_config(self, view: ResponseView, **kwargs):
