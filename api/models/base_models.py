@@ -162,7 +162,7 @@ class GenericDataModel(RowModel):
         match format:
             case ResponseFormat.TEXT:
                 fields = list(self.model_dump().values())
-                return '\t'.join([xstr(f, nullStr=nullStr) for f in fields])
+                return '\t'.join([xstr(f, nullStr=nullStr, dictsAsJson=False) for f in fields])
             case _:
                 raise NotImplementedError(f'Text transformation `{format.value}` not supported for a generic data response')
             

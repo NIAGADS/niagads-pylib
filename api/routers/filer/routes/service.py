@@ -12,11 +12,11 @@ from api.models.igvbrowser import IGVBrowserTrackSelecterResponse, IGVBrowserTra
 from ..common.helpers import FILERRouteHelper
 from ..dependencies.parameters import InternalRequestParameters, optional_query_track_id, query_collection_name
 
-router = APIRouter(prefix="/igvbrowser", responses=RESPONSES)
+router = APIRouter(prefix="/service", responses=RESPONSES)
 
 tags = ["NIAGADS Genome Browser Configuration"]
 
-@router.get("/config", tags=tags, response_model=IGVBrowserTrackConfigResponse,
+@router.get("/igvbrowser/config", tags=tags, response_model=IGVBrowserTrackConfigResponse,
     name="Get IGV Genome Browser configuration for FILER tracks",
     description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) by ID, collection, or keyword search")
 async def get_track_browser_config(
@@ -50,7 +50,7 @@ async def get_track_browser_config(
         return await helper.get_track_metadata()
     
 
-@router.get("/selector", tags=tags, response_model=IGVBrowserTrackSelecterResponse,
+@router.get("/igvbrowser/selector", tags=tags, response_model=IGVBrowserTrackSelecterResponse,
     name="Get Genome Browser track selector for FILER tracks",
     description="retrieve NIAGADS Genome Browser track selector table for one or more FILER `track`(s) by ID, collection, or keyword")
 async def get_track_browser_config(
