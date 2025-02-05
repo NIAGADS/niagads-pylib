@@ -1,6 +1,7 @@
 # generate prepared statements leveraging psycopg2.sql
 # TODO - test whether pyscopg2 connection is need to convert to string
 
+from typing import Dict, List, Union
 from psycopg2.sql import SQL as psSQL, Identifier as psIdentifier, Placeholder as psPlaceholder 
 from ...utils.enums import CustomStrEnum, UppercaseStrEnum, auto
 
@@ -59,7 +60,7 @@ class PreparedStatement():
         raise NotImplementedError()
     
     
-    def insert(self, fields: type[dict|list], returnAsString:bool=False):
+    def insert(self, fields: Union[Dict, List], returnAsString:bool=False):
         """
         leverage pyscopg2 sql package (https://www.psycopg.org/docs/sql.html)
         to generate a prepared insert statement from a dict of field_names:value pairs
