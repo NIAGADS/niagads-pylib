@@ -27,21 +27,22 @@ async def get_table_view(
     
     # check to see if redirect response is cached
     cacheKey = internal.cacheKey.encrypt()
-    response = await internal.externalCache.get(cacheKey, namespace=CacheNamespace.VIEW)
-    if response == None:    
+    originatingResponse: BaseResponseModel = await internal.internalCache.get(forwardingRequestId, namespace=CacheNamespace.VIEW)
+    viewResponse = await internal.externalCache.get(cacheKey, namespace=CacheNamespace.VIEW)
+    if viewResponse == None:    
         # original response store in internal cache
-        originatingResponse: BaseResponseModel = await internal.internalCache.get(forwardingRequestId, namespace=CacheNamespace.VIEW)
-        response = originatingResponse.to_view(ResponseView.TABLE, id=cacheKey)
-        await internal.externalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
+        viewResponse = originatingResponse.to_view(ResponseView.TABLE, table_id=cacheKey)
+        await internal.externalCache.set(cacheKey, viewResponse, namespace=CacheNamespace.VIEW)
         
-        # need to save response and pagination information
-        originatingRequestDetails = originatingResponse.request.model_dump(exclude=['request_id', 'msg'])
-        pagination = getattr(originatingResponse, 'pagination', None)
-        if pagination is not None:
-            originatingRequestDetails.update({'pagination': originatingResponse.pagination.model_dump()})
-        await internal.externalCache.set(f'{cacheKey}{CacheKeyQualifier.REQUEST_PARAMETERS}', 
-            originatingRequestDetails, namespace=CacheNamespace.VIEW)
-    
-    return {'queryId' : cacheKey, 'redirect': RedirectEndpoint.TABLE }
+    # need to save originating response and pagination information for 
+    originatingRequestDetails = originatingResponse.request.model_dump(exclude=['request_id']) 
+    pagination = getattr(originatingResponse, 'pagination', None)
+    if pagination is not None:
+        originatingRequestDetails.update({'pagination': originatingResponse.pagination.model_dump()})    
+    originatingRequestDetails.update({'query_id' : cacheKey, 'redirect_to': RedirectEndpoint.TABLE })
+    await internal.externalCache.set(f'{cacheKey}{CacheKeyQualifier.REQUEST_PARAMETERS}', 
+        originatingRequestDetails, namespace=CacheNamespace.VIEW)
+
+    return viewResponse
         
         
