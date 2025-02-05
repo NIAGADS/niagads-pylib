@@ -32,5 +32,5 @@ INSERT INTO ServerApplication.FILERCollectionTrackLink (collection_id, track_id)
 SELECT c.collection_id,
 t.track_id
 FROM ServerApplication.FilerTrack t, (SELECT collection_id FROM ServerApplication.FILERCollection WHERE name = 'xQTL-Project') c
-WHERE t.name like '%significant%' and t.feature_type ilike '%qtl%' and t.name not like '%nomin%';
+WHERE t.name like '%significant%' and t.feature_type ilike '%qtl%' and t.name not like '%nomin%' AND t.name LIKE '%NG00102%';
 ```
