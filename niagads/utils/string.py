@@ -99,6 +99,8 @@ def xstr(value, nullStr="", falseAsNull=False, dictsAsJson=True):
             return nullStr
         else:
             return str(value)
+    elif is_date(value):
+        return to_date(value, returnStr=True)
     elif isinstance(value, list):
         if len(value) == 0:
             return nullStr
@@ -115,9 +117,9 @@ def xstr(value, nullStr="", falseAsNull=False, dictsAsJson=True):
     else:
         return str(value)
 
-
-def to_date(value, pattern='%m-%d-%Y', returnStr=False):
-    """converts a string into a Python date time object
+# FIXME: try/catch for non numeric types
+def to_date(value, pattern='%Y-%m-%d', returnStr=False):
+    """converts a string into a Python date time object or reformat existing datetime object
 
     Args:
         value (string): value to be converted
@@ -128,8 +130,10 @@ def to_date(value, pattern='%m-%d-%Y', returnStr=False):
         datetime object if returnStr is False
         formatted string (following pattern) if returnStr is True
     """
-    date = parse_date(value, fuzzy=True) 
+    date = value if isinstance(value, datetime) else \
+        parse_date(value, fuzzy=True)    
     return date.strftime(pattern) if returnStr else date
+
 
 
 def to_bool(val):
@@ -179,7 +183,7 @@ def is_date(value, fuzzy=False):
         parse_date(value, fuzzy=fuzzy)
         return True
 
-    except ValueError:
+    except:
         return False
 
 
