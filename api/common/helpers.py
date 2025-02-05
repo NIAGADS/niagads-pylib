@@ -223,7 +223,7 @@ class RouteHelper():
                     await self._managers.internalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
                 
                 endpoint = RedirectEndpoint.from_view(self._responseConfig.view)
-                redirectUrl = f'/redirect{str(endpoint)}/{cacheKey}'
+                redirectUrl = f'/redirect{endpoint.value}/{cacheKey}'
                 
                 return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
                         
