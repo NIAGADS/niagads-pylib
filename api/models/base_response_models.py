@@ -43,7 +43,7 @@ class BaseResponseModel(AbstractResponse):
         viewResponse.update({'data': data})
     
         if view == ResponseView.TABLE:
-            viewResponse.update({'table_id': kwargs['table_id']})
+            viewResponse.update({'id': kwargs['id']})
             
         return viewResponse
     

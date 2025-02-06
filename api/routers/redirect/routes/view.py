@@ -31,7 +31,7 @@ async def get_table_view(
     viewResponse = await internal.externalCache.get(cacheKey, namespace=CacheNamespace.VIEW)
     if viewResponse == None:    
         # original response store in internal cache
-        viewResponse = originatingResponse.to_view(ResponseView.TABLE, table_id=cacheKey)
+        viewResponse = originatingResponse.to_view(ResponseView.TABLE, id=cacheKey)
         await internal.externalCache.set(cacheKey, viewResponse, namespace=CacheNamespace.VIEW)
         
     # need to save originating response and pagination information for 

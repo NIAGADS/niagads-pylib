@@ -12,8 +12,7 @@ from api.common.types import Range
 from api.dependencies.parameters.services import InternalRequestParameters
 from api.models.base_models import PaginationDataModel
 from api.models.base_response_models import BaseResponseModel
-from api.models.igvbrowser import IGVBrowserTrackSelecterResponse
-
+from api.models.igvbrowser import IGVBrowserTrackSelectorResponse
 
 INTERNAL_PARAMETERS = ['span', '_tracks']
 ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMARY]
@@ -201,11 +200,16 @@ class RouteHelper():
                     pagination=self._pagination,
                     response=result)
             else: 
-                response = self._responseConfig.model(
-                    request=self._managers.requestData,
-                    response=IGVBrowserTrackSelecterResponse.build_table(result) \
-                        if self._responseConfig.model == IGVBrowserTrackSelecterResponse \
-                            else result
+                if (self._responseConfig.model == IGVBrowserTrackSelectorResponse):
+                    tableId = self._parameters.get('collection', self._managers.cacheKey.encrypt())
+                    response = self._responseConfig.model(
+                        request=self._managers.requestData,
+                        response=IGVBrowserTrackSelectorResponse.build_table(result, tableId) \
+                    )
+                else:
+                    response = self._responseConfig.model(
+                        request=self._managers.requestData,
+                        response=result
                     )
 
             # cache the response
@@ -224,7 +228,7 @@ class RouteHelper():
                 
                 endpoint = RedirectEndpoint.from_view(self._responseConfig.view)
                 redirectUrl = f'/redirect{endpoint.value}/{cacheKey}'
-                
+
                 return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
                         
             case ResponseView.DEFAULT:

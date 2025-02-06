@@ -7,7 +7,7 @@ from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.location import Assembly, assembly_param
 from api.dependencies.parameters.optional import keyword_param
-from api.models.igvbrowser import IGVBrowserTrackSelecterResponse, IGVBrowserTrackConfigResponse
+from api.models.igvbrowser import IGVBrowserTrackSelectorResponse, IGVBrowserTrackConfigResponse
 
 from ..common.helpers import FILERRouteHelper
 from ..dependencies.parameters import InternalRequestParameters, optional_query_track_id, query_collection_name
@@ -50,7 +50,7 @@ async def get_track_browser_config(
         return await helper.get_track_metadata()
     
 
-@router.get("/igvbrowser/selector", tags=tags, response_model=IGVBrowserTrackSelecterResponse,
+@router.get("/igvbrowser/selector", tags=tags, response_model=IGVBrowserTrackSelectorResponse,
     name="Get Genome Browser track selector for FILER tracks",
     description="retrieve NIAGADS Genome Browser track selector table for one or more FILER `track`(s) by ID, collection, or keyword")
 async def get_track_browser_config(
@@ -59,13 +59,13 @@ async def get_track_browser_config(
         collection: str = Depends(query_collection_name),
         keyword: str = Depends(keyword_param),
         internal: InternalRequestParameters = Depends()
-    ) -> IGVBrowserTrackSelecterResponse:
+    ) -> IGVBrowserTrackSelectorResponse:
 
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
             content=ResponseContent.FULL,
-            model=IGVBrowserTrackSelecterResponse
+            model=IGVBrowserTrackSelectorResponse
         ),
         Parameters(track=track, assembly=assembly, collection=collection, keyword=keyword)
     )

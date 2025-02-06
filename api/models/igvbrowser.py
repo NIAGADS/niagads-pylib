@@ -46,7 +46,7 @@ class IGVBrowserTrackMetadata(RowModel):
     name: str
     description: str
     data_source: str
-    feature_type: str = Field(serialization_alias='feature')
+    feature_type: str # = Field(serialization_alias='feature')
     biosample_characteristics: BiosampleCharacteristics
     experimental_design: ExperimentalDesign
     
@@ -69,7 +69,7 @@ class IGVBrowserTrackMetadata(RowModel):
                 'enableMultiRowSelect': True,
                 'rowId': 'track_id',
                 'onRowSelectAction': str(OnRowSelect.UPDATE_GENOME_BROWSER)
-            }
+            },
         }
         return options
     
@@ -95,11 +95,11 @@ class IGVBrowserTrackConfigResponse(BaseResponseModel):
         # NOTE: super().to_view call w/result in error; expects non null config
 
     
-class IGVBrowserTrackSelecterResponse(BaseResponseModel):
+class IGVBrowserTrackSelectorResponse(BaseResponseModel):
     response: Table
     
     @classmethod
-    def build_table(cls, metadata: RowModel):
+    def build_table(cls, metadata: RowModel, tableId: str):
         tableData = []
         track: RowModel
         for track in metadata:
@@ -109,8 +109,9 @@ class IGVBrowserTrackSelecterResponse(BaseResponseModel):
                         
         columns = IGVBrowserTrackMetadata.get_table_columns()
         options = IGVBrowserTrackMetadata.get_table_options()
+        options.update({'defaultColumns': [c['id'] for c in columns[:8]]})
 
-        return {'data': tableData, 'columns': columns, 'options': options}
+        return {'data': tableData, 'columns': columns, 'options': options, 'id': tableId}
         
             
     def to_view(self, view: ResponseView, **kwargs):

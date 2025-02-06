@@ -19,6 +19,7 @@ def get_none():
     return None
 
 class InternalRequestParameters(BaseModel, arbitrary_types_allowed=True):
+    request: Request
     requestData: RequestDataModel = Depends(RequestDataModel.from_request)
     session: Optional[AsyncSession] = Depends(get_none) # callable to return none, override as needed for each endpoint
     cacheKey: CacheKeyDataModel = Depends(CacheKeyDataModel.from_request)
