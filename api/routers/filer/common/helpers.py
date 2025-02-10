@@ -60,9 +60,9 @@ class FILERRouteHelper(RouteHelper):
         rsCacheKey = CacheKeyDataModel.encrypt_key(noPageCacheKey + CacheKeyQualifier.RESULT_SIZE)
         
         # check to see if pagination has been cached
-        cursors = await self._managers.internalCache.get(cursorCacheKey, 
+        cursors = await self._managers.cache.get(cursorCacheKey, 
             namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
-        self._resultSize = await self._managers.internalCache.get(rsCacheKey,
+        self._resultSize = await self._managers.cache.get(rsCacheKey,
                 namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
         
         # if either is uncached, the data may be out of sync so recalculate cache size
@@ -70,7 +70,7 @@ class FILERRouteHelper(RouteHelper):
             cumulativeSum = cumulative_sum([t.num_overlaps for t in sortedTrackOverlaps])
             self._resultSize = cumulativeSum[-1] # last element is total number of hits    
 
-            await self._managers.internalCache.set(rsCacheKey, self._resultSize,
+            await self._managers.cache.set(rsCacheKey, self._resultSize,
                 namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
             
             self.initialize_pagination() # need total number of pages to find cursors
@@ -97,7 +97,7 @@ class FILERRouteHelper(RouteHelper):
             cursors.append(f'{len(sortedTrackOverlaps)-1}:{sortedTrackOverlaps[-1].num_overlaps}') 
 
             # cache the pagination cursor
-            await self._managers.internalCache.set(cursorCacheKey, cursors,
+            await self._managers.cache.set(cursorCacheKey, cursors,
                 namespace=CacheNamespace.QUERY_CACHE, timeout=CACHEDB_PARALLEL_TIMEOUT)
 
         else: # initialize from cached pagination
@@ -149,19 +149,25 @@ class FILERRouteHelper(RouteHelper):
         return result
     
 
-    async def __get_track_data_task(self, tracks, assembly: str, span: str, countsOnly: bool, cacheKey: str):
-        cacheKey += ','.join(tracks)
-        result = await self._managers.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
+    async def __get_track_data_task(self, tracks: List[str], assembly: str, span: str, countsOnly: bool):
+        cacheKey = CacheKeyDataModel.encrypt_key(
+            f'/{FILERApiEndpoint.OVERLAPS}?assembly={assembly}&countsOnly={countsOnly}'
+            + f'&span={self._parameters.span}&tracks={','.join(tracks)}'
+            )
+        result = await self._managers.cache.get(cacheKey, 
+            namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
         if result is None:   
-            result = await ApiWrapperService(self._managers.apiClientSession).get_track_hits(tracks, span, assembly, countsOnly=countsOnly)
-            await self._managers.internalCache.set(cacheKey, result, namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
+            result = await ApiWrapperService(self._managers.apiClientSession) \
+                .get_track_hits(tracks, span, assembly, countsOnly=countsOnly)
+            await self._managers.cache.set(cacheKey, result, 
+                namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
         return result
 
 
     async def get_paged_track_data(self, trackOverlaps:List[TrackOverlap], validate=True):
-        cacheKey = self._managers.cacheKey
-        
-        result = await self._managers.internalCache.get(cacheKey.key, namespace=cacheKey.namespace)
+
+        result = await self._managers.cache.get(
+            self._managers.cacheKey.encrypt(), namespace=self._managers.cacheKey.namespace)
         if result is not None:
             return await self.generate_response(result, isCached=True)
         
@@ -170,12 +176,9 @@ class FILERRouteHelper(RouteHelper):
         assembly = self._parameters.get('assembly')
         if validate or assembly is None: # for internal helper calls, don't always need to validate; already done
             assembly = await self.__validate_tracks(cursor.tracks)     
-            
-        cacheKey = f'/{FILERApiEndpoint.OVERLAPS}?countsOnly=False&span={self._parameters.span}&tracks=' 
-        cacheKey = cacheKey.replace(':', '_')
-        
+                    
         chunks = chunker(cursor.tracks, TRACKS_PER_API_REQUEST_LIMIT, returnIterator=True)
-        tasks = [self.__get_track_data_task(c, assembly, self._parameters.span, False, cacheKey) for c in chunks]
+        tasks = [self.__get_track_data_task(c, assembly, self._parameters.span, False) for c in chunks]
         chunkedResults = await asyncio.gather(*tasks, return_exceptions=False)
         
         response: List[FILERApiDataResponse] = []
@@ -190,7 +193,7 @@ class FILERRouteHelper(RouteHelper):
     async def get_track_data(self, validate=True): 
         """ if trackSummary is set, then fetches from the summary not from a parameter"""
         
-        result = await self._managers.internalCache.get(self._managers.cacheKey.key,
+        result = await self._managers.cache.get(self._managers.cacheKey.encrypt(),
             namespace=self._managers.cacheKey.namespace)
         if result is not None:
             return await self.generate_response(result, isCached=True)
@@ -204,9 +207,7 @@ class FILERRouteHelper(RouteHelper):
             assembly = await self.__validate_tracks(tracks)         
     
         # get counts - needed for full pagination, counts only, summary
-        cacheKey = f'/{FILERApiEndpoint.OVERLAPS}?countsOnly=true&span={self._parameters.span}&tracks=' 
-        cacheKey = cacheKey.replace(':', '_')
-        trackOverlaps = await self.__get_track_data_task(tracks, assembly, self._parameters.span, True, cacheKey)
+        trackOverlaps = await self.__get_track_data_task(tracks, assembly, self._parameters.span, True)
         
         if self._responseConfig.content == ResponseContent.FULL:
             return await self.get_paged_track_data(trackOverlaps, validate=validate)
@@ -248,11 +249,11 @@ class FILERRouteHelper(RouteHelper):
     async def get_track_metadata(self, rawResponse=False):
         """ fetch track metadata; expects a list of track identifiers in the parameters"""
         isCached = True # assuming true from the start
-        cacheKey = self._managers.cacheKey.key
+        cacheKey = self._managers.cacheKey.encrypt()
         if rawResponse:
-            cacheKey = cacheKey + CacheKeyQualifier.RAW
+            cacheKey += CacheKeyQualifier.RAW
         
-        result = await self._managers.internalCache.get(
+        result = await self._managers.cache.get(
             cacheKey, namespace=self._managers.cacheKey.namespace)
         
         if result is None:
@@ -273,7 +274,7 @@ class FILERRouteHelper(RouteHelper):
             
         if rawResponse:
             # cache the raw response
-            await self._managers.internalCache.set(
+            await self._managers.cache.set(
                 cacheKey, result, 
                 namespace=self._managers.cacheKey.namespace)
             
@@ -286,18 +287,20 @@ class FILERRouteHelper(RouteHelper):
     async def get_collection_track_metadata(self, rawResponse=False):
         """ fetch track metadata for a specific collection """
         isCached = True # assuming true from the start
-        cacheKey = self._managers.cacheKey.key
+        cacheKey = self._managers.cacheKey.encrypt()
         if rawResponse:
-            cacheKey = cacheKey + CacheKeyQualifier.RAW + '_' + str(rawResponse)    
+            cacheKey += CacheKeyQualifier.RAW + '_' + str(rawResponse)    
         
-        result = await self._managers.internalCache.get(
+        result = await self._managers.cache.get(
             cacheKey, 
             namespace=self._managers.cacheKey.namespace)
         
         if result is None:
             isCached = False
         
-            result = await MetadataQueryService(self._managers.session).get_collection_track_metadata(self._parameters.collection, responseType=self._responseConfig.content)
+            result = await MetadataQueryService(self._managers.session) \
+                .get_collection_track_metadata(self._parameters.collection,
+                    responseType=self._responseConfig.content)
             
             if not rawResponse:
                 self._resultSize = len(result)
@@ -308,7 +311,7 @@ class FILERRouteHelper(RouteHelper):
             
         if rawResponse:
             # cache the raw response
-            await self._managers.internalCache.set(
+            await self._managers.cache.set(
                 cacheKey, result, 
                 namespace=self._managers.cacheKey.namespace)
             
@@ -319,14 +322,14 @@ class FILERRouteHelper(RouteHelper):
 
     async def search_track_metadata(self, rawResponse:Optional[ResponseContent] = None):
         """ retrieve track metadata based on filter/keyword searches """
-        cacheKey = self._managers.cacheKey.key
+        cacheKey = self._managers.cacheKey.encrypt()
         content = self._responseConfig.content
         
         if rawResponse is not None:
             content = rawResponse
-            cacheKey = cacheKey + CacheKeyQualifier.RAW + '_' + str(rawResponse)    
+            cacheKey += CacheKeyQualifier.RAW + '_' + str(rawResponse)    
         
-        result = await self._managers.internalCache.get(
+        result = await self._managers.cache.get(
             cacheKey, namespace=self._managers.cacheKey.namespace)
         
         if result is not None:
@@ -357,13 +360,15 @@ class FILERRouteHelper(RouteHelper):
         if rawResponse is None:
             return await self.generate_response(result, isCached=False) 
         else: # cache the raw response before returning
-            await self._managers.internalCache.set(cacheKey, result, 
+            await self._managers.cache.set(cacheKey, result, 
                 namespace=self._managers.cacheKey.namespace)
             return result
         
 
     async def search_track_data(self):
-        result = await self._managers.internalCache.get(self._managers.cacheKey.key, namespace=self._managers.cacheKey.namespace)
+        result = await self._managers.cache.get(self._managers.cacheKey.encrypt(),
+            namespace=self._managers.cacheKey.namespace)
+        
         if result is not None: # just return the cached response
             return await self.generate_response(result, isCached=True)
     
@@ -385,13 +390,16 @@ class FILERRouteHelper(RouteHelper):
                 return await self.generate_response([], isCached=False)
         
         # get informative tracks from the FILER API & cache
-        cacheKey = f'/{FILERApiEndpoint.INFORMATIVE_TRACKS}?genomeBuild={self._parameters.assembly}&span={self._parameters.span}' 
-        cacheKey = cacheKey.replace(':','_')
-        informativeTrackOverlaps: List[TrackOverlap] = await self._managers.internalCache.get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
+        cacheKey = f'/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.assembly}&span={self._parameters.span}' 
+        cacheKey = CacheKeyDataModel.encrypt_key(cacheKey.replace(':','_'))
+        
+        informativeTrackOverlaps: List[TrackOverlap] = await self._managers.cache \
+            .get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
         if informativeTrackOverlaps is None:
             informativeTrackOverlaps = await ApiWrapperService(self._managers.apiClientSession) \
                 .get_informative_tracks(self._parameters.span, self._parameters.assembly)
-            await self._managers.internalCache.set(cacheKey, informativeTrackOverlaps, namespace=CacheNamespace.FILER_EXTERNAL_API)
+            await self._managers.cache.set(cacheKey, 
+                informativeTrackOverlaps, namespace=CacheNamespace.FILER_EXTERNAL_API)
             
         if len(informativeTrackOverlaps) == 0:
             self._managers.requestData.add_message('No overlapping features found in the query region.')

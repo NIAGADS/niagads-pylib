@@ -27,7 +27,7 @@ async def get_table_view(
     
     # check to see if redirect response is cached
     cacheKey = internal.cacheKey.encrypt()
-    originatingResponse: BaseResponseModel = await internal.internalCache.get(forwardingRequestId, namespace=CacheNamespace.VIEW)
+    originatingResponse: BaseResponseModel = await internal.cache.get(forwardingRequestId, namespace=CacheNamespace.VIEW)
     viewResponse = await internal.externalCache.get(cacheKey, namespace=CacheNamespace.VIEW)
     if viewResponse == None:    
         # original response store in internal cache

@@ -181,6 +181,19 @@ class RouteHelper():
         return Range(start=start, end=end)
     
     
+    async def generate_table_response(self, response: Any):
+        # create an encrypted cache key
+        cacheKey = self._managers.cacheKey.encrypt()   
+        requestIsCached = await self._managers.cache.exists(cacheKey, namespace=CacheNamespace.VIEW)
+        if not requestIsCached:  # then cache it
+            await self._managers.cache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
+        
+        endpoint = RedirectEndpoint.from_view(self._responseConfig.view)
+        redirectUrl = f'/redirect{endpoint.value}/{cacheKey}'
+
+        return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
+    
+    
     async def generate_response(self, result: Any, isCached=False):
         response = result if isCached else None
         if response is None:
@@ -213,23 +226,14 @@ class RouteHelper():
                     )
 
             # cache the response
-            await self._managers.internalCache.set(
-                self._managers.cacheKey.key, 
+            await self._managers.cache.set(
+                self._managers.cacheKey.encrypt(), 
                 response, 
                 namespace=self._managers.cacheKey.namespace)
             
         match self._responseConfig.view:
             case ResponseView.TABLE | ResponseView.IGV_BROWSER:
-                # cache the response again, this time encrypted b/c to allow to be passed through URL
-                cacheKey = self._managers.cacheKey.encrypt()   
-                requestIsCached = await self._managers.internalCache.exists(cacheKey, namespace=CacheNamespace.VIEW)
-                if not requestIsCached:  # then cache it
-                    await self._managers.internalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
-                
-                endpoint = RedirectEndpoint.from_view(self._responseConfig.view)
-                redirectUrl = f'/redirect{endpoint.value}/{cacheKey}'
-
-                return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
+                self.generate_table_response()
                         
             case ResponseView.DEFAULT:
                 if self._responseConfig.format in [ResponseFormat.TEXT, ResponseFormat.BED, ResponseFormat.VCF]:
