@@ -7,7 +7,7 @@ from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.location import span_param
 from api.dependencies.parameters.optional import page_param
-from api.models.base_response_models import BaseResponseModel
+from api.models.base_response_models import PagedResponseModel, BaseResponseModel
 from api.models.view_models import TableViewResponseModel
 
 from ..dependencies.parameters import InternalRequestParameters, path_track_id
@@ -47,9 +47,9 @@ async def get_track_metadata(
 
 tags = ["Record by ID", "Track Data by ID"]
 
-@router.get("/{track}/data", tags=tags, 
+@router.get("/{track}/data", tags=tags,
     name="Get track data",
-    response_model=Union[BEDResponse, BaseResponseModel, TableViewResponseModel],
+    response_model=Union[BEDResponse, FILERTrackBriefResponse, TableViewResponseModel, PagedResponseModel],
     description="retrieve functional genomics track data from FILER in the specified region; specify `content=counts` to just retrieve a count of the number of hits in the specified region")
 
 async def get_track_data(
@@ -60,7 +60,7 @@ async def get_track_data(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.functional_genomics(description=True)),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends()
-) -> Union[BEDResponse, BaseResponseModel, TableViewResponseModel]:
+) -> Union[BEDResponse, FILERTrackBriefResponse, TableViewResponseModel, PagedResponseModel]:
     
     rContent = ResponseContent.data().validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
@@ -70,7 +70,8 @@ async def get_track_data(
             format=ResponseFormat.functional_genomics().validate(format, 'format', ResponseFormat),
             view=ResponseView.validate(view, 'view', ResponseView),
             model=BEDResponse if rContent == ResponseContent.FULL \
-                else BaseResponseModel
+                else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
+                else PagedResponseModel
         ),
         Parameters(track=track, span=span, page=page)
     )
