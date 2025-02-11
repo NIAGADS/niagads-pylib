@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from asgi_correlation_id import CorrelationIdMiddleware
 
 from api.config.settings import get_settings
-from .routers import FILERRouter
+from .routers import FILERRouter, GenomicsRouter
 
 # FIXME -- needed for applications reading the openapi.json or openapi.yaml, but 
 # needs to be dynamic based on deployment
@@ -36,7 +36,11 @@ app = FastAPI(
         },
         # servers=[{"url": get_settings().API_PUBLIC_URL}]
         # root_path="/api",
-        #swagger_ui_parameters={"docExpansion": "full"}
+        swagger_ui_parameters={
+            'apisSorter': 'alpha',
+            'operationsSorter': 'alpha',
+            'tagsSorter': 'alpha'
+        }
     )
 
 # app.add_middleware(SessionMiddleware, secret_key=get_settings().SESSION_SECRET)
@@ -105,6 +109,7 @@ async def validation_exception_handler(request: Request, exc: OSError):
     )
 
 app.include_router(FILERRouter)
+app.include_router(GenomicsRouter)
 
 
 @app.get("/", include_in_schema=False)

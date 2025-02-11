@@ -1,19 +1,15 @@
-ROUTE_DATABASE = 'metadata'
+ROUTE_DATABASE = 'genomics'
 
-ROUTE_PREFIX = "/filer"
-ROUTE_NAME = "FILER Functional Genomics Repository"
-ROUTE_ABBREVIATION = "FILER"
+ROUTE_PREFIX = "/genomics"
+ROUTE_NAME = "Alzheimer's Genomics Database"
+ROUTE_ABBREVIATION = "GenomicsDB"
 ROUTE_DESCRIPTION = {}
-ROUTE_TAGS = [f'{ROUTE_NAME}']
+ROUTE_TAGS = [ROUTE_NAME]
 
 TRACKS_PER_API_REQUEST_LIMIT = 50
 
-FILER_HTTP_CLIENT_TIMEOUT=60
 CACHEDB_PARALLEL_TIMEOUT=30
 
-BIOSAMPLE_FIELDS = ["life_stage", "biosample_term", "system_category",
-    "tissue_category", "biosample_display",
-    "biosample_summary", "biosample_term_id"]
 
 TRACK_SEARCH_FILTER_FIELD_MAP = { 
     'biosample': {
