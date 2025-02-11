@@ -314,10 +314,9 @@ class FILERRouteHelper(RouteHelper):
             # cache the raw response
             await self._managers.cache.set(
                 cacheKey, result, 
-                namespace=self._managers.cacheKey.namespace)
-            
+                namespace=self._managers.cacheKey.namespace)   
             return result
-
+            
         return await self.generate_response(result, isCached=isCached)
     
 

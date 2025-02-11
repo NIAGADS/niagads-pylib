@@ -229,10 +229,12 @@ class RouteHelper():
                     response=result)
             else: 
                 if (self._responseConfig.model == IGVBrowserTrackSelectorResponse):
-                    tableId = self._parameters.get('collection', self._managers.cacheKey.encrypt())
+                    queryId = self._managers.cacheKey.encrypt()
+                    collectionId = self._parameters.get('collection')
+        
                     response = self._responseConfig.model(
                         request=self._managers.requestData,
-                        response=IGVBrowserTrackSelectorResponse.build_table(result, tableId))
+                        response=IGVBrowserTrackSelectorResponse.build_table(result, queryId if collectionId is None else collectionId))
                 else:
                     response = self._responseConfig.model(
                         request=self._managers.requestData,

@@ -166,6 +166,8 @@ class MetadataQueryService:
         statement = select(target).join(TrackCollection, TrackCollection.track_id == Track.track_id).where(TrackCollection.collection_id == collectionId)
         
         result = (await self.__session.execute(statement)).scalars().all()
+        if responseType == ResponseContent.COUNTS:
+            return {'num_tracks': result[0]}
         return result
     
     
