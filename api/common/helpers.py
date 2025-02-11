@@ -1,9 +1,9 @@
-from traceback import print_list
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import RedirectResponse
 from fastapi import Response, status
 from pydantic import BaseModel, field_validator, ConfigDict, model_validator
 from typing import Any, Dict, Optional, Type, Union
+
+from niagads.utils.list import list_to_string
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace, ResponseView, ResponseFormat
@@ -44,21 +44,20 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     view: ResponseView = ResponseView.DEFAULT
     model: Type[T_ResponseModel]  = None
     
-    # make changes or do validation after instantiation
-    # https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_post_init
-    def model_post_init(self, __context):
-        # adjust the format, content, or view depending on specific combinations
-        if self.view != ResponseView.DEFAULT: # all visualizations require JSON responses
-            self.format = ResponseFormat.JSON
-        
 
     @model_validator(mode='after')
-    def validate_model(self):
-        if self.content not in ALLOWABLE_VIEW_RESPONSE_CONTENTS and self.view != ResponseView.DEFAULT:
-            raise RequestValidationError(f'Can only generate a `{str(self.view)}` `view` of query result for `{print_list(ALLOWABLE_VIEW_RESPONSE_CONTENTS)}` response content (see `content`)')
+    def validate_config(self, __context):
+        if self.content not in ALLOWABLE_VIEW_RESPONSE_CONTENTS \
+            and self.view != ResponseView.DEFAULT:  
+            raise RequestValidationError(f'Can only generate a `{str(self.view)}` `view` of query result for `{list_to_string(ALLOWABLE_VIEW_RESPONSE_CONTENTS)}` response content (see `content`)')
     
-        if self.content != ResponseContent.FULL and self.format in [ResponseFormat.VCF, ResponseFormat.BED]:
+        if self.content != ResponseContent.FULL \
+            and self.format in [ResponseFormat.VCF, ResponseFormat.BED]:
+                
             raise RequestValidationError(f'Can only generate a `{str(ResponseContent.format)}` response for a `FULL` data query (see `content`)')
+
+        return self
+
     
     # from https://stackoverflow.com/a/67366461
     # allows ensurance that model is always a child of BaseResponseModel
@@ -67,6 +66,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
         if issubclass(model, BaseResponseModel):
             return model
         raise RuntimeError(f'Wrong type for `model` : `{model}`; must be subclass of `BaseResponseModel`')
+    
     
     @field_validator("content")
     def validate_content(cls, content):
@@ -187,12 +187,16 @@ class RouteHelper():
         cacheKey = CacheKeyDataModel.encrypt_key(
             self._managers.cacheKey.key + str(CacheKeyQualifier.VIEW) + ResponseView.TABLE.value)
         
-        viewResponse = await self._managers.cache.exists(cacheKey, namespace=CacheNamespace.VIEW)
+        viewResponse = await self._managers.cache.get(cacheKey, namespace=CacheNamespace.VIEW)
         
         if viewResponse:
             return viewResponse
         
         self._managers.requestData.set_request_id(cacheKey)
+        
+        if  self._responseConfig.format != ResponseFormat.JSON:
+            self._managers.requestData.add_message(f'View requested; response format changed to {ResponseFormat.JSON.value}')
+            
         
         viewResponseObj = {'response': response.to_view(ResponseView.TABLE, id=cacheKey),
             'request': self._managers.requestData,

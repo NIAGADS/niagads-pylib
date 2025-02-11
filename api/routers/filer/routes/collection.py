@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Union
 
+from pydantic import ValidationError
+
 from api.common.enums import ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
@@ -28,6 +30,7 @@ async def get_collections(
     internal: InternalRequestParameters = Depends()
 )-> CollectionResponse:
     
+
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
@@ -37,6 +40,7 @@ async def get_collections(
         ), 
         Parameters()
     )
+
     
     result = await MetadataQueryService(internal.session).get_collections()
     return await helper.generate_response(result)

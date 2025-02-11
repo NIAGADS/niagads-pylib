@@ -9,7 +9,7 @@ from api.common.helpers import Parameters, ResponseConfiguration
 from api.dependencies.parameters.location import Assembly, assembly_param
 from api.dependencies.parameters.optional import page_param, keyword_param
 
-from api.models.base_response_models import PagedResponseModel
+from api.models.base_response_models import PagedResponseModel, BaseResponseModel
 from api.models.view_models import TableViewResponseModel
 
 from ..common.helpers import FILERRouteHelper
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/metadata", responses=RESPONSES)
 tags = ["Track Metadata by ID"]
 
 @router.get("/", tags=tags, 
-    response_model=Union[FILERTrackResponse, FILERTrackBriefResponse, TableViewResponseModel],
+    response_model=Union[FILERTrackResponse, FILERTrackBriefResponse, TableViewResponseModel, BaseResponseModel],
     name="Get metadata for multiple tracks",
     description="retrieve full metadata for one or more FILER track records")
 
@@ -31,7 +31,7 @@ async def get_track_metadata(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
     view: str =  Query(ResponseView.DEFAULT, description=ResponseView.table(description=True)),
     internal: InternalRequestParameters = Depends()
-) -> Union[FILERTrackBriefResponse, FILERTrackResponse, TableViewResponseModel]:
+) -> Union[FILERTrackBriefResponse, FILERTrackResponse, TableViewResponseModel, BaseResponseModel]:
     
     rContent = ResponseContent.descriptive(inclUrls=True).validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
@@ -41,7 +41,8 @@ async def get_track_metadata(
             view=ResponseView.table().validate(view, 'view', ResponseView),
             content=rContent,
             model=FILERTrackResponse if rContent == ResponseContent.FULL \
-                else FILERTrackBriefResponse 
+                else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
+                    else BaseResponseModel
         ), 
         Parameters(track=track)
     )
