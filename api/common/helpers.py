@@ -54,7 +54,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
         if self.content != ResponseContent.FULL \
             and self.format in [ResponseFormat.VCF, ResponseFormat.BED]:
                 
-            raise RequestValidationError(f'Can only generate a `{str(ResponseContent.format)}` response for a `FULL` data query (see `content`)')
+            raise RequestValidationError(f'Can only generate a `{self.format}` response for a `FULL` data query (see `content`)')
 
         return self
 

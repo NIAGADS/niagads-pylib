@@ -33,7 +33,8 @@ class TrackOverlap(RowModel):
         raise RuntimeError('View transformations not implemented for this row model.')
     
     def to_text(self, format: ResponseFormat, **kwargs):
-        raise NotImplementedError('Text responses not implemented for this data type.')
+        return f'{self.track_id}\t{self.num_overlaps}'
+        # raise NotImplementedError('Text responses not implemented for this data type.')
     
 
 def sort_track_overlaps(trackOverlaps: List[TrackOverlap], reverse=True) -> List[TrackOverlap]:
