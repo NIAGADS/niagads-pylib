@@ -3,6 +3,8 @@ from pydantic import Field
 from typing import Any, Dict, TypeVar
 from typing_extensions import Self
 
+from niagads.utils.string import xstr
+
 from api.common.enums import OnRowSelect, ResponseFormat, ResponseView
 from api.models.base_models import PaginationDataModel, RequestDataModel, RowModel, SerializableModel
 
@@ -71,18 +73,22 @@ class BaseResponseModel(AbstractResponseModel):
     
     def to_text(self, format: ResponseFormat, **kwargs):
         """ return a text response (e.g., BED, VCF, plain text) """
-        
-        header = kwargs.get('fields', None)
-        responseStr = "" if header is None \
-            else '\t'.join(header) + '\n'
-        rowText = [] 
-        if len(self.response) > 0:
-            for row in self.response:
-                if isinstance(row, str):
-                    rowText.append(row)
-                else:
-                    row: RowModel
-                    rowText.append(row.to_text(format, **kwargs))        
+        nullStr = kwargs.get('nullStr', '.')
+        if isinstance(self.response, dict):
+            responseStr = '\t'.join(list(self.response.keys())) + '\n'
+            responseStr += '\t'.join([xstr(v, nullStr=nullStr) for v in self.response.values()]) + '\n'
+        else:
+            header = kwargs.get('fields', None)
+            responseStr = "" if header is None \
+                else '\t'.join(header) + '\n'
+            rowText = [] 
+            if len(self.response) > 0:
+                for row in self.response:
+                    if isinstance(row, str):
+                        rowText.append(row)
+                    else:
+                        row: RowModel
+                        rowText.append(row.to_text(format, **kwargs))        
             responseStr += '\n'.join(rowText)
         
         return responseStr

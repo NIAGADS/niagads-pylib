@@ -160,8 +160,7 @@ class GenericDataModel(RowModel):
     
     def to_view_data(self, view: ResponseView, **kwargs):
         return self.model_dump()
-    
-    # FIXME: dates -> in xstr? maybe
+ 
     def to_text(self, format: ResponseFormat, **kwargs):
         nullStr = kwargs.get('nullStr', '.')
         match format:
@@ -198,7 +197,7 @@ class GenericDataModel(RowModel):
                         'onRowSelectAction': kwargs['on_row_select']
                     }})
         return {'columns': columns, 'options': options}
-        
+
     
 class PaginationDataModel(BaseModel):
     page: int = Field(default=1, description="if result is paged, indicates the current page of the result; defaults to 1")
