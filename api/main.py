@@ -57,7 +57,7 @@ async def validation_exception_handler(request: Request, exc: RuntimeError):
         content=jsonable_encoder(
             {
                 "error": str(exc),  # optionally, include the pydantic errors
-                "msg": "An unexpected error occurred.  Please submit a `bug` GitHub issue containing this full error response at: https://github.com/NIAGADS/niagads-api/issues",
+                "message": "An unexpected error occurred.  Please submit a `bug` GitHub issue containing this full error response at: https://github.com/NIAGADS/niagads-api/issues",
                 "stack_trace": [ t.replace('\n', '').replace('"', "'") for t in traceback.format_tb(exc.__traceback__) ],
                 "request": str(query)
             }), 
@@ -70,7 +70,7 @@ async def validation_exception_handler(request: Request, exc: NotImplementedErro
         content=jsonable_encoder(
             {
                 "error": str(exc), 
-                "msg": "Not yet implemented"
+                "message": "Not yet implemented"
             }), 
     )
 
@@ -81,7 +81,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content=jsonable_encoder(
             {
                 "error": str(exc), 
-                "msg": "Invalid parameter value"
+                "message": "Invalid parameter value"
             }), 
     )
 
@@ -105,7 +105,6 @@ async def validation_exception_handler(request: Request, exc: OSError):
     )
 
 app.include_router(FILERRouter)
-app.include_router(RedirectRouter)
 
 
 @app.get("/", include_in_schema=False)

@@ -72,12 +72,12 @@ class RequestDataModel(SerializableModel):
     request_id: str = Field(description="unique request identifier")
     endpoint: str = Field(description="queried endpoint")
     parameters: Dict[str, Union[int, str, bool]] = Field(description="request path and query parameters, includes unspecified defaults")
-    msg: Optional[List[str]] = Field(default=None, description="warning or info message qualifying the response")
+    message: Optional[List[str]] = Field(default=None, description="warning or info message qualifying the response")
 
-    def add_message(self, msg):
-        if self.msg is None:
-            self.msg = []
-        self.msg.append(msg)   
+    def add_message(self, message):
+        if self.message is None:
+            self.message = []
+        self.message.append(message)   
         
 
     def update_parameters(self, params: BaseModel, exclude:List[str]=[]) -> str:

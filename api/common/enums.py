@@ -43,8 +43,8 @@ class ResponseContent(CaseInsensitiveEnum):
     
     @classmethod
     def get_description(cls, inclValues=True):
-        msg = 'Type of information returned by the query.'    
-        return msg + f' {super().get_description()}' if inclValues else msg
+        message = 'Type of information returned by the query.'    
+        return message + f' {super().get_description()}' if inclValues else message
     
     @classmethod
     def descriptive(cls, inclUrls=False, description=False):
@@ -76,8 +76,8 @@ class ResponseFormat(CaseInsensitiveEnum):
     
     @classmethod
     def get_description(cls, inclValues=True):
-        msg = 'Response format.  If a non-text `view` is specified, the response format will default to `JSON`'    
-        return msg + f' {super().get_description()}' if inclValues else msg
+        message = 'Response format.  If a non-text `view` is specified, the response format will default to `JSON`'    
+        return message + f' {super().get_description()}' if inclValues else message
     
     @classmethod
     def generic(cls, description=False):
@@ -104,8 +104,8 @@ class ResponseView(CaseInsensitiveEnum):
     
     @classmethod
     def get_description(cls, inclValues=True):
-        msg = 'Visual representation of the data.  Select `DEFAULT` for TEXT or JSON response.'    
-        return msg + f' {super().get_description()}' if inclValues else msg
+        message = 'Visual representation of the data.  Select `DEFAULT` for TEXT or JSON response.'    
+        return message + f' {super().get_description()}' if inclValues else message
     
     @classmethod
     def table(cls, description=False):
