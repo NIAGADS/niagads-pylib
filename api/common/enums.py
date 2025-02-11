@@ -180,6 +180,7 @@ class CacheKeyQualifier(CaseInsensitiveEnum):
     RAW = auto()
     QUERY_CACHE = auto()
     REQUEST_PARAMETERS = "request"
+    VIEW = "view_"
     
     def __str__(self):
         return f'_{self.value}'

@@ -6,13 +6,14 @@ from pydantic import BaseModel, field_validator, ConfigDict, model_validator
 from typing import Any, Dict, Optional, Union
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
-from api.common.enums import ResponseContent, CacheNamespace, ResponseView, RedirectEndpoint, ResponseFormat
+from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace, ResponseView, ResponseFormat
 from api.common.types import Range
 
 from api.dependencies.parameters.services import InternalRequestParameters
-from api.models.base_models import PaginationDataModel
-from api.models.base_response_models import BaseResponseModel
+from api.models.base_models import CacheKeyDataModel, PaginationDataModel
+from api.models.base_response_models import BaseResponseModel, T_ResponseModel
 from api.models.igvbrowser import IGVBrowserTrackSelectorResponse
+from api.models.view_models import TableViewResponseModel
 
 INTERNAL_PARAMETERS = ['span', '_tracks']
 ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMARY]
@@ -41,7 +42,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     format: ResponseFormat = ResponseFormat.JSON
     content: ResponseContent = ResponseContent.FULL
     view: ResponseView = ResponseView.DEFAULT
-    model: Any = None
+    model: T_ResponseModel  = None
     
     # make changes or do validation after instantiation
     # https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_post_init
@@ -181,21 +182,33 @@ class RouteHelper():
         return Range(start=start, end=end)
     
     
-    async def generate_table_response(self, response: Any):
+    async def generate_table_response(self, response: T_ResponseModel):
         # create an encrypted cache key
-        cacheKey = self._managers.cacheKey.encrypt()   
-        requestIsCached = await self._managers.cache.exists(cacheKey, namespace=CacheNamespace.VIEW)
-        if not requestIsCached:  # then cache it
-            await self._managers.cache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
+        cacheKey = CacheKeyDataModel.encrypt_key(
+            self._managers.cacheKey + CacheKeyQualifier.VIEW + self._responseConfig.view.value)
         
-        endpoint = RedirectEndpoint.from_view(self._responseConfig.view)
-        redirectUrl = f'/redirect{endpoint.value}/{cacheKey}'
+        viewResponse = await self._managers.cache.exists(cacheKey, namespace=CacheNamespace.VIEW)
+        
+        if viewResponse:
+            return viewResponse
+        
+        requestData = self._managers.requestData
+        requestData['request_id'] = cacheKey
+        
+        viewResponseObj = {'response': response.to_view(ResponseView.TABLE, id=cacheKey),
+            'request': requestData}
+        
+        if self._pagination_exists(raiseError=False):
+            viewResponseObj['pagination'] = self._pagination
+        
+        viewResponse = TableViewResponseModel(**viewResponseObj)
 
-        return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
-    
+        await self._managers.cache.set(cacheKey, viewResponse, namespace=CacheNamespace.VIEW)
+        
+        return viewResponse
     
     async def generate_response(self, result: Any, isCached=False):
-        response = result if isCached else None
+        response: T_ResponseModel = result if isCached else None
         if response is None:
             self._managers.requestData.update_parameters(self._parameters, exclude=INTERNAL_PARAMETERS)
 
@@ -217,8 +230,7 @@ class RouteHelper():
                     tableId = self._parameters.get('collection', self._managers.cacheKey.encrypt())
                     response = self._responseConfig.model(
                         request=self._managers.requestData,
-                        response=IGVBrowserTrackSelectorResponse.build_table(result, tableId) \
-                    )
+                        response=IGVBrowserTrackSelectorResponse.build_table(result, tableId))
                 else:
                     response = self._responseConfig.model(
                         request=self._managers.requestData,
@@ -233,7 +245,7 @@ class RouteHelper():
             
         match self._responseConfig.view:
             case ResponseView.TABLE | ResponseView.IGV_BROWSER:
-                self.generate_table_response()
+                return self.generate_table_response(response)
                         
             case ResponseView.DEFAULT:
                 if self._responseConfig.format in [ResponseFormat.TEXT, ResponseFormat.BED, ResponseFormat.VCF]:

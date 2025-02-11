@@ -5,7 +5,6 @@ import functools
 from io import StringIO
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, Response
-from fastapi.openapi.models import Server
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from asgi_correlation_id import CorrelationIdMiddleware
 
 from api.config.settings import get_settings
-from .routers import FILERRouter, RedirectRouter
+from .routers import FILERRouter
 
 # FIXME -- needed for applications reading the openapi.json or openapi.yaml, but 
 # needs to be dynamic based on deployment

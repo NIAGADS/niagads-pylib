@@ -73,7 +73,6 @@ class RequestDataModel(SerializableModel):
     endpoint: str = Field(description="queried endpoint")
     parameters: Dict[str, Union[int, str, bool]] = Field(description="request path and query parameters, includes unspecified defaults")
     msg: Optional[List[str]] = Field(default=None, description="warning or info message qualifying the response")
-    
 
     def add_message(self, msg):
         if self.msg is None:
@@ -121,9 +120,7 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
         # for pagination and 
         return cls(
             key = rawKey,
-            namespace = CacheNamespace(request.url.path.split('/')[2]) \
-                if '/redirect/' in request.url.path \
-                    else CacheNamespace(request.url.path.split('/')[1])
+            namespace = CacheNamespace(request.url.path.split('/')[1])
         )
         
 
@@ -154,7 +151,6 @@ class GenericDataModel(RowModel):
     
     def to_view_data(self, view: ResponseView, **kwargs):
         return self.model_dump()
-    
     
     # FIXME: dates -> in xstr? maybe
     def to_text(self, format: ResponseFormat, **kwargs):

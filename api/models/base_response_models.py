@@ -8,7 +8,7 @@ from api.models.base_models import PaginationDataModel, RequestDataModel, RowMod
 
 
 # FIXME: 'Any' or 'SerializableModel' for response
-class AbstractResponse(ABC, SerializableModel):
+class AbstractResponseModel(ABC, SerializableModel):
     response: Any = Field(description="result (data) from the request")
     
     @abstractmethod
@@ -20,8 +20,13 @@ class AbstractResponse(ABC, SerializableModel):
     def to_view(self, view:ResponseView, **kwargs):
         """ transform response to JSON expected by NIAGADS-viz-js Table """
         raise RuntimeError('`AbstractModel` is an abstract class; need to override abstract methods in child classes')
+    
+    @classmethod
+    def is_paged(cls: Self):
+        return 'pagination' in cls.model_fields
+    
 
-class BaseResponseModel(AbstractResponse):
+class BaseResponseModel(AbstractResponseModel):
     request: RequestDataModel = Field(description="details about the originating request that generated the response")
 
     def to_view(self, view: ResponseView, **kwargs):
@@ -75,13 +80,11 @@ class BaseResponseModel(AbstractResponse):
         
         return rowType.__name__ if name == True else rowType
     
-    @classmethod
-    def is_paged(cls: Self):
-        return 'pagination' in cls.model_fields
+
 
 class PagedResponseModel(BaseResponseModel):
     pagination: PaginationDataModel = Field(description="pagination details, if the result is paged")
     
     
 # possibly allows you to set a type hint to a class and all its subclasses
-T_BaseResponseModel = TypeVar('T_BaseResponseModle', bound=BaseResponseModel)
+T_ResponseModel = TypeVar('T_ResponseModel', bound=AbstractResponseModel)
