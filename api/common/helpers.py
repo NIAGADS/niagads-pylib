@@ -185,7 +185,7 @@ class RouteHelper():
     async def generate_table_response(self, response: T_ResponseModel):
         # create an encrypted cache key
         cacheKey = CacheKeyDataModel.encrypt_key(
-            self._managers.cacheKey + CacheKeyQualifier.VIEW + self._responseConfig.view.value)
+            self._managers.cacheKey + str(CacheKeyQualifier.VIEW) + ResponseView.TABLE.value)
         
         viewResponse = await self._managers.cache.exists(cacheKey, namespace=CacheNamespace.VIEW)
         
