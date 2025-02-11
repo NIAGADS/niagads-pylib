@@ -46,7 +46,12 @@ class SerializableModel(BaseModel):
 
 class RowModel(SerializableModel, ABC):
     """
-    NOTE: these abstract methods cannot be class methods 
+    Most API responses are a lists of objects (rows).
+    A Row Model defines the expected object.
+    The RowModel abstract class defines abstract and class methods 
+    expected for these objects to generate standardized API responses
+    
+    An abstract class is used because 
     because sometimes the row models have extra fields 
     or objects that need to be promoted (e.g., experimental_design)
     that only exist when instantiated
@@ -79,6 +84,10 @@ class RequestDataModel(SerializableModel):
             self.message = []
         self.message.append(message)   
         
+        
+    def set_request_id(self, id):
+        self.request_id = id   
+
 
     def update_parameters(self, params: BaseModel, exclude:List[str]=[]) -> str:
         """ default parameter values are not in the original request, so need to be added later """
@@ -157,8 +166,8 @@ class GenericDataModel(RowModel):
         nullStr = kwargs.get('nullStr', '.')
         match format:
             case ResponseFormat.TEXT:
-                fields = list(self.model_dump().values())
-                return '\t'.join([xstr(f, nullStr=nullStr, dictsAsJson=False) for f in fields])
+                values = list(self.model_dump().values())
+                return '\t'.join([xstr(v, nullStr=nullStr, dictsAsJson=False) for v in values])
             case _:
                 raise NotImplementedError(f'Text transformation `{format.value}` not supported for a generic data response')
             

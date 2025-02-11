@@ -10,6 +10,10 @@ from api.models.base_models import PaginationDataModel, RequestDataModel, RowMod
 # FIXME: 'Any' or 'SerializableModel' for response
 class AbstractResponseModel(ABC, SerializableModel):
     response: Any = Field(description="result (data) from the request")
+    request: RequestDataModel = Field(description="details about the originating request that generated the response")
+
+    def add_message(self, str):
+        self.request.add_message(str)
     
     @abstractmethod
     def to_text(self, format:ResponseFormat, **kwargs):
@@ -21,14 +25,27 @@ class AbstractResponseModel(ABC, SerializableModel):
         """ transform response to JSON expected by NIAGADS-viz-js Table """
         raise RuntimeError('`AbstractModel` is an abstract class; need to override abstract methods in child classes')
     
+    
     @classmethod
     def is_paged(cls: Self):
         return 'pagination' in cls.model_fields
     
+    
+    @classmethod
+    def row_model(cls: Self, name=False):
+        """ get the type of the row model in the response """
+        
+        rowType = cls.model_fields['response'].annotation
+        try: # can't explicity test for List[rowType], so just try
+            rowType = rowType.__args__[0] # rowType = typing.List[RowType]
+        except:
+            rowType = rowType
+        
+        return rowType.__name__ if name == True else rowType
+    
 
 class BaseResponseModel(AbstractResponseModel):
-    request: RequestDataModel = Field(description="details about the originating request that generated the response")
-
+    
     def to_view(self, view: ResponseView, **kwargs):
         """ transform response to JSON expected by NIAGADS-viz-js Table """
         if len(self.response) == 0:
@@ -55,7 +72,9 @@ class BaseResponseModel(AbstractResponseModel):
     def to_text(self, format: ResponseFormat, **kwargs):
         """ return a text response (e.g., BED, VCF, plain text) """
         
-        responseStr = "" 
+        header = kwargs.get('fields', None)
+        responseStr = "" if header is None \
+            else '\t'.join(header) + '\n'
         rowText = [] 
         if len(self.response) > 0:
             for row in self.response:
@@ -64,22 +83,10 @@ class BaseResponseModel(AbstractResponseModel):
                 else:
                     row: RowModel
                     rowText.append(row.to_text(format, **kwargs))        
-            responseStr = '\n'.join(rowText)
+            responseStr += '\n'.join(rowText)
         
         return responseStr
         
-    @classmethod
-    def row_model(cls: Self, name=False):
-        """ get the type of the row model in the response """
-        
-        rowType = cls.model_fields['response'].annotation
-        try: # can't explicity test for List[rowType], so just try
-            rowType = rowType.__args__[0] # rowType = typing.List[RowType]
-        except:
-            rowType = rowType
-        
-        return rowType.__name__ if name == True else rowType
-    
 
 
 class PagedResponseModel(BaseResponseModel):
