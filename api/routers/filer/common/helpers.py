@@ -230,7 +230,8 @@ class FILERRouteHelper(RouteHelper):
             case ResponseContent.SUMMARY | ResponseContent.URLS: 
                 metadata: List[Track] = await self.get_track_metadata(rawResponse=ResponseContent.SUMMARY)
                 summary = self.__generate_track_overlap_summary(metadata, sortedTrackOverlaps)
-                result = [t['url'] for t in summary[sliceRange.start:sliceRange.end]] if ResponseContent.URLS \
+                result = [t['url'] for t in summary[sliceRange.start:sliceRange.end]] \
+                    if self._responseConfig.content == ResponseContent.URLS \
                     else summary[sliceRange.start:sliceRange.end] 
                 return await self.generate_response(result)
             
@@ -435,7 +436,8 @@ class FILERRouteHelper(RouteHelper):
             case ResponseContent.SUMMARY | ResponseContent.URLS: 
                 metadata:List[Track] = [t for t in matchingTracks if t.track_id in targetTrackIds]
                 summary = self.__generate_track_overlap_summary(metadata, result)
-                result = [t['url'] for t in summary[sliceRange.start:sliceRange.end]] if ResponseContent.URLS \
+                result = [t['url'] for t in summary[sliceRange.start:sliceRange.end]] \
+                    if self._responseConfig.content == ResponseContent.URLS \
                     else summary[sliceRange.start:sliceRange.end] 
                 return await self.generate_response(result)
             
