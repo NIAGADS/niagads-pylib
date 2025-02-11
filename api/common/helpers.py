@@ -1,22 +1,22 @@
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import RedirectResponse
 from fastapi import Response, status
-from pydantic import BaseModel, field_validator, ConfigDict
-from typing import Any, Dict, Optional, Union
+from pydantic import BaseModel, field_validator, ConfigDict, model_validator
+from typing import Any, Dict, Optional, Type, Union
+
+from niagads.utils.list import list_to_string
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
-from api.common.enums import ResponseContent, CacheNamespace
+from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace, ResponseView, ResponseFormat
 from api.common.types import Range
 
 from api.dependencies.parameters.services import InternalRequestParameters
-from api.dependencies.parameters.optional import ResponseFormat
-from api.models.base_models import PaginationDataModel
-from api.models.base_response_models import BaseResponseModel
-from api.models.igvbrowser import IGVBrowserTrackSelecterResponse
-from api.routers.redirect.common.constants import RedirectEndpoints
+from api.models.base_models import CacheKeyDataModel, PaginationDataModel
+from api.models.base_response_models import BaseResponseModel, T_ResponseModel
+from api.models.igvbrowser import IGVBrowserTrackSelectorResponse
+from api.models.view_models import TableViewResponseModel
 
 INTERNAL_PARAMETERS = ['span', '_tracks']
-
+ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMARY]
 
 class PaginationCursor(BaseModel):
     """ pagination cursor """
@@ -41,15 +41,32 @@ class Parameters(BaseModel):
 class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     format: ResponseFormat = ResponseFormat.JSON
     content: ResponseContent = ResponseContent.FULL
-    model: Any = None
+    view: ResponseView = ResponseView.DEFAULT
+    model: Type[T_ResponseModel]  = None
+    
+
+    @model_validator(mode='after')
+    def validate_config(self, __context):
+        if self.content not in ALLOWABLE_VIEW_RESPONSE_CONTENTS \
+            and self.view != ResponseView.DEFAULT:  
+            raise RequestValidationError(f'Can only generate a `{str(self.view)}` `view` of query result for `{list_to_string(ALLOWABLE_VIEW_RESPONSE_CONTENTS)}` response content (see `content`)')
+    
+        if self.content != ResponseContent.FULL \
+            and self.format in [ResponseFormat.VCF, ResponseFormat.BED]:
+                
+            raise RequestValidationError(f'Can only generate a `{self.format}` response for a `FULL` data query (see `content`)')
+
+        return self
+
     
     # from https://stackoverflow.com/a/67366461
-    # allows ensurance taht model is always a child of BaseResponseModel
+    # allows ensurance that model is always a child of BaseResponseModel
     @field_validator("model")
     def validate_model(cls, model):
         if issubclass(model, BaseResponseModel):
             return model
         raise RuntimeError(f'Wrong type for `model` : `{model}`; must be subclass of `BaseResponseModel`')
+    
     
     @field_validator("content")
     def validate_content(cls, content):
@@ -57,6 +74,21 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
             return ResponseContent(content)
         except NameError:
             raise RequestValidationError(f'Invalid value provided for `content`: {content}')
+        
+    @field_validator("format")
+    def validate_foramt(cls, format):
+        try:
+            return ResponseFormat(format)
+        except NameError:
+            raise RequestValidationError(f'Invalid value provided for `format`: {format}')
+    
+    @field_validator("view")
+    def validate_view(cls, view):
+        try:
+            return ResponseView(view)
+        except NameError:
+            raise RequestValidationError(f'Invalid value provided for `view`: {format}')
+
 
 class RouteHelper():
     
@@ -150,8 +182,35 @@ class RouteHelper():
         return Range(start=start, end=end)
     
     
+    async def generate_table_response(self, response: Type[T_ResponseModel]):
+        # create an encrypted cache key
+        cacheKey = CacheKeyDataModel.encrypt_key(
+            self._managers.cacheKey.key + str(CacheKeyQualifier.VIEW) + ResponseView.TABLE.value)
+        
+        viewResponse = await self._managers.cache.get(cacheKey, namespace=CacheNamespace.VIEW)
+        
+        if viewResponse:
+            return viewResponse
+        
+        self._managers.requestData.set_request_id(cacheKey)
+        
+        if  self._responseConfig.format != ResponseFormat.JSON:
+            self._managers.requestData.add_message(f'View requested; response format changed to {ResponseFormat.JSON.value}')
+            
+        
+        viewResponseObj = {'response': response.to_view(ResponseView.TABLE, id=cacheKey),
+            'request': self._managers.requestData,
+            'pagination': response.pagination if response.is_paged() else None }
+        
+        viewResponse = TableViewResponseModel(**viewResponseObj)
+
+        await self._managers.cache.set(cacheKey, viewResponse, namespace=CacheNamespace.VIEW)
+        
+        return viewResponse
+    
+    
     async def generate_response(self, result: Any, isCached=False):
-        response = result if isCached else None
+        response: Type[T_ResponseModel] = result if isCached else None
         if response is None:
             self._managers.requestData.update_parameters(self._parameters, exclude=INTERNAL_PARAMETERS)
 
@@ -169,34 +228,45 @@ class RouteHelper():
                     pagination=self._pagination,
                     response=result)
             else: 
-                response = self._responseConfig.model(
-                    request=self._managers.requestData,
-                    response=IGVBrowserTrackSelecterResponse.build_table(result) \
-                        if self._responseConfig.model == IGVBrowserTrackSelecterResponse \
-                            else result
+                if (self._responseConfig.model == IGVBrowserTrackSelectorResponse):
+                    queryId = self._managers.cacheKey.encrypt()
+                    collectionId = self._parameters.get('collection')
+        
+                    response = self._responseConfig.model(
+                        request=self._managers.requestData,
+                        response=IGVBrowserTrackSelectorResponse.build_table(result, queryId if collectionId is None else collectionId))
+                else:
+                    response = self._responseConfig.model(
+                        request=self._managers.requestData,
+                        response=result
                     )
 
-                
             # cache the response
-            await self._managers.internalCache.set(
-                self._managers.cacheKey.key, 
+            await self._managers.cache.set(
+                self._managers.cacheKey.encrypt(), 
                 response, 
                 namespace=self._managers.cacheKey.namespace)
             
-        match self._responseConfig.format:
-            case ResponseFormat.TABLE:
-                # cache the response again, this time by the requestId b/c 
-                # the cacheKey cannot be passed through the URL  
-                cacheKey = self._managers.cacheKey.encrypt()   
-                requestIsCached = await self._managers.internalCache.exists(cacheKey, namespace=CacheNamespace.VIEW)
-                if not requestIsCached:  # then cache it
-                    await self._managers.internalCache.set(cacheKey, response, namespace=CacheNamespace.VIEW)
-                
-                redirectUrl = f'/redirect{RedirectEndpoints.TABLE.value}/{cacheKey}'
-                return RedirectResponse(url=redirectUrl, status_code=status.HTTP_303_SEE_OTHER)
-            case ResponseFormat.DOWNLOAD:
-                
-                return Response(response.to_text(ResponseFormat.DOWNLOAD), media_type='text/plain')
-            case _:  
-                return response
+        match self._responseConfig.view:
+            case ResponseView.TABLE:
+                return await self.generate_table_response(response)
+                        
+            case ResponseView.DEFAULT:
+                if self._responseConfig.format in [ResponseFormat.TEXT, ResponseFormat.BED, ResponseFormat.VCF]:
+                    try:
+                        return Response(response.to_text(self._responseConfig.format), media_type="text/plain")
+                    except NotImplementedError as err:
+                        if self._responseConfig.format == ResponseFormat.TEXT:
+                            response.add_message(f'{str(err)} Returning default JSON response.')
+                            return response
+                        else:
+                            raise err
+                else: # JSON
+                    return response
 
+            case _:  # IGV_BROWSER
+                raise NotImplementedError(f'A response for view of type {str(self._responseConfig.view)} is coming soon.')
+
+            
+
+    

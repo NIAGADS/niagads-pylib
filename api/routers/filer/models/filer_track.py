@@ -6,7 +6,7 @@ from pydantic import model_validator
 from niagads.utils.list import find
 
 from api.common.constants import JSON_TYPE
-from api.common.enums import OnRowSelect, ResponseFormat
+from api.common.enums import OnRowSelect, ResponseView
 from api.common.formatters import id2title
 from api.models import ExperimentalDesign, BiosampleCharacteristics, Provenance
 from api.models.base_models import GenericDataModel
@@ -28,28 +28,38 @@ class FILERTrackBrief(SQLModel, GenericDataModel):
     @classmethod
     def allowable_extras(cls: Self, data: Union[Dict[str, Any]]):
         """ for now, allowable extras are just counts, prefixed with `num_` """
-        if type(data).__base__ == SQLModel: # then there are no extra fields
+        if type(data).__base__ == SQLModel or isinstance(data, str) or not isinstance(data, dict): 
+            # then there are no extra fields or FASTAPI is attempting to serialize
+            # unnecessarily when returning a Union[ResponseType Listing]
             return data
         modelFields = cls.model_fields.keys()
         return {k:v for k, v in data.items() if k in modelFields or k.startswith('num_')}
 
-    def get_view_config(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
+
+    def get_field_names(self):
+        fields = list(self.model_fields.keys())
+        if len(self.model_extra) > 0:
+            fields += list(self.model_extra.keys())
+        return fields
+    
+
+    def get_view_config(self, view: ResponseView, **kwargs) -> JSON_TYPE:
         """ get configuration object required by the view """
         match view:
             case view.TABLE:
                 return self._build_table_config()
             case _:
                 raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
-    
-    def to_view_data(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
+            
+
+    def to_view_data(self, view: ResponseView, **kwargs) -> JSON_TYPE:
         """ covert row data to view formatted data """
         return self.serialize()
 
+    
     def _build_table_config(self):
         """ Return a column object for niagads-viz-js/Table """
-        fields = list(self.model_fields.keys())
-        if len(self.model_extra) > 0:
-            fields += list(self.model_extra.keys())
+        fields = self.get_field_names()
         columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields]
             
         # update type of is_lifted to boolean
@@ -91,11 +101,18 @@ class FILERTrack(FILERTrackBrief):
     file_format: Optional[str]
     file_schema: Optional[str]
     
+    
+    def get_field_names(self):
+        fields = list(self.model_fields.keys())
+        if len(self.model_extra) > 0:
+            fields += list(self.model_extra.keys())
+        return fields
+    
 
-    def get_view_config(self, view, **kwargs):
+    def get_view_config(self, view: ResponseView, **kwargs):
         return super().get_view_config(view, **kwargs)
     
-    def to_view_data(self, view, **kwargs):
+    def to_view_data(self, view: ResponseView, **kwargs):
         return self.serialize(promoteObjs=True, exclude=['replicates'])
     
     def _build_table_config(self):
@@ -109,14 +126,17 @@ class FILERTrack(FILERTrackBrief):
 
 class FILERTrackBriefResponse(PagedResponseModel):
     response: List[FILERTrackBrief]
+    
+    def to_text(self, format: ResponseView, **kwargs):
+        fields = self.response[0].get_field_names()
+        return super().to_text(format, fields=fields)
 
-    def to_view(self, view, **kwargs):
-        return super().to_view(view, **kwargs)
     
 class FILERTrackResponse(PagedResponseModel):
     response: List[FILERTrack]
 
-    def to_view(self, view, **kwargs):
-        return super().to_view(view, **kwargs)
+    def to_text(self, format: ResponseView, **kwargs):
+        fields = self.response[0].get_field_names()
+        return super().to_text(format, fields=fields)
 
 

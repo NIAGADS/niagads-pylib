@@ -6,12 +6,12 @@ from fastapi import Request
 from hashlib import md5
 from abc import ABC, abstractmethod
 
-from niagads.utils.string import dict_to_string
+from niagads.utils.string import dict_to_string, xstr
 from niagads.utils.dict import prune
 from niagads.utils.reg_ex import regex_replace
 
 from api.common.constants import JSON_TYPE
-from api.common.enums import CacheKeyQualifier, CacheNamespace, OnRowSelect, ResponseContent, ResponseFormat
+from api.common.enums import CacheKeyQualifier, CacheNamespace, OnRowSelect, ResponseContent, ResponseFormat, ResponseView
 from api.common.formatters import id2title
 
 class SerializableModel(BaseModel):
@@ -46,19 +46,24 @@ class SerializableModel(BaseModel):
 
 class RowModel(SerializableModel, ABC):
     """
-    NOTE: these abstract methods cannot be class methods 
+    Most API responses are a lists of objects (rows).
+    A Row Model defines the expected object.
+    The RowModel abstract class defines abstract and class methods 
+    expected for these objects to generate standardized API responses
+    
+    An abstract class is used because 
     because sometimes the row models have extra fields 
     or objects that need to be promoted (e.g., experimental_design)
     that only exist when instantiated
     """
     
     @abstractmethod
-    def get_view_config(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
+    def get_view_config(self, view: ResponseView, **kwargs) -> JSON_TYPE:
         """ get configuration object required by the view """
         raise RuntimeError('`RowModel` is an abstract class; need to override abstract methods in child classes')
     
     @abstractmethod
-    def to_view_data(self, view: ResponseFormat, **kwargs) -> JSON_TYPE:
+    def to_view_data(self, view: ResponseView, **kwargs) -> JSON_TYPE:
         """ covert row data to view formatted data """
         raise RuntimeError('`RowModel` is an abstract class; need to override abstract methods in child classes')
     
@@ -72,8 +77,18 @@ class RequestDataModel(SerializableModel):
     request_id: str = Field(description="unique request identifier")
     endpoint: str = Field(description="queried endpoint")
     parameters: Dict[str, Union[int, str, bool]] = Field(description="request path and query parameters, includes unspecified defaults")
-    msg: Optional[str] = Field(default=None, description="warning or info message qualifying the response")
-    
+    message: Optional[List[str]] = Field(default=None, description="warning or info message qualifying the response")
+
+    def add_message(self, message):
+        if self.message is None:
+            self.message = []
+        self.message.append(message)   
+        
+        
+    def set_request_id(self, id):
+        self.request_id = id   
+
+
     def update_parameters(self, params: BaseModel, exclude:List[str]=[]) -> str:
         """ default parameter values are not in the original request, so need to be added later """
         exclude = exclude + ['filter'] # do not overwrite original filter string with parsed tokens
@@ -108,15 +123,13 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
     @classmethod
     async def from_request(cls, request: Request):
         endpoint = str(request.url.path) # endpoint includes path parameters
-        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params), exclude=['format'])
+        parameters = RequestDataModel.sort_query_parameters(dict(request.query_params), exclude=['format', 'view'])
         rawKey = endpoint + '?' + parameters.replace(':','_') # ':' delimitates keys in keydb
         
         # for pagination and 
         return cls(
             key = rawKey,
-            namespace = CacheNamespace(request.url.path.split('/')[2]) \
-                if '/redirect/' in request.url.path \
-                    else CacheNamespace(request.url.path.split('/')[1])
+            namespace = CacheNamespace(request.url.path.split('/')[1])
         )
         
 
@@ -140,83 +153,30 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
         return md5(key.encode('utf-8')).hexdigest()
     
     
-
-
-# FIXME: 'Any' or 'SerializableModel' for response
-class AbstractResponse(ABC, SerializableModel):
-    response: Any = Field(description="result (data) from the request")
-    
-    @abstractmethod
-    def to_text(self, format:ResponseFormat, **kwargs):
-        """ return a text response (e.g., BED, VCF, Download script) """
-        
-        responseStr = "" 
-        rowText = [] 
-        if len(self.response) > 0:
-            row: RowModel
-            for row in self.response:
-                rowText.append(row.to_text(format, **kwargs))        
-            responseStr = '\n'.join(rowText)
-        
-        return responseStr
-        
-    
-    @abstractmethod 
-    def to_view(self, view:ResponseFormat, **kwargs):
-        """ transform response to JSON expected by NIAGADS-viz-js Table """
-        if len(self.response) == 0:
-            raise RuntimeError('zero-length response; cannot generate view')
-        if 'on_row_select' not in kwargs:
-            if 'num_overlaps' in self.response[0].model_fields.keys() or \
-                'num_overlaps' in self.response[0].model_extra.keys():
-                kwargs['on_row_select'] = OnRowSelect.ACCESS_ROW_DATA
-                
-        viewResponse: Dict[str, Any] = {}
-        data = []
-        row: RowModel # annotated type hint
-        for index, row in enumerate(self.response):
-            if index == 0:
-                viewResponse = row.get_view_config(view, **kwargs)
-            data.append(row.to_view_data(view, **kwargs))
-        viewResponse.update({'data': data})
-    
-        if view == ResponseFormat.TABLE:
-            viewResponse.update({'id': kwargs['id']})
-            
-        return viewResponse
-
-
-
 class GenericDataModel(RowModel):
     """ Generic JSON Response """
     __pydantic_extra__: Dict[str, Any]  
     model_config = ConfigDict(extra='allow')
     
-    def to_view_data(self, view, **kwargs):
+    def to_view_data(self, view: ResponseView, **kwargs):
         return self.model_dump()
-    
-    
+ 
     def to_text(self, format: ResponseFormat, **kwargs):
+        nullStr = kwargs.get('nullStr', '.')
         match format:
-            case ResponseFormat.DOWNLOAD:
-                fields = list(self.model_dump().keys())
-                if 'url' not in fields:
-                    raise RuntimeError("No url field available for record.  Unable to generate a list of URLs")
-                return f'{self.url}'
-            # case ResponseFormat.BED:
-            #     pass
-            # case ResponseFormat.VCF:
-            #    pass
+            case ResponseFormat.TEXT:
+                values = list(self.model_dump().values())
+                return '\t'.join([xstr(v, nullStr=nullStr, dictsAsJson=False) for v in values])
             case _:
-                raise NotImplementedError(f'Text transformation `{format.value}` not yet supported')
+                raise NotImplementedError(f'Text transformation `{format.value}` not supported for a generic data response')
             
     
-    def get_view_config(self, view: ResponseFormat, **kwargs):
+    def get_view_config(self, view: ResponseView, **kwargs):
         """ get configuration object required by the view """
         match view:
-            case ResponseFormat.TABLE:
+            case ResponseView.TABLE:
                 self.get_table_view_config(kwargs)
-            case ResponseFormat.IGV_BROWSER:
+            case ResponseView.IGV_BROWSER:
                 return None
             case _:
                 raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
@@ -237,7 +197,7 @@ class GenericDataModel(RowModel):
                         'onRowSelectAction': kwargs['on_row_select']
                     }})
         return {'columns': columns, 'options': options}
-        
+
     
 class PaginationDataModel(BaseModel):
     page: int = Field(default=1, description="if result is paged, indicates the current page of the result; defaults to 1")

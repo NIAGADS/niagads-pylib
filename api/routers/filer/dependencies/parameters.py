@@ -8,10 +8,10 @@ from api.common.enums import ResponseFormat
 from api.common.formatters import clean, print_enum_values
 from api.dependencies.database import DatabaseSessionManager
 from api.dependencies.http_client import HttpClientSessionManager
-from api.dependencies.parameters.optional import get_response_format
+from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.services import InternalRequestParameters as BaseInternalRequestParameters
 
-from ..common.constants import FILER_HTTP_CLIENT_TIMEOUT, ROUTE_DATABASE
+from ..common.constants import FILER_HTTP_CLIENT_TIMEOUT, ROUTE_DATABASE, TRACK_SEARCH_FILTER_FIELD_MAP
 
 # initialize database and api wrapper session managers; this allows us to 
 # use connection pooling
@@ -36,8 +36,4 @@ async def required_query_track_id(track: str = Query(description="comma separate
 async def optional_query_track_id(track: Optional[str] = Query(default=None, description="comma separated list of one or more FILER track identifiers")) -> str:
     return clean(track)
 
-get_non_data_format_enum = get_response_format(exclude=[ResponseFormat.IGV_BROWSER])
-
-async def non_data_format_param(format: str = Query(ResponseFormat.JSON, 
-    description=f'response content; one of: {print_enum_values(get_non_data_format_enum)}')) -> str:
-    return format
+METADATA_FILTER_PARAM = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)
