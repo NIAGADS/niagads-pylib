@@ -3,7 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from fastapi import Response, status
 from pydantic import BaseModel, field_validator, ConfigDict, model_validator
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Type, Union
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace, ResponseView, ResponseFormat
@@ -42,7 +42,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     format: ResponseFormat = ResponseFormat.JSON
     content: ResponseContent = ResponseContent.FULL
     view: ResponseView = ResponseView.DEFAULT
-    model: T_ResponseModel  = None
+    model: Type[T_ResponseModel]  = None
     
     # make changes or do validation after instantiation
     # https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_post_init
@@ -182,24 +182,21 @@ class RouteHelper():
         return Range(start=start, end=end)
     
     
-    async def generate_table_response(self, response: T_ResponseModel):
+    async def generate_table_response(self, response: Type[T_ResponseModel]):
         # create an encrypted cache key
         cacheKey = CacheKeyDataModel.encrypt_key(
-            self._managers.cacheKey + str(CacheKeyQualifier.VIEW) + ResponseView.TABLE.value)
+            self._managers.cacheKey.key + str(CacheKeyQualifier.VIEW) + ResponseView.TABLE.value)
         
         viewResponse = await self._managers.cache.exists(cacheKey, namespace=CacheNamespace.VIEW)
         
         if viewResponse:
             return viewResponse
         
-        requestData = self._managers.requestData
-        requestData['request_id'] = cacheKey
+        self._managers.requestData.set_request_id(cacheKey)
         
         viewResponseObj = {'response': response.to_view(ResponseView.TABLE, id=cacheKey),
-            'request': requestData}
-        
-        if self._pagination_exists(raiseError=False):
-            viewResponseObj['pagination'] = self._pagination
+            'request': self._managers.requestData,
+            'pagination': response.pagination if response.is_paged() else None }
         
         viewResponse = TableViewResponseModel(**viewResponseObj)
 
@@ -207,8 +204,9 @@ class RouteHelper():
         
         return viewResponse
     
+    
     async def generate_response(self, result: Any, isCached=False):
-        response: T_ResponseModel = result if isCached else None
+        response: Type[T_ResponseModel] = result if isCached else None
         if response is None:
             self._managers.requestData.update_parameters(self._parameters, exclude=INTERNAL_PARAMETERS)
 
@@ -244,17 +242,24 @@ class RouteHelper():
                 namespace=self._managers.cacheKey.namespace)
             
         match self._responseConfig.view:
-            case ResponseView.TABLE | ResponseView.IGV_BROWSER:
-                return self.generate_table_response(response)
+            case ResponseView.TABLE:
+                return await self.generate_table_response(response)
                         
             case ResponseView.DEFAULT:
                 if self._responseConfig.format in [ResponseFormat.TEXT, ResponseFormat.BED, ResponseFormat.VCF]:
-                    return Response(response.to_text(self._responseConfig.format), media_type="text/plain")
+                    try:
+                        return Response(response.to_text(self._responseConfig.format), media_type="text/plain")
+                    except NotImplementedError as err:
+                        if self._responseConfig.format == ResponseFormat.TEXT:
+                            response.add_message(f'{str(err)} Returning default JSON response.')
+                            return response
+                        else:
+                            raise err
                 else: # JSON
                     return response
 
-            case _:  # JSON
-                raise NotImplementedError(f'Cannot generate a response for view of type {str(self._responseConfig.view)}')
+            case _:  # IGV_BROWSER
+                raise NotImplementedError(f'A response for view of type {str(self._responseConfig.view)} is coming soon.')
 
             
 
