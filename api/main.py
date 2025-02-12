@@ -12,12 +12,14 @@ from fastapi.middleware.cors import CORSMiddleware
 # from starlette.middleware.sessions import SessionMiddleware
 from asgi_correlation_id import CorrelationIdMiddleware
 
+from api.config.metadata import ROUTE_TAGS
 from api.config.settings import get_settings
 from .routers import FILERRouter, GenomicsRouter
 
 # FIXME -- needed for applications reading the openapi.json or openapi.yaml, but 
 # needs to be dynamic based on deployment
 # SERVER = {'url' :"http://localhost:8000/api"}
+
 
 
 app = FastAPI(
@@ -40,7 +42,8 @@ app = FastAPI(
             'apisSorter': 'alpha',
             'operationsSorter': 'alpha',
             'tagsSorter': 'alpha'
-        }
+        },
+        openapi_tags=ROUTE_TAGS
     )
 
 # app.add_middleware(SessionMiddleware, secret_key=get_settings().SESSION_SECRET)
