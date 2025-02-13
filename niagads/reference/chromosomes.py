@@ -36,9 +36,20 @@ class Human(str, Enum):
     chrY = 'Y'
     chrM = 'M'
     
+    
+    # after from https://stackoverflow.com/a/76131490
+    @classmethod
+    def _missing_(cls, value: str): # allow 'X' or 'chrX'
+        for member in cls:
+            if value == member.name:
+                return member
+    
+        raise KeyError(value)
+    
         
     def __str__(self):
         return self.name
+    
     
     @classmethod
     def sort_order(self):
