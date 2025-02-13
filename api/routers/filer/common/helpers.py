@@ -31,8 +31,6 @@ class FILERRouteHelper(RouteHelper):
     
     def __init__(self, managers: InternalRequestParameters, responseConfig: ResponseConfiguration, params: Parameters):
         super().__init__(managers, responseConfig, params)
-        self._managers: InternalRequestParameters = managers
-
 
     async def __initialize_data_query_pagination(self, trackOverlaps: List[TrackOverlap]) -> FILERPaginationCursor:
         """ calculate expected result size, number of pages; 
