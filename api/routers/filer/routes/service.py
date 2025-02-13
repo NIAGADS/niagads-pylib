@@ -1,7 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
 
 from api.common.enums import ResponseContent
 from api.common.exceptions import RESPONSES
