@@ -9,6 +9,8 @@ from api.models.base_response_models import BaseResponseModel
 from ..common.constants import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX
 from ..dependencies.parameters import ROUTE_SESSION_MANAGER
 
+from .service import router as ServiceRouter
+
 router = APIRouter(
     prefix=ROUTE_PREFIX,
     tags=ROUTE_TAGS,
@@ -30,10 +32,11 @@ async def read_root(
 # --------------------------------------------------------------
 # CHIILD ROUTES
 # --------------------------------------------------------------
+router.include_router(ServiceRouter)
 """
 router.include_router(TrackRouter)
 router.include_router(MetadataRouter)
 router.include_router(DataRouter)
-router.include_router(ServiceRouter)
+
 router.include_router(CollectionRouter)
 """

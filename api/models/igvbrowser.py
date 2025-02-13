@@ -12,6 +12,7 @@ from api.models.base_models import RowModel
 from api.models.base_response_models import BaseResponseModel
 from api.models.view_models import TableViewModel
 
+
 class IGVBrowserTrackConfig(SQLModel, RowModel):
     track_id: str = Field(serialization_alias="id")
     browser_track_name: str = Field(serialization_alias="name")  
