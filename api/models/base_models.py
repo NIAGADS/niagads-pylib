@@ -1,6 +1,5 @@
-from fastapi.datastructures import QueryParams
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Any, Dict, List, Optional, Union, TypeVar
+from typing import Any, Dict, List, Optional, Type, Union, TypeVar
 from fastapi.encoders import jsonable_encoder
 from fastapi import Request
 from hashlib import md5
@@ -22,7 +21,8 @@ class SerializableModel(BaseModel):
         collapseUrls -> looks for field and field_url pairs and then updates field to be {url: , value: } object
         groupExtra -> if extra fields are present, group into a JSON object
         """
-        data:dict = jsonable_encoder(self.model_dump(exclude=exclude, by_alias=byAlias)) # FIXME: not sure if encoder is necessary; check dates? maybe
+        # note: encoder is necessary to correctly return enums/dates, etc
+        data:dict = jsonable_encoder(self.model_dump(exclude=exclude, by_alias=byAlias)) 
         if promoteObjs:
             objFields = [k for k, v in data.items() if isinstance(v, dict)]
             for f in objFields:
@@ -42,7 +42,11 @@ class SerializableModel(BaseModel):
     def has_extras(self):
         """ test if extra model fields are present """
         return len(self.model_extra) > 0
-    
+
+# allows you to set a type hint to a class and all its subclasses 
+# as long as type is specified as Type[T_SerializableModel] 
+# Type: from typing import Type
+T_SerializableModel = TypeVar('T_SerializableModel', bound=SerializableModel)
 
 class RowModel(SerializableModel, ABC):
     """
@@ -160,7 +164,7 @@ class GenericDataModel(RowModel):
     
     def to_view_data(self, view: ResponseView, **kwargs):
         return self.model_dump()
- 
+
     def to_text(self, format: ResponseFormat, **kwargs):
         nullStr = kwargs.get('nullStr', '.')
         match format:
@@ -205,5 +209,20 @@ class PaginationDataModel(BaseModel):
     paged_num_records: Optional[int] = Field(default=None, description="number of records in the current paged result set (response)")
     total_num_records: Optional[int] = Field(default=None, description="total number of records in the full result set (response)")
 
-# possibly allows you to set a type hint to a class and all its subclasses
-T_SerializableModel = TypeVar('T_SerializableModel', bound=SerializableModel)
+
+# FIXME: name? added `Defintion` to avoid conflict w/Fast-API `Query`
+class QueryDefinition(BaseModel):
+    name: str
+    query: str
+    useIdCTE: bool = False
+    resultType: Type[T_SerializableModel]
+    bindParameters: List[str] # bind parameter names
+
+# FIXME: is defaultColumns a UI decision?
+# FIXME: can sort be part of the query or does it need to be a CTE?    
+class TableQueryDefinition(QueryDefinition):
+    defaultColumns: List[str]
+    sort: str 
+
+
+
