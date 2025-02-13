@@ -21,10 +21,6 @@ from .services import FILERApiDataResponse, TrackOverlap, MetadataQueryService, 
 from ..dependencies.parameters import InternalRequestParameters
 from ..models.track_metadata_cache import Track
 
-import logging
-LOGGER = logging.getLogger(__name__)
-
-
 class FILERPaginationCursor(BaseModel):
     tracks: List[str]
     start: PaginationCursor

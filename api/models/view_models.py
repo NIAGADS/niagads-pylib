@@ -15,3 +15,4 @@ class TableViewModel(BaseModel):
     
 class TableViewResponseModel(BaseViewResponseModel):
     response: TableViewModel
+    
