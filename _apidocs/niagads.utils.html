@@ -1,0 +1,1532 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>niagads.utils package &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="niagads.validators package" href="niagads.validators.html" />
+    <link rel="prev" title="niagads.scripts package" href="niagads.scripts.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.validators.html" title="niagads.validators package"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.scripts.html" title="niagads.scripts package"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" accesskey="U">niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.utils package</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="niagads-utils-package">
+<h1>niagads.utils package<a class="headerlink" href="#niagads-utils-package" title="Link to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-niagads.utils.dict">
+<span id="niagads-utils-dict-module"></span><h2>niagads.utils.dict module<a class="headerlink" href="#module-niagads.utils.dict" title="Link to this heading">¶</a></h2>
+<p>library of object / dictionary / hash manipulation functions</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.dict.convert_str2numeric_values">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.dict.</span></span><span class="sig-name descname"><span class="pre">convert_str2numeric_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cdict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nanAsStr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infAsStr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/dict.html#convert_str2numeric_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.dict.convert_str2numeric_values" title="Link to this definition">¶</a></dt>
+<dd><p>converts numeric values in dictionary stored as strings
+to numeric</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cdict</strong> (<em>dict obj</em>) – dict bject to convert</p></li>
+<li><p><strong>nanAsStr</strong> (<em>bool</em><em>, </em><em>optional</em>) – treat NaN/nan/NAN as string?</p></li>
+<li><p><strong>infAsStr</strong> (<em>bool</em><em>, </em><em>optional</em>) – treat inf/INF as string?</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>updated dict object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.dict.deep_update">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.dict.</span></span><span class="sig-name descname"><span class="pre">deep_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/dict.html#deep_update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.dict.deep_update" title="Link to this definition">¶</a></dt>
+<dd><p>deep update a nested dict
+based on <a class="reference external" href="https://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth/60321833">https://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth/60321833</a>
+answer: <a class="reference external" href="https://stackoverflow.com/a/3233356">https://stackoverflow.com/a/3233356</a>
+TODO: may not handle all variations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d</strong> (<em>dict obj</em>) – source dict to be updated</p></li>
+<li><p><strong>u</strong> (<em>dict obj</em>) – overrides/updates to be made</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the deep updated source dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.dict.drop_nulls">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.dict.</span></span><span class="sig-name descname"><span class="pre">drop_nulls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/dict.html#drop_nulls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.dict.drop_nulls" title="Link to this definition">¶</a></dt>
+<dd><p>find nulls and remove from the object</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.dict.get">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.dict.</span></span><span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attribute</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errorAction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'fail'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/dict.html#get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.dict.get" title="Link to this definition">¶</a></dt>
+<dd><p>retrieve attribute if in dict</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<em>dict</em>) – dictionary object to query</p></li>
+<li><p><strong>attribute</strong> (<em>string</em>) – attribute to return</p></li>
+<li><p><strong>default</strong> (<em>obj</em>) – value to return on KeyError. Defaults to None</p></li>
+<li><p><strong>errorAction</strong> (<em>string</em><em>, </em><em>optional</em>) – fail or warn on KeyError. Defaults to False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the value of the attribute or the supplied <cite>default</cite> value if the attribute is missing</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.dict.print_dict">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.dict.</span></span><span class="sig-name descname"><span class="pre">print_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictObj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pretty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/dict.html#print_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.dict.print_dict" title="Link to this definition">¶</a></dt>
+<dd><p>pretty print a dict / JSON object</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.dict.prune">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.dict.</span></span><span class="sig-name descname"><span class="pre">prune</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictObj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">removeNulls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prune</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/dict.html#prune"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.dict.prune" title="Link to this definition">¶</a></dt>
+<dd><p>remove null entries from dict and entries whose value matches items in <cite>prune</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dictObj</strong> (<em>dict</em>) – the dictionary/hash</p></li>
+<li><p><strong>removeNulls</strong> (<em>bool</em><em>, </em><em>optional</em>) – flag indicating whether to remove null values.  Defaults to True.</p></li>
+<li><p><strong>prune</strong> (<em>list</em><em>, </em><em>optional</em>) – list of additional values to prune. Defaults to an empty list.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>cleaned up dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.dict.rename_key">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.dict.</span></span><span class="sig-name descname"><span class="pre">rename_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictObj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oldKey</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newKey</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordered</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/dict.html#rename_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.dict.rename_key" title="Link to this definition">¶</a></dt>
+<dd><p>rename dict key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dictObj</strong> (<em>dict</em>) – the dictionary object to update</p></li>
+<li><p><strong>oldKey</strong> (<em>str</em>) – old key</p></li>
+<li><p><strong>newKey</strong> (<em>str</em>) – new key</p></li>
+<li><p><strong>ordered</strong> (<em>bool</em><em>, </em><em>optional</em>) – keep ordering; slower. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>updated dict object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.dict.size">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.dict.</span></span><span class="sig-name descname"><span class="pre">size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/dict.html#size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.dict.size" title="Link to this definition">¶</a></dt>
+<dd><p>recursively find size (number of elements) in a potentially nested dict
+after <a class="reference external" href="https://www.tutorialspoint.com/How-to-count-elements-in-a-nested-Python-dictionary">https://www.tutorialspoint.com/How-to-count-elements-in-a-nested-Python-dictionary</a></p>
+</dd></dl>
+
+</section>
+<section id="module-niagads.utils.enums">
+<span id="niagads-utils-enums-module"></span><h2>niagads.utils.enums module<a class="headerlink" href="#module-niagads.utils.enums" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.utils.enums.ClassProperties">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.enums.</span></span><span class="sig-name descname"><span class="pre">ClassProperties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names=&lt;not</span> <span class="pre">given&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/enums.html#ClassProperties"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.enums.ClassProperties" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#niagads.utils.enums.CustomStrEnum" title="niagads.utils.enums.CustomStrEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">CustomStrEnum</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">UppercaseStrEnum</span></code></p>
+<p>enum for functions that extract info about a class – methods or members?</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.enums.ClassProperties.MEMBERS">
+<span class="sig-name descname"><span class="pre">MEMBERS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'MEMBERS'</span></em><a class="headerlink" href="#niagads.utils.enums.ClassProperties.MEMBERS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.enums.ClassProperties.METHODS">
+<span class="sig-name descname"><span class="pre">METHODS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'METHODS'</span></em><a class="headerlink" href="#niagads.utils.enums.ClassProperties.METHODS" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.utils.enums.CustomStrEnum">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.enums.</span></span><span class="sig-name descname"><span class="pre">CustomStrEnum</span></span><a class="reference internal" href="../_modules/niagads/utils/enums.html#CustomStrEnum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.enums.CustomStrEnum" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>extension for a <cite>StrEnum</cite> (generic, Lowercase or Uppercase) that includes custom
+class methods for listing and testing enum values</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.utils.enums.CustomStrEnum.has_value">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">has_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/enums.html#CustomStrEnum.has_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.enums.CustomStrEnum.has_value" title="Link to this definition">¶</a></dt>
+<dd><p>test if the StrEnum contains a value
+currently only works w/StrEnum, LowercaseStrEnum, UppercaseStrEnum</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.utils.enums.CustomStrEnum.list">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/enums.html#CustomStrEnum.list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.enums.CustomStrEnum.list" title="Link to this definition">¶</a></dt>
+<dd><p>return a list of all values in the StrEnum</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.utils.enums.ErrorActions">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.enums.</span></span><span class="sig-name descname"><span class="pre">ErrorActions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names=&lt;not</span> <span class="pre">given&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/enums.html#ErrorActions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.enums.ErrorActions" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#niagads.utils.enums.CustomStrEnum" title="niagads.utils.enums.CustomStrEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">CustomStrEnum</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">UppercaseStrEnum</span></code></p>
+<p>enum for possible behaviors on critical errors</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.enums.ErrorActions.FAIL">
+<span class="sig-name descname"><span class="pre">FAIL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'FAIL'</span></em><a class="headerlink" href="#niagads.utils.enums.ErrorActions.FAIL" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.enums.ErrorActions.IGNORE">
+<span class="sig-name descname"><span class="pre">IGNORE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'IGNORE'</span></em><a class="headerlink" href="#niagads.utils.enums.ErrorActions.IGNORE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.enums.ErrorActions.WARN">
+<span class="sig-name descname"><span class="pre">WARN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'WARN'</span></em><a class="headerlink" href="#niagads.utils.enums.ErrorActions.WARN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.utils.enums.RegularExpressions">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.enums.</span></span><span class="sig-name descname"><span class="pre">RegularExpressions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names=&lt;not</span> <span class="pre">given&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/enums.html#RegularExpressions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.enums.RegularExpressions" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#niagads.utils.enums.CustomStrEnum" title="niagads.utils.enums.CustomStrEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">CustomStrEnum</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
+<p>commonly used regexps</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.enums.RegularExpressions.DOI">
+<span class="sig-name descname"><span class="pre">DOI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'(10[.][0-9]{4,}(?:[.][0-9]+)*\\/(?:(?![&quot;&amp;\\\'&lt;&gt;])\\S)+)$'</span></em><a class="headerlink" href="#niagads.utils.enums.RegularExpressions.DOI" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.enums.RegularExpressions.FILE_SIZE">
+<span class="sig-name descname"><span class="pre">FILE_SIZE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'^[.0-9]+\\s?(K|M|G)$'</span></em><a class="headerlink" href="#niagads.utils.enums.RegularExpressions.FILE_SIZE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.enums.RegularExpressions.KEY_VALUE_PAIR">
+<span class="sig-name descname"><span class="pre">KEY_VALUE_PAIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'^[^\\s=]+=[^=;]+$'</span></em><a class="headerlink" href="#niagads.utils.enums.RegularExpressions.KEY_VALUE_PAIR" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.enums.RegularExpressions.MD5SUM">
+<span class="sig-name descname"><span class="pre">MD5SUM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'^[a-fA-F0-9]{32}$'</span></em><a class="headerlink" href="#niagads.utils.enums.RegularExpressions.MD5SUM" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.enums.RegularExpressions.PUBMED_ID">
+<span class="sig-name descname"><span class="pre">PUBMED_ID</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'^([0-9]{8}|PMID:[0-9]{8})$'</span></em><a class="headerlink" href="#niagads.utils.enums.RegularExpressions.PUBMED_ID" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-niagads.utils.exceptions">
+<span id="niagads-utils-exceptions-module"></span><h2>niagads.utils.exceptions module<a class="headerlink" href="#module-niagads.utils.exceptions" title="Link to this heading">¶</a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="niagads.utils.exceptions.AbstractMethodNotImplemented">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.exceptions.</span></span><span class="sig-name descname"><span class="pre">AbstractMethodNotImplemented</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">methodName</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/exceptions.html#AbstractMethodNotImplemented"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.exceptions.AbstractMethodNotImplemented" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">NotImplementedError</span></code></p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="niagads.utils.exceptions.IllegalArgumentError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.exceptions.</span></span><span class="sig-name descname"><span class="pre">IllegalArgumentError</span></span><a class="reference internal" href="../_modules/niagads/utils/exceptions.html#IllegalArgumentError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.exceptions.IllegalArgumentError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="niagads.utils.exceptions.ParserError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.exceptions.</span></span><span class="sig-name descname"><span class="pre">ParserError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/exceptions.html#ParserError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.exceptions.ParserError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>custom exception to report errors in parsing</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="niagads.utils.exceptions.RestrictedValueError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.exceptions.</span></span><span class="sig-name descname"><span class="pre">RestrictedValueError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enum</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/exceptions.html#RestrictedValueError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.exceptions.RestrictedValueError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Exception raised when controlled value does not match reference enum
+assumes the “Enum” is a “CustomStrEnum” which has a .list() class member
+.. attribute:: label</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str) – description of field / attribute / paramter being matched (e.g., record, database</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.exceptions.RestrictedValueError.value">
+<span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#niagads.utils.exceptions.RestrictedValueError.value" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | number</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.utils.exceptions.RestrictedValueError.enum">
+<span class="sig-name descname"><span class="pre">enum</span></span><a class="headerlink" href="#niagads.utils.exceptions.RestrictedValueError.enum" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>enum</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="niagads.utils.exceptions.TimerError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.exceptions.</span></span><span class="sig-name descname"><span class="pre">TimerError</span></span><a class="reference internal" href="../_modules/niagads/utils/exceptions.html#TimerError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.exceptions.TimerError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>A custom exception used to report errors in use of Timer class</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="niagads.utils.exceptions.ValidationError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.exceptions.</span></span><span class="sig-name descname"><span class="pre">ValidationError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/exceptions.html#ValidationError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.exceptions.ValidationError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Generic ValidationException (raise when validation fails)</p>
+</dd></dl>
+
+</section>
+<section id="module-niagads.utils.list">
+<span id="niagads-utils-list-module"></span><h2>niagads.utils.list module<a class="headerlink" href="#module-niagads.utils.list" title="Link to this heading">¶</a></h2>
+<p>library of array, list, and set manipulation functions</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.alphabetize_string_list">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">alphabetize_string_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slist</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#alphabetize_string_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.alphabetize_string_list" title="Link to this definition">¶</a></dt>
+<dd><p>sorts a list of strings alphabetically
+takes a list or a string, but always returns a string</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.array_in_string">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">array_in_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#array_in_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.array_in_string" title="Link to this definition">¶</a></dt>
+<dd><p>check if any element in the array is the string</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.average_array_list">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">average_array_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#average_array_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.average_array_list" title="Link to this definition">¶</a></dt>
+<dd><p>calcs per-element average for
+a list of arrays (lists)
+e.g., [[1,2],[3,4]] –&gt; [1.5,3]</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.chunker">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">chunker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnIterator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#chunker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.chunker" title="Link to this definition">¶</a></dt>
+<dd><p>for a given sequence, splits into even + residual chunks.  returns an iterator
+see: <a class="reference external" href="https://stackoverflow.com/a/434328">https://stackoverflow.com/a/434328</a></p>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">animals</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cat&#39;</span><span class="p">,</span> <span class="s1">&#39;dog&#39;</span><span class="p">,</span> <span class="s1">&#39;rabbit&#39;</span><span class="p">,</span> <span class="s1">&#39;duck&#39;</span><span class="p">,</span> <span class="s1">&#39;bird&#39;</span><span class="p">,</span> <span class="s1">&#39;cow&#39;</span><span class="p">,</span> <span class="s1">&#39;gnu&#39;</span><span class="p">,</span> <span class="s1">&#39;fish&#39;</span><span class="p">]</span>
+
+<span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">chunker</span><span class="p">(</span><span class="n">animals</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>will output:</dt><dd><p>[‘cat’, ‘dog’, ‘rabbit’]
+[‘duck’, ‘bird’, ‘cow’]
+[‘gnu’, ‘fish’]</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>seq</strong> (<em>list</em>) – list to be chunked</p></li>
+<li><p><strong>size</strong> (<em>int</em>) – page or chunk size</p></li>
+<li><p><strong>returnIterator</strong> (<em>boolean</em><em>, </em><em>optional</em>) – return an iterator; if false, returns a nested list. Defaults to True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>iterator for chunked list of lists</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.cumulative_sum">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">cumulative_sum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#cumulative_sum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.cumulative_sum" title="Link to this definition">¶</a></dt>
+<dd><p>calculates the cumulative sum array</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.drop_nulls">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">drop_nulls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#drop_nulls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.drop_nulls" title="Link to this definition">¶</a></dt>
+<dd><p>removes nulls from the list</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.find">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">find</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnValues</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#find"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.find" title="Link to this definition">¶</a></dt>
+<dd><p>filters a list and returns matches</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>array</strong> (<em>list</em>) – the list to filter</p></li>
+<li><p><strong>value</strong> (<em>any</em>) – value to match</p></li>
+<li><p><strong>field</strong> (<em>str</em><em>, </em><em>optional</em>) – field name to match if list of objects. Defaults to None.</p></li>
+<li><p><strong>returnValues</strong> (<em>bool</em><em>, </em><em>optional</em>) – return matched elements. if false returns indexes of matches Defaults to True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – _description_</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>_description_</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>_type_</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.flatten">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">flatten</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#flatten"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.flatten" title="Link to this definition">¶</a></dt>
+<dd><p>flatten nested list</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.get_duplicates">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">get_duplicates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#get_duplicates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.get_duplicates" title="Link to this definition">¶</a></dt>
+<dd><p>get duplicate values in an array</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.is_equivalent_list">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">is_equivalent_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#is_equivalent_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.is_equivalent_list" title="Link to this definition">¶</a></dt>
+<dd><p>test if two lists contain the same elements;
+order does not matter</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.is_overlapping_list">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">is_overlapping_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#is_overlapping_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.is_overlapping_list" title="Link to this definition">¶</a></dt>
+<dd><p>returns True if the intersection of the two lists is True
+i.e., at least one element in list2 is in list1</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.is_subset">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">is_subset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#is_subset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.is_subset" title="Link to this definition">¶</a></dt>
+<dd><p>returns True if list1 is a subset of list2
+i.e., all elements in list1 are in list2</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.list_to_indexed_dict">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">list_to_indexed_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clist</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#list_to_indexed_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.list_to_indexed_dict" title="Link to this definition">¶</a></dt>
+<dd><p>convert list to hash of value -&gt; index</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.list_to_string">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">list_to_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nullStr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'NULL'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#list_to_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.list_to_string" title="Link to this definition">¶</a></dt>
+<dd><p>checks if list, if so, converts to string;
+None/empty -&gt; nullStr;
+all other return str(value)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.qw">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">qw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnTuple</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#qw"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.qw" title="Link to this definition">¶</a></dt>
+<dd><p>mimics perl’s qw function
+usage: qw(‘a b c’) will yield [‘a’,’b’,’c’]
+returnTuple: return a tuple if true, otherwise return list</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.remove_duplicates">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">remove_duplicates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#remove_duplicates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.remove_duplicates" title="Link to this definition">¶</a></dt>
+<dd><p>remove duplicates from a list by transforming to set and back</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.sum_array_list">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">sum_array_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#sum_array_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.sum_array_list" title="Link to this definition">¶</a></dt>
+<dd><p>calcs per-element sum for a
+list of arrays (lists)
+e.g., [[1,2],[3,4]] –&gt; [3,6]</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.list.sum_arrays">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.list.</span></span><span class="sig-name descname"><span class="pre">sum_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/list.html#sum_arrays"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.list.sum_arrays" title="Link to this definition">¶</a></dt>
+<dd><p>calcs per-element sum of two arrays (lists)
+e.g., list a[1,2] + list b[3,4] –&gt; [3,6]</p>
+</dd></dl>
+
+</section>
+<section id="module-niagads.utils.logging">
+<span id="niagads-utils-logging-module"></span><h2>niagads.utils.logging module<a class="headerlink" href="#module-niagads.utils.logging" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.utils.logging.ExitOnCriticalExceptionHandler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.logging.</span></span><span class="sig-name descname"><span class="pre">ExitOnCriticalExceptionHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'a'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/logging.html#ExitOnCriticalExceptionHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.logging.ExitOnCriticalExceptionHandler" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">FileHandler</span></code></p>
+<p>logging exception handler that catches CRITICAL
+level logging and exits (does not exit on ERRORS)
+see <a class="reference external" href="https://stackoverflow.com/a/48201163">https://stackoverflow.com/a/48201163</a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.utils.logging.ExitOnCriticalExceptionHandler.emit">
+<span class="sig-name descname"><span class="pre">emit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/logging.html#ExitOnCriticalExceptionHandler.emit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.logging.ExitOnCriticalExceptionHandler.emit" title="Link to this definition">¶</a></dt>
+<dd><p>Emit a record.</p>
+<p>If the stream was not opened because ‘delay’ was specified in the
+constructor, open it before calling the superclass’s emit.</p>
+<p>If stream is not open, current mode is ‘w’ and <cite>_closed=True</cite>, record
+will not be emitted (see Issue #42378).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.utils.logging.ExitOnExceptionHandler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.logging.</span></span><span class="sig-name descname"><span class="pre">ExitOnExceptionHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'a'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/logging.html#ExitOnExceptionHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.logging.ExitOnExceptionHandler" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">FileHandler</span></code></p>
+<p>logging exception handler that catches ERRORS and CRITICAL
+level logging and exits
+see <a class="reference external" href="https://stackoverflow.com/a/48201163">https://stackoverflow.com/a/48201163</a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.utils.logging.ExitOnExceptionHandler.emit">
+<span class="sig-name descname"><span class="pre">emit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/logging.html#ExitOnExceptionHandler.emit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.logging.ExitOnExceptionHandler.emit" title="Link to this definition">¶</a></dt>
+<dd><p>Emit a record.</p>
+<p>If the stream was not opened because ‘delay’ was specified in the
+constructor, open it before calling the superclass’s emit.</p>
+<p>If stream is not open, current mode is ‘w’ and <cite>_closed=True</cite>, record
+will not be emitted (see Issue #42378).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.utils.logging.ExitOnExceptionStreamHandler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.logging.</span></span><span class="sig-name descname"><span class="pre">ExitOnExceptionStreamHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stream</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/logging.html#ExitOnExceptionStreamHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.logging.ExitOnExceptionStreamHandler" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StreamHandler</span></code></p>
+<p>logging exception handler that catches ERRORS and CRITICAL
+level logging and exits
+see <a class="reference external" href="https://stackoverflow.com/a/48201163">https://stackoverflow.com/a/48201163</a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.utils.logging.ExitOnExceptionStreamHandler.emit">
+<span class="sig-name descname"><span class="pre">emit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/logging.html#ExitOnExceptionStreamHandler.emit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.logging.ExitOnExceptionStreamHandler.emit" title="Link to this definition">¶</a></dt>
+<dd><p>Emit a record.</p>
+<p>If a formatter is specified, it is used to format the record.
+The record is then written to the stream with a trailing newline.  If
+exception information is present, it is formatted using
+traceback.print_exception and appended to the stream.  If the stream
+has an ‘encoding’ attribute, it is used to determine how to do the
+output to the stream.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.logging.timed">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.logging.</span></span><span class="sig-name descname"><span class="pre">timed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/logging.html#timed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.logging.timed" title="Link to this definition">¶</a></dt>
+<dd><p>decorator for timing a function call</p>
+</dd></dl>
+
+</section>
+<section id="module-niagads.utils.numeric">
+<span id="niagads-utils-numeric-module"></span><h2>niagads.utils.numeric module<a class="headerlink" href="#module-niagads.utils.numeric" title="Link to this heading">¶</a></h2>
+<p>numeric
+The <cite>numeric</cite> module provides a library of
+functions for working with or formatting numbers</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.numeric.to_sci_notation">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.numeric.</span></span><span class="sig-name descname"><span class="pre">to_sci_notation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/numeric.html#to_sci_notation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.numeric.to_sci_notation" title="Link to this definition">¶</a></dt>
+<dd><p>convert value to scientific notation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>float</em><em>, </em><em>int</em><em> or </em><em>str</em>) – value to be converted</p></li>
+<li><p><strong>precision</strong> (<em>int</em><em>, </em><em>optional</em>) – precision. Defaults to 2.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – if value is of type other than float, int or string</p></li>
+<li><p><strong>and if the string is non-numeric and cannot be converted</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>number in scientific notation</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.numeric.to_string_with_commas">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.numeric.</span></span><span class="sig-name descname"><span class="pre">to_string_with_commas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/numeric.html#to_string_with_commas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.numeric.to_string_with_commas" title="Link to this definition">¶</a></dt>
+<dd><p>converts number to string with commas as thousandths separator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>int</em><em>, </em><em>float</em><em> or </em><em>string</em>) – value to be printed</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – if the value is non-numeric</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>number with commas as thousandths separator</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-niagads.utils.pd_dataframe">
+<span id="niagads-utils-pd-dataframe-module"></span><h2>niagads.utils.pd_dataframe module<a class="headerlink" href="#module-niagads.utils.pd_dataframe" title="Link to this heading">¶</a></h2>
+<p>utilities for manipulating pandas DataFrames</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.pd_dataframe.strip">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.pd_dataframe.</span></span><span class="sig-name descname"><span class="pre">strip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="../_modules/niagads/utils/pd_dataframe.html#strip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.pd_dataframe.strip" title="Link to this definition">¶</a></dt>
+<dd><p>wrapper for trim()</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.pd_dataframe.trim">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.pd_dataframe.</span></span><span class="sig-name descname"><span class="pre">trim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="../_modules/niagads/utils/pd_dataframe.html#trim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.pd_dataframe.trim" title="Link to this definition">¶</a></dt>
+<dd><p>trim leading and trailing whitespace from all fields in the data frame
+adapted from final example at:
+<a class="reference external" href="https://www.geeksforgeeks.org/pandas-strip-whitespace-from-entire-dataframe">https://www.geeksforgeeks.org/pandas-strip-whitespace-from-entire-dataframe</a>/#</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>DataFrame</em>) – pandas data frame to modify</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-niagads.utils.reg_ex">
+<span id="niagads-utils-reg-ex-module"></span><h2>niagads.utils.reg_ex module<a class="headerlink" href="#module-niagads.utils.reg_ex" title="Link to this heading">¶</a></h2>
+<p>common tasks that involve regular expressions
+plus, wrappers for Python regular expression package re
+so there is no need to import re in addition to using these
+utilities</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.reg_ex.matches">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.reg_ex.</span></span><span class="sig-name descname"><span class="pre">matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/reg_ex.html#matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.reg_ex.matches" title="Link to this definition">¶</a></dt>
+<dd><p>checks if string contains a pattern</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pattern</strong> (<em>str</em>) – regular expression pattern to match</p></li>
+<li><p><strong>value</strong> (<em>str</em>) – string to search</p></li>
+<li><p><strong>**kwargs</strong> (<em>optional</em>) – <p>optional keyword arguments expected by <cite>re.search</cite>:
+<cite>flags</cite>: (e.g., IGNORECASE)</p>
+<blockquote>
+<div><p>see <a class="reference external" href="https://docs.python.org/3/library/re.html#re.RegexFlag">https://docs.python.org/3/library/re.html#re.RegexFlag</a>;
+can import from <cite>niagads.utils.RegexFlag</cite>
+Defaults to NOFLAG (0).</p>
+</div></blockquote>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if match is found</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.reg_ex.regex_extract">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.reg_ex.</span></span><span class="sig-name descname"><span class="pre">regex_extract</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">firstMatchOnly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/reg_ex.html#regex_extract"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.reg_ex.regex_extract" title="Link to this definition">¶</a></dt>
+<dd><p>wrapper for <cite>re.search</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pattern</strong> (<em>str</em>) – regular expression pattern to match</p></li>
+<li><p><strong>value</strong> (<em>str</em>) – string to search</p></li>
+<li><p><strong>**kwargs</strong> (<em>optional</em>) – <p>optional keyword arguments expected by <cite>re.search</cite>:
+<cite>flags</cite>: (e.g., IGNORECASE)</p>
+<blockquote>
+<div><p>see <a class="reference external" href="https://docs.python.org/3/library/re.html#re.RegexFlag">https://docs.python.org/3/library/re.html#re.RegexFlag</a>;
+can import from <cite>niagads.utils.RegexFlag</cite>
+Defaults to NOFLAG (0).</p>
+</div></blockquote>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>string containing first match if firstMatchOnly, else list of all pattern matches</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.reg_ex.regex_replace">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.reg_ex.</span></span><span class="sig-name descname"><span class="pre">regex_replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/reg_ex.html#regex_replace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.reg_ex.regex_replace" title="Link to this definition">¶</a></dt>
+<dd><p>wrapper for <cite>re.sub</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pattern</strong> (<em>str</em>) – regular expression pattern to match</p></li>
+<li><p><strong>replacement</strong> (<em>str</em>) – string to substitute for pattern</p></li>
+<li><p><strong>value</strong> (<em>str</em>) – original string</p></li>
+<li><p><strong>**kwargs</strong> (<em>optional</em>) – <p>optional keyword arguments expected by <cite>re.sub</cite>:
+<cite>count</cite>: maximum number of patterns to be replaced
+<cite>flags</cite>: (e.g., IGNORECASE)</p>
+<blockquote>
+<div><p>see <a class="reference external" href="https://docs.python.org/3/library/re.html#re.RegexFlag">https://docs.python.org/3/library/re.html#re.RegexFlag</a>;
+can import from <cite>niagads.utils.RegexFlag</cite>
+Defaults to NOFLAG (0).</p>
+</div></blockquote>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>updated string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.reg_ex.regex_split">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.reg_ex.</span></span><span class="sig-name descname"><span class="pre">regex_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/reg_ex.html#regex_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.reg_ex.regex_split" title="Link to this definition">¶</a></dt>
+<dd><p>wrapper for <cite>re.split</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pattern</strong> (<em>str</em>) – regular expression pattern to match</p></li>
+<li><p><strong>value</strong> (<em>str</em>) – string to search</p></li>
+<li><p><strong>**kwargs</strong> (<em>optional</em>) – <p>optional keyword arguments expected by <cite>re.split</cite>:
+<cite>maxsplit</cite>: if maxsplit is non-zero than at most, maxsplit splits will be done
+<cite>flags</cite>: (e.g., IGNORECASE)</p>
+<blockquote>
+<div><p>see <a class="reference external" href="https://docs.python.org/3/library/re.html#re.RegexFlag">https://docs.python.org/3/library/re.html#re.RegexFlag</a>;
+can import from <cite>niagads.utils.RegexFlag</cite>
+Defaults to NOFLAG (0).</p>
+</div></blockquote>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-niagads.utils.string">
+<span id="niagads-utils-string-module"></span><h2>niagads.utils.string module<a class="headerlink" href="#module-niagads.utils.string" title="Link to this heading">¶</a></h2>
+<p>string
+The <cite>string</cite> module provides a library of
+string manipulation functions, converters and
+value testers</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.ascii_safe_str">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">ascii_safe_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#ascii_safe_str"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.ascii_safe_str" title="Link to this definition">¶</a></dt>
+<dd><p>convert to ASCII safe string</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.dict_to_info_string">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">dict_to_info_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#dict_to_info_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.dict_to_info_string" title="Link to this definition">¶</a></dt>
+<dd><p>wrapper for dict_to_string (semantics )
+in string utils to avoid circular imports</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.dict_to_string">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">dict_to_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nullStr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">';'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#dict_to_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.dict_to_string" title="Link to this definition">¶</a></dt>
+<dd><p>translate dict to attr=value; string list
+in string utils to avoid circular imports</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.eval_null">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">eval_null</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">naIsNull</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#eval_null"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.eval_null" title="Link to this definition">¶</a></dt>
+<dd><p>checks to see if value is NULL / None or equivalent</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>str</em>) – value to evaluate</p></li>
+<li><p><strong>naIsNull</strong> (<em>boolean</em><em>, </em><em>optional</em>) – NA is considered null.  Default to False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None if null value, else value</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.int_to_alpha">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">int_to_alpha</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#int_to_alpha"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.int_to_alpha" title="Link to this definition">¶</a></dt>
+<dd><p>Convert an input integer to alphabetic representation,
+starting with 1=A. or 1=a if lower=True</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.is_balanced">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">is_balanced</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'('</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">')'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#is_balanced"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.is_balanced" title="Link to this definition">¶</a></dt>
+<dd><p>returns True if enclosing tags are balanced (e.g, braces, brackets, parentheses, carets, user defined)
+modified from <a class="reference external" href="https://www.geeksforgeeks.org/identify-mark-unmatched-parenthesis-expression/">https://www.geeksforgeeks.org/identify-mark-unmatched-parenthesis-expression/</a></p>
+<p>TODO: (possibly) handle multiple, nested kinds of tags, e.g., ([{}])</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>str</em>) – string to check</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>boolean indicating whether or not parentheses are balanced</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.is_bool">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">is_bool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#is_bool"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.is_bool" title="Link to this definition">¶</a></dt>
+<dd><p>checks if value is a boolean</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.is_camel_case">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">is_camel_case</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#is_camel_case"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.is_camel_case" title="Link to this definition">¶</a></dt>
+<dd><p>relaxed check for camel case b/c allows things like cRGB</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.is_date">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">is_date</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fuzzy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#is_date"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.is_date" title="Link to this definition">¶</a></dt>
+<dd><p>Return whether the string can be interpreted as a date.
+from <a class="reference external" href="https://stackoverflow.com/a/25341965">https://stackoverflow.com/a/25341965</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>str</em>) – string to check for date</p></li>
+<li><p><strong>fuzzy</strong> (<em>bool</em><em>, </em><em>optional</em>) – ignore unknown tokens in string if True. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>flag indicating if string is date (or contains date if fuzzy=True)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.is_float">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">is_float</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#is_float"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.is_float" title="Link to this definition">¶</a></dt>
+<dd><p>check if the string is a float</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.is_integer">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">is_integer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#is_integer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.is_integer" title="Link to this definition">¶</a></dt>
+<dd><p>check if the string is an integer</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.is_non_numeric">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">is_non_numeric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#is_non_numeric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.is_non_numeric" title="Link to this definition">¶</a></dt>
+<dd><p>checks if string is non-numeric; legacy to support code written for Python 2.7</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.is_null">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">is_null</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">naIsNull</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#is_null"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.is_null" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.is_number">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">is_number</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#is_number"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.is_number" title="Link to this definition">¶</a></dt>
+<dd><p>check if the string is a number;
+support legacy code originally written for Python 2.7</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.is_numeric">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">is_numeric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#is_numeric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.is_numeric" title="Link to this definition">¶</a></dt>
+<dd><p>legacy for <cite>is_number</cite></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.matches">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.matches" title="Link to this definition">¶</a></dt>
+<dd><p>see <cite>utils.reg_ex.matches</cite> for documentation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.regex_extract">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">regex_extract</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">firstMatchOnly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#regex_extract"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.regex_extract" title="Link to this definition">¶</a></dt>
+<dd><p>see <cite>utils.reg_ex.regex_extract</cite> for documentation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.regex_replace">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">regex_replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#regex_replace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.regex_replace" title="Link to this definition">¶</a></dt>
+<dd><p>see <cite>utils.reg_ex.regex_replace</cite> for documentation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.regex_split">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">regex_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#regex_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.regex_split" title="Link to this definition">¶</a></dt>
+<dd><p>see <cite>utils.reg_ex.split</cite> for documentation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.reverse">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">reverse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#reverse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.reverse" title="Link to this definition">¶</a></dt>
+<dd><p>reverse a string
+see <a class="reference external" href="https://www.w3schools.com/python/python_howto_reverse_string.asp">https://www.w3schools.com/python/python_howto_reverse_string.asp</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.string_in_list">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">string_in_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignoreCase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#string_in_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.string_in_list" title="Link to this definition">¶</a></dt>
+<dd><p>wrapper for seeing if a string value is ‘in’ a list
+allows case insensitive matches</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>str</em>) – string value to lookup</p></li>
+<li><p><strong>array</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – list of strings</p></li>
+<li><p><strong>ignoreCase</strong> (<em>bool</em><em>, </em><em>optional</em>) – flag for case sensitive match. Defaults to False.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.to_bool">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">to_bool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#to_bool"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.to_bool" title="Link to this definition">¶</a></dt>
+<dd><p>Convert a string representation of truth to true (1) or false (0).
+True values are ‘y’, ‘yes’, ‘t’, ‘true’, ‘on’, and ‘1’; false values
+are ‘n’, ‘no’, ‘f’, ‘false’, ‘off’, and ‘0’.  Raises ValueError if
+‘val’ is anything else.
+modified from <a class="reference external" href="https://stackoverflow.com/a/18472142">https://stackoverflow.com/a/18472142</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.to_date">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">to_date</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%Y-%m-%d'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnStr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#to_date"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.to_date" title="Link to this definition">¶</a></dt>
+<dd><p>converts a string into a Python date time object or reformat existing datetime object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>string</em>) – value to be converted</p></li>
+<li><p><strong>pattern</strong> (<em>str</em><em>, </em><em>optional</em>) – date format to be returned if returnStr. Defaults to ‘%m-%d-%Y’.</p></li>
+<li><p><strong>returnStr</strong> (<em>bool</em><em>, </em><em>optional</em>) – return string? if False returns a date time object. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>datetime object if returnStr is False
+formatted string (following pattern) if returnStr is True</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.to_number">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">to_number</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#to_number"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.to_number" title="Link to this definition">¶</a></dt>
+<dd><p>convert string to appropriate number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.to_numeric">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">to_numeric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#to_numeric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.to_numeric" title="Link to this definition">¶</a></dt>
+<dd><p>legacy  <cite>to_number</cite></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.to_snake_case">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">to_snake_case</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#to_snake_case"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.to_snake_case" title="Link to this definition">¶</a></dt>
+<dd><p>converts camel case or space delimited strings to snake case
+from <a class="reference external" href="https://stackoverflow.com/a/1176023">https://stackoverflow.com/a/1176023</a> / advanced cases</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.truncate">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">truncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#truncate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.truncate" title="Link to this definition">¶</a></dt>
+<dd><p>if string s is &gt; length, return truncated string
+with … added to end</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.string.xstr">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.string.</span></span><span class="sig-name descname"><span class="pre">xstr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nullStr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">falseAsNull</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dictsAsJson</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/string.html#xstr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.string.xstr" title="Link to this definition">¶</a></dt>
+<dd><p>wrapper for str() that handles Nones
+lists and dict objects</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>obj</em>) – obj / type to be converted to string</p></li>
+<li><p><strong>nullStr</strong> (<em>str</em><em>, </em><em>optional</em>) – value to used to indicate NULL/None. Defaults to “”.</p></li>
+<li><p><strong>falseAsNull</strong> (<em>bool</em><em>, </em><em>optional</em>) – treat <cite>False</cite> as None. Defaults to False.</p></li>
+<li><p><strong>dictsAsJson</strong> (<em>bool</em><em>, </em><em>optional</em>) – convert dicts to JSON, otherwise generates
+an INFO string (semi-colon delimited key=value pairs). Defaults to True.
+if nullStr is “” and dictAsJson=False, ‘.’ will be used in the info string
+for None values</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>value in string format</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-niagads.utils.sys">
+<span id="niagads-utils-sys-module"></span><h2>niagads.utils.sys module<a class="headerlink" href="#module-niagads.utils.sys" title="Link to this heading">¶</a></h2>
+<p>i/o and other system (e.g., subprocess) utils</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.utils.sys.FakeSecHead">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">FakeSecHead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#FakeSecHead"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.FakeSecHead" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>puts a fake section into a properties file file so that ConfigParser can
+be used to retrieve info / necessary for gus.config (GenomicsDB admin config) files</p>
+<p>workaround for the INI-style headings required by ConfigParser
+see <a class="reference external" href="https://stackoverflow.com/questions/2819696/parsing-properties-file-in-python">https://stackoverflow.com/questions/2819696/parsing-properties-file-in-python</a></p>
+<p>Required for Python versions &lt; 3 only; for 3+ see db.postgres.postgres_dbi.load_database_config for solution</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.utils.sys.FakeSecHead.readline">
+<span class="sig-name descname"><span class="pre">readline</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#FakeSecHead.readline"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.FakeSecHead.readline" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.backup_file">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">backup_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#backup_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.backup_file" title="Link to this definition">¶</a></dt>
+<dd><p>create a .bak version of a file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.create_dir">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">create_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dirName</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#create_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.create_dir" title="Link to this definition">¶</a></dt>
+<dd><p>check if directory exists in the path, if not create</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.die">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">die</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#die"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.die" title="Link to this definition">¶</a></dt>
+<dd><p>mimics Perl’s die function</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.execute_cmd">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">execute_cmd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cwd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">printCmdOnly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#execute_cmd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.execute_cmd" title="Link to this definition">¶</a></dt>
+<dd><p>execute a shell command
+cmd = command as array of strings
+cwd = working directory for the command
+printCmdOnly = prints the command w/out executing
+shell = execute in a shell (e.g., necessary for commands like gzip)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.file_chunker">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">file_chunker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buffer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">IO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunkSize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#file_chunker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.file_chunker" title="Link to this definition">¶</a></dt>
+<dd><p>Read n-line chunks from filehandle. Returns sequence of n lines, or None at EOF.
+from <a class="reference external" href="https://stackoverflow.com/a/22610745">https://stackoverflow.com/a/22610745</a></p>
+<p>buffer is the file handler; may be of type TextIOWrapper or BufferedReader (binary)</p>
+<p>example usage:</p>
+<dl>
+<dt>with open(filename) as fh:</dt><dd><p>chunkCounter = 0
+for chunk in file_chunker(fh, 20):</p>
+<blockquote>
+<div><p>chunkCounter = chunkCounter + 1
+print(“Chunk: “ + str(chunkCounter))
+for line in chunk:</p>
+<blockquote>
+<div><p>print(line)</p>
+</div></blockquote>
+</div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.file_line_count">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">file_line_count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'\n'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/niagads/utils/sys.html#file_line_count"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.file_line_count" title="Link to this definition">¶</a></dt>
+<dd><p>get file_size as count of number of lines
+if header = True, does not count header line
+adapted from: <a class="reference external" href="https://pynative.com/python-count-number-of-lines-in-file/">https://pynative.com/python-count-number-of-lines-in-file/</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fileName</strong> (<em>str</em>) – name of the file</p></li>
+<li><p><strong>eol</strong> (<em>str</em>) – EOL indicator, defaults to newline</p></li>
+<li><p><strong>header</strong> (<em>bool</em><em>, </em><em>optional</em>) – file includes a header line</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Returns</dt><dd><p>the number of lines in the file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.generator_size">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">generator_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">generator</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#generator_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.generator_size" title="Link to this definition">¶</a></dt>
+<dd><p>return numbr items in a generator</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.generic_file_sort">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">generic_file_sort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#generic_file_sort"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.generic_file_sort" title="Link to this definition">¶</a></dt>
+<dd><p>sorts file; returns sorted file name</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.get_class_properties">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">get_class_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">property</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#get_class_properties"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.get_class_properties" title="Link to this definition">¶</a></dt>
+<dd><p>given a class instance (or class Type itself), prints properties
+(methods [or non-dunder methods (__methodName__)], members, or everything)
+useful when using a class important from a poorly documented package</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>instance</strong> (<em>instantiated class object</em>) – class to investigate; can also pass the class itself</p></li>
+<li><p><strong>entity</strong> (<em>str</em><em> or </em><em>ClassProperties enum value</em><em>, </em><em>optional</em>) – one of ClassProperties</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.get_opener">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">get_opener</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compressed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#get_opener"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.get_opener" title="Link to this definition">¶</a></dt>
+<dd><p>check if compressed files are expected and return
+appropriate opener for a file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.gzip_file">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">gzip_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">removeOriginal</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#gzip_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.gzip_file" title="Link to this definition">¶</a></dt>
+<dd><p>gzip a file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.is_binary_file">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">is_binary_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#is_binary_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.is_binary_file" title="Link to this definition">¶</a></dt>
+<dd><p>tests if the file is binary
+adapted from <a class="reference external" href="https://stackoverflow.com/a/7392391">https://stackoverflow.com/a/7392391</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fileName</strong> (<em>string</em>) – file name (full path)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.is_xlsx">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">is_xlsx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/niagads/utils/sys.html#is_xlsx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.is_xlsx" title="Link to this definition">¶</a></dt>
+<dd><p>tests if a file is an EXCEL (xlsx) file
+from : <a class="reference external" href="https://stackoverflow.com/a/60494584">https://stackoverflow.com/a/60494584</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.make_request">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">make_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">requestUrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnSuccess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#make_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.make_request" title="Link to this definition">¶</a></dt>
+<dd><p>make request and catch errors; return flag indicating
+if successful even in case of error if returnSuccess == True</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>requestUrl</strong> (<em>string</em>) – url + endpoint</p></li>
+<li><p><strong>params</strong> (<em>obj</em>) – {key:value} for parameters</p></li>
+<li><p><strong>returnSuccess</strong> (<em>bool</em><em>, </em><em>optional</em>) – return success flag even in case of error. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None or flag indicating success</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.print_args">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">print_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pretty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#print_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.print_args" title="Link to this definition">¶</a></dt>
+<dd><p>print argparse args</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.remove_duplicate_lines">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">remove_duplicate_lines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#remove_duplicate_lines"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.remove_duplicate_lines" title="Link to this definition">¶</a></dt>
+<dd><p>remove duplicate lines from a file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file</strong> (<em>str</em>) – file name</p></li>
+<li><p><strong>header</strong> (<em>boolean</em><em>, </em><em>optional</em>) – file contains header? Defaults to True</p></li>
+<li><p><strong>overwrite</strong> (<em>boolean</em><em>, </em><em>optional</em>) – overwrite file? Defaults to True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>cleaned file name</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.rename_file">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">rename_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">oldFileName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targetFileName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backupExistingTarget</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#rename_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.rename_file" title="Link to this definition">¶</a></dt>
+<dd><p>_summary_</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>oldFileName</strong> (<em>string</em>) – original file name</p></li>
+<li><p><strong>targetFileName</strong> (<em>string</em>) – new file name</p></li>
+<li><p><strong>backupExistingTarget</strong> (<em>bool</em><em>, </em><em>optional</em>) – if the target file exists, back up before renaming the old file. Defaults to True.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.verify_path">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">verify_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isDir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#verify_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.verify_path" title="Link to this definition">¶</a></dt>
+<dd><p>verify that a file exists
+if isDir is True, just verifies that the path
+exists</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.utils.sys.warning">
+<span class="sig-prename descclassname"><span class="pre">niagads.utils.sys.</span></span><span class="sig-name descname"><span class="pre">warning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">objs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/utils/sys.html#warning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.utils.sys.warning" title="Link to this definition">¶</a></dt>
+<dd><p>print log messages to stderr</p>
+</dd></dl>
+
+</section>
+<section id="module-niagads.utils">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-niagads.utils" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><div class="sphinx-toc sphinxlocaltoc">
+    <h3><a href="../index.html">Page contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">niagads.utils package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-niagads.utils.dict">niagads.utils.dict module</a><ul>
+<li><a class="reference internal" href="#niagads.utils.dict.convert_str2numeric_values"><code class="docutils literal notranslate"><span class="pre">convert_str2numeric_values()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.dict.deep_update"><code class="docutils literal notranslate"><span class="pre">deep_update()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.dict.drop_nulls"><code class="docutils literal notranslate"><span class="pre">drop_nulls()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.dict.get"><code class="docutils literal notranslate"><span class="pre">get()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.dict.print_dict"><code class="docutils literal notranslate"><span class="pre">print_dict()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.dict.prune"><code class="docutils literal notranslate"><span class="pre">prune()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.dict.rename_key"><code class="docutils literal notranslate"><span class="pre">rename_key()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.dict.size"><code class="docutils literal notranslate"><span class="pre">size()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.utils.enums">niagads.utils.enums module</a><ul>
+<li><a class="reference internal" href="#niagads.utils.enums.ClassProperties"><code class="docutils literal notranslate"><span class="pre">ClassProperties</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.utils.enums.ClassProperties.MEMBERS"><code class="docutils literal notranslate"><span class="pre">ClassProperties.MEMBERS</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.enums.ClassProperties.METHODS"><code class="docutils literal notranslate"><span class="pre">ClassProperties.METHODS</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.utils.enums.CustomStrEnum"><code class="docutils literal notranslate"><span class="pre">CustomStrEnum</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.utils.enums.CustomStrEnum.has_value"><code class="docutils literal notranslate"><span class="pre">CustomStrEnum.has_value()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.enums.CustomStrEnum.list"><code class="docutils literal notranslate"><span class="pre">CustomStrEnum.list()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.utils.enums.ErrorActions"><code class="docutils literal notranslate"><span class="pre">ErrorActions</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.utils.enums.ErrorActions.FAIL"><code class="docutils literal notranslate"><span class="pre">ErrorActions.FAIL</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.enums.ErrorActions.IGNORE"><code class="docutils literal notranslate"><span class="pre">ErrorActions.IGNORE</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.enums.ErrorActions.WARN"><code class="docutils literal notranslate"><span class="pre">ErrorActions.WARN</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.utils.enums.RegularExpressions"><code class="docutils literal notranslate"><span class="pre">RegularExpressions</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.utils.enums.RegularExpressions.DOI"><code class="docutils literal notranslate"><span class="pre">RegularExpressions.DOI</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.enums.RegularExpressions.FILE_SIZE"><code class="docutils literal notranslate"><span class="pre">RegularExpressions.FILE_SIZE</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.enums.RegularExpressions.KEY_VALUE_PAIR"><code class="docutils literal notranslate"><span class="pre">RegularExpressions.KEY_VALUE_PAIR</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.enums.RegularExpressions.MD5SUM"><code class="docutils literal notranslate"><span class="pre">RegularExpressions.MD5SUM</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.enums.RegularExpressions.PUBMED_ID"><code class="docutils literal notranslate"><span class="pre">RegularExpressions.PUBMED_ID</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.utils.exceptions">niagads.utils.exceptions module</a><ul>
+<li><a class="reference internal" href="#niagads.utils.exceptions.AbstractMethodNotImplemented"><code class="docutils literal notranslate"><span class="pre">AbstractMethodNotImplemented</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.exceptions.IllegalArgumentError"><code class="docutils literal notranslate"><span class="pre">IllegalArgumentError</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.exceptions.ParserError"><code class="docutils literal notranslate"><span class="pre">ParserError</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.exceptions.RestrictedValueError"><code class="docutils literal notranslate"><span class="pre">RestrictedValueError</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.utils.exceptions.RestrictedValueError.value"><code class="docutils literal notranslate"><span class="pre">RestrictedValueError.value</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.exceptions.RestrictedValueError.enum"><code class="docutils literal notranslate"><span class="pre">RestrictedValueError.enum</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.utils.exceptions.TimerError"><code class="docutils literal notranslate"><span class="pre">TimerError</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.exceptions.ValidationError"><code class="docutils literal notranslate"><span class="pre">ValidationError</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.utils.list">niagads.utils.list module</a><ul>
+<li><a class="reference internal" href="#niagads.utils.list.alphabetize_string_list"><code class="docutils literal notranslate"><span class="pre">alphabetize_string_list()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.array_in_string"><code class="docutils literal notranslate"><span class="pre">array_in_string()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.average_array_list"><code class="docutils literal notranslate"><span class="pre">average_array_list()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.chunker"><code class="docutils literal notranslate"><span class="pre">chunker()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.cumulative_sum"><code class="docutils literal notranslate"><span class="pre">cumulative_sum()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.drop_nulls"><code class="docutils literal notranslate"><span class="pre">drop_nulls()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.find"><code class="docutils literal notranslate"><span class="pre">find()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.flatten"><code class="docutils literal notranslate"><span class="pre">flatten()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.get_duplicates"><code class="docutils literal notranslate"><span class="pre">get_duplicates()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.is_equivalent_list"><code class="docutils literal notranslate"><span class="pre">is_equivalent_list()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.is_overlapping_list"><code class="docutils literal notranslate"><span class="pre">is_overlapping_list()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.is_subset"><code class="docutils literal notranslate"><span class="pre">is_subset()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.list_to_indexed_dict"><code class="docutils literal notranslate"><span class="pre">list_to_indexed_dict()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.list_to_string"><code class="docutils literal notranslate"><span class="pre">list_to_string()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.qw"><code class="docutils literal notranslate"><span class="pre">qw()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.remove_duplicates"><code class="docutils literal notranslate"><span class="pre">remove_duplicates()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.sum_array_list"><code class="docutils literal notranslate"><span class="pre">sum_array_list()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.list.sum_arrays"><code class="docutils literal notranslate"><span class="pre">sum_arrays()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.utils.logging">niagads.utils.logging module</a><ul>
+<li><a class="reference internal" href="#niagads.utils.logging.ExitOnCriticalExceptionHandler"><code class="docutils literal notranslate"><span class="pre">ExitOnCriticalExceptionHandler</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.utils.logging.ExitOnCriticalExceptionHandler.emit"><code class="docutils literal notranslate"><span class="pre">ExitOnCriticalExceptionHandler.emit()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.utils.logging.ExitOnExceptionHandler"><code class="docutils literal notranslate"><span class="pre">ExitOnExceptionHandler</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.utils.logging.ExitOnExceptionHandler.emit"><code class="docutils literal notranslate"><span class="pre">ExitOnExceptionHandler.emit()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.utils.logging.ExitOnExceptionStreamHandler"><code class="docutils literal notranslate"><span class="pre">ExitOnExceptionStreamHandler</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.utils.logging.ExitOnExceptionStreamHandler.emit"><code class="docutils literal notranslate"><span class="pre">ExitOnExceptionStreamHandler.emit()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.utils.logging.timed"><code class="docutils literal notranslate"><span class="pre">timed()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.utils.numeric">niagads.utils.numeric module</a><ul>
+<li><a class="reference internal" href="#niagads.utils.numeric.to_sci_notation"><code class="docutils literal notranslate"><span class="pre">to_sci_notation()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.numeric.to_string_with_commas"><code class="docutils literal notranslate"><span class="pre">to_string_with_commas()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.utils.pd_dataframe">niagads.utils.pd_dataframe module</a><ul>
+<li><a class="reference internal" href="#niagads.utils.pd_dataframe.strip"><code class="docutils literal notranslate"><span class="pre">strip()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.pd_dataframe.trim"><code class="docutils literal notranslate"><span class="pre">trim()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.utils.reg_ex">niagads.utils.reg_ex module</a><ul>
+<li><a class="reference internal" href="#niagads.utils.reg_ex.matches"><code class="docutils literal notranslate"><span class="pre">matches()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.reg_ex.regex_extract"><code class="docutils literal notranslate"><span class="pre">regex_extract()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.reg_ex.regex_replace"><code class="docutils literal notranslate"><span class="pre">regex_replace()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.reg_ex.regex_split"><code class="docutils literal notranslate"><span class="pre">regex_split()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.utils.string">niagads.utils.string module</a><ul>
+<li><a class="reference internal" href="#niagads.utils.string.ascii_safe_str"><code class="docutils literal notranslate"><span class="pre">ascii_safe_str()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.dict_to_info_string"><code class="docutils literal notranslate"><span class="pre">dict_to_info_string()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.dict_to_string"><code class="docutils literal notranslate"><span class="pre">dict_to_string()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.eval_null"><code class="docutils literal notranslate"><span class="pre">eval_null()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.int_to_alpha"><code class="docutils literal notranslate"><span class="pre">int_to_alpha()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.is_balanced"><code class="docutils literal notranslate"><span class="pre">is_balanced()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.is_bool"><code class="docutils literal notranslate"><span class="pre">is_bool()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.is_camel_case"><code class="docutils literal notranslate"><span class="pre">is_camel_case()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.is_date"><code class="docutils literal notranslate"><span class="pre">is_date()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.is_float"><code class="docutils literal notranslate"><span class="pre">is_float()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.is_integer"><code class="docutils literal notranslate"><span class="pre">is_integer()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.is_non_numeric"><code class="docutils literal notranslate"><span class="pre">is_non_numeric()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.is_null"><code class="docutils literal notranslate"><span class="pre">is_null()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.is_number"><code class="docutils literal notranslate"><span class="pre">is_number()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.is_numeric"><code class="docutils literal notranslate"><span class="pre">is_numeric()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.matches"><code class="docutils literal notranslate"><span class="pre">matches()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.regex_extract"><code class="docutils literal notranslate"><span class="pre">regex_extract()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.regex_replace"><code class="docutils literal notranslate"><span class="pre">regex_replace()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.regex_split"><code class="docutils literal notranslate"><span class="pre">regex_split()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.reverse"><code class="docutils literal notranslate"><span class="pre">reverse()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.string_in_list"><code class="docutils literal notranslate"><span class="pre">string_in_list()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.to_bool"><code class="docutils literal notranslate"><span class="pre">to_bool()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.to_date"><code class="docutils literal notranslate"><span class="pre">to_date()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.to_number"><code class="docutils literal notranslate"><span class="pre">to_number()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.to_numeric"><code class="docutils literal notranslate"><span class="pre">to_numeric()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.to_snake_case"><code class="docutils literal notranslate"><span class="pre">to_snake_case()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.truncate"><code class="docutils literal notranslate"><span class="pre">truncate()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.string.xstr"><code class="docutils literal notranslate"><span class="pre">xstr()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.utils.sys">niagads.utils.sys module</a><ul>
+<li><a class="reference internal" href="#niagads.utils.sys.FakeSecHead"><code class="docutils literal notranslate"><span class="pre">FakeSecHead</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.utils.sys.FakeSecHead.readline"><code class="docutils literal notranslate"><span class="pre">FakeSecHead.readline()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.utils.sys.backup_file"><code class="docutils literal notranslate"><span class="pre">backup_file()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.create_dir"><code class="docutils literal notranslate"><span class="pre">create_dir()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.die"><code class="docutils literal notranslate"><span class="pre">die()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.execute_cmd"><code class="docutils literal notranslate"><span class="pre">execute_cmd()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.file_chunker"><code class="docutils literal notranslate"><span class="pre">file_chunker()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.file_line_count"><code class="docutils literal notranslate"><span class="pre">file_line_count()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.generator_size"><code class="docutils literal notranslate"><span class="pre">generator_size()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.generic_file_sort"><code class="docutils literal notranslate"><span class="pre">generic_file_sort()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.get_class_properties"><code class="docutils literal notranslate"><span class="pre">get_class_properties()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.get_opener"><code class="docutils literal notranslate"><span class="pre">get_opener()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.gzip_file"><code class="docutils literal notranslate"><span class="pre">gzip_file()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.is_binary_file"><code class="docutils literal notranslate"><span class="pre">is_binary_file()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.is_xlsx"><code class="docutils literal notranslate"><span class="pre">is_xlsx()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.make_request"><code class="docutils literal notranslate"><span class="pre">make_request()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.print_args"><code class="docutils literal notranslate"><span class="pre">print_args()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.remove_duplicate_lines"><code class="docutils literal notranslate"><span class="pre">remove_duplicate_lines()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.rename_file"><code class="docutils literal notranslate"><span class="pre">rename_file()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.verify_path"><code class="docutils literal notranslate"><span class="pre">verify_path()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.utils.sys.warning"><code class="docutils literal notranslate"><span class="pre">warning()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.utils">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="niagads.scripts.html"
+                          title="Previous page">&larr; niagads.scripts package</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="niagads.validators.html"
+                          title="Next page">&rarr; niagads.validators package</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/_apidocs/niagads.utils.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.validators.html" title="niagads.validators package"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.scripts.html" title="niagads.scripts package"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" >niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.utils package</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>
