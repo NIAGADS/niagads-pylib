@@ -11,7 +11,7 @@ class BiosampleCharacteristics(SerializableModel):
     biosample_term: Optional[str] = Field(default=None, description='mapped ontology term')
     biosample_term_id: Optional[str] = Field(default=None, description='mapped ontology term identifier')
     life_stage: Optional[str] = Field(default=None, description='donor/sample life stage: adult, fetal, embryo')
-    
+
 
     
     

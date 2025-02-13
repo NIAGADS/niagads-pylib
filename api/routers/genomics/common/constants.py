@@ -1,3 +1,7 @@
+from enum import auto
+from api.common.enums import CaseInsensitiveEnum
+
+
 ROUTE_DATABASE = 'genomics'
 
 ROUTE_PREFIX = "/genomics"
@@ -9,6 +13,13 @@ ROUTE_TAGS = [ROUTE_NAME]
 TRACKS_PER_API_REQUEST_LIMIT = 50
 
 CACHEDB_PARALLEL_TIMEOUT=30
+
+class Covariate(CaseInsensitiveEnum):
+    AGE = auto()
+    SEX = auto()
+    POPULATION = auto()
+    APOE = auto()
+    
 
 
 TRACK_SEARCH_FILTER_FIELD_MAP = { 
