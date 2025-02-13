@@ -36,6 +36,10 @@ class Human(str, Enum):
     chrY = 'Y'
     chrM = 'M'
     
+        
+    def __str__(self):
+        return self.name
+    
     @classmethod
     def sort_order(self):
         """ returns a {chr:order} mapping to faciliate chr based sorting"""
