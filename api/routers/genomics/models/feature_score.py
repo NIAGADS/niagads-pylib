@@ -5,13 +5,12 @@ from api.models.base_models import RowModel
 from api.models.base_response_models import PagedResponseModel
 from api.models.genome import Gene, Variant
 
-from .phenotype import Phenotype
+
 
 class VariantScore(RowModel):
     variant: Variant
     test_allele: str
     track_id: str
-    track_name: str
 
 T_VariantScore = TypeVar('T_SerializableModel', bound=VariantScore)
 
@@ -22,11 +21,8 @@ class VariantPValueScore(VariantScore):
 class xQTL(VariantPValueScore):
     z_score: Optional[float]
     dist_to_target: Optional[float]
-    target_gene: Gene
+    target: Gene
     pass
-
-class GWASSumStatistic(VariantPValueScore):
-    phenotype: Phenotype
 
 
 class VariantScoreResponse(PagedResponseModel):
@@ -35,5 +31,3 @@ class VariantScoreResponse(PagedResponseModel):
 class xQTLResponse(PagedResponseModel):
     response: List[xQTL]
     
-class GWASSumStatisticResponse(PagedResponseModel):
-    response: List[GWASSumStatistic]

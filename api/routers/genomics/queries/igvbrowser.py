@@ -1,6 +1,7 @@
 from api.models.base_models import QueryDefinition
 from api.models.genome import Region
 
+
 FEATURE_LOOKUP = QueryDefinition(
     name='igv-feature-lookup',
     query=""" 

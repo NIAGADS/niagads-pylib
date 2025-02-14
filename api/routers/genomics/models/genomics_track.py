@@ -6,28 +6,28 @@ from api.common.enums import ResponseView
 from api.models.base_models import RowModel
 from api.models.base_response_models import PagedResponseModel
 from api.models.biosample_characteristics import BiosampleCharacteristics
-from api.models.provenance import Provenance
+from api.models.provenance import DSSAccession, Provenance
 from api.models.track import ExtendedGenericTrack, GenericTrack
 from api.routers.genomics.common.constants import Covariate
 from api.routers.genomics.models.phenotype import Phenotype
 
 # NOTE: 'Track Brief' is just the GenericTrack
 
-class GroupCounts(BaseModel):
+
+class StudyGroup(BaseModel):
     group: str
     count: int
 
 class GenomicsTrack(ExtendedGenericTrack):
     description: str
-    attribtution: Optional[str] # FIXME: publication? pubmed id?
-    accession: str
-    collections: Optional[List[str]]
+    provenance: DSSAccession
+    
+class HumanGenomicsTrack(GenomicsTrack):
     cohorts: Optional[List[str]]
-    subject_summary: List[GroupCounts] # FIXME: name? {cases: N, controls: N}
-    phenotypes: Phenotype
+    study_groups: List[StudyGroup] 
+    phenotypes: Optional[Phenotype]
     covariates: List[Covariate]
     
-
 class GenomicsTrackBriefResponse(PagedResponseModel):
     response: List[GenericTrack]
     

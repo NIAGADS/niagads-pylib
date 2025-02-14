@@ -14,7 +14,7 @@ class Region(SerializableModel):
     
     def __str__(self):
         return f'{str(self.chromosome)}:{self.start}-{self.end}'
-        
+
         
 class Gene(SerializableModel):
     ensembl_id: str

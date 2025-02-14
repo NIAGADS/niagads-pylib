@@ -23,7 +23,7 @@ router = APIRouter(prefix="/service", responses=RESPONSES)
 tags = ["NIAGADS Genome Browser Configuration"]
 @router.get("/igvbrowser/feature", tags=tags, response_model=Region,
     name="IGV Genome Browser feature lookup service",
-    description="retrieve genomic region associated w/a feature in the format required by the IGV Browser")
+    description="retrieve genomic location (variants) or footprint (genes) feature in the format required by the IGV Browser")
 
 async def get_browser_feature_region(
     id: str,
@@ -42,8 +42,6 @@ async def get_browser_feature_region(
         Parameters(id=id),
         query=FEATURE_LOOKUP
     )
-    
-
     
     result = await helper.run_query()
     
