@@ -11,6 +11,7 @@ from api.common.formatters import id2title
 from api.models import ExperimentalDesign, BiosampleCharacteristics, Provenance
 from api.models.base_models import GenericDataModel
 from api.models.base_response_models import PagedResponseModel
+from api.models.provenance import FILERAccession
 from api.models.track import ExtendedGenericTrack, GenericTrack
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
@@ -20,6 +21,7 @@ class FILERTrackBrief(SQLModel, GenericTrack):
 
 class FILERTrack(SQLModel, ExtendedGenericTrack):  
     assay: Optional[str]
+    provenance: FILERAccession
     
     # FILER properties
     file_name: Optional[str]
@@ -51,7 +53,7 @@ class FILERTrack(SQLModel, ExtendedGenericTrack):
         columns = [ c for c in config['columns'] if c['id'] not in ['biosample_characteristics', 
             'replicates', 'provenance', 'data_source'] ] # data source will be promoted from provenance 
         columns += [ {'id': f, 'header': id2title(f)} for f in BiosampleCharacteristics.model_fields]
-        columns += [ {'id': f, 'header': id2title(f)} for f in Provenance.model_fields]
+        columns += [ {'id': f, 'header': id2title(f)} for f in FILERAccession.model_fields]
         config.update({'columns': columns })
         return config
 

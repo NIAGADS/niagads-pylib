@@ -5,10 +5,18 @@ from .base_models import SerializableModel
 
 class Provenance(SerializableModel):
     data_source: Optional[str]
-    data_source_version: Optional[str]
     download_url: Optional[str]
-    download_date: Optional[date] 
     release_date: Optional[date] 
-    experiment_id: Optional[str]
-    project: Optional[str]
+
+class FILERAccession(Provenance):
+    data_source_version: Optional[str]
+    download_date: Optional[date] 
+    project: Optional[str] # FIXME: make this == collections: List[str]?
+    
+class DSSAccession(Provenance):
+    data_source: str = "NIAGADS DSS"
+    accession: str
+    pubemd_id: str
+    attribution: str
+    # TODO: collections?
     
