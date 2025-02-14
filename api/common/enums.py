@@ -1,8 +1,8 @@
 from enum import auto, Enum
 from fastapi.exceptions import RequestValidationError
-from strenum import StrEnum
 from aiocache.serializers import StringSerializer, JsonSerializer, PickleSerializer
 
+from niagads.utils.enums import CustomStrEnum as StrEnum
 from api.common.formatters import clean, print_enum_values
 
 class CaseInsensitiveEnum(StrEnum):
@@ -15,9 +15,10 @@ class CaseInsensitiveEnum(StrEnum):
     
         raise KeyError(value)
     
+class EnumParameter(CaseInsensitiveEnum):
     @classmethod
     def exclude(cls, name, exclude):
-        return CaseInsensitiveEnum(name, { member.name: member.value for member in cls if member not in exclude })
+        return EnumParameter(name, { member.name: member.value for member in cls if member not in exclude })
 
     @classmethod
     def get_description(cls):
@@ -31,9 +32,8 @@ class CaseInsensitiveEnum(StrEnum):
         except:
             raise RequestValidationError(f'Invalid value provided for `{label}`: {value}.  Allowable values for this query are: {print_enum_values(cls)}' )
 
-
     
-class ResponseContent(CaseInsensitiveEnum):
+class ResponseContent(EnumParameter):
     """ enum for allowable response types """
     FULL = auto()
     COUNTS = auto()
@@ -67,7 +67,7 @@ class ResponseContent(CaseInsensitiveEnum):
             return subset
         
 
-class ResponseFormat(CaseInsensitiveEnum):
+class ResponseFormat(EnumParameter):
     """ enum for allowable response / output formats"""
     JSON = auto()
     TEXT = auto()
@@ -96,7 +96,7 @@ class ResponseFormat(CaseInsensitiveEnum):
             return subset
 
     
-class ResponseView(CaseInsensitiveEnum):
+class ResponseView(EnumParameter):
     """ enum for allowable views """
     TABLE = auto()
     IGV_BROWSER = auto()
@@ -116,22 +116,7 @@ class ResponseView(CaseInsensitiveEnum):
             return subset
         
     
-class RedirectEndpoint(str, Enum):
-    TABLE = '/view/table'
-    IGV_BROWSER = '/view/igvbrowser'
-    
-    @classmethod
-    def from_view(cls, view: ResponseView):
-        """ get the correct redirect endpoint given a view"""
-        match view:
-            case ResponseView.TABLE:
-                return cls.TABLE
-            case ResponseView.IGV_BROWSER:
-                return cls.IGV_BROWSER
-            case _:
-                raise NotImplementedError(f'No endpoint implemented for view: {view.value}')
-    
-class Assembly(CaseInsensitiveEnum, Enum):
+class Assembly(EnumParameter):
     """enum for genome builds"""
     GRCh37 = "GRCh37"
     GRCh38 = "GRCh38"
@@ -144,7 +129,7 @@ class Assembly(CaseInsensitiveEnum, Enum):
 
 
 # FIXME: is this really necessary? onRowSelect can be driven by the target view
-class OnRowSelect(CaseInsensitiveEnum):
+class OnRowSelect(StrEnum):
     """ enum for allowable NIAGADS-viz-js/Table onRowSelect actions """
     ACCESS_ROW_DATA = auto()
     UPDATE_GENOME_BROWSER = auto()
@@ -162,7 +147,7 @@ class CacheTTL(Enum):
     SHORT = 300 # 5 minutes
     DAY = 86400
     
-class CacheNamespace(CaseInsensitiveEnum):
+class CacheNamespace(StrEnum):
     """ cache namespaces """
     FILER = auto() # FILER endpoints
     FILER_EXTERNAL_API = auto() # external FILER API endpoints
@@ -173,7 +158,7 @@ class CacheNamespace(CaseInsensitiveEnum):
     QUERY_CACHE = auto() # for server-side pagination, sorting, filtering
     
     
-class CacheKeyQualifier(CaseInsensitiveEnum):
+class CacheKeyQualifier(StrEnum):
     PAGE = "pagination-page" 
     CURSOR = "pagination-cursor"
     RESULT_SIZE = "pagination-result-size"
@@ -184,4 +169,10 @@ class CacheKeyQualifier(CaseInsensitiveEnum):
     
     def __str__(self):
         return f'_{self.value}'
+    
+class RecordType(CaseInsensitiveEnum):
+    TRACK = auto()
+    GENE = auto()
+    VARIANT = auto()
+    COLLECTION = auto()
     
