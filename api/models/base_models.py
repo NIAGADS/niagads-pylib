@@ -219,7 +219,7 @@ class QueryDefinition(BaseModel):
     bindParameters: List[str] # bind parameter names
     fetchOne: bool = False # expect only one result, so return result[0]
     errorOnNull: str = None # if not none will raise an error instead of returning empty
-    
+
     # Developer NOTE: if fetchOne -> empty response = {}, else []
     
     def model_post_init(self, __context):
@@ -227,6 +227,7 @@ class QueryDefinition(BaseModel):
             self.query = "WITH (SELECT :id::text AS id) id, " + self.query
             self.bindParameters.insert(0, '_id')
 
+        
 
 # FIXME: is defaultColumns a UI decision?
 # FIXME: can sort be part of the query or does it need to be a CTE?    
