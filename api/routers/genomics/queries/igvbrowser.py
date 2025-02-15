@@ -1,5 +1,5 @@
 from api.models.base_models import QueryDefinition
-from api.models.genome import Region
+from api.models.genome import GenomicRegion
 
 
 FEATURE_LOOKUP = QueryDefinition(
@@ -22,7 +22,7 @@ FEATURE_LOOKUP = QueryDefinition(
         
         ORDER BY chromosome NULLS LAST LIMIT 1
     """,
-    resultType=Region,
+    resultType=GenomicRegion,
     bindParameters=['id'],
     fetchOne=True
 )

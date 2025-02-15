@@ -7,7 +7,7 @@ from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.models.base_response_models import BaseResponseModel
-from api.models.genome import Region
+from api.models.genome import GenomicRegion
 from api.models.igvbrowser import IGVBrowserTrackConfig, IGVBrowserTrackSelectorResponse, IGVBrowserTrackConfigResponse
 from api.models.view_models import TableViewModel
 
@@ -21,7 +21,7 @@ from niagads.reference.chromosomes import Human
 router = APIRouter(prefix="/service", responses=RESPONSES)
 
 tags = ["NIAGADS Genome Browser Configuration"]
-@router.get("/igvbrowser/feature", tags=tags, response_model=Region,
+@router.get("/igvbrowser/feature", tags=tags, response_model=GenomicRegion,
     name="IGV Genome Browser feature lookup service",
     description="retrieve genomic location (variants) or footprint (genes) feature in the format required by the IGV Browser")
 
@@ -29,7 +29,7 @@ async def get_browser_feature_region(
     id: str,
     flank: int = Query(default=0, description='add flanking region +/- `flank` kb up- and downstream to the returned feature location'),
     internal: InternalRequestParameters = Depends()
-    ) -> Region:
+    ) -> GenomicRegion:
 
     helper = GenomicsRouteHelper(
         internal,
@@ -46,7 +46,7 @@ async def get_browser_feature_region(
     result = await helper.run_query()
     
     # add the flank
-    region = Region(**result.response)
+    region = GenomicRegion(**result.response)
     region.start -= flank
     region.end += flank
         
