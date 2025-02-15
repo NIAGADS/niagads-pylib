@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
-from api.models.base_models import PaginationDataModel, RequestDataModel
+from .base_models import PaginationDataModel, RequestDataModel
 
 class BaseViewResponseModel(BaseModel):
     request: RequestDataModel = Field(description="details about the originating request that generated the response")

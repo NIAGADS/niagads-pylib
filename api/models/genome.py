@@ -2,10 +2,11 @@ from typing import Optional, Self
 from pydantic import  ConfigDict, field_serializer
 
 from niagads.utils.enums import CustomStrEnum as StrEnum
+from niagads.reference.chromosomes import Human
 
 from api.common.types import Range
-from api.models.base_models import RowModel
-from niagads.reference.chromosomes import Human
+from .base_models import RowModel
+
 
 class Strand(StrEnum):
     SENSE = '+'

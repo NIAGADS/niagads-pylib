@@ -6,7 +6,7 @@ from typing_extensions import Self
 from niagads.utils.string import xstr
 
 from api.common.enums import OnRowSelect, ResponseFormat, ResponseView
-from api.models.base_models import PaginationDataModel, RequestDataModel, RowModel, SerializableModel
+from .base_models import PaginationDataModel, RequestDataModel, RowModel, SerializableModel
 
 
 # FIXME: 'Any' or 'SerializableModel' for response

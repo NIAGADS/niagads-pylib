@@ -1,7 +1,7 @@
 from pydantic import Field
 from typing import Optional
 
-from api.models.base_models import SerializableModel
+from .base_models import SerializableModel
 class ExperimentalDesign(SerializableModel):
     antibody_target: Optional[str] = None
     assay: Optional[str] = None

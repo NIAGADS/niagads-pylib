@@ -2,7 +2,6 @@ from pydantic import Field
 from typing import Optional
 
 from .base_models import SerializableModel
-
 class BiosampleCharacteristics(SerializableModel):
     system_category: Optional[str] = None
     tissue_category: Optional[str] = None

@@ -7,10 +7,11 @@ from niagads.utils.list import find
 from api.common.enums import OnRowSelect, ResponseFormat, ResponseView
 from api.common.formatters import id2title
 from api.config.settings import get_settings
-from api.models import BiosampleCharacteristics, ExperimentalDesign
-from api.models.base_models import RowModel
-from api.models.base_response_models import BaseResponseModel
-from api.models.view_models import TableViewModel
+
+from . import BiosampleCharacteristics, ExperimentalDesign
+from .base_models import RowModel
+from .base_response_models import BaseResponseModel
+from .view_models import TableViewModel
 
 
 class IGVBrowserTrackConfig(SQLModel, RowModel):

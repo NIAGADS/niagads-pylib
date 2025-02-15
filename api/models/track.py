@@ -9,11 +9,10 @@ from niagads.utils.list import find
 from api.common.enums import OnRowSelect, ResponseView
 from api.common.formatters import id2title
 
-from api.models.base_models import GenericDataModel
-
-from api.models.biosample_characteristics import BiosampleCharacteristics
-from api.models.experimental_design import ExperimentalDesign
-from api.models.provenance import Provenance
+from .base_models import GenericDataModel
+from .biosample_characteristics import BiosampleCharacteristics
+from .experimental_design import ExperimentalDesign
+from .provenance import Provenance
 
 class GenericTrackSummary(GenericDataModel):
     track_id: str

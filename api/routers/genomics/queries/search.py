@@ -1,6 +1,6 @@
 from typing import List
 from api.models.base_models import QueryDefinition
-from api.models.global_search import RecordSearchResult
+from api.models.search import RecordSearchResult
 
 __GENE_TEXT_SEARCH_SQL="SELECT * FROM gene_text_search((SELECT :keyword FROM st))"
 __VARIANT_TEXT_SEARCH_SQL="SELECT * FROM variant_text_search((SELECT :keyword FROM st))"
