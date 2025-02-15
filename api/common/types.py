@@ -8,7 +8,7 @@ class Range(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def validate(self, range: Dict[str, int]):
-        if range['start'] > range['end']:
-            raise RuntimeError(f"Invalid Range: {range['start']} > {range['end']}")
+        if range['start'] >= range['end']:
+            raise RuntimeError(f"Invalid Range: {range['start']} >= {range['end']}")
         return range
     
