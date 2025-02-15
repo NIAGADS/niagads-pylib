@@ -16,7 +16,7 @@ from api.models.view_models import TableViewResponseModel
 from ..common.helpers import FILERRouteHelper
 from ..common.services import MetadataQueryService
 from ..dependencies.parameters import InternalRequestParameters, path_collection_name
-from ..models.filer_track import FILERTrackBriefResponse, FILERTrackResponse
+from ..models.filer_track import FILERTrackSummaryResponse, FILERTrackResponse
 
 router = APIRouter(prefix="/collection", tags = ["Collections"], responses=RESPONSES)
 
@@ -47,7 +47,7 @@ async def get_collections(
 
 
 @router.get("/{collection}",
-    response_model=Union[BaseResponseModel, FILERTrackBriefResponse, FILERTrackResponse, TableViewResponseModel],
+    response_model=Union[BaseResponseModel, FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponseModel],
     name="Get track metadata by collection", 
     description="retrieve full metadata for FILER track records associated with a collection")
 
@@ -58,7 +58,7 @@ async def get_collection_track_metadata(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
     view: str =  Query(ResponseView.DEFAULT, description=ResponseView.table(description=True)),
     internal: InternalRequestParameters = Depends()
-)-> Union[BaseResponseModel, FILERTrackBriefResponse, FILERTrackResponse, TableViewResponseModel]:
+)-> Union[BaseResponseModel, FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponseModel]:
     
     rContent = ResponseContent.validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
@@ -68,7 +68,7 @@ async def get_collection_track_metadata(
             content=rContent,
             view=ResponseView.table().validate(view, 'view', ResponseView), 
             model=FILERTrackResponse if rContent == ResponseContent.FULL \
-                else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
+                else FILERTrackSummaryResponse if rContent == ResponseContent.SUMMARY \
                     else BaseResponseModel
         ), 
         Parameters(collection=collection, page=page)

@@ -13,7 +13,7 @@ from api.models.view_models import TableViewResponseModel
 
 from ..common.helpers import FILERRouteHelper
 from ..dependencies.parameters import METADATA_FILTER_PARAM, InternalRequestParameters, required_query_track_id
-from ..models.filer_track import FILERTrackBriefResponse
+from ..models.filer_track import FILERTrackSummaryResponse
 from ..models.bed_features import BEDResponse
 
 router = APIRouter(prefix="/data", responses=RESPONSES)
@@ -23,7 +23,7 @@ tags = ["Track Data by ID"]
 
 @router.get("/", tags=tags,
     name="Get data from multiple tracks by ID", 
-    response_model=Union[BEDResponse, PagedResponseModel, FILERTrackBriefResponse, TableViewResponseModel],
+    response_model=Union[BEDResponse, PagedResponseModel, FILERTrackSummaryResponse, TableViewResponseModel],
     description="retrieve data from one or more FILER tracks in the specified region")
 
 async def get_track_data(
@@ -34,7 +34,7 @@ async def get_track_data(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.functional_genomics(description=True)),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends()
-) -> Union[BEDResponse, PagedResponseModel, FILERTrackBriefResponse, TableViewResponseModel]:
+) -> Union[BEDResponse, PagedResponseModel, FILERTrackSummaryResponse, TableViewResponseModel]:
     
     rContent = ResponseContent.data().validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
@@ -44,7 +44,7 @@ async def get_track_data(
             content=rContent,
             view=ResponseView.validate(view, 'view', ResponseView),
             model=BEDResponse if rContent == ResponseContent.FULL \
-                else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
+                else FILERTrackSummaryResponse if rContent == ResponseContent.SUMMARY \
                     else PagedResponseModel
         ), 
         Parameters(track=track, span=span, page=page)
@@ -56,7 +56,7 @@ async def get_track_data(
 tags = ['Record(s) by Text Search'] + ['Track Data by Text Search'] + ['Track Data by Genomic Region']
 
 @router.get("/search", tags=tags, 
-    response_model=Union[PagedResponseModel, FILERTrackBriefResponse, BEDResponse, TableViewResponseModel],
+    response_model=Union[PagedResponseModel, FILERTrackSummaryResponse, BEDResponse, TableViewResponseModel],
     name="Get data from multiple tracks by Search", 
     description="find functional genomics tracks with data in specified region; qualify using category filters or by a keyword search against all text fields in the track metadata")
 
@@ -70,7 +70,7 @@ async def get_track_data_by_metadata_search(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.functional_genomics(description=True)),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[PagedResponseModel, FILERTrackBriefResponse, BEDResponse, TableViewResponseModel]:
+) -> Union[PagedResponseModel, FILERTrackSummaryResponse, BEDResponse, TableViewResponseModel]:
     
     rContent = ResponseContent.data().validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
@@ -80,7 +80,7 @@ async def get_track_data_by_metadata_search(
             content=rContent,
             view=ResponseView.validate(view, 'view', ResponseView),
             model=BEDResponse if rContent == ResponseContent.FULL \
-                else FILERTrackBriefResponse if rContent == ResponseContent.SUMMARY \
+                else FILERTrackSummaryResponse if rContent == ResponseContent.SUMMARY \
                     else PagedResponseModel
         ),
         Parameters(assembly=assembly, filter=filter, keyword=keyword, span=span, page=page)

@@ -13,7 +13,7 @@ from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, P
 from api.common.types import Range
 from api.models.base_models import CacheKeyDataModel
 from api.routers.filer.models.bed_features import BEDFeature
-from api.routers.filer.models.filer_track import FILERTrackBrief
+from api.routers.filer.models.filer_track import FILERTrackSummary
 
 from .constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
 from .enums import FILERApiEndpoint

@@ -28,7 +28,7 @@ class HumanGenomicsTrack(GenomicsTrack):
     phenotypes: Optional[Phenotype]
     covariates: List[Covariate]
     
-class GenomicsTrackBriefResponse(PagedResponseModel):
+class GenomicsTrackSummaryResponse(PagedResponseModel):
     response: List[GenericTrack]
     
     def to_text(self, format: ResponseView, **kwargs):

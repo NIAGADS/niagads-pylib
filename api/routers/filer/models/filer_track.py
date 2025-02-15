@@ -15,7 +15,7 @@ from api.models.provenance import FILERAccession
 from api.models.track import ExtendedGenericTrack, GenericTrack
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
-class FILERTrackBrief(SQLModel, GenericTrack):
+class FILERTrackSummary(SQLModel, GenericTrack):
     assay: Optional[str]
     
 
@@ -57,8 +57,8 @@ class FILERTrack(SQLModel, ExtendedGenericTrack):
         config.update({'columns': columns })
         return config
 
-class FILERTrackBriefResponse(PagedResponseModel):
-    response: List[FILERTrackBrief]
+class FILERTrackSummaryResponse(PagedResponseModel):
+    response: List[FILERTrackSummary]
     
     def to_text(self, format: ResponseView, **kwargs):
         fields = self.response[0].get_field_names()
