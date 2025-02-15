@@ -7,18 +7,18 @@ from api.models.base_models import RowModel
 from api.models.base_response_models import PagedResponseModel
 from api.models.biosample_characteristics import BiosampleCharacteristics
 from api.models.provenance import DSSAccession, Provenance
-from api.models.track import DetailedGenericTrack, GenericTrack
+from api.models.track import GenericTrack, GenericTrackSummary
 from api.routers.genomics.common.constants import Covariate
 from api.routers.genomics.models.phenotype import Phenotype
 
-# NOTE: 'Track Brief' is just the GenericTrack
+# NOTE: 'Track Brief' is just the GenericTrackSummary
 
 
 class StudyGroup(BaseModel):
     group: str
     count: int
 
-class GenomicsTrack(DetailedGenericTrack):
+class GenomicsTrack(GenericTrack):
     description: str
     provenance: DSSAccession
     
@@ -29,7 +29,7 @@ class HumanGenomicsTrack(GenomicsTrack):
     covariates: List[Covariate]
     
 class GenomicsTrackSummaryResponse(PagedResponseModel):
-    response: List[GenericTrack]
+    response: List[GenericTrackSummary]
     
     def to_text(self, format: ResponseView, **kwargs):
         fields = self.response[0].get_field_names()

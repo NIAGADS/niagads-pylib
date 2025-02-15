@@ -15,7 +15,7 @@ from api.models.biosample_characteristics import BiosampleCharacteristics
 from api.models.experimental_design import ExperimentalDesign
 from api.models.provenance import Provenance
 
-class GenericTrack(GenericDataModel):
+class GenericTrackSummary(GenericDataModel):
     track_id: str
     name: str
     genome_build: Optional[str]
@@ -81,7 +81,7 @@ class GenericTrack(GenericDataModel):
         return {'columns': columns, 'options': options}
 
 
-class DetailedGenericTrack(GenericTrack):
+class GenericTrack(GenericTrackSummary):
     experimental_design: Optional[ExperimentalDesign]
     biosample_characteristics: Optional[BiosampleCharacteristics]
     provenance: Optional[Provenance]
