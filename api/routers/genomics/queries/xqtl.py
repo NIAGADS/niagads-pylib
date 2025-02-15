@@ -5,7 +5,7 @@ from api.models.base_models import QueryDefinition
 
 from ..models.feature_score import xQTL
 
-class xQTL_Track(QueryDefinition):
+class xQTLResult(QueryDefinition):
     name = 'xqtl-track-top-hits'
     query = """"""
     useIdCTE = False
