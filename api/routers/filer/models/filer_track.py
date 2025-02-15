@@ -12,14 +12,14 @@ from api.models import ExperimentalDesign, BiosampleCharacteristics, Provenance
 from api.models.base_models import GenericDataModel
 from api.models.base_response_models import PagedResponseModel
 from api.models.provenance import FILERAccession
-from api.models.track import ExtendedGenericTrack, GenericTrack
+from api.models.track import DetailedGenericTrack, GenericTrack
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
 class FILERTrackSummary(SQLModel, GenericTrack):
     assay: Optional[str]
     
 
-class FILERTrack(SQLModel, ExtendedGenericTrack):  
+class FILERTrack(SQLModel, DetailedGenericTrack):  
     assay: Optional[str]
     provenance: FILERAccession
     

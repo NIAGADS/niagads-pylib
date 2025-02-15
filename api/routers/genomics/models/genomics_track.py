@@ -7,7 +7,7 @@ from api.models.base_models import RowModel
 from api.models.base_response_models import PagedResponseModel
 from api.models.biosample_characteristics import BiosampleCharacteristics
 from api.models.provenance import DSSAccession, Provenance
-from api.models.track import ExtendedGenericTrack, GenericTrack
+from api.models.track import DetailedGenericTrack, GenericTrack
 from api.routers.genomics.common.constants import Covariate
 from api.routers.genomics.models.phenotype import Phenotype
 
@@ -18,7 +18,7 @@ class StudyGroup(BaseModel):
     group: str
     count: int
 
-class GenomicsTrack(ExtendedGenericTrack):
+class GenomicsTrack(DetailedGenericTrack):
     description: str
     provenance: DSSAccession
     

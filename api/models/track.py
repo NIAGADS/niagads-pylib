@@ -81,7 +81,7 @@ class GenericTrack(GenericDataModel):
         return {'columns': columns, 'options': options}
 
 
-class ExtendedGenericTrack(GenericTrack):
+class DetailedGenericTrack(GenericTrack):
     experimental_design: Optional[ExperimentalDesign]
     biosample_characteristics: Optional[BiosampleCharacteristics]
     provenance: Optional[Provenance]
