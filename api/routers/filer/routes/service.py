@@ -16,10 +16,10 @@ from ..dependencies.parameters import InternalRequestParameters, optional_query_
 
 router = APIRouter(prefix="/service", responses=RESPONSES)
 
-tags = ["NIAGADS Genome Browser Configuration"]
+tags = ["NIAGADS Genome Browser"]
 
 @router.get("/igvbrowser/config", tags=tags, response_model=List[IGVBrowserTrackConfig],
-    name="Get IGV Genome Browser configuration for FILER tracks",
+    name="Get IGV Genome Browser for FILER tracks",
     description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) by ID or collection")
     # , or keyword search")
 async def get_track_browser_config(
