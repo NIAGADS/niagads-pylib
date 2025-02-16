@@ -1,8 +1,7 @@
-from enum import auto, Enum
+from enum import StrEnum, auto, Enum
 from fastapi.exceptions import RequestValidationError
 from aiocache.serializers import StringSerializer, JsonSerializer, PickleSerializer
 
-from niagads.utils.enums import CustomStrEnum as StrEnum
 from api.common.formatters import clean, print_enum_values
 
 class CaseInsensitiveEnum(StrEnum):
@@ -175,4 +174,9 @@ class RecordType(CaseInsensitiveEnum):
     GENE = auto()
     VARIANT = auto()
     COLLECTION = auto()
-    
+
+class ConsequenceImpact(StrEnum):
+    HIGH = auto()
+    MODERATE = auto()
+    LOW = auto()
+    MODIFIER = auto()
