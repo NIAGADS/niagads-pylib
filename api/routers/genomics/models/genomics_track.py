@@ -3,16 +3,12 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from api.common.enums import ResponseView
-from api.models.base_models import RowModel
+
 from api.models.base_response_models import PagedResponseModel
-from api.models.biosample_characteristics import BiosampleCharacteristics
-from api.models.provenance import DSSAccession, Provenance
+from api.models.provenance import DSSAccession
 from api.models.track import GenericTrack, GenericTrackSummary
 from api.routers.genomics.common.constants import Covariate
 from api.routers.genomics.models.phenotype import Phenotype
-
-# NOTE: 'Track Brief' is just the GenericTrackSummary
-
 
 class StudyGroup(BaseModel):
     group: str

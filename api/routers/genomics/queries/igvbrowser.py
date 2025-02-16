@@ -2,7 +2,7 @@ from api.models.base_models import QueryDefinition
 from api.models.genome import GenomicRegion
 
 
-FEATURE_LOOKUP = QueryDefinition(
+IGVFeatureLookupQuery = QueryDefinition(
     name='igv-feature-lookup',
     query=""" 
         SELECT v.mapping->>'chromosome' AS chromosome, 

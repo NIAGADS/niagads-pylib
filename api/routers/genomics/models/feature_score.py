@@ -5,6 +5,8 @@ from api.models.base_models import RowModel
 from api.models.base_response_models import PagedResponseModel
 from api.models.genome import Gene, Variant
 
+# TODO: NHGRI GWAS Catalog/ADVP data -> maybe just make VariantScore a `GenericDataModel`
+
 class VariantScore(RowModel):
     variant: Variant
     test_allele: str
@@ -15,6 +17,7 @@ T_VariantScore = TypeVar('T_SerializableModel', bound=VariantScore)
 class VariantPValueScore(VariantScore):
     p_value: Union[float, str]
     neg_log10_pvalue: float
+    
     
 class xQTL(VariantPValueScore):
     z_score: Optional[float]
