@@ -1,7 +1,7 @@
-from typing import Optional, Self
+from enum import StrEnum
+from typing import Optional
 from pydantic import  ConfigDict, field_serializer
 
-from niagads.utils.enums import CustomStrEnum as StrEnum
 from niagads.reference.chromosomes import Human
 
 from api.common.types import Range
