@@ -11,7 +11,7 @@ from asyncio import current_task
 from aiocache import RedisCache
 
 from api.common.constants import CACHEDB_TIMEOUT
-from api.common.enums import CacheNamespace, CacheSerializer, CacheTTL
+from api.common.enums.base_enums import CacheNamespace, CacheSerializer, CacheTTL
 from api.config.settings import get_settings
 
 logger = logging.getLogger(__name__)

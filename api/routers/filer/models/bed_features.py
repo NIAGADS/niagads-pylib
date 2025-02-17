@@ -3,7 +3,7 @@ from typing import Any, List, Optional, Union
 from niagads.utils.string import dict_to_info_string, xstr
 from pydantic import Field
 
-from api.common.enums import ResponseFormat, ResponseView
+from api.common.enums.base_enums import ResponseFormat, ResponseView
 from api.common.formatters import id2title
 
 from api.models.base_response_models import PagedResponseModel

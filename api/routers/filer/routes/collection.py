@@ -3,7 +3,7 @@ from typing import Union
 
 from pydantic import ValidationError
 
-from api.common.enums import ResponseContent, ResponseFormat, ResponseView
+from api.common.enums.base_enums import ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 

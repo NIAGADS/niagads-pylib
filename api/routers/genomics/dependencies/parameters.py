@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.config.settings import get_settings
-from api.common.enums import ResponseFormat
+from api.common.enums.base_enums import ResponseFormat
 from api.common.formatters import clean, print_enum_values
 from api.dependencies.database import DatabaseSessionManager
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter

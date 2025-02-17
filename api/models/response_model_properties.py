@@ -7,7 +7,7 @@ from niagads.utils.string import dict_to_string
 from niagads.utils.dict import prune
 from niagads.utils.reg_ex import regex_replace
 
-from api.common.enums import CacheNamespace
+from api.common.enums.base_enums import CacheNamespace
 
 class RequestDataModel(BaseModel):
     request_id: str = Field(description="unique request identifier")

@@ -2,7 +2,7 @@ from pydantic import Field, computed_field
 from sqlmodel import SQLModel
 from typing import List, Optional
 
-from api.common.enums import OnRowSelect, ResponseFormat, ResponseView
+from api.common.enums.base_enums import OnRowSelect, ResponseFormat, ResponseView
 from api.common.formatters import id2title
 from api.config.settings import get_settings
 from api.models.base_response_models import BaseResponseModel

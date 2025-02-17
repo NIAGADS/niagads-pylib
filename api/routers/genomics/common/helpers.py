@@ -3,7 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from sqlmodel import text
 from sqlalchemy.exc import NoResultFound
 
-from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace
+from api.common.enums.base_enums import CacheKeyQualifier, ResponseContent, CacheNamespace
 from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, PaginationCursor
 from api.common.types import Range
 from api.models.response_model_properties import CacheKeyDataModel, QueryDefinition

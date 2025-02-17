@@ -1,4 +1,4 @@
-from api.common.enums import CaseInsensitiveEnum, ResponseContent, ResponseFormat, ResponseView
+from api.common.enums.base_enums import CaseInsensitiveEnum, ResponseContent, ResponseFormat, ResponseView
 
 class FILERApiEndpoint(CaseInsensitiveEnum):
     OVERLAPS = 'get_overlaps'

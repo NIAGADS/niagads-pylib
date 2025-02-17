@@ -1,6 +1,6 @@
 from typing import List
 
-from api.common.enums import RecordType
+from api.common.enums.base_enums import RecordType
 from api.models.base_row_models import RowModel
 
 from .base_response_models import PagedResponseModel

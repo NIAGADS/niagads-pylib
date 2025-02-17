@@ -4,16 +4,10 @@ from pydantic import  ConfigDict, field_serializer
 
 from niagads.reference.chromosomes import Human
 
+from api.common.enums.genome import Strand
 from api.common.types import Range
 from api.models.base_row_models import RowModel
 
-
-class Strand(StrEnum):
-    SENSE = '+'
-    ANTISENSE = '-'
-    
-    def __str__(self):
-        return self.value
 
 class GenomicRegion(RowModel, Range):
     chromosome: Human

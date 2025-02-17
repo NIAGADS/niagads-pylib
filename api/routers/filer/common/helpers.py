@@ -8,7 +8,7 @@ from operator import itemgetter
 from niagads.utils.list import cumulative_sum, chunker
 from pydantic import BaseModel, computed_field
 
-from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace
+from api.common.enums.base_enums import CacheKeyQualifier, ResponseContent, CacheNamespace
 from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, PaginationCursor
 from api.common.types import Range
 from api.models.response_model_properties import CacheKeyDataModel

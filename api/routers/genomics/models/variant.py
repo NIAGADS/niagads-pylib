@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Union
 from pydantic import ConfigDict
 
-from api.common.enums import ConsequenceImpact
+from api.common.enums.base_enums import ConsequenceImpact
 from api.models.response_model_properties import RowModel, SerializableModel
 from api.models.base_response_models import PagedResponseModel
 from api.models.genome import Gene, Variant as BaseVariant

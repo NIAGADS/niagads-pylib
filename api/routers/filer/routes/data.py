@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Union
 
-from api.common.enums import Assembly, ResponseContent, ResponseFormat, ResponseView
+from api.common.enums.base_enums import Assembly, ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 

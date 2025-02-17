@@ -1,5 +1,5 @@
 from enum import auto
-from api.common.enums import CaseInsensitiveEnum
+from api.common.enums.base_enums import CaseInsensitiveEnum
 
 
 ROUTE_DATABASE = 'genomics'

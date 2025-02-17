@@ -9,7 +9,7 @@ from typing import List, Optional, Union
 
 from niagads.utils.list import list_to_string
 
-from api.common.enums import Assembly, ResponseContent, ResponseFormat, ResponseView
+from api.common.enums.base_enums import Assembly, ResponseContent, ResponseFormat, ResponseView
 from api.dependencies.parameters.filters import tripleToPreparedStatement
 from api.models.response_model_properties import RowModel
 

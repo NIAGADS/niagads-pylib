@@ -6,7 +6,7 @@ from pydantic import model_validator
 from niagads.utils.list import find
 
 from api.common.constants import JSON_TYPE
-from api.common.enums import OnRowSelect, ResponseView
+from api.common.enums.base_enums import OnRowSelect, ResponseView
 from api.common.formatters import id2title
 from api.models import ExperimentalDesign, BiosampleCharacteristics, Provenance
 from api.models.response_model_properties import GenericDataModel

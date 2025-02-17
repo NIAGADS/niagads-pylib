@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from api.common.enums import ResponseView
+from api.common.enums.base_enums import ResponseView
 
 from api.models.base_response_models import PagedResponseModel
 from api.models.provenance import DSSAccession

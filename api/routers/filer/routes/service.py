@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import RequestValidationError
 
-from api.common.enums import ResponseContent
+from api.common.enums.base_enums import ResponseContent
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 

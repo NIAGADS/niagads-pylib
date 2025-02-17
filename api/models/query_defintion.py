@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 from api.models.base_row_models import T_RowModel
 
-
 class QueryDefinition(BaseModel):
     name: str
     query: str

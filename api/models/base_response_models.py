@@ -4,7 +4,7 @@ from typing_extensions import Self
 
 from niagads.utils.string import xstr
 
-from api.common.enums import OnRowSelect, ResponseFormat, ResponseView
+from api.common.enums.base_enums import OnRowSelect, ResponseFormat, ResponseView
 from api.models.base_row_models import RowModel, T_RowModel
 from .response_model_properties import PaginationDataModel, RequestDataModel
 
