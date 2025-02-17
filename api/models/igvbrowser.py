@@ -46,8 +46,8 @@ class IGVBrowserTrackMetadata(RowModel):
     description: str
     data_source: str
     feature_type: str # = Field(serialization_alias='feature')
-    biosample_characteristics: Optional[BiosampleCharacteristics]
-    experimental_design: Optional[ExperimentalDesign]
+    biosample_characteristics: Optional[BiosampleCharacteristics] = None
+    experimental_design: Optional[ExperimentalDesign] = None
     
     # model_config = ConfigDict(populate_by_name=True)
     

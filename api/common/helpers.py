@@ -22,7 +22,7 @@ ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMAR
 class PaginationCursor(BaseModel):
     """ pagination cursor """
     key: Union[str, int]
-    offset: Optional[int]
+    offset: Optional[int] = None
 
 class Parameters(BaseModel):
     """ arbitrary namespace to store request parameters and pass them to helpers """

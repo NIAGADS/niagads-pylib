@@ -10,11 +10,12 @@ from api.models.track import GenericTrack, GenericTrackSummary
 from api.models.track_properties import BiosampleCharacteristics
 from api.routers.filer.models.track_metadata_cache import FILERAccession
 
-
+# Developer Note: not setting a default for optionals b/c coming from
+# the SQLModel, which will have nulls if no value
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
 class FILERTrackSummary(SQLModel, GenericTrackSummary):
-    assay: Optional[str]
+    assay: Optional[str] 
     
 
 class FILERTrack(SQLModel, GenericTrack):  

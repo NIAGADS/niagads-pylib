@@ -10,7 +10,7 @@ from api.models.base_row_models import RowModel
 
 class GenomicRegion(RowModel, Range):
     chromosome: Human
-    strand: Optional[Strand]
+    strand: Optional[Strand] = None
     
     # so that strand does not get returned if missing
     # so thta end does not get returned if missing (e.g, SNVs)
@@ -35,5 +35,5 @@ class Gene(RowModel):
     
 class Variant(RowModel):
     variant_id: str
-    ref_snp_id: Optional[str]
+    ref_snp_id: Optional[str] = None
     location: GenomicRegion

@@ -9,8 +9,13 @@ from api.models.base_row_models import RowModel, T_RowModel
 from .response_model_properties import PaginationDataModel, RequestDataModel
 
 class BaseResponseModel(BaseModel):
-    response: Union[RowModel, List[T_RowModel], dict] = Field(description="result (data) from the request")
+    response: Any = Field(description="result (data) from the request")
     request: RequestDataModel = Field(description="details about the originating request that generated the response")
+
+    
+    @classmethod
+    def is_paged(cls: Self):
+        return 'pagination' in cls.model_fields
 
     @classmethod
     def row_model(cls: Self, name=False):

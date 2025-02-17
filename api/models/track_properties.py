@@ -24,9 +24,9 @@ class BiosampleCharacteristics(BaseModel):
 
 
 class Provenance(BaseModel):
-    data_source: Optional[str]
-    download_url: Optional[str]
-    release_date: Optional[date] 
+    data_source: Optional[str] = None
+    download_url: Optional[str] = None
+    release_date: Optional[date] = None
     
 
 class DSSAccession(Provenance):

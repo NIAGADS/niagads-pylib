@@ -11,7 +11,7 @@ class BaseViewResponseModel(BaseModel):
 class TableViewModel(BaseModel):
     data: List[Dict[str, Any]]
     columns: List[Dict[str, Any]]
-    options: Optional[Dict[str, Any]]
+    options: Optional[Dict[str, Any]] = None
     id: str
     
 class TableViewResponseModel(BaseViewResponseModel):

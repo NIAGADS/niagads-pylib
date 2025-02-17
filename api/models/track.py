@@ -12,12 +12,12 @@ from api.models.track_properties import BiosampleCharacteristics, ExperimentalDe
 class GenericTrackSummary(GenericDataModel):
     track_id: str
     name: str
-    genome_build: Optional[str]
-    feature_type: Optional[str]
-    is_lifted: Optional[bool]
-    data_source: Optional[str]
-    data_category: Optional[str]
-    url: Optional[str]
+    genome_build: Optional[str] = None
+    feature_type: Optional[str] = None
+    is_lifted: Optional[bool] = None
+    data_source: Optional[str] = None
+    data_category: Optional[str] = None
+    url: Optional[str] = None
     
     @model_validator(mode='before')
     @classmethod
@@ -76,6 +76,6 @@ class GenericTrackSummary(GenericDataModel):
 
 
 class GenericTrack(GenericTrackSummary):
-    experimental_design: Optional[ExperimentalDesign]
-    biosample_characteristics: Optional[BiosampleCharacteristics]
-    provenance: Optional[Provenance]
+    experimental_design: Optional[ExperimentalDesign] = None
+    biosample_characteristics: Optional[BiosampleCharacteristics] = None
+    provenance: Optional[Provenance] = None

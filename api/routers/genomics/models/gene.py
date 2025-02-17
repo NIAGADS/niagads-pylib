@@ -7,14 +7,14 @@ class Gene(BaseGene):
     type: str
     name: str
     ids: Dict[str, Union[str, int]]
-    cytogenic_location: Optional[str]
-    summary: Optional[str]
+    cytogenic_location: Optional[str] = None
+    summary: Optional[str] = None
     
 class AnnotatedGene(Gene):
-    rifs: Optional[dict]
-    function: Optional[dict]
-    pathways: Optional[dict]
-    relationships: Optional[dict]
+    rifs: Optional[dict] = None
+    function: Optional[dict] = None
+    pathways: Optional[dict] = None
+    relationships: Optional[dict] = None
     
 class GeneSummaryResponse(PagedResponseModel):
     response: List[Gene]

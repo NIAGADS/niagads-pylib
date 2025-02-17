@@ -13,10 +13,13 @@ from api.config.urls import DATASOURCE_URLS
 from api.models.base_row_models import RowModel
 from api.models.track_properties import ExperimentalDesign, Provenance
 
+# Developer Note: not setting a default for all optionals b/c coming from
+# the SQLModel, which will have nulls if no value
+
 class FILERAccession(Provenance):
-    data_source_version: Optional[str]
-    download_date: Optional[date] 
-    project: Optional[str] # FIXME: make this == collections: List[str]?
+    data_source_version: Optional[str] = None
+    download_date: Optional[date] = None
+    project: Optional[str] = None # FIXME: make this == collections: List[str]?
 
 class Collection(SQLModel, table=True):
     __tablename__ = "filercollection"

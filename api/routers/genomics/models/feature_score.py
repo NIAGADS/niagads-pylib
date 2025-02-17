@@ -20,8 +20,8 @@ class VariantPValueScore(VariantScore):
     
     
 class xQTL(VariantPValueScore):
-    z_score: Optional[float]
-    dist_to_target: Optional[float]
+    z_score: Optional[float] = None
+    dist_to_target: Optional[float] = None
     target: Gene
 
 class VariantScoreResponse(PagedResponseModel):

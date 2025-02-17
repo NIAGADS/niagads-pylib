@@ -207,7 +207,7 @@ class MetadataQueryService:
 
     async def query_track_metadata(self, 
             assembly: str, 
-            filters: Optional[List[str]], 
+            filters: Optional[List[str]],
             keyword: Optional[str], 
             responseType: ResponseContent,
             limit:int = None,
