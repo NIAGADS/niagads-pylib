@@ -16,7 +16,7 @@ IGVFeatureLookupQuery = QueryDefinition(
         g.location_start AS start,
         g.location_end AS end
         FROM CBIL.GeneAttributes g
-        WHERE lower(g.gene_symbol) = lower(:id)
+        WHERE upper(g.gene_symbol) = upper(:id)
         OR g.source_id = :id
         OR g.annotation->>'entrez_id' = :id
         
