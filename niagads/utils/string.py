@@ -175,6 +175,8 @@ def is_date(value, fuzzy=False):
     Returns:
         bool: flag indicating if string is date (or contains date if fuzzy=True)
     """
+    if is_numeric(value): # catch ints and floats
+        return False
 
     if isinstance(value, datetime):
         return True
