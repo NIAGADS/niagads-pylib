@@ -1,8 +1,8 @@
 
 from typing import List, Optional, Type, TypeVar, Union
 
-from api.models.response_model_properties import RowModel
 from api.models.base_response_models import PagedResponseModel
+from api.models.base_row_models import RowModel
 from api.models.genome import Gene, Variant
 
 # TODO: NHGRI GWAS Catalog/ADVP data -> maybe just make VariantScore a `GenericDataModel`
@@ -12,7 +12,7 @@ class VariantScore(RowModel):
     test_allele: str
     track_id: str
 
-T_VariantScore = TypeVar('T_SerializableModel', bound=VariantScore)
+T_VariantScore = TypeVar('T_VariantScore', bound=VariantScore)
 
 class VariantPValueScore(VariantScore):
     p_value: Union[float, str]

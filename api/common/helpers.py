@@ -6,7 +6,8 @@ from typing import Any, Dict, Optional, Type, Union
 from niagads.utils.list import list_to_string
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
-from api.common.enums.base_enums import CacheKeyQualifier, ResponseContent, CacheNamespace, ResponseView, ResponseFormat
+from api.common.enums.cache import CacheKeyQualifier, CacheNamespace
+from api.common.enums.response_properties import ResponseContent,ResponseView, ResponseFormat
 from api.common.types import Range
 
 from api.dependencies.parameters.services import InternalRequestParameters

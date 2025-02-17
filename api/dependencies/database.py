@@ -1,20 +1,16 @@
 # Middleware for choosing database based on endpoint
 # adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
 import logging
-from typing import Union
 import asyncpg
 from typing_extensions import Self
 from fastapi.exceptions import RequestValidationError
-from sqlmodel import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_scoped_session, AsyncSession, AsyncEngine, async_sessionmaker
 from asyncio import current_task
 from aiocache import RedisCache
 
 from api.common.constants import CACHEDB_TIMEOUT
-from api.common.enums.base_enums import CacheNamespace, CacheSerializer, CacheTTL
+from api.common.enums.cache import CacheNamespace, CacheSerializer, CacheTTL
 from api.config.settings import get_settings
-
-logger = logging.getLogger(__name__)
 
 class CacheManager:
     """ KeyDB (Redis) cache for responses 
@@ -144,12 +140,10 @@ class DatabaseSessionManager:
                 raise  
             except asyncpg.InvalidPasswordError as err:
                 await session.rollback()
-                logger.error('Database Error', exc_info=err, stack_info=True)
                 raise OSError(f'Database Error')
             except Exception as err:
                 # everything else for which we currently have no handler
                 await session.rollback()
-                logger.error('Unexpected Error', exc_info=err, stack_info=True)
                 raise RuntimeError(f'Unexpected Error: {str(err)}')
             finally:
                 await session.close()

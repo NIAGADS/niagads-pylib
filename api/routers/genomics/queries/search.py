@@ -2,10 +2,8 @@ from enum import auto
 from typing import List
 
 from api.common.enums.base_enums import EnumParameter
-from api.models.response_model_properties import QueryDefinition
 from api.models.search import RecordSearchResult
-
-
+from api.models.query_defintion import QueryDefinition
 
 class SearchType(EnumParameter): # TODO: move to parameters
     GENE = auto()

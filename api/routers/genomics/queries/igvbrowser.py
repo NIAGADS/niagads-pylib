@@ -1,5 +1,5 @@
-from api.models.response_model_properties import QueryDefinition
 from api.models.genome import GenomicRegion
+from api.models.query_defintion import QueryDefinition
 
 
 IGVFeatureLookupQuery = QueryDefinition(

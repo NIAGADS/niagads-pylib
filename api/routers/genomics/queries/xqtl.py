@@ -1,9 +1,9 @@
 
 from typing import List
 
-from api.models.response_model_properties import QueryDefinition
+from api.models.query_defintion import QueryDefinition
 
-from ..models.feature_score import xQTL
+from api.routers.genomics.models.feature_score import xQTL
 
 class xQTLResult(QueryDefinition):
     name = 'xqtl-track-top-hits'

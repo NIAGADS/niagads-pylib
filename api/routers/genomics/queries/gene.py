@@ -1,5 +1,4 @@
-
-from api.models.response_model_properties import QueryDefinition
+from api.models.query_defintion import QueryDefinition
 
 class GeneQuery(QueryDefinition):
     pass

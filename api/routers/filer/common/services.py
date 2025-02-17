@@ -10,9 +10,9 @@ from typing import List, Optional, Union
 from niagads.utils.list import list_to_string
 
 from api.common.enums.genome import Assembly
-from api.common.enums.response_properties import ResponseContent, ResponseFormat, ResponseView
+from api.common.enums.response_properties import ResponseContent
 from api.dependencies.parameters.filters import tripleToPreparedStatement
-from api.models.base_row_models import RowModel
+from api.routers.filer.models.track_overlaps import TrackOverlap, sort_track_overlaps
 
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint
@@ -23,8 +23,6 @@ class FILERApiDataResponse(BaseModel):
     Identifier: str
     features: List[BEDFeature]
     
-
- 
 class ApiWrapperService:
     def __init__(self, session):
         self.__session: ClientSession = session

@@ -1,8 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, Query
-from fastapi.exceptions import RequestValidationError
 
-from api.common.enums.base_enums import ResponseContent, ResponseFormat, ResponseView
+from api.common.enums.response_properties import ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
