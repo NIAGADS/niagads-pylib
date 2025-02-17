@@ -6,15 +6,15 @@ from api.common.exceptions import RESPONSES
 from api.models.response_model_properties import RequestDataModel
 from api.models.base_response_models import BaseResponseModel
 
-from ..common.constants import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX
-from ..common.services import MetadataQueryService
-from ..dependencies.parameters import ROUTE_SESSION_MANAGER
+from api.routers.filer.common.constants import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX
+from api.routers.filer.common.services import MetadataQueryService
+from api.routers.filer.dependencies.parameters import ROUTE_SESSION_MANAGER
 
-from .track import router as TrackRouter
-from .metadata import router as MetadataRouter
-from .data import router as DataRouter
-from .service import router as ServiceRouter
-from .collection import router as CollectionRouter
+from api.routers.filer.routes.track import router as TrackRouter
+from api.routers.filer.routes.metadata import router as MetadataRouter
+from api.routers.filer.routes.data import router as DataRouter
+from api.routers.filer.routes.service import router as ServiceRouter
+from api.routers.filer.routes.collection import router as CollectionRouter
 
 router = APIRouter(
     prefix=ROUTE_PREFIX,

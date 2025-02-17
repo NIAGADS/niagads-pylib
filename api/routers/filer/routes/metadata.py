@@ -2,19 +2,20 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import RequestValidationError
 from typing import Union
 
-from api.common.enums.base_enums import ResponseContent, ResponseFormat, ResponseView
+from api.common.enums.genome import Assembly
+from api.common.enums.response_properties import ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
-from api.dependencies.parameters.location import Assembly, assembly_param
+from api.dependencies.parameters.location import assembly_param
 from api.dependencies.parameters.optional import page_param, keyword_param
 
 from api.models.base_response_models import PagedResponseModel, BaseResponseModel
 from api.models.view_models import TableViewResponseModel
 
-from ..common.helpers import FILERRouteHelper
-from ..models.filer_track import FILERTrackSummaryResponse, FILERTrackResponse
-from ..dependencies.parameters import METADATA_FILTER_PARAM, InternalRequestParameters, required_query_track_id
+from api.routers.filer.common.helpers import FILERRouteHelper
+from api.routers.filer.models.filer_track import FILERTrackSummaryResponse, FILERTrackResponse
+from api.routers.filer.dependencies.parameters import METADATA_FILTER_PARAM, InternalRequestParameters, required_query_track_id
 
 router = APIRouter(prefix="/metadata", responses=RESPONSES)
 

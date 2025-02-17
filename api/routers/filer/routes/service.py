@@ -2,17 +2,17 @@ from typing import List
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import RequestValidationError
 
-from api.common.enums.base_enums import ResponseContent
+from api.common.enums.genome import Assembly
+from api.common.enums.response_properties import ResponseContent
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
-from api.dependencies.parameters.location import Assembly, assembly_param
-from api.dependencies.parameters.optional import keyword_param
+from api.dependencies.parameters.location import assembly_param
 from api.models.igvbrowser import IGVBrowserTrackConfig, IGVBrowserTrackSelectorResponse, IGVBrowserTrackConfigResponse
 from api.models.view_models import TableViewModel
 
-from ..common.helpers import FILERRouteHelper
-from ..dependencies.parameters import InternalRequestParameters, optional_query_track_id, query_collection_name
+from api.routers.filer.common.helpers import FILERRouteHelper
+from api.routers.filer.dependencies.parameters import InternalRequestParameters, optional_query_track_id, query_collection_name
 
 router = APIRouter(prefix="/service", responses=RESPONSES)
 

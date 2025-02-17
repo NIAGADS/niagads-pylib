@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Union
 
-from api.common.enums.base_enums import ResponseContent, ResponseFormat, ResponseView
+from api.common.enums.response_properties import ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
@@ -10,10 +10,10 @@ from api.dependencies.parameters.optional import page_param
 from api.models.base_response_models import PagedResponseModel, BaseResponseModel
 from api.models.view_models import TableViewResponseModel
 
-from ..dependencies.parameters import InternalRequestParameters, path_track_id
-from ..common.helpers import FILERRouteHelper
-from ..models.filer_track import FILERTrackResponse, FILERTrackSummaryResponse
-from ..models.bed_features import BEDResponse
+from api.routers.filer.dependencies.parameters import InternalRequestParameters, path_track_id
+from api.routers.filer.common.helpers import FILERRouteHelper
+from api.routers.filer.models.filer_track import FILERTrackResponse, FILERTrackSummaryResponse
+from api.routers.filer.models.bed_features import BEDResponse
 
 router = APIRouter(prefix="/track", responses=RESPONSES)
 
