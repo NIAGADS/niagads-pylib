@@ -11,7 +11,7 @@ from niagads.utils.list import list_to_string
 
 from api.common.enums import Assembly, ResponseContent, ResponseFormat, ResponseView
 from api.dependencies.parameters.filters import tripleToPreparedStatement
-from api.models.base_models import RowModel
+from api.models.response_model_properties import RowModel
 
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint

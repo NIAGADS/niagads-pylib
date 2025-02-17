@@ -1,4 +1,4 @@
-from api.models.base_models import QueryDefinition
+from api.models.response_model_properties import QueryDefinition
 from api.models.genome import GenomicRegion
 
 

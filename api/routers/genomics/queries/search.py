@@ -2,7 +2,7 @@ from enum import auto
 from typing import List
 
 from api.common.enums import EnumParameter
-from api.models.base_models import QueryDefinition
+from api.models.response_model_properties import QueryDefinition
 from api.models.search import RecordSearchResult
 
 

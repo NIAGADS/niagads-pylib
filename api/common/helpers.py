@@ -10,7 +10,7 @@ from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace,
 from api.common.types import Range
 
 from api.dependencies.parameters.services import InternalRequestParameters
-from api.models.base_models import CacheKeyDataModel, PaginationDataModel
+from api.models.response_model_properties import CacheKeyDataModel, PaginationDataModel
 from api.models.base_response_models import BaseResponseModel, T_ResponseModel
 from api.models.igvbrowser import IGVBrowserTrackSelectorResponse
 from api.models.view_models import TableViewResponseModel

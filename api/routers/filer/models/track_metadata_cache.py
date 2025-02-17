@@ -11,7 +11,7 @@ from niagads.utils.reg_ex import regex_extract
 
 from api.config.urls import DATASOURCE_URLS
 from api.models import Provenance, ExperimentalDesign
-from api.models.base_models import SerializableModel
+from api.models.response_model_properties import SerializableModel
 
 class Collection(SQLModel, SerializableModel, table=True):
     __tablename__ = "filercollection"

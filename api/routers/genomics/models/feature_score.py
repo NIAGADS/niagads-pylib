@@ -1,7 +1,7 @@
 
 from typing import List, Optional, Type, TypeVar, Union
 
-from api.models.base_models import RowModel
+from api.models.response_model_properties import RowModel
 from api.models.base_response_models import PagedResponseModel
 from api.models.genome import Gene, Variant
 

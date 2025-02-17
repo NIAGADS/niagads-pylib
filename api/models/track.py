@@ -1,5 +1,3 @@
-
-# note this is a generic data model so that we can add summary fields (e.g., counts) as needed
 from typing import Any, Dict, List, Optional, Self, Union
 from pydantic import model_validator
 from sqlmodel import SQLModel
@@ -8,11 +6,8 @@ from niagads.utils.list import find
 
 from api.common.enums import OnRowSelect, ResponseView
 from api.common.formatters import id2title
-
-from .base_models import GenericDataModel
-from .biosample_characteristics import BiosampleCharacteristics
-from .experimental_design import ExperimentalDesign
-from .provenance import Provenance
+from api.models.base_row_models import GenericDataModel
+from api.models.track_properties import BiosampleCharacteristics, ExperimentalDesign, Provenance
 
 class GenericTrackSummary(GenericDataModel):
     track_id: str

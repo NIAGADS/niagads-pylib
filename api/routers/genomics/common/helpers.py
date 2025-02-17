@@ -6,7 +6,7 @@ from sqlalchemy.exc import NoResultFound
 from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace
 from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, PaginationCursor
 from api.common.types import Range
-from api.models.base_models import CacheKeyDataModel, QueryDefinition
+from api.models.response_model_properties import CacheKeyDataModel, QueryDefinition
 
 from .constants import CACHEDB_PARALLEL_TIMEOUT
 from ..dependencies.parameters import InternalRequestParameters

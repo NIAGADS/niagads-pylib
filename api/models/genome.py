@@ -5,7 +5,7 @@ from pydantic import  ConfigDict, field_serializer
 from niagads.reference.chromosomes import Human
 
 from api.common.types import Range
-from .base_models import RowModel
+from api.models.base_row_models import RowModel
 
 
 class Strand(StrEnum):
@@ -33,7 +33,6 @@ class GenomicRegion(RowModel, Range):
             return f'{span:{str(self.strand)}}'
         else:
             return span
-
         
 class Gene(RowModel):
     ensembl_id: str

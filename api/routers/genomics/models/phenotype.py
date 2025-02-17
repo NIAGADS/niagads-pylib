@@ -1,6 +1,6 @@
 
 from typing import List, Optional
-from api.models.base_models import SerializableModel
+from api.models.response_model_properties import SerializableModel
 
 # TODO: population -> ancestry/ethnic group
 class Phenotype(SerializableModel):

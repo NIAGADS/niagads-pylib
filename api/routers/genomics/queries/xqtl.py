@@ -1,7 +1,7 @@
 
 from typing import List
 
-from api.models.base_models import QueryDefinition
+from api.models.response_model_properties import QueryDefinition
 
 from ..models.feature_score import xQTL
 

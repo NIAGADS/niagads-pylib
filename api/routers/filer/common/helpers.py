@@ -11,7 +11,7 @@ from pydantic import BaseModel, computed_field
 from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace
 from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, PaginationCursor
 from api.common.types import Range
-from api.models.base_models import CacheKeyDataModel
+from api.models.response_model_properties import CacheKeyDataModel
 from api.routers.filer.models.bed_features import BEDFeature
 from api.routers.filer.models.filer_track import FILERTrackSummary
 

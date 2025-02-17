@@ -7,7 +7,7 @@ from api.common.enums import ResponseFormat, ResponseView
 from api.common.formatters import id2title
 
 from api.models.base_response_models import PagedResponseModel
-from api.models.base_models import GenericDataModel
+from api.models.response_model_properties import GenericDataModel
 
 class BEDFeature(GenericDataModel):
     chrom: str = Field(description="name of the chromosome or scaffold")

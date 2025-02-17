@@ -9,7 +9,7 @@ from api.common.constants import JSON_TYPE
 from api.common.enums import OnRowSelect, ResponseView
 from api.common.formatters import id2title
 from api.models import ExperimentalDesign, BiosampleCharacteristics, Provenance
-from api.models.base_models import GenericDataModel
+from api.models.response_model_properties import GenericDataModel
 from api.models.base_response_models import PagedResponseModel
 from api.models.provenance import FILERAccession
 from api.models.track import GenericTrack, GenericTrackSummary
