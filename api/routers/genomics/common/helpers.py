@@ -3,6 +3,8 @@ from fastapi.exceptions import RequestValidationError
 from sqlmodel import text
 from sqlalchemy.exc import NoResultFound
 
+from niagads.utils.dict import all_values_are_none
+
 from api.common.enums.cache import CacheKeyQualifier, CacheNamespace
 from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, PaginationCursor
 from api.common.types import Range
@@ -40,7 +42,10 @@ class GenomicsRouteHelper(RouteHelper):
                 # .mappings() returns result as dict
                 result = (await self._managers.session.execute(statement, parameters)).mappings().all()
             else:
-                result = (await self._managers.session.execute(statement, parameters)).mappings().all()
+                result = (await self._managers.session.execute(statement)).mappings().all()
+            
+            if all_values_are_none(result[0]):
+                raise NoResultFound()
             
             if self.__query.fetchOne:
                 return result[0]
