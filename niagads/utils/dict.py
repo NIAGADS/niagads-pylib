@@ -7,7 +7,11 @@ from collections import abc
 from types import SimpleNamespace
 
 from niagads.utils.string import is_bool, is_null, to_bool, to_number
+from niagads.utils.list import all_elements_are_none as __list_is_none
 
+def all_values_are_none(dictObj: dict):
+    """ returns true if all dict is empty or values are none """
+    return __list_is_none(dictObj.values())
 
 def rename_key(dictObj:dict, oldKey: str, newKey: str, ordered: bool=False): # note does not preserve python3+ ordering
     """

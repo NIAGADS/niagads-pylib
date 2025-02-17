@@ -4,6 +4,11 @@ from typing import List, Union
 from .string import xstr
 
 
+def all_elements_are_none(array):
+    """ checks if list is all nones """
+    return all(item is None for item in array)
+
+
 def find(array, value, field:str=None, returnValues=True):
     """
     filters a list and returns matches
