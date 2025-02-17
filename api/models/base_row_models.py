@@ -5,7 +5,7 @@ from fastapi.encoders import jsonable_encoder
 
 from niagads.utils.string import xstr
 
-from api.common.enums.base_enums import ResponseFormat, ResponseView
+from api.common.enums.response_properties import ResponseFormat, ResponseView
 from api.common.formatters import id2title
 
 class RowModel(BaseModel):

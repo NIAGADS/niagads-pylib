@@ -4,7 +4,7 @@ from sqlmodel import SQLModel
 
 from niagads.utils.list import find
 
-from api.common.enums.base_enums import OnRowSelect, ResponseView
+from api.common.enums.response_properties import OnRowSelect, ResponseView
 from api.common.formatters import id2title
 from api.models.base_row_models import GenericDataModel
 from api.models.track_properties import BiosampleCharacteristics, ExperimentalDesign, Provenance
