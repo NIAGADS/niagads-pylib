@@ -6,20 +6,22 @@ from itertools import groupby
 from operator import itemgetter
 
 from niagads.utils.list import cumulative_sum, chunker
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel
 
-from api.common.enums.base_enums import CacheKeyQualifier, ResponseContent, CacheNamespace
+from api.common.enums.cache import CacheKeyQualifier, CacheNamespace
+from api.common.enums.response_properties import ResponseContent
 from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, PaginationCursor
 from api.common.types import Range
 from api.models.response_model_properties import CacheKeyDataModel
-from api.routers.filer.models.bed_features import BEDFeature
-from api.routers.filer.models.filer_track import FILERTrackSummary
 
-from .constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
-from .enums import FILERApiEndpoint
-from .services import FILERApiDataResponse, TrackOverlap, MetadataQueryService, ApiWrapperService, sort_track_overlaps
-from ..dependencies.parameters import InternalRequestParameters
-from ..models.track_metadata_cache import Track
+from api.routers.filer.common.constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
+from api.routers.filer.common.enums import FILERApiEndpoint
+from api.routers.filer.common.services import ApiWrapperService, FILERApiDataResponse, MetadataQueryService
+from api.routers.filer.dependencies.parameters import InternalRequestParameters
+from api.routers.filer.models.bed_features import BEDFeature
+from api.routers.filer.models.track_metadata_cache import Track
+from api.routers.filer.models.track_overlaps import TrackOverlap, sort_track_overlaps
+
 
 class FILERPaginationCursor(BaseModel):
     tracks: List[str]
@@ -258,7 +260,8 @@ class FILERRouteHelper(RouteHelper):
             tracks = tracks.split(',') if isinstance(tracks, str) else tracks
             tracks = sorted(tracks) # best for caching & pagination
             
-            result = await MetadataQueryService(self._managers.session).get_track_metadata(tracks, responseType=self._responseConfig.content)
+            result = await MetadataQueryService(self._managers.session) \
+                .get_track_metadata(tracks, responseType=self._responseConfig.content)
             
             if not rawResponse:
                 self._resultSize = len(result)

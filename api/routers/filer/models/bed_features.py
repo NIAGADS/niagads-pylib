@@ -3,11 +3,11 @@ from typing import Any, List, Optional, Union
 from niagads.utils.string import dict_to_info_string, xstr
 from pydantic import Field
 
-from api.common.enums.base_enums import ResponseFormat, ResponseView
+from api.common.enums.response_properties import ResponseFormat, ResponseView
 from api.common.formatters import id2title
 
 from api.models.base_response_models import PagedResponseModel
-from api.models.response_model_properties import GenericDataModel
+from api.models.base_row_models import GenericDataModel
 
 class BEDFeature(GenericDataModel):
     chrom: str = Field(description="name of the chromosome or scaffold")
@@ -102,7 +102,4 @@ class BEDResponse(PagedResponseModel):
         hasDynamicExtras = self.__has_dynamic_extras()
         return super().to_text(format, fields=self.response[0].get_field_names(collapseExtras=hasDynamicExtras), 
             collapseExtras=hasDynamicExtras, **kwargs)
-    
-    
-    def to_view(self, view: ResponseView, **kwargs):
-        return super().to_view(view, collapseExtras=self.__has_dynamic_extras(), **kwargs)
+

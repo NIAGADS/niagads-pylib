@@ -9,9 +9,10 @@ from typing import List, Optional, Union
 
 from niagads.utils.list import list_to_string
 
-from api.common.enums.base_enums import Assembly, ResponseContent, ResponseFormat, ResponseView
+from api.common.enums.genome import Assembly
+from api.common.enums.response_properties import ResponseContent, ResponseFormat, ResponseView
 from api.dependencies.parameters.filters import tripleToPreparedStatement
-from api.models.response_model_properties import RowModel
+from api.models.base_row_models import RowModel
 
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint
@@ -22,23 +23,7 @@ class FILERApiDataResponse(BaseModel):
     Identifier: str
     features: List[BEDFeature]
     
-class TrackOverlap(RowModel):
-    track_id: str
-    num_overlaps: int
-    
-    def get_view_config(self, view: ResponseView, **kwargs):
-        raise RuntimeError('View transformations not implemented for this row model.')
-    
-    def to_view_data(self, view: ResponseView, **kwargs):
-        raise RuntimeError('View transformations not implemented for this row model.')
-    
-    def to_text(self, format: ResponseFormat, **kwargs):
-        return f'{self.track_id}\t{self.num_overlaps}'
-        # raise NotImplementedError('Text responses not implemented for this data type.')
-    
 
-def sort_track_overlaps(trackOverlaps: List[TrackOverlap], reverse=True) -> List[TrackOverlap]:
-    return sorted(trackOverlaps, key = lambda item: item.num_overlaps, reverse=reverse)    
  
 class ApiWrapperService:
     def __init__(self, session):

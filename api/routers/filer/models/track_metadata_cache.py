@@ -10,10 +10,15 @@ from niagads.filer.parser import split_replicates
 from niagads.utils.reg_ex import regex_extract
 
 from api.config.urls import DATASOURCE_URLS
-from api.models import Provenance, ExperimentalDesign
-from api.models.response_model_properties import SerializableModel
+from api.models.base_row_models import RowModel
+from api.models.track_properties import ExperimentalDesign, Provenance
 
-class Collection(SQLModel, SerializableModel, table=True):
+class FILERAccession(Provenance):
+    data_source_version: Optional[str]
+    download_date: Optional[date] 
+    project: Optional[str] # FIXME: make this == collections: List[str]?
+
+class Collection(SQLModel, table=True):
     __tablename__ = "filercollection"
     __bind_key__ = 'filer'
     __table_args__ = {'schema': 'serverapplication'}
@@ -23,7 +28,7 @@ class Collection(SQLModel, SerializableModel, table=True):
     description: str = Field(sa_column=Column(TEXT))
     
 
-class TrackCollection(SQLModel, SerializableModel, table=True):
+class TrackCollection(SQLModel, table=True):
     __tablename__ = "filercollectiontracklink"
     __bind_key__ = 'filer'
     __table_args__ = {'schema': 'serverapplication'}
@@ -33,7 +38,7 @@ class TrackCollection(SQLModel, SerializableModel, table=True):
     collection_id: int = Field(foreign_key="collection.collection_id")
     
 
-class Track(SQLModel, SerializableModel, table=True):
+class Track(SQLModel, table=True):
     __tablename__ = "filertrack"
     __bind_key__ = 'filer'
     __table_args__ = {'schema': 'serverapplication'}
@@ -114,9 +119,9 @@ class Track(SQLModel, SerializableModel, table=True):
     
     @computed_field
     @property
-    def provenance(self) -> Provenance:
-        props = { field: getattr(self, field) for field in Provenance.model_fields }
-        return Provenance(**props)
+    def provenance(self) -> FILERAccession:
+        props = { field: getattr(self, field) for field in FILERAccession.model_fields }
+        return FILERAccession(**props)
 
         
     @computed_field 

@@ -1,18 +1,16 @@
+from datetime import date
 from sqlmodel import SQLModel
-from typing import Any, Dict, Optional, List, Union
-from typing_extensions import Self
-from pydantic import model_validator
+from typing import Optional, List
 
-from niagads.utils.list import find
-
-from api.common.constants import JSON_TYPE
-from api.common.enums.base_enums import OnRowSelect, ResponseView
+from api.common.enums.response_properties import ResponseView
 from api.common.formatters import id2title
-from api.models import ExperimentalDesign, BiosampleCharacteristics, Provenance
-from api.models.response_model_properties import GenericDataModel
+
 from api.models.base_response_models import PagedResponseModel
-from api.models.provenance import FILERAccession
 from api.models.track import GenericTrack, GenericTrackSummary
+from api.models.track_properties import BiosampleCharacteristics
+from api.routers.filer.models.track_metadata_cache import FILERAccession
+
+
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
 class FILERTrackSummary(SQLModel, GenericTrackSummary):
