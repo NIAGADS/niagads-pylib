@@ -3,7 +3,6 @@ from api.models.query_defintion import QueryDefinition
 
 
 IGVFeatureLookupQuery = QueryDefinition(
-    name='igv-feature-lookup',
     query=""" 
         SELECT v.mapping->>'chromosome' AS chromosome, 
         (v.mapping->>'position')::int AS start, 
@@ -22,7 +21,7 @@ IGVFeatureLookupQuery = QueryDefinition(
         
         ORDER BY chromosome NULLS LAST LIMIT 1
     """,
-    resultType=GenomicRegion,
+    rowModel=GenomicRegion,
     bindParameters=['id'],
     fetchOne=True
 )

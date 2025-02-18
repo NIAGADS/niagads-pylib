@@ -1,5 +1,5 @@
 from typing import List, Union
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
 from api.common.enums.response_properties import ResponseContent, ResponseFormat, ResponseView
@@ -20,7 +20,7 @@ from ..queries.search import SearchType, SiteSearchQueryDefinition
 router = APIRouter(prefix="/service", responses=RESPONSES)
 
 tags = ["Service"]
-@router.get("/search", tags=tags, response_model=Union[List[RecordSearchResult], dict],
+@router.get("/search", tags=tags, response_model=Union[List[RecordSearchResult]],
     name="Site Search",
     description="Find Alzheimer's GenomicsDB Records (features, tracks, collections) by identifier or keyword")
 
@@ -28,9 +28,15 @@ async def site_search(
     keyword: str = Query(description="feature identifier or keyword (NOTE: searches for gene symbols use exact, case-sensitive, matching)"),
     searchType: SearchType = Query(default=SearchType.GLOBAL, description=SearchType.get_description()),
     internal: InternalRequestParameters = Depends()
-)->Union[List[RecordSearchResult], dict]:
+)->Union[List[RecordSearchResult]]:
     
     query = SiteSearchQueryDefinition(searchType=searchType)
+    
+    test = {'primary_key': 'ENSG00000130203', 'display': 'APOE', 'record_type': 'gene', 'match_rank': 0, 
+            'matched_term': 'APOE', 
+            'description': 'Gene // protein coding // apolipoprotein E // Also Known As: AD2 // Location: 19q13.32'}
+    
+    x = RecordSearchResult(**test)
     
     helper = GenomicsRouteHelper(
         internal,
@@ -44,8 +50,12 @@ async def site_search(
         query=query
     )
 
-    result = await helper.run_query()
+    result:T_ResponseModel = await helper.get_query_response()
+    if len(result.response) == 0:
+        return JSONResponse([]) 
+    
     return result.response
+
 
 tags = ["NIAGADS Genome Browser"]
 @router.get("/igvbrowser/feature", tags=tags, 
@@ -71,7 +81,7 @@ async def get_browser_feature_region(
         query=IGVFeatureLookupQuery
     )
     
-    result:T_ResponseModel = await helper.run_query()
+    result:T_ResponseModel = await helper.get_query_response()
     
     if len(result.response) == 0:
         return JSONResponse({}) # result.response

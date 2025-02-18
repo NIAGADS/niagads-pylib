@@ -1,7 +1,8 @@
 from enum import auto
-from typing import List
+from typing import List, Type
 
 from api.common.enums.base_enums import EnumParameter
+from api.models.base_row_models import T_RowModel
 from api.models.search import RecordSearchResult
 from api.models.query_defintion import QueryDefinition
 
@@ -22,14 +23,15 @@ class SearchType(EnumParameter): # TODO: move to parameters
 
 class SiteSearchQueryDefinition(QueryDefinition):
     searchType: SearchType
-    resultType: List[RecordSearchResult]   
-    fetchOne: bool = True
+    rowModel: Type[T_RowModel] = RecordSearchResult
+    fetchOne: bool = False
+    query:str = '' # gets assigned dynamically by model_post_init
+    bindParameters: List[str] = ['keyword']
     
-    def __get_cte(self):
-        
-        geneSql = "SELECT * FROM gene_text_search((SELECT :keyword FROM st))"
-        variantSql = "SELECT * FROM variant_text_search((SELECT :keyword FROM st))"
-        trackSql = "SELECT * FROM gwas_dataset_text_search((SELECT :keyword FROM st))"
+    def __get_CTE(self):        
+        geneSql = "SELECT * FROM gene_text_search((SELECT st.keyword FROM st))"
+        variantSql = "SELECT * FROM variant_text_search((SELECT st.keyword FROM st))"
+        trackSql = "SELECT * FROM gwas_dataset_text_search((SELECT st.keyword FROM st))"
         
         match self.searchType:
             case SearchType.GENE:
@@ -39,25 +41,26 @@ class SiteSearchQueryDefinition(QueryDefinition):
             case SearchType.TRACK:
                 return trackSql
             case SearchType.FEATURE:
-                return ('WITH Matches AS ({geneSql}'
-                    f' UNION {variantSql}'
-                    f' ORDER BY match_rank, record_type, display ASC)'
-                )
+                return f'{geneSql} UNION ALL {variantSql}'
             case _:
-                return (f'WITH Matches AS ({geneSql}'
-                    f' UNION {variantSql} UNION {trackSql}'
-                    f' ORDER BY match_rank, record_type, display ASC)'
-                )
-
+                return f'{geneSql} UNION ALL {variantSql} UNION ALL {trackSql}'
     
     def model_post_init(self, __context):        
         match self.searchType:
             case SearchType.FEATURE:
-                self.bindParameters = ['keyword', 'keyword']
+                self.bindParameters = ['keyword'] * 2
             case SearchType.GLOBAL:
-                self.bindParameters = ['keyword', 'keyword', 'keyword']
+                self.bindParameters = ['keyword'] * 3
             case _:
                 self.bindParameters = ['keyword']
         
-        self.name = f'{self.searchType.value}-text-search'
-        self.query = f'SELECT jsonb_agg(*)::text AS result FROM ({self.__get_cte()}) m'
+        self.query = (f'WITH st AS (SELECT trim(:keyword)::text AS keyword)'
+            f' {self.__get_CTE()}'
+            f' ORDER BY match_rank, record_type, display ASC'
+        )
+
+""" e.g. usage:
+query = SiteSearchQueryDefinition(
+    searchType = SearchType.GENE
+)
+"""

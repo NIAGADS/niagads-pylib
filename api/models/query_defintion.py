@@ -1,29 +1,26 @@
 
-from typing import List, Type
+from typing import List, Optional, Type
 from pydantic import BaseModel
 
 from api.models.base_row_models import T_RowModel
 
-class QueryDefinition(BaseModel):
-    name: str
-    query: str
-    useIdCTE: bool = False
-    useIdSelectWrapper: bool = False
-    resultType: Type[T_RowModel]
-    bindParameters: List[str] # bind parameter names
-    fetchOne: bool = False # expect only one result, so return result[0]
-    errorOnNull: str = None # if not none will raise an error instead of returning empty
 
-    # Developer NOTE: if fetchOne -> empty response = {}, else []
+class QueryDefinition(BaseModel):
+    query: str
+    # useIdCTE: bool = False # TODO: b/c difficult to insert w/out macro, maybe just explicitly write in the query as needed
+    useIdSelectWrapper: bool = False
+    rowModel: Type[T_RowModel] # FIXME: may not actually use this
+    bindParameters: Optional[List[str]] = None # bind parameter names
+    fetchOne: bool = False # expect only one result, so return query result[0]
+    errorOnNull: str = None # if not none will raise an error instead of returning empty
     
     def model_post_init(self, __context):
-        if self.useIdCTE:
-            self.query = "WITH (SELECT :id::text AS id) id, " + self.query
-            self.bindParameters.insert(0, 'id')
-
         if self.useIdSelectWrapper:
             self.query = "SELECT * FROM (" + self.query + ") q WHERE id = :id"
-            self.bindParameters.append('id')
+            if self.bindParameters is not None:
+                self.bindParameters.append('id')
+            else:
+                self.bindParameters = ['id']
         
 
 

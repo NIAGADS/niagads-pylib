@@ -105,6 +105,16 @@ class RouteHelper():
     def set_page_size(self, pageSize: int):
         self._pageSize = pageSize
         
+        
+    async def _get_cached_response(self):
+        cacheKey = self._managers.cacheKey.encrypt()
+        response = await self._managers.cache.get(
+            cacheKey, namespace=self._managers.cacheKey.namespace)
+        
+        if response is not None:
+            return await self.generate_response(response, isCached = True)
+        
+        return None
     
     def _pagination_exists(self, raiseError: bool = True):
         if self._pagination is None:

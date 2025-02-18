@@ -19,14 +19,14 @@ class VariantPValueScore(VariantScore):
     neg_log10_pvalue: float
     
     
-class xQTL(VariantPValueScore):
+class QTL(VariantPValueScore):
     z_score: Optional[float] = None
     dist_to_target: Optional[float] = None
     target: Gene
 
-class VariantScoreResponse(PagedResponseModel):
-    response: List[Type[T_VariantScore]]
+class GWASSumStatResponse(PagedResponseModel):
+    response: List[VariantPValueScore]
     
-class xQTLResponse(PagedResponseModel):
-    response: List[xQTL]
+class QTLResponse(PagedResponseModel):
+    response: List[QTL]
     

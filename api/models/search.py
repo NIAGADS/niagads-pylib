@@ -1,6 +1,8 @@
 from enum import auto
 from typing import List
 
+from pydantic import AliasChoices, Field
+
 from api.common.enums.base_enums import CaseInsensitiveEnum
 from api.models.base_row_models import RowModel
 
@@ -16,10 +18,10 @@ class RecordType(CaseInsensitiveEnum):
     COLLECTION = 'collection'
 
 class RecordSearchResult(RowModel):
-    id: str # primary_key (identifier) for the record (e.g., ensembl ID)
+    id: str = Field(validation_alias=AliasChoices('primary_key')) # primary_key (identifier) for the record (e.g., ensembl ID)
     description: str # descriptive text
     display: str # display id (e.g. gene symbol)
-    type: RecordType # one of gene, variant, track, collection, etc
+    record_type: RecordType
     matched_term: str
     match_rank: int
     

@@ -189,11 +189,10 @@ class FILERRouteHelper(RouteHelper):
     async def get_track_data(self, validate=True): 
         """ if trackSummary is set, then fetches from the summary not from a parameter"""
         
-        result = await self._managers.cache.get(self._managers.cacheKey.encrypt(),
-            namespace=self._managers.cacheKey.namespace)
-        if result is not None:
-            return await self.generate_response(result, isCached=True)
-
+        cachedResponse = await self._get_cached_response()
+        if cachedResponse is not None:
+            return cachedResponse
+        
         tracks = self._parameters.get('track') 
         tracks = tracks.split(',') if isinstance(tracks, str) else tracks
         tracks = sorted(tracks) # best for caching
@@ -363,11 +362,9 @@ class FILERRouteHelper(RouteHelper):
         
 
     async def search_track_data(self):
-        result = await self._managers.cache.get(self._managers.cacheKey.encrypt(),
-            namespace=self._managers.cacheKey.namespace)
-        
-        if result is not None: # just return the cached response
-            return await self.generate_response(result, isCached=True)
+        cachedResponse = await self._get_cached_response()
+        if cachedResponse is not None:
+            return cachedResponse
     
         hasMetadataFilters = self._parameters.keyword is not None or self._parameters.filter is not None
         

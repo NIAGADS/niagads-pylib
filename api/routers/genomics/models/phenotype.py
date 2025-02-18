@@ -1,9 +1,11 @@
 
 from typing import List, Optional
-from api.models.response_model_properties import SerializableModel
+
+from pydantic import BaseModel
+
 
 # TODO: population -> ancestry/ethnic group
-class Phenotype(SerializableModel):
+class Phenotype(BaseModel):
     population: Optional[List[str]]
     biomarker: Optional[str]
     genotype: Optional[str]
