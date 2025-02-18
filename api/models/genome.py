@@ -13,7 +13,6 @@ class GenomicRegion(RowModel, Range):
     strand: Optional[Strand] = None
     
     # so that strand does not get returned if missing
-    # so thta end does not get returned if missing (e.g, SNVs)
     model_config = ConfigDict(exclude_none=True)
     
     @field_serializer("chromosome")
@@ -30,10 +29,9 @@ class GenomicRegion(RowModel, Range):
 class Gene(RowModel):
     ensembl_id: str
     gene_symbol: str
-    location: GenomicRegion
-
     
 class Variant(RowModel):
     variant_id: str
     ref_snp_id: Optional[str] = None
-    location: GenomicRegion
+
+    

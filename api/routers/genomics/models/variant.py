@@ -1,37 +1,42 @@
 from typing import Any, Dict, List, Optional, Union
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 
-from api.common.enums.base_enums import ConsequenceImpact
-from api.models.response_model_properties import RowModel, SerializableModel
+
 from api.models.base_response_models import PagedResponseModel
-from api.models.genome import Gene, Variant as BaseVariant
+from api.models.base_row_models import RowModel
 
-class PredictedConsequence(RowModel):
+from api.models.genome import Gene, GenomicRegion, Variant as BaseVariant
+from api.routers.genomics.common.enums import ConsequenceImpact
+
+class PredictedConsequence(BaseModel):
     consequence: str
     impact: ConsequenceImpact
-    is_coding: Optional[bool]
-    impacted_gene: Optional[Gene]
+    is_coding: Optional[bool] = False
+    impacted_gene: Optional[Gene] = None
+    location: GenomicRegion
     # info: Optional[dict] <- what else is there; depends on the type of consequence
+
+class RankedConsequences(BaseModel):
+    regulatory: List[PredictedConsequence]
+    motif: List[PredictedConsequence]
+    transcript: List[PredictedConsequence]
 
 class Variant(BaseVariant):
     type: str
-    is_adsp_variant: bool
-    most_serious_consequence: PredictedConsequence
-    cadd_score: Dict[str, float]
+    is_adsp_variant: Optional[bool] = False
+    most_serious_consequence: Optional[PredictedConsequence] = None
     # is_multi_allelic: bool
 
 class AnnotatedVariant(Variant):
-    ADSP_qc: Optional[Dict[str, Union[str, int, bool]]]
-    allele_frequencies: Optional[dict]
-    predicted_consequences: Optional[Dict[str, PredictedConsequence]]
+    cadd_score: Optional[Dict[str, float]] = None
+    ADSP_qc: Optional[Dict[str, dict]] = None
+    allele_frequencies: Optional[dict] = None
+    predicted_consequences: Optional[RankedConsequences] = None
     # predicted consequences
     # lof
     # favor annotations
     # ld -> maybe?
     
-
-    # FIXME: not sure on this
-    # model_config = ConfigDict(exclude_none=True)
 
 
 class VariantSummaryResponse(PagedResponseModel):
