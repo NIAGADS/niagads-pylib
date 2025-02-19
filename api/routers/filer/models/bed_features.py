@@ -2,7 +2,6 @@ from typing import Any, List, Optional, Union
 from pydantic import Field
 
 from niagads.utils.string import dict_to_info_string, xstr
-from niagads.utils.decorators import hybridmethod
 
 from api.common.enums.response_properties import ResponseFormat, ResponseView
 from api.common.formatters import id2title

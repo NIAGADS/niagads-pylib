@@ -1,10 +1,9 @@
 from typing import Any, Dict, List, Optional, Self, Union
-from pydantic import ConfigDict, model_validator
+from pydantic import model_validator
 from sqlalchemy import RowMapping
 from sqlmodel import SQLModel
 
 from niagads.utils.list import find
-from niagads.utils.decorators import hybridmethod
 
 from api.common.enums.response_properties import OnRowSelect, ResponseView
 from api.common.formatters import id2title
