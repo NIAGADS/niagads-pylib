@@ -7,10 +7,11 @@ from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.location import span_param
 from api.dependencies.parameters.optional import page_param
+from api.dependencies.parameters.path import path_track_id
 from api.models.base_response_models import PagedResponseModel, BaseResponseModel
 from api.models.view_models import TableViewResponseModel
 
-from api.routers.filer.dependencies.parameters import InternalRequestParameters, path_track_id
+from api.routers.filer.dependencies.parameters import InternalRequestParameters
 from api.routers.filer.common.helpers import FILERRouteHelper
 from api.routers.filer.models.filer_track import FILERTrackResponse, FILERTrackSummaryResponse
 from api.routers.filer.models.bed_features import BEDResponse
