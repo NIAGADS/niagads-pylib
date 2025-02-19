@@ -31,7 +31,7 @@ class GenomicsRouteHelper(RouteHelper):
         statement = text(self.__query.query)
 
         try:
-            if len(self.__query.bindParameters) > 0: 
+            if self.__query.bindParameters is not None: 
                 # using the binparam object allows us to use the same parameter multiple times
                 # which is not possible w/simple dict representaion
                 parameters = [bindparam(param,

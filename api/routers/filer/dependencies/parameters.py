@@ -21,8 +21,7 @@ class InternalRequestParameters(BaseInternalRequestParameters, arbitrary_types_a
     session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)]
     apiClientSession: Annotated[ClientSession, Depends(API_CLIENT_SESSION_MANAGER)]
 
-async def query_collection_name(collection: Optional[str] = Query(default=None, description="FILER collection name")) -> str:
-    return clean(collection)
+
 
 async def required_query_track_id(track: str = Query(description="comma separated list of one or more FILER track identifiers")) -> str:
     return clean(track)

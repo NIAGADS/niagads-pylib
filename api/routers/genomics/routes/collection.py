@@ -15,6 +15,7 @@ from api.models.view_models import TableViewResponseModel
 from api.routers.genomics.common.helpers import GenomicsRouteHelper
 from api.routers.genomics.dependencies.parameters import InternalRequestParameters
 from api.routers.genomics.models.genomics_track import GenomicsTrackResponse, GenomicsTrackSummaryResponse
+from api.routers.genomics.queries.track_metadata import CollectionQuery, CollectionTrackMetadataQuery
 
 router = APIRouter(prefix="/collection", tags = ["Collections"], responses=RESPONSES)
 
@@ -37,7 +38,7 @@ async def get_collections(
             model=CollectionResponse
         ), 
         Parameters(),
-        # query=CollectionQuery
+        query=CollectionQuery
     )
 
     
@@ -70,8 +71,7 @@ async def get_collection_track_metadata(
                     else BaseResponseModel
         ), 
         Parameters(collection=collection, page=page),
-        # query=TrackCollectionQuery,
-        idParameter='collection'
+        query=CollectionTrackMetadataQuery
     )
     
     return await helper.get_query_response()

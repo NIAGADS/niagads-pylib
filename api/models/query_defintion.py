@@ -9,7 +9,6 @@ class QueryDefinition(BaseModel):
     query: str
     # useIdCTE: bool = False # TODO: b/c difficult to insert w/out macro, maybe just explicitly write in the query as needed
     useIdSelectWrapper: bool = False
-    rowModel: Type[T_RowModel] # FIXME: may not actually use this
     bindParameters: Optional[List[str]] = None # bind parameter names
     fetchOne: bool = False # expect only one result, so return query result[0]
     errorOnNull: str = None # if not none will raise an error instead of returning empty

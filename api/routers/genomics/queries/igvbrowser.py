@@ -21,7 +21,6 @@ IGVFeatureLookupQuery = QueryDefinition(
         
         ORDER BY chromosome NULLS LAST LIMIT 1
     """,
-    rowModel=GenomicRegion,
     bindParameters=['id'],
     fetchOne=True
 )

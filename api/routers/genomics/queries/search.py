@@ -23,7 +23,6 @@ class SearchType(EnumParameter): # TODO: move to parameters
 
 class SiteSearchQueryDefinition(QueryDefinition):
     searchType: SearchType
-    rowModel: Type[T_RowModel] = RecordSearchResult
     fetchOne: bool = False
     query:str = '' # gets assigned dynamically by model_post_init
     bindParameters: List[str] = ['keyword']
