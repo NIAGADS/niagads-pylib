@@ -5,17 +5,11 @@ from fastapi.encoders import jsonable_encoder
 
 from niagads.utils.string import xstr
 
+from api.common.constants import DEFAULT_NULL_STRING
 from api.common.enums.response_properties import ResponseFormat, ResponseView
 from api.common.formatters import id2title
 
-class RowModel(BaseModel):
-    """
-    Most API responses are a lists of objects (rows).
-    A Row Model defines the expected object.
-    The RowModel base class defines class methods 
-    expected for these objects to generate standardized API responses
-    """
-    
+class SerializableModel(BaseModel):
     def serialize(self, exclude: List[str] = None, promoteObjs=False, collapseUrls=False, groupExtra=False, byAlias=False):
         """
         basically a customized `model_dumps` but only when explicity called
@@ -43,6 +37,18 @@ class RowModel(BaseModel):
         
         return data
     
+class RowModel(SerializableModel):
+    """
+    Most API responses are a lists of objects (rows).
+    A Row Model defines the expected object.
+    The RowModel base class defines class methods 
+    expected for these objects to generate standardized API responses
+    """
+    
+    @classmethod
+    def get_model_fields(cls):
+        return list(cls.model_fields.keys())
+    
     def has_extras(self):
         """ test if extra model fields are present """
         return len(self.model_extra) > 0
@@ -53,7 +59,7 @@ class RowModel(BaseModel):
     
 
     def to_text(self, format: ResponseFormat, **kwargs):
-        nullStr = kwargs.get('nullStr', '.')
+        nullStr = kwargs.get('nullStr', DEFAULT_NULL_STRING)
         match format:
             case ResponseFormat.TEXT:
                 values = list(self.model_dump().values())
