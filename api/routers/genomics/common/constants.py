@@ -14,14 +14,6 @@ TRACKS_PER_API_REQUEST_LIMIT = 50
 
 CACHEDB_PARALLEL_TIMEOUT=30
 
-class Covariate(CaseInsensitiveEnum):
-    AGE = auto()
-    SEX = auto()
-    POPULATION = auto()
-    APOE = auto()
-    
-
-
 TRACK_SEARCH_FILTER_FIELD_MAP = { 
     'biosample': {
         'model_field' : 'biosample_characteristics', 

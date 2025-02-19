@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Self, Union
 from pydantic import model_validator
+from sqlalchemy import RowMapping
 from sqlmodel import SQLModel
 
 from niagads.utils.list import find
@@ -23,10 +24,11 @@ class GenericTrackSummary(GenericDataModel):
     @classmethod
     def allowable_extras(cls: Self, data: Union[Dict[str, Any]]):
         """ for now, allowable extras are just counts, prefixed with `num_` """
-        if type(data).__base__ == SQLModel or isinstance(data, str) or not isinstance(data, dict): 
-            # then there are no extra fields or FASTAPI is attempting to serialize
-            # unnecessarily when returning a Union[ResponseType Listing]
-            return data
+        if not type(data) == RowMapping:
+            if type(data).__base__ == SQLModel or isinstance(data, str) or not isinstance(data, dict): 
+                # then there are no extra fields or FASTAPI is attempting to serialize
+                # unnecessarily when returning a Union[ResponseType Listing]
+                return data
         modelFields = cls.model_fields.keys()
         return {k:v for k, v in data.items() if k in modelFields or k.startswith('num_')}
 

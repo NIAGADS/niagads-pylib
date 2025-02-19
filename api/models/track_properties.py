@@ -1,6 +1,6 @@
 
 from datetime import date
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 class ExperimentalDesign(BaseModel):
@@ -32,8 +32,9 @@ class Provenance(BaseModel):
 class DSSAccession(Provenance):
     data_source: str = "NIAGADS DSS"
     accession: str
-    pubemd_id: str
-    attribution: str
+    pubmed_id: Optional[str] = None
+    attribution: Optional[str] = None
+    consortia: Optional[str] = None
     # TODO: collections?
     
     

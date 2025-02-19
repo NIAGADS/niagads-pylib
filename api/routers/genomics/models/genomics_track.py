@@ -1,18 +1,14 @@
-from typing import List, Optional
-
+from enum import auto
+from typing import Dict, List, Optional, Union
 from pydantic import BaseModel
 
+from api.common.enums.base_enums import CaseInsensitiveEnum
 from api.common.enums.response_properties import ResponseView
 
 from api.models.base_response_models import PagedResponseModel
 from api.models.track import GenericTrack, GenericTrackSummary
 from api.models.track_properties import DSSAccession
-from api.routers.genomics.common.constants import Covariate
-from api.routers.genomics.models.phenotype import Phenotype
-
-class StudyGroup(BaseModel):
-    group: str
-    count: int
+from api.routers.genomics.models.genomics_track_properties import Phenotype, StudyGroup
 
 class GenomicsTrack(GenericTrack):
     description: str
@@ -20,9 +16,9 @@ class GenomicsTrack(GenericTrack):
     
 class HumanGenomicsTrack(GenomicsTrack):
     cohorts: Optional[List[str]] = None
-    study_groups: List[StudyGroup] 
+    study_groups: Optional[List[StudyGroup]] = None
     phenotypes: Optional[Phenotype] = None
-    covariates: List[Covariate]
+    covariates: Optional[str] = None
     
 class GenomicsTrackSummaryResponse(PagedResponseModel):
     response: List[GenericTrackSummary]
@@ -33,7 +29,7 @@ class GenomicsTrackSummaryResponse(PagedResponseModel):
 
     
 class GenomicsTrackResponse(PagedResponseModel):
-    response: List[GenomicsTrack]
+    response: List[HumanGenomicsTrack]
 
     def to_text(self, format: ResponseView, **kwargs):
         fields = self.response[0].get_field_names()

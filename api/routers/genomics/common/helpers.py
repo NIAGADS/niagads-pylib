@@ -12,18 +12,19 @@ from api.routers.genomics.common.constants import CACHEDB_PARALLEL_TIMEOUT
 from api.routers.genomics.dependencies.parameters import InternalRequestParameters
 from api.routers.genomics.models.feature_score import GWASSumStatResponse, QTLResponse
 from api.routers.genomics.models.genomics_track import GenomicsTrack
-from api.routers.genomics.queries.track import TrackGWASSumStatQuery, TrackQTLQuery
+from api.routers.genomics.queries.track_results import TrackGWASSumStatQuery, TrackQTLQuery
 
 class GenomicsRouteHelper(RouteHelper):  
     
     def __init__(self, managers: InternalRequestParameters, 
         responseConfig: ResponseConfiguration,
         params: Parameters,
-        query: QueryDefinition
+        query: QueryDefinition,
+        idParameter: str = 'id'
     ):
         super().__init__(managers, responseConfig, params)
         self.__query = query
-        self.__idParameter: str = 'id'
+        self.__idParameter: str = idParameter
     
 
     async def __run_query(self): 
