@@ -94,19 +94,14 @@ def xstr(value, nullStr="", falseAsNull=False, dictsAsJson=True):
     """
     if value is None:
         return nullStr
-    elif falseAsNull and isinstance(value, bool):
-        if value is False:
-            return nullStr
-        else:
-            return str(value)
-    elif is_date(value):
-        return to_date(value, returnStr=True)
-    elif isinstance(value, list):
+    
+    if isinstance(value, list):
         if len(value) == 0:
             return nullStr
         else:
             return ','.join([xstr(v, nullStr, falseAsNull, dictsAsJson) for v in value])
-    elif isinstance(value, dict):
+        
+    if isinstance(value, dict):
         if bool(value):
             if dictsAsJson:
                 return json.dumps(value)
@@ -114,8 +109,17 @@ def xstr(value, nullStr="", falseAsNull=False, dictsAsJson=True):
                 return dict_to_string(value, nullStr=".")
         else:
             return nullStr
-    else:
-        return str(value)
+        
+    if falseAsNull and isinstance(value, bool):
+        if value is False:
+            return nullStr
+        else:
+            return str(value)
+        
+    if is_date(value):
+        return to_date(value, returnStr=True)
+
+    return str(value)
 
 # FIXME: try/catch for non numeric types
 def to_date(value, pattern='%Y-%m-%d', returnStr=False):
