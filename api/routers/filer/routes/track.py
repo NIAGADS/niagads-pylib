@@ -7,7 +7,7 @@ from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.location import span_param
 from api.dependencies.parameters.optional import page_param
-from api.dependencies.parameters.path import path_track_id
+from api.dependencies.parameters.identifiers import path_track_id
 from api.models.base_response_models import PagedResponseModel, BaseResponseModel
 from api.models.view_models import TableViewResponseModel
 

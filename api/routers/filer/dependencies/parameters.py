@@ -24,9 +24,6 @@ class InternalRequestParameters(BaseInternalRequestParameters, arbitrary_types_a
 async def query_collection_name(collection: Optional[str] = Query(default=None, description="FILER collection name")) -> str:
     return clean(collection)
 
-async def path_collection_name(collection: str = Path(description="FILER collection name")) -> str:
-    return clean(collection)
-
 async def required_query_track_id(track: str = Query(description="comma separated list of one or more FILER track identifiers")) -> str:
     return clean(track)
 
