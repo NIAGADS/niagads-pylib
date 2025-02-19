@@ -4,6 +4,7 @@ from typing_extensions import Self
 
 from niagads.utils.string import xstr
 
+from api.common.constants import DEFAULT_NULL_STRING
 from api.common.enums.response_properties import OnRowSelect, ResponseFormat, ResponseView
 from api.models.base_row_models import RowModel, T_RowModel
 from .response_model_properties import PaginationDataModel, RequestDataModel
@@ -63,7 +64,7 @@ class BaseResponseModel(BaseModel):
     
     def to_text(self, format: ResponseFormat, **kwargs):
         """ return a text response (e.g., BED, VCF, plain text) """
-        nullStr = kwargs.get('nullStr', '.')
+        nullStr = kwargs.get('nullStr', DEFAULT_NULL_STRING)
         if isinstance(self.response, dict):
             responseStr = '\t'.join(list(self.response.keys())) + '\n'
             responseStr += '\t'.join([xstr(v, nullStr=nullStr) for v in self.response.values()]) + '\n'

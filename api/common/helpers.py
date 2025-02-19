@@ -265,7 +265,8 @@ class RouteHelper():
             case ResponseView.DEFAULT:
                 if self._responseConfig.format in [ResponseFormat.TEXT, ResponseFormat.BED, ResponseFormat.VCF]:
                     try:
-                        return Response(response.to_text(self._responseConfig.format), media_type="text/plain")
+                        nullStr = None if self._responseConfig.format == ResponseFormat.TEXT else '.'
+                        return Response(response.to_text(self._responseConfig.format, nullStr=nullStr), media_type="text/plain")
                     except NotImplementedError as err:
                         if self._responseConfig.format == ResponseFormat.TEXT:
                             response.add_message(f'{str(err)} Returning default JSON response.')
