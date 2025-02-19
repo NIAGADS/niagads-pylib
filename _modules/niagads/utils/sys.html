@@ -1,0 +1,540 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.utils.sys &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.utils.sys</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.utils.sys</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; i/o and other system (e.g., subprocess) utils&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gzip</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">IO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sys</span><span class="w"> </span><span class="kn">import</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">exit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlencode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">subprocess</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_output</span><span class="p">,</span> <span class="n">CalledProcessError</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClassProperties</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.dict</span><span class="w"> </span><span class="kn">import</span> <span class="n">print_dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.string</span><span class="w"> </span><span class="kn">import</span> <span class="n">ascii_safe_str</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">RestrictedValueError</span>
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+
+
+<div class="viewcode-block" id="file_chunker">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.file_chunker">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">file_chunker</span><span class="p">(</span><span class="n">buffer</span><span class="p">:</span> <span class="n">IO</span><span class="p">,</span> <span class="n">chunkSize</span><span class="p">:</span><span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read n-line chunks from filehandle. Returns sequence of n lines, or None at EOF.</span>
+<span class="sd">    from https://stackoverflow.com/a/22610745</span>
+<span class="sd">    </span>
+<span class="sd">    buffer is the file handler; may be of type TextIOWrapper or BufferedReader (binary)</span>
+<span class="sd">    </span>
+<span class="sd">    example usage:</span>
+<span class="sd">    </span>
+<span class="sd">    with open(filename) as fh:</span>
+<span class="sd">        chunkCounter = 0</span>
+<span class="sd">        for chunk in file_chunker(fh, 20):</span>
+<span class="sd">            chunkCounter = chunkCounter + 1</span>
+<span class="sd">            print(&quot;Chunk: &quot; + str(chunkCounter))</span>
+<span class="sd">            for line in chunk:</span>
+<span class="sd">                print(line)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">while</span> <span class="n">buffer</span><span class="p">:</span>
+        <span class="n">chunk</span> <span class="o">=</span> <span class="p">[</span><span class="n">buffer</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">chunkSize</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">chunk</span><span class="p">):</span>  <span class="c1"># detect termination at end-of-file (list of [&#39;&#39;, &#39;&#39;,...] )</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">yield</span> <span class="n">chunk</span></div>
+
+
+
+        
+<div class="viewcode-block" id="file_line_count">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.file_line_count">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">file_line_count</span><span class="p">(</span><span class="n">fileName</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eol</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    get file_size as count of number of lines</span>
+<span class="sd">    if header = True, does not count header line</span>
+<span class="sd">    adapted from: https://pynative.com/python-count-number-of-lines-in-file/</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        fileName (str): name of the file</span>
+<span class="sd">        eol (str): EOL indicator, defaults to newline</span>
+<span class="sd">        header (bool, optional): file includes a header line</span>
+<span class="sd">        </span>
+<span class="sd">    Returns</span>
+<span class="sd">        the number of lines in the file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__count_generator</span><span class="p">(</span><span class="n">reader</span><span class="p">):</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">reader</span><span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">b</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">b</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">reader</span><span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span>
+            
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+        <span class="n">generator</span> <span class="o">=</span> <span class="n">__count_generator</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">read</span><span class="p">)</span>
+        <span class="c1"># count each eol</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">buffer</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">eol</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span> <span class="k">for</span> <span class="n">buffer</span> <span class="ow">in</span> <span class="n">generator</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">count</span> <span class="k">if</span> <span class="n">header</span> <span class="k">else</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="is_xlsx">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.is_xlsx">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_xlsx</span><span class="p">(</span><span class="n">fileName</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">    tests if a file is an EXCEL (xlsx) file </span>
+<span class="sd">    from : https://stackoverflow.com/a/60494584</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>         
+        <span class="n">first_four_bytes</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()[:</span><span class="mi">4</span><span class="p">]</span>     
+        <span class="k">return</span> <span class="n">first_four_bytes</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;PK</span><span class="se">\x03\x04</span><span class="s1">&#39;</span> </div>
+
+
+
+<div class="viewcode-block" id="generic_file_sort">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.generic_file_sort">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generic_file_sort</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; sorts file; returns sorted file name &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">header</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sort&quot;</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="s2">&quot;&gt;&quot;</span><span class="p">,</span> <span class="n">file</span> <span class="o">+</span> <span class="s2">&quot;.sorted&quot;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;(&quot;</span><span class="p">,</span> <span class="s2">&quot;head&quot;</span><span class="p">,</span> <span class="s2">&quot;-n&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="s2">&quot;&amp;&amp;&quot;</span><span class="p">,</span> <span class="s2">&quot;tail&quot;</span><span class="p">,</span> <span class="s2">&quot;-n&quot;</span><span class="p">,</span> <span class="s2">&quot;+3&quot;</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="s2">&quot;|&quot;</span><span class="p">,</span> <span class="s2">&quot;sort&quot;</span><span class="p">,</span> <span class="s2">&quot;)&quot;</span><span class="p">,</span> <span class="s2">&quot;&gt;&quot;</span><span class="p">,</span> <span class="n">file</span> <span class="o">+</span> <span class="s2">&quot;.sorted&quot;</span><span class="p">]</span>
+        
+    <span class="n">execute_cmd</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">overwrite</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mv&quot;</span><span class="p">,</span> <span class="n">file</span> <span class="o">+</span> <span class="s2">&quot;.sorted&quot;</span><span class="p">,</span> <span class="n">file</span><span class="p">]</span>
+        <span class="n">execute_cmd</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">file</span>    
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">file</span> <span class="o">+</span> <span class="s2">&quot;.sorted&quot;</span></div>
+
+    
+
+
+<div class="viewcode-block" id="remove_duplicate_lines">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.remove_duplicate_lines">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">remove_duplicate_lines</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;remove duplicate lines from a file</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file (str): file name</span>
+<span class="sd">        header (boolean, optional): file contains header? Defaults to True</span>
+<span class="sd">        overwrite (boolean, optional): overwrite file? Defaults to True</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        cleaned file name</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sortedFile</span> <span class="o">=</span> <span class="n">generic_file_sort</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">)</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;uniq&quot;</span><span class="p">,</span> <span class="n">sortedFile</span><span class="p">,</span> <span class="s2">&quot;&gt;&quot;</span><span class="p">,</span> <span class="n">sortedFile</span> <span class="o">+</span> <span class="s2">&quot;.uniq&quot;</span><span class="p">]</span>
+    <span class="n">execute_cmd</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">overwrite</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mv&quot;</span><span class="p">,</span> <span class="n">sortedFile</span> <span class="o">+</span> <span class="s2">&quot;.uniq&quot;</span><span class="p">,</span> <span class="n">file</span><span class="p">]</span>
+        <span class="n">execute_cmd</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">file</span>  
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sortedFile</span> <span class="o">+</span> <span class="s2">&quot;.uniq&quot;</span>  </div>
+
+    
+
+<div class="viewcode-block" id="generator_size">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.generator_size">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generator_size</span><span class="p">(</span><span class="n">generator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; return numbr items in a generator &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">generator</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="get_class_properties">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.get_class_properties">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_class_properties</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="nb">property</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;given a class instance (or class Type itself), prints properties </span>
+<span class="sd">    (methods [or non-dunder methods (__methodName__)], members, or everything)</span>
+<span class="sd">    useful when using a class important from a poorly documented package</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        instance (instantiated class object): class to investigate; can also pass the class itself</span>
+<span class="sd">        entity (str or ClassProperties enum value, optional): one of ClassProperties</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ClassProperties</span><span class="o">.</span><span class="n">has_value</span><span class="p">(</span><span class="nb">property</span><span class="p">):</span>
+        <span class="n">lookup</span> <span class="o">=</span> <span class="n">ClassProperties</span><span class="p">[</span><span class="nb">property</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="n">lookup</span> <span class="o">==</span> <span class="n">ClassProperties</span><span class="o">.</span><span class="n">METHODS</span><span class="p">:</span>
+            <span class="c1"># ignore class-level properties (defined outside of init)</span>
+            <span class="c1"># after https://www.askpython.com/python/examples/find-all-methods-of-class</span>
+            <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="n">attribute</span> <span class="k">for</span> <span class="n">attribute</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">attribute</span><span class="p">))]</span>
+            <span class="k">return</span> <span class="p">[</span> <span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">methods</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">m</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;__&#39;</span><span class="p">)</span> <span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">property</span> <span class="o">==</span> <span class="n">ClassProperties</span><span class="o">.</span><span class="n">MEMBERS</span><span class="p">:</span>
+            <span class="c1"># only works if class is instantiated</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">:</span> <span class="c1"># the class Type itself was passed</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can only get members from an instantiated class&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">RestrictedValueError</span><span class="p">(</span><span class="s2">&quot;property&quot;</span><span class="p">,</span> <span class="nb">property</span><span class="p">,</span> <span class="n">ClassProperties</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="print_args">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.print_args">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">print_args</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">pretty</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; print argparse args &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">print_dict</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="n">pretty</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_opener">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.get_opener">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_opener</span><span class="p">(</span><span class="n">fileName</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compressed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; check if compressed files are expected and return</span>
+<span class="sd">    appropriate opener for a file&#39;&#39;&#39;</span>
+
+    <span class="k">if</span> <span class="n">compressed</span> <span class="ow">or</span> <span class="p">(</span><span class="n">fileName</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fileName</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;gz&#39;</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">binary</span> <span class="ow">or</span> <span class="p">(</span><span class="n">fileName</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">is_binary_file</span><span class="p">(</span><span class="n">fileName</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span>
+        <span class="k">return</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span>
+    <span class="k">return</span> <span class="nb">open</span></div>
+
+
+
+<div class="viewcode-block" id="is_binary_file">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.is_binary_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_binary_file</span><span class="p">(</span><span class="n">fileName</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    tests if the file is binary</span>
+<span class="sd">    adapted from https://stackoverflow.com/a/7392391</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fileName (string): file name (full path)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">textchars</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">({</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span><span class="mi">27</span><span class="p">}</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mh">0x20</span><span class="p">,</span> <span class="mh">0x100</span><span class="p">))</span> <span class="o">-</span> <span class="p">{</span><span class="mh">0x7f</span><span class="p">})</span>
+    <span class="n">is_binary_string</span> <span class="o">=</span> <span class="k">lambda</span> <span class="nb">bytes</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">bytes</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">textchars</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">is_binary_string</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1024</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="execute_cmd">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.execute_cmd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">execute_cmd</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">printCmdOnly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    execute a shell command</span>
+<span class="sd">    cmd = command as array of strings</span>
+<span class="sd">    cwd = working directory for the command</span>
+<span class="sd">    printCmdOnly = prints the command w/out executing</span>
+<span class="sd">    shell = execute in a shell (e.g., necessary for commands like gzip)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">verbose</span> <span class="ow">or</span> <span class="n">printCmdOnly</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">asciiSafeCmd</span> <span class="o">=</span> <span class="p">[</span><span class="n">ascii_safe_str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cmd</span><span class="p">]</span> 
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;EXECUTING: &quot;</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">asciiSafeCmd</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warning</span><span class="p">(</span><span class="s2">&quot;EXECUTING: &quot;</span> <span class="o">+</span> <span class="n">cmd</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">printCmdOnly</span><span class="p">:</span> <span class="k">return</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">shell</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">cwd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">cwd</span><span class="p">)</span>
+        <span class="n">warning</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">die</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
+    
+
+<div class="viewcode-block" id="backup_file">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.backup_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">backup_file</span><span class="p">(</span><span class="n">fileName</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; create a .bak version of a file&#39;&#39;&#39;</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cp&#39;</span><span class="p">,</span> <span class="n">fileName</span><span class="p">,</span> <span class="n">fileName</span> <span class="o">+</span> <span class="s2">&quot;.bak&quot;</span><span class="p">]</span>
+    <span class="n">execute_cmd</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+    
+
+<div class="viewcode-block" id="rename_file">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.rename_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rename_file</span><span class="p">(</span><span class="n">oldFileName</span><span class="p">,</span> <span class="n">targetFileName</span><span class="p">,</span> <span class="n">backupExistingTarget</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    _summary_</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        oldFileName (string): original file name</span>
+<span class="sd">        targetFileName (string): new file name</span>
+<span class="sd">        backupExistingTarget (bool, optional): if the target file exists, back up before renaming the old file. Defaults to True.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">backupExistingTarget</span> <span class="ow">and</span> <span class="n">verify_path</span><span class="p">(</span><span class="n">targetFileName</span><span class="p">):</span>
+        <span class="n">backup_file</span><span class="p">(</span><span class="n">targetFileName</span><span class="p">)</span>
+    
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mv&#39;</span><span class="p">,</span> <span class="n">oldFileName</span><span class="p">,</span> <span class="n">targetFileName</span> <span class="p">]</span>
+    <span class="n">execute_cmd</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+    
+
+<div class="viewcode-block" id="gzip_file">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.gzip_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gzip_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">removeOriginal</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    gzip a file</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">f_in</span><span class="p">,</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.gz&#39;</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f_out</span><span class="p">:</span>
+        <span class="n">f_out</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">f_in</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">removeOriginal</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
+
+        
+        
+<div class="viewcode-block" id="warning">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.warning">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">warning</span><span class="p">(</span><span class="o">*</span><span class="n">objs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    print log messages to stderr</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">fh</span> <span class="o">=</span> <span class="n">stderr</span>
+    <span class="n">flush</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;file&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span> <span class="n">fh</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;flush&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span> <span class="n">flush</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;flush&#39;</span><span class="p">]</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span> <span class="o">+</span> <span class="s1">&#39;]</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">objs</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">fh</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">flush</span><span class="p">:</span>
+        <span class="n">fh</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="create_dir">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.create_dir">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_dir</span><span class="p">(</span><span class="n">dirName</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    check if directory exists in the path, if not create</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">dirName</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">dirName</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dirName</span></div>
+
+
+
+<div class="viewcode-block" id="verify_path">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.verify_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_path</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">isDir</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    verify that a file exists</span>
+<span class="sd">    if isDir is True, just verifies that the path</span>
+<span class="sd">    exists</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">isDir</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span></div>
+
+        
+
+<div class="viewcode-block" id="die">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.die">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">die</span><span class="p">(</span><span class="n">message</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    mimics Perl&#39;s die function</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">warning</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+    <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="make_request">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.make_request">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_request</span><span class="p">(</span><span class="n">requestUrl</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">returnSuccess</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    make request and catch errors; return flag indicating </span>
+<span class="sd">    if successful even in case of error if returnSuccess == True</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        requestUrl (string): url + endpoint</span>
+<span class="sd">        params (obj): {key:value} for parameters</span>
+<span class="sd">        returnSuccess (bool, optional): return success flag even in case of error. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None or flag indicating success</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; make a request and catch errors </span>
+<span class="sd">        return True if call is successful and returnSuccess=True</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">requestUrl</span> <span class="o">+=</span> <span class="s2">&quot;?&quot;</span> <span class="o">+</span> <span class="n">urlencode</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">requestUrl</span><span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>      
+        <span class="k">if</span> <span class="n">returnSuccess</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>       
+        <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">returnSuccess</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;ERROR: &quot;</span> <span class="o">+</span> <span class="n">err</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span></div>
+
+
+<span class="c1"># ------------------------------------------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="FakeSecHead">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.FakeSecHead">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FakeSecHead</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    puts a fake section into a properties file file so that ConfigParser can</span>
+<span class="sd">    be used to retrieve info / necessary for gus.config (GenomicsDB admin config) files</span>
+
+<span class="sd">    workaround for the INI-style headings required by ConfigParser</span>
+<span class="sd">    see https://stackoverflow.com/questions/2819696/parsing-properties-file-in-python</span>
+<span class="sd">    </span>
+<span class="sd">    Required for Python versions &lt; 3 only; for 3+ see db.postgres.postgres_dbi.load_database_config for solution</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fp</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fp</span> <span class="o">=</span> <span class="n">fp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sechead</span> <span class="o">=</span> <span class="s1">&#39;[section]</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+<div class="viewcode-block" id="FakeSecHead.readline">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.sys.FakeSecHead.readline">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">readline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sechead</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span> 
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sechead</span>
+            <span class="k">finally</span><span class="p">:</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">sechead</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.utils.sys</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.0.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

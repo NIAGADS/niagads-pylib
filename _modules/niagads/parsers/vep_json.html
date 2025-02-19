@@ -1,0 +1,505 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.parsers.vep_json &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.vep_json</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.parsers.vep_json</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;! @brief VEP JSON Output Parser&quot;&quot;&quot;</span>
+
+<span class="c1">##</span>
+<span class="c1"># @file vep_json.py</span>
+<span class="c1">#</span>
+<span class="c1"># @brief  VEP JSON Output Parser</span>
+<span class="c1"># </span>
+<span class="c1"># @section vep_parser Description</span>
+<span class="c1"># utils for parsing and manipulating the JSON output of [Ensembl&#39;s Variant</span>
+<span class="c1"># Effect Predictor (VEP) software](https://useast.ensembl.org/info/docs/tools/vep/index.html)</span>
+<span class="c1">#</span>
+<span class="c1"># @section todo_vep_parser TODO</span>
+<span class="c1">#</span>
+<span class="c1"># - clean vep result to remove info that has been extracted</span>
+<span class="c1">#</span>
+<span class="c1"># @section author_vep_parser Author(s)</span>
+<span class="c1"># - Created by Emily Greenfest-Allen (fossilfriend) 2019</span>
+<span class="c1"># - Modified to remove consequence ranking to the ConsequenceParser class by EGA 2022</span>
+
+<span class="c1"># pylint: disable=line-too-long,invalid-name,no-self-use</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.string</span><span class="w"> </span><span class="kn">import</span> <span class="n">xstr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.list</span><span class="w"> </span><span class="kn">import</span> <span class="n">qw</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoVivificationDict</span> 
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">VEPConsequenceParser</span> <span class="k">as</span> <span class="n">ConsequenceParser</span>
+
+<span class="n">CONSEQUENCE_TYPES</span> <span class="o">=</span> <span class="n">qw</span><span class="p">(</span><span class="s1">&#39;transcript regulatory_feature motif_feature intergenic&#39;</span><span class="p">)</span>
+<span class="n">CODING_CONSEQUENCES</span><span class="o">=</span> <span class="n">qw</span><span class="p">(</span><span class="s1">&#39;synonymous_variant missense_variant inframe_insertion inframe_deletion stop_gained stop_lost stop_retained_variant start_lost frameshift_variant coding_sequence_variant&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="is_coding_consequence">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.is_coding_consequence">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_coding_consequence</span><span class="p">(</span><span class="n">conseqs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; check term against list of coding consequences and return </span>
+<span class="sd">    True if found &quot;&quot;&quot;</span>
+    <span class="n">terms</span> <span class="o">=</span> <span class="n">conseqs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">conseqs</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">conseqs</span>
+
+    <span class="n">matches</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">terms</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">CODING_CONSEQUENCES</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span></div>
+
+
+
+<div class="viewcode-block" id="VEPJSONParser">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">VEPJSONParser</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;! class to organize utils for parsing VEP JSON output &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rankingFileName</span><span class="p">,</span> <span class="n">rankConsequencesOnLoad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceParser</span> <span class="o">=</span> <span class="n">ConsequenceParser</span><span class="p">(</span><span class="n">rankingFileName</span><span class="p">,</span> <span class="n">rankOnLoad</span><span class="o">=</span><span class="n">rankConsequencesOnLoad</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__rankedConsequences</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__find_matching_term</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">terms</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! wrapper for ConsequenceParser.find_matching_consequence </span>
+<span class="sd">        so that we can log new consequences when found</span>
+<span class="sd">        </span>
+<span class="sd">        @param terms             list of terms in the consequence combination</span>
+<span class="sd">        @returns rank</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceParser</span><span class="o">.</span><span class="n">find_matching_consequence</span><span class="p">(</span><span class="n">terms</span><span class="p">,</span> <span class="n">failOnMissing</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceParser</span><span class="o">.</span><span class="n">find_matching_consequence</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="VEPJSONParser.assign_adsp_consequence_rank">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.assign_adsp_consequence_rank">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">assign_adsp_consequence_rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conseqDict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! find and return rank and coding status for a consequence combination</span>
+
+<span class="sd">        @param conseqDict     dict (from VEP output) containing consequence that needs to be ranked</span>
+<span class="sd">        @returns updated conseqDict w/rank and is_coding flag</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">terms</span> <span class="o">=</span> <span class="n">conseqDict</span><span class="p">[</span><span class="s1">&#39;consequence_terms&#39;</span><span class="p">]</span>
+        <span class="n">conseq</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conseq</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__rankedConsequences</span><span class="p">:</span>         
+            <span class="n">value</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;rank&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__find_matching_term</span><span class="p">(</span><span class="n">terms</span><span class="p">),</span>
+                <span class="s1">&#39;consequence_is_coding&#39;</span><span class="p">:</span> <span class="n">is_coding_consequence</span><span class="p">(</span><span class="n">terms</span><span class="p">)}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__rankedConsequences</span><span class="p">[</span><span class="n">conseq</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="n">conseqDict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__rankedConsequences</span><span class="p">[</span><span class="n">conseq</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">conseqDict</span></div>
+
+    
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__verify_annotation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! check that annotation is set &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> \
+          <span class="s2">&quot;DEBUG - must set value of _annotation in the VEP parser to access it&quot;</span>
+
+
+<div class="viewcode-block" id="VEPJSONParser.adsp_rank_and_sort_consequences">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.adsp_rank_and_sort_consequences">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">adsp_rank_and_sort_consequences</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! applies ADSP ranking to consequence, re orders the array and</span>
+<span class="sd">        and saves newly ordered list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">ctype</span> <span class="ow">in</span> <span class="n">CONSEQUENCE_TYPES</span><span class="p">:</span>
+            <span class="n">rankedConseqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__adsp_rank_consequences</span><span class="p">(</span><span class="n">ctype</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">rankedConseqs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">ctype</span> <span class="o">+</span> <span class="s1">&#39;_consequences&#39;</span><span class="p">,</span> <span class="n">rankedConseqs</span><span class="p">)</span></div>
+
+
+            
+    <span class="c1"># =========== modifiers ==================</span>
+<div class="viewcode-block" id="VEPJSONParser.set_annotation">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.set_annotation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_annotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotation</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! set the annotation json &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span> <span class="o">=</span> <span class="n">annotation</span></div>
+
+
+    
+<div class="viewcode-block" id="VEPJSONParser.set">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.set">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! set a value to annotation json &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__verify_annotation</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
+
+    <span class="c1"># =========== accessors ==================</span>
+   
+<div class="viewcode-block" id="VEPJSONParser.get_added_conseq_summary">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.get_added_conseq_summary">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_added_conseq_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! @returns summary of added consequences from the consequence parser &quot;&quot;&quot;</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="s2">&quot;No new consequences added&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceParser</span><span class="o">.</span><span class="n">new_consequences_added</span><span class="p">():</span>
+            <span class="n">summary</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s2">&quot;Added&quot;</span><span class="p">,</span> <span class="n">xstr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__consequenceParser</span><span class="o">.</span><span class="n">get_new_conseq_count</span><span class="p">()),</span>
+                       <span class="s2">&quot;new consequences:&quot;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="s1">&#39;; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__consequenceParser</span><span class="o">.</span><span class="n">get_added_consequences</span><span class="p">())</span> <span class="o">+</span><span class="s1">&#39;]&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">summary</span></div>
+
+        
+<div class="viewcode-block" id="VEPJSONParser.get_conseq_rank">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.get_conseq_rank">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_conseq_rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conseq</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! @returns value from consequence rank map for the specified</span>
+<span class="sd">        consequence &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceParser</span><span class="o">.</span><span class="n">get_consequence_rank</span><span class="p">(</span><span class="n">conseq</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="VEPJSONParser.get_consequence_parser">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.get_consequence_parser">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_consequence_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__consequenceParser</span></div>
+
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__adsp_rank_consequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conseqType</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! extract consequences and apply ranking and sort,</span>
+<span class="sd">        convert from list to list of dicts, keyed on allele</span>
+<span class="sd">        to ensure consequences are sorted per allele</span>
+<span class="sd">        @param conseqType         one of CONSEQUENCE_TYPES</span>
+<span class="sd">        @returns ranked consequences</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">consequences</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">conseqType</span> <span class="o">+</span> <span class="s1">&#39;_consequences&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">consequences</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">conseq</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">consequences</span><span class="p">):</span>
+            <span class="c1"># need to build the hash pulling the key out of variant allele &amp;</span>
+            <span class="c1"># appending to the list</span>
+            <span class="n">va</span> <span class="o">=</span> <span class="n">conseq</span><span class="p">[</span><span class="s1">&#39;variant_allele&#39;</span><span class="p">]</span>
+            <span class="n">conseq</span><span class="p">[</span><span class="s1">&#39;vep_consequence_order_num&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">index</span>
+
+            <span class="k">if</span> <span class="n">va</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">va</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">assign_adsp_consequence_rank</span><span class="p">(</span><span class="n">conseq</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">va</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">assign_adsp_consequence_rank</span><span class="p">(</span><span class="n">conseq</span><span class="p">)]</span>
+
+        <span class="k">for</span> <span class="n">va</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span> <span class="c1"># sort by rank within each variant allele</span>
+            <span class="c1"># result[va] = sorted(result[va], key = lambda x: (x[&#39;rank&#39;], x[&#39;vep_consequence_order_num&#39;]))</span>
+            <span class="c1"># itemgetter supposed to be orders of magnitude faster than lambda</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">va</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="n">va</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="n">itemgetter</span><span class="p">(</span><span class="s1">&#39;rank&#39;</span><span class="p">,</span> <span class="s1">&#39;vep_consequence_order_num&#39;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+
+<div class="viewcode-block" id="VEPJSONParser.get_frequencies">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.get_frequencies">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_frequencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matchingVariantId</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; extract frequencies from colocated_variants section</span>
+<span class="sd">        for dbSNP VEP run -- sometimes VEP matches to variants with</span>
+<span class="sd">        rsId different from current rsId; use matchingVariantId to ensure</span>
+<span class="sd">        extracting the correct frequency (e.g. overlapping indels &amp; snvs)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__verify_annotation</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s1">&#39;colocated_variants&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">frequencies</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">cv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span><span class="p">[</span><span class="s1">&#39;colocated_variants&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># return first non-cosmic mutation that matches the expected variant id (if supplied)</span>
+            <span class="n">fCount</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">covar</span> <span class="ow">in</span> <span class="n">cv</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">covar</span><span class="p">[</span><span class="s1">&#39;allele_string&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;COSMIC_MUTATION&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="s1">&#39;frequencies&#39;</span> <span class="ow">in</span> <span class="n">covar</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">matchingVariantId</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">covar</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">matchingVariantId</span><span class="p">:</span> 
+                                <span class="n">frequencies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__extract_frequencies</span><span class="p">(</span><span class="n">covar</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">frequencies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__extract_frequencies</span><span class="p">(</span><span class="n">covar</span><span class="p">)</span>
+                            <span class="n">fCount</span> <span class="o">=</span> <span class="n">fCount</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">fCount</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span> 
+                <span class="c1"># based on experience, when this happens, involves multiple refsnps mapped to location,</span>
+                <span class="c1"># so all frequencies should be equal</span>
+                <span class="c1"># let&#39;s just print a warning</span>
+                <span class="n">inputVariant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Variant &quot;</span> <span class="o">+</span> <span class="n">inputVariant</span> <span class="o">+</span> <span class="s2">&quot; mapped to multiple refSNPs/frequencies based on location not alleles&quot;</span><span class="p">)</span>
+            <span class="c1"># else:</span>
+            <span class="k">return</span> <span class="n">frequencies</span> <span class="c1"># which may be None</span>
+        
+        <span class="k">elif</span> <span class="s1">&#39;frequencies&#39;</span> <span class="ow">in</span> <span class="n">cv</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">frequencies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__extract_frequencies</span><span class="p">(</span><span class="n">cv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">frequencies</span></div>
+
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__extract_frequencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">covar</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; extract frequencies and update minor allele to include </span>
+<span class="sd">        1000 Genomes global allele frequency if present (stored in</span>
+<span class="sd">        colocated_variant field not frequencies array)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">frequencies</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="s1">&#39;minor_allele&#39;</span> <span class="ow">in</span> <span class="n">covar</span><span class="p">:</span>
+            <span class="n">frequencies</span><span class="p">[</span><span class="s1">&#39;minor_allele&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">covar</span><span class="p">[</span><span class="s1">&#39;minor_allele&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;minor_allele_freq&#39;</span> <span class="ow">in</span> <span class="n">covar</span><span class="p">:</span>
+                <span class="n">frequencies</span><span class="p">[</span><span class="s1">&#39;minor_allele_freq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">covar</span><span class="p">[</span><span class="s1">&#39;minor_allele_freq&#39;</span><span class="p">]</span>
+
+        <span class="n">frequencies</span><span class="p">[</span><span class="s1">&#39;values&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__group_frequencies_by_source</span><span class="p">(</span><span class="n">covar</span><span class="p">[</span><span class="s1">&#39;frequencies&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">frequencies</span>
+            
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__group_frequencies_by_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; group 1000Genomes and gnomAD frequencies &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">frequencies</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="n">AutoVivificationDict</span><span class="p">()</span> <span class="c1"># needed to later add in minor allele freqs</span>
+        <span class="n">espKeys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;aa&#39;</span><span class="p">,</span> <span class="s1">&#39;ea&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">allele</span> <span class="ow">in</span> <span class="n">frequencies</span><span class="p">:</span>
+            <span class="n">gnomad</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">frequencies</span><span class="p">[</span><span class="n">allele</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="s1">&#39;gnomad&#39;</span> <span class="ow">in</span> <span class="n">key</span> <span class="p">}</span>
+            <span class="n">esp</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">frequencies</span><span class="p">[</span><span class="n">allele</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">espKeys</span><span class="p">}</span>
+            <span class="n">genomes</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">frequencies</span><span class="p">[</span><span class="n">allele</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="s1">&#39;gnomad&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">key</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">espKeys</span><span class="p">}</span>
+            <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">gnomad</span><span class="p">):</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">allele</span><span class="p">][</span><span class="s1">&#39;GnomAD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gnomad</span>
+            <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">genomes</span><span class="p">):</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">allele</span><span class="p">][</span><span class="s1">&#39;1000Genomes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">genomes</span>
+            <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">esp</span><span class="p">):</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">allele</span><span class="p">][</span><span class="s1">&#39;ESP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">esp</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__get_consequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; special getter for consequences b/c fields may be missing; don&#39;t want</span>
+<span class="sd">        to throw error &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="VEPJSONParser.get">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.get">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; get the annotation value associated with the key &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__verify_annotation</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;frequencies&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_frequencies</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s1">&#39;consequences&#39;</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_consequences</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="VEPJSONParser.get_annotation">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.get_annotation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_annotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deepCopy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; return updated annotation &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span><span class="p">)</span> <span class="k">if</span> <span class="n">deepCopy</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">__annotation</span></div>
+
+    
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">__get_allele_consequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">allele</span><span class="p">,</span> <span class="n">ctypeKey</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! get consequences of specified type for the allele, performs None checks</span>
+<span class="sd">        @param allele                    the allele to be matched</span>
+<span class="sd">        @param ctypeKey                  consequence type key (a CONSEQUENCE_TYPE + &#39;_consequences&#39;</span>
+<span class="sd">        @returns dict of all consequences of the specified type for the specified allele&quot;&quot;&quot;</span>
+
+        <span class="n">conseqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ctypeKey</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">conseqs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">allele</span> <span class="ow">in</span> <span class="n">conseqs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">conseqs</span><span class="p">[</span><span class="n">allele</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="kc">None</span> <span class="c1"># allele not in conseqs</span>
+
+
+<div class="viewcode-block" id="VEPJSONParser.get_allele_consequences">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.get_allele_consequences">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_allele_consequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">allele</span><span class="p">,</span> <span class="n">conseqType</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! get dict of consequences for the specified allele</span>
+<span class="sd">        if called after ADSP ranking has been done, then retrieved </span>
+<span class="sd">        consequences will be ADSP ranked </span>
+<span class="sd">        </span>
+<span class="sd">        @param allele                   allele to be matched</span>
+<span class="sd">        @param conseqType               consequence type (from CONSEQUENCE_TYPES) / if None, iterate over all types</span>
+<span class="sd">        @returns dict of consequences matched to the allele</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">conseqType</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="c1"># get all conseqs / return nested dict</span>
+            <span class="n">alleleConseqs</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">ctype</span> <span class="ow">in</span> <span class="n">CONSEQUENCE_TYPES</span><span class="p">:</span>
+                <span class="n">ctypeKey</span> <span class="o">=</span> <span class="n">ctype</span> <span class="o">+</span> <span class="s1">&#39;_consequences&#39;</span>
+                <span class="n">conseqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ctypeKey</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">conseqs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">allele</span> <span class="ow">in</span> <span class="n">conseqs</span><span class="p">:</span>
+                    <span class="n">alleleConseqs</span><span class="p">[</span><span class="n">ctypeKey</span><span class="p">]</span> <span class="o">=</span> <span class="n">conseqs</span><span class="p">[</span><span class="n">allele</span><span class="p">]</span>
+
+            <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">alleleConseqs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">alleleConseqs</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ctypeKey</span> <span class="o">=</span> <span class="n">conseqType</span> <span class="o">+</span> <span class="s1">&#39;_consequences&#39;</span>
+            <span class="n">conseqs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ctypeKey</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">conseqs</span><span class="p">[</span><span class="n">allele</span><span class="p">]</span> \
+                <span class="k">if</span> <span class="n">conseqs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">allele</span> <span class="ow">in</span> <span class="n">conseqs</span> \
+                <span class="k">else</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="VEPJSONParser.get_most_severe_consequence">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.vep_json.VEPJSONParser.get_most_severe_consequence">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_most_severe_consequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">allele</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! retrieve most severe consequence from the VEP JSON Parser,</span>
+<span class="sd">        for the specified allele; returns None if no consequences are found</span>
+<span class="sd">        return first hit among transcript, then regulatory feature, then intergenic</span>
+<span class="sd">        consequences.  If called after ADSP ranking and sorting is done on the result, </span>
+<span class="sd">        the consequences will be ADSP ranked</span>
+<span class="sd">        @param           allele to be matched</span>
+<span class="sd">        @result          dict representation of most severe consequence</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">ctype</span> <span class="ow">in</span> <span class="n">CONSEQUENCE_TYPES</span><span class="p">:</span>
+            <span class="n">msConseq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_allele_consequences</span><span class="p">(</span><span class="n">allele</span><span class="p">,</span> <span class="n">conseqType</span><span class="o">=</span><span class="n">ctype</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">msConseq</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">msConseq</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            
+        <span class="k">return</span> <span class="kc">None</span></div>
+</div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.vep_json</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.0.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

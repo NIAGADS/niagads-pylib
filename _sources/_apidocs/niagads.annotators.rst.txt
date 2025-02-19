@@ -1,0 +1,21 @@
+niagads.annotators package
+==========================
+
+Submodules
+----------
+
+niagads.annotators.variant module
+---------------------------------
+
+.. automodule:: niagads.annotators.variant
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: niagads.annotators
+   :members:
+   :show-inheritance:
+   :undoc-members:

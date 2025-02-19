@@ -1,0 +1,402 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.annotators.variant &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.annotators.variant</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.annotators.variant</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; variant annotator functions &quot;&quot;&quot;</span>
+<span class="c1">#!pylint: disable=invalid-name</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.string</span><span class="w"> </span><span class="kn">import</span> <span class="n">xstr</span><span class="p">,</span> <span class="n">truncate</span><span class="p">,</span> <span class="n">reverse</span>
+
+<div class="viewcode-block" id="truncate_allele">
+<a class="viewcode-back" href="../../../_apidocs/niagads.annotators.html#niagads.annotators.variant.truncate_allele">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">truncate_allele</span><span class="p">(</span><span class="n">allele</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">long</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    wrapper for trunctate alleles to 8 chars by defualt</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        allele (str): allele string</span>
+<span class="sd">        long (bool, optional): for long indels, can specify to truncate to 100 chars. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        truncated allele string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">truncate</span><span class="p">(</span><span class="n">allele</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span> <span class="k">if</span> <span class="n">long</span> <span class="k">else</span> <span class="n">truncate</span><span class="p">(</span><span class="n">allele</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span> </div>
+
+
+
+<div class="viewcode-block" id="reverse_complement">
+<a class="viewcode-back" href="../../../_apidocs/niagads.annotators.html#niagads.annotators.variant.reverse_complement">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">reverse_complement</span><span class="p">(</span><span class="n">seq</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;! @returns reverse complement of the specified sequence (seq)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mapping</span> <span class="o">=</span> <span class="nb">str</span><span class="o">.</span><span class="n">maketrans</span><span class="p">(</span><span class="s2">&quot;ACGTacgt&quot;</span><span class="p">,</span> <span class="s2">&quot;TGCAtgca&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">seq</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">mapping</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+    
+<div class="viewcode-block" id="VariantAnnotator">
+<a class="viewcode-back" href="../../../_apidocs/niagads.annotators.html#niagads.annotators.variant.VariantAnnotator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">VariantAnnotator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; generate dervived variant annotations: e.g., normalized alleles, inferred length &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chrom</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pos</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">alt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span> <span class="o">=</span> <span class="n">ref</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__alt</span> <span class="o">=</span> <span class="n">alt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__chromosome</span> <span class="o">=</span> <span class="n">chrom</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__position</span> <span class="o">=</span> <span class="n">pos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metaseqId</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__set_metaseq_id</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="VariantAnnotator.get_normalized_alleles">
+<a class="viewcode-back" href="../../../_apidocs/niagads.annotators.html#niagads.annotators.variant.VariantAnnotator.get_normalized_alleles">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_normalized_alleles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snvDivMinus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! public wrapper for __normalize_alleles / LEGACY</span>
+<span class="sd">        @returns normalized alleles &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__normalize_alleles</span><span class="p">(</span><span class="n">snvDivMinus</span><span class="p">)</span></div>
+
+    
+    
+<div class="viewcode-block" id="VariantAnnotator.infer_variant_end_location">
+<a class="viewcode-back" href="../../../_apidocs/niagads.annotators.html#niagads.annotators.variant.VariantAnnotator.infer_variant_end_location">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">infer_variant_end_location</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rsPosition</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! infer span of indels/deletions for a </span>
+<span class="sd">        specific alternative allele, modeled off </span>
+<span class="sd">        GUS Perl VariantAnnotator &amp; dbSNP normalization conventions</span>
+<span class="sd">        @returns                 end location</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span>
+        <span class="n">alt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__alt</span>
+        
+        <span class="n">normRef</span><span class="p">,</span> <span class="n">normAlt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__normalize_alleles</span><span class="p">()</span>
+
+        <span class="n">rLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+        <span class="n">aLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt</span><span class="p">)</span>
+        
+        <span class="n">nrLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">normRef</span><span class="p">)</span>
+        <span class="n">naLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">normAlt</span><span class="p">)</span>
+
+        <span class="n">position</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__position</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">rLength</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">aLength</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># SNV</span>
+            <span class="k">return</span> <span class="n">position</span>
+
+        <span class="k">if</span> <span class="n">rLength</span> <span class="o">==</span> <span class="n">aLength</span><span class="p">:</span> <span class="c1"># MNV</span>
+            <span class="k">if</span> <span class="n">ref</span> <span class="o">==</span> <span class="n">alt</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span> <span class="c1">#inversion</span>
+                <span class="k">return</span> <span class="n">position</span> <span class="o">+</span> <span class="n">rLength</span> <span class="o">-</span> <span class="mi">1</span>
+
+            <span class="c1"># substitution</span>
+            <span class="k">return</span> <span class="n">position</span> <span class="o">+</span> <span class="n">nrLength</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">naLength</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># insertion</span>
+            <span class="k">if</span> <span class="n">nrLength</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># indel</span>
+                <span class="k">return</span> <span class="n">position</span> <span class="o">+</span> <span class="n">nrLength</span>
+            <span class="c1"># e.g. CCTTAAT/CCTTAATC -&gt; -/C but the VCF position is at the start and not where the ins actually happens</span>
+            <span class="k">elif</span> <span class="n">nrLength</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">rLength</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span> 
+                <span class="k">return</span> <span class="n">position</span> <span class="o">+</span> <span class="n">rLength</span> <span class="o">-</span> <span class="mi">1</span> <span class="c1"># drop first base</span>
+            <span class="k">else</span><span class="p">:</span> 
+                <span class="k">return</span> <span class="n">position</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="c1"># deletion</span>
+        <span class="k">if</span> <span class="n">nrLength</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">position</span> <span class="o">+</span> <span class="n">rLength</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="n">position</span> <span class="o">+</span> <span class="n">nrLength</span></div>
+
+    
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__normalize_alleles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snvDivMinus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! left normalize VCF alleles</span>
+<span class="sd">        - remove leftmost alleles that are equivalent between the ref &amp; alt alleles;</span>
+<span class="sd">        e.g. CAGT/CG &lt;-&gt; AGT/G</span>
+
+<span class="sd">        - if no normalization is possible, keeps normalized alleles as</span>
+<span class="sd">        default equal to ref &amp; alt</span>
+
+<span class="sd">        @param snvDivMinus       return &#39;-&#39; for SNV deletion when True, otherwise return empty string</span>
+<span class="sd">        @return                  a tuple containing the normalized alleles (ref, alt)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">rLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__ref</span><span class="p">)</span>
+        <span class="n">aLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__alt</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">rLength</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">aLength</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># SNV no normalization needed</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__alt</span>
+
+        <span class="n">lastMatchingIndex</span> <span class="o">=</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rLength</span><span class="p">):</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__alt</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">r</span> <span class="o">==</span> <span class="n">a</span><span class="p">:</span>
+                <span class="n">lastMatchingIndex</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">lastMatchingIndex</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">normAlt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__alt</span><span class="p">[</span><span class="n">lastMatchingIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__alt</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">normAlt</span> <span class="ow">and</span> <span class="n">snvDivMinus</span><span class="p">:</span>
+                <span class="n">normAlt</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span>
+
+            <span class="n">normRef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span><span class="p">[</span><span class="n">lastMatchingIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__ref</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">normRef</span> <span class="ow">and</span> <span class="n">snvDivMinus</span><span class="p">:</span>
+                <span class="n">normRef</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span>
+
+            <span class="k">return</span> <span class="n">normRef</span><span class="p">,</span> <span class="n">normAlt</span>
+
+        <span class="c1"># MNV no normalization needed</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__alt</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__set_metaseq_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! generate metaseq id and set value&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metaseqId</span> <span class="o">=</span> <span class="s1">&#39;:&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">xstr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__chromosome</span><span class="p">),</span> <span class="n">xstr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__position</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__alt</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="VariantAnnotator.metaseq_id">
+<a class="viewcode-back" href="../../../_apidocs/niagads.annotators.html#niagads.annotators.variant.VariantAnnotator.metaseq_id">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metaseq_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! @returns metaseq id &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metaseqId</span></div>
+
+
+
+<div class="viewcode-block" id="VariantAnnotator.get_display_attributes">
+<a class="viewcode-back" href="../../../_apidocs/niagads.annotators.html#niagads.annotators.variant.VariantAnnotator.get_display_attributes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_display_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rsPosition</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! generate and return display alleles &amp; dbSNP compatible start-end</span>
+<span class="sd">        @param rsPosition       dbSNP property RSPOS</span>
+<span class="sd">        @returns                 dict containing display attributes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">LONG</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="n">position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__position</span>
+
+        <span class="n">refLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__ref</span><span class="p">)</span>
+        <span class="n">altLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__alt</span><span class="p">)</span>
+
+        <span class="n">normRef</span><span class="p">,</span> <span class="n">normAlt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__normalize_alleles</span><span class="p">()</span> <span class="c1"># accurate length version</span>
+        <span class="n">nRefLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">normRef</span><span class="p">)</span>
+        <span class="n">nAltLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">normAlt</span><span class="p">)</span>
+        <span class="n">normRef</span><span class="p">,</span> <span class="n">normAlt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__normalize_alleles</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># display version (- for empty string)</span>
+        
+        <span class="n">endLocation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">infer_variant_end_location</span><span class="p">()</span>
+
+        <span class="n">attributes</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;location_start&#39;</span><span class="p">:</span> <span class="n">position</span><span class="p">,</span>
+            <span class="s1">&#39;location_end&#39;</span><span class="p">:</span> <span class="n">position</span>
+        <span class="p">}</span>
+        
+        <span class="n">normalizedMetaseqId</span> <span class="o">=</span> <span class="s1">&#39;:&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">xstr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__chromosome</span><span class="p">),</span> <span class="n">xstr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__position</span><span class="p">),</span> <span class="n">normRef</span><span class="p">,</span> <span class="n">normAlt</span><span class="p">))</span> 
+        <span class="k">if</span> <span class="n">normalizedMetaseqId</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metaseqId</span><span class="p">:</span>
+            <span class="n">attributes</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;normalized_metaseq_id&#39;</span><span class="p">:</span> <span class="n">normalizedMetaseqId</span><span class="p">})</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">refLength</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">altLength</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span> <span class="c1"># SNV</span>
+            <span class="n">attributes</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                <span class="s1">&#39;variant_class&#39;</span><span class="p">:</span> <span class="s2">&quot;single nucleotide variant&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;variant_class_abbrev&#39;</span><span class="p">:</span> <span class="s2">&quot;SNV&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;display_allele&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span> <span class="o">+</span> <span class="s1">&#39;&gt;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__alt</span><span class="p">,</span>
+                <span class="s1">&#39;sequence_allele&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__alt</span>
+            <span class="p">})</span>
+
+        <span class="k">elif</span> <span class="n">refLength</span> <span class="o">==</span> <span class="n">altLength</span><span class="p">:</span> <span class="c1"># MNV</span>
+            <span class="c1">#inversion</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span> <span class="o">==</span> <span class="n">reverse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__alt</span><span class="p">):</span>
+                <span class="n">attributes</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                    <span class="s1">&#39;variant_class&#39;</span><span class="p">:</span> <span class="s2">&quot;inversion&quot;</span><span class="p">,</span>
+                    <span class="s1">&#39;variant_class_abbrev&#39;</span><span class="p">:</span> <span class="s2">&quot;MNV&quot;</span><span class="p">,</span>
+                    <span class="s1">&#39;display_allele&#39;</span><span class="p">:</span> <span class="s1">&#39;inv&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span><span class="p">,</span>
+                    <span class="s1">&#39;sequence_allele&#39;</span><span class="p">:</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__ref</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__alt</span><span class="p">),</span>
+                    <span class="s1">&#39;location_end&#39;</span><span class="p">:</span> <span class="n">endLocation</span>
+                <span class="p">})</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">attributes</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                    <span class="s1">&#39;variant_class&#39;</span><span class="p">:</span> <span class="s2">&quot;substitution&quot;</span><span class="p">,</span>
+                    <span class="s1">&#39;variant_class_abbrev&#39;</span><span class="p">:</span> <span class="s2">&quot;MNV&quot;</span><span class="p">,</span>
+                    <span class="s1">&#39;display_allele&#39;</span><span class="p">:</span> <span class="n">normRef</span> <span class="o">+</span> <span class="s2">&quot;&gt;&quot;</span> <span class="o">+</span> <span class="n">normAlt</span><span class="p">,</span>
+                    <span class="s1">&#39;sequence_allele&#39;</span><span class="p">:</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normRef</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normAlt</span><span class="p">),</span>
+                    <span class="s1">&#39;location_start&#39;</span><span class="p">:</span> <span class="n">position</span><span class="p">,</span>
+                    <span class="s1">&#39;location_end&#39;</span><span class="p">:</span> <span class="n">endLocation</span>
+                <span class="p">})</span>
+        <span class="c1"># end MNV</span>
+        
+        <span class="k">elif</span> <span class="n">nAltLength</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># insertion</span>
+            <span class="n">attributes</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;location_start&#39;</span><span class="p">:</span> <span class="n">position</span> <span class="o">+</span> <span class="mi">1</span><span class="p">})</span>
+            
+            <span class="n">insPrefix</span> <span class="o">=</span> <span class="s2">&quot;ins&quot;</span>   
+            
+            <span class="c1"># check for duplication (whole string, not subset)      </span>
+            <span class="n">originalRef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__ref</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="c1"># strip first base (since it is start - 1)</span>
+            <span class="n">nDuplications</span> <span class="o">=</span> <span class="n">originalRef</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">normAlt</span><span class="p">)</span>           
+            <span class="k">if</span> <span class="n">originalRef</span> <span class="o">==</span> <span class="n">normAlt</span> <span class="ow">or</span> <span class="p">(</span><span class="n">nDuplications</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">originalRef</span><span class="p">)</span> <span class="o">/</span> <span class="n">nDuplications</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">normAlt</span><span class="p">)):</span>
+                <span class="n">insPrefix</span> <span class="o">=</span> <span class="s2">&quot;dup&quot;</span>
+                
+            <span class="k">if</span> <span class="n">nRefLength</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># indel</span>
+                <span class="n">attributes</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                    <span class="s1">&#39;location_end&#39;</span><span class="p">:</span> <span class="n">endLocation</span><span class="p">,</span>
+                    <span class="s1">&#39;display_allele&#39;</span><span class="p">:</span> <span class="s2">&quot;del&quot;</span> <span class="o">+</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normRef</span><span class="p">,</span> <span class="n">LONG</span><span class="p">)</span> <span class="o">+</span> <span class="n">insPrefix</span> <span class="o">+</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normAlt</span><span class="p">,</span> <span class="n">LONG</span><span class="p">),</span>
+                    <span class="s1">&#39;sequence_allele&#39;</span><span class="p">:</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normRef</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normAlt</span><span class="p">),</span>
+                    <span class="s1">&#39;variant_class&#39;</span><span class="p">:</span> <span class="s1">&#39;indel&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;variant_class_abbrev&#39;</span><span class="p">:</span> <span class="s1">&#39;INDEL&#39;</span>
+                    <span class="p">})</span>
+                
+            <span class="c1"># indel b/c insertion location is downstream of position</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">nRefLength</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">endLocation</span> <span class="o">!=</span> <span class="n">position</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">attributes</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                    <span class="s1">&#39;location_end&#39;</span><span class="p">:</span> <span class="n">endLocation</span><span class="p">,</span>
+                    <span class="s1">&#39;display_allele&#39;</span><span class="p">:</span> <span class="s2">&quot;del&quot;</span> <span class="o">+</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">originalRef</span><span class="p">,</span> <span class="n">LONG</span><span class="p">)</span> <span class="o">+</span> <span class="n">insPrefix</span> <span class="o">+</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normAlt</span><span class="p">,</span> <span class="n">LONG</span><span class="p">),</span>
+                    <span class="s1">&#39;sequence_allele&#39;</span><span class="p">:</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normRef</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normAlt</span><span class="p">),</span>
+                    <span class="s1">&#39;variant_class&#39;</span><span class="p">:</span> <span class="s1">&#39;indel&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;variant_class_abbrev&#39;</span><span class="p">:</span> <span class="s1">&#39;INDEL&#39;</span>
+                    <span class="p">})</span>
+            
+            <span class="k">else</span><span class="p">:</span> <span class="c1"># just insertion</span>
+                <span class="n">attributes</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                    <span class="s1">&#39;location_end&#39;</span><span class="p">:</span> <span class="n">position</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="s1">&#39;display_allele&#39;</span><span class="p">:</span> <span class="n">insPrefix</span> <span class="o">+</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normAlt</span><span class="p">,</span> <span class="n">LONG</span><span class="p">),</span>
+                    <span class="s1">&#39;sequence_allele&#39;</span><span class="p">:</span> <span class="n">insPrefix</span> <span class="o">+</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normAlt</span><span class="p">),</span>
+                    <span class="s1">&#39;variant_class&#39;</span><span class="p">:</span> <span class="s1">&#39;duplication&#39;</span> <span class="k">if</span> <span class="n">insPrefix</span> <span class="o">==</span> <span class="s1">&#39;dup&#39;</span> <span class="k">else</span> <span class="s1">&#39;insertion&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;variant_class_abbrev&#39;</span><span class="p">:</span> <span class="n">insPrefix</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                    <span class="p">})</span>
+                
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># deletion</span>
+            <span class="n">attributes</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                <span class="s1">&#39;variant_class&#39;</span><span class="p">:</span> <span class="s2">&quot;deletion&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;variant_class_abbrev&#39;</span><span class="p">:</span> <span class="s2">&quot;DEL&quot;</span><span class="p">,</span>      
+                <span class="s1">&#39;location_end&#39;</span><span class="p">:</span> <span class="n">endLocation</span><span class="p">,</span>
+                <span class="s1">&#39;location_start&#39;</span><span class="p">:</span> <span class="n">position</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s1">&#39;display_allele&#39;</span><span class="p">:</span> <span class="s2">&quot;del&quot;</span> <span class="o">+</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normRef</span><span class="p">,</span> <span class="n">LONG</span><span class="p">),</span>
+                <span class="s1">&#39;sequence_allele&#39;</span><span class="p">:</span> <span class="n">truncate_allele</span><span class="p">(</span><span class="n">normRef</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/-&quot;</span>
+            <span class="p">})</span>
+        
+        <span class="k">return</span> <span class="n">attributes</span></div>
+</div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.annotators.variant</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.0.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

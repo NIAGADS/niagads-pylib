@@ -1,0 +1,237 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.parsers.chromosome_map &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.chromosome_map</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.parsers.chromosome_map</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;! @brief Chromosome Map Parser&quot;&quot;&quot;</span>
+
+<span class="c1">##</span>
+<span class="c1"># @package parsers</span>
+<span class="c1"># @file chromosome_map.py</span>
+<span class="c1">#</span>
+<span class="c1"># @brief  Parse and Access Chromosome Mappings</span>
+<span class="c1">#</span>
+<span class="c1"># @section chromosome_map_parser Description</span>
+<span class="c1"># parses mappings of third party chromosome source ids (e.g., refseq) to chromosome number</span>
+<span class="c1"># may also include chromosome length</span>
+<span class="c1"># - for now assumes the tab-delim with at least the following columns:</span>
+<span class="c1"># &gt; source_id       chromosome     length</span>
+<span class="c1">#</span>
+<span class="c1"># @section todo_chromosome_map_parser TODO</span>
+<span class="c1"># </span>
+<span class="c1">#</span>
+<span class="c1"># @section libraries_chromosome_map_parser Libraries/Modules</span>
+<span class="c1"># - cvs - reading and parsing the file</span>
+<span class="c1">#</span>
+<span class="c1"># @section author_chromosome_map_parser Author(s)</span>
+<span class="c1"># - Created by Emily Greenfest-Allen (fossilfriend) 2022</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">csv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.string</span><span class="w"> </span><span class="kn">import</span> <span class="n">xstr</span>
+
+<div class="viewcode-block" id="ChromosomeMapParser">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.chromosome_map.ChromosomeMapParser">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChromosomeMapParser</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;! Generator for chromosome map parser/object</span>
+<span class="sd">    parses mappings of third party chromosome sequence ids (e.g., refseq) to chromosome number</span>
+<span class="sd">    may also include chromosome length</span>
+<span class="sd">    - for now assumes the tab-delim with at least the following columns:</span>
+<span class="sd">    &gt; source_id       chromosome     length      </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileName</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! ChromosomeMap base class initializer</span>
+<span class="sd">            @param fileName             full path to chromosome mapping file</span>
+<span class="sd">            @param verbose              verbose output flag</span>
+<span class="sd">            @param debug                debug flag</span>
+<span class="sd">            @return                     An instance of a ChromosomeMap with initialized mapping dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__file</span> <span class="o">=</span> <span class="n">fileName</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__parse_mapping</span><span class="p">()</span>
+        
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">__parse_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! parse chromosome map</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading chromosome map from:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+                <span class="c1"># source_id	chromosome	chromosome_order_num	length</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;source_id&#39;</span><span class="p">]</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;chromosome&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;chr&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                        
+    
+<div class="viewcode-block" id="ChromosomeMapParser.chromosome_map">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.chromosome_map.ChromosomeMapParser.chromosome_map">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">chromosome_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! @returns                 the chromosome map</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span></div>
+
+        
+        
+<div class="viewcode-block" id="ChromosomeMapParser.get_sequence_id">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.chromosome_map.ChromosomeMapParser.get_sequence_id">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sequence_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chrmNum</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! given a chromosome number, tries to find matching sequence id</span>
+
+<span class="sd">            @param chrmNum             chromosome number to match</span>
+<span class="sd">            @returns                   matching sequence id, None if not found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">sequenceId</span><span class="p">,</span> <span class="n">cn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">cn</span> <span class="o">==</span> <span class="n">chrmNum</span> <span class="ow">or</span> <span class="n">cn</span> <span class="o">==</span> <span class="s1">&#39;chr&#39;</span> <span class="o">+</span> <span class="n">xstr</span><span class="p">(</span><span class="n">chrmNum</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">sequenceId</span>
+            
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+            
+<div class="viewcode-block" id="ChromosomeMapParser.get">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.chromosome_map.ChromosomeMapParser.get">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequenceId</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! return chromosome number mapped to the provided sequence ID</span>
+
+<span class="sd">            @param sequenceId           sequence ID to look up</span>
+<span class="sd">            @returns                    matching chrm number, will fail on error</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># want to raise AttributeError if not in the map, so not checking</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">[</span><span class="n">sequenceId</span><span class="p">]</span></div>
+</div>
+
+        
+            
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.chromosome_map</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.0.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

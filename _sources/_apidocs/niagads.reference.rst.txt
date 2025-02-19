@@ -1,0 +1,21 @@
+niagads.reference package
+=========================
+
+Submodules
+----------
+
+niagads.reference.chromosomes module
+------------------------------------
+
+.. automodule:: niagads.reference.chromosomes
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: niagads.reference
+   :members:
+   :show-inheritance:
+   :undoc-members:

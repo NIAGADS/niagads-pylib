@@ -1,0 +1,507 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.api_wrapper.records.variant &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.api_wrapper.records.variant</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.api_wrapper.records.variant</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sys</span><span class="w"> </span><span class="kn">import</span> <span class="n">stdout</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Type</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">Record</span><span class="p">,</span> <span class="n">RecordParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..</span><span class="w"> </span><span class="kn">import</span> <span class="n">VariantConsequenceTypes</span><span class="p">,</span> <span class="n">FileFormats</span><span class="p">,</span> <span class="n">Databases</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">niagads.utils.string</span><span class="w"> </span><span class="kn">import</span> <span class="n">xstr</span><span class="p">,</span> <span class="n">dict_to_info_string</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">niagads.utils.dict</span><span class="w"> </span><span class="kn">import</span> <span class="n">get</span><span class="p">,</span> <span class="n">print_dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">niagads.utils.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">RestrictedValueError</span>
+
+<span class="c1">## variant record  parsers </span>
+<div class="viewcode-block" id="VariantRecordParser">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecordParser">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">VariantRecordParser</span><span class="p">(</span><span class="n">RecordParser</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">record</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">database</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">debug</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_annotation</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="c1"># handle error checking</span>
+        
+        
+<div class="viewcode-block" id="VariantRecordParser.has_annotation_field">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecordParser.has_annotation_field">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">has_annotation_field</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+        
+        
+<div class="viewcode-block" id="VariantRecordParser.set_record">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecordParser.set_record">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_annotation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;annotation&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>   </div>
+
+        
+    
+<div class="viewcode-block" id="VariantRecordParser.get_annotation_types">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecordParser.get_annotation_types">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_annotation_field</span><span class="p">():</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_annotation</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Record has no annotation field or annotation is NoneType&quot;</span><span class="p">)</span></div>
+</div>
+
+
+<span class="c1"># end class</span>
+
+<div class="viewcode-block" id="GenomicsVariantRecordParser">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.GenomicsVariantRecordParser">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GenomicsVariantRecordParser</span><span class="p">(</span><span class="n">VariantRecordParser</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">record</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">database</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+
+    
+<div class="viewcode-block" id="GenomicsVariantRecordParser.get_allele_frequencies">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.GenomicsVariantRecordParser.get_allele_frequencies">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_allele_frequencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sources</span><span class="o">=</span><span class="p">[],</span> <span class="n">asString</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;get allele frequencies; if asString = True then return as // delimited list </span>
+<span class="sd">        info strings reporting the freq for each population in a datasource</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sources (string list, optional): list of sources to retrieve. Defaults to []; returns all populations.</span>
+<span class="sd">                --e.g., gnomAD, 1000Genomes</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            frequency object or</span>
+<span class="sd">            a string that uses // to delimitate an info string for each data source</span>
+<span class="sd">            info strings are semi-colon delimited population=freq pairs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">alleleFreqs</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_annotation</span><span class="p">,</span> <span class="s1">&#39;allele_frequencies&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">alleleFreqs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># note no way to validate sources b/c not all sources will be in all annotations</span>
+            <span class="c1"># unless we store a reference array of valid sources          </span>
+            <span class="n">sKeys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">alleleFreqs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">sources</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">sources</span>
+            <span class="n">freqs</span> <span class="o">=</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">asString</span> <span class="k">else</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">source</span><span class="p">,</span> <span class="n">populations</span> <span class="ow">in</span> <span class="n">alleleFreqs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">source</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sKeys</span><span class="p">:</span>
+                    <span class="k">continue</span>
+        
+                <span class="k">if</span> <span class="n">asString</span><span class="p">:</span>
+                    <span class="n">sFreqs</span> <span class="o">=</span> <span class="s2">&quot;source=&quot;</span> <span class="o">+</span> <span class="n">source</span> <span class="o">+</span> <span class="s2">&quot;;&quot;</span> <span class="o">+</span> <span class="n">dict_to_info_string</span><span class="p">(</span><span class="n">populations</span><span class="p">)</span>
+                    <span class="n">freqs</span> <span class="o">=</span> <span class="n">freqs</span> <span class="o">+</span> <span class="p">[</span><span class="n">sFreqs</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">freqs</span><span class="p">[</span><span class="n">source</span><span class="p">]</span> <span class="o">=</span> <span class="n">populations</span>
+                    
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">freqs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            
+            <span class="k">return</span> <span class="s1">&#39;//&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">freqs</span><span class="p">)</span> <span class="k">if</span> <span class="n">asString</span> <span class="k">else</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">freqs</span><span class="p">)</span></div>
+
+        
+
+<div class="viewcode-block" id="GenomicsVariantRecordParser.get_associations">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.GenomicsVariantRecordParser.get_associations">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_associations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">genomeWideOnly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">asString</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; extract association (GWAS summary statistics resuls)</span>
+<span class="sd">        from a variant annotations</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            asString (bool, optional): flag indicating whether or not to return info string. Defaults to False.</span>
+<span class="sd">            genomeWideOnly (bool, optional): flag indicating whether to return genome wide assocs only</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            if asString is False</span>
+<span class="sd">                associations object</span>
+<span class="sd">            else:</span>
+<span class="sd">                info string of dataset=pvalue pairs delimited by semicolons         </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">associations</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_annotation</span><span class="p">,</span> <span class="s1">&#39;associations&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">associations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">asString</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">genomeWideOnly</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">dict_to_info_string</span><span class="p">({</span><span class="n">key</span> <span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;p_value&#39;</span><span class="p">]</span> 
+                        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">associations</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> 
+                        <span class="k">if</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;is_gws&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">})</span>          
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">dict_to_info_string</span><span class="p">({</span><span class="n">key</span> <span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;p_value&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">associations</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="p">})</span>          
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">genomeWideOnly</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">{</span><span class="n">key</span> <span class="p">:</span> <span class="n">value</span>
+                        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">associations</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> 
+                        <span class="k">if</span> <span class="n">value</span><span class="p">[</span><span class="s1">&#39;is_gws&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">}</span>
+                <span class="k">else</span><span class="p">:</span> 
+                    <span class="k">return</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">associations</span><span class="p">)</span></div>
+
+    
+
+<div class="viewcode-block" id="GenomicsVariantRecordParser.get_consequences">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.GenomicsVariantRecordParser.get_consequences">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_consequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conseqType</span><span class="p">,</span> <span class="n">asString</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+       
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cType</span> <span class="o">=</span> <span class="n">VariantConsequenceTypes</span><span class="p">[</span><span class="n">conseqType</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RestrictedValueError</span><span class="p">(</span><span class="s2">&quot;variant consequence type&quot;</span><span class="p">,</span> <span class="n">conseqType</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="n">VariantConsequenceTypes</span><span class="p">)</span>
+            <span class="c1"># raise ValueError(&quot;Invalid variant consequence type: &quot; + conseqType</span>
+            <span class="c1">#     + &quot;; valid values are &quot; + xstr(VariantConsequenceTypes.list()))</span>
+            
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">conseqAnnotations</span> <span class="o">=</span> <span class="kc">None</span>      
+            <span class="n">rankedConsequences</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">cType</span> <span class="o">==</span> <span class="s1">&#39;most_severe_consequence&#39;</span><span class="p">:</span>
+                <span class="n">conseqAnnotations</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_annotation</span><span class="p">,</span> <span class="n">cType</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rankedConsequences</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_annotation</span><span class="p">,</span> <span class="n">VariantConsequenceTypes</span><span class="o">.</span><span class="n">ALL</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">rankedConsequences</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">conseqAnnotations</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="n">rankedConsequences</span><span class="p">,</span> <span class="n">cType</span> <span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+    
+            <span class="k">if</span> <span class="n">cType</span> <span class="o">==</span> <span class="s1">&#39;ranked_consequences&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">print_dict</span><span class="p">(</span><span class="n">rankedConsequences</span><span class="p">)</span> <span class="k">if</span> <span class="n">asString</span> <span class="k">else</span> <span class="n">rankedConsequences</span>
+            
+            <span class="k">if</span> <span class="n">conseqAnnotations</span> <span class="ow">and</span> <span class="n">asString</span><span class="p">:</span>
+                <span class="n">conseqArray</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">conseqAnnotations</span><span class="p">:</span>
+                    <span class="n">conseq</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="c1"># b/c we are going to modify part</span>
+                    <span class="n">conseq</span><span class="p">[</span><span class="s1">&#39;consequence_terms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">conseq</span><span class="p">[</span><span class="s1">&#39;consequence_terms&#39;</span><span class="p">])</span>
+                    <span class="n">conseqArray</span> <span class="o">+=</span> <span class="p">[</span><span class="n">dict_to_info_string</span><span class="p">(</span><span class="n">conseq</span><span class="p">)]</span>
+                <span class="k">return</span> <span class="s1">&#39;//&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">conseqArray</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">conseqAnnotations</span>
+            
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cType</span> <span class="o">==</span> <span class="s1">&#39;ranked_consequences&#39;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;`ranked_consequences` missing from API response; did you specify returning a full report?&quot;</span><span class="p">)</span>         
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">err</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="VariantRecord">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">VariantRecord</span><span class="p">(</span><span class="n">Record</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">requestUrl</span><span class="o">=</span><span class="s2">&quot;https://api.niagads.org&quot;</span><span class="p">,</span> <span class="n">variantIds</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s1">&#39;variant&#39;</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">requestUrl</span><span class="p">,</span> <span class="n">variantIds</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__full</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1"># retrieve full annotation?</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__query_variants</span> <span class="o">=</span> <span class="kc">None</span> 
+        <span class="k">if</span> <span class="n">variantIds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_ids</span><span class="p">(</span><span class="n">variantIds</span><span class="p">)</span> <span class="c1"># initializes query_variants</span>
+        
+
+<div class="viewcode-block" id="VariantRecord.retrieve_full_annotation">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord.retrieve_full_annotation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retrieve_full_annotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        retrieve full annotation? if set to false (default for variant lookups)</span>
+<span class="sd">        only basic annotation: identifiers, most severe predicted consequence</span>
+<span class="sd">        will be retrieved</span>
+<span class="sd">        </span>
+<span class="sd">        full annotation includes: ADSP QC, allele frequencies, CADD scores, </span>
+<span class="sd">        all predicted consequences</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            flag (bool, optional): flag indicating whether to retrieve full annotation. Defaults to True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__full</span> <span class="o">=</span> <span class="n">flag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_params</span><span class="p">({</span><span class="s1">&#39;full&#39;</span><span class="p">:</span> <span class="n">flag</span><span class="p">})</span></div>
+
+        
+
+<div class="viewcode-block" id="VariantRecord.set_ids">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord.set_ids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        overloads parent `set_ids` to clean variant ids </span>
+<span class="sd">        and create the user -&gt; cleaned id mapping</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__query_variants</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__parse_variant_ids</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__query_variants</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
+
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__clean_variant_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        clean variant ids</span>
+<span class="sd">            -- remove &#39;chr&#39;</span>
+<span class="sd">            -- replace &#39;MT&#39; with &#39;M&#39;</span>
+<span class="sd">            -- replace &#39;RS&#39; with &#39;rs&#39;</span>
+<span class="sd">            -- replace &#39;/&#39; with &#39;:&#39; (e.g., chr:pos:ref/alt)</span>
+<span class="sd">            -- replace &#39;_&#39; with &#39;:&#39; (e.g., chr:pos:ref_alt)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            id (string): variant identifier (expects rsId or chr:pos:ref:alt)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            string list of cleaned variant identifiers</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">id</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;chr&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;MT&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">)</span> \
+            <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;RS&#39;</span><span class="p">,</span> <span class="s1">&#39;rs&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">)</span>
+ 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__parse_variant_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variantIds</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        create mapping of user supplied variant id : cleaned id for lookups</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            queryVariants (string list): list of variants</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict : cleaned id -&gt; id mapping</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span> <span class="bp">self</span><span class="o">.</span><span class="n">__clean_variant_id</span><span class="p">(</span><span class="nb">id</span><span class="p">):</span> <span class="nb">id</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">variantIds</span> <span class="p">}</span>
+    
+
+<div class="viewcode-block" id="VariantRecord.run">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__full</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_params</span><span class="p">(</span><span class="n">params</span> <span class="o">|</span> <span class="p">{</span><span class="s2">&quot;full&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__full</span><span class="p">})</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span></div>
+
+        
+    
+<div class="viewcode-block" id="VariantRecord.build_parser">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord.build_parser">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_database</span> <span class="o">==</span> <span class="n">Databases</span><span class="o">.</span><span class="n">GENOMICS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">GenomicsVariantRecordParser</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_database</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">VariantRecordParser</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_database</span><span class="p">)</span>   </div>
+
+        
+                
+<div class="viewcode-block" id="VariantRecord.write_response">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.api_wrapper.records.html#niagads.api_wrapper.records.variant.VariantRecord.write_response">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">stdout</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">format</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_response_format</span>
+        <span class="k">if</span> <span class="nb">format</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="n">FileFormats</span><span class="o">.</span><span class="n">JSON</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">write_response</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="nb">format</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__write_tabular_response</span><span class="p">(</span><span class="n">file</span><span class="p">)</span></div>
+
+        
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">__write_tabular_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_database</span> <span class="o">==</span> <span class="n">Databases</span><span class="o">.</span><span class="n">GENOMICS</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__write_genomics_tabular_response</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_parser</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Writing tabular output not yet implemented for &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_database</span> <span class="o">+</span> <span class="s2">&quot; variant records.&quot;</span><span class="p">)</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__build_10k_freq_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">freqs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">freqs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="kc">None</span> <span class="o">*</span> <span class="mi">6</span><span class="p">]</span> 
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pops</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;afr&#39;</span><span class="p">,</span> <span class="s1">&#39;amr&#39;</span><span class="p">,</span> <span class="s1">&#39;eas&#39;</span><span class="p">,</span> <span class="s1">&#39;eur&#39;</span><span class="p">,</span> <span class="s1">&#39;sas&#39;</span><span class="p">,</span> <span class="s1">&#39;gmaf&#39;</span><span class="p">]</span>
+            <span class="n">freqs</span> <span class="o">=</span> <span class="n">freqs</span><span class="p">[</span><span class="s1">&#39;1000Genomes&#39;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">[</span> <span class="n">freqs</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="k">if</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">freqs</span> <span class="k">else</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pops</span> <span class="p">]</span> 
+
+    
+    <span class="c1"># note use of Type hints here, allows linter to autocomplete</span>
+    <span class="c1"># also allows autoDocstring to fill in the types for the params</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__write_genomics_tabular_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">GenomicsVariantRecordParser</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; write a tabular report about a GenomicsDB variant lookup     </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file (str | pipe): output file name; may be stdout</span>
+<span class="sd">            parser (Type[GenomicsVariantRecordParser]): record parser </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;queried_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;mapped_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;ref_snp_id&#39;</span><span class="p">,</span> <span class="s1">&#39;is_adsp_variant&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;most_severe_consequence&#39;</span><span class="p">,</span> <span class="s1">&#39;msc_impacted_gene_id&#39;</span><span class="p">,</span> <span class="s1">&#39;msc_impacted_gene_symbol&#39;</span><span class="p">,</span> <span class="s1">&#39;msc_annotations&#39;</span><span class="p">]</span>
+      
+        <span class="n">header</span> <span class="o">=</span> <span class="n">header</span> <span class="o">+</span> \
+            <span class="p">[</span><span class="s1">&#39;CADD_phred_score&#39;</span><span class="p">,</span> 
+            <span class="s1">&#39;associations&#39;</span><span class="p">,</span> <span class="s1">&#39;num_associations&#39;</span><span class="p">,</span> <span class="s1">&#39;num_sig_assocations&#39;</span><span class="p">]</span>
+
+        <span class="n">header</span> <span class="o">=</span> <span class="n">header</span> <span class="o">+</span> \
+                <span class="p">[</span><span class="s1">&#39;1000Genomes_AFR&#39;</span><span class="p">,</span> <span class="s1">&#39;1000Genomes_AMR&#39;</span><span class="p">,</span> <span class="s1">&#39;1000Genomes_EAS&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;1000Genomes_EUR&#39;</span><span class="p">,</span> <span class="s1">&#39;1000Genomes_SAS&#39;</span><span class="p">,</span> <span class="s1">&#39;1000Genomes_GMAF&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;other_allele_frequencies&#39;</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__full</span><span class="p">:</span>          
+            <span class="n">header</span> <span class="o">=</span> <span class="n">header</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;transcript_consequences&#39;</span><span class="p">,</span> <span class="s1">&#39;regulatory_feature_consequences&#39;</span><span class="p">,</span> <span class="s1">&#39;motif_feature_consequences&#39;</span><span class="p">]</span>
+                
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">header</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">file</span><span class="p">)</span>
+        
+        
+        <span class="n">resultJson</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_response</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">resultJson</span><span class="p">:</span>
+            <span class="n">parser</span><span class="o">.</span><span class="n">set_record</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
+            
+            <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__query_variants</span><span class="p">[</span><span class="n">parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;queried_variant&#39;</span><span class="p">)],</span>
+                <span class="n">parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metaseq_id&#39;</span><span class="p">),</span>
+                <span class="n">parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ref_snp_id&#39;</span><span class="p">),</span> 
+                <span class="n">parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;is_adsp_variant&#39;</span><span class="p">)]</span>
+            
+            <span class="n">msConseq</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_consequences</span><span class="p">(</span><span class="s1">&#39;most_severe&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">msConseq</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">terms</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">msConseq</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;consequence_terms&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+                <span class="k">del</span> <span class="n">msConseq</span><span class="p">[</span><span class="s1">&#39;consequence_terms&#39;</span><span class="p">]</span>
+                <span class="n">geneInfo</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s1">&#39;gene_id&#39;</span> <span class="ow">in</span> <span class="n">msConseq</span><span class="p">:</span>
+                    <span class="n">geneInfo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">msConseq</span><span class="p">[</span><span class="s1">&#39;gene_id&#39;</span><span class="p">]</span>
+                    <span class="k">del</span> <span class="n">msConseq</span><span class="p">[</span><span class="s1">&#39;gene_id&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s1">&#39;gene_symbol&#39;</span> <span class="ow">in</span> <span class="n">msConseq</span><span class="p">:</span>
+                    <span class="n">geneInfo</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">msConseq</span><span class="p">[</span><span class="s1">&#39;gene_symbol&#39;</span><span class="p">]</span>
+                    <span class="k">del</span> <span class="n">msConseq</span><span class="p">[</span><span class="s1">&#39;gene_symbol&#39;</span><span class="p">]</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="p">[</span> <span class="n">terms</span> <span class="p">]</span> <span class="o">+</span> <span class="n">geneInfo</span> <span class="o">+</span> <span class="p">[</span><span class="n">dict_to_info_string</span><span class="p">(</span><span class="n">msConseq</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+            
+            
+            <span class="n">annotation</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;annotation&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">annotation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">caddScores</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="s1">&#39;cadd_scores&#39;</span><span class="p">)</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="p">[</span><span class="n">caddScores</span><span class="p">[</span><span class="s1">&#39;CADD_phred&#39;</span><span class="p">]</span> \
+                    <span class="k">if</span> <span class="s1">&#39;CADD_phred&#39;</span> <span class="ow">in</span> <span class="n">caddScores</span> <span class="k">else</span> <span class="kc">None</span><span class="p">]</span>
+                
+                <span class="n">associations</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_associations</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">associations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="p">[</span><span class="n">parser</span><span class="o">.</span><span class="n">get_associations</span><span class="p">(</span><span class="n">asString</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> 
+                        <span class="nb">len</span><span class="p">(</span><span class="n">associations</span><span class="p">),</span> <span class="c1"># number associations</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">parser</span><span class="o">.</span><span class="n">get_associations</span><span class="p">(</span><span class="n">genomeWideOnly</span><span class="o">=</span><span class="kc">True</span><span class="p">))]</span> <span class="c1"># number of genome wide associations</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+                
+                <span class="c1"># TODO: fix allele frequencies reporting</span>
+                
+                <span class="n">freq10k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__build_10k_freq_array</span><span class="p">(</span><span class="n">parser</span><span class="o">.</span><span class="n">get_allele_frequencies</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;1000Genomes&#39;</span><span class="p">]))</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="n">freq10k</span> \
+                    <span class="o">+</span> <span class="p">[</span><span class="n">parser</span><span class="o">.</span><span class="n">get_allele_frequencies</span><span class="p">(</span><span class="n">asString</span><span class="o">=</span><span class="kc">True</span><span class="p">)]</span>
+                
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__full</span><span class="p">:</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="p">[</span><span class="n">parser</span><span class="o">.</span><span class="n">get_consequences</span><span class="p">(</span><span class="s1">&#39;transcript&#39;</span><span class="p">,</span> <span class="n">asString</span><span class="o">=</span><span class="kc">True</span><span class="p">)]</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="p">[</span><span class="n">parser</span><span class="o">.</span><span class="n">get_consequences</span><span class="p">(</span><span class="s1">&#39;regulatory&#39;</span><span class="p">,</span> <span class="n">asString</span><span class="o">=</span><span class="kc">True</span><span class="p">)]</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="p">[</span><span class="n">parser</span><span class="o">.</span><span class="n">get_consequences</span><span class="p">(</span><span class="s1">&#39;motif&#39;</span><span class="p">,</span> <span class="n">asString</span><span class="o">=</span><span class="kc">True</span><span class="p">)]</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">xstr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">nullStr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_nullStr</span><span class="p">,</span> <span class="n">falseAsNull</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">]),</span> <span class="n">file</span><span class="o">=</span><span class="n">file</span><span class="p">)</span></div>
+
+
+    
+<span class="c1"># end class</span>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.api_wrapper.records.variant</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.0.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>
