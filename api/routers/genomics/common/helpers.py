@@ -26,18 +26,16 @@ class GenomicsRouteHelper(RouteHelper):
         self.__query = query
         self.__idParameter: str = idParameter
     
-
+    
     async def __run_query(self): 
-        # TODO: add limit & offset
-        # TODO: counts, summary, ids, urls response contents
-        
         statement = text(self.__query.query)
 
         try:
             if len(self.__query.bindParameters) > 0: 
                 # using the binparam object allows us to use the same parameter multiple times
                 # which is not possible w/simple dict representaion
-                parameters = [bindparam(param,self._parameters.get(self.__idParameter) \
+                parameters = [bindparam(param,
+                    self._parameters.get(self.__idParameter) \
                     if param == 'id' else self._parameters.get(param)) \
                         for param in self.__query.bindParameters]
 

@@ -1,9 +1,10 @@
 from typing import Any, Dict, List, Optional, Self, Union
-from pydantic import model_validator
+from pydantic import ConfigDict, model_validator
 from sqlalchemy import RowMapping
 from sqlmodel import SQLModel
 
 from niagads.utils.list import find
+from niagads.utils.decorators import hybridmethod
 
 from api.common.enums.response_properties import OnRowSelect, ResponseView
 from api.common.formatters import id2title
@@ -19,6 +20,7 @@ class GenericTrackSummary(GenericDataModel):
     data_source: Optional[str] = None
     data_category: Optional[str] = None
     url: Optional[str] = None
+
     
     @model_validator(mode='before')
     @classmethod
@@ -35,10 +37,11 @@ class GenericTrackSummary(GenericDataModel):
 
     def get_field_names(self):
         fields = list(self.model_fields.keys())
-        if len(self.model_extra) > 0:
-            fields += list(self.model_extra.keys())
+        if isinstance(self.model_extra, dict):
+            if len(self.model_extra) > 0:
+                    fields += list(self.model_extra.keys())
         return fields
-    
+
 
     def get_view_config(self, view: ResponseView, **kwargs):
         """ get configuration object required by the view """
@@ -81,3 +84,6 @@ class GenericTrack(GenericTrackSummary):
     experimental_design: Optional[ExperimentalDesign] = None
     biosample_characteristics: Optional[BiosampleCharacteristics] = None
     provenance: Optional[Provenance] = None
+    
+    def to_view_data(self, view: ResponseView, **kwargs):
+        return self.serialize(promoteObjs=True)

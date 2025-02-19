@@ -10,7 +10,7 @@ from niagads.filer.parser import split_replicates
 from niagads.utils.reg_ex import regex_extract
 
 from api.config.urls import DATASOURCE_URLS
-from api.models.base_row_models import RowModel
+from api.models.base_row_models import RowModel, SerializableModel
 from api.models.track_properties import ExperimentalDesign, Provenance
 
 # Developer Note: not setting a default for all optionals b/c coming from
@@ -41,7 +41,7 @@ class TrackCollection(SQLModel, table=True):
     collection_id: int = Field(foreign_key="collection.collection_id")
     
 
-class Track(SQLModel, table=True):
+class Track(SQLModel, SerializableModel, table=True):
     __tablename__ = "filertrack"
     __bind_key__ = 'filer'
     __table_args__ = {'schema': 'serverapplication'}

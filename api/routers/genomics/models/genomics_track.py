@@ -24,7 +24,8 @@ class GenomicsTrackSummaryResponse(PagedResponseModel):
     response: List[GenericTrackSummary]
     
     def to_text(self, format: ResponseView, **kwargs):
-        fields = self.response[0].get_field_names()
+        fields = self.response[0].get_field_names() \
+            if len(self.response) > 0 else GenericTrackSummary.get_model_fields()
         return super().to_text(format, fields=fields)
 
     
@@ -32,5 +33,5 @@ class GenomicsTrackResponse(PagedResponseModel):
     response: List[HumanGenomicsTrack]
 
     def to_text(self, format: ResponseView, **kwargs):
-        fields = self.response[0].get_field_names()
+        fields = HumanGenomicsTrack.get_model_fields()
         return super().to_text(format, fields=fields)

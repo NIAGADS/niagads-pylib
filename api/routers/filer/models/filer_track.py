@@ -32,14 +32,7 @@ class FILERTrack(SQLModel, GenericTrack):
     number_of_intervals: Optional[int] 
     file_size: Optional[int]
     file_format: Optional[str]
-    file_schema: Optional[str]
-    
-    def get_field_names(self):
-        fields = list(self.model_fields.keys())
-        if len(self.model_extra) > 0:
-            fields += list(self.model_extra.keys())
-        return fields
-    
+    file_schema: Optional[str]    
 
     def get_view_config(self, view: ResponseView, **kwargs):
         return super().get_view_config(view, **kwargs)
@@ -60,7 +53,9 @@ class FILERTrackSummaryResponse(PagedResponseModel):
     response: List[FILERTrackSummary]
     
     def to_text(self, format: ResponseView, **kwargs):
-        fields = self.response[0].get_field_names()
+        # fields could contain num_overlaps if a result is present
+        fields = self.response[0].get_field_names() \
+            if len(self.response) > 0 else FILERTrackSummary.get_model_fields()
         return super().to_text(format, fields=fields)
 
     
@@ -68,7 +63,7 @@ class FILERTrackResponse(PagedResponseModel):
     response: List[FILERTrack]
 
     def to_text(self, format: ResponseView, **kwargs):
-        fields = self.response[0].get_field_names()
+        fields = FILERTrack.get_model_fields()
         return super().to_text(format, fields=fields)
 
 
