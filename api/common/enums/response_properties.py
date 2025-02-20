@@ -64,7 +64,14 @@ class ResponseFormat(EnumParameter):
         else:
             return subset
 
-    
+    @classmethod
+    def variant_score(cls, description=False):
+        subset = cls.exclude('variant_score_formats', [ResponseFormat.BED] )
+        if description:
+            return cls.get_description(False) + ' ' + subset.get_description()
+        else:
+            return subset
+        
 class ResponseView(EnumParameter):
     """ enum for allowable views """
     TABLE = auto()
