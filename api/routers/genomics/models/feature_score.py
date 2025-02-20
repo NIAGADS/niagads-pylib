@@ -1,5 +1,5 @@
 
-from typing import List, Optional, Type, TypeVar, Union
+from typing import List, Optional, TypeVar, Union
 
 from api.models.base_response_models import PagedResponseModel
 from api.models.base_row_models import RowModel
