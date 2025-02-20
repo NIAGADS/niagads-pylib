@@ -26,5 +26,5 @@ class RecordSearchResult(RowModel):
     match_rank: int
     
     
-class RecordSearchResultResposne(PagedResponseModel):
+class RecordSearchResultResponse(PagedResponseModel):
     response: List[RecordSearchResult]
