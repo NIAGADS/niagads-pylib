@@ -1,6 +1,9 @@
 
 from typing import List, Optional, TypeVar, Union
 
+from niagads.reference.chromosomes import Human
+from pydantic import field_serializer
+
 from api.models.base_response_models import PagedResponseModel
 from api.models.base_row_models import RowModel
 from api.models.genome import Gene, GenomicRegion
@@ -12,9 +15,16 @@ class VariantScore(RowModel):
     variant: Variant
     test_allele: str
     track_id: str
-    location: GenomicRegion
+    chromosome: Human
+    position: int
+    
+    @field_serializer("chromosome")
+    def serialize_group(self, chromosome: Human, _info):
+        return str(chromosome)
+
 
 T_VariantScore = TypeVar('T_VariantScore', bound=VariantScore)
+
 
 class VariantPValueScore(VariantScore):
     p_value: Union[float, str]

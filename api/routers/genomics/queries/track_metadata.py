@@ -18,6 +18,7 @@ _TRACK_COLLECTION_QUERY="""
     GROUP BY c.name, c.description
 """
 
+
 TrackMetadataQuery = QueryDefinition(
     query="SELECT * FROM NIAGADS.TrackMetadata",
     useIdSelectWrapper=True

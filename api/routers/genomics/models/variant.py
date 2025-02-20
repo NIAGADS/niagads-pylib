@@ -23,7 +23,7 @@ class RankedConsequences(BaseModel):
 class Variant(BaseVariant):
     type: str
     is_adsp_variant: Optional[bool] = False
-    most_serious_consequence: Optional[PredictedConsequence] = None
+    most_severe_consequence: Optional[PredictedConsequence] = None
     # is_multi_allelic: bool
 
 class AnnotatedVariant(Variant):
