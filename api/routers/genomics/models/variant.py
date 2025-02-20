@@ -13,7 +13,6 @@ class PredictedConsequence(BaseModel):
     impact: ConsequenceImpact
     is_coding: Optional[bool] = False
     impacted_gene: Optional[Gene] = None
-    location: GenomicRegion
     # info: Optional[dict] <- what else is there; depends on the type of consequence
 
 class RankedConsequences(BaseModel):
@@ -28,6 +27,7 @@ class Variant(BaseVariant):
     # is_multi_allelic: bool
 
 class AnnotatedVariant(Variant):
+    length: str # or location: GenomicRegion?
     cadd_score: Optional[Dict[str, float]] = None
     ADSP_qc: Optional[Dict[str, dict]] = None
     allele_frequencies: Optional[dict] = None
