@@ -9,7 +9,7 @@ from api.dependencies.parameters.location import span_param
 from api.dependencies.parameters.optional import page_param
 from api.dependencies.parameters.identifiers import path_track_id
 from api.models.base_response_models import PagedResponseModel, BaseResponseModel
-from api.models.view_models import TableViewResponseModel
+from api.models.view_models import TableViewResponse
 
 from api.routers.filer.dependencies.parameters import InternalRequestParameters
 from api.routers.filer.common.helpers import FILERRouteHelper
@@ -50,7 +50,7 @@ tags = ["Record by ID", "Track Data by ID"]
 
 @router.get("/{track}/data", tags=tags,
     name="Get track data",
-    response_model=Union[BEDResponse, FILERTrackSummaryResponse, TableViewResponseModel, PagedResponseModel],
+    response_model=Union[BEDResponse, FILERTrackSummaryResponse, TableViewResponse, PagedResponseModel],
     description="retrieve functional genomics track data from FILER in the specified region; specify `content=counts` to just retrieve a count of the number of hits in the specified region")
 
 async def get_track_data(
@@ -61,7 +61,7 @@ async def get_track_data(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.functional_genomics(description=True)),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends()
-) -> Union[BEDResponse, FILERTrackSummaryResponse, TableViewResponseModel, PagedResponseModel]:
+) -> Union[BEDResponse, FILERTrackSummaryResponse, TableViewResponse, PagedResponseModel]:
     
     rContent = ResponseContent.data().validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(

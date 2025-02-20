@@ -12,7 +12,7 @@ from api.routers.genomics.common.constants import CACHEDB_PARALLEL_TIMEOUT
 from api.routers.genomics.dependencies.parameters import InternalRequestParameters
 from api.routers.genomics.models.feature_score import GWASSumStatResponse, QTLResponse
 from api.routers.genomics.models.genomics_track import GenomicsTrack
-from api.routers.genomics.queries.track_tables import TrackGWASSumStatQuery, TrackQTLQuery
+from api.routers.genomics.queries.track_data import TrackGWASSumStatQuery, TrackQTLQuery
 
 class GenomicsRouteHelper(RouteHelper):  
     

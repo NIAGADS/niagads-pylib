@@ -10,7 +10,7 @@ from api.dependencies.parameters.optional import page_param
 
 from api.models.base_response_models import BaseResponseModel
 from api.models.collection import CollectionResponse
-from api.models.view_models import TableViewResponseModel
+from api.models.view_models import TableViewResponse
 
 from api.routers.filer.common.helpers import FILERRouteHelper
 from api.routers.filer.common.services import MetadataQueryService
@@ -46,7 +46,7 @@ async def get_collections(
 
 
 @router.get("/{collection}",
-    response_model=Union[BaseResponseModel, FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponseModel],
+    response_model=Union[BaseResponseModel, FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponse],
     name="Get track metadata by collection", 
     description="retrieve full metadata for FILER track records associated with a collection")
 
@@ -57,7 +57,7 @@ async def get_collection_track_metadata(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
     view: str =  Query(ResponseView.DEFAULT, description=ResponseView.table(description=True)),
     internal: InternalRequestParameters = Depends()
-)-> Union[BaseResponseModel, FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponseModel]:
+)-> Union[BaseResponseModel, FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponse]:
     
     rContent = ResponseContent.validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(

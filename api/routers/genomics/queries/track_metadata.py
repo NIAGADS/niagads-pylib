@@ -1,10 +1,4 @@
-
-from typing import List
-
 from api.models.query_defintion import QueryDefinition
-
-from api.routers.genomics.models.feature_score import QTL, VariantPValueScore
-from api.routers.genomics.models.genomics_track import GenomicsTrack, HumanGenomicsTrack
 
 _TRACK_COLLECTION_METADATA_QUERY="""
     SELECT m.*

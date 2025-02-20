@@ -14,6 +14,6 @@ class TableViewModel(BaseModel):
     options: Optional[Dict[str, Any]] = None
     id: str
     
-class TableViewResponseModel(BaseViewResponseModel):
+class TableViewResponse(BaseViewResponseModel):
     response: TableViewModel
     

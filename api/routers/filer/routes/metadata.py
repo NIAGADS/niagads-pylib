@@ -11,7 +11,7 @@ from api.dependencies.parameters.location import assembly_param
 from api.dependencies.parameters.optional import page_param, keyword_param
 
 from api.models.base_response_models import PagedResponseModel, BaseResponseModel
-from api.models.view_models import TableViewResponseModel
+from api.models.view_models import TableViewResponse
 
 from api.routers.filer.common.helpers import FILERRouteHelper
 from api.routers.filer.models.filer_track import FILERTrackSummaryResponse, FILERTrackResponse
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/metadata", responses=RESPONSES)
 tags = ["Track Metadata by ID"]
 
 @router.get("/", tags=tags, 
-    response_model=Union[FILERTrackResponse, FILERTrackSummaryResponse, TableViewResponseModel, BaseResponseModel],
+    response_model=Union[FILERTrackResponse, FILERTrackSummaryResponse, TableViewResponse, BaseResponseModel],
     name="Get metadata for multiple tracks",
     description="retrieve full metadata for one or more FILER track records")
 
@@ -32,7 +32,7 @@ async def get_track_metadata(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
     view: str =  Query(ResponseView.DEFAULT, description=ResponseView.table(description=True)),
     internal: InternalRequestParameters = Depends()
-) -> Union[FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponseModel, BaseResponseModel]:
+) -> Union[FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponse, BaseResponseModel]:
     
     rContent = ResponseContent.descriptive(inclUrls=True).validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
@@ -53,7 +53,7 @@ async def get_track_metadata(
 tags = ['Record(s) by Text Search'] + ['Track Metadata by Text Search']
 
 @router.get("/search", tags=tags, 
-    response_model=Union[PagedResponseModel, FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponseModel],
+    response_model=Union[PagedResponseModel, FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponse],
     name="Search for tracks", 
     description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata")
 
@@ -66,7 +66,7 @@ async def search_track_metadata(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
     view: str =  Query(ResponseView.DEFAULT, description=ResponseView.table(description=True)),
     internal: InternalRequestParameters = Depends(),
-) -> Union[PagedResponseModel, FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponseModel]:
+) -> Union[PagedResponseModel, FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponse]:
     
     if filter is None and keyword is None:
         raise RequestValidationError('must specify either a `filter` and/or a `keyword` to search')

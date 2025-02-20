@@ -14,7 +14,7 @@ from api.dependencies.parameters.services import InternalRequestParameters
 from api.models.response_model_properties import CacheKeyDataModel, PaginationDataModel
 from api.models.base_response_models import BaseResponseModel, T_ResponseModel
 from api.models.igvbrowser import IGVBrowserTrackSelectorResponse
-from api.models.view_models import TableViewResponseModel
+from api.models.view_models import TableViewResponse
 
 INTERNAL_PARAMETERS = ['span', '_tracks']
 ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMARY]
@@ -213,7 +213,7 @@ class RouteHelper():
             'request': self._managers.requestData,
             'pagination': response.pagination if response.is_paged() else None }
         
-        viewResponse = TableViewResponseModel(**viewResponseObj)
+        viewResponse = TableViewResponse(**viewResponseObj)
 
         await self._managers.cache.set(cacheKey, viewResponse, namespace=CacheNamespace.VIEW)
         
