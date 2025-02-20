@@ -8,9 +8,7 @@ from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.models.base_response_models import BaseResponseModel, T_ResponseModel
 from api.models.genome import GenomicRegion
-from api.models.igvbrowser import IGVBrowserTrackConfig, IGVBrowserTrackSelectorResponse, IGVBrowserTrackConfigResponse
 from api.models.search import RecordSearchResult
-from api.models.view_models import TableViewModel
 
 from ..common.helpers import GenomicsRouteHelper
 from ..dependencies.parameters import InternalRequestParameters
