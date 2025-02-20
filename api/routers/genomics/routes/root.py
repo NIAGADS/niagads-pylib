@@ -10,7 +10,7 @@ from api.routers.genomics.dependencies.parameters import ROUTE_SESSION_MANAGER
 
 from api.routers.genomics.common.constants import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX
 
-from api.routers.genomics.routes.service import router as ServiceRouter
+from api.routers.genomics.routes.services import router as ServiceRouter
 from api.routers.genomics.routes.track import router as TrackRouter
 from api.routers.genomics.routes.collection import router as CollectionRouter
 
