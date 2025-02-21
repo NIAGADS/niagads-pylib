@@ -9,7 +9,7 @@ from api.common.formatters import id2title
 from api.models.base_response_models import PagedResponseModel
 from api.models.base_row_models import RowModel
 from api.models.genome import Gene, GenomicRegion
-from api.models.view_models import BadgeIcon, BooleanDataCell, LinkDataCell, PValueDataCell, TableColumn, TextDataCell
+from api.models.view_models import BadgeIcon, BooleanDataCell, FloatDataCell, LinkDataCell, PValueDataCell, TableColumn, TextDataCell
 from api.routers.genomics.models.variant import PredictedConsequence, Variant
 
 # TODO: NHGRI GWAS Catalog/ADVP data -> maybe just make VariantScore a `GenericDataModel`
@@ -117,7 +117,8 @@ class VariantPValueScore(VariantScore):
                 c.required = True
                 c.type = 'link'
             if c.id == 'p_value':
-                c.type = 'p_value'
+                # c.type = 'p_value'
+                c.type = 'float'
                 c.required = True
             if c.id.startswith('is_'):
                 c.type = 'boolean'
@@ -126,9 +127,11 @@ class VariantPValueScore(VariantScore):
             if 'target' in c.id: # FIXME find way to handle in child w/out iterative over all fields again
                 c.required = True
                 c.type = 'link'
+            if 'z_score' in c.id:
+                c.type = 'float'
         
         defaultColumns = ['variant', 'p_value', 'test_allele', 'ref_snp_id', 
-            'is_adsp_variant', 'most_severe_consequence', 'impact', 
+            'is_adsp_variant', 'consequence', 'impact', 
             'impacted_gene'
         ]
 
@@ -145,6 +148,7 @@ class QTL(VariantPValueScore):
         data = super().to_view_data(view, **kwargs)
         data['target'] = LinkDataCell(value=data['gene_symbol'], 
             url=f'/gene/{data['ensembl_id']}')
+        # data['z_score'] = FloatDataCell(value=data['z_score'], precision=2)
         del data['ensembl_id']
         del data['gene_symbol']
         return data
@@ -164,7 +168,7 @@ class QTL(VariantPValueScore):
         """ Return a column and options object for niagads-viz-js/Table """
         config = super()._build_table_config()
         defaultColumns = ['variant', 'ref_snp_id',  'p_value', 
-            'is_adsp_variant', 'target', 'dist_to_target', 'z_score', 'most_severe_consequence', 
+            'is_adsp_variant', 'target', 'dist_to_target', 'z_score', 'consequence', 
         ]
         
         config['options']['defaultColumns'] = defaultColumns

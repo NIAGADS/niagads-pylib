@@ -27,15 +27,15 @@ class TableColumn(NullFreeModel):
     header: Optional[str] = None
     id: str
     description: Optional[str] = None
-    type: Optional[TableCell] = "string"
+    type: Optional[TableCell] = "abstract"
     canFilter: Optional[bool] = None
-    disablGlobalFilter: Optional[bool] = None
+    disableGlobalFilter: Optional[bool] = None
     disableSorting: Optional[bool] = None
     required: Optional[bool] = None
 
     
 class DataCell(NullFreeModel):
-    type:str = "string"
+    type:str = "abstract"
     value: Optional[Union[str, bool, int, float]] = None
     # nullValue: Optional[str] = None
     # naValue: Optional[str] = 'NA'
@@ -49,7 +49,8 @@ class FloatDataCell(DataCell):
     precision: Optional[int] = 2
     
 class PValueDataCell(FloatDataCell):
-    type:str = "p_value"
+    # type:str = "p_value"
+    type: str = "float"
     value:Optional[float] = None
     neg_log10_pvalue: Optional[float] = None
 

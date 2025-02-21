@@ -37,3 +37,4 @@ __datasource_urls = ({
 
 URLS = SimpleNamespace(**__urls)
 DATASOURCE_URLS = SimpleNamespace(**__datasource_urls)
+

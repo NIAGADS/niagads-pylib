@@ -21,6 +21,7 @@ class SerializableModel(BaseModel):
         """
         # note: encoder is necessary to correctly return enums/dates, etc
         data:dict = jsonable_encoder(self.model_dump(exclude=exclude, by_alias=byAlias)) 
+        # FIXME: does not handle case if the dict field is null (e.g., experimental_design on genomics tracks)
         if promoteObjs:
             objFields = [k for k, v in data.items() if isinstance(v, dict)]
             for f in objFields:

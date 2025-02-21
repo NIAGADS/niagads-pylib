@@ -10,6 +10,7 @@ from api.common.formatters import id2title
 from api.models.base_row_models import GenericDataModel
 from api.models.track_properties import BiosampleCharacteristics, ExperimentalDesign, Provenance
 
+# FIXME: data_source here and in provenance
 class GenericTrackSummary(GenericDataModel):
     track_id: str
     name: str
@@ -91,3 +92,4 @@ class GenericTrack(GenericTrackSummary):
     
     def to_view_data(self, view: ResponseView, **kwargs):
         return self.serialize(promoteObjs=True)
+
