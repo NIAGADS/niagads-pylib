@@ -3,8 +3,14 @@ import nh3 # XSS protection
 from niagads.utils.string import is_camel_case
 
 def id2title(columnId: str):
-    if is_camel_case(columnId):
+    if columnId == 'p_value':
+        return 'p-Value'
+    
+    if columnId == 'chrom': # bed file
+        return 'chrom'
+    if is_camel_case(columnId): # bed file
         return columnId
+    
     title = columnId.title().replace('_', ' ')
     title = title.replace('Id', 'ID').replace('Of', 'of').replace('Md5Sum', 'md5sum')
     title = title.replace('Url', 'URL').replace('Bp ', 'BP ')

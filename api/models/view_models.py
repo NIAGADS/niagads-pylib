@@ -9,7 +9,15 @@ from api.models.base_models import NullFreeModel
 from api.models.response_model_properties import PaginationDataModel, RequestDataModel
 
 TableCell = StrEnum('TableCell', ["boolean", "abstract", "float", "p_value", "text", "annotated_text", "badge", "link", "percentage_bar"])
-BadgeIcon = StrEnum('BadgeIcons', ["check", "solidCheck", "info", "warning", "user", "infoOutline", "xMark"])
+class BadgeIcon(StrEnum):
+    CHECK = 'check'
+    SOLID_CHECK = 'solidCheck'
+    INFO = 'info'
+    WARNING = 'warning'
+    USER = 'user'
+    INFO_OUTLINE = 'infoOutline'
+    X_MARK = 'xMark'    
+
 
 class BaseViewResponseModel(BaseModel):
     request: RequestDataModel = Field(description="details about the originating request that generated the response")
@@ -83,7 +91,8 @@ class PercentagBarDataCell(FloatDataCell):
     type:str = "percentage_bar"
     colors: Optional[List[str]] = None
 
-TABLE_DATA_CELL = Dict[str, Union[Type[T_DataCell], int, float, str, bool, None]]
+# FIXME: validation failing to recognize subclasses of T_DataCell; see notes in genomics_tracks.py
+TABLE_DATA_CELL = Dict[str, Any] # Dict[str, Union[Type[T_DataCell], int, float, str, bool, None]]
 
 class TableViewModel(BaseModel, arbitrary_types_allowed=True):
     data: List[TABLE_DATA_CELL]

@@ -14,6 +14,20 @@ class PredictedConsequence(BaseModel):
     is_coding: Optional[bool] = False
     impacted_gene: Optional[Gene] = None
     # info: Optional[dict] <- what else is there; depends on the type of consequence
+    
+    @staticmethod
+    def get_impact_color(impact:str):
+        match impact:
+            case 'HIGH' | 'high':
+                return "#ff00ff"
+            case 'MODERATE' | 'moderate':
+                return "#f59300"
+            case 'MODIFIER' | 'modifier':
+                return "#377eb8"
+            case 'LOW' | 'low':
+                return "#377eb8"
+            case _:
+                return None
 
 class RankedConsequences(BaseModel):
     regulatory: List[PredictedConsequence]
