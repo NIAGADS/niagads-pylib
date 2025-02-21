@@ -64,6 +64,11 @@ class GenericTrackSummary(GenericDataModel):
         # update type of is_lifted to boolean
         index: int = find(columns, 'is_lifted', 'id', returnValues=False)
         columns[index[0]].update({'type': 'boolean', 'description': 'data have been lifted over from an earlier genome build'})
+        
+        # update url to link
+        index: int = find(columns, 'url', 'id', returnValues=False)
+        columns[index[0]].update({'type': 'link'})
+        
         options = {}
         if 'num_overlaps' in fields:
             options.update({'rowSelect': {

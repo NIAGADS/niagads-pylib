@@ -7,10 +7,9 @@ from typing import Optional
 from pydantic import computed_field
 
 from niagads.filer.parser import split_replicates
-from niagads.utils.reg_ex import regex_extract
 
 from api.config.urls import DATASOURCE_URLS
-from api.models.base_row_models import RowModel, SerializableModel
+from api.models.base_models import SerializableModel
 from api.models.track_properties import ExperimentalDesign, Provenance
 
 # Developer Note: not setting a default for all optionals b/c coming from

@@ -1,42 +1,14 @@
-from abc import ABC, abstractmethod
 from typing import Any, Dict, List, TypeVar
-from pydantic import BaseModel, ConfigDict
-from fastapi.encoders import jsonable_encoder
+from pydantic import ConfigDict
 
 from niagads.utils.string import xstr
 
 from api.common.constants import DEFAULT_NULL_STRING
 from api.common.enums.response_properties import ResponseFormat, ResponseView
 from api.common.formatters import id2title
+from api.models.base_models import SerializableModel
+from api.models.view_models import TableColumn
 
-class SerializableModel(BaseModel):
-    def serialize(self, exclude: List[str] = None, promoteObjs=False, collapseUrls=False, groupExtra=False, byAlias=False):
-        """
-        basically a customized `model_dumps` but only when explicity called
-        returns a dict which contains only serializable fields.
-        exclude -> list of fields to exclude
-        promoteObjs -> when True expands JSON fields; i.e., ds = {a:1, b:2} becomes a:1, b:2 and ds gets dropped
-        collapseUrls -> looks for field and field_url pairs and then updates field to be {url: , value: } object
-        groupExtra -> if extra fields are present, group into a JSON object
-        """
-        # note: encoder is necessary to correctly return enums/dates, etc
-        data:dict = jsonable_encoder(self.model_dump(exclude=exclude, by_alias=byAlias)) 
-        if promoteObjs:
-            objFields = [k for k, v in data.items() if isinstance(v, dict)]
-            for f in objFields:
-                data.update(data.pop(f, None))
-
-        if collapseUrls:
-            fields = list(data.keys())
-            pairedFields = [ f for f in fields if f + '_url' in fields]
-            for f in pairedFields:
-                data.update({f: {'url': data.pop(f +'_url', None), 'value': data[f]}})
-
-        if groupExtra:
-            raise NotImplementedError()  
-        
-        return data
-    
 class RowModel(SerializableModel):
     """
     Most API responses are a lists of objects (rows).
@@ -81,7 +53,7 @@ class RowModel(SerializableModel):
         
     def __get_table_view_config(self, **kwargs):
         fields = list(self.model_dump().keys())
-        columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields]
+        columns: List[TableColumn] = [ TableColumn(id=f, header=id2title(f)) for f in fields]
         options =  {}
 
         if 'track_id' in fields:
