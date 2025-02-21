@@ -26,7 +26,7 @@ app = FastAPI(
         title="NIAGADS Open Access - API",
         description="an application programming interface (API) that provides programmatic access to Open-Access resources at the NIA Genetics of Alzheimer's Disease Data Storage Site (NIAGADS)",
         summary="NIAGADS API",
-        version="0.9.0a", # FIXME: get from settings
+        version="0.9.5b", # FIXME: get from settings
         terms_of_service="http://example.com/terms/",
         contact={
             "name": "NIAGADS Support",
