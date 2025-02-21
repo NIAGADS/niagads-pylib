@@ -44,7 +44,7 @@ class RowModel(SerializableModel):
         """ get configuration object required by the view """
         match view:
             case ResponseView.TABLE:
-                self.__get_table_view_config(kwargs)
+                return self.__get_table_view_config(**kwargs)
             case ResponseView.IGV_BROWSER:
                 raise NotImplementedError('IGVBrowser view coming soon')
             case _:
