@@ -13,6 +13,12 @@ class BaseResponseModel(BaseModel):
     response: Any = Field(description="result (data) from the request")
     request: RequestDataModel = Field(description="details about the originating request that generated the response")
 
+
+    def has_count_fields(self):
+        if any(f.startswith('num_') for f in self.response[0].model_fields.keys()):
+            return True
+        if isinstance(self.response[0].model_extra, dict):
+            return any(f.startswith('num_') for f in self.response[0].model_extra.keys())
     
     @classmethod
     def is_paged(cls: Self):
@@ -37,10 +43,8 @@ class BaseResponseModel(BaseModel):
         if len(self.response) == 0:
             raise RuntimeError('zero-length response; cannot generate view')
 
-        if 'on_row_select' not in kwargs:
-            if 'num_overlaps' in self.response[0].model_fields.keys() or \
-                'num_overlaps' in self.response[0].model_extra.keys():
-                kwargs['on_row_select'] = OnRowSelect.ACCESS_ROW_DATA
+        if self.has_count_fields():
+            kwargs['on_row_select'] = OnRowSelect.ACCESS_ROW_DATA
                 
         viewResponse: Dict[str, Any] = {}
         data = []
