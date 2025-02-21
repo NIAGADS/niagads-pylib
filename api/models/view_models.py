@@ -49,7 +49,7 @@ class TextDataCell(DataCell):
     type:str = "text"
     value:Optional[str] = None
     truncateTo:Optional[int] = 100
-    color: Optional[str] = 'black'
+    color: Optional[str] = None
     tooltip: Optional[str] = None
 
 class TextListDataCell(DataCell):
@@ -83,14 +83,15 @@ class PercentagBarDataCell(FloatDataCell):
     type:str = "percentage_bar"
     colors: Optional[List[str]] = None
 
-TABLE_DATA_CELL = Dict[str, Union[int, float, str, bool, None, Type[T_DataCell]]]
+TABLE_DATA_CELL = Dict[str, Union[Type[T_DataCell], int, float, str, bool, None]]
 
-class TableViewModel(BaseModel):
+class TableViewModel(BaseModel, arbitrary_types_allowed=True):
     data: List[TABLE_DATA_CELL]
     columns: List[TableColumn]
     options: Optional[Dict[str, Any]] = None
     id: str
     
 class TableViewResponse(BaseViewResponseModel):
+    
     response: TableViewModel
     
