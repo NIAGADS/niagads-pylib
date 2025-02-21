@@ -15,6 +15,7 @@ class Phenotype(BaseModel):
     neuropathology: Optional[str] = None
 
 
+# FIXME: check NG00048_GRCh38 which has no control counts
 class StudyGroup(BaseModel):
     group: str 
-    num_samples: Union[int, Dict[str, int]]
+    num_samples: Optional[Union[int, Dict[str, int]]] = None
