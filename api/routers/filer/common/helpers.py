@@ -160,7 +160,7 @@ class FILERRouteHelper(RouteHelper):
         return result
 
 
-    async def get_paged_track_data(self, trackOverlaps:List[TrackOverlap], validate=True):
+    async def __get_paged_track_data(self, trackOverlaps:List[TrackOverlap], validate=True):
 
         result = await self._managers.cache.get(
             self._managers.cacheKey.encrypt(), namespace=self._managers.cacheKey.namespace)
@@ -205,7 +205,7 @@ class FILERRouteHelper(RouteHelper):
         trackOverlaps = await self.__get_track_data_task(tracks, assembly, self._parameters.span, True)
         
         if self._responseConfig.content == ResponseContent.FULL:
-            return await self.get_paged_track_data(trackOverlaps, validate=validate)
+            return await self.__get_paged_track_data(trackOverlaps, validate=validate)
 
         # to ensure pagination order, need to sort by counts
         sortedTrackOverlaps = sort_track_overlaps(trackOverlaps)
@@ -409,7 +409,7 @@ class FILERRouteHelper(RouteHelper):
             targetTrackOverlaps: List[TrackOverlap] = [t for t in informativeTrackOverlaps if t.track_id in targetTrackIds]
         
         if self._responseConfig.content == ResponseContent.FULL:
-            return await self.get_paged_track_data(targetTrackOverlaps)
+            return await self.__get_paged_track_data(targetTrackOverlaps)
         
         # to ensure pagination order, need to sort by counts
         result: List[TrackOverlap] = sort_track_overlaps(targetTrackOverlaps)
