@@ -1,11 +1,15 @@
 \connect apistaticdb; 
 
+DROP TABLE IF EXISTS ServerApplication.FILERTrack CASCADE;
+
 CREATE TABLE ServerApplication.FILERTrack (
         track_id CHARACTER VARYING(50) PRIMARY KEY NOT NULL,
         name     CHARACTER VARYING(250) NOT NULL,
         description TEXT,
         genome_build CHARACTER VARYING(50) CHECK (genome_build IN ('GRCh38', 'GRCh37', 'T2T', 'Pangenome')),
         feature_type CHARACTER VARYING(100),
+
+        download_only BOOLEAN,
         
         -- biosample
         biosample_characteristics JSONB,
@@ -21,6 +25,11 @@ CREATE TABLE ServerApplication.FILERTrack (
         output_type CHARACTER VARYING(150),
         is_lifted BOOLEAN,
         experiment_info TEXT,
+        study_id CHARACTER VARYING(150),
+        study_name CHARACTER VARYING(250),
+        dataset_id CHARACTER VARYING(150),
+        pubmed_id CHARACTER VARYING(25),
+        sample_group CHARACTER VARYING(250),
         
         --provenance
         data_source CHARACTER VARYING(50),
@@ -54,6 +63,31 @@ CREATE INDEX FTM_IND05 ON ServerApplication.FILERTrack (data_category, track_id)
 CREATE INDEX FTM_IND06 ON ServerApplication.FILERTrack (antibody_target, track_id);
 CREATE INDEX FTM_IND07 ON ServerApplication.FILERTrack (data_source, track_id);
 CREATE INDEX FTM_IND08 ON ServerApplication.FILERTrack (project, track_id);
+
+DROP TABLE IF EXISTS ServerApplication.FILERCollection CASCADE;
+
+CREATE TABLE ServerApplication.FILERCollection (
+    collection_id SERIAL PRIMARY KEY,
+    name CHARACTER VARYING(100) NOT NULL,
+    description TEXT NOT NULL
+);
+
+DROP TABLE IF EXISTS ServerApplication.FILERCollectionTrackLink CASCADE;
+
+CREATE TABLE ServerApplication.FILERCollectionTrackLink (
+    collection_track_link_id SERIAL PRIMARY KEY,
+    collection_id INTEGER NOT NULL REFERENCES ServerApplication.FILERCollection(collection_id),
+    track_id CHARACTER VARYING(50) NOT NULL REFERENCES ServerApplication.FILERTrack(track_id)
+);
+
+CREATE INDEX FCTL_IND01 ON ServerApplication.FILERCollectionTrackLink(collection_id);
+CREATE INDEX FCTL_IND02 ON ServerApplication.FILERCollectionTrackLink(track_id);
+
+GRANT SELECT ON ServerApplication.FILERCollection TO server_app;
+GRANT SELECT ON ServerApplication.FILERCollectionTrackLink TO server_app;
+
+
+
 
    
 -- Grants (may need to do them again here)
