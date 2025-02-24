@@ -1,3 +1,4 @@
+import json
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from sqlmodel import select, col, or_, func, distinct
@@ -58,7 +59,7 @@ class ApiWrapperService:
                 result = await response.json() 
             return result
         except Exception as e:
-            raise LookupError(f'Unable to parse FILER response `{response.content}` for the following request: {str(response.url)}')
+            raise LookupError(f'Unable to get FILER response `{response.content}` for the following request: {str(response.url)}')
     
     
     async def __count_track_overlaps(self, span: str, assembly: str, tracks: List[str]) -> List[TrackOverlap]:   
@@ -88,10 +89,12 @@ class ApiWrapperService:
         
         result = await self.__fetch(FILERApiEndpoint.OVERLAPS, {'track': ','.join(tracks), 'span': span})
         
-        if 'message' in result:
-            raise RuntimeError(result['message'])
-        
-        return [FILERApiDataResponse(**r) for r in result]
+        # FIXME: more efficient?
+
+        try:
+            return [FILERApiDataResponse(**r) for r in result]
+        except:
+            raise LookupError(f'Unable to process FILER response for track(s) `{tracks}` in the span: {span} ({assembly})')
 
 
     async def get_informative_tracks(self, span: str, assembly: str, sort=False) -> List[TrackOverlap]:
