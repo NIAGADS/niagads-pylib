@@ -1,0 +1,29 @@
+niagads.scripts package
+=======================
+
+Submodules
+----------
+
+niagads.scripts.owl\_parser module
+----------------------------------
+
+.. automodule:: niagads.scripts.owl_parser
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+niagads.scripts.variant\_annotator module
+-----------------------------------------
+
+.. automodule:: niagads.scripts.variant_annotator
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: niagads.scripts
+   :members:
+   :show-inheritance:
+   :undoc-members:

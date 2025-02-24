@@ -1,0 +1,319 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.parsers.adsp_vep_consequences.consequence_groups &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.adsp_vep_consequences.consequence_groups</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.parsers.adsp_vep_consequences.consequence_groups</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;! @brief ADSP Consequence Group Enum&quot;&quot;&quot;</span>
+
+<span class="c1">##</span>
+<span class="c1"># @package enums</span>
+<span class="c1"># @file consequence_groups.py</span>
+<span class="c1">#</span>
+<span class="c1"># @brief  ADSP Consequence Group Enum</span>
+<span class="c1"># </span>
+<span class="c1"># @section conseq_group_enum Description</span>
+<span class="c1"># Defines an Enum class to store &amp; manipulate groups of consequence terms</span>
+<span class="c1"># to facilitate the ranking of VEP variants according to ADSP criteria</span>
+<span class="c1">#</span>
+<span class="c1"># @section todo_conseq_group_enum TODO</span>
+<span class="c1">#</span>
+<span class="c1"># @section libraries_conseq_group_enum Libraries/Modules</span>
+<span class="c1">#   + provides variety of wrappers for set and list operations</span>
+<span class="c1">#</span>
+<span class="c1"># @section author_conseq_group_enum Author(s)</span>
+<span class="c1"># - Created by Emily Greenfest-Allen (fossilfriend) 2022</span>
+
+
+<span class="c1"># pylint: disable=line-too-long,invalid-name,no-self-use</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">...utils.list</span><span class="w"> </span><span class="kn">import</span> <span class="n">list_to_indexed_dict</span><span class="p">,</span> <span class="n">is_subset</span><span class="p">,</span> <span class="n">is_overlapping_list</span>
+
+<div class="viewcode-block" id="ConseqGroup">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConseqGroup</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;! Enum class to store &amp; manipulate groups of consequence terms </span>
+<span class="sd">    to facilitate the ranking of VEP variants according to ADSP criteria</span>
+
+<span class="sd">    &gt; NOTE: &#39;HIGH&#39; IMPACT group also includes consequences classified by VEP as &#39;MODERATE&#39; or &#39;LOW&#39;</span>
+
+<span class="sd">    - terms added by EGA:</span>
+<span class="sd">        + regulatory_region_ablation 02/14/2022</span>
+<span class="sd">        + TFBS_amplification 02/15/2022</span>
+<span class="sd">        + regulatory_region_amplification 02/22/2022</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s1">&#39;HIGH_IMPACT NMD NON_CODING_TRANSCRIPT MODIFIER&#39;</span>
+    <span class="n">HIGH_IMPACT</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;transcript_ablation&#39;</span><span class="p">,</span> <span class="s1">&#39;splice_acceptor_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;splice_donor_variant&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;stop_gained&#39;</span><span class="p">,</span> <span class="s1">&#39;frameshift_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;stop_lost&#39;</span><span class="p">,</span> <span class="s1">&#39;start_lost&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;inframe_insertion&#39;</span><span class="p">,</span> <span class="s1">&#39;inframe_deletion&#39;</span><span class="p">,</span> <span class="s1">&#39;missense_variant&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;protein_altering_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;splice_region_variant&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;incomplete_terminal_codon_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;stop_retained_variant&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;start_retained_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;synonymous_variant&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;coding_sequence_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;5_prime_UTR_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;3_prime_UTR_variant&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;regulatory_region_ablation&#39;</span>
+                <span class="p">]</span> <span class="c1"># GRP 4</span>
+
+    <span class="n">NMD</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;NMD_transcript_variant&#39;</span><span class="p">]</span> <span class="c1"># GRP 1</span>
+
+    <span class="n">NON_CODING_TRANSCRIPT</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;non_coding_transcript_exon_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;non_coding_transcript_variant&#39;</span><span class="p">]</span> <span class="c1"># GRP 2</span>
+
+    <span class="n">MODIFIER</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;intron_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;mature_miRNA_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;non_coding_transcript_variant&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;non_coding_transcript_exon_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;upstream_gene_variant&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;downstream_gene_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;TF_binding_site_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;TFBS_ablation&#39;</span><span class="p">,</span> <span class="s1">&#39;TFBS_amplification&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;TF_binding_site_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;regulatory_region_amplification&#39;</span><span class="p">,</span> <span class="s1">&#39;regulatory_region_variant&#39;</span><span class="p">,</span> <span class="s1">&#39;intergenic_variant&#39;</span><span class="p">]</span> <span class="c1"># GRP 3</span>
+
+
+<div class="viewcode-block" id="ConseqGroup.get_all_terms">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_all_terms">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_terms</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! retrieve complete set of terms across all consequence groups</span>
+
+<span class="sd">        ~~~~~~~~~~~~~{.py}</span>
+<span class="sd">        ConseqGroups.get_all_terms() #usage</span>
+<span class="sd">        ~~~~~~~~~~~~~</span>
+
+<span class="sd">        @returns complete set of terms across all consequence groups</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">terms</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ConseqGroup</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s1">&#39;NON_CODING_TRANSCRIPT&#39;</span><span class="p">:</span> <span class="c1"># subset of MODIFIER &amp; want to preserve order</span>
+                <span class="n">terms</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="k">return</span> <span class="n">terms</span></div>
+
+
+
+<div class="viewcode-block" id="ConseqGroup.get_complete_indexed_dict">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_complete_indexed_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_complete_indexed_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! return indexed OrderedDict containing all ConseqGroup terms</span>
+
+<span class="sd">        ~~~~~~~~~~~~~{.py}</span>
+<span class="sd">        ConseqGroups.get_complete_indexed_dict() #usage</span>
+<span class="sd">        ~~~~~~~~~~~~~</span>
+
+<span class="sd">        @returns complete set of terms as ordered dict of key:value = term:index</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">ConseqGroup</span><span class="o">.</span><span class="n">get_all_terms</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">list_to_indexed_dict</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ConseqGroup.validate_terms">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.validate_terms">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_terms</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">conseqs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! verify that all terms fall into a conseq group</span>
+<span class="sd">        raise error if novel term is found so that code can be updated to assign to a specific</span>
+<span class="sd">        consequence group</span>
+
+<span class="sd">        - see [Ensembl VEP Consequences](https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html)</span>
+<span class="sd">        for possible updates</span>
+
+<span class="sd">        ~~~~~~~~~~~~~{.py}</span>
+<span class="sd">        ConseqGroup.validate_terms(conseqs) # usage</span>
+<span class="sd">        ~~~~~~~~~~~~~</span>
+
+<span class="sd">        @returns True if all terms are valid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">validTerms</span> <span class="o">=</span> <span class="n">ConseqGroup</span><span class="o">.</span><span class="n">get_all_terms</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">conseqs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_subset</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="n">validTerms</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">):</span> <span class="c1"># determine which specific term failed</span>
+                    <span class="k">if</span> <span class="n">term</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">validTerms</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Consequence combination `&quot;</span> <span class="o">+</span> <span class="n">c</span> \
+                            <span class="o">+</span> <span class="s2">&quot;` contains an invalid consequence: `&quot;</span> <span class="o">+</span> <span class="n">term</span> \
+                            <span class="o">+</span> <span class="s2">&quot;`. Please update the `ConseqGroup` enum &quot;</span> \
+                            <span class="o">+</span> <span class="s2">&quot;(conseq_group_enum.py) after reviewing &quot;</span> \
+                            <span class="o">+</span> <span class="s2">&quot;https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! convert enum value to comma separated string</span>
+
+<span class="sd">        ~~~~~~~~~~~~~{.py}</span>
+<span class="sd">        str(ConseqGroup.HIGH_IMPACT) # usage</span>
+<span class="sd">        ~~~~~~~~~~~~~</span>
+
+<span class="sd">        @returns comma separated string of enum values</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ConseqGroup.get_group_members">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_group_members">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_group_members</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conseqs</span><span class="p">,</span> <span class="n">requireSubset</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! given a list of combinations, extracts those that</span>
+<span class="sd">          include group members following ADSP Annotation rules</span>
+
+<span class="sd">          - MODIFIER: conseqs are a subset of enum values</span>
+<span class="sd">          - NMD, NON_CODING_TRANSCRIPT: conseqs include enum values</span>
+<span class="sd">          - HIGH_IMPACT: conseqs include HIGH_IMPACT values, but not NMD or NON_CODING_TRANSCRIPT values</span>
+
+<span class="sd">        ~~~~~~~~~~~~~{.py}</span>
+<span class="sd">        ConseqGroup.MODIFIER.get_members(conseqs) # usage</span>
+<span class="sd">        ~~~~~~~~~~~~~</span>
+
+<span class="sd">        @returns list of conseqs that include terms belonging to the enum group</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ConseqGroup</span><span class="o">.</span><span class="n">validate_terms</span><span class="p">(</span><span class="n">conseqs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">requireSubset</span><span class="p">:</span> <span class="c1"># all terms must be in this group for a consequence to be a member</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">conseqs</span> <span class="k">if</span> <span class="n">is_subset</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;HIGH_IMPACT&#39;</span><span class="p">:</span> <span class="c1"># need to ignore consequence combos that include NMD/non-coding</span>
+                <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">conseqs</span> <span class="k">if</span> <span class="n">is_overlapping_list</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> \
+                            <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_overlapping_list</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="n">ConseqGroup</span><span class="o">.</span><span class="n">NON_CODING_TRANSCRIPT</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> \
+                            <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_overlapping_list</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="n">ConseqGroup</span><span class="o">.</span><span class="n">NMD</span><span class="o">.</span><span class="n">value</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">conseqs</span> <span class="k">if</span> <span class="n">is_overlapping_list</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="ConseqGroup.toDict">
+<a class="viewcode-back" href="../../../../_apidocs/niagads.parsers.adsp_vep_consequences.html#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.toDict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">toDict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;! transform enum values into indexed OrderedDict</span>
+
+<span class="sd">        ~~~~~~~~~~~~~{.py}</span>
+<span class="sd">        ConseqGroups.MODIFIER.toDict() #usage</span>
+<span class="sd">        ~~~~~~~~~~~~~</span>
+
+<span class="sd">        @returns OrderedDict key:value = term:index</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">list_to_indexed_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.adsp_vep_consequences.consequence_groups</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

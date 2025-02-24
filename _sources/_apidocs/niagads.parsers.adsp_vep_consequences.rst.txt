@@ -1,0 +1,29 @@
+niagads.parsers.adsp\_vep\_consequences package
+===============================================
+
+Submodules
+----------
+
+niagads.parsers.adsp\_vep\_consequences.consequence\_groups module
+------------------------------------------------------------------
+
+.. automodule:: niagads.parsers.adsp_vep_consequences.consequence_groups
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+niagads.parsers.adsp\_vep\_consequences.parser module
+-----------------------------------------------------
+
+.. automodule:: niagads.parsers.adsp_vep_consequences.parser
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: niagads.parsers.adsp_vep_consequences
+   :members:
+   :show-inheritance:
+   :undoc-members:

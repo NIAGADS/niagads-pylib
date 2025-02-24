@@ -1,0 +1,21 @@
+niagads.objects package
+=======================
+
+Submodules
+----------
+
+niagads.objects.auto\_viv\_dict module
+--------------------------------------
+
+.. automodule:: niagads.objects.auto_viv_dict
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: niagads.objects
+   :members:
+   :show-inheritance:
+   :undoc-members:

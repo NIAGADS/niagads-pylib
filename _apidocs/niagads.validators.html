@@ -1,0 +1,486 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>niagads.validators package &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="niagads.validators.json package" href="niagads.validators.json.html" />
+    <link rel="prev" title="niagads.utils package" href="niagads.utils.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.validators.json.html" title="niagads.validators.json package"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.utils.html" title="niagads.utils package"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" accesskey="U">niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.validators package</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="niagads-validators-package">
+<h1>niagads.validators package<a class="headerlink" href="#niagads-validators-package" title="Link to this heading">¶</a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="niagads.validators.json.html">niagads.validators.json package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="niagads.validators.json.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="niagads.validators.json.html#module-niagads.validators.json.format_checkers">niagads.validators.json.format_checkers module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="niagads.validators.json.html#niagads.validators.json.format_checkers.doi"><code class="docutils literal notranslate"><span class="pre">doi()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="niagads.validators.json.html#niagads.validators.json.format_checkers.file_size"><code class="docutils literal notranslate"><span class="pre">file_size()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="niagads.validators.json.html#niagads.validators.json.format_checkers.info_string"><code class="docutils literal notranslate"><span class="pre">info_string()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="niagads.validators.json.html#niagads.validators.json.format_checkers.md5sum"><code class="docutils literal notranslate"><span class="pre">md5sum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="niagads.validators.json.html#niagads.validators.json.format_checkers.pubmed_id"><code class="docutils literal notranslate"><span class="pre">pubmed_id()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="niagads.validators.json.html#module-niagads.validators.json.json_schema">niagads.validators.json.json_schema module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="niagads.validators.json.html#niagads.validators.json.json_schema.JSONValidator"><code class="docutils literal notranslate"><span class="pre">JSONValidator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="niagads.validators.json.html#niagads.validators.json.json_schema.JSONValidator.get_schema_validator"><code class="docutils literal notranslate"><span class="pre">JSONValidator.get_schema_validator()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.validators.json.html#niagads.validators.json.json_schema.JSONValidator.run"><code class="docutils literal notranslate"><span class="pre">JSONValidator.run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.validators.json.html#niagads.validators.json.json_schema.JSONValidator.set_json"><code class="docutils literal notranslate"><span class="pre">JSONValidator.set_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.validators.json.html#niagads.validators.json.json_schema.JSONValidator.set_schema"><code class="docutils literal notranslate"><span class="pre">JSONValidator.set_schema()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="niagads.validators.json.html#niagads.validators.json.json_schema.JSONValidator.validation_error"><code class="docutils literal notranslate"><span class="pre">JSONValidator.validation_error()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="niagads.validators.json.html#module-niagads.validators.json">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-niagads.validators.metadata">
+<span id="niagads-validators-metadata-module"></span><h2>niagads.validators.metadata module<a class="headerlink" href="#module-niagads.validators.metadata" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.validators.metadata.BiosourcePropertiesValidator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.validators.metadata.</span></span><span class="sig-name descname"><span class="pre">BiosourcePropertiesValidator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#BiosourcePropertiesValidator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.BiosourcePropertiesValidator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#niagads.validators.metadata.TableValidator" title="niagads.validators.metadata.TableValidator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TableValidator</span></code></a></p>
+<p>validate biosource properties in a CSV format file, with column names
+and 1 row per sample or participant</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.BiosourcePropertiesValidator.get_biosource_ids">
+<span class="sig-name descname"><span class="pre">get_biosource_ids</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#BiosourcePropertiesValidator.get_biosource_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.BiosourcePropertiesValidator.get_biosource_ids" title="Link to this definition">¶</a></dt>
+<dd><p>extract biosource IDs</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.BiosourcePropertiesValidator.require_unique_identifiers">
+<span class="sig-name descname"><span class="pre">require_unique_identifiers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#BiosourcePropertiesValidator.require_unique_identifiers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.BiosourcePropertiesValidator.require_unique_identifiers" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.BiosourcePropertiesValidator.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">failOnError</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#BiosourcePropertiesValidator.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.BiosourcePropertiesValidator.run" title="Link to this definition">¶</a></dt>
+<dd><p>run validation on each row</p>
+<p>wrapper of TableValidator.riun that also does sample validation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.BiosourcePropertiesValidator.set_biosource_id">
+<span class="sig-name descname"><span class="pre">set_biosource_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idField</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requireUnique</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#BiosourcePropertiesValidator.set_biosource_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.BiosourcePropertiesValidator.set_biosource_id" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.BiosourcePropertiesValidator.validate_unqiue_identifiers">
+<span class="sig-name descname"><span class="pre">validate_unqiue_identifiers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">failOnError</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#BiosourcePropertiesValidator.validate_unqiue_identifiers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.BiosourcePropertiesValidator.validate_unqiue_identifiers" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.validators.metadata.CSVValidator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.validators.metadata.</span></span><span class="sig-name descname"><span class="pre">CSVValidator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#CSVValidator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.CSVValidator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Abstract Base Class for JSON-schema based CSV validation</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.CSVValidator.get_metadata">
+<span class="sig-name descname"><span class="pre">get_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">asString</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#CSVValidator.get_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.CSVValidator.get_metadata" title="Link to this definition">¶</a></dt>
+<dd><p>retrieve the parsed metadata</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>asString</strong> (<em>bool</em><em>, </em><em>optional</em>) – _description_. Defaults to False.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>metadata as JSON or JSON str (<cite>asString = True</cite>)</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError if metadata has not yet been loaded</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.CSVValidator.get_schema">
+<span class="sig-name descname"><span class="pre">get_schema</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#CSVValidator.get_schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.CSVValidator.get_schema" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.CSVValidator.load">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">worksheet</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#CSVValidator.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.CSVValidator.load" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.CSVValidator.run">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">failOnError</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#CSVValidator.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.CSVValidator.run" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.CSVValidator.set_schema">
+<span class="sig-name descname"><span class="pre">set_schema</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#CSVValidator.set_schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.CSVValidator.set_schema" title="Link to this definition">¶</a></dt>
+<dd><p>set schema</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>schema</strong> (<em>str</em><em>|</em><em>obj</em>) – schema file name or object</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.validators.metadata.FileManifestValidator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.validators.metadata.</span></span><span class="sig-name descname"><span class="pre">FileManifestValidator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#FileManifestValidator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.FileManifestValidator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#niagads.validators.metadata.TableValidator" title="niagads.validators.metadata.TableValidator"><code class="xref py py-class docutils literal notranslate"><span class="pre">TableValidator</span></code></a></p>
+<p>validate a file manifest in CSV format, with column names
+and 1 row per file</p>
+<p>also compares against list of samples / biosources to make sure
+all biosources are known</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.FileManifestValidator.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">failOnError</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#FileManifestValidator.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.FileManifestValidator.run" title="Link to this definition">¶</a></dt>
+<dd><p>run validation on each row</p>
+<p>wrapper of TableValidator.run that also does sample validation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.FileManifestValidator.set_sample_field">
+<span class="sig-name descname"><span class="pre">set_sample_field</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#FileManifestValidator.set_sample_field"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.FileManifestValidator.set_sample_field" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.FileManifestValidator.set_sample_reference">
+<span class="sig-name descname"><span class="pre">set_sample_reference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sampleReference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#FileManifestValidator.set_sample_reference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.FileManifestValidator.set_sample_reference" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.FileManifestValidator.validate_samples">
+<span class="sig-name descname"><span class="pre">validate_samples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">failOnError</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#FileManifestValidator.validate_samples"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.FileManifestValidator.validate_samples" title="Link to this definition">¶</a></dt>
+<dd><p>verifies that samples in the file manifest are
+present in a reference list of samples</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>failOnError</strong> (<em>bool</em><em>, </em><em>optional</em>) – fail on error; if False, returns list of errors.  Defaults to False.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of invalid samples</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.validators.metadata.MetadataValidator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.validators.metadata.</span></span><span class="sig-name descname"><span class="pre">MetadataValidator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#MetadataValidator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.MetadataValidator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#niagads.validators.metadata.CSVValidator" title="niagads.validators.metadata.CSVValidator"><code class="xref py py-class docutils literal notranslate"><span class="pre">CSVValidator</span></code></a></p>
+<p>validate 2-column CSV format metadata file using a JSON-schema,
+with field names in first column as follows:</p>
+<p>field   value</p>
+<p>no file header</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.MetadataValidator.load">
+<span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">worksheet</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#MetadataValidator.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.MetadataValidator.load" title="Link to this definition">¶</a></dt>
+<dd><p>load the metadata from a file, if EXCEL file specify name of worksheet to be extracted
+and convert to JSON</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>worksheet</strong> (<em>str</em><em>|</em><em>int</em><em>, </em><em>optional</em>) – name or zero-based index of worksheet in EXCEL file to be validated. Required for EXCEL files only.  Defaults to the first sheet.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.MetadataValidator.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">failOnError</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#MetadataValidator.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.MetadataValidator.run" title="Link to this definition">¶</a></dt>
+<dd><p>run validation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>failOnError</strong> (<em>bool</em><em>, </em><em>optional</em>) – flag to fail on ValidationError. Defaults to False.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>boolean if JSON is valid,
+array of errors if invalid</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>jsonschema.exceptions.ValidationError if failOnError = True</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.validators.metadata.TableValidator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.validators.metadata.</span></span><span class="sig-name descname"><span class="pre">TableValidator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#TableValidator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.TableValidator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#niagads.validators.metadata.CSVValidator" title="niagads.validators.metadata.CSVValidator"><code class="xref py py-class docutils literal notranslate"><span class="pre">CSVValidator</span></code></a></p>
+<p>validate metadata organized in CSV format, with column names
+and 1 row per entity (e.g., file or biosource properties)
+to be validated</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.TableValidator.get_field_values">
+<span class="sig-name descname"><span class="pre">get_field_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropNulls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#TableValidator.get_field_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.TableValidator.get_field_values" title="Link to this definition">¶</a></dt>
+<dd><p>fetch all values in a table field</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>field</strong> (<em>str</em>) – field name</p></li>
+<li><p><strong>dropNulls</strong> (<em>bool</em><em>, </em><em>Optional</em>) – drop null values from return. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>TypeError</strong> – NullValue error if the metadata is not loaded</p></li>
+<li><p><strong>KeyError</strong> – if the field does not exist in the table</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of values in the field</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.TableValidator.load">
+<span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">worksheet</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#TableValidator.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.TableValidator.load" title="Link to this definition">¶</a></dt>
+<dd><p>load the metadata from a file, if EXCEL file specify name of worksheet to be extracted
+and convert to JSON</p>
+<p>worksheet (str|int, optional): worksheet name or index, starting from 0. Required for EXCEL files only. Defaults to first sheet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>worksheet</strong> (<em>str</em><em>, </em><em>optional</em>) – name of worksheet in EXCEL file to be validated. Defaults to first sheet.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.validators.metadata.TableValidator.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">failOnError</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/validators/metadata.html#TableValidator.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.validators.metadata.TableValidator.run" title="Link to this definition">¶</a></dt>
+<dd><p>run validation on each row</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>failOnError</strong> (<em>bool</em><em>, </em><em>optional</em>) – flag to fail on ValidationError. Defaults to False.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>validation result} pairs</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array of {row#</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>jsonschema.exceptions.ValidationError if failOnError = True</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-niagads.validators">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-niagads.validators" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><div class="sphinx-toc sphinxlocaltoc">
+    <h3><a href="../index.html">Page contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">niagads.validators package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-niagads.validators.metadata">niagads.validators.metadata module</a><ul>
+<li><a class="reference internal" href="#niagads.validators.metadata.BiosourcePropertiesValidator"><code class="docutils literal notranslate"><span class="pre">BiosourcePropertiesValidator</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.validators.metadata.BiosourcePropertiesValidator.get_biosource_ids"><code class="docutils literal notranslate"><span class="pre">BiosourcePropertiesValidator.get_biosource_ids()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.BiosourcePropertiesValidator.require_unique_identifiers"><code class="docutils literal notranslate"><span class="pre">BiosourcePropertiesValidator.require_unique_identifiers()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.BiosourcePropertiesValidator.run"><code class="docutils literal notranslate"><span class="pre">BiosourcePropertiesValidator.run()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.BiosourcePropertiesValidator.set_biosource_id"><code class="docutils literal notranslate"><span class="pre">BiosourcePropertiesValidator.set_biosource_id()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.BiosourcePropertiesValidator.validate_unqiue_identifiers"><code class="docutils literal notranslate"><span class="pre">BiosourcePropertiesValidator.validate_unqiue_identifiers()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.validators.metadata.CSVValidator"><code class="docutils literal notranslate"><span class="pre">CSVValidator</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.validators.metadata.CSVValidator.get_metadata"><code class="docutils literal notranslate"><span class="pre">CSVValidator.get_metadata()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.CSVValidator.get_schema"><code class="docutils literal notranslate"><span class="pre">CSVValidator.get_schema()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.CSVValidator.load"><code class="docutils literal notranslate"><span class="pre">CSVValidator.load()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.CSVValidator.run"><code class="docutils literal notranslate"><span class="pre">CSVValidator.run()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.CSVValidator.set_schema"><code class="docutils literal notranslate"><span class="pre">CSVValidator.set_schema()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.validators.metadata.FileManifestValidator"><code class="docutils literal notranslate"><span class="pre">FileManifestValidator</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.validators.metadata.FileManifestValidator.run"><code class="docutils literal notranslate"><span class="pre">FileManifestValidator.run()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.FileManifestValidator.set_sample_field"><code class="docutils literal notranslate"><span class="pre">FileManifestValidator.set_sample_field()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.FileManifestValidator.set_sample_reference"><code class="docutils literal notranslate"><span class="pre">FileManifestValidator.set_sample_reference()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.FileManifestValidator.validate_samples"><code class="docutils literal notranslate"><span class="pre">FileManifestValidator.validate_samples()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.validators.metadata.MetadataValidator"><code class="docutils literal notranslate"><span class="pre">MetadataValidator</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.validators.metadata.MetadataValidator.load"><code class="docutils literal notranslate"><span class="pre">MetadataValidator.load()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.MetadataValidator.run"><code class="docutils literal notranslate"><span class="pre">MetadataValidator.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#niagads.validators.metadata.TableValidator"><code class="docutils literal notranslate"><span class="pre">TableValidator</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.validators.metadata.TableValidator.get_field_values"><code class="docutils literal notranslate"><span class="pre">TableValidator.get_field_values()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.TableValidator.load"><code class="docutils literal notranslate"><span class="pre">TableValidator.load()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.validators.metadata.TableValidator.run"><code class="docutils literal notranslate"><span class="pre">TableValidator.run()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.validators">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="niagads.utils.html"
+                          title="Previous page">&larr; niagads.utils package</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="niagads.validators.json.html"
+                          title="Next page">&rarr; niagads.validators.json package</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/_apidocs/niagads.validators.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.validators.json.html" title="niagads.validators.json package"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.utils.html" title="niagads.utils package"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" >niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.validators package</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

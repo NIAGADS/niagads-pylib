@@ -1,0 +1,541 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.validators.metadata &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.validators.metadata</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.validators.metadata</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">json</span><span class="w"> </span><span class="kn">import</span> <span class="n">dumps</span> <span class="k">as</span> <span class="n">j_dumps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span> 
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">jsonschema</span><span class="w"> </span><span class="kn">import</span> <span class="n">exceptions</span> <span class="k">as</span> <span class="n">jsExceptions</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSONValidator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..parsers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExcelFileParser</span><span class="p">,</span> <span class="n">CSVFileParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.sys</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_xlsx</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.string</span><span class="w"> </span><span class="kn">import</span> <span class="n">xstr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.list</span><span class="w"> </span><span class="kn">import</span> <span class="n">drop_nulls</span><span class="p">,</span> <span class="n">list_to_string</span><span class="p">,</span> <span class="n">get_duplicates</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationError</span>
+
+<div class="viewcode-block" id="CSVValidator">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.CSVValidator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CSVValidator</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract Base Class for JSON-schema based CSV validation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileName</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span>  <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="o">=</span> <span class="n">fileName</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    
+<div class="viewcode-block" id="CSVValidator.set_schema">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.CSVValidator.set_schema">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schema</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        set schema</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            schema (str|obj): schema file name or object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span></div>
+
+        
+        
+<div class="viewcode-block" id="CSVValidator.get_schema">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.CSVValidator.get_schema">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span></div>
+
+    
+<div class="viewcode-block" id="CSVValidator.get_metadata">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.CSVValidator.get_metadata">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asString</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        retrieve the parsed metadata</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            asString (bool, optional): _description_. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            metadata as JSON or JSON str (`asString = True`)</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError if metadata has not yet been loaded</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;metadata object has not yet been loaded; please run `load` before accessing&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">j_dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">)</span> <span class="k">if</span> <span class="n">asString</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span></div>
+
+    
+<div class="viewcode-block" id="CSVValidator.load">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.CSVValidator.load">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">worksheet</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;`load` method has not been implement for the child of this Abstract parent class&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="CSVValidator.run">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.CSVValidator.run">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">failOnError</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;`run` method has not been implement for the child of this Abstract parent class&quot;</span><span class="p">)</span></div>
+</div>
+
+    
+    
+<div class="viewcode-block" id="MetadataValidator">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.MetadataValidator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MetadataValidator</span><span class="p">(</span><span class="n">CSVValidator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    validate 2-column CSV format metadata file using a JSON-schema,</span>
+<span class="sd">    with field names in first column as follows:</span>
+<span class="sd">    </span>
+<span class="sd">    field   value</span>
+<span class="sd">    </span>
+<span class="sd">    no file header</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileName</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">debug</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MetadataValidator.load">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.MetadataValidator.load">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">worksheet</span><span class="p">:</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        load the metadata from a file, if EXCEL file specify name of worksheet to be extracted</span>
+<span class="sd">        and convert to JSON</span>
+<span class="sd">    </span>
+<span class="sd">        Args:</span>
+<span class="sd">            worksheet (str|int, optional): name or zero-based index of worksheet in EXCEL file to be validated. Required for EXCEL files only.  Defaults to the first sheet.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">is_xlsx</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">):</span>
+            <span class="n">parser</span> <span class="o">=</span> <span class="n">ExcelFileParser</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">)</span>
+            <span class="n">parser</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">worksheet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Metadata file is of type `xlsx` (EXCEL); must supply name of the worksheet to load&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">worksheet_to_json</span><span class="p">(</span>
+                <span class="n">worksheet</span><span class="p">,</span> <span class="n">transpose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">returnStr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>            
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">parser</span> <span class="o">=</span> <span class="n">CSVFileParser</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">)</span>
+            <span class="n">parser</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">transpose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">returnStr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+    
+    
+<div class="viewcode-block" id="MetadataValidator.run">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.MetadataValidator.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">failOnError</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        run validation</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            failOnError (bool, optional): flag to fail on ValidationError. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            boolean if JSON is valid,</span>
+<span class="sd">            array of errors if invalid </span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            jsonschema.exceptions.ValidationError if `failOnError` = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">validator</span> <span class="o">=</span> <span class="n">JSONValidator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">validator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">failOnError</span><span class="p">)</span></div>
+</div>
+
+    
+        
+<div class="viewcode-block" id="TableValidator">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.TableValidator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TableValidator</span><span class="p">(</span><span class="n">CSVValidator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    validate metadata organized in CSV format, with column names</span>
+<span class="sd">    and 1 row per entity (e.g., file or biosource properties) </span>
+<span class="sd">    to be validated</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileName</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">debug</span><span class="p">)</span>
+        
+        
+<div class="viewcode-block" id="TableValidator.get_field_values">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.TableValidator.get_field_values">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_field_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dropNulls</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        fetch all values in a table field</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            field (str): field name</span>
+<span class="sd">            dropNulls (bool, Optional): drop null values from return. Defaults to False.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError: NullValue error if the metadata is not loaded</span>
+<span class="sd">            KeyError: if the field does not exist in the table</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list of values in the field</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;metadata not loaded; run `[validator].load()` before extracting sample IDs&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="c1"># metadata is a list of dicts</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;invalid metadata field `</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s1">`; cannot extract values&#39;</span><span class="p">)</span>
+        
+        <span class="n">fieldValues</span> <span class="o">=</span> <span class="p">[</span> <span class="n">r</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="p">]</span> 
+        <span class="k">return</span> <span class="n">drop_nulls</span><span class="p">(</span><span class="n">fieldValues</span><span class="p">)</span> <span class="k">if</span> <span class="n">dropNulls</span> \
+            <span class="k">else</span> <span class="n">fieldValues</span></div>
+
+    
+        
+<div class="viewcode-block" id="TableValidator.load">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.TableValidator.load">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">worksheet</span><span class="p">:</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        load the metadata from a file, if EXCEL file specify name of worksheet to be extracted</span>
+<span class="sd">        and convert to JSON</span>
+<span class="sd">        </span>
+<span class="sd">        worksheet (str|int, optional): worksheet name or index, starting from 0. Required for EXCEL files only. Defaults to first sheet.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            worksheet (str, optional): name of worksheet in EXCEL file to be validated. Defaults to first sheet.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">is_xlsx</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">):</span>
+            <span class="n">parser</span> <span class="o">=</span> <span class="n">ExcelFileParser</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">worksheet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Metadata file is of type `xlsx` (EXCEL); must supply name of the worksheet to load&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">worksheet_to_json</span><span class="p">(</span><span class="n">worksheet</span><span class="p">,</span> <span class="n">returnStr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">parser</span> <span class="o">=</span> <span class="n">CSVFileParser</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">returnStr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+            
+            
+<div class="viewcode-block" id="TableValidator.run">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.TableValidator.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">failOnError</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        run validation on each row</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            failOnError (bool, optional): flag to fail on ValidationError. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            array of {row#: validation result} pairs</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            jsonschema.exceptions.ValidationError if `failOnError` = True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">validator</span> <span class="o">=</span> <span class="n">JSONValidator</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">):</span>
+            <span class="n">validator</span><span class="o">.</span><span class="n">set_json</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="n">rowValidation</span> <span class="o">=</span> <span class="n">validator</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rowValidation</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">failOnError</span><span class="p">:</span>
+                    <span class="n">validator</span><span class="o">.</span><span class="n">validation_error</span><span class="p">(</span><span class="n">rowValidation</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;row &quot;</span> <span class="o">+</span> <span class="n">xstr</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; - &quot;</span> <span class="o">+</span> <span class="n">xstr</span><span class="p">(</span><span class="n">row</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span> <span class="n">rowValidation</span><span class="p">})</span>
+        
+        <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">result</span> <span class="c1"># empty array; all rows passed</span></div>
+</div>
+
+        
+        
+<div class="viewcode-block" id="FileManifestValidator">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.FileManifestValidator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FileManifestValidator</span><span class="p">(</span><span class="n">TableValidator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    validate a file manifest in CSV format, with column names</span>
+<span class="sd">    and 1 row per file</span>
+<span class="sd">    </span>
+<span class="sd">    also compares against list of samples / biosources to make sure</span>
+<span class="sd">    all biosources are known</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileName</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__sampleReference</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__sampleField</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;sample_id&#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">debug</span><span class="p">)</span>
+        
+    
+<div class="viewcode-block" id="FileManifestValidator.set_sample_reference">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.FileManifestValidator.set_sample_reference">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_sample_reference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampleReference</span><span class="p">:</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__sampleReference</span> <span class="o">=</span> <span class="n">sampleReference</span></div>
+
+        
+        
+<div class="viewcode-block" id="FileManifestValidator.set_sample_field">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.FileManifestValidator.set_sample_field">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_sample_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__sampleField</span> <span class="o">=</span> <span class="n">field</span></div>
+
+        
+        
+<div class="viewcode-block" id="FileManifestValidator.validate_samples">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.FileManifestValidator.validate_samples">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">failOnError</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        verifies that samples in the file manifest are </span>
+<span class="sd">        present in a reference list of samples</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            failOnError (bool, optional): fail on error; if False, returns list of errors.  Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list of invalid samples</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">sampleIds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_field_values</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__sampleField</span><span class="p">,</span> <span class="n">dropNulls</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">sampleSet</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">sampleIds</span><span class="p">)</span>
+        <span class="n">referenceSet</span>  <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__sampleReference</span><span class="p">)</span>
+        
+        <span class="n">invalidSamples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sampleSet</span> <span class="o">-</span> <span class="n">referenceSet</span><span class="p">)</span>
+        <span class="n">missingSamples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">referenceSet</span> <span class="o">-</span> <span class="n">sampleSet</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">invalidSamples</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">missingSamples</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        
+        <span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">invalidSamples</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="n">ValidationError</span><span class="p">(</span><span class="s2">&quot;Invalid samples found: &quot;</span> <span class="o">+</span> <span class="n">list_to_string</span><span class="p">(</span><span class="n">invalidSamples</span><span class="p">,</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39;, &#39;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">failOnError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">error</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR: </span><span class="si">{</span><span class="n">error</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missingSamples</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;WARNING: Files not found for all samples: &quot;</span> <span class="o">+</span> <span class="n">list_to_string</span><span class="p">(</span><span class="n">missingSamples</span><span class="p">,</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39;, &#39;</span><span class="p">)</span>
+            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">messages</span></div>
+
+
+
+<div class="viewcode-block" id="FileManifestValidator.run">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.FileManifestValidator.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">failOnError</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        run validation on each row</span>
+
+<span class="sd">        wrapper of TableValidator.run that also does sample validation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">failOnError</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__sampleReference</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sampleValidationResult</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_samples</span><span class="p">(</span><span class="n">failOnError</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sampleValidationResult</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="k">else</span> <span class="n">result</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">result</span> <span class="o">+</span> <span class="n">sampleValidationResult</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">[</span><span class="n">sampleValidationResult</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">result</span>        </div>
+</div>
+
+            
+
+<div class="viewcode-block" id="BiosourcePropertiesValidator">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.BiosourcePropertiesValidator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BiosourcePropertiesValidator</span><span class="p">(</span><span class="n">TableValidator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    validate biosource properties in a CSV format file, with column names</span>
+<span class="sd">    and 1 row per sample or participant</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileName</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">debug</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__biosourceID</span> <span class="o">=</span> <span class="s1">&#39;sample_id&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__requireUniqueIDs</span> <span class="o">=</span> <span class="kc">False</span>
+    
+<div class="viewcode-block" id="BiosourcePropertiesValidator.set_biosource_id">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.BiosourcePropertiesValidator.set_biosource_id">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_biosource_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idField</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">requireUnique</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__biosourceID</span> <span class="o">=</span> <span class="n">idField</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__requireUniqueIDs</span> <span class="o">=</span> <span class="n">requireUnique</span></div>
+
+        
+
+<div class="viewcode-block" id="BiosourcePropertiesValidator.require_unique_identifiers">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.BiosourcePropertiesValidator.require_unique_identifiers">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">require_unique_identifiers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__requireUniqueIDs</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+        
+<div class="viewcode-block" id="BiosourcePropertiesValidator.validate_unqiue_identifiers">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.BiosourcePropertiesValidator.validate_unqiue_identifiers">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_unqiue_identifiers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">failOnError</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">duplicates</span> <span class="o">=</span> <span class="n">get_duplicates</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_biosource_ids</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">duplicates</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="n">ValidationError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Duplicate biosource identifiers found: </span><span class="si">{</span><span class="n">list_to_string</span><span class="p">(</span><span class="n">duplicates</span><span class="p">,</span><span class="w"> </span><span class="n">delim</span><span class="o">=</span><span class="s2">&quot;, &quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">failOnError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">error</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;ERROR: </span><span class="si">{</span><span class="n">error</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+        
+    
+<div class="viewcode-block" id="BiosourcePropertiesValidator.get_biosource_ids">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.BiosourcePropertiesValidator.get_biosource_ids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_biosource_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        extract biosource IDs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_field_values</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__biosourceID</span><span class="p">)</span></div>
+
+    
+    
+<div class="viewcode-block" id="BiosourcePropertiesValidator.run">
+<a class="viewcode-back" href="../../../_apidocs/niagads.validators.html#niagads.validators.metadata.BiosourcePropertiesValidator.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">failOnError</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        run validation on each row</span>
+
+<span class="sd">        wrapper of TableValidator.riun that also does sample validation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">failOnError</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__requireUniqueIDs</span><span class="p">:</span>
+            <span class="n">sampleValidationResult</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_unqiue_identifiers</span><span class="p">(</span><span class="n">failOnError</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sampleValidationResult</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">result</span> <span class="o">+</span> <span class="n">sampleValidationResult</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">[</span><span class="n">sampleValidationResult</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">result</span>        </div>
+</div>
+
+    
+    
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.validators.metadata</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>
