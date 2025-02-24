@@ -7,6 +7,7 @@ from api.models.base_row_models import T_RowModel
 
 class QueryDefinition(BaseModel):
     query: str
+    countsQuery: Optional[str] = None
     # useIdCTE: bool = False # TODO: b/c difficult to insert w/out macro, maybe just explicitly write in the query as needed
     useIdSelectWrapper: bool = False
     bindParameters: Optional[List[str]] = None # bind parameter names
