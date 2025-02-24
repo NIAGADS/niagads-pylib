@@ -1,6 +1,6 @@
 import logging
 from urllib.parse import unquote
-
+from os.path import basename
 
 from ..utils.list import array_in_string, remove_duplicates, drop_nulls
 from ..utils.dict import prune
@@ -408,21 +408,31 @@ class FILERMetadataParser:
         #     "trackName": "ENCODE Middle frontal area 46 (repl. 1) TF ChIP-seq CTCF IDR thresholded peaks (narrowPeak) 
         # [Experiment: ENCSR778NDP] [Orig: Biosample_summary=With Cognitive impairment; middle frontal area 46 tissue female adult (81 years);Lab=Bradley Bernstein, Broad;System=central nervous system;Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD] [Life stage: Adult]",
         
-        name = self._get_metadata('track_name')
+        name:str = self._get_metadata('track_name')
 
-        """ split points:
-        bed*
-        broadPeak
-        idr_peak
-        narrowPeak
-        tss_peak
+        if name is None: # take the file name and remove underscores, extension
+            name = self.__parse_internal_url(self._get_metadata('processed_file_download_url'))
+            name = basename(name)
+            name = name.replace('.bed.gz', '').replace('_', ' ')
+            self.__metadata.update({"name": name, "description": name })
+        else:
+            """
+            remove paranthetical notes
+            
+            split points:
+            bed*
+            broadPeak
+            idr_peak
+            narrowPeak
+            tss_peak
+            
+            pattern adapted from: https://stackoverflow.com/a/68862249 to only match closest parentheses
+            """
         
-        pattern adapted from: https://stackoverflow.com/a/68862249 to only match closest parentheses
-        """
-        pattern = "\s[(\[][^()\[\]]*?eak\)\s|\s\(bed[^()\[\]]*[)\]]\s"
-        name = re.regex_split(pattern, name)
+            pattern = r"\s[(\[][^()\[\]]*?eak\)\s|\s\(bed[^()\[\]]*[)\]]\s"
+            name = re.regex_split(pattern, name)
         
-        self.__metadata.update({"name": name[0], "description": self._get_metadata('track_name') })
+            self.__metadata.update({"name": name[0], "description": self._get_metadata('track_name') })
 
 
     def __parse_experiment_info(self):
@@ -431,32 +441,58 @@ class FILERMetadataParser:
         # Submitted_track_name=rep1-pr1_vs_rep1-pr2.idr0.05.bfilt.regionPeak.bb;Project=RUSH AD]",
         id = self._get_metadata('encode_experiment_id')
         info = self.__clean_list(self._get_metadata('track_description'), delim=";")
-        project = re.regex_extract('Project=([^;]*)', info) \
-                if info is not None else None
+        
+        studyId = None
+        studyLabel = None
+        datasetId = None
+        pubmedId = None 
+        sampleGroup = None
+        
+        if info is not None:
+            project = re.regex_extract('Project=([^;]*)', info)    
+            studyId = re.regex_extract('study_id=([^;]*)', info) 
+            
+            studyName = re.regex_extract('study_name=([^;]*)', info) 
+            if studyName is None:
+                studyName = re.regex_extract('study_label=([^;]*)', info) 
+                
+            datasetId = re.regex_extract('dataset_id=([^;]*)', info) 
+            pubmedId = re.regex_extract('study_pubmed_id=([^;]*)', info) 
+            sampleGroup = re.regex_extract('sample_group=([^;]*)', info) 
 
         self.__metadata.update({
-                "experiment_id": id,
-                "experiment_info": info,
-                "project": project
+            "experiment_id": id,
+            "experiment_info": info,
+            "project": project,
+            "study_id": studyId,
+            "study_name": studyName,
+            "dataset_id": datasetId,
+            "pubmed_id": f'PMID:{pubmedId}' if pubmedId is not None and pubmedId != 'TBD' else None,
+            "sample_group": sampleGroup
         })
         
 
     def __parse_data_source(self):
-        dsInfo = self._get_metadata('data_source').split('_', 1)
-        source = dsInfo[0]
-        version = dsInfo[1] if len(dsInfo) > 1 else None
-        
-        if source == 'FANTOM5' and 'slide' in self._get_metadata('link_out_url'):
-            version = version + '_SlideBase'
-            
-        if array_in_string(source, ['INFERNO', 'eQTL']):
-            # don't split on the _
-            source = self._get_metadata('data_source').replace('_', ' ')
+        source = self._get_metadata('data_source')
+        if source.startswith('ADSP'):
+            source = source.replace('_', ' ')
             version = None
+        else:
+            dsInfo = source.split('_', 1)
+            source = dsInfo[0]
+            version = dsInfo[1] if len(dsInfo) > 1 and dsInfo[0] else None
+            
+            if source == 'FANTOM5' and 'slide' in self._get_metadata('link_out_url'):
+                version = version + '_SlideBase'
+                
+            if array_in_string(source, ['INFERNO', 'eQTL']):
+                # don't split on the _
+                source = self._get_metadata('data_source').replace('_', ' ')
+                version = None
         
         self.__metadata.update( {
-                "data_source": source,
-                "data_source_version": version
+            "data_source": source,
+            "data_source_version": version
         })
     
     
@@ -488,7 +524,7 @@ class FILERMetadataParser:
         ''' correct domain and other formatting issues
         ''' 
         url = self.__parse_generic_url(url)           
-        return re.regex_replace('^[^GADB]*\/GADB', self.__filerDownloadUrl, url)
+        return re.regex_replace(r'^[^GADB]*\/GADB', self.__filerDownloadUrl, url)
     
     
     def __parse_urls(self):
