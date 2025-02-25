@@ -61,11 +61,13 @@ class GenomicsTrack(GenericTrack):
             data['cohorts'] = ' // '.join(data['cohorts'])
             # data['cohorts'] = TextListDataCell(items=[TextDataCell(value=c) for c in data['cohorts']])
 
-        if data['pubmed_id'] is not None:
+        # FIXME: how does it end up as an empty string?
+        if data['pubmed_id'] is not None and data['pubmed_id'] != '':
             data['pubmed_id'] = LinkDataCell(value=data['pubmed_id'], url=f'{URLS.pubmed}/{data['pubmed_id'].replace("PMID:", "")}')
             
+        # FIXME: Badge?
         if data['url'] is not None:
-            data['url'] = LinkDataCell(value=basename(data['url']), url=data['url'])
+            data['url'] = LinkDataCell(url=data['url'])
 
         del data['download_url']
         del data['release_date']
@@ -105,7 +107,7 @@ class GenomicsTrack(GenericTrack):
         index: int = find(columns, 'pubmed_id', 'id', returnValues=False)
         columns[index[0]].update({'type': 'link'})
         
-        defaultColumns = ['track_id', 'name', 'feature_type', 'biosample_term', 'data_source', 'accession', 'url', 'pubmed_id' ]
+        defaultColumns = ['track_id', 'name', 'feature_type', 'biosample_term', 'url']
         options = {'defaultColumns': defaultColumns}
 
         return {'columns': columns, 'options': options}
