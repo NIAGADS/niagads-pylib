@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
+# from starlette.middleware.cors import CORSMiddleware 
 
 # from starlette.middleware.sessions import SessionMiddleware
 from asgi_correlation_id import CorrelationIdMiddleware
@@ -49,10 +50,11 @@ app = FastAPI(
 # app.add_middleware(SessionMiddleware, secret_key=get_settings().SESSION_SECRET)
 app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
 app.add_middleware(CORSMiddleware, 
-    allow_origins=[get_settings().API_PUBLIC_URL, '*'],
-    allow_origin_regex='https://.*\.niagads\.org',
-    # allow_credentials=True
-    allow_methods=['*'],
+    allow_origins=[get_settings().API_PUBLIC_URL],
+    # allow_origins=['*'],
+    allow_origin_regex=r'https://.*\.niagads\.org',
+    # allow_credentials=False,
+    allow_methods=['GET'],
     allow_headers=['*'])
 
 @app.exception_handler(RuntimeError)
