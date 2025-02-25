@@ -141,6 +141,10 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
                 skipCount += 1
                 continue
             
+            if track['data_source'].startswith('Ensembl'):
+                skipCount +=1 
+                continue
+            
             if track['track_id'] in processedTracks:
                 LOGGER.warning('SKIPPING duplicate track (line %s): %s' % (lineNum, currentLine))      
                 skipCount += 1
