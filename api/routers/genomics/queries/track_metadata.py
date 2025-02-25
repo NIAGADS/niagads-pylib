@@ -21,15 +21,17 @@ _TRACK_COLLECTION_QUERY="""
 
 TrackMetadataQuery = QueryDefinition(
     query="SELECT * FROM NIAGADS.TrackMetadata",
-    useIdSelectWrapper=True
+    useIdSelectWrapper=True,
+    errorOnNull="Track not found in the GenomicsDB"
 )
 
 CollectionQuery = QueryDefinition(
-    query=_TRACK_COLLECTION_QUERY
+    query=_TRACK_COLLECTION_QUERY,
 )
 
 CollectionTrackMetadataQuery = QueryDefinition(
     query=_TRACK_COLLECTION_METADATA_QUERY,
-    bindParameters=['collection']
+    bindParameters=['collection'],
+    errorOnNull="Collection not found in the GenomicsDB"
 )
 

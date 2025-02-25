@@ -2,6 +2,7 @@ from api.models.query_defintion import QueryDefinition
 from api.routers.genomics.models.feature_score import QTL, VariantPValueScore
 
 
+
 _BUILD_VARIANT_DETAILS_SQL="""
     jsonb_build_object(
         'ref_snp_id', details->>'ref_snp_id', 
@@ -11,11 +12,16 @@ _BUILD_VARIANT_DETAILS_SQL="""
         'most_severe_consequence', jsonb_build_object(
             'consequence', details->'most_severe_consequence'->>'conseq',
             'impact', details->'most_severe_consequence'->>'impact',
+            
             'impacted_gene', CASE WHEN details->'most_severe_consequence'->>'impacted_gene' IS NOT NULL 
-                THEN jsonb_build_object(
+                THEN 
+                    CASE WHEN (SELECT gene_symbol FROM CBIL.GeneAttributes WHERE source_id = details->'most_severe_consequence'->>'impacted_gene' LIMIT 1) IS NOT NULL THEN
+                    jsonb_build_object(
                     'ensembl_id', details->'most_severe_consequence'->>'impacted_gene',
-                    'gene_symbol', (SELECT gene_symbol FROM CBIL.GeneAttributes WHERE source_id = details->'most_severe_consequence'->>'impacted_gene')
-            ) ELSE NULL END,
+                    'gene_symbol', (SELECT gene_symbol FROM CBIL.GeneAttributes WHERE source_id = details->'most_severe_consequence'->>'impacted_gene' LIMIT 1)
+                        ) ELSE NULL END
+                ELSE NULL END,
+
             'is_coding', details->'most_severe_consequence'->>'is_coding'
         ),
         'variant_id', 
@@ -45,7 +51,8 @@ _TRACK_QTL_QUERY_SQL=f"""
     get_variant_display_details(r.variant_record_primary_key) as vd
     WHERE ta.protocol_app_node_id = r.protocol_app_node_id
     AND ga.source_id = r.target_ensembl_id
-    ORDER BY r.neg_log10_pvalue DESC
+    AND (rank > :rank_start AND rank <= :rank_end) -- ranks are 1-based, pagination is 0-based
+    ORDER BY rank DESC
 """
 
 _TRACK_GSS_QUERY_SQL=f"""
@@ -63,11 +70,21 @@ _TRACK_GSS_QUERY_SQL=f"""
     ORDER BY r.neg_log10_pvalue DESC
 """
 
+_TRACK_QTL_COUNTS_QUERY_SQL="""
+    SELECT source_id AS track_id,
+    CASE WHEN (track_summary->>'number_of_intervals')::int > 10000 
+    THEN 10000 ELSE (track_summary->>'number_of_intervals')::int END
+    AS result_size 
+    FROM Study.ProtocolAppNode
+    WHERE source_id = :id
+"""
 
 TrackQTLQuery = QueryDefinition(
     query=_TRACK_QTL_QUERY_SQL,
+    countsQuery=_TRACK_QTL_COUNTS_QUERY_SQL,
     useIdSelectWrapper=True,
-    errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB"
+    errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB",
+    bindParameters = ['rank_start', 'rank_end']
 )
     
 TrackGWASSumStatQuery = QueryDefinition(

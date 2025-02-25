@@ -149,6 +149,9 @@ class RouteHelper():
         if self._resultSize is None:
             raise RuntimeError('Attempting to page before estimating result size.')
         
+        if self._resultSize > self._pageSize * MAX_NUM_PAGES:
+            raise RequestValidationError(f'Result size ({self._resultSize}) is too large; filter for fewer tracks or narrow the queried genomic region.')
+        
         return 1 if self._resultSize < self._pageSize \
             else next((p for p in range(1, MAX_NUM_PAGES) if (p - 1) * self._pageSize > self._resultSize)) - 1
             

@@ -1,6 +1,7 @@
 from enum import auto
 from api.common.enums.base_enums import CaseInsensitiveEnum
 
+DEFAULT_PAGE_SIZE=10000
 
 ROUTE_DATABASE = 'genomics'
 
