@@ -62,7 +62,9 @@ class GenomicsTrack(GenericTrack):
             # data['cohorts'] = TextListDataCell(items=[TextDataCell(value=c) for c in data['cohorts']])
 
         # FIXME: how does it end up as an empty string?
-        if data['pubmed_id'] is not None and data['pubmed_id'] != '':
+        if data['pubmed_id'] != '':
+            data['pubmed_id'] = None
+        if data['pubmed_id'] is not None:
             data['pubmed_id'] = LinkDataCell(value=data['pubmed_id'], url=f'{URLS.pubmed}/{data['pubmed_id'].replace("PMID:", "")}')
             
         # FIXME: Badge?
