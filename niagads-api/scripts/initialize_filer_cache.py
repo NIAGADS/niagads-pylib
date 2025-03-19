@@ -13,11 +13,11 @@ from niagads.db.postgres import Database, PreparedStatement
 from niagads.filer import FILERMetadataParser, FILERApiWrapper
 from niagads.utils.logging import ExitOnExceptionHandler
 from niagads.utils.list import flatten
+from niagads.utils.reg_ex import regex_extract, matches, regex_replace
 
-from constants import URLS, SCHEMA, FILER_TABLE
+from constants import URLS, SCHEMA, FILER_TABLE, SHARD_PATTERN
 
 LOGGER = logging.getLogger(__name__)
-
 
 def read_reference_file(fileName: str, localFile:bool=False):
     """ if '/files' in file name assumes local and opens and reads.  otherwise, fetches from FILER """
@@ -98,9 +98,9 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
     ''' initializes FILER metadta from the metadata template file '''
     lineNum = 1
     skipCount = 0
-    insertCount = 0
     currentLine = None
-    processedTracks = {}
+    parsedTracks = {}
+    shardedTracks = {}
     try:
         # initialize parser    
         parser = FILERMetadataParser(debug=debug)
@@ -142,27 +142,53 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
                 continue
             
             if track['data_source'].startswith('Ensembl'):
+                LOGGER.warning('SKIPPING Ensembl track (line %s): %s' % (lineNum, currentLine))      
                 skipCount +=1 
                 continue
+                
+            # if 'download_only' in track:
+            #     if track['download_only'] == True:
+            #         LOGGER.warning('SKIPPING download onyl track(line %s): %s' % (lineNum, currentLine))
+            #         skipCount +=1 
+            #         continue
             
-            if track['track_id'] in processedTracks:
+            if track['track_id'] in parsedTracks:
                 LOGGER.warning('SKIPPING duplicate track (line %s): %s' % (lineNum, currentLine))      
                 skipCount += 1
                 continue
-            
-            if args.skipLiveValidation or \
-                    (liveMetadata is not None and \
-                    track['track_id'] in liveMetadata[track['genome_build']]):
-                
-                insert_record(track)
-                insertCount = insertCount + 1
-                processedTracks[track['track_id']] = 1
-                
-            else:
-                LOGGER.info("Track not found in FILER: (line %s): %s" % (lineNum, currentLine))
+
+            if not args.skipLiveValidation and track['track_id'] not in liveMetadata[track['genome_build']]:
+                LOGGER.info("SKIPPING track not found in current FILER release: (line %s): %s" % (lineNum, currentLine))
+                skipCount +=1 
+                continue
+
+            parsedTracks['track_id'] = track
             
             if lineNum % 10000 == 0:
                 LOGGER.debug("Processed metadata for " + str(lineNum) +" tracks")
+            
+        LOGGER.info(f'DONE PARSING Tracks. Found {len(parsedTracks)} valid tracks.')
+        
+        trackNum = 0
+        insertCount = 0
+        LOGGER.info("STARTING Load.")
+        for track in parsedTracks.values():     
+            # check and handle sharded tracks (split by chromosome)
+            isShard = matches(SHARD_PATTERN, track['file_name'])
+            if isShard:    
+                track['is_shard'] = True
+                sKey = regex_replace(SHARD_PATTERN, '_', track['file_name'])   
+                if sKey not in shardedTracks:        
+                    # find the first shard
+                    shardedTracks[sKey] = next((t['track_id'] for t in parsedTracks if matches(r'_chr1_', track['file_name'])), None)
+                    LOGGER.info(f'Found new sharded track series: {track['file_name']} with parent track: {shardedTracks[sKey]}')                
+                track['parent_shard_track_track_id'] = shardedTracks[sKey]
+
+            insert_record(track)
+            insertCount = insertCount + 1
+
+            trackNum += 1
+            if trackNum % 10000 == 0:
                 LOGGER.debug("Inserted metadata for " + str(insertCount) +" tracks")
             
             if test is not None and lineNum == test:

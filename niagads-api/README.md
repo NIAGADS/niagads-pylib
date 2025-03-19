@@ -82,3 +82,9 @@ On the host run the following:
 ```bash
 docker exec init-beta python3 initialize_filer_cache.py --metadataTemplate /files/<file> --logFilePath /logs --connectionString postgresql://<user:pwd>@api-static-db:5432/apistaticdb --commit
 ```
+
+### Sharded Files
+
+* use regexp to identify trackes where `file_name =~ _chr(\d{1,2}|[XYM]|MT)`
+* set `track['is_shard'] = TRUE`
+* set `track['parent_shard_track_id]` to the track_id of the first shard (`_chr1_`) of the series

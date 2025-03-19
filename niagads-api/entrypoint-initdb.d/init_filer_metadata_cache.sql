@@ -52,7 +52,9 @@ CREATE TABLE ServerApplication.FILERTrack (
         file_size BIGINT,
         file_format CHARACTER VARYING(25),
         file_schema CHARACTER VARYING(50),
-        searchable_text TEXT  
+        searchable_text TEXT,  
+        is_shard BOOLEAN,
+        shard_parent_track_id CHARACTER VARYING(50)
 );
 
 CREATE INDEX FTM_IND01 ON ServerApplication.FILERTrack(name, track_id);
