@@ -1,0 +1,69 @@
+niagads.parsers package
+=======================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   niagads.parsers.adsp_vep_consequences
+
+Submodules
+----------
+
+niagads.parsers.args module
+---------------------------
+
+.. automodule:: niagads.parsers.args
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+niagads.parsers.chromosome\_map module
+--------------------------------------
+
+.. automodule:: niagads.parsers.chromosome_map
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+niagads.parsers.csv module
+--------------------------
+
+.. automodule:: niagads.parsers.csv
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+niagads.parsers.excel module
+----------------------------
+
+.. automodule:: niagads.parsers.excel
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+niagads.parsers.vcf module
+--------------------------
+
+.. automodule:: niagads.parsers.vcf
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+niagads.parsers.vep\_json module
+--------------------------------
+
+.. automodule:: niagads.parsers.vep_json
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: niagads.parsers
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,549 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.utils.string &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.utils.string</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.utils.string</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;string</span>
+<span class="sd">The `string` module provides a library of </span>
+<span class="sd">string manipulation functions, converters and </span>
+<span class="sd">value testers</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">niagads.utils.reg_ex</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">re</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deprecated</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dateutil.parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">parse_date</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+
+<div class="viewcode-block" id="string_in_list">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.string_in_list">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">string_in_list</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">array</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">ignoreCase</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    wrapper for seeing if a string value is &#39;in&#39; a list </span>
+<span class="sd">    allows case insensitive matches</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        value (str): string value to lookup</span>
+<span class="sd">        array (List[str]): list of strings</span>
+<span class="sd">        ignoreCase (bool, optional): flag for case sensitive match. Defaults to False.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ignoreCase</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">array</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">casefold</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">array</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+    
+
+<div class="viewcode-block" id="eval_null">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.eval_null">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">eval_null</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">naIsNull</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    checks to see if value is NULL / None or equivalent</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        value (str): value to evaluate</span>
+<span class="sd">        naIsNull (boolean, optional): NA is considered null.  Default to False</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None if null value, else value</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">is_null</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">naIsNull</span><span class="o">=</span><span class="n">naIsNull</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">value</span>   </div>
+
+
+
+<div class="viewcode-block" id="dict_to_info_string">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.dict_to_info_string">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dict_to_info_string</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; wrapper for dict_to_string (semantics )</span>
+<span class="sd">    in string utils to avoid circular imports&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">dict_to_string</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="dict_to_string">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.dict_to_string">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dict_to_string</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">nullStr</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;;&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; translate dict to attr=value; string list</span>
+<span class="sd">    in string utils to avoid circular imports</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pairs</span> <span class="o">=</span> <span class="p">[</span> <span class="n">k</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">+</span> <span class="n">xstr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">nullStr</span><span class="o">=</span><span class="n">nullStr</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+    <span class="n">pairs</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">delimiter</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="reverse">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.reverse">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">reverse</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; reverse a string </span>
+<span class="sd">    see https://www.w3schools.com/python/python_howto_reverse_string.asp &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">s</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+        
+
+<div class="viewcode-block" id="truncate">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.truncate">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">truncate</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    if string s is &gt; length, return truncated string</span>
+<span class="sd">    with ... added to end</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">s</span><span class="p">[:(</span><span class="n">length</span> <span class="o">-</span> <span class="mi">3</span><span class="p">)]</span> <span class="o">+</span> <span class="s1">&#39;...&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">length</span> <span class="k">else</span> <span class="n">s</span></div>
+
+
+
+<div class="viewcode-block" id="xstr">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.xstr">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">xstr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">nullStr</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">falseAsNull</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dictsAsJson</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    wrapper for str() that handles Nones</span>
+<span class="sd">    lists and dict objects</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        value (obj): obj / type to be converted to string</span>
+<span class="sd">        nullStr (str, optional): value to used to indicate NULL/None. Defaults to &quot;&quot;.</span>
+<span class="sd">        falseAsNull (bool, optional): treat `False` as None. Defaults to False.</span>
+<span class="sd">        dictsAsJson (bool, optional): convert dicts to JSON, otherwise generates </span>
+<span class="sd">            an INFO string (semi-colon delimited key=value pairs). Defaults to True.</span>
+<span class="sd">            if nullStr is &quot;&quot; and dictAsJson=False, &#39;.&#39; will be used in the info string</span>
+<span class="sd">            for None values</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        value in string format</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nullStr</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">nullStr</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">xstr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">nullStr</span><span class="p">,</span> <span class="n">falseAsNull</span><span class="p">,</span> <span class="n">dictsAsJson</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">])</span>
+        
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">dictsAsJson</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">dict_to_string</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">nullStr</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">nullStr</span>
+        
+    <span class="k">if</span> <span class="n">falseAsNull</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">nullStr</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        
+    <span class="k">if</span> <span class="n">is_date</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">to_date</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">returnStr</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+
+<span class="c1"># FIXME: try/catch for non numeric types</span>
+<div class="viewcode-block" id="to_date">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.to_date">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">to_date</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">returnStr</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;converts a string into a Python date time object or reformat existing datetime object</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        value (string): value to be converted</span>
+<span class="sd">        pattern (str, optional): date format to be returned if returnStr. Defaults to &#39;%m-%d-%Y&#39;.</span>
+<span class="sd">        returnStr (bool, optional): return string? if False returns a date time object. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        datetime object if returnStr is False</span>
+<span class="sd">        formatted string (following pattern) if returnStr is True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">date</span> <span class="o">=</span> <span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">datetime</span><span class="p">)</span> <span class="k">else</span> \
+        <span class="n">parse_date</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">fuzzy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>    
+    <span class="k">return</span> <span class="n">date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span> <span class="k">if</span> <span class="n">returnStr</span> <span class="k">else</span> <span class="n">date</span></div>
+
+
+
+
+<div class="viewcode-block" id="to_bool">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.to_bool">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">to_bool</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Convert a string representation of truth to true (1) or false (0).</span>
+<span class="sd">    True values are &#39;y&#39;, &#39;yes&#39;, &#39;t&#39;, &#39;true&#39;, &#39;on&#39;, and &#39;1&#39;; false values</span>
+<span class="sd">    are &#39;n&#39;, &#39;no&#39;, &#39;f&#39;, &#39;false&#39;, &#39;off&#39;, and &#39;0&#39;.  Raises ValueError if</span>
+<span class="sd">    &#39;val&#39; is anything else.</span>
+<span class="sd">    modified from https://stackoverflow.com/a/18472142</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;yes&#39;</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="s1">&#39;true&#39;</span><span class="p">,</span>  <span class="s1">&#39;1&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span>
+    <span class="k">elif</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;n&#39;</span><span class="p">,</span> <span class="s1">&#39;no&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">,</span> <span class="s1">&#39;false&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid boolean value </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">val</span><span class="p">,))</span></div>
+
+    
+    
+<div class="viewcode-block" id="is_bool">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.is_bool">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_bool</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; checks if value is a boolean &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">to_bool</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+    
+
+<div class="viewcode-block" id="is_date">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.is_date">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_date</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">fuzzy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Return whether the string can be interpreted as a date.</span>
+<span class="sd">    from https://stackoverflow.com/a/25341965</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        value (str): string to check for date</span>
+<span class="sd">        fuzzy (bool, optional):ignore unknown tokens in string if True. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: flag indicating if string is date (or contains date if fuzzy=True)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">is_numeric</span><span class="p">(</span><span class="n">value</span><span class="p">):</span> <span class="c1"># catch ints and floats</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">datetime</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    
+    <span class="k">try</span><span class="p">:</span> 
+        <span class="n">parse_date</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">fuzzy</span><span class="o">=</span><span class="n">fuzzy</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="is_numeric">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.is_numeric">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_numeric</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; legacy for `is_number` &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">is_number</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="is_number">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.is_number">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_number</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; check if the string is a number; </span>
+<span class="sd">    support legacy code originally written for Python 2.7 &#39;&#39;&#39;</span>
+    <span class="c1"># extra is_float if string is to check for scientific notation</span>
+    <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">isnumeric</span><span class="p">()</span> <span class="ow">or</span> <span class="n">is_float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> \
+        <span class="k">else</span> <span class="n">is_integer</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">or</span> <span class="n">is_float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="is_integer">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.is_integer">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_integer</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; check if the string is an integer&#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="is_float">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.is_float">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_float</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; check if the string is a float &#39;&#39;&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+        
+
+<div class="viewcode-block" id="is_non_numeric">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.is_non_numeric">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_non_numeric</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;checks if string is non-numeric; legacy to support code written for Python 2.7</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="ow">not</span> <span class="n">is_number</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="to_number">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.to_number">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">to_number</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; convert string to appropriate number &#39;&#39;&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">is_integer</span><span class="p">()</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="c1"># raises ValueError again that will be thrown</span></div>
+
+
+
+<div class="viewcode-block" id="to_numeric">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.to_numeric">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">to_numeric</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; legacy  `to_number` &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">to_number</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="is_null">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.is_null">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_null</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">naIsNull</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;NULL&#39;</span><span class="p">,</span> <span class="s1">&#39;null&#39;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">naIsNull</span> <span class="ow">and</span> <span class="n">string_in_list</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;NA&#39;</span><span class="p">,</span> <span class="s1">&#39;not reported&#39;</span><span class="p">,</span> <span class="s1">&#39;not applicable&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;N/A&#39;</span><span class="p">,</span> <span class="s1">&#39;NULL&#39;</span><span class="p">],</span> <span class="n">ignoreCase</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="is_camel_case">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.is_camel_case">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_camel_case</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; relaxed check for camel case b/c allows things like cRGB &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">s</span> <span class="o">!=</span> <span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">and</span> <span class="n">s</span> <span class="o">!=</span> <span class="n">s</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">and</span> <span class="s2">&quot;_&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">s</span></div>
+
+
+
+<div class="viewcode-block" id="to_snake_case">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.to_snake_case">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">to_snake_case</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; converts camel case or space delimited strings to snake case</span>
+<span class="sd">    from https://stackoverflow.com/a/1176023 / advanced cases&#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="s1">&#39;([a-z0-9])([A-Z])&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;\1_\2&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="int_to_alpha">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.int_to_alpha">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">int_to_alpha</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; Convert an input integer to alphabetic representation, </span>
+<span class="sd">    starting with 1=A. or 1=a if lower=True&#39;&#39;&#39;</span>
+
+    <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">chr</span><span class="p">(</span><span class="mi">96</span> <span class="o">+</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">chr</span><span class="p">(</span><span class="mi">64</span> <span class="o">+</span> <span class="n">value</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ascii_safe_str">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.ascii_safe_str">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ascii_safe_str</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; convert to ASCII safe string &#39;&#39;&#39;</span>
+    <span class="k">try</span><span class="p">:</span> <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">UnicodeEncodeError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">,</span> <span class="s1">&#39;ignore&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span></div>
+
+    
+
+<div class="viewcode-block" id="is_balanced">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.is_balanced">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_balanced</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;)&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;returns True if enclosing tags are balanced (e.g, braces, brackets, parentheses, carets, user defined)</span>
+<span class="sd">    modified from https://www.geeksforgeeks.org/identify-mark-unmatched-parenthesis-expression/</span>
+<span class="sd">    </span>
+<span class="sd">    TODO: (possibly) handle multiple, nested kinds of tags, e.g., ([{}])</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        value (str): string to check</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        boolean indicating whether or not parentheses are balanced</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+		<span class="c1"># if c is opening tag then push into stack</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="n">start</span><span class="p">:</span>
+            <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="n">end</span><span class="p">:</span>
+			<span class="c1"># unmatched start tag; return False</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stack</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span> <span class="c1"># matched start tag</span>
+                <span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+	
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stack</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># balanced</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span> <span class="c1"># not balanced</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<span class="c1"># regex wrappers to re calls to reduce re imports</span>
+<span class="c1"># =================================================</span>
+<div class="viewcode-block" id="regex_replace">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.regex_replace">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="s1">&#39;0.2.0&#39;</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;Moved; import from `utils.reg_ex` instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">regex_replace</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">replacement</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; see `utils.reg_ex.regex_replace` for documentation &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">replacement</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="regex_extract">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.regex_extract">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="s1">&#39;0.2.0&#39;</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;Moved; import from `utils.reg_ex` instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">regex_extract</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">firstMatchOnly</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span> 
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; see `utils.reg_ex.regex_extract` for documentation &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">regex_extract</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="matches">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.matches">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="s1">&#39;0.2.0&#39;</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;Moved; import from `utils.reg_ex` instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">matches</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; see `utils.reg_ex.matches` for documentation &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">matches</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="regex_split">
+<a class="viewcode-back" href="../../../_apidocs/niagads.utils.html#niagads.utils.string.regex_split">[docs]</a>
+<span class="nd">@deprecated</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="s1">&#39;0.2.0&#39;</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;Moved; import from `utils.reg_ex` instead&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">regex_split</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; see `utils.reg_ex.split` for documentation &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">regex_split</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.utils.string</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

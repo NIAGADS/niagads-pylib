@@ -1,0 +1,414 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>niagads.scripts package &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="niagads.utils package" href="niagads.utils.html" />
+    <link rel="prev" title="niagads.reference package" href="niagads.reference.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.utils.html" title="niagads.utils package"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.reference.html" title="niagads.reference package"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" accesskey="U">niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.scripts package</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="niagads-scripts-package">
+<h1>niagads.scripts package<a class="headerlink" href="#niagads-scripts-package" title="Link to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-niagads.scripts.owl_parser">
+<span id="niagads-scripts-owl-parser-module"></span><h2>niagads.scripts.owl_parser module<a class="headerlink" href="#module-niagads.scripts.owl_parser" title="Link to this heading">¶</a></h2>
+<p>ontology parser
+Parses an OWL file representing an ontology and generates 3 tab-delimited files:</p>
+<p><strong>terms.txt - contains basic term identification</strong>
+term_id, term, iri, db_refs, definition, comments, and obsolete/deprecated flags</p>
+<p><strong>synonyms.txt - contains term_id - synonym (raw term, not ID) pairs</strong></p>
+<p><strong>relationships.txt - term ‘is_a’/’subclass_of’ relationships</strong>
+contains either subject_id / object_id pairs or
+subject_id / parsed triple string (for relationships with restrictions or logic)</p>
+<p>in all files, missing or irrelevant information are indicated by ‘NULL’</p>
+<p>Author: fossilfriend</p>
+<p>see <a class="reference external" href="https://owlready2.readthedocs.io">https://owlready2.readthedocs.io</a> for help w/owlready2
+see <a class="reference external" href="https://rdflib.readthedocs.io/en/stable/">https://rdflib.readthedocs.io/en/stable/</a> for help w/rdflib</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.owl_parser.clean_subjects">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.owl_parser.</span></span><span class="sig-name descname"><span class="pre">clean_subjects</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/owl_parser.html#clean_subjects"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.owl_parser.clean_subjects" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.owl_parser.create_files">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.owl_parser.</span></span><span class="sig-name descname"><span class="pre">create_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">includeComments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/owl_parser.html#create_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.owl_parser.create_files" title="Link to this definition">¶</a></dt>
+<dd><p>create file handles / output header</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dir</strong> (<em>str</em>) – output directory</p></li>
+<li><p><strong>includeComments</strong> (<em>bool</em>) – flag to include comments in output</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>term, relationship, and synoynm file handlers</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.owl_parser.init_worker">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.owl_parser.</span></span><span class="sig-name descname"><span class="pre">init_worker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ontology</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Ontology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">includeComments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/owl_parser.html#init_worker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.owl_parser.init_worker" title="Link to this definition">¶</a></dt>
+<dd><p>initialize parallel worker with large data structures
+or ‘global’ information’
+so they can be shared amongs the processors
+see <a class="reference external" href="https://superfastpython.com/multiprocessing-pool-shared-global-variables/">https://superfastpython.com/multiprocessing-pool-shared-global-variables/</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>graph</strong> (<em>Graph</em>) – ontology in rdflib Graph format (for accessing annotation properties)</p></li>
+<li><p><strong>ontology</strong> (<em>Ontology</em>) – ontology in owlready2 Ontology format (for accessing parsed nested is_a relationships)</p></li>
+<li><p><strong>debug</strong> (<em>bool</em>) – flag for debugging mode</p></li>
+<li><p><strong>includeComments</strong> (<em>bool</em>) – flag for including comments in term annotations</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.owl_parser.main">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.owl_parser.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/owl_parser.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.owl_parser.main" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.owl_parser.parallel_annotate_term">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.owl_parser.</span></span><span class="sig-name descname"><span class="pre">parallel_annotate_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subject</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">URIRef</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/owl_parser.html#parallel_annotate_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.owl_parser.parallel_annotate_term" title="Link to this definition">¶</a></dt>
+<dd><p>worker function called by the multiproccessing pool to extract
+annotation properties and relationshisp for the specific term</p>
+<p>relies on the following pool shared resources:</p>
+<dl class="simple">
+<dt>sharedGraph: rdflib graph representation of the ontology,</dt><dd><p>for accessing annotation properties</p>
+</dd>
+<dt>sharedOntology: owlready2 ontology representation of the ontology;</dt><dd><p>for accessing parsed is_a relationships</p>
+</dd>
+</dl>
+<p>NOTE: although rdflib can be used to get is_a relationships, its a bit cumbersone
+so using owlready2 which returns them in a nice string format,
+that’s why we only extract the annotation properties
+from the rdflib triples iterator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>subject</strong> (<em>URIRef</em>) – term to be annotated, identified by its IRI</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>annotated term</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>term (<a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm">OntologyTerm</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.owl_parser.set_annotation_properties">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.owl_parser.</span></span><span class="sig-name descname"><span class="pre">set_annotation_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><span class="pre">OntologyTerm</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">relIter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/owl_parser.html#set_annotation_properties"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.owl_parser.set_annotation_properties" title="Link to this definition">¶</a></dt>
+<dd><p>extract annotation properties from term relationships</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>term</strong> (<a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><em>OntologyTerm</em></a>) – ontology term to be annotated</p></li>
+<li><p><strong>relIter</strong> (<em>iterator</em>) – rdflib triples iterator (predicates &amp; objects) of relationships</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>updated term</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.owl_parser.set_relationships">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.owl_parser.</span></span><span class="sig-name descname"><span class="pre">set_relationships</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><span class="pre">OntologyTerm</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ontology</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Ontology</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/owl_parser.html#set_relationships"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.owl_parser.set_relationships" title="Link to this definition">¶</a></dt>
+<dd><p>set term relationships</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>term</strong> (<a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><em>OntologyTerm</em></a>) – ontology term to be annotated</p></li>
+<li><p><strong>ontology</strong> (<em>Ontology</em>) – owlready2 ontology representation</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – if term not found in ontology</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>updated term</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.owl_parser.write_dbrefs">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.owl_parser.</span></span><span class="sig-name descname"><span class="pre">write_dbrefs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><span class="pre">OntologyTerm</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/owl_parser.html#write_dbrefs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.owl_parser.write_dbrefs" title="Link to this definition">¶</a></dt>
+<dd><p>write DB Refs to file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>term</strong> (<a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><em>OntologyTerm</em></a>) – ontology term</p></li>
+<li><p><strong>file</strong> (<em>obj</em>) – file handler</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.owl_parser.write_relationships">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.owl_parser.</span></span><span class="sig-name descname"><span class="pre">write_relationships</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><span class="pre">OntologyTerm</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/owl_parser.html#write_relationships"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.owl_parser.write_relationships" title="Link to this definition">¶</a></dt>
+<dd><p>write relationships to file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>term</strong> (<a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><em>OntologyTerm</em></a>) – ontology term</p></li>
+<li><p><strong>file</strong> (<em>obj</em>) – file handler</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.owl_parser.write_synonyms">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.owl_parser.</span></span><span class="sig-name descname"><span class="pre">write_synonyms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><span class="pre">OntologyTerm</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/owl_parser.html#write_synonyms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.owl_parser.write_synonyms" title="Link to this definition">¶</a></dt>
+<dd><p>write synonyms to file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>term</strong> (<a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><em>OntologyTerm</em></a>) – ontology term</p></li>
+<li><p><strong>file</strong> (<em>obj</em>) – file handler</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.owl_parser.write_term">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.owl_parser.</span></span><span class="sig-name descname"><span class="pre">write_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><span class="pre">OntologyTerm</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/owl_parser.html#write_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.owl_parser.write_term" title="Link to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>write term to terms.txt file</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>term</strong> (<a class="reference internal" href="niagads.ontologies.html#niagads.ontologies.ontology_term.OntologyTerm" title="niagads.ontologies.ontology_term.OntologyTerm"><em>OntologyTerm</em></a>) – the ontology term</p></li>
+<li><p><strong>file</strong> (<em>obj</em>) – file handler</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-niagads.scripts.variant_annotator">
+<span id="niagads-scripts-variant-annotator-module"></span><h2>niagads.scripts.variant_annotator module<a class="headerlink" href="#module-niagads.scripts.variant_annotator" title="Link to this heading">¶</a></h2>
+<p>looks up a list of variants provided in a file
+# returns as JSON or tab-delimited text
+# output is to STDOUT
+# author: fossilfriend</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.variant_annotator.main">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.variant_annotator.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/variant_annotator.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.variant_annotator.main" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="niagads.scripts.variant_annotator.read_variants">
+<span class="sig-prename descclassname"><span class="pre">niagads.scripts.variant_annotator.</span></span><span class="sig-name descname"><span class="pre">read_variants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/scripts/variant_annotator.html#read_variants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.scripts.variant_annotator.read_variants" title="Link to this definition">¶</a></dt>
+<dd><p>read list of variants from file; removing ‘chr’ and
+substituting M for MT when appropriate
+removes header if found</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file</strong> (<em>string</em>) – file name</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple of variants,
+flag indicating if ‘chr’ was removed so it can be added back later</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-niagads.scripts">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-niagads.scripts" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><div class="sphinx-toc sphinxlocaltoc">
+    <h3><a href="../index.html">Page contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">niagads.scripts package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-niagads.scripts.owl_parser">niagads.scripts.owl_parser module</a><ul>
+<li><a class="reference internal" href="#niagads.scripts.owl_parser.clean_subjects"><code class="docutils literal notranslate"><span class="pre">clean_subjects()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.scripts.owl_parser.create_files"><code class="docutils literal notranslate"><span class="pre">create_files()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.scripts.owl_parser.init_worker"><code class="docutils literal notranslate"><span class="pre">init_worker()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.scripts.owl_parser.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.scripts.owl_parser.parallel_annotate_term"><code class="docutils literal notranslate"><span class="pre">parallel_annotate_term()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.scripts.owl_parser.set_annotation_properties"><code class="docutils literal notranslate"><span class="pre">set_annotation_properties()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.scripts.owl_parser.set_relationships"><code class="docutils literal notranslate"><span class="pre">set_relationships()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.scripts.owl_parser.write_dbrefs"><code class="docutils literal notranslate"><span class="pre">write_dbrefs()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.scripts.owl_parser.write_relationships"><code class="docutils literal notranslate"><span class="pre">write_relationships()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.scripts.owl_parser.write_synonyms"><code class="docutils literal notranslate"><span class="pre">write_synonyms()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.scripts.owl_parser.write_term"><code class="docutils literal notranslate"><span class="pre">write_term()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.scripts.variant_annotator">niagads.scripts.variant_annotator module</a><ul>
+<li><a class="reference internal" href="#niagads.scripts.variant_annotator.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.scripts.variant_annotator.read_variants"><code class="docutils literal notranslate"><span class="pre">read_variants()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.scripts">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="niagads.reference.html"
+                          title="Previous page">&larr; niagads.reference package</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="niagads.utils.html"
+                          title="Next page">&rarr; niagads.utils package</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/_apidocs/niagads.scripts.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.utils.html" title="niagads.utils package"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.reference.html" title="niagads.reference package"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" >niagads package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.scripts package</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

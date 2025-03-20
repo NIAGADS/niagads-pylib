@@ -1,0 +1,392 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>niagads.parsers.adsp_vep_consequences package &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="niagads.reference package" href="niagads.reference.html" />
+    <link rel="prev" title="niagads.parsers package" href="niagads.parsers.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.reference.html" title="niagads.reference package"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.parsers.html" title="niagads.parsers package"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" >niagads package</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="niagads.parsers.html" accesskey="U">niagads.parsers package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.adsp_vep_consequences package</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="niagads-parsers-adsp-vep-consequences-package">
+<h1>niagads.parsers.adsp_vep_consequences package<a class="headerlink" href="#niagads-parsers-adsp-vep-consequences-package" title="Link to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-niagads.parsers.adsp_vep_consequences.consequence_groups">
+<span id="niagads-parsers-adsp-vep-consequences-consequence-groups-module"></span><h2>niagads.parsers.adsp_vep_consequences.consequence_groups module<a class="headerlink" href="#module-niagads.parsers.adsp_vep_consequences.consequence_groups" title="Link to this heading">¶</a></h2>
+<p>! &#64;brief ADSP Consequence Group Enum</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.parsers.adsp_vep_consequences.consequence_groups.</span></span><span class="sig-name descname"><span class="pre">ConseqGroup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/consequence_groups.html#ConseqGroup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>! Enum class to store &amp; manipulate groups of consequence terms
+to facilitate the ranking of VEP variants according to ADSP criteria</p>
+<p>&gt; NOTE: ‘HIGH’ IMPACT group also includes consequences classified by VEP as ‘MODERATE’ or ‘LOW’</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>terms added by EGA:</dt><dd><ul>
+<li><p>regulatory_region_ablation 02/14/2022</p></li>
+<li><p>TFBS_amplification 02/15/2022</p></li>
+<li><p>regulatory_region_amplification 02/22/2022</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.HIGH_IMPACT">
+<span class="sig-name descname"><span class="pre">HIGH_IMPACT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['transcript_ablation',</span> <span class="pre">'splice_acceptor_variant',</span> <span class="pre">'splice_donor_variant',</span> <span class="pre">'stop_gained',</span> <span class="pre">'frameshift_variant',</span> <span class="pre">'stop_lost',</span> <span class="pre">'start_lost',</span> <span class="pre">'inframe_insertion',</span> <span class="pre">'inframe_deletion',</span> <span class="pre">'missense_variant',</span> <span class="pre">'protein_altering_variant',</span> <span class="pre">'splice_region_variant',</span> <span class="pre">'incomplete_terminal_codon_variant',</span> <span class="pre">'stop_retained_variant',</span> <span class="pre">'start_retained_variant',</span> <span class="pre">'synonymous_variant',</span> <span class="pre">'coding_sequence_variant',</span> <span class="pre">'5_prime_UTR_variant',</span> <span class="pre">'3_prime_UTR_variant',</span> <span class="pre">'regulatory_region_ablation']</span></em><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.HIGH_IMPACT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.MODIFIER">
+<span class="sig-name descname"><span class="pre">MODIFIER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['intron_variant',</span> <span class="pre">'mature_miRNA_variant',</span> <span class="pre">'non_coding_transcript_variant',</span> <span class="pre">'non_coding_transcript_exon_variant',</span> <span class="pre">'upstream_gene_variant',</span> <span class="pre">'downstream_gene_variant',</span> <span class="pre">'TF_binding_site_variant',</span> <span class="pre">'TFBS_ablation',</span> <span class="pre">'TFBS_amplification',</span> <span class="pre">'TF_binding_site_variant',</span> <span class="pre">'regulatory_region_amplification',</span> <span class="pre">'regulatory_region_variant',</span> <span class="pre">'intergenic_variant']</span></em><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.MODIFIER" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.NMD">
+<span class="sig-name descname"><span class="pre">NMD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['NMD_transcript_variant']</span></em><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.NMD" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.NON_CODING_TRANSCRIPT">
+<span class="sig-name descname"><span class="pre">NON_CODING_TRANSCRIPT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['non_coding_transcript_exon_variant',</span> <span class="pre">'non_coding_transcript_variant']</span></em><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.NON_CODING_TRANSCRIPT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_all_terms">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_all_terms</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/consequence_groups.html#ConseqGroup.get_all_terms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_all_terms" title="Link to this definition">¶</a></dt>
+<dd><p>! retrieve complete set of terms across all consequence groups</p>
+<p>~~~~~~~~~~~~~{.py}
+ConseqGroups.get_all_terms() #usage
+~~~~~~~~~~~~~</p>
+<p>&#64;returns complete set of terms across all consequence groups</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_complete_indexed_dict">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_complete_indexed_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/consequence_groups.html#ConseqGroup.get_complete_indexed_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_complete_indexed_dict" title="Link to this definition">¶</a></dt>
+<dd><p>! return indexed OrderedDict containing all ConseqGroup terms</p>
+<p>~~~~~~~~~~~~~{.py}
+ConseqGroups.get_complete_indexed_dict() #usage
+~~~~~~~~~~~~~</p>
+<p>&#64;returns complete set of terms as ordered dict of key:value = term:index</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_group_members">
+<span class="sig-name descname"><span class="pre">get_group_members</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conseqs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requireSubset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/consequence_groups.html#ConseqGroup.get_group_members"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_group_members" title="Link to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>! given a list of combinations, extracts those that</dt><dd><p>include group members following ADSP Annotation rules</p>
+<ul class="simple">
+<li><p>MODIFIER: conseqs are a subset of enum values</p></li>
+<li><p>NMD, NON_CODING_TRANSCRIPT: conseqs include enum values</p></li>
+<li><p>HIGH_IMPACT: conseqs include HIGH_IMPACT values, but not NMD or NON_CODING_TRANSCRIPT values</p></li>
+</ul>
+</dd>
+</dl>
+<p>~~~~~~~~~~~~~{.py}
+ConseqGroup.MODIFIER.get_members(conseqs) # usage
+~~~~~~~~~~~~~</p>
+<p>&#64;returns list of conseqs that include terms belonging to the enum group</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.toDict">
+<span class="sig-name descname"><span class="pre">toDict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/consequence_groups.html#ConseqGroup.toDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.toDict" title="Link to this definition">¶</a></dt>
+<dd><p>! transform enum values into indexed OrderedDict</p>
+<p>~~~~~~~~~~~~~{.py}
+ConseqGroups.MODIFIER.toDict() #usage
+~~~~~~~~~~~~~</p>
+<p>&#64;returns OrderedDict key:value = term:index</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.validate_terms">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">validate_terms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conseqs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/consequence_groups.html#ConseqGroup.validate_terms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.validate_terms" title="Link to this definition">¶</a></dt>
+<dd><p>! verify that all terms fall into a conseq group
+raise error if novel term is found so that code can be updated to assign to a specific
+consequence group</p>
+<ul class="simple">
+<li><p>see [Ensembl VEP Consequences](<a class="reference external" href="https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html">https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html</a>)</p></li>
+</ul>
+<p>for possible updates</p>
+<p>~~~~~~~~~~~~~{.py}
+ConseqGroup.validate_terms(conseqs) # usage
+~~~~~~~~~~~~~</p>
+<p>&#64;returns True if all terms are valid</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-niagads.parsers.adsp_vep_consequences.parser">
+<span id="niagads-parsers-adsp-vep-consequences-parser-module"></span><h2>niagads.parsers.adsp_vep_consequences.parser module<a class="headerlink" href="#module-niagads.parsers.adsp_vep_consequences.parser" title="Link to this heading">¶</a></h2>
+<p>! &#64;brief ADSP VEP Consequence Parser and Ranker</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">niagads.parsers.adsp_vep_consequences.parser.</span></span><span class="sig-name descname"><span class="pre">VEPConsequenceParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rankingFileName</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveOnAddConseq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rankOnLoad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/parser.html#VEPConsequenceParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>! Parser for reading and re-ranking ADSP ranked consequences of VEP output</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.find_matching_consequence">
+<span class="sig-name descname"><span class="pre">find_matching_consequence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failOnMissing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/parser.html#VEPConsequenceParser.find_matching_consequence"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.find_matching_consequence" title="Link to this definition">¶</a></dt>
+<dd><p>! match list of consequences against those in the
+rankings and return ranking info associated with match</p>
+<p>attempt to integrate into the rankings if not found</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_added_consequences">
+<span class="sig-name descname"><span class="pre">get_added_consequences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mostRecent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/parser.html#VEPConsequenceParser.get_added_consequences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_added_consequences" title="Link to this definition">¶</a></dt>
+<dd><p>! retrieve list of newly added consequences
+&#64;return list of new consequences</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_consequence_rank">
+<span class="sig-name descname"><span class="pre">get_consequence_rank</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conseq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failOnError</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/parser.html#VEPConsequenceParser.get_consequence_rank"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_consequence_rank" title="Link to this definition">¶</a></dt>
+<dd><p>! retrieve value from consequence rank map for the specified consequence
+&#64;param conseq       the consequence combination to look up
+&#64;param failOnError  flag indicating whether to raise an error if consequence is not found
+&#64;return return value from consequence rank map for the specified or None if not found</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_known_consequences">
+<span class="sig-name descname"><span class="pre">get_known_consequences</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/parser.html#VEPConsequenceParser.get_known_consequences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_known_consequences" title="Link to this definition">¶</a></dt>
+<dd><p>! extract the known consequences/combos
+replaces <cite>ret_sort_combos</cite></p>
+<p>returns as set to try and prevent duplicates</p>
+<p>b/c these are keys to a hash, they are unique</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_new_conseq_count">
+<span class="sig-name descname"><span class="pre">get_new_conseq_count</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/parser.html#VEPConsequenceParser.get_new_conseq_count"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_new_conseq_count" title="Link to this definition">¶</a></dt>
+<dd><p>! retrieve count of newly added consequences
+&#64;returns count of newly added consequences</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_rankings">
+<span class="sig-name descname"><span class="pre">get_rankings</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/parser.html#VEPConsequenceParser.get_rankings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_rankings" title="Link to this definition">¶</a></dt>
+<dd><p>! retrieve consequence rankings
+&#64;return OrderedDict of conseqs:rank</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.new_consequences_added">
+<span class="sig-name descname"><span class="pre">new_consequences_added</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/parser.html#VEPConsequenceParser.new_consequences_added"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.new_consequences_added" title="Link to this definition">¶</a></dt>
+<dd><p>! check if new consequences were added
+&#64;returns True if new consequences were added</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.save_ranking_file">
+<span class="sig-name descname"><span class="pre">save_ranking_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fileName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/niagads/parsers/adsp_vep_consequences/parser.html#VEPConsequenceParser.save_ranking_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.save_ranking_file" title="Link to this definition">¶</a></dt>
+<dd><p>! save ranking if file
+&#64;param fileName   output file name; if no file name is provided, will upate original file name with current date</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-niagads.parsers.adsp_vep_consequences">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-niagads.parsers.adsp_vep_consequences" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper"><div class="sphinx-toc sphinxlocaltoc">
+    <h3><a href="../index.html">Page contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">niagads.parsers.adsp_vep_consequences package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-niagads.parsers.adsp_vep_consequences.consequence_groups">niagads.parsers.adsp_vep_consequences.consequence_groups module</a><ul>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup"><code class="docutils literal notranslate"><span class="pre">ConseqGroup</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.HIGH_IMPACT"><code class="docutils literal notranslate"><span class="pre">ConseqGroup.HIGH_IMPACT</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.MODIFIER"><code class="docutils literal notranslate"><span class="pre">ConseqGroup.MODIFIER</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.NMD"><code class="docutils literal notranslate"><span class="pre">ConseqGroup.NMD</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.NON_CODING_TRANSCRIPT"><code class="docutils literal notranslate"><span class="pre">ConseqGroup.NON_CODING_TRANSCRIPT</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_all_terms"><code class="docutils literal notranslate"><span class="pre">ConseqGroup.get_all_terms()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_complete_indexed_dict"><code class="docutils literal notranslate"><span class="pre">ConseqGroup.get_complete_indexed_dict()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.get_group_members"><code class="docutils literal notranslate"><span class="pre">ConseqGroup.get_group_members()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.toDict"><code class="docutils literal notranslate"><span class="pre">ConseqGroup.toDict()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.consequence_groups.ConseqGroup.validate_terms"><code class="docutils literal notranslate"><span class="pre">ConseqGroup.validate_terms()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.parsers.adsp_vep_consequences.parser">niagads.parsers.adsp_vep_consequences.parser module</a><ul>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser"><code class="docutils literal notranslate"><span class="pre">VEPConsequenceParser</span></code></a><ul>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.find_matching_consequence"><code class="docutils literal notranslate"><span class="pre">VEPConsequenceParser.find_matching_consequence()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_added_consequences"><code class="docutils literal notranslate"><span class="pre">VEPConsequenceParser.get_added_consequences()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_consequence_rank"><code class="docutils literal notranslate"><span class="pre">VEPConsequenceParser.get_consequence_rank()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_known_consequences"><code class="docutils literal notranslate"><span class="pre">VEPConsequenceParser.get_known_consequences()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_new_conseq_count"><code class="docutils literal notranslate"><span class="pre">VEPConsequenceParser.get_new_conseq_count()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.get_rankings"><code class="docutils literal notranslate"><span class="pre">VEPConsequenceParser.get_rankings()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.new_consequences_added"><code class="docutils literal notranslate"><span class="pre">VEPConsequenceParser.new_consequences_added()</span></code></a></li>
+<li><a class="reference internal" href="#niagads.parsers.adsp_vep_consequences.parser.VEPConsequenceParser.save_ranking_file"><code class="docutils literal notranslate"><span class="pre">VEPConsequenceParser.save_ranking_file()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-niagads.parsers.adsp_vep_consequences">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="niagads.parsers.html"
+                          title="Previous page">&larr; niagads.parsers package</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="niagads.reference.html"
+                          title="Next page">&rarr; niagads.reference package</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/_apidocs/niagads.parsers.adsp_vep_consequences.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.reference.html" title="niagads.reference package"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="niagads.parsers.html" title="niagads.parsers package"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="modules.html" >niagads</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="niagads.html" >niagads package</a> &#187;</li>
+          <li class="nav-item nav-item-3"><a href="niagads.parsers.html" >niagads.parsers package</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.adsp_vep_consequences package</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

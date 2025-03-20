@@ -1,0 +1,371 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>niagads.parsers.excel &#8212; NIAGADS-pylib 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/cloud.css?v=f9ae72be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/autoclasstoc.css?v=08871587" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+
+    
+    
+     
+        <script src="../../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.excel</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for niagads.parsers.excel</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">os</span><span class="w"> </span><span class="kn">import</span> <span class="n">path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_excel</span><span class="p">,</span> <span class="n">DataFrame</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">openpyxl</span><span class="w"> </span><span class="kn">import</span> <span class="n">Workbook</span> <span class="k">as</span> <span class="n">wb</span><span class="p">,</span> <span class="n">load_workbook</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.dict</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_str2numeric_values</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.string</span><span class="w"> </span><span class="kn">import</span> <span class="n">xstr</span><span class="p">,</span> <span class="n">to_snake_case</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.pd_dataframe</span><span class="w"> </span><span class="kn">import</span> <span class="n">strip</span>
+
+<div class="viewcode-block" id="ExcelFileParser">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.excel.ExcelFileParser">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExcelFileParser</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    parser for EXCEL files; mainly a pandas/openpyxl wrapper</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        init new ExcelFileParser</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file (str): EXCEL file name (full path)</span>
+<span class="sd">            debug (bool, optional): enable debug mode. Defaults to False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__file</span> <span class="o">=</span> <span class="n">file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__na</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># missing value string representation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__strip</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1"># flag for trimming leading &amp; trailing whitespace</span>
+        
+        <span class="c1"># openpyxl data structures</span>
+        <span class="c1"># useful for iterating over sheets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__workbook</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__worksheets</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__init_workbook</span><span class="p">()</span>
+        
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">__init_workbook</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        load the workbook &amp; get list of worksheets</span>
+<span class="sd">        initialize member variables</span>
+<span class="sd">        (should do basic parsing &amp; error reporting; e.g., non-ascii characters)   </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># data_only=True -&gt; values, not formulas &amp; formatting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__workbook</span> <span class="o">=</span> <span class="n">load_workbook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">,</span> <span class="n">data_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__worksheets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workbook</span><span class="o">.</span><span class="n">sheetnames</span>
+ 
+ 
+<div class="viewcode-block" id="ExcelFileParser.na">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.excel.ExcelFileParser.na">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">na</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        fill NA&#39;s with specified value when using pandas conversions</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            value (str): value to fill (e.g., &#39;NULL&#39;, &#39;NA&#39;, &#39;.&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__na</span> <span class="o">=</span> <span class="n">value</span></div>
+
+ 
+ 
+<div class="viewcode-block" id="ExcelFileParser.strip">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.excel.ExcelFileParser.strip">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">strip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        flag indicating whether to iterate over all fields and </span>
+<span class="sd">        trim leading and trailing spaces when converting to JSON or CSV</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            strip (bool, optional): trim leading and trailing spaces from all fields. Defaults to True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__strip</span> <span class="o">=</span> <span class="n">strip</span></div>
+
+        
+
+<div class="viewcode-block" id="ExcelFileParser.set_na_rep">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.excel.ExcelFileParser.set_na_rep">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_na_rep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        set the NA (missing / null) value string representation</span>
+<span class="sd">        suggestions: &#39;.&#39;, &#39;NA&#39;, &#39;null&#39;, &#39;NULL&#39;, &#39;\t&#39;</span>
+<span class="sd">        </span>
+<span class="sd">        currently only applies to CSV export</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            value (str): missing / null value string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__na</span> <span class="o">=</span> <span class="n">value</span></div>
+
+        
+        
+<div class="viewcode-block" id="ExcelFileParser.get_workbook">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.excel.ExcelFileParser.get_workbook">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_workbook</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns openpyxl `workbook` object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workbook</span></div>
+
+    
+    
+<div class="viewcode-block" id="ExcelFileParser.list_worksheets">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.excel.ExcelFileParser.list_worksheets">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_worksheets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns a list of worksheet names</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__worksheets</span></div>
+
+    
+    
+<div class="viewcode-block" id="ExcelFileParser.write_to_csv">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.excel.ExcelFileParser.write_to_csv">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_to_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputPath</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">worksheet</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        converts the EXCEL file to CSV and saved to `outputPath`.  </span>
+<span class="sd">        If `worksheet` == None, all worksheets in the file are converted</span>
+<span class="sd">        otherwise only the specified worksheet will be converted</span>
+
+<span class="sd">        output files will be named `to_snake_case(worksheet)` +&#39;.csv&#39;` </span>
+<span class="sd">        &#39;.txt&#39; extension will be used for space and tab delimited files</span>
+<span class="sd">        &#39;.csv&#39; will be use for comma and non-standard delimiters     </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            outputPath (str): path to which the files should be written</span>
+<span class="sd">            sep (str, optional): delimiter.  Defaults to &#39;,&#39;</span>
+<span class="sd">            worksheet (str, optional): worksheet name. Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">worksheet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ws</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__worksheets</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__worksheet_to_csv</span><span class="p">(</span><span class="n">outputPath</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">sep</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__worksheet_to_csv</span><span class="p">(</span><span class="n">outputPath</span><span class="p">,</span> <span class="n">worksheet</span><span class="p">,</span> <span class="n">sep</span><span class="p">)</span></div>
+
+        
+            
+            
+<div class="viewcode-block" id="ExcelFileParser.is_valid_worksheet">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.excel.ExcelFileParser.is_valid_worksheet">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_valid_worksheet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">worksheet</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">raiseErr</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        checks if worksheet exists, otherwise raises error</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            worksheet (str): worksheet name</span>
+<span class="sd">            raiseErr (boolean, optional): raise an error if False, otherwise will return False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">worksheet</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__worksheets</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">raiseErr</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Worksheet &quot;</span> <span class="o">+</span> <span class="n">worksheet</span> <span class="o">+</span> <span class="s2">&quot; not found in &quot;</span> \
+                    <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file</span> <span class="o">+</span> <span class="s2">&quot;; valid values are: &quot;</span> <span class="o">+</span> <span class="n">xstr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__worksheets</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">__worksheet_to_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputPath</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">worksheet</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">sep</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        internal / called by to_csv to write an worksheet to CSV</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            outputPath (str): path to which the files should be written</span>
+<span class="sd">            sep (str): delimiter</span>
+<span class="sd">            worksheet (str): worksheet name</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="n">fileName</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">outputPath</span><span class="p">,</span> 
+                                <span class="n">to_snake_case</span><span class="p">(</span><span class="n">worksheet</span><span class="p">)</span> \
+                                <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;.csv&#39;</span> <span class="k">if</span> <span class="n">sep</span> <span class="o">==</span> <span class="s1">&#39;,&#39;</span> <span class="k">else</span> <span class="s1">&#39;.txt&#39;</span><span class="p">))</span>
+        
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_pandas_df</span><span class="p">(</span><span class="n">worksheet</span><span class="p">)</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="n">na_rep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__na</span><span class="p">)</span>
+    
+    
+<div class="viewcode-block" id="ExcelFileParser.worksheet_to_json">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.excel.ExcelFileParser.worksheet_to_json">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">worksheet_to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">worksheet</span><span class="p">:</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">transpose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">returnStr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        converts the EXCEL file to JSON</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            worksheet (str|int): worksheet name or index, starting from 0.</span>
+<span class="sd">            transpose (bool, optional): transpose the worksheet?</span>
+<span class="sd">            returnStr (bool, optional): return jsonStr instead of object</span>
+<span class="sd">            **kwargs (optional): arguments to pass to `pandas` `read_excel` see</span>
+<span class="sd">                (see https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html))</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            if `returnStr` returns JSON string instead of object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__worksheets</span><span class="p">[</span><span class="n">worksheet</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">worksheet</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">else</span> <span class="n">worksheet</span>   
+        
+        <span class="c1"># orient=&#39;records&#39; returns indexes; e.g. [index: {row data}] so need to extract the values</span>
+        <span class="n">jsonStr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_pandas_df</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">transpose</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">orient</span> <span class="o">=</span> <span class="s1">&#39;records&#39;</span><span class="p">)</span>
+        
+        <span class="c1"># convert strings to numeric so can do typing validation</span>
+        <span class="n">jsonObj</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">jsonStr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">jsonObj</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">jsonObj</span> <span class="o">=</span> <span class="p">[</span><span class="n">convert_str2numeric_values</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">jsonStr</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">jsonObj</span> <span class="o">=</span> <span class="n">convert_str2numeric_values</span><span class="p">(</span><span class="n">jsonObj</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">jsonObj</span><span class="p">)</span> <span class="k">if</span> <span class="n">returnStr</span> <span class="k">else</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">jsonStr</span><span class="p">)</span></div>
+
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__trim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        trims trailing spaces if set in options</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df (DataFrame): pandas data frame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">strip</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__strip</span> <span class="k">else</span> <span class="n">df</span>
+    
+        
+<div class="viewcode-block" id="ExcelFileParser.to_pandas_df">
+<a class="viewcode-back" href="../../../_apidocs/niagads.parsers.html#niagads.parsers.excel.ExcelFileParser.to_pandas_df">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_pandas_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">worksheet</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">transpose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        _summary_</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            worksheet (str): worksheet name</span>
+<span class="sd">            transpose (str): transpose the worksheet</span>
+<span class="sd">            **kwargs: must match expected args for pandas.read_excel </span>
+<span class="sd">                (see https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: worksheet in data frame format</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># raise error if False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_valid_worksheet</span><span class="p">(</span><span class="n">worksheet</span><span class="p">,</span> <span class="n">raiseErr</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span> <span class="o">=</span> <span class="n">read_excel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__file</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="n">worksheet</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__na</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__na</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__trim</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="k">if</span> <span class="n">transpose</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">__trim</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../../index.html">NIAGADS-pylib 0.1 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">niagads.parsers.excel</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, University of Pennsylvania.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

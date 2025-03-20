@@ -1,0 +1,29 @@
+niagads.api\_wrapper.records package
+====================================
+
+Submodules
+----------
+
+niagads.api\_wrapper.records.record module
+------------------------------------------
+
+.. automodule:: niagads.api_wrapper.records.record
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+niagads.api\_wrapper.records.variant module
+-------------------------------------------
+
+.. automodule:: niagads.api_wrapper.records.variant
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: niagads.api_wrapper.records
+   :members:
+   :show-inheritance:
+   :undoc-members:
