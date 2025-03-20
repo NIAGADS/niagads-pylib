@@ -443,7 +443,6 @@ class FILERMetadataParser:
         info = self.__clean_list(self._get_metadata('track_description'), delim=";")
         
         studyId = None
-        studyLabel = None
         datasetId = None
         pubmedId = None 
         sampleGroup = None
