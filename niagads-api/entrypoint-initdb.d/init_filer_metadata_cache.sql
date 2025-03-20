@@ -54,6 +54,7 @@ CREATE TABLE ServerApplication.FILERTrack (
         file_schema CHARACTER VARYING(50),
         searchable_text TEXT,  
         is_shard BOOLEAN,
+        shard_chromosome CHARACTER VARYING(10),
         shard_parent_track_id CHARACTER VARYING(50)
 );
 

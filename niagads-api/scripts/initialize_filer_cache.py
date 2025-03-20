@@ -162,7 +162,7 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
                 skipCount +=1 
                 continue
 
-            parsedTracks['track_id'] = track
+            parsedTracks[track['track_id']] = track
             
             if lineNum % 10000 == 0:
                 LOGGER.debug("Processed metadata for " + str(lineNum) +" tracks")
@@ -178,11 +178,14 @@ def initialize_metadata_cache(metadataFileName:str, test:int, debug: bool=False)
             if isShard:    
                 track['is_shard'] = True
                 sKey = regex_replace(SHARD_PATTERN, '_', track['file_name'])   
+                
+                shardChrm = 'chr' + regex_extract(SHARD_PATTERN, track['file_name']).replace('_','')
+                track['shard_chromosome'] = shardChrm
                 if sKey not in shardedTracks:        
                     # find the first shard
-                    shardedTracks[sKey] = next((t['track_id'] for t in parsedTracks if matches(r'_chr1_', track['file_name'])), None)
+                    shardedTracks[sKey] = next((k for k,t in parsedTracks.items() if regex_replace(SHARD_PATTERN, '_', t['file_name']) == sKey and matches(r'_chr1_', t['file_name'])), None)
                     LOGGER.info(f'Found new sharded track series: {track['file_name']} with parent track: {shardedTracks[sKey]}')                
-                track['parent_shard_track_track_id'] = shardedTracks[sKey]
+                track['shard_parent_track_id'] = shardedTracks[sKey]
 
             insert_record(track)
             insertCount = insertCount + 1
