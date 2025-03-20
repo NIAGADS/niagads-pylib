@@ -2,6 +2,7 @@
 
 DROP TABLE IF EXISTS ServerApplication.FILERTrack CASCADE;
 
+
 CREATE TABLE ServerApplication.FILERTrack (
         track_id CHARACTER VARYING(50) PRIMARY KEY NOT NULL,
         name     CHARACTER VARYING(250) NOT NULL,
@@ -9,7 +10,7 @@ CREATE TABLE ServerApplication.FILERTrack (
         genome_build CHARACTER VARYING(50) CHECK (genome_build IN ('GRCh38', 'GRCh37', 'T2T', 'Pangenome')),
         feature_type CHARACTER VARYING(100),
 
-        download_only BOOLEAN,
+        download_only BOOLEAN DEFAULT FALSE,
         
         -- biosample
         biosample_characteristics JSONB,
@@ -23,7 +24,7 @@ CREATE TABLE ServerApplication.FILERTrack (
         classification TEXT,
         data_category CHARACTER VARYING(150),
         output_type CHARACTER VARYING(150),
-        is_lifted BOOLEAN,
+        is_lifted BOOLEAN DEFAULT FALSE,
         experiment_info TEXT,
         study_id CHARACTER VARYING(150),
         study_name CHARACTER VARYING(250),
@@ -53,7 +54,7 @@ CREATE TABLE ServerApplication.FILERTrack (
         file_format CHARACTER VARYING(25),
         file_schema CHARACTER VARYING(50),
         searchable_text TEXT,  
-        is_shard BOOLEAN,
+        is_shard BOOLEAN DEFAULT FALSE,
         shard_chromosome CHARACTER VARYING(10),
         shard_parent_track_id CHARACTER VARYING(50)
 );
@@ -72,7 +73,8 @@ DROP TABLE IF EXISTS ServerApplication.FILERCollection CASCADE;
 CREATE TABLE ServerApplication.FILERCollection (
     collection_id SERIAL PRIMARY KEY,
     name CHARACTER VARYING(100) NOT NULL,
-    description TEXT NOT NULL
+    description TEXT NOT NULL,
+    tracks_are_sharded BOOLEAN DEFAULT FALSE
 );
 
 DROP TABLE IF EXISTS ServerApplication.FILERCollectionTrackLink CASCADE;
@@ -86,13 +88,7 @@ CREATE TABLE ServerApplication.FILERCollectionTrackLink (
 CREATE INDEX FCTL_IND01 ON ServerApplication.FILERCollectionTrackLink(collection_id);
 CREATE INDEX FCTL_IND02 ON ServerApplication.FILERCollectionTrackLink(track_id);
 
+-- Grants -- double check if necessary
+
 GRANT SELECT ON ServerApplication.FILERCollection TO server_app;
 GRANT SELECT ON ServerApplication.FILERCollectionTrackLink TO server_app;
-
-
-
-
-   
--- Grants (may need to do them again here)
-
-GRANT SELECT ON ALL TABLES IN SCHEMA ServerApplication TO server_app;

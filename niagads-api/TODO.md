@@ -1,26 +1,34 @@
 # TODO
 
-## FILER Collections
+## FILER Collections & DB patches after load
 
 * create database structure
 * python script to populate track links from CSV?
 
 ```sql
-INSERT INTO ServerApplication.FILERCollection (name, description)
-SELECT 
-'ADSP-FunGen-xQTL',
-'quantitative trait loci (QTL) are genetic regions that influence phenotypic variation of a molecular (transcriptomic, proteomic, lipidomic among others) trait. The FunGen-xQTL project is a collaborative effort across the FunGen-AD, the Accelerating Medicines Partnership Alzheimer’s Disease (AMP AD), the NIH Center for Alzheimer’s and Related Dementias (CARD), and the ADSP.'
-;
-
-
-SELECT track_id FROM FILERTrack WHERE name like '%SNP significant';
-
+-- QTLs
 
 UPDATE FILERTrack 
 SET download_only = TRUE
 WHERE data_category = 'QTL'
 AND output_type LIKE '% all %' OR output_type LIKE '%nominally%';
 
+
+INSERT INTO ServerApplication.FILERCollection (name, description, tracks_are_sharded)
+SELECT 
+'ADSP-FunGen-xQTL',
+'quantitative trait loci (QTL) are genetic regions that influence phenotypic variation of a molecular trait(transcriptomic, proteomic, lipidomic among others). The FunGen-xQTL project is a collaborative effort across the FunGen-AD, the Accelerating Medicines Partnership Alzheimer’s Disease (AMP AD), the NIH Center for Alzheimer’s and Related Dementias (CARD), and the ADSP.',
+TRUE
+;
+
+INSERT INTO FILERCollectionTrackLink(collection_id, track_id)
+SELECT c.collection_id, t.track_id 
+FROM (SELECT track_id  FROM FILERTrack WHERE NAME LIKE 'FunGen xQTL%' AND is_shard AND track_id = shard_parent_track_id) t,
+(SELECT collection_id FROM FILERCollection WHERE NAME = 'ADSP-FunGen-xQTL') c;
+
+```
+
+```sql
 
 UPDATE FILERTrack
 SET download_only = TRUE

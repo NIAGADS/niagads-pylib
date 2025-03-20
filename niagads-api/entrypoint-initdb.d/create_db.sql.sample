@@ -6,3 +6,4 @@ CREATE USER server_app WITH PASSWORD '@CHANGE_READ_ONLY_PWD@';
 CREATE SCHEMA ServerApplication;
 
 GRANT USAGE ON SCHEMA ServerApplication TO server_app;
+GRANT SELECT ON ALL TABLES IN SCHEMA ServerApplication TO server_app;
