@@ -125,10 +125,10 @@ class MetadataQueryService:
     
     async def validate_collection(self, name: str) -> int:
         """ validate a collection by name """
-        statement = select(Collection.collection_id).where(col(Collection.name).ilike(name))
+        statement = select(Collection).where(col(Collection.name).ilike(name))
         try:
-            collectionId = (await self.__session.execute(statement)).scalar_one()
-            return collectionId
+            collection = (await self.__session.execute(statement)).scalar_one()
+            return collection
         except NoResultFound as e:
             raise RequestValidationError(f'Invalid collection: {name}')
 
@@ -145,15 +145,23 @@ class MetadataQueryService:
         result = (await self.__session.execute(statement)).all()
         return result
     
+    @staticmethod
+    def generate_shard_parent_metadata(track):
+        pass
     
     async def get_collection_track_metadata(self, collectionName:str, responseType=ResponseContent.FULL) -> List[Track]:
-        collectionId = await self.validate_collection(collectionName)
+        collection: Collection = await self.validate_collection(collectionName)
         target = self.__set_query_target(responseType)
-        statement = select(target).join(TrackCollection, TrackCollection.track_id == Track.track_id).where(TrackCollection.collection_id == collectionId)
+        statement = select(target) \
+            .join(TrackCollection, TrackCollection.track_id == Track.track_id) \
+            .where(TrackCollection.collection_id == collection.collection_id)
         
         result = (await self.__session.execute(statement)).scalars().all()
         if responseType == ResponseContent.COUNTS:
             return {'num_tracks': result[0]}
+        if collection.tracks_are_sharded:
+            if ResponseContent.IDS: # need to fetch all tracks
+            return [self.generate_shard_parent_metadata(t) for t in result]
         return result
     
     

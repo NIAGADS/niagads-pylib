@@ -28,6 +28,7 @@ class Collection(SQLModel, table=True):
     collection_id: int = Field(default=None, primary_key=True)
     name: str
     description: str = Field(sa_column=Column(TEXT))
+    tracks_are_sharded: bool
     
 
 class TrackCollection(SQLModel, table=True):
@@ -46,13 +47,13 @@ class Track(SQLModel, SerializableModel, table=True):
     __table_args__ = {'schema': 'serverapplication'}
     
     track_id: str = Field(default=None, primary_key=True)
-    name: str
     description: Optional[str] = Field(sa_column=Column(TEXT))
     genome_build: Optional[str]
     feature_type: Optional[str]
     
     # biosample
     biosample_characteristics: dict | None = Field(sa_column=Column(JSONB))
+    
         
     # experimental design
     biological_replicates: Optional[str]
@@ -89,6 +90,8 @@ class Track(SQLModel, SerializableModel, table=True):
     filer_release_date: Optional[date] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
 
     searchable_text: Optional[str] = Field(sa_column=Column(TEXT))
+    is_shard: Optional[bool]
+    shard_parent_track_id: Optional[str]
     
     @computed_field
     @property
