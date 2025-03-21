@@ -1,93 +1,26 @@
+from datetime import date
 from sqlmodel import SQLModel
-from typing import Any, Dict, Optional, List, Union
-from typing_extensions import Self
-from pydantic import model_validator
+from typing import Optional, List
 
-from niagads.utils.list import find
-
-from api.common.constants import JSON_TYPE
-from api.common.enums import OnRowSelect, ResponseView
+from api.common.enums.response_properties import ResponseView
 from api.common.formatters import id2title
-from api.models import ExperimentalDesign, BiosampleCharacteristics, Provenance
-from api.models.base_models import GenericDataModel
+
 from api.models.base_response_models import PagedResponseModel
+from api.models.track import GenericTrack, GenericTrackSummary
+from api.models.track_properties import BiosampleCharacteristics
+from api.routers.filer.models.track_metadata_cache import FILERAccession
+
+# Developer Note: not setting a default for optionals b/c coming from
+# the SQLModel, which will have nulls if no value
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
-class FILERTrackBrief(SQLModel, GenericDataModel):
-    track_id: str
-    name: str
-    genome_build: Optional[str]
-    feature_type: Optional[str]
-    is_lifted: Optional[bool]
-    data_source: Optional[str]
-    data_category: Optional[str]
+class FILERTrackSummary(SQLModel, GenericTrackSummary):
+    assay: Optional[str] 
+    
+
+class FILERTrack(SQLModel, GenericTrack):  
     assay: Optional[str]
-    url: Optional[str]
-    
-    @model_validator(mode='before')
-    @classmethod
-    def allowable_extras(cls: Self, data: Union[Dict[str, Any]]):
-        """ for now, allowable extras are just counts, prefixed with `num_` """
-        if type(data).__base__ == SQLModel or isinstance(data, str) or not isinstance(data, dict): 
-            # then there are no extra fields or FASTAPI is attempting to serialize
-            # unnecessarily when returning a Union[ResponseType Listing]
-            return data
-        modelFields = cls.model_fields.keys()
-        return {k:v for k, v in data.items() if k in modelFields or k.startswith('num_')}
-
-
-    def get_field_names(self):
-        fields = list(self.model_fields.keys())
-        if len(self.model_extra) > 0:
-            fields += list(self.model_extra.keys())
-        return fields
-    
-
-    def get_view_config(self, view: ResponseView, **kwargs) -> JSON_TYPE:
-        """ get configuration object required by the view """
-        match view:
-            case view.TABLE:
-                return self._build_table_config()
-            case _:
-                raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
-            
-
-    def to_view_data(self, view: ResponseView, **kwargs) -> JSON_TYPE:
-        """ covert row data to view formatted data """
-        return self.serialize()
-
-    
-    def _build_table_config(self):
-        """ Return a column object for niagads-viz-js/Table """
-        fields = self.get_field_names()
-        columns: List[dict] = [ {'id': f, 'header': id2title(f)} for f in fields]
-            
-        # update type of is_lifted to boolean
-        index: int = find(columns, 'is_lifted', 'id', returnValues=False)
-        columns[index[0]].update({'type': 'boolean', 'description': 'data have been lifted over from an earlier genome build'})
-        options = {}
-        if 'num_overlaps' in fields:
-            options.update({'rowSelect': {
-                    'header': 'Select',
-                    'enableMultiRowSelect': True,
-                    'rowId': 'track_id',
-                    'onRowSelectAction': OnRowSelect.ACCESS_ROW_DATA
-                }})
-            fields.remove('num_overlaps')
-            fields.insert(0, 'num_overlaps') # so that it is in the first 8 and displayed by default
-        if len(fields) > 8:
-            options.update({'defaultColumns': fields[:8]})
-        return {'columns': columns, 'options': options}
-    
-
-class FILERTrack(FILERTrackBrief):  
-    experimental_design: Optional[ExperimentalDesign]
-    
-    # biosample
-    biosample_characteristics: Optional[BiosampleCharacteristics]
-    
-    # provenance
-    provenance: Optional[Provenance]
+    provenance: FILERAccession
     
     # FILER properties
     file_name: Optional[str]
@@ -99,15 +32,7 @@ class FILERTrack(FILERTrackBrief):
     number_of_intervals: Optional[int] 
     file_size: Optional[int]
     file_format: Optional[str]
-    file_schema: Optional[str]
-    
-    
-    def get_field_names(self):
-        fields = list(self.model_fields.keys())
-        if len(self.model_extra) > 0:
-            fields += list(self.model_extra.keys())
-        return fields
-    
+    file_schema: Optional[str]    
 
     def get_view_config(self, view: ResponseView, **kwargs):
         return super().get_view_config(view, **kwargs)
@@ -120,15 +45,17 @@ class FILERTrack(FILERTrackBrief):
         columns = [ c for c in config['columns'] if c['id'] not in ['biosample_characteristics', 
             'replicates', 'provenance', 'data_source'] ] # data source will be promoted from provenance 
         columns += [ {'id': f, 'header': id2title(f)} for f in BiosampleCharacteristics.model_fields]
-        columns += [ {'id': f, 'header': id2title(f)} for f in Provenance.model_fields]
+        columns += [ {'id': f, 'header': id2title(f)} for f in FILERAccession.model_fields]
         config.update({'columns': columns })
         return config
 
-class FILERTrackBriefResponse(PagedResponseModel):
-    response: List[FILERTrackBrief]
+class FILERTrackSummaryResponse(PagedResponseModel):
+    response: List[FILERTrackSummary]
     
     def to_text(self, format: ResponseView, **kwargs):
-        fields = self.response[0].get_field_names()
+        # fields could contain num_overlaps if a result is present
+        fields = self.response[0].get_field_names() \
+            if len(self.response) > 0 else FILERTrackSummary.get_model_fields()
         return super().to_text(format, fields=fields)
 
     
@@ -136,7 +63,7 @@ class FILERTrackResponse(PagedResponseModel):
     response: List[FILERTrack]
 
     def to_text(self, format: ResponseView, **kwargs):
-        fields = self.response[0].get_field_names()
+        fields = FILERTrack.get_model_fields()
         return super().to_text(format, fields=fields)
 
 

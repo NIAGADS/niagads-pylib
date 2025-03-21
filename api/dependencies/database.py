@@ -1,17 +1,15 @@
 # Middleware for choosing database based on endpoint
 # adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
 import logging
-from typing import Union
 import asyncpg
 from typing_extensions import Self
 from fastapi.exceptions import RequestValidationError
-from sqlmodel import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_scoped_session, AsyncSession, AsyncEngine, async_sessionmaker
 from asyncio import current_task
 from aiocache import RedisCache
 
 from api.common.constants import CACHEDB_TIMEOUT
-from api.common.enums import CacheNamespace, CacheSerializer, CacheTTL
+from api.common.enums.cache import CacheNamespace, CacheSerializer, CacheTTL
 from api.config.settings import get_settings
 
 logger = logging.getLogger(__name__)

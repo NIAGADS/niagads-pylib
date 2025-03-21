@@ -7,13 +7,20 @@ from typing import Optional
 from pydantic import computed_field
 
 from niagads.filer.parser import split_replicates
-from niagads.utils.reg_ex import regex_extract
 
 from api.config.urls import DATASOURCE_URLS
-from api.models import Provenance, ExperimentalDesign
 from api.models.base_models import SerializableModel
+from api.models.track_properties import ExperimentalDesign, Provenance
 
-class Collection(SQLModel, SerializableModel, table=True):
+# Developer Note: not setting a default for all optionals b/c coming from
+# the SQLModel, which will have nulls if no value
+
+class FILERAccession(Provenance):
+    data_source_version: Optional[str] = None
+    download_date: Optional[date] = None
+    project: Optional[str] = None # FIXME: make this == collections: List[str]?
+
+class Collection(SQLModel, table=True):
     __tablename__ = "filercollection"
     __bind_key__ = 'filer'
     __table_args__ = {'schema': 'serverapplication'}
@@ -23,7 +30,7 @@ class Collection(SQLModel, SerializableModel, table=True):
     description: str = Field(sa_column=Column(TEXT))
     
 
-class TrackCollection(SQLModel, SerializableModel, table=True):
+class TrackCollection(SQLModel, table=True):
     __tablename__ = "filercollectiontracklink"
     __bind_key__ = 'filer'
     __table_args__ = {'schema': 'serverapplication'}
@@ -114,9 +121,9 @@ class Track(SQLModel, SerializableModel, table=True):
     
     @computed_field
     @property
-    def provenance(self) -> Provenance:
-        props = { field: getattr(self, field) for field in Provenance.model_fields }
-        return Provenance(**props)
+    def provenance(self) -> FILERAccession:
+        props = { field: getattr(self, field) for field in FILERAccession.model_fields }
+        return FILERAccession(**props)
 
         
     @computed_field 

@@ -1,23 +1,26 @@
+from typing import List
 from fastapi import APIRouter, Depends
 from fastapi.exceptions import RequestValidationError
 
-from api.common.enums import ResponseContent
+from api.common.enums.genome import Assembly
+from api.common.enums.response_properties import ResponseContent
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
-from api.dependencies.parameters.location import Assembly, assembly_param
-from api.dependencies.parameters.optional import keyword_param
-from api.models.igvbrowser import IGVBrowserTrackSelectorResponse, IGVBrowserTrackConfigResponse
+from api.dependencies.parameters.identifiers import query_collection_name
+from api.dependencies.parameters.location import assembly_param
+from api.models.igvbrowser import IGVBrowserTrackConfig, IGVBrowserTrackSelectorResponse, IGVBrowserTrackConfigResponse
+from api.models.view_models import TableViewModel
 
-from ..common.helpers import FILERRouteHelper
-from ..dependencies.parameters import InternalRequestParameters, optional_query_track_id, query_collection_name
+from api.routers.filer.common.helpers import FILERRouteHelper
+from api.routers.filer.dependencies.parameters import InternalRequestParameters, optional_query_track_id
 
 router = APIRouter(prefix="/service", responses=RESPONSES)
 
-tags = ["NIAGADS Genome Browser Configuration"]
+tags = ["NIAGADS Genome Browser"]
 
-@router.get("/igvbrowser/config", tags=tags, response_model=IGVBrowserTrackConfigResponse,
-    name="Get IGV Genome Browser configuration for FILER tracks",
+@router.get("/igvbrowser/config", tags=tags, response_model=List[IGVBrowserTrackConfig],
+    name="Get IGV Genome Browser for FILER tracks",
     description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) by ID or collection")
     # , or keyword search")
 async def get_track_browser_config(
@@ -27,7 +30,7 @@ async def get_track_browser_config(
         # keyword: str = Depends(keyword_param),
         internal: InternalRequestParameters = Depends()
         
-    ) -> IGVBrowserTrackConfigResponse:
+    ) -> List[IGVBrowserTrackConfig]:
 
     helper = FILERRouteHelper(
         internal,
@@ -43,16 +46,18 @@ async def get_track_browser_config(
         # FIXME: allow combinations
         raise RequestValidationError('please provide a value for exactly one of `collection`  or `track`')
 
-  
+
     if collection is not None:
-        return await helper.get_collection_track_metadata()
+        result = await helper.get_collection_track_metadata()
     #elif keyword is not None:
-    #    return await helper.search_track_metadata()
+    #    result = await helper.search_track_metadata()
     else:
-        return await helper.get_track_metadata()
+        result = await helper.get_track_metadata()
+        
+    return result.response
     
 
-@router.get("/igvbrowser/selector", tags=tags, response_model=IGVBrowserTrackSelectorResponse,
+@router.get("/igvbrowser/selector", tags=tags, response_model=TableViewModel,
     name="Get Genome Browser track selector for FILER tracks",
     description="retrieve NIAGADS Genome Browser track selector table for one or more FILER `track`(s) by ID or collection")
     #, or keyword")
@@ -62,7 +67,7 @@ async def get_track_browser_config(
         collection: str = Depends(query_collection_name),
         # keyword: str = Depends(keyword_param),
         internal: InternalRequestParameters = Depends()
-    ) -> IGVBrowserTrackSelectorResponse:
+    ) -> TableViewModel:
 
     helper = FILERRouteHelper(
         internal,
@@ -80,10 +85,11 @@ async def get_track_browser_config(
 
 
     if collection is not None:
-        return await helper.get_collection_track_metadata()
+        result = await helper.get_collection_track_metadata()
     # elif keyword is not None:
-    #     return await helper.search_track_metadata()
+    #     result = await helper.search_track_metadata()
     else:
-        return await helper.get_track_metadata()
+        result = await helper.get_track_metadata()
     
+    return result.response
 

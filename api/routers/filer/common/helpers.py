@@ -6,23 +6,21 @@ from itertools import groupby
 from operator import itemgetter
 
 from niagads.utils.list import cumulative_sum, chunker
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel
 
-from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace
+from api.common.enums.cache import CacheKeyQualifier, CacheNamespace
+from api.common.enums.response_properties import ResponseContent
 from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, PaginationCursor
 from api.common.types import Range
-from api.models.base_models import CacheKeyDataModel
+from api.models.response_model_properties import CacheKeyDataModel
+
+from api.routers.filer.common.constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
+from api.routers.filer.common.enums import FILERApiEndpoint
+from api.routers.filer.common.services import ApiWrapperService, FILERApiDataResponse, MetadataQueryService
+from api.routers.filer.dependencies.parameters import InternalRequestParameters
 from api.routers.filer.models.bed_features import BEDFeature
-from api.routers.filer.models.filer_track import FILERTrackBrief
-
-from .constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
-from .enums import FILERApiEndpoint
-from .services import FILERApiDataResponse, TrackOverlap, MetadataQueryService, ApiWrapperService, sort_track_overlaps
-from ..dependencies.parameters import InternalRequestParameters
-from ..models.track_metadata_cache import Track
-
-import logging
-LOGGER = logging.getLogger(__name__)
+from api.routers.filer.models.track_metadata_cache import Track
+from api.routers.filer.models.track_overlaps import TrackOverlap, sort_track_overlaps
 
 
 class FILERPaginationCursor(BaseModel):
@@ -35,8 +33,6 @@ class FILERRouteHelper(RouteHelper):
     
     def __init__(self, managers: InternalRequestParameters, responseConfig: ResponseConfiguration, params: Parameters):
         super().__init__(managers, responseConfig, params)
-        self._managers: InternalRequestParameters = managers
-
 
     async def __initialize_data_query_pagination(self, trackOverlaps: List[TrackOverlap]) -> FILERPaginationCursor:
         """ calculate expected result size, number of pages; 
@@ -164,7 +160,7 @@ class FILERRouteHelper(RouteHelper):
         return result
 
 
-    async def get_paged_track_data(self, trackOverlaps:List[TrackOverlap], validate=True):
+    async def __get_paged_track_data(self, trackOverlaps:List[TrackOverlap], validate=True):
 
         result = await self._managers.cache.get(
             self._managers.cacheKey.encrypt(), namespace=self._managers.cacheKey.namespace)
@@ -193,11 +189,10 @@ class FILERRouteHelper(RouteHelper):
     async def get_track_data(self, validate=True): 
         """ if trackSummary is set, then fetches from the summary not from a parameter"""
         
-        result = await self._managers.cache.get(self._managers.cacheKey.encrypt(),
-            namespace=self._managers.cacheKey.namespace)
-        if result is not None:
-            return await self.generate_response(result, isCached=True)
-
+        cachedResponse = await self._get_cached_response()
+        if cachedResponse is not None:
+            return cachedResponse
+        
         tracks = self._parameters.get('track') 
         tracks = tracks.split(',') if isinstance(tracks, str) else tracks
         tracks = sorted(tracks) # best for caching
@@ -210,7 +205,7 @@ class FILERRouteHelper(RouteHelper):
         trackOverlaps = await self.__get_track_data_task(tracks, assembly, self._parameters.span, True)
         
         if self._responseConfig.content == ResponseContent.FULL:
-            return await self.get_paged_track_data(trackOverlaps, validate=validate)
+            return await self.__get_paged_track_data(trackOverlaps, validate=validate)
 
         # to ensure pagination order, need to sort by counts
         sortedTrackOverlaps = sort_track_overlaps(trackOverlaps)
@@ -264,7 +259,8 @@ class FILERRouteHelper(RouteHelper):
             tracks = tracks.split(',') if isinstance(tracks, str) else tracks
             tracks = sorted(tracks) # best for caching & pagination
             
-            result = await MetadataQueryService(self._managers.session).get_track_metadata(tracks, responseType=self._responseConfig.content)
+            result = await MetadataQueryService(self._managers.session) \
+                .get_track_metadata(tracks, responseType=self._responseConfig.content)
             
             if not rawResponse:
                 self._resultSize = len(result)
@@ -366,11 +362,9 @@ class FILERRouteHelper(RouteHelper):
         
 
     async def search_track_data(self):
-        result = await self._managers.cache.get(self._managers.cacheKey.encrypt(),
-            namespace=self._managers.cacheKey.namespace)
-        
-        if result is not None: # just return the cached response
-            return await self.generate_response(result, isCached=True)
+        cachedResponse = await self._get_cached_response()
+        if cachedResponse is not None:
+            return cachedResponse
     
         hasMetadataFilters = self._parameters.keyword is not None or self._parameters.filter is not None
         
@@ -415,7 +409,7 @@ class FILERRouteHelper(RouteHelper):
             targetTrackOverlaps: List[TrackOverlap] = [t for t in informativeTrackOverlaps if t.track_id in targetTrackIds]
         
         if self._responseConfig.content == ResponseContent.FULL:
-            return await self.get_paged_track_data(targetTrackOverlaps)
+            return await self.__get_paged_track_data(targetTrackOverlaps)
         
         # to ensure pagination order, need to sort by counts
         result: List[TrackOverlap] = sort_track_overlaps(targetTrackOverlaps)

@@ -6,14 +6,15 @@ from typing import Any, Dict, Optional, Type, Union
 from niagads.utils.list import list_to_string
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
-from api.common.enums import CacheKeyQualifier, ResponseContent, CacheNamespace, ResponseView, ResponseFormat
+from api.common.enums.cache import CacheKeyQualifier, CacheNamespace
+from api.common.enums.response_properties import ResponseContent,ResponseView, ResponseFormat
 from api.common.types import Range
 
 from api.dependencies.parameters.services import InternalRequestParameters
-from api.models.base_models import CacheKeyDataModel, PaginationDataModel
+from api.models.response_model_properties import CacheKeyDataModel, PaginationDataModel
 from api.models.base_response_models import BaseResponseModel, T_ResponseModel
 from api.models.igvbrowser import IGVBrowserTrackSelectorResponse
-from api.models.view_models import TableViewResponseModel
+from api.models.view_models import TableViewResponse
 
 INTERNAL_PARAMETERS = ['span', '_tracks']
 ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMARY]
@@ -21,7 +22,7 @@ ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMAR
 class PaginationCursor(BaseModel):
     """ pagination cursor """
     key: Union[str, int]
-    offset: Optional[int]
+    offset: Optional[int] = None
 
 class Parameters(BaseModel):
     """ arbitrary namespace to store request parameters and pass them to helpers """
@@ -104,6 +105,16 @@ class RouteHelper():
     def set_page_size(self, pageSize: int):
         self._pageSize = pageSize
         
+        
+    async def _get_cached_response(self):
+        cacheKey = self._managers.cacheKey.encrypt()
+        response = await self._managers.cache.get(
+            cacheKey, namespace=self._managers.cacheKey.namespace)
+        
+        if response is not None:
+            return await self.generate_response(response, isCached = True)
+        
+        return None
     
     def _pagination_exists(self, raiseError: bool = True):
         if self._pagination is None:
@@ -137,6 +148,9 @@ class RouteHelper():
     def total_num_pages(self):
         if self._resultSize is None:
             raise RuntimeError('Attempting to page before estimating result size.')
+        
+        if self._resultSize > self._pageSize * MAX_NUM_PAGES:
+            raise RequestValidationError(f'Result size ({self._resultSize}) is too large; filter for fewer tracks or narrow the queried genomic region.')
         
         return 1 if self._resultSize < self._pageSize \
             else next((p for p in range(1, MAX_NUM_PAGES) if (p - 1) * self._pageSize > self._resultSize)) - 1
@@ -202,7 +216,7 @@ class RouteHelper():
             'request': self._managers.requestData,
             'pagination': response.pagination if response.is_paged() else None }
         
-        viewResponse = TableViewResponseModel(**viewResponseObj)
+        viewResponse = TableViewResponse(**viewResponseObj)
 
         await self._managers.cache.set(cacheKey, viewResponse, namespace=CacheNamespace.VIEW)
         
@@ -254,7 +268,8 @@ class RouteHelper():
             case ResponseView.DEFAULT:
                 if self._responseConfig.format in [ResponseFormat.TEXT, ResponseFormat.BED, ResponseFormat.VCF]:
                     try:
-                        return Response(response.to_text(self._responseConfig.format), media_type="text/plain")
+                        nullStr = None if self._responseConfig.format == ResponseFormat.TEXT else '.'
+                        return Response(response.to_text(self._responseConfig.format, nullStr=nullStr), media_type="text/plain")
                     except NotImplementedError as err:
                         if self._responseConfig.format == ResponseFormat.TEXT:
                             response.add_message(f'{str(err)} Returning default JSON response.')

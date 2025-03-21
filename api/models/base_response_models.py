@@ -1,38 +1,29 @@
-from abc import ABC, abstractmethod
-from pydantic import Field
-from typing import Any, Dict, TypeVar
+from pydantic import BaseModel, Field
+from typing import Any, Dict, List, TypeVar, Union
 from typing_extensions import Self
 
 from niagads.utils.string import xstr
 
-from api.common.enums import OnRowSelect, ResponseFormat, ResponseView
-from api.models.base_models import PaginationDataModel, RequestDataModel, RowModel, SerializableModel
+from api.common.constants import DEFAULT_NULL_STRING
+from api.common.enums.response_properties import OnRowSelect, ResponseFormat, ResponseView
+from api.models.base_row_models import RowModel, T_RowModel
+from .response_model_properties import PaginationDataModel, RequestDataModel
 
-
-# FIXME: 'Any' or 'SerializableModel' for response
-class AbstractResponseModel(ABC, SerializableModel):
+class BaseResponseModel(BaseModel):
     response: Any = Field(description="result (data) from the request")
     request: RequestDataModel = Field(description="details about the originating request that generated the response")
 
-    def add_message(self, str):
-        self.request.add_message(str)
-    
-    @abstractmethod
-    def to_text(self, format:ResponseFormat, **kwargs):
-        """ return a text response (e.g., BED, VCF, Download script) """
-        raise RuntimeError('`AbstractModel` is an abstract class; need to override abstract methods in child classes')
-    
-    @abstractmethod 
-    def to_view(self, view:ResponseView, **kwargs):
-        """ transform response to JSON expected by NIAGADS-viz-js Table """
-        raise RuntimeError('`AbstractModel` is an abstract class; need to override abstract methods in child classes')
-    
+
+    def has_count_fields(self):
+        if any(f.startswith('num_') for f in self.response[0].model_fields.keys()):
+            return True
+        if isinstance(self.response[0].model_extra, dict):
+            return any(f.startswith('num_') for f in self.response[0].model_extra.keys())
     
     @classmethod
     def is_paged(cls: Self):
         return 'pagination' in cls.model_fields
-    
-    
+
     @classmethod
     def row_model(cls: Self, name=False):
         """ get the type of the row model in the response """
@@ -45,17 +36,15 @@ class AbstractResponseModel(ABC, SerializableModel):
         
         return rowType.__name__ if name == True else rowType
     
+    def add_message(self, str):
+        self.request.add_message(str)
 
-class BaseResponseModel(AbstractResponseModel):
-    
     def to_view(self, view: ResponseView, **kwargs):
-        """ transform response to JSON expected by NIAGADS-viz-js Table """
         if len(self.response) == 0:
             raise RuntimeError('zero-length response; cannot generate view')
-        if 'on_row_select' not in kwargs:
-            if 'num_overlaps' in self.response[0].model_fields.keys() or \
-                'num_overlaps' in self.response[0].model_extra.keys():
-                kwargs['on_row_select'] = OnRowSelect.ACCESS_ROW_DATA
+
+        if self.has_count_fields():
+            kwargs['on_row_select'] = OnRowSelect.ACCESS_ROW_DATA
                 
         viewResponse: Dict[str, Any] = {}
         data = []
@@ -66,14 +55,20 @@ class BaseResponseModel(AbstractResponseModel):
             data.append(row.to_view_data(view, **kwargs))
         viewResponse.update({'data': data})
     
-        if view == ResponseView.TABLE:
-            viewResponse.update({'id': kwargs['id']})
+        match view:
+            case ResponseView.TABLE:
+                viewResponse.update({'id': kwargs['id']})
+            case ResponseView.IGV_BROWSER:
+                raise NotImplementedError('IGVBrowser view coming soon')
+            case _:
+                raise RuntimeError(f'Invalid view: {view}')
             
         return viewResponse
     
+    
     def to_text(self, format: ResponseFormat, **kwargs):
         """ return a text response (e.g., BED, VCF, plain text) """
-        nullStr = kwargs.get('nullStr', '.')
+        nullStr = kwargs.get('nullStr', DEFAULT_NULL_STRING)
         if isinstance(self.response, dict):
             responseStr = '\t'.join(list(self.response.keys())) + '\n'
             responseStr += '\t'.join([xstr(v, nullStr=nullStr) for v in self.response.values()]) + '\n'
@@ -94,10 +89,9 @@ class BaseResponseModel(AbstractResponseModel):
         return responseStr
         
 
-
 class PagedResponseModel(BaseResponseModel):
     pagination: PaginationDataModel = Field(description="pagination details, if the result is paged")
     
     
 # possibly allows you to set a type hint to a class and all its subclasses
-T_ResponseModel = TypeVar('T_ResponseModel', bound=AbstractResponseModel)
+T_ResponseModel = TypeVar('T_ResponseModel', bound=BaseResponseModel)

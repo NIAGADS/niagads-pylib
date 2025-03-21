@@ -1,3 +1,4 @@
+import json
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from sqlmodel import select, col, or_, func, distinct
@@ -9,9 +10,10 @@ from typing import List, Optional, Union
 
 from niagads.utils.list import list_to_string
 
-from api.common.enums import Assembly, ResponseContent, ResponseFormat, ResponseView
+from api.common.enums.genome import Assembly
+from api.common.enums.response_properties import ResponseContent
 from api.dependencies.parameters.filters import tripleToPreparedStatement
-from api.models.base_models import RowModel
+from api.routers.filer.models.track_overlaps import TrackOverlap, sort_track_overlaps
 
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint
@@ -22,24 +24,6 @@ class FILERApiDataResponse(BaseModel):
     Identifier: str
     features: List[BEDFeature]
     
-class TrackOverlap(RowModel):
-    track_id: str
-    num_overlaps: int
-    
-    def get_view_config(self, view: ResponseView, **kwargs):
-        raise RuntimeError('View transformations not implemented for this row model.')
-    
-    def to_view_data(self, view: ResponseView, **kwargs):
-        raise RuntimeError('View transformations not implemented for this row model.')
-    
-    def to_text(self, format: ResponseFormat, **kwargs):
-        return f'{self.track_id}\t{self.num_overlaps}'
-        # raise NotImplementedError('Text responses not implemented for this data type.')
-    
-
-def sort_track_overlaps(trackOverlaps: List[TrackOverlap], reverse=True) -> List[TrackOverlap]:
-    return sorted(trackOverlaps, key = lambda item: item.num_overlaps, reverse=reverse)    
- 
 class ApiWrapperService:
     def __init__(self, session):
         self.__session: ClientSession = session
@@ -75,7 +59,7 @@ class ApiWrapperService:
                 result = await response.json() 
             return result
         except Exception as e:
-            raise LookupError(f'Unable to parse FILER response `{response.content}` for the following request: {str(response.url)}')
+            raise LookupError(f'Unable to get FILER response `{response.content}` for the following request: {str(response.url)}')
     
     
     async def __count_track_overlaps(self, span: str, assembly: str, tracks: List[str]) -> List[TrackOverlap]:   
@@ -105,10 +89,12 @@ class ApiWrapperService:
         
         result = await self.__fetch(FILERApiEndpoint.OVERLAPS, {'track': ','.join(tracks), 'span': span})
         
-        if 'message' in result:
-            raise RuntimeError(result['message'])
-        
-        return [FILERApiDataResponse(**r) for r in result]
+        # FIXME: more efficient?
+
+        try:
+            return [FILERApiDataResponse(**r) for r in result]
+        except:
+            raise LookupError(f'Unable to process FILER response for track(s) `{tracks}` in the span: {span} ({assembly})')
 
 
     async def get_informative_tracks(self, span: str, assembly: str, sort=False) -> List[TrackOverlap]:
@@ -224,7 +210,7 @@ class MetadataQueryService:
 
     async def query_track_metadata(self, 
             assembly: str, 
-            filters: Optional[List[str]], 
+            filters: Optional[List[str]],
             keyword: Optional[str], 
             responseType: ResponseContent,
             limit:int = None,

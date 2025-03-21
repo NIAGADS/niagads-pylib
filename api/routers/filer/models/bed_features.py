@@ -1,13 +1,13 @@
 from typing import Any, List, Optional, Union
-
-from niagads.utils.string import dict_to_info_string, xstr
 from pydantic import Field
 
-from api.common.enums import ResponseFormat, ResponseView
+from niagads.utils.string import dict_to_info_string, xstr
+
+from api.common.enums.response_properties import ResponseFormat, ResponseView
 from api.common.formatters import id2title
 
 from api.models.base_response_models import PagedResponseModel
-from api.models.base_models import GenericDataModel
+from api.models.base_row_models import GenericDataModel
 
 class BEDFeature(GenericDataModel):
     chrom: str = Field(description="name of the chromosome or scaffold")
@@ -17,6 +17,18 @@ class BEDFeature(GenericDataModel):
     score: Optional[Union[str, int, float]] = Field(default='.', description="a score between 0 and 1000")
     strand: Optional[str] = Field(default='.', description="forward (+) or reverse (-) direction")
     
+    def get_field_names(self, collapseExtras: bool):
+        """ get list of valid fields """
+        fields = list(self.model_fields.keys())
+        if isinstance(self.model_extra, dict):
+            if len(self.model_extra) > 0:
+                if collapseExtras: 
+                    fields = fields + ['additional_fields']
+                else:
+                    fields += [k for k in self.model_extra.keys() if k != 'track_id']
+                
+        fields = fields + ['track_id']
+        return fields
     
     def add_track(self, trackId: Any):
         self.model_extra['track_id'] = trackId
@@ -36,19 +48,6 @@ class BEDFeature(GenericDataModel):
             return data
         else:
             return self.model_dump()
-
-
-    def get_field_names(self, collapseExtras: bool):
-        """ get list of valid fields """
-        fields = list(self.model_fields.keys())
-        if len(self.model_extra) > 0:
-            if collapseExtras: 
-                fields = fields + ['additional_fields']
-            else:
-                fields += [k for k in self.model_extra.keys() if k != 'track_id']
-                
-        fields = fields + ['track_id']
-        return fields
     
     
     def to_view_data(self, view: ResponseView, **kwargs):
@@ -100,9 +99,10 @@ class BEDResponse(PagedResponseModel):
     def to_text(self, format: ResponseFormat, **kwargs):
         """ return a text response (e.g., BED, plain text) """
         hasDynamicExtras = self.__has_dynamic_extras()
-        return super().to_text(format, fields=self.response[0].get_field_names(collapseExtras=hasDynamicExtras), 
+        
+        fields = self.response[0].get_field_names(collapseExtras=hasDynamicExtras) \
+            if len(self.response) > 0 else BEDFeature.get_model_fields()
+                
+        return super().to_text(format, fields=fields, 
             collapseExtras=hasDynamicExtras, **kwargs)
-    
-    
-    def to_view(self, view: ResponseView, **kwargs):
-        return super().to_view(view, collapseExtras=self.__has_dynamic_extras(), **kwargs)
+

@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, Union
 
+DEFAULT_NULL_STRING='NA'
+
 JSON_TYPE = Union[Dict[str, Any], List[Any], int, float, str, bool, None]
 
 ALLOWABLE_FILER_TRACK_FILTERS = {

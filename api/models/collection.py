@@ -1,12 +1,11 @@
 from sqlmodel import SQLModel
 from typing import List
 
-from api.common.enums import ResponseView
-from api.models.base_models import GenericDataModel
+from api.common.enums.response_properties import ResponseView
 from api.models.base_response_models import BaseResponseModel
+from api.models.base_row_models import GenericDataModel, RowModel
 
-
-class Collection(SQLModel, GenericDataModel):
+class Collection(SQLModel, RowModel):
     name:str 
     description:str 
     num_tracks: int
@@ -14,15 +13,6 @@ class Collection(SQLModel, GenericDataModel):
     def to_view_data(self, view: ResponseView, **kwargs):
         return self.model_dump()
     
-    def get_view_config(self, view: ResponseView, **kwargs):
-        """ get configuration object required by the view """
-        return super().get_view_config(view, **kwargs)
-    
-    def to_text(self, view: ResponseView, **kwargs):
-        return super().to_text(view, **kwargs)
-    
 class CollectionResponse(BaseResponseModel):
     response: List[Collection]
     
-    def to_view(self, view: ResponseView, **kwargs):
-        return super().to_view(view, **kwargs)

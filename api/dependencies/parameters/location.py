@@ -4,7 +4,7 @@ from niagads.reference.chromosomes import Human as Chromosome
 from niagads.utils.reg_ex import matches
 
 from api.common.formatters import clean
-from api.common.enums import Assembly
+from api.common.enums.genome import Assembly
 
 
 async def assembly_param(assembly: Assembly = Query(Assembly.GRCh38, description="reference genome build (assembly)")): 

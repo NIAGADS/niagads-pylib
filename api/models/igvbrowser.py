@@ -1,16 +1,15 @@
-from pydantic import ConfigDict, Field, computed_field
+from pydantic import Field, computed_field
 from sqlmodel import SQLModel
-from typing import Any, Dict, Optional, List
+from typing import List, Optional
 
-from niagads.utils.list import find
-
-from api.common.enums import OnRowSelect, ResponseFormat, ResponseView
+from api.common.enums.response_properties import OnRowSelect, ResponseFormat, ResponseView
 from api.common.formatters import id2title
 from api.config.settings import get_settings
-from api.models import BiosampleCharacteristics, ExperimentalDesign
-from api.models.base_models import RowModel
 from api.models.base_response_models import BaseResponseModel
+from api.models.base_row_models import RowModel
+from api.models.track_properties import BiosampleCharacteristics, ExperimentalDesign
 from api.models.view_models import TableViewModel
+
 
 class IGVBrowserTrackConfig(SQLModel, RowModel):
     track_id: str = Field(serialization_alias="id")
@@ -47,8 +46,8 @@ class IGVBrowserTrackMetadata(RowModel):
     description: str
     data_source: str
     feature_type: str # = Field(serialization_alias='feature')
-    biosample_characteristics: BiosampleCharacteristics
-    experimental_design: ExperimentalDesign
+    biosample_characteristics: Optional[BiosampleCharacteristics] = None
+    experimental_design: Optional[ExperimentalDesign] = None
     
     # model_config = ConfigDict(populate_by_name=True)
     
@@ -77,22 +76,12 @@ class IGVBrowserTrackMetadata(RowModel):
         """ get configuration object required by the view """
         return None
     
-    def to_view_data(self, view: ResponseView, **kwargs):
-        return self.model_dump(by_alias=True)
-    
-    def to_text(self, format: ResponseFormat, **kwargs):
-        return super().to_text(format, **kwargs)
 
 
-# TODO: allowable views: direct to genome browser   
-# TODO: create truncated response instead of paging
+
 class IGVBrowserTrackConfigResponse(BaseResponseModel):
     response: List[IGVBrowserTrackConfig]
     
-    def to_view(self, view: ResponseView, **kwargs):
-        raise NotImplementedError('IGVBrowser view coming soon')
-        # return super().to_view(view, **kwargs)
-        # NOTE: super().to_view call w/result in error; expects non null config
 
     
 class IGVBrowserTrackSelectorResponse(BaseResponseModel):
@@ -113,8 +102,5 @@ class IGVBrowserTrackSelectorResponse(BaseResponseModel):
 
         return {'data': tableData, 'columns': columns, 'options': options, 'id': tableId}
         
-            
-    def to_view(self, view: ResponseView, **kwargs):
-        raise NotImplementedError('IGVBrowser view coming soon')
-        # return super().to_view(view, **kwargs)
-        # NOTE: super().to_view call w/result in error
+
+
