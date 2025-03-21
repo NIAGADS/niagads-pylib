@@ -1,2 +1,5 @@
 # ai-bibliography-analysis
-POC AI Bibliography Analysis
+
+Temporary repository for POC AI Bibliography Analysis
+
+* script collection
