@@ -12,6 +12,12 @@ Common Alzheimer's and Related Dementias Research Ontology
 * manual literature analysis: <https://pubmed.ncbi.nlm.nih.gov/39935614/>
 * drug target categorization: <https://pubmed.ncbi.nlm.nih.gov/32695874/>
 
+## iCite
+
+Dashboard of bibliometrics for papers associated with a portfolio.  Users can type in a PubMed query or upload a list of PubMed IDs
+
+<https://icite.od.nih.gov/analysis>
+
 ## NCBI E-Utilities
 
 Entrez Programming Utilities
