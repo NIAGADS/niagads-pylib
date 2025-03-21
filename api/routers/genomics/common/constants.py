@@ -1,9 +1,11 @@
 from enum import auto
 from api.common.enums.base_enums import CaseInsensitiveEnum
+from api.common.enums.database import Databases
 
 DEFAULT_PAGE_SIZE=10000
 
-ROUTE_DATABASE = 'genomics'
+ROUTE_DATABASE = Databases.GENOMICS
+METADATA_DATABASE = Databases.METADATA
 
 ROUTE_PREFIX = "/genomics"
 ROUTE_NAME = "Alzheimer's Genomics Database"
