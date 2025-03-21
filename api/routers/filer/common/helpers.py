@@ -19,7 +19,7 @@ from api.routers.filer.common.enums import FILERApiEndpoint
 from api.routers.filer.common.services import ApiWrapperService, FILERApiDataResponse, MetadataQueryService
 from api.routers.filer.dependencies.parameters import InternalRequestParameters
 from api.routers.filer.models.bed_features import BEDFeature
-from api.routers.filer.models.track_metadata_cache import Track
+from api.models.database.metadata import Track
 from api.routers.filer.models.track_overlaps import TrackOverlap, sort_track_overlaps
 
 

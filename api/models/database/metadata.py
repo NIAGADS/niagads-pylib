@@ -1,3 +1,6 @@
+# TODO: extract out into models monorepo
+# TODO: handle dynamic elements in response models; e.g.: FILERAccession
+
 from sqlmodel import Field, SQLModel, Column
 
 from sqlalchemy import BigInteger
@@ -8,6 +11,7 @@ from pydantic import computed_field
 
 from niagads.filer.parser import split_replicates
 
+from api.common.enums.database import DataStore
 from api.config.urls import DATASOURCE_URLS
 from api.models.base_models import SerializableModel
 from api.models.track_properties import ExperimentalDesign, Provenance
@@ -21,20 +25,21 @@ class FILERAccession(Provenance):
     project: Optional[str] = None # FIXME: make this == collections: List[str]?
 
 class Collection(SQLModel, table=True):
-    __tablename__ = "filercollection"
-    __bind_key__ = 'filer'
-    __table_args__ = {'schema': 'serverapplication'}
+    __tablename__ = "collection"
+    __bind_key__ = 'metadata'
+    __table_args__ = {'schema': 'metadata'}
     
     collection_id: int = Field(default=None, primary_key=True)
     name: str
     description: str = Field(sa_column=Column(TEXT))
     tracks_are_sharded: bool
+    data_store: DataStore
     
 
 class TrackCollection(SQLModel, table=True):
-    __tablename__ = "filercollectiontracklink"
-    __bind_key__ = 'filer'
-    __table_args__ = {'schema': 'serverapplication'}
+    __tablename__ = "collectiontracklink"
+    __bind_key__ = 'metadata'
+    __table_args__ = {'schema': 'metadata'}
     
     collection_track_link_id: str = Field(default=None, primary_key=True)
     track_id: str = Field(foreign_key="track.track_id")
@@ -42,14 +47,16 @@ class TrackCollection(SQLModel, table=True):
     
 
 class Track(SQLModel, SerializableModel, table=True):
-    __tablename__ = "filertrack"
-    __bind_key__ = 'filer'
-    __table_args__ = {'schema': 'serverapplication'}
+    __tablename__ = "track"
+    __bind_key__ = 'metadata'
+    __table_args__ = {'schema': 'metadata'}
     
     track_id: str = Field(default=None, primary_key=True)
     description: Optional[str] = Field(sa_column=Column(TEXT))
     genome_build: Optional[str]
     feature_type: Optional[str]
+    data_store: DataStore
+    download_only: bool
     
     # biosample
     biosample_characteristics: dict | None = Field(sa_column=Column(JSONB))

@@ -8,7 +8,7 @@ from api.common.formatters import id2title
 from api.models.base_response_models import PagedResponseModel
 from api.models.track import GenericTrack, GenericTrackSummary
 from api.models.track_properties import BiosampleCharacteristics
-from api.routers.filer.models.track_metadata_cache import FILERAccession
+from api.models.database.metadata import FILERAccession
 
 # Developer Note: not setting a default for optionals b/c coming from
 # the SQLModel, which will have nulls if no value
