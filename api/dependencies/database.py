@@ -10,6 +10,7 @@ from aiocache import RedisCache
 
 from api.common.constants import CACHEDB_TIMEOUT
 from api.common.enums.cache import CacheNamespace, CacheSerializer, CacheTTL
+from api.common.enums.database import Databases
 from api.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -106,13 +107,13 @@ class DatabaseSessionManager:
         )
         
     
-    def __get_db_url(self, route: str = None):
-        match route:
-            case 'genomics':
+    def __get_db_url(self, db: Databases = None):
+        match db:
+            case Databases.GENOMICS:
                 return get_settings().GENOMICSDB_URL.replace('postgresql:', 'postgresql+asyncpg:')
-            case 'cache':
+            case Databases.CACHE:
                 return get_settings().API_CACHEDB_URL
-            case 'metadata': 
+            case Databases.METADATA: 
                 return get_settings().API_STATICDB_URL.replace('postgresql:', 'postgresql+asyncpg:')
             case _:
                 raise RuntimeError('Need to specify endpoint database - one of: genomics, cache, or metadata')
