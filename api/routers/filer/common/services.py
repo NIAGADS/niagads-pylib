@@ -10,6 +10,7 @@ from typing import List, Optional, Union
 
 from niagads.utils.list import list_to_string
 
+from api.common.enums.database import DataStore
 from api.common.enums.genome import Assembly
 from api.common.enums.response_properties import ResponseContent
 from api.dependencies.parameters.filters import tripleToPreparedStatement
@@ -17,7 +18,7 @@ from api.routers.filer.models.track_overlaps import TrackOverlap, sort_track_ove
 
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
 from .enums import FILERApiEndpoint
-from ..models.track_metadata_cache import Track, Collection, TrackCollection
+from ....models.database.metadata import Track, Collection, TrackCollection
 from ..models.bed_features import BEDFeature
 
 class FILERApiDataResponse(BaseModel):
@@ -111,11 +112,12 @@ class MetadataQueryService:
     async def validate_tracks(self, tracks: List[str]):
         # solution for finding tracks not in the table adapted from
         # https://stackoverflow.com/a/73691503
-
         lookups = Values(sqla_column('track_id', String), name='lookups').data([(t, ) for t in tracks])
         statement = select(lookups.c.track_id).outerjoin(
-            Track, col(Track.track_id) == lookups.c.track_id).where(col(Track.track_id) == None)
-        
+            Track, col(Track.track_id) == lookups.c.track_id) \
+                .filter(col(Track.data_store).in_([DataStore.FILER, DataStore.SHARED])) \
+                .where(col(Track.track_id) == None)
+    
         result = (await self.__session.execute(statement)).all()
         if len(result) > 0:
             raise RequestValidationError(f'Invalid track identifiers found: {list_to_string(result)}')
@@ -125,7 +127,8 @@ class MetadataQueryService:
     
     async def validate_collection(self, name: str) -> int:
         """ validate a collection by name """
-        statement = select(Collection).where(col(Collection.name).ilike(name))
+        statement = select(Collection).where(col(Collection.name).ilike(name)) \
+            .filter(col(Collection.data_store).in_([DataStore.FILER, DataStore.SHARED]))
         try:
             collection = (await self.__session.execute(statement)).scalar_one()
             return collection
@@ -160,7 +163,7 @@ class MetadataQueryService:
         if responseType == ResponseContent.COUNTS:
             return {'num_tracks': result[0]}
         if collection.tracks_are_sharded:
-            if ResponseContent.IDS: # need to fetch all tracks
+            # if ResponseContent.IDS: # need to fetch all tracks
             return [self.generate_shard_parent_metadata(t) for t in result]
         return result
     
