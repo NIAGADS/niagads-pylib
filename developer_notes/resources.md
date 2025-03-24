@@ -36,6 +36,6 @@ Get an API Key to reduce likelihood of getting blocked by NCBI servers and make 
 1. Goto <https://www.ncbi.nlm.nih.gov/account/> and create an account: recommend linking Google or using Login.gov.
 2. Under account settings, scroll down to the API Key Management and follow instructions to create an API Key
 
-### General Usage
+### Python Wrapper
 
-* TBA
+* as a first pass; try using the Metapub library (link in the [Recommended Packages](https://github.com/NIAGADS/ai-bibliography-analysis/blob/main/developer_notes/recommended_packages.md))
