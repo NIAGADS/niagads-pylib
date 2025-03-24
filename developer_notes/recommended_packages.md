@@ -1,5 +1,17 @@
 # Recommended Python Packages
 
+## Requirements
+
+Python 3.12+
+
+## MetaPub
+
+Metapub is a Python library that provides python objects fetched via eutils that represent Pubmed papers and concepts found within the NCBI databases.
+
+<https://pypi.org/project/metapub/>
+
+* example usage (from contributor) on how to get full text: <https://stackoverflow.com/a/78733212>
+
 ## AIOHTTP
 
 Python's `requests` library is slow, obsolete, and does not support async
