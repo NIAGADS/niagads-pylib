@@ -21,7 +21,6 @@ class GenericTrackSummary(GenericDataModel):
     data_category: Optional[str] = None
     url: Optional[str] = None
 
-    
     @model_validator(mode='before')
     @classmethod
     def allowable_extras(cls: Self, data: Union[Dict[str, Any]]):

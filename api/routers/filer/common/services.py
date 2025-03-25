@@ -9,11 +9,15 @@ from aiohttp import ClientSession
 from typing import List, Optional, Union
 
 from niagads.utils.list import list_to_string
+from niagads.utils.reg_ex import regex_replace
 
+from api.common.constants import SHARD_PATTERN
 from api.common.enums.database import DataStore
 from api.common.enums.genome import Assembly
 from api.common.enums.response_properties import ResponseContent
+from api.config.settings import get_settings
 from api.dependencies.parameters.filters import tripleToPreparedStatement
+from api.models.response_model_properties import RequestDataModel
 from api.routers.filer.models.track_overlaps import TrackOverlap, sort_track_overlaps
 
 from .constants import TRACK_SEARCH_FILTER_FIELD_MAP, BIOSAMPLE_FIELDS
@@ -104,11 +108,11 @@ class ApiWrapperService:
         return sort_track_overlaps(result) if sort else result
 
 
-
 class MetadataQueryService:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, request: RequestDataModel = None):
         self.__session = session
-
+        self.__request = request
+        
     async def validate_tracks(self, tracks: List[str]):
         # solution for finding tracks not in the table adapted from
         # https://stackoverflow.com/a/73691503
@@ -143,28 +147,71 @@ class MetadataQueryService:
         
     
     async def get_collections(self):
-        statement = select(Collection.name, Collection.description, func.count(TrackCollection.track_id).label('num_tracks')).join(TrackCollection, TrackCollection.collection_id == Collection.collection_id)
+        statement = select(Collection.name, Collection.description, func.count(TrackCollection.track_id).label('num_tracks')) \
+            .join(TrackCollection, TrackCollection.collection_id == Collection.collection_id)
         statement = statement.group_by(Collection).order_by(Collection.collection_id)
         result = (await self.__session.execute(statement)).all()
         return result
     
-    @staticmethod
-    def generate_shard_parent_metadata(track):
-        pass
     
-    async def get_collection_track_metadata(self, collectionName:str, responseType=ResponseContent.FULL) -> List[Track]:
+    def generate_sharded_track_metadata(self, t: Track):
+        t.track_id = t.shard_parent_track_id
+        t.url = f'{get_settings().API_PUBLIC_URL}{self.__request.endpoint}?content=URLS&track={t.track_id}'
+        
+        # remove _chrN_ from fields
+        t.name = regex_replace(SHARD_PATTERN, ' ', t.name)
+        t.description = regex_replace(SHARD_PATTERN, ' ', t.description)
+        
+        # set individual file names to None
+        t.raw_file_url = None
+        t.file_name = None
+
+        return t
+        
+
+    async def get_sharded_track_ids(self, rootShardTrackId):
+        statement = select(Track.track_id).where(col(Track.shard_parent_track_id) == rootShardTrackId).order_by(Track.track_id)
+        result = (await self.__session.execute(statement)).scalars().all()
+        return result
+    
+    
+    async def get_sharded_track_urls(self, rootShardTrackId):
+        statement = select(Track.url).where(col(Track.shard_parent_track_id) == rootShardTrackId).order_by(Track.track_id)
+        result = (await self.__session.execute(statement)).scalars().all()
+        return result
+    
+    
+    async def get_collection_track_metadata(self, collectionName:str, track:str = None, responseType=ResponseContent.FULL) -> List[Track]:
         collection: Collection = await self.validate_collection(collectionName)
-        target = self.__set_query_target(responseType)
+        
+        # if sharded URLs need to be mapped through IDS to find all shards
+        target = self.__set_query_target(ResponseContent.IDS) \
+            if responseType == ResponseContent.URLS and collection.tracks_are_sharded \
+            else self.__set_query_target(responseType)
+            
         statement = select(target) \
             .join(TrackCollection, TrackCollection.track_id == Track.track_id) \
             .where(TrackCollection.collection_id == collection.collection_id)
+            
+        if track is not None:
+            statement = statement.where(col(Track.track_id) == track)
         
         result = (await self.__session.execute(statement)).scalars().all()
         if responseType == ResponseContent.COUNTS:
             return {'num_tracks': result[0]}
         if collection.tracks_are_sharded:
-            # if ResponseContent.IDS: # need to fetch all tracks
-            return [self.generate_shard_parent_metadata(t) for t in result]
+            if responseType == ResponseContent.IDS: 
+                self.__request.add_message('Data are split by chromosome into 22 files per track.  For every `track` in the collection, there are 22 track identifiers and metadata are linked to the `track_id` of the first shard (`chr1`).')
+                result = [await self.get_sharded_track_ids(t) for t in result]
+                return sum(result, []) # unnest nested list
+            if responseType == ResponseContent.URLS:
+                self.__request.add_message('Data are split by chromosome into 22 files per track, differentiated by `_chrN_` in the file name.')
+                result = [await self.get_sharded_track_urls(t) for t in result] 
+                return sum(result, [])
+            
+            # otherwise full or summary result
+            self.__request.add_message(f'Track data are split by chromosome.  Summary metadata are linked to the `track_id` of the first shard (`chr1`).')
+            return [self.generate_sharded_track_metadata(t) for t in result]
         return result
     
     

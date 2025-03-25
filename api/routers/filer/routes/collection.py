@@ -14,7 +14,7 @@ from api.models.view_models import TableViewResponse
 
 from api.routers.filer.common.helpers import FILERRouteHelper
 from api.routers.filer.common.services import MetadataQueryService
-from api.routers.filer.dependencies.parameters import InternalRequestParameters
+from api.routers.filer.dependencies.parameters import InternalRequestParameters, optional_query_track_id_single
 from api.routers.filer.models.filer_track import FILERTrackSummaryResponse, FILERTrackResponse
 
 router = APIRouter(prefix="/collection", tags = ["Collections"], responses=RESPONSES)
@@ -52,6 +52,7 @@ async def get_collections(
 
 async def get_collection_track_metadata(
     collection: str = Depends(path_collection_name),
+    track: str=Depends(optional_query_track_id_single),
     page: int=Depends(page_param),
     content: str = Query(ResponseContent.FULL, description=ResponseContent.get_description(True)),
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
@@ -70,7 +71,7 @@ async def get_collection_track_metadata(
                 else FILERTrackSummaryResponse if rContent == ResponseContent.SUMMARY \
                     else BaseResponseModel
         ), 
-        Parameters(collection=collection, page=page)
+        Parameters(collection=collection, page=page, track=track)
     )
     
     return await helper.get_collection_track_metadata()

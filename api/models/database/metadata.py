@@ -52,6 +52,7 @@ class Track(SQLModel, SerializableModel, table=True):
     __table_args__ = {'schema': 'metadata'}
     
     track_id: str = Field(default=None, primary_key=True)
+    name: Optional[str]
     description: Optional[str] = Field(sa_column=Column(TEXT))
     genome_build: Optional[str]
     feature_type: Optional[str]
@@ -103,7 +104,10 @@ class Track(SQLModel, SerializableModel, table=True):
     @computed_field
     @property
     def index_url(self) -> str:
-        return self.url + '.tbi'
+        if self.url.endswith('.gz'):
+            return self.url + '.tbi'
+        else:
+            return None
     
     @computed_field
     @property

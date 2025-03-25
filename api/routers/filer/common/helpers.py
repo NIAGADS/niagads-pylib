@@ -295,8 +295,8 @@ class FILERRouteHelper(RouteHelper):
         if result is None:
             isCached = False
         
-            result = await MetadataQueryService(self._managers.session) \
-                .get_collection_track_metadata(self._parameters.collection,
+            result = await MetadataQueryService(self._managers.session, self._managers.requestData) \
+                .get_collection_track_metadata(self._parameters.collection, self._parameters.track,
                     responseType=self._responseConfig.content)
             
             if not rawResponse:
