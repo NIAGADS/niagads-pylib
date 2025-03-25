@@ -27,4 +27,4 @@ HTTP_CLIENT_TIMEOUT=30 # timeout in seconds
 CACHEDB_TIMEOUT=5 
 
 # regular expressions
-SHARD_PATTERN = r' chr(\d{1,2}|[XYM]|MT) '
+SHARD_PATTERN = r'chr(\d{1,2}|[XYM]|MT)'

@@ -156,11 +156,11 @@ class MetadataQueryService:
     
     def generate_sharded_track_metadata(self, t: Track):
         t.track_id = t.shard_parent_track_id
-        t.url = f'{get_settings().API_PUBLIC_URL}{self.__request.endpoint}?content=URLS&track={t.track_id}'
+        t.url = regex_replace(SHARD_PATTERN, '$CHR', t.url)
         
         # remove _chrN_ from fields
-        t.name = regex_replace(SHARD_PATTERN, ' ', t.name)
-        t.description = regex_replace(SHARD_PATTERN, ' ', t.description)
+        t.name = regex_replace(f' {SHARD_PATTERN} ', ' ', t.name)
+        t.description = regex_replace(f' {SHARD_PATTERN} ', ' ', t.description)
         
         # set individual file names to None
         t.raw_file_url = None
