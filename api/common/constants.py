@@ -26,3 +26,5 @@ HTTP_CLIENT_TIMEOUT=30 # timeout in seconds
 # int or float in seconds specifying maximum timeout for the operations to last. By default (aiocache) its 5. Use 0 or None if you want to disable it.
 CACHEDB_TIMEOUT=5 
 
+# regular expressions
+SHARD_PATTERN = r' chr(\d{1,2}|[XYM]|MT) '
