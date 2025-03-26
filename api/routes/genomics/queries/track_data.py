@@ -1,6 +1,4 @@
 from api.models.query_defintion import QueryDefinition
-from api.routes.genomics.models.feature_score import QTL, VariantPValueScore
-
 
 
 _BUILD_VARIANT_DETAILS_SQL="""
@@ -30,7 +28,7 @@ _BUILD_VARIANT_DETAILS_SQL="""
     ) AS variant
 """
 
-_TRACK_QTL_QUERY_SQL=f"""
+_TRACK_QTLGENE_QUERY_SQL=f"""
     SELECT r.track_id, r.track_id AS id,
     r.pvalue_display AS p_value, 
     r.neg_log10_pvalue,
@@ -68,18 +66,19 @@ _TRACK_GSS_QUERY_SQL=f"""
     ORDER BY r.neg_log10_pvalue DESC
 """
 
-_TRACK_QTL_COUNTS_QUERY_SQL="""
+_TRACK_QTLGENE_COUNTS_QUERY_SQL="""
     SELECT track_id, COUNT(qtl_gene_id) AS result_size 
     FROM Results.QTLGene
     WHERE track_id = :id
     GROUP BY track_id
 """
 
-TrackQTLQuery = QueryDefinition(
-    query=_TRACK_QTL_QUERY_SQL,
-    countsQuery=_TRACK_QTL_COUNTS_QUERY_SQL,
+TrackQTLGeneQuery = QueryDefinition(
+    query=_TRACK_QTLGENE_QUERY_SQL,
+    countsQuery=_TRACK_QTLGENE_COUNTS_QUERY_SQL,
     useIdSelectWrapper=True,
     errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB",
+    messageOnResultSize="Found target {0} genes in this analysis.  Displaying {1}.  To retrieve the full set, please run the following `paged` query using the NIAGADS Open Access API: {2}.",
     bindParameters = ['rank_start', 'rank_end']
 )
     

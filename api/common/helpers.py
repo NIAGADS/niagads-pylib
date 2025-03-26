@@ -211,7 +211,7 @@ class RouteHelper():
         self._managers.requestData.set_request_id(cacheKey)
         
         if  self._responseConfig.format != ResponseFormat.JSON:
-            self._managers.requestData.add_message(f'View requested; response format changed to {ResponseFormat.JSON.value}')
+            self._managers.requestData.add_message(f'WARNING: `Table` VIEW requested; response format changed to `{ResponseFormat.JSON.value}`')
             
         
         viewResponseObj = {'response': response.to_view(ResponseView.TABLE, id=cacheKey),
