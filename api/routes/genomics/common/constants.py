@@ -1,21 +1,21 @@
-from typing import Any, Dict, List, Union
+from enum import auto
+from api.common.enums.base_enums import CaseInsensitiveEnum
+from api.common.enums.database import Databases
 
-DEFAULT_NULL_STRING='NA'
+DEFAULT_PAGE_SIZE=10000
 
-JSON_TYPE = Union[Dict[str, Any], List[Any], int, float, str, bool, None]
+ROUTE_DATABASE = Databases.GENOMICS
+METADATA_DATABASE = Databases.METADATA
 
-ALLOWABLE_FILER_TRACK_FILTERS = {
-    "dataSource": "original data source ", 
-    "assay": "assay type", 
-    "featureType": "feature type", 
-    "antibodyTarget": "target of ChIP-seq or other immunoprecipitation assay",
-    "project": "member of a collection of related tracks, often an ENCODE project",
-    "tissue": "tissue associated with biosample"
-}
+ROUTE_PREFIX = "/genomics"
+ROUTE_NAME = "Alzheimer's Genomics Database"
+ROUTE_ABBREVIATION = "GenomicsDB"
+ROUTE_DESCRIPTION = {}
+ROUTE_TAGS = [ROUTE_NAME]
 
-BIOSAMPLE_FIELDS = ["life_stage", "biosample_term", "system_category",
-    "tissue_category", "biosample_display",
-    "biosample_summary", "biosample_term_id"]
+TRACKS_PER_API_REQUEST_LIMIT = 50
+
+CACHEDB_PARALLEL_TIMEOUT=30
 
 TRACK_SEARCH_FILTER_FIELD_MAP = { 
     'biosample': {
@@ -56,20 +56,3 @@ TRACK_SEARCH_FILTER_FIELD_MAP = {
     },
 }
 
-
-
-FILER_N_TRACK_LOOKUP_LIMIT = 50
-
-# pagination
-DEFAULT_PAGE_SIZE = 5000
-MAX_NUM_PAGES = 10
-
-# http client 
-HTTP_CLIENT_TIMEOUT=30 # timeout in seconds
-
-# cache db
-# int or float in seconds specifying maximum timeout for the operations to last. By default (aiocache) its 5. Use 0 or None if you want to disable it.
-CACHEDB_TIMEOUT=5 
-
-# regular expressions
-SHARD_PATTERN = r'chr(\d{1,2}|[XYM]|MT)'

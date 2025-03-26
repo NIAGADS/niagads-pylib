@@ -15,7 +15,7 @@ from asgi_correlation_id import CorrelationIdMiddleware
 
 from api.config.metadata import ROUTE_TAGS
 from api.config.settings import get_settings
-from .routers import FILERRouter, GenomicsRouter
+from .routes import FILERRouter, GenomicsRouter
 
 # FIXME -- needed for applications reading the openapi.json or openapi.yaml, but 
 # needs to be dynamic based on deployment
