@@ -7,6 +7,7 @@ from niagads.utils.list import list_to_string
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from api.common.enums.cache import CacheKeyQualifier, CacheNamespace
+from api.common.enums.database import DataStore
 from api.common.enums.response_properties import ResponseContent,ResponseView, ResponseFormat
 from api.common.services.metadata_query import MetadataQueryService
 from api.common.types import Range
@@ -286,8 +287,9 @@ class RouteHelper():
             
 class MetadataRouteHelper(RouteHelper):
     """ RouteHelper extended w/Metadata queries"""
-    def __init__(self, managers: InternalRequestParameters, responseConfig: ResponseConfiguration, params: Parameters):
+    def __init__(self, managers: InternalRequestParameters, responseConfig: ResponseConfiguration, params: Parameters, dataStore=[DataStore.SHARED]):
         super().__init__(managers, responseConfig, params)
+        self._dataStore = dataStore
         
     async def get_track_metadata(self, rawResponse=False):
         """ fetch track metadata; expects a list of track identifiers in the parameters"""
@@ -306,7 +308,7 @@ class MetadataRouteHelper(RouteHelper):
             tracks = tracks.split(',') if isinstance(tracks, str) else tracks
             tracks = sorted(tracks) # best for caching & pagination
             
-            result = await MetadataQueryService(self._managers.metadataSession) \
+            result = await MetadataQueryService(self._managers.metadataSession, dataStore=self._dataStore) \
                 .get_track_metadata(tracks, responseType=self._responseConfig.content)
             
             if not rawResponse:
@@ -342,7 +344,7 @@ class MetadataRouteHelper(RouteHelper):
         if result is None:
             isCached = False
         
-            result = await MetadataQueryService(self._managers.metadataSession, self._managers.requestData) \
+            result = await MetadataQueryService(self._managers.metadataSession, self._managers.requestData, self._dataStore) \
                 .get_collection_track_metadata(self._parameters.collection, self._parameters.track,
                     responseType=self._responseConfig.content)
             
@@ -382,7 +384,7 @@ class MetadataRouteHelper(RouteHelper):
         limit = None
         if rawResponse is None:
             # get counts to either return or determine pagination
-            result = await MetadataQueryService(self._managers.metadataSession) \
+            result = await MetadataQueryService(self._managers.metadataSession, dataStore=self._dataStore) \
                 .query_track_metadata(self._parameters.assembly, 
                     self._parameters.get('filter', None), self._parameters.get('keyword', None), ResponseContent.COUNTS)
         
@@ -395,7 +397,7 @@ class MetadataRouteHelper(RouteHelper):
                 offset = self.offset()
                 limit = self._pageSize
             
-        result = await MetadataQueryService(self._managers.metadataSession) \
+        result = await MetadataQueryService(self._managers.metadataSession, dataStore=self._dataStore) \
             .query_track_metadata(self._parameters.assembly, 
                 self._parameters.get('filter', None), self._parameters.get('keyword', None), 
                 content, limit, offset)

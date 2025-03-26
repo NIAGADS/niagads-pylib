@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Union
 
+from api.common.enums.database import DataStore
 from api.common.enums.response_properties import ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
@@ -40,7 +41,8 @@ async def get_collections(
         Parameters()
     )
     
-    result = await MetadataQueryService(internal.metadataSession).get_collections()
+    result = await MetadataQueryService(internal.metadataSession, 
+        dataStore=[DataStore.FILER, DataStore.SHARED]).get_collections()
     return await helper.generate_response(result)
 
 

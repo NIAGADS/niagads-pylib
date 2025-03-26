@@ -37,7 +37,7 @@ async def read_root(
 # --------------------------------------------------------------
 router.include_router(ServiceRouter)
 router.include_router(TrackRouter)
-router.include_router(CollectionRouter)
+# router.include_router(CollectionRouter)
 """
 router.include_router(MetadataRouter)
 router.include_router(DataRouter)

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.common.enums.database import DataStore
 from api.common.exceptions import RESPONSES
 from api.common.services.metadata_query import MetadataQueryService
 from api.models.response_model_properties import RequestDataModel
@@ -30,7 +31,7 @@ async def read_root(
     requestData: RequestDataModel = Depends(RequestDataModel.from_request)
         )-> BaseResponseModel:
     
-    result = await MetadataQueryService(session).get_track_count()
+    result = await MetadataQueryService(session, dataStore=[DataStore.FILER, DataStore.SHARED]).get_track_count()
     return BaseResponseModel(response = {"database": "FILER", "number of tracks": result}, request=requestData)
 
 

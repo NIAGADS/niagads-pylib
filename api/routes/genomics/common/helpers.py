@@ -8,7 +8,8 @@ from sqlalchemy.exc import NoResultFound
 from niagads.utils.dict import all_values_are_none
 
 from api.common.enums.response_properties import ResponseContent
-from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper
+from api.common.helpers import Parameters, ResponseConfiguration, MetadataRouteHelper
+from api.common.services.metadata_query import MetadataQueryService
 from api.common.types import Range
 from api.models.query_defintion import QueryDefinition
 
@@ -24,7 +25,7 @@ class QueryOptions(BaseModel):
     rawResponse: Optional[bool] = False
     range: Optional[Range] = None
     
-class GenomicsRouteHelper(RouteHelper):  
+class GenomicsRouteHelper(MetadataRouteHelper):  
     
     def __init__(self, managers: InternalRequestParameters, 
         responseConfig: ResponseConfiguration,
@@ -133,13 +134,18 @@ class GenomicsRouteHelper(RouteHelper):
         return await self.generate_response(result, False)
     
     
+    async def __validate_track(self):
+        await MetadataQueryService(self._managers.metadataSession, dataStore=self._dataStore).get_track_metadata()
+    
+    
     async def get_track_data_query_response(self):
         cachedResponse = await self._get_cached_response()
         if cachedResponse is not None:
             return cachedResponse
         
         # this will both validate and allow us to determine which kind of track
-        result: GenomicsTrack = await self.__run_query(QueryOptions(fetchOne=True))
+        result: GenomicsTrack = await self.__validate_track()
+        # result: GenomicsTrack = await self.__run_query(QueryOptions(fetchOne=True))
                 
         match result.data_category:
             case 'QTL':

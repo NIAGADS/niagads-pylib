@@ -20,9 +20,10 @@ from api.models.response_model_properties import RequestDataModel
 
 
 class MetadataQueryService:
-    def __init__(self, session: AsyncSession, request: RequestDataModel = None):
+    def __init__(self, session: AsyncSession, request: RequestDataModel = None, dataStore: List[DataStore] = [DataStore.SHARED]):
         self.__session = session
         self.__request = request
+        self.__dataStore = dataStore
         
     async def validate_tracks(self, tracks: List[str]):
         # solution for finding tracks not in the table adapted from
@@ -30,7 +31,7 @@ class MetadataQueryService:
         lookups = Values(sqla_column('track_id', String), name='lookups').data([(t, ) for t in tracks])
         statement = select(lookups.c.track_id).outerjoin(
             Track, col(Track.track_id) == lookups.c.track_id) \
-                .filter(col(Track.data_store).in_([DataStore.FILER, DataStore.SHARED])) \
+                .filter(col(Track.data_store).in_(self.__dataStore)) \
                 .where(col(Track.track_id) == None)
     
         result = (await self.__session.execute(statement)).all()
@@ -43,7 +44,7 @@ class MetadataQueryService:
     async def validate_collection(self, name: str) -> int:
         """ validate a collection by name """
         statement = select(Collection).where(col(Collection.name).ilike(name)) \
-            .filter(col(Collection.data_store).in_([DataStore.FILER, DataStore.SHARED]))
+            .filter(col(Collection.data_store).in_(self.__dataStore))
         try:
             collection = (await self.__session.execute(statement)).scalar_one()
             return collection
@@ -59,7 +60,8 @@ class MetadataQueryService:
     
     async def get_collections(self):
         statement = select(Collection.name, Collection.description, func.count(TrackCollection.track_id).label('num_tracks')) \
-            .join(TrackCollection, TrackCollection.collection_id == Collection.collection_id)
+            .join(TrackCollection, TrackCollection.collection_id == Collection.collection_id) \
+            .filter(col(Collection.data_store).in_(self.__dataStore))
         statement = statement.group_by(Collection).order_by(Collection.collection_id)
         result = (await self.__session.execute(statement)).all()
         return result
@@ -92,7 +94,8 @@ class MetadataQueryService:
         return result
     
     
-    async def get_collection_track_metadata(self, collectionName:str, track:str = None, responseType=ResponseContent.FULL) -> List[Track]:
+    async def get_collection_track_metadata(self, collectionName:str, track:str = None,
+        responseType=ResponseContent.FULL) -> List[Track]:
         collection: Collection = await self.validate_collection(collectionName)
         
         # if sharded URLs need to be mapped through IDS to find all shards
@@ -102,7 +105,8 @@ class MetadataQueryService:
             
         statement = select(target) \
             .join(TrackCollection, TrackCollection.track_id == Track.track_id) \
-            .where(TrackCollection.collection_id == collection.collection_id)
+            .where(TrackCollection.collection_id == collection.collection_id) \
+            .filter(col(Track.data_store).in_(self.__dataStore))
             
         if track is not None:
             statement = statement.where(col(Track.track_id) == track)

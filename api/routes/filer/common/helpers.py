@@ -9,6 +9,7 @@ from niagads.utils.list import cumulative_sum, chunker
 from pydantic import BaseModel
 
 from api.common.enums.cache import CacheKeyQualifier, CacheNamespace
+from api.common.enums.database import DataStore
 from api.common.enums.response_properties import ResponseContent
 from api.common.helpers import Parameters, ResponseConfiguration, MetadataRouteHelper, PaginationCursor
 
@@ -33,7 +34,7 @@ class FILERPaginationCursor(BaseModel):
 class FILERRouteHelper(MetadataRouteHelper):  
     
     def __init__(self, managers: InternalRequestParameters, responseConfig: ResponseConfiguration, params: Parameters):
-        super().__init__(managers, responseConfig, params)
+        super().__init__(managers, responseConfig, params, [DataStore.FILER, DataStore.SHARED])
 
     async def __initialize_data_query_pagination(self, trackOverlaps: List[TrackOverlap]) -> FILERPaginationCursor:
         """ calculate expected result size, number of pages; 
@@ -118,7 +119,7 @@ class FILERRouteHelper(MetadataRouteHelper):
 
     async def __validate_tracks(self, tracks: List[str]):
         """ by setting validate=True, the service runs .validate_tracks before validating the genome build"""
-        assembly = await MetadataQueryService(self._managers.metadataSession).get_genome_build(tracks, validate=True)
+        assembly = await MetadataQueryService(self._managers.metadataSession, dataStore=self._dataStore).get_genome_build(tracks, validate=True)
         if isinstance(assembly, dict):
             raise RequestValidationError(f'Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently')
         return assembly
