@@ -31,7 +31,7 @@ _BUILD_VARIANT_DETAILS_SQL="""
 """
 
 _TRACK_QTL_QUERY_SQL=f"""
-    SELECT ta.track AS track_id, ta.track AS id,
+    SELECT r.track_id,
     r.pvalue_display AS p_value, 
     r.neg_log10_pvalue,
     r.test_allele,
@@ -47,12 +47,10 @@ _TRACK_QTL_QUERY_SQL=f"""
 
     FROM Results.QTL r,
     CBIL.GeneAttributes ga,
-    NIAGADS.TrackAttributes ta,
     get_variant_display_details(r.variant_record_primary_key) as vd
-    WHERE ta.protocol_app_node_id = r.protocol_app_node_id
-    AND ga.source_id = r.target_ensembl_id
+    WHERE ga.source_id = r.target_ensembl_id
     AND (rank > :rank_start AND rank <= :rank_end) -- ranks are 1-based, pagination is 0-based
-    ORDER BY rank DESC
+    ORDER BY rank ASC
 """
 
 _TRACK_GSS_QUERY_SQL=f"""

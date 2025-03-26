@@ -5,6 +5,7 @@ from api.common.enums.response_properties import ResponseContent, ResponseFormat
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
+from api.common.services.metadata_query import MetadataQueryService
 from api.dependencies.parameters.identifiers import path_collection_name
 from api.dependencies.parameters.optional import page_param
 
@@ -13,7 +14,6 @@ from api.models.collection import CollectionResponse
 from api.models.view_models import TableViewResponse
 
 from api.routers.filer.common.helpers import FILERRouteHelper
-from api.routers.filer.common.services import MetadataQueryService
 from api.routers.filer.dependencies.parameters import InternalRequestParameters, optional_query_track_id_single
 from api.routers.filer.models.filer_track import FILERTrackSummaryResponse, FILERTrackResponse
 

@@ -11,12 +11,13 @@ from pydantic import BaseModel
 from api.common.enums.cache import CacheKeyQualifier, CacheNamespace
 from api.common.enums.response_properties import ResponseContent
 from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, PaginationCursor
-from api.common.types import Range
+
+from api.common.services.metadata_query import MetadataQueryService
 from api.models.response_model_properties import CacheKeyDataModel
 
 from api.routers.filer.common.constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
 from api.routers.filer.common.enums import FILERApiEndpoint
-from api.routers.filer.common.services import ApiWrapperService, FILERApiDataResponse, MetadataQueryService
+from api.routers.filer.common.services import ApiWrapperService, FILERApiDataResponse
 from api.routers.filer.dependencies.parameters import InternalRequestParameters
 from api.routers.filer.models.bed_features import BEDFeature
 from api.models.database.metadata import Track

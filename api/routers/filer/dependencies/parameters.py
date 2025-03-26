@@ -4,6 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiohttp import ClientSession
 
+from api.common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
 from api.config.settings import get_settings
 from api.common.enums.response_properties import ResponseFormat
 from api.common.formatters import clean
@@ -12,7 +13,7 @@ from api.dependencies.http_client import HttpClientSessionManager
 from api.dependencies.parameters.filters import ExpressionType, FilterParameter
 from api.dependencies.parameters.services import InternalRequestParameters as BaseInternalRequestParameters
 
-from api.routers.filer.common.constants import FILER_HTTP_CLIENT_TIMEOUT, ROUTE_DATABASE, TRACK_SEARCH_FILTER_FIELD_MAP
+from api.routers.filer.common.constants import FILER_HTTP_CLIENT_TIMEOUT, ROUTE_DATABASE
 
 # initialize database and api wrapper session managers; this allows us to 
 # use connection pooling
