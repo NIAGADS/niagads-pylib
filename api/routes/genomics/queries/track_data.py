@@ -31,7 +31,7 @@ _BUILD_VARIANT_DETAILS_SQL="""
 """
 
 _TRACK_QTL_QUERY_SQL=f"""
-    SELECT r.track_id,
+    SELECT r.track_id, r.track_id AS id,
     r.pvalue_display AS p_value, 
     r.neg_log10_pvalue,
     r.test_allele,
@@ -45,7 +45,7 @@ _TRACK_QTL_QUERY_SQL=f"""
 
     {_BUILD_VARIANT_DETAILS_SQL}
 
-    FROM Results.QTL r,
+    FROM Results.QTLGene r,
     CBIL.GeneAttributes ga,
     get_variant_display_details(r.variant_record_primary_key) as vd
     WHERE ga.source_id = r.target_ensembl_id
@@ -69,12 +69,10 @@ _TRACK_GSS_QUERY_SQL=f"""
 """
 
 _TRACK_QTL_COUNTS_QUERY_SQL="""
-    SELECT source_id AS track_id,
-    CASE WHEN (track_summary->>'number_of_intervals')::int > 10000 
-    THEN 10000 ELSE (track_summary->>'number_of_intervals')::int END
-    AS result_size 
-    FROM Study.ProtocolAppNode
-    WHERE source_id = :id
+    SELECT track_id, COUNT(qtl_gene_id) AS result_size 
+    FROM Results.QTLGene
+    WHERE track_id = :id
+    GROUP BY track_id
 """
 
 TrackQTLQuery = QueryDefinition(

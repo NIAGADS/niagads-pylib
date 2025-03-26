@@ -7,6 +7,7 @@ from sqlalchemy.exc import NoResultFound
 
 from niagads.utils.dict import all_values_are_none
 
+from api.common.enums.database import DataStore
 from api.common.enums.response_properties import ResponseContent
 from api.common.helpers import Parameters, ResponseConfiguration, MetadataRouteHelper
 from api.common.services.metadata_query import MetadataQueryService
@@ -33,7 +34,7 @@ class GenomicsRouteHelper(MetadataRouteHelper):
         query: QueryDefinition,
         idParameter: str = 'id'
     ):
-        super().__init__(managers, responseConfig, params)
+        super().__init__(managers, responseConfig, params, [DataStore.SHARED, DataStore.GENOMICS])
         self.__query = query
         self.__idParameter: str = idParameter
         
@@ -135,7 +136,11 @@ class GenomicsRouteHelper(MetadataRouteHelper):
     
     
     async def __validate_track(self):
-        await MetadataQueryService(self._managers.metadataSession, dataStore=self._dataStore).get_track_metadata()
+        result = await MetadataQueryService(self._managers.metadataSession, dataStore=self._dataStore).get_track_metadata(tracks=[self._parameters.track])
+        if len(result) == 0:
+            raise RequestValidationError("Track not found in the NIAGADS Alzheimer's GenomicsDB")
+        
+        return result[0]
     
     
     async def get_track_data_query_response(self):
