@@ -6,7 +6,7 @@ from api.models.base_response_models import PagedResponseModel
 from api.models.base_row_models import RowModel
 
 from api.models.genome import Gene, GenomicRegion, Variant as BaseVariant
-from api.routers.genomics.common.enums import ConsequenceImpact
+from api.routes.genomics.common.enums import ConsequenceImpact
 
 class PredictedConsequence(BaseModel):
     consequence: str

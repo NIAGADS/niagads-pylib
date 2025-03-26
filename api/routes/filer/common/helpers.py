@@ -15,13 +15,13 @@ from api.common.helpers import Parameters, ResponseConfiguration, MetadataRouteH
 from api.common.services.metadata_query import MetadataQueryService
 from api.models.response_model_properties import CacheKeyDataModel
 
-from api.routers.filer.common.constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
-from api.routers.filer.common.enums import FILERApiEndpoint
-from api.routers.filer.common.services import ApiWrapperService, FILERApiDataResponse
-from api.routers.filer.dependencies.parameters import InternalRequestParameters
-from api.routers.filer.models.bed_features import BEDFeature
+from api.routes.filer.common.constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
+from api.routes.filer.common.enums import FILERApiEndpoint
+from api.routes.filer.common.services import ApiWrapperService, FILERApiDataResponse
+from api.routes.filer.dependencies.parameters import InternalRequestParameters
+from api.routes.filer.models.bed_features import BEDFeature
 from api.models.database.metadata import Track
-from api.routers.filer.models.track_overlaps import TrackOverlap, sort_track_overlaps
+from api.routes.filer.models.track_overlaps import TrackOverlap, sort_track_overlaps
 
 
 class FILERPaginationCursor(BaseModel):

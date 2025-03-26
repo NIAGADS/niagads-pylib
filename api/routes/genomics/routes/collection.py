@@ -12,10 +12,10 @@ from api.models.base_response_models import BaseResponseModel
 from api.models.collection import CollectionResponse
 from api.models.view_models import TableViewResponse
 
-from api.routers.genomics.common.helpers import GenomicsRouteHelper
-from api.routers.genomics.dependencies.parameters import InternalRequestParameters
-from api.routers.genomics.models.genomics_track import GenomicsTrackResponse, GenomicsTrackSummaryResponse
-from api.routers.genomics.queries.track_metadata import CollectionQuery, CollectionTrackMetadataQuery
+from api.routes.genomics.common.helpers import GenomicsRouteHelper
+from api.routes.genomics.dependencies.parameters import InternalRequestParameters
+from api.routes.genomics.models.genomics_track import GenomicsTrackResponse, GenomicsTrackSummaryResponse
+from api.routes.genomics.queries.track_metadata import CollectionQuery, CollectionTrackMetadataQuery
 
 router = APIRouter(prefix="/collection", tags = ["Collections"], responses=RESPONSES)
 

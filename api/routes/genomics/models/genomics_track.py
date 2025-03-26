@@ -12,7 +12,7 @@ from api.models.base_response_models import PagedResponseModel
 from api.models.track import GenericTrack, GenericTrackSummary
 from api.models.track_properties import BiosampleCharacteristics, DSSAccession, ExperimentalDesign
 from api.models.view_models import LinkDataCell, TextDataCell, TextListDataCell
-from api.routers.genomics.models.genomics_track_properties import Phenotype, StudyGroup
+from api.routes.genomics.models.genomics_track_properties import Phenotype, StudyGroup
 
 class GenomicsTrack(GenericTrack):
     description: str

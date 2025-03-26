@@ -13,9 +13,9 @@ from api.dependencies.parameters.optional import page_param, keyword_param
 from api.models.base_response_models import PagedResponseModel, BaseResponseModel
 from api.models.view_models import TableViewResponse
 
-from api.routers.filer.common.helpers import FILERRouteHelper
-from api.routers.filer.models.filer_track import FILERTrackSummaryResponse, FILERTrackResponse
-from api.routers.filer.dependencies.parameters import METADATA_FILTER_PARAM, InternalRequestParameters, required_query_track_id
+from api.routes.filer.common.helpers import FILERRouteHelper
+from api.routes.filer.models.filer_track import FILERTrackSummaryResponse, FILERTrackResponse
+from api.routes.filer.dependencies.parameters import METADATA_FILTER_PARAM, InternalRequestParameters, required_query_track_id
 
 router = APIRouter(prefix="/metadata", responses=RESPONSES)
 

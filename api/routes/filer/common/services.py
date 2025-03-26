@@ -3,7 +3,7 @@ from aiohttp import ClientSession
 from typing import List, Union
 
 from api.common.enums.genome import Assembly
-from api.routers.filer.models.track_overlaps import TrackOverlap, sort_track_overlaps
+from api.routes.filer.models.track_overlaps import TrackOverlap, sort_track_overlaps
 
 from .enums import FILERApiEndpoint
 from ..models.bed_features import BEDFeature

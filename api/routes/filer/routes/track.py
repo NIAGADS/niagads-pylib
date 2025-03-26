@@ -11,10 +11,10 @@ from api.dependencies.parameters.identifiers import path_track_id
 from api.models.base_response_models import PagedResponseModel, BaseResponseModel
 from api.models.view_models import TableViewResponse
 
-from api.routers.filer.dependencies.parameters import InternalRequestParameters
-from api.routers.filer.common.helpers import FILERRouteHelper
-from api.routers.filer.models.filer_track import FILERTrackResponse, FILERTrackSummaryResponse
-from api.routers.filer.models.bed_features import BEDResponse
+from api.routes.filer.dependencies.parameters import InternalRequestParameters
+from api.routes.filer.common.helpers import FILERRouteHelper
+from api.routes.filer.models.filer_track import FILERTrackResponse, FILERTrackSummaryResponse
+from api.routes.filer.models.bed_features import BEDResponse
 
 router = APIRouter(prefix="/track", responses=RESPONSES)
 

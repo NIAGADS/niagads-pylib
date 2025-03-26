@@ -12,8 +12,8 @@ from api.dependencies.parameters.location import assembly_param
 from api.models.igvbrowser import IGVBrowserTrackConfig, IGVBrowserTrackSelectorResponse, IGVBrowserTrackConfigResponse
 from api.models.view_models import TableViewModel
 
-from api.routers.filer.common.helpers import FILERRouteHelper
-from api.routers.filer.dependencies.parameters import InternalRequestParameters, optional_query_track_id
+from api.routes.filer.common.helpers import FILERRouteHelper
+from api.routes.filer.dependencies.parameters import InternalRequestParameters, optional_query_track_id
 
 router = APIRouter(prefix="/service", responses=RESPONSES)
 

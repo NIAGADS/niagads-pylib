@@ -1,5 +1,5 @@
 from api.models.query_defintion import QueryDefinition
-from api.routers.genomics.models.feature_score import QTL, VariantPValueScore
+from api.routes.genomics.models.feature_score import QTL, VariantPValueScore
 
 
 

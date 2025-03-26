@@ -12,11 +12,11 @@ from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper
 from api.common.types import Range
 from api.models.query_defintion import QueryDefinition
 
-from api.routers.genomics.common.constants import CACHEDB_PARALLEL_TIMEOUT, DEFAULT_PAGE_SIZE
-from api.routers.genomics.dependencies.parameters import InternalRequestParameters
-from api.routers.genomics.models.feature_score import GWASSumStatResponse, QTLResponse
-from api.routers.genomics.models.genomics_track import GenomicsTrack
-from api.routers.genomics.queries.track_data import TrackGWASSumStatQuery, TrackQTLQuery
+from api.routes.genomics.common.constants import CACHEDB_PARALLEL_TIMEOUT, DEFAULT_PAGE_SIZE
+from api.routes.genomics.dependencies.parameters import InternalRequestParameters
+from api.routes.genomics.models.feature_score import GWASSumStatResponse, QTLResponse
+from api.routes.genomics.models.genomics_track import GenomicsTrack
+from api.routes.genomics.queries.track_data import TrackGWASSumStatQuery, TrackQTLQuery
 
 class QueryOptions(BaseModel):
     fetchOne: Optional[bool] = False
