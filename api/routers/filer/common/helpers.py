@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from api.common.enums.cache import CacheKeyQualifier, CacheNamespace
 from api.common.enums.response_properties import ResponseContent
-from api.common.helpers import Parameters, ResponseConfiguration, RouteHelper, PaginationCursor
+from api.common.helpers import Parameters, ResponseConfiguration, MetadataRouteHelper, PaginationCursor
 
 from api.common.services.metadata_query import MetadataQueryService
 from api.models.response_model_properties import CacheKeyDataModel
@@ -30,7 +30,7 @@ class FILERPaginationCursor(BaseModel):
     end: PaginationCursor
 
 
-class FILERRouteHelper(RouteHelper):  
+class FILERRouteHelper(MetadataRouteHelper):  
     
     def __init__(self, managers: InternalRequestParameters, responseConfig: ResponseConfiguration, params: Parameters):
         super().__init__(managers, responseConfig, params)
@@ -118,7 +118,7 @@ class FILERRouteHelper(RouteHelper):
 
     async def __validate_tracks(self, tracks: List[str]):
         """ by setting validate=True, the service runs .validate_tracks before validating the genome build"""
-        assembly = await MetadataQueryService(self._managers.session).get_genome_build(tracks, validate=True)
+        assembly = await MetadataQueryService(self._managers.metadataSession).get_genome_build(tracks, validate=True)
         if isinstance(assembly, dict):
             raise RequestValidationError(f'Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently')
         return assembly
@@ -242,125 +242,6 @@ class FILERRouteHelper(RouteHelper):
         result = sorted(result, key = lambda item: item['num_overlaps'], reverse=True)
         return result
 
-
-    async def get_track_metadata(self, rawResponse=False):
-        """ fetch track metadata; expects a list of track identifiers in the parameters"""
-        isCached = True # assuming true from the start
-        cacheKey = self._managers.cacheKey.encrypt()
-        if rawResponse:
-            cacheKey += CacheKeyQualifier.RAW
-        
-        result = await self._managers.cache.get(
-            cacheKey, namespace=self._managers.cacheKey.namespace)
-        
-        if result is None:
-            isCached = False
-        
-            tracks = self._parameters.get('_tracks',  self._parameters.get('track'))
-            tracks = tracks.split(',') if isinstance(tracks, str) else tracks
-            tracks = sorted(tracks) # best for caching & pagination
-            
-            result = await MetadataQueryService(self._managers.session) \
-                .get_track_metadata(tracks, responseType=self._responseConfig.content)
-            
-            if not rawResponse:
-                self._resultSize = len(result)
-                pageResponse = self.initialize_pagination(raiseError=False)
-                if pageResponse:
-                    sliceRange = self.slice_result_by_page()
-                    result = result[sliceRange.start:sliceRange.end]
-            
-        if rawResponse:
-            # cache the raw response
-            await self._managers.cache.set(
-                cacheKey, result, 
-                namespace=self._managers.cacheKey.namespace)
-            
-            return result
-
-        return await self.generate_response(result, isCached=isCached)
-
-
-    # FIXME: not sure if this will ever need a "rawResponse"
-    async def get_collection_track_metadata(self, rawResponse=False):
-        """ fetch track metadata for a specific collection """
-        isCached = True # assuming true from the start
-        cacheKey = self._managers.cacheKey.encrypt()
-        if rawResponse:
-            cacheKey += CacheKeyQualifier.RAW + '_' + str(rawResponse)    
-        
-        result = await self._managers.cache.get(
-            cacheKey, 
-            namespace=self._managers.cacheKey.namespace)
-        
-        if result is None:
-            isCached = False
-        
-            result = await MetadataQueryService(self._managers.session, self._managers.requestData) \
-                .get_collection_track_metadata(self._parameters.collection, self._parameters.track,
-                    responseType=self._responseConfig.content)
-            
-            if not rawResponse:
-                self._resultSize = len(result)
-                pageResponse = self.initialize_pagination(raiseError=False)
-                if pageResponse:
-                    sliceRange = self.slice_result_by_page()
-                    result = result[sliceRange.start:sliceRange.end]
-            
-        if rawResponse:
-            # cache the raw response
-            await self._managers.cache.set(
-                cacheKey, result, 
-                namespace=self._managers.cacheKey.namespace)   
-            return result
-            
-        return await self.generate_response(result, isCached=isCached)
-    
-
-    async def search_track_metadata(self, rawResponse:Optional[ResponseContent] = None):
-        """ retrieve track metadata based on filter/keyword searches """
-        cacheKey = self._managers.cacheKey.encrypt()
-        content = self._responseConfig.content
-        
-        if rawResponse is not None:
-            content = rawResponse
-            cacheKey += CacheKeyQualifier.RAW + '_' + str(rawResponse)    
-        
-        result = await self._managers.cache.get(
-            cacheKey, namespace=self._managers.cacheKey.namespace)
-        
-        if result is not None:
-            return result if rawResponse else await self.generate_response(result, isCached=True) 
-                
-        offset = None
-        limit = None
-        if rawResponse is None:
-            # get counts to either return or determine pagination
-            result = await MetadataQueryService(self._managers.session) \
-                .query_track_metadata(self._parameters.assembly, 
-                    self._parameters.get('filter', None), self._parameters.get('keyword', None), ResponseContent.COUNTS)
-        
-            if content == ResponseContent.COUNTS:
-                return await self.generate_response(result, isCached=False)
-            
-            self._resultSize = result['num_tracks']
-            pageResponse = self.initialize_pagination(raiseError=False)
-            if pageResponse: # will return true if model can be paged and page is valid
-                offset = self.offset()
-                limit = self._pageSize
-            
-        result = await MetadataQueryService(self._managers.session) \
-            .query_track_metadata(self._parameters.assembly, 
-                self._parameters.get('filter', None), self._parameters.get('keyword', None), 
-                content, limit, offset)
-
-        if rawResponse is None:
-            return await self.generate_response(result, isCached=False) 
-        else: # cache the raw response before returning
-            await self._managers.cache.set(cacheKey, result, 
-                namespace=self._managers.cacheKey.namespace)
-            return result
-        
 
     async def search_track_data(self):
         cachedResponse = await self._get_cached_response()

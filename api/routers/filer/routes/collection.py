@@ -39,9 +39,8 @@ async def get_collections(
         ), 
         Parameters()
     )
-
     
-    result = await MetadataQueryService(internal.session).get_collections()
+    result = await MetadataQueryService(internal.metadataSession).get_collections()
     return await helper.generate_response(result)
 
 

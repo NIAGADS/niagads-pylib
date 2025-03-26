@@ -34,8 +34,6 @@ async def read_root(
     return BaseResponseModel(response = {"database": "FILER", "number of tracks": result}, request=requestData)
 
 
-
-
 # --------------------------------------------------------------
 # CHIILD ROUTES
 # --------------------------------------------------------------

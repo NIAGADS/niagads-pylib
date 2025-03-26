@@ -6,7 +6,7 @@ from api.common.exceptions import RESPONSES
 from api.models.response_model_properties import RequestDataModel
 from api.models.base_response_models import BaseResponseModel
 
-from api.routers.genomics.dependencies.parameters import ROUTE_SESSION_MANAGER
+# from api.routers.genomics.dependencies.parameters import ROUTE_SESSION_MANAGER
 
 from api.routers.genomics.common.constants import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX
 
@@ -24,7 +24,7 @@ tags=['Route Information']
 @router.get("/", name="about", response_model=BaseResponseModel, tags=tags,
             description="brief summary about the " + ROUTE_NAME)
 async def read_root(
-    session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
+    # session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
     requestData: RequestDataModel = Depends(RequestDataModel.from_request)
         )-> BaseResponseModel:
     

@@ -20,7 +20,7 @@ from api.routers.filer.common.constants import FILER_HTTP_CLIENT_TIMEOUT, ROUTE_
 ROUTE_SESSION_MANAGER = DatabaseSessionManager(ROUTE_DATABASE)
 API_CLIENT_SESSION_MANAGER = HttpClientSessionManager(get_settings().FILER_REQUEST_URI, timeout=FILER_HTTP_CLIENT_TIMEOUT)
 class InternalRequestParameters(BaseInternalRequestParameters, arbitrary_types_allowed=True):
-    session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)]
+    metadataSession: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)]
     apiClientSession: Annotated[ClientSession, Depends(API_CLIENT_SESSION_MANAGER)]
 
 
