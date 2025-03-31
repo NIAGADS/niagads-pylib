@@ -7,7 +7,7 @@ from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.common.services.metadata_query import MetadataQueryService
-from api.dependencies.parameters.identifiers import path_collection_name
+from api.dependencies.parameters.identifiers import path_collection_name, optional_query_track_id_single
 from api.dependencies.parameters.optional import page_param
 
 from api.models.base_response_models import BaseResponseModel
@@ -15,7 +15,7 @@ from api.models.collection import CollectionResponse
 from api.models.view_models import TableViewResponse
 
 from api.routes.filer.common.helpers import FILERRouteHelper
-from api.routes.filer.dependencies.parameters import InternalRequestParameters, optional_query_track_id_single
+from api.routes.filer.dependencies.parameters import InternalRequestParameters
 from api.routes.filer.models.filer_track import FILERTrackSummaryResponse, FILERTrackResponse
 
 router = APIRouter(prefix="/collection", tags = ["Collections"], responses=RESPONSES)

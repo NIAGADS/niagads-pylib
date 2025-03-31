@@ -29,6 +29,7 @@ class GenomicsTrack(GenericTrack):
         fields.remove('data_source') # will be added back in w/accession
         fields += list(BiosampleCharacteristics.model_fields.keys())
         fields += list(DSSAccession.model_fields.keys())
+        fields += list(ExperimentalDesign.model_fields.keys())
         
         if self.data_category == 'QTL':
             # fields += list(ExperimentalDesign.model_fields.keys())
@@ -37,7 +38,7 @@ class GenomicsTrack(GenericTrack):
             fields.remove('experimental_design')
             fields.remove('biosample_characteristics')
             fields.remove('provenance')
-            fields.remove('biosample_term_id')
+            # fields.remove('biosample_term_id')
             fields.remove('cohorts')
         else:
             fields += list(Phenotype.model_fields.keys())

@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Union
 
+from api.common.enums.database import DataStore
 from api.common.enums.response_properties import ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
-from api.dependencies.parameters.identifiers import path_collection_name
+from api.common.services.metadata_query import MetadataQueryService
+from api.dependencies.parameters.identifiers import optional_query_track_id_single, path_collection_name
 from api.dependencies.parameters.optional import page_param
 
 from api.models.base_response_models import BaseResponseModel
@@ -16,6 +18,7 @@ from api.routes.genomics.common.helpers import GenomicsRouteHelper
 from api.routes.genomics.dependencies.parameters import InternalRequestParameters
 from api.routes.genomics.models.genomics_track import GenomicsTrackResponse, GenomicsTrackSummaryResponse
 from api.routes.genomics.queries.track_metadata import CollectionQuery, CollectionTrackMetadataQuery
+
 
 router = APIRouter(prefix="/collection", tags = ["Collections"], responses=RESPONSES)
 
@@ -37,12 +40,12 @@ async def get_collections(
             content=ResponseContent.FULL,
             model=CollectionResponse
         ), 
-        Parameters(),
-        query=CollectionQuery
+        Parameters()
     )
-
     
-    return await helper.get_query_response()
+    result = await MetadataQueryService(internal.metadataSession, 
+        dataStore=[DataStore.GENOMICS, DataStore.SHARED]).get_collections()
+    return await helper.generate_response(result)
 
 
 @router.get("/{collection}",
@@ -52,6 +55,7 @@ async def get_collections(
 
 async def get_collection_track_metadata(
     collection: str = Depends(path_collection_name),
+    track: str=Depends(optional_query_track_id_single),
     page: int=Depends(page_param),
     content: str = Query(ResponseContent.FULL, description=ResponseContent.get_description(True)),
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
@@ -70,8 +74,7 @@ async def get_collection_track_metadata(
                 else GenomicsTrackSummaryResponse if rContent == ResponseContent.SUMMARY \
                     else BaseResponseModel
         ), 
-        Parameters(collection=collection, page=page),
-        query=CollectionTrackMetadataQuery
+        Parameters(collection=collection, page=page, track=track)
     )
     
-    return await helper.get_query_response()
+    return await helper.get_collection_track_metadata()

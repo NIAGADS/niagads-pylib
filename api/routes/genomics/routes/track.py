@@ -42,11 +42,12 @@ async def get_track_metadata(
                 else GenomicsTrackSummaryResponse
         ),
         Parameters(track=track),
-        idParameter='track',
-        query=TrackMetadataQuery
+        # idParameter='track',
+        # query=TrackMetadataQuery
     )
     
-    return await helper.get_query_response()
+    return await helper.get_track_metadata()
+    # return await helper.get_query_response()
 
 
 tags = ["Record by ID", "Track Data by ID"]

@@ -63,7 +63,8 @@ class RowModel(SerializableModel):
                         'header': 'Select',
                         'enableMultiRowSelect': True,
                         'rowId': 'track_id',
-                        'onRowSelectAction': kwargs['on_row_select']
+                        'onRowSelectAction': kwargs['on_row_select'],
+                        'disableColumnFilters': True # FIXME: temporarily disable
                     }})
         return {'columns': columns, 'options': options}
 

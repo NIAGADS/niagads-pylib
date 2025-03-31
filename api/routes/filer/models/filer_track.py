@@ -2,25 +2,29 @@ from datetime import date
 from sqlmodel import SQLModel
 from typing import Optional, List
 
+from niagads.utils.list import get_duplicates
+
 from api.common.enums.response_properties import ResponseView
 from api.common.formatters import id2title
 
 from api.models.base_response_models import PagedResponseModel
 from api.models.track import GenericTrack, GenericTrackSummary
-from api.models.track_properties import BiosampleCharacteristics
+from api.models.track_properties import BiosampleCharacteristics, ExperimentalDesign
 from api.models.database.metadata import FILERAccession
 
 # Developer Note: not setting a default for optionals b/c coming from
 # the SQLModel, which will have nulls if no value
 
 # note this is a generic data model so that we can add summary fields (e.g., counts) as needed
-class FILERTrackSummary(SQLModel, GenericTrackSummary):
+class FILERTrackSummary(GenericTrackSummary):
+    study_name: Optional[str]
     assay: Optional[str] 
     
 
-class FILERTrack(SQLModel, GenericTrack):  
+class FILERTrack(GenericTrack):  
     assay: Optional[str]
     provenance: FILERAccession
+    study_name: Optional[str]
     
     # FILER properties
     file_name: Optional[str]
@@ -33,20 +37,46 @@ class FILERTrack(SQLModel, GenericTrack):
     file_size: Optional[int]
     file_format: Optional[str]
     file_schema: Optional[str]    
+    
+    def get_field_names(self, **kwargs):
+        fields = list(self.model_fields.keys())
+        fields += list(BiosampleCharacteristics.model_fields.keys())
+        fields += list(ExperimentalDesign.model_fields.keys())
+        fields += list(FILERAccession.model_fields.keys())
+        
+        if self.data_category == 'QTL':
+            # fields += list(ExperimentalDesign.model_fields.keys())
+            if 'study_groups' in fields: fields.remove('study_groups')
+            fields.remove('experimental_design')
+            fields.remove('biosample_characteristics')
+            fields.remove('provenance')
+            # fields.remove('biosample_term_id')
+        
+        fields.remove('download_url')
+        fields.remove('release_date')
+        
+        duplicates = get_duplicates(fields) # FIXME: some of the nested fields will be duplicated
+        for f in duplicates:
+            fields.remove(f)
+                
+        return fields
 
     def get_view_config(self, view: ResponseView, **kwargs):
         return super().get_view_config(view, **kwargs)
     
     def to_view_data(self, view: ResponseView, **kwargs):
-        return self.serialize(promoteObjs=True, exclude=['replicates'])
+        data = self.serialize(promoteObjs=True, exclude=['replicates'])
+
+        if 'field_names' in kwargs:
+            dropFields = set(data.keys()).difference(set(kwargs['field_names']))
+            for field in dropFields:
+                del data[field]
+                
+        return data
+
     
     def _build_table_config(self):
         config = super()._build_table_config()
-        columns = [ c for c in config['columns'] if c['id'] not in ['biosample_characteristics', 
-            'replicates', 'provenance', 'data_source'] ] # data source will be promoted from provenance 
-        columns += [ {'id': f, 'header': id2title(f)} for f in BiosampleCharacteristics.model_fields]
-        columns += [ {'id': f, 'header': id2title(f)} for f in FILERAccession.model_fields]
-        config.update({'columns': columns })
         return config
 
 class FILERTrackSummaryResponse(PagedResponseModel):

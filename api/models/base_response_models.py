@@ -7,6 +7,7 @@ from niagads.utils.string import xstr
 from api.common.constants import DEFAULT_NULL_STRING
 from api.common.enums.response_properties import OnRowSelect, ResponseFormat, ResponseView
 from api.models.base_row_models import RowModel, T_RowModel
+from api.models.view_models import TableColumn
 from .response_model_properties import PaginationDataModel, RequestDataModel
 
 class BaseResponseModel(BaseModel):
@@ -52,6 +53,8 @@ class BaseResponseModel(BaseModel):
         for index, row in enumerate(self.response):
             if index == 0:
                 viewResponse = row.get_view_config(view, **kwargs)
+                if not isinstance(viewResponse['columns'][0], TableColumn):
+                    kwargs['field_names'] = [c['id'] for c in viewResponse['columns']]
             data.append(row.to_view_data(view, **kwargs))
         viewResponse.update({'data': data})
     

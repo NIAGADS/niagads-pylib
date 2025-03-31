@@ -31,9 +31,4 @@ async def required_query_track_id(track: str = Query(description="comma separate
 async def optional_query_track_id(track: Optional[str] = Query(default=None, description="comma separated list of one or more FILER track identifiers")) -> str:
     return clean(track)
 
-async def optional_query_track_id_single(track: Optional[str] = Query(default=None, description="a FILER track identifier")) -> str:
-    if track is not None and ',' in track:
-        raise RequestValidationError('Lists of track identifiers not allowed for this query.  Please provide a single `track` identifier.')
-    return clean(track)
-
 METADATA_FILTER_PARAM = FilterParameter(TRACK_SEARCH_FILTER_FIELD_MAP, ExpressionType.TEXT)

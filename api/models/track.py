@@ -11,7 +11,7 @@ from api.models.base_row_models import GenericDataModel
 from api.models.track_properties import BiosampleCharacteristics, ExperimentalDesign, Provenance
 
 # FIXME: data_source here and in provenance
-class GenericTrackSummary(GenericDataModel):
+class GenericTrackSummary(SQLModel, GenericDataModel):
     track_id: str
     name: str
     genome_build: Optional[str] = None
@@ -68,7 +68,7 @@ class GenericTrackSummary(GenericDataModel):
         # update url to link
         index: int = find(columns, 'url', 'id', returnValues=False)
         columns[index[0]].update({'type': 'link'})
-        
+                
         options = {}
         if 'num_overlaps' in fields:
             options.update({'rowSelect': {

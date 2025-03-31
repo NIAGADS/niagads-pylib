@@ -74,6 +74,7 @@ class Track(SQLModel, SerializableModel, table=True):
     output_type: Optional[str]
     is_lifted: Optional[bool]
     experiment_info: Optional[str] = Field(sa_column=Column(TEXT))
+    study_name: Optional[str]
         
     # provenance
     data_source: Optional[str]

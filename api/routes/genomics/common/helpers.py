@@ -32,7 +32,7 @@ class GenomicsRouteHelper(MetadataRouteHelper):
     def __init__(self, managers: InternalRequestParameters, 
         responseConfig: ResponseConfiguration,
         params: Parameters,
-        query: QueryDefinition,
+        query: QueryDefinition = None,
         idParameter: str = 'id'
     ):
         super().__init__(managers, responseConfig, params, [DataStore.SHARED, DataStore.GENOMICS])
