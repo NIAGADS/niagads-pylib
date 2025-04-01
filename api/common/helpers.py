@@ -418,4 +418,23 @@ class MetadataRouteHelper(RouteHelper):
             await self._managers.cache.set(cacheKey, result, 
                 namespace=self._managers.cacheKey.namespace)
             return result
+    
+    
+    async def get_shard(self):
+        cacheKey = self._managers.cacheKey.encrypt()
+
+        result = await self._managers.cache.get(
+            cacheKey, namespace=self._managers.cacheKey.namespace)
         
+        if result is not None:
+            return await self.generate_response(result, isCached=True) 
+        
+        # TODO: validate track
+        
+        # result = await MetadataQueryService(self._managers.metadataSession, self._managers.requestData, self._dataStore) \
+        #         .get_shard(self._parameters.track, self._parameters.chr,
+        #            responseType=self._responseConfig.content)
+        
+        raise NotImplementedError('Query helper not yet implemented')
+        
+      

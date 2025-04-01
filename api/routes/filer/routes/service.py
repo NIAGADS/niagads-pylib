@@ -1,19 +1,21 @@
-from typing import List
-from fastapi import APIRouter, Depends
+from typing import List, Union
+from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import RequestValidationError
 
 from api.common.enums.genome import Assembly
-from api.common.enums.response_properties import ResponseContent
+from api.common.enums.response_properties import ResponseContent, ResponseFormat, ResponseView
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.identifiers import query_collection_name
-from api.dependencies.parameters.features import assembly_param
+from api.dependencies.parameters.features import assembly_param, chromosome_param
+from api.models.base_response_models import BaseResponseModel
 from api.models.igvbrowser import IGVBrowserTrackConfig, IGVBrowserTrackSelectorResponse, IGVBrowserTrackConfigResponse
 from api.models.view_models import TableViewModel
 
 from api.routes.filer.common.helpers import FILERRouteHelper
-from api.routes.filer.dependencies.parameters import InternalRequestParameters, optional_query_track_id
+from api.routes.filer.dependencies.parameters import InternalRequestParameters, optional_query_track_id, required_query_track_id
+from api.routes.filer.models.filer_track import FILERTrackResponse, FILERTrackSummaryResponse
 
 router = APIRouter(prefix="/service", responses=RESPONSES)
 
@@ -93,3 +95,33 @@ async def get_track_browser_config(
     
     return result.response
 
+
+tags = ["Lookups"]
+
+@router.get("/lookup/shard", tags=tags, 
+    response_model=Union[FILERTrackResponse, FILERTrackSummaryResponse, BaseResponseModel],
+    name="Get metadata shard metadata",
+    description="Some tracks are sharded by chromosome.  Use this query to find a shard-specific track given a chromosome and related track identifier.")
+
+async def get_shard(
+    track: str = Depends(required_query_track_id),
+    chr: str = Depends(chromosome_param),
+    content: str = Query(ResponseContent.FULL, description=ResponseContent.descriptive(inclUrls=True, description=True)),
+    format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
+    internal: InternalRequestParameters = Depends()
+) -> Union[FILERTrackSummaryResponse, FILERTrackResponse, BaseResponseModel]:
+    
+    rContent = ResponseContent.descriptive(inclUrls=True).validate(content, 'content', ResponseContent)
+    helper = FILERRouteHelper(
+        internal,
+        ResponseConfiguration(
+            format=ResponseFormat.generic().validate(format, 'format', ResponseFormat),
+            content=rContent,
+            model=FILERTrackResponse if rContent == ResponseContent.FULL \
+                else FILERTrackSummaryResponse if rContent == ResponseContent.SUMMARY \
+                    else BaseResponseModel
+        ), 
+        Parameters(track=track, chromosome=chr)
+    )
+    
+    return await helper.get_shard()
