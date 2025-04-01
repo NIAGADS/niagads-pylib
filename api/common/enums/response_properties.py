@@ -29,11 +29,20 @@ class ResponseContent(EnumParameter):
     @classmethod
     def data(cls, description=False):
         """ return data formats only"""
-        subset = cls.exclude('descriptive_only_content', [ResponseContent.IDS, ResponseContent.URLS] )
+        subset = cls.exclude('data_only_content', [ResponseContent.IDS, ResponseContent.URLS] )
         if description:
             return cls.get_description(False) + ' ' + subset.get_description()
         else:
             return subset
+        
+    @classmethod
+    def full_data(cls, description=False):
+        """ return full data formats only"""
+        subset = cls.exclude('full_data_only_content', [ResponseContent.IDS, ResponseContent.URLS, ResponseContent.SUMMARY] )
+        if description:
+            return cls.get_description(False) + ' ' + subset.get_description()
+        else:
+            return subset    
         
 
 class ResponseFormat(EnumParameter):

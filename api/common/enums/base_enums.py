@@ -1,7 +1,6 @@
 from enum import StrEnum, auto, Enum
 from fastapi.exceptions import RequestValidationError
 
-
 from api.common.formatters import clean, print_enum_values
 
 class CaseInsensitiveEnum(StrEnum):

@@ -88,6 +88,7 @@ class GenericTrack(GenericTrackSummary):
     experimental_design: Optional[ExperimentalDesign] = None
     biosample_characteristics: Optional[BiosampleCharacteristics] = None
     provenance: Optional[Provenance] = None
+    output_type: Optional[str]
     
     def to_view_data(self, view: ResponseView, **kwargs):
         return self.serialize(promoteObjs=True)

@@ -10,10 +10,12 @@ from pydantic import BaseModel
 
 from api.common.enums.cache import CacheKeyQualifier, CacheNamespace
 from api.common.enums.database import DataStore
+from api.common.enums.genome import FeatureType
 from api.common.enums.response_properties import ResponseContent
 from api.common.helpers import Parameters, ResponseConfiguration, MetadataRouteHelper, PaginationCursor
 
 from api.common.services.metadata_query import MetadataQueryService
+from api.models.genome import Feature
 from api.models.response_model_properties import CacheKeyDataModel
 
 from api.routes.filer.common.constants import CACHEDB_PARALLEL_TIMEOUT, TRACKS_PER_API_REQUEST_LIMIT
@@ -150,13 +152,27 @@ class FILERRouteHelper(MetadataRouteHelper):
     async def __get_track_data_task(self, tracks: List[str], assembly: str, span: str, countsOnly: bool):
         cacheKey = CacheKeyDataModel.encrypt_key(
             f'/{FILERApiEndpoint.OVERLAPS}?assembly={assembly}&countsOnly={countsOnly}'
-            + f'&span={self._parameters.span}&tracks={','.join(tracks)}'
+            + f'&span={span}&tracks={','.join(tracks)}'
             )
         result = await self._managers.cache.get(cacheKey, 
             namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
         if result is None:   
             result = await ApiWrapperService(self._managers.apiClientSession) \
                 .get_track_hits(tracks, span, assembly, countsOnly=countsOnly)
+            await self._managers.cache.set(cacheKey, result, 
+                namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
+        return result
+    
+
+    async def __get_gene_qtl_data_task(self, track: str, gene: str):
+        cacheKey = CacheKeyDataModel.encrypt_key(
+            f'/{FILERApiEndpoint.GENE_QTLS}?'
+            + f'&gene={gene}&track={track}')
+        result = await self._managers.cache.get(cacheKey, 
+            namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
+        if result is None:   
+            result = await ApiWrapperService(self._managers.apiClientSession) \
+                .get_gene_qtls(track, gene)
             await self._managers.cache.set(cacheKey, result, 
                 namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
         return result
@@ -319,3 +335,45 @@ class FILERRouteHelper(MetadataRouteHelper):
             
             case _:
                 raise RuntimeError('Invalid response content specified')
+
+    async def get_feature_qtls(self):
+        cachedResponse = await self._get_cached_response()
+        if cachedResponse is not None:
+            return cachedResponse
+        
+        assembly = await self.__validate_tracks([self._parameters.track])
+        
+        feature: Feature = self._parameters.location
+        
+        match feature.feature_type:
+            case FeatureType.GENE:
+                if feature.feature_id.startswith('ENSG'):
+                    raise NotImplementedError(f'Mapping through Ensembl IDS not yet implemented')
+                response: FILERApiDataResponse = await self.__get_gene_qtl_data_task(self._parameters.track, feature.feature_id)
+                counts = TrackOverlap(track_id=self._parameters.track,num_overlaps=len(response.features))
+                
+                if self._responseConfig.content == ResponseContent.COUNTS:
+                    return await self.generate_response(counts)
+                
+                cursor: FILERPaginationCursor = await self.__initialize_data_query_pagination([counts])
+                result = self.__page_data_result(cursor, [response])
+                return await self.generate_response(result, isCached=False)
+    
+            case FeatureType.VARIANT:
+                if feature.feature_id.startswith('rs'):
+                    raise NotImplementedError(f'Mapping through refSNP IDS not yet implemented')
+                # chr:pos:ref-alt -> chr:pos-1:pos
+                [chr, pos, ref, alt] = feature.feature_id.split(':')
+                span = f'{chr}:{int(pos) - 1}-{pos}'
+                self._parameters.update("assembly", assembly)
+                self._parameters.update("span", span)
+                return await self.get_track_data(validate=False)
+            
+            case FeatureType.SPAN:
+                self._parameters.update("assembly", assembly)
+                self._parameters.update("span", feature.feature_id)
+                return await self.get_track_data(validate=False)
+            
+            case _:
+                raise NotImplementedError(f'QTL queries for feature type ${str(feature.feature_type)} not yet implemented.')
+        

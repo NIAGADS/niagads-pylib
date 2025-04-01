@@ -8,7 +8,7 @@ from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.identifiers import query_collection_name
-from api.dependencies.parameters.location import assembly_param
+from api.dependencies.parameters.features import assembly_param
 from api.models.igvbrowser import IGVBrowserTrackConfig, IGVBrowserTrackSelectorResponse, IGVBrowserTrackConfigResponse
 from api.models.view_models import TableViewModel
 

@@ -16,6 +16,7 @@ from api.routes.filer.routes.metadata import router as MetadataRouter
 from api.routes.filer.routes.data import router as DataRouter
 from api.routes.filer.routes.service import router as ServiceRouter
 from api.routes.filer.routes.collection import router as CollectionRouter
+from api.routes.filer.routes.qtls import router as QTLRouter
 
 router = APIRouter(
     prefix=ROUTE_PREFIX,
@@ -43,3 +44,4 @@ router.include_router(MetadataRouter)
 router.include_router(DataRouter)
 router.include_router(ServiceRouter)
 router.include_router(CollectionRouter)
+router.include_router(QTLRouter)

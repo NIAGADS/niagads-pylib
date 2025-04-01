@@ -52,8 +52,11 @@ class FILERTrack(GenericTrack):
             fields.remove('provenance')
             # fields.remove('biosample_term_id')
         
-        fields.remove('download_url')
-        fields.remove('release_date')
+            fields.remove('download_url')
+            fields.remove('release_date')
+            fields.remove('raw_file_url')
+            fields.remove('raw_file_md5sum')
+        
         
         duplicates = get_duplicates(fields) # FIXME: some of the nested fields will be duplicated
         for f in duplicates:

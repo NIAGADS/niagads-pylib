@@ -7,7 +7,7 @@ from api.common.enums.response_properties import ResponseContent, ResponseFormat
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
-from api.dependencies.parameters.location import assembly_param
+from api.dependencies.parameters.features import assembly_param
 from api.dependencies.parameters.optional import page_param, keyword_param
 
 from api.models.base_response_models import PagedResponseModel, BaseResponseModel

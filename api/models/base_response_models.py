@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, TypeVar, Union
+from sqlmodel import SQLModel
 from typing_extensions import Self
 
 from niagads.utils.string import xstr
@@ -10,7 +11,7 @@ from api.models.base_row_models import RowModel, T_RowModel
 from api.models.view_models import TableColumn
 from .response_model_properties import PaginationDataModel, RequestDataModel
 
-class BaseResponseModel(BaseModel):
+class BaseResponseModel(SQLModel, BaseModel):
     response: Any = Field(description="result (data) from the request")
     request: RequestDataModel = Field(description="details about the originating request that generated the response")
 

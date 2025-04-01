@@ -4,6 +4,7 @@ from pydantic import BaseModel, field_validator, ConfigDict, model_validator
 from typing import Any, Dict, Optional, Type, Union
 
 from niagads.utils.list import list_to_string
+from sqlalchemy import RowMapping
 
 from api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from api.common.enums.cache import CacheKeyQualifier, CacheNamespace
@@ -13,6 +14,7 @@ from api.common.services.metadata_query import MetadataQueryService
 from api.common.types import Range
 
 from api.dependencies.parameters.services import InternalRequestParameters
+from api.models.base_row_models import GenericDataModel
 from api.models.response_model_properties import CacheKeyDataModel, PaginationDataModel
 from api.models.base_response_models import BaseResponseModel, T_ResponseModel
 from api.models.igvbrowser import IGVBrowserTrackSelectorResponse
@@ -103,6 +105,14 @@ class RouteHelper():
         self._pageSize: int = DEFAULT_PAGE_SIZE
         self._resultSize: int = None
     
+
+    def _sqa_row2dict(self, result):
+        # row = lambda r: {c.name: str(getattr(r, c.name)) for c in r.__table__.columns}
+        if 'BaseResponseModel' in str(self._responseConfig.model):
+            if isinstance(result[0], RowMapping):
+                return [GenericDataModel(**row) for row in result]
+            
+        return result
     
     def set_page_size(self, pageSize: int):
         self._pageSize = pageSize
@@ -242,7 +252,7 @@ class RouteHelper():
                 response = self._responseConfig.model(
                     request=self._managers.requestData,
                     pagination=self._pagination,
-                    response=result)
+                    response=self._sqa_row2dict(result))
             else: 
                 if (self._responseConfig.model == IGVBrowserTrackSelectorResponse):
                     queryId = self._managers.cacheKey.encrypt()
@@ -254,7 +264,7 @@ class RouteHelper():
                 else:
                     response = self._responseConfig.model(
                         request=self._managers.requestData,
-                        response=result
+                        response=self._sqa_row2dict(result)
                     )
 
             # cache the response

@@ -4,6 +4,8 @@ class FILERApiEndpoint(CaseInsensitiveEnum):
     OVERLAPS = 'get_overlaps'
     INFORMATIVE_TRACKS = 'get_overlapping_tracks_by_coord'
     METADATA = 'get_metadata'
+    GENE_QTLS = 'get_gene_qtls'
+    
     
     def __str__(self):
         return f"{self.value}.php"

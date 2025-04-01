@@ -4,6 +4,8 @@ from fastapi.exceptions import RequestValidationError
 
 from api.common.formatters import clean
 
+# TODO: make these classes w/a variant: Path, Query, QueryOptional
+
 async def path_variant_id(variant: str = Query(regex="", description="")):
     return True
 

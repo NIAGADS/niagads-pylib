@@ -1,9 +1,9 @@
 from typing import Optional
-from pydantic import  ConfigDict, field_serializer
+from pydantic import  BaseModel, ConfigDict, field_serializer
 
 from niagads.reference.chromosomes import Human
 
-from api.common.enums.genome import Strand
+from api.common.enums.genome import FeatureType, Strand
 from api.common.types import Range
 from api.models.base_row_models import RowModel
 
@@ -34,4 +34,8 @@ class Variant(RowModel):
     variant_id: str
     ref_snp_id: Optional[str] = None
 
+
+class Feature(BaseModel):
+    feature_id: str
+    feature_type: FeatureType
     
