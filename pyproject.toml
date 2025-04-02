@@ -1,0 +1,47 @@
+[project]
+name = "niagads-pylib"
+version = "0.1.0"
+description = "a collection of python packages, classes, and utility functions in support of NIAGADS projects"
+authors = [{ name = "fossilfriend", email = "egreenfest@gmail.com" }]
+license = { text = "GNU GPLv3" }
+readme = "README.md"
+requires-python = ">=3.12"
+
+[tool.poetry]
+homepage = "https://github.com/NIAGADS/niagads-pylib"
+repository = "https://github.com/NIAGADS/niagads-pylib"
+packages = [{ include = "niagads/string", from = "components" }]
+
+
+[tool.poetry.dependencies]
+openpyxl = "^3.1.5"
+strenum = "^0.4.15"
+aiohttp = "^3.11.16"
+pandas = "^2.2.3"
+python-dateutil = "^2.9.0.post0"
+psycopg2-binary = "^2.9.10"
+jsonschema = "^4.23.0"
+deprecated = "^1.2.18"
+asyncpg = "^0.30.0"
+pydantic = "^2.11.1"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.4.2"
+isort = "^5.13.2"
+mypy = "^1.8.0"
+flake8 = "^7.0.0"
+pytest = "^8.2.2"
+
+
+[tool.isort]
+profile = "black"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.pytest.ini_options]
+addopts = "-vv"

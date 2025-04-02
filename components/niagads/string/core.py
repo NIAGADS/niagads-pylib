@@ -5,10 +5,9 @@ value testers
 """
 
 import json
-import niagads.utils.reg_ex as re
+import re
 
 from typing import List
-from deprecated import deprecated
 from dateutil.parser import parse as parse_date
 from datetime import datetime
 
@@ -313,24 +312,92 @@ def is_balanced(value, start='(', end=')'):
 
 # regex wrappers to re calls to reduce re imports
 # =================================================
-@deprecated(version='0.2.0', reason="Moved; import from `utils.reg_ex` instead")
 def regex_replace(pattern, replacement, value, **kwargs):
-    ''' see `utils.reg_ex.regex_replace` for documentation '''
-    return re.regex_replace(pattern, replacement, value, **kwargs)
+    """
+    wrapper for `re.sub`
+    
+    Args:
+        pattern (str): regular expression pattern to match
+        replacement (str):string to substitute for pattern
+        value (str): original string
+        **kwargs (optional): optional keyword arguments expected by `re.sub`:
+            `count`: maximum number of patterns to be replaced
+            `flags`: (e.g., IGNORECASE) 
+                see https://docs.python.org/3/library/re.html#re.RegexFlag; 
+                can import from `niagads.utils.RegexFlag`
+                Defaults to NOFLAG (0).
+
+    Returns:
+        updated string
+    """
+    return re.sub(pattern, replacement, value, **kwargs)
 
 
-@deprecated(version='0.2.0', reason="Moved; import from `utils.reg_ex` instead")
-def regex_extract(pattern, value, firstMatchOnly=True, **kwargs): 
-    ''' see `utils.reg_ex.regex_extract` for documentation '''
-    return re.regex_extract(pattern, value, **kwargs)
+def regex_extract(pattern, value, firstMatchOnly=True, **kwargs):
+    """
+    wrapper for `re.search`
+    
+    Args:
+        pattern (str): regular expression pattern to match
+        value (str): string to search
+        **kwargs (optional): optional keyword arguments expected by `re.search`:
+            `flags`: (e.g., IGNORECASE) 
+                see https://docs.python.org/3/library/re.html#re.RegexFlag; 
+                can import from `niagads.utils.RegexFlag`
+                Defaults to NOFLAG (0).
+
+    Returns:
+        string containing first match if firstMatchOnly, else list of all pattern matches
+    """
+    if firstMatchOnly:
+        result = re.search(pattern, value, **kwargs) 
+
+        if result is not None:
+            try:
+                return result.group(1) 
+            except:
+                return result.group()
+        return None
+    
+    else:
+        result = re.findall(pattern, value, **kwargs)
+        return None if len(result) == 0 else result
 
 
-@deprecated(version='0.2.0', reason="Moved; import from `utils.reg_ex` instead")
 def matches(pattern, value, **kwargs):
-    ''' see `utils.reg_ex.matches` for documentation '''
-    return re.matches(pattern, value, **kwargs)
+    """
+    checks if string contains a pattern
+    
+    Args:
+        pattern (str): regular expression pattern to match
+        value (str): string to search
+        **kwargs (optional): optional keyword arguments expected by `re.search`:
+            `flags`: (e.g., IGNORECASE) 
+                see https://docs.python.org/3/library/re.html#re.RegexFlag; 
+                can import from `niagads.utils.RegexFlag`
+                Defaults to NOFLAG (0).
 
-@deprecated(version='0.2.0', reason="Moved; import from `utils.reg_ex` instead")
+    Returns:
+        True if match is found
+    """
+    result = re.search(pattern, value, **kwargs)
+    return result is not None
+
+
 def regex_split(pattern, value, **kwargs):
-    ''' see `utils.reg_ex.split` for documentation '''
-    return re.regex_split(pattern, value, **kwargs)
+    """
+    wrapper for `re.split`
+    
+    Args:
+        pattern (str): regular expression pattern to match
+        value (str): string to search
+        **kwargs (optional): optional keyword arguments expected by `re.split`:
+            `maxsplit`: if maxsplit is non-zero than at most, maxsplit splits will be done
+            `flags`: (e.g., IGNORECASE) 
+                see https://docs.python.org/3/library/re.html#re.RegexFlag; 
+                can import from `niagads.utils.RegexFlag`
+                Defaults to NOFLAG (0).
+
+    """
+    return re.split(pattern, value, **kwargs)
+

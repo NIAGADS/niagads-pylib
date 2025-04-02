@@ -11,9 +11,9 @@ setup(
     packages=find_packages(), # ['niagads', 'niagads.filer', 'niagads.utils'],
     setup_requires = ['Cython'],
     install_requires=['Cython', 'openpyxl', 'strenum', 
-                      'rdflib', 'owlready2', 'pandas', 
-                      'python-dateutil', 'requests', 'psycopg2-binary',
-                      'jsonschema', 'Deprecated', 'asyncpg', 'pydantic'],
+                    'rdflib', 'owlready2', 'pandas', 
+                    'python-dateutil', 'requests', 'psycopg2-binary',
+                    'jsonschema', 'Deprecated', 'asyncpg', 'pydantic'],
     entry_points ={
         'console_scripts': [
                'variant_annotator = niagads.scripts.variant_annotator:main',
