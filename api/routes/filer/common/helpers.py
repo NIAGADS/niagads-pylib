@@ -127,7 +127,7 @@ class FILERRouteHelper(MetadataRouteHelper):
         return assembly
 
 
-    def __page_data_result(self, cursor: FILERPaginationCursor, response: List[FILERApiDataResponse]) -> List[BEDFeature]:
+    def __page_data_result(self, cursor: FILERPaginationCursor, data: List[FILERApiDataResponse]) -> List[BEDFeature]:
         
         # sort the response by the cursor pagedTracks so the track order is correct
         # FILER currently processes sequentially so this is unecessary but if updated
@@ -195,7 +195,7 @@ class FILERRouteHelper(MetadataRouteHelper):
         tasks = [self.__get_track_data_task(c, assembly, self._parameters.span, False) for c in chunks]
         chunkedResults = await asyncio.gather(*tasks, return_exceptions=False)
         
-        response: List[FILERApiDataResponse] = []
+        data: List[FILERApiDataResponse] = []
         for r in chunkedResults:
             response = response + r
 
@@ -349,7 +349,7 @@ class FILERRouteHelper(MetadataRouteHelper):
             case FeatureType.GENE:
                 if feature.feature_id.startswith('ENSG'):
                     raise NotImplementedError(f'Mapping through Ensembl IDS not yet implemented')
-                response: FILERApiDataResponse = await self.__get_gene_qtl_data_task(self._parameters.track, feature.feature_id)
+                data: FILERApiDataResponse = await self.__get_gene_qtl_data_task(self._parameters.track, feature.feature_id)
                 counts = TrackOverlap(track_id=self._parameters.track,num_overlaps=len(response.features))
                 
                 if self._responseConfig.content == ResponseContent.COUNTS:

@@ -176,8 +176,8 @@ class QTL(VariantPValueScore):
         return config
 
 class GWASSumStatResponse(PagedResponseModel):
-    response: List[VariantPValueScore]
+    data: List[VariantPValueScore]
     
 class QTLResponse(PagedResponseModel):
-    response: List[QTL]
+    data: List[QTL]
     

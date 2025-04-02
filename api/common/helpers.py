@@ -252,7 +252,7 @@ class RouteHelper():
                 response = self._responseConfig.model(
                     request=self._managers.requestData,
                     pagination=self._pagination,
-                    response=self._sqa_row2dict(result))
+                    data=self._sqa_row2dict(result))
             else: 
                 if (self._responseConfig.model == IGVBrowserTrackSelectorResponse):
                     queryId = self._managers.cacheKey.encrypt()
@@ -260,11 +260,11 @@ class RouteHelper():
         
                     response = self._responseConfig.model(
                         request=self._managers.requestData,
-                        response=IGVBrowserTrackSelectorResponse.build_table(result, queryId if collectionId is None else collectionId))
+                        data=IGVBrowserTrackSelectorResponse.build_table(result, queryId if collectionId is None else collectionId))
                 else:
                     response = self._responseConfig.model(
                         request=self._managers.requestData,
-                        response=self._sqa_row2dict(result)
+                        data=self._sqa_row2dict(result)
                     )
 
             # cache the response

@@ -78,7 +78,7 @@ class BEDFeature(GenericDataModel):
     
 
 class BEDResponse(PagedResponseModel):
-    response: List[BEDFeature]
+    data: List[BEDFeature]
     
     def __has_dynamic_extras(self) -> bool:
         """ test to see if rows have different additional fields """

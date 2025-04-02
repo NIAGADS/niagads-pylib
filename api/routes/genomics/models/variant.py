@@ -54,7 +54,7 @@ class AnnotatedVariant(Variant):
 
 
 class VariantSummaryResponse(PagedResponseModel):
-    response: List[Variant]
+    data: List[Variant]
     
 class AnnotatedVariantResponse(PagedResponseModel):
-    response: List[AnnotatedVariant]
+    data: List[AnnotatedVariant]

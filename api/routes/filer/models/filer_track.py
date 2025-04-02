@@ -83,7 +83,7 @@ class FILERTrack(GenericTrack):
         return config
 
 class FILERTrackSummaryResponse(PagedResponseModel):
-    response: List[FILERTrackSummary]
+    data: List[FILERTrackSummary]
     
     def to_text(self, format: ResponseView, **kwargs):
         # fields could contain num_overlaps if a result is present
@@ -93,7 +93,7 @@ class FILERTrackSummaryResponse(PagedResponseModel):
 
     
 class FILERTrackResponse(PagedResponseModel):
-    response: List[FILERTrack]
+    data: List[FILERTrack]
 
     def to_text(self, format: ResponseView, **kwargs):
         fields = FILERTrack.get_model_fields()

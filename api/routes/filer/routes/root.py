@@ -33,7 +33,7 @@ async def read_root(
         )-> BaseResponseModel:
     
     result = await MetadataQueryService(session, dataStore=[DataStore.FILER, DataStore.SHARED]).get_track_count()
-    return BaseResponseModel(response = {"database": "FILER", "number of tracks": result}, request=requestData)
+    return BaseResponseModel(data = {"database": "FILER", "number of tracks": result}, request=requestData)
 
 
 # --------------------------------------------------------------

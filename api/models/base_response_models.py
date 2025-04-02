@@ -12,7 +12,7 @@ from api.models.view_models import TableColumn
 from .response_model_properties import PaginationDataModel, RequestDataModel
 
 class BaseResponseModel(SQLModel, BaseModel):
-    response: Any = Field(description="result (data) from the request")
+    data: Any = Field(description="result (data) from the request")
     request: RequestDataModel = Field(description="details about the originating request that generated the response")
 
 
