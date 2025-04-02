@@ -2,62 +2,39 @@
 
 a collection of python packages, classes, and utility functions in support of NIAGADS projects
 
-# Documentation
+## Documentation
 
 see https://niagads.github.io/niagads-pylib
 
-# Requirements
+## Python Version
 
-* python 3.10+
+* python 3.12+
 
-# Installation
+## Usage
 
-> NOTE: add the `--user` flag to the `pip3` or `setup.py` calls to install as a `user` or `local` package
-> add `#branch-name` to the end of the URL to install from a specific branch
+TBD
 
-## `pip3` installation direct from GitHub:
+## Developers
 
-* latest stable / `main` branch
+The NIAGADS-pylib uses a [Polylith architecture](https://polylith.gitbook.io/polylith) managed with the [Python-polylith toolkit](https://davidvujic.github.io/python-polylith-docs/)
+
+### Requirements
+
+* python 3.12+
+* pipx: <https://github.com/pypa/pipx>
+* poetry package manager: <https://python-poetry.org/>
+
+### Environment Setup
+
+Clone the repository and in the root directory run 
 
 ```bash
-pip3 install git+https://github.com/NIAGADS/niagads-pylib.git
-```
-* other branch
-```bash
-pip3 install git+https://github.com/NIAGADS/niagads-pylib.git#branch-name
+poetry install
 ```
 
-## `python3 setup.py` from local working version
-```bash
-git clone https://github.com/NIAGADS/niagads-pylib.git
-cd niagads-pylib
-python3 -m pip install .
-```
+to set up the virtual environment and install the packages and third-party dependencies.
 
-## docker 
-
-* Requires `docker` or `docker desktop`
-
-> NOTE: This is for **_`NIAGADS organization` members only_** at this time
-
-If a member of NIAGADS, make a request to `Emily G` or `Otto V` to be added to the NIAGADS GitHub organization, and to be given access to the `Docker Team` for read access to the `NIAGADS/docker-repo`. Next:
-
-```bash 
-git clone https://github.com/NIAGADS/docker-repo.git
-docker build --build-arg GID=$GID --pull --rm -f "docker-repo/dev-environments/pylib/Dockerfile" -t pylib:latest "docker-repo/dev-environments/pylib
-```
-
-> `${GID}` is your group_id; this is for permissions if you need to run a script that requires mounting a volume and writing to the host (defaults to `1001`)
-
-> use the `--build-arg` `PYLIB_SOURCE` to override the `GitHub` target (e.g., use your own fork or a branch other than `main`)
-
-Example `docker` usage will be provided in the `README` for the `NIAGADS/docker-repo`
-
-# Contributing
-
-## Suggested working environment
-
-* [vscode](https://code.visualstudio.com/)
+### VSCode Config
 
 * VSCode extensions:
   * [Microsoft Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
@@ -68,17 +45,9 @@ Example `docker` usage will be provided in the `README` for the `NIAGADS/docker-
 
 * create a python [venv](https://docs.python.org/3/library/venv.html) to facilitate testing scripts
 
-## Standard Operating Procedure
+### Coding Conventions
 
-> More details coming soon
-
-* create your own fork 
-* do a local test merge & sync your fork with `NIAGADS/pylib#integration` to resolve conflicts/changes since you started working on your fork
-* make `pull request`, using the `integration` branch as the base for comparison to submit contribution
-
-## Coding Conventions
-
-### Naming
+#### Naming
 
 * `file names` and `directories` should be in [snake_case](https://www.theserverside.com/definition/Snake-case)
 * `function` names should be in `snake_case`
@@ -86,7 +55,7 @@ Example `docker` usage will be provided in the `README` for the `NIAGADS/docker-
 * `class` names should be in [UpperCamelCase](https://www.techtarget.com/whatis/definition/CamelCase#:~:text=CamelCase%20is%20a%20way%20to,humps%20on%20a%20camel%27s%20back.)
 * `constants` should be in `UPPER_SNAKE_CASE`
 
-### Documentation
+#### Code Documentation
 
 All functions, classes and packages should have a doc-string.  For non-inuitive or complex functions, please provide a `summary` description, a list of `args`, a description of the `return value`, and any `raised exceptions`.  For simple functions (e.g., member `getters` and `setters`, no documentation is need or a simple `summary` doc string will suffice)
 
@@ -94,11 +63,12 @@ All functions, classes and packages should have a doc-string.  For non-inuitive 
 > for example: [niagads.utils.string.is_balanced](https://niagads.github.io/niagads-pylib/_modules/niagads/utils/string.html#is_balanced), 
 > or [niagads.utils.list.chunker](https://niagads.github.io/niagads-pylib/_modules/niagads/utils/list.html#chunker)
 
-### Logging
+#### Logging
 
 Please use `logging` to log script progress and debug statements. Details coming soon.
 
-### Classes
+#### Classes
+
 * When definining `classes`, try to stick to the principles of `Object Oriented Programming`: `Encapsulation, Data Abstraction, Polymorphism and Inheritence`.  
 
 > Especially `Encapsulation` (a class's variables are hidden from other classes and can only be accessed by the methods of the class in which they are found):
@@ -120,13 +90,11 @@ Please use `logging` to log script progress and debug statements. Details coming
 
 * override the `__str__` [dunder method](https://mathspp.com/blog/pydonts/dunder-methods) for the class so that users can debug or write class state as output (i.e., convert class to string)
 
-
-
-### Scripts
+#### Scripts
 
 Executable scripts can be added to the `scripts` directory. `setup.py` will also need to be updated.  Details coming soon.
 
-### Other
+#### Other
 
 * use [type hints](https://docs.python.org/3/library/typing.html) when possible help the `Pylance` (the Python interpreter) provide better autocompletion examples
 
