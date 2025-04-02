@@ -26,24 +26,22 @@ The NIAGADS-pylib uses a [Polylith architecture](https://polylith.gitbook.io/pol
 
 ### Environment Setup
 
-Clone the repository and in the root directory run 
+Clone the repository and run the following the root directory to set up the virtual environment and install the packages and third-party dependencies.
 
 ```bash
 poetry install
 ```
 
-to set up the virtual environment and install the packages and third-party dependencies.
-
 ### VSCode Config
 
-* VSCode extensions:
-  * [Microsoft Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
-  * [indent-rainbow](https://marketplace.visualstudio.com/items?itemName=oderwat.indent-rainbow)
-  * [autoDocstring](https://marketplace.visualstudio.com/items?itemName=njpwerner.autodocstring)
+#### Recommended extensions
+
+* [Microsoft Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
+* [indent-rainbow](https://marketplace.visualstudio.com/items?itemName=oderwat.indent-rainbow)
+* [autoDocstring](https://marketplace.visualstudio.com/items?itemName=njpwerner.autodocstring)
+* [toml](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml)
 
 > suggest configuring `autoDocstring` to use `google` style comment blocks
-
-* create a python [venv](https://docs.python.org/3/library/venv.html) to facilitate testing scripts
 
 ### Coding Conventions
 
