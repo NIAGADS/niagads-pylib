@@ -1,0 +1,7 @@
+metapub==0.5.7
+aiohttp>=3.9.3
+pandas==2.1.4
+nltk==3.8.1
+scikit-learn==1.4.0
+numpy==1.26.3
+spacy>=3.7.3 
