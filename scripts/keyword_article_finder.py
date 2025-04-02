@@ -55,10 +55,21 @@ async def search_pubmed(keywords):
     
     return articles
 
-def filter_existing_articles(articles, existing_articles_file):
+def filter_existing_articles(articles):
     try:
-        existing_df = pd.read_csv(existing_articles_file)
-        existing_pmids = set(existing_df['pmid'].astype(str))
+        existing_pmids = set()
+        
+        try:
+            df_new = pd.read_csv('new_alzheimer_articles.csv')
+            existing_pmids.update(df_new['pmid'].astype(str))
+        except FileNotFoundError:
+            pass
+            
+        try:
+            df_filtered = pd.read_csv('filtered_articles.csv')
+            existing_pmids.update(df_filtered['pmid'].astype(str))
+        except FileNotFoundError:
+            pass
         
         filtered_articles = [article for article in articles if str(article['pmid']) not in existing_pmids]
         
@@ -72,7 +83,6 @@ def filter_existing_articles(articles, existing_articles_file):
 async def main():
     parser = argparse.ArgumentParser(description='Search PubMed for Alzheimer\'s articles with keywords')
     parser.add_argument('--keywords', default='alzheimer_keywords.csv', help='Path to CSV file containing keywords')
-    parser.add_argument('--existing', default='filtered_articles.csv', help='Path to CSV file containing existing articles')
     args = parser.parse_args()
 
     try:
@@ -85,15 +95,19 @@ async def main():
     articles = await search_pubmed(keywords)
     print(f"Found {len(articles)} articles after removing preprints")
     
-    filtered_articles = filter_existing_articles(articles, args.existing)
+    filtered_articles = filter_existing_articles(articles)
     print(f"Found {len(filtered_articles)} new articles")
     
     if filtered_articles:
-        df = pd.DataFrame(filtered_articles)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_file = f'new_alzheimer_articles_{timestamp}.csv'
-        df.to_csv(output_file, index=False)
-        print(f"Saved {len(filtered_articles)} articles to {output_file}")
+        df_new = pd.DataFrame(filtered_articles)
+        try:
+            df_existing = pd.read_csv('new_alzheimer_articles.csv')
+            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+            df_combined.to_csv('new_alzheimer_articles.csv', index=False)
+            print(f"Added {len(filtered_articles)} new articles to new_alzheimer_articles.csv")
+        except FileNotFoundError:
+            df_new.to_csv('new_alzheimer_articles.csv', index=False)
+            print(f"Created new_alzheimer_articles.csv with {len(filtered_articles)} articles")
     else:
         print("No new articles found")
 
