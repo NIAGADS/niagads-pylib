@@ -10,10 +10,10 @@ from sys import stderr, exit
 from urllib.parse import urlencode
 from subprocess import check_output, CalledProcessError
 
-from .enums import ClassProperties
-from .dict import print_dict
-from .string import ascii_safe_str
-from .exceptions import RestrictedValueError
+from niagads.enums.core import ClassProperties
+from niagads.dict.core import print_dict
+from niagads.string.core import ascii_safe_str
+from niagads.exceptions.core import RestrictedValueError
 
 LOGGER = logging.getLogger(__name__)
 

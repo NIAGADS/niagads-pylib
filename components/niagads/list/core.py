@@ -1,7 +1,7 @@
 """ library of array, list, and set manipulation functions """
 from collections import OrderedDict, Counter
 from typing import List, Union
-from .string import xstr
+from niagads.string.core import xstr
 
 
 def all_elements_are_none(array):

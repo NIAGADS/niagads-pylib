@@ -1,6 +1,6 @@
 import json
 import logging
-from .string import xstr
+from niagads.string.core import xstr
 
 
 class AbstractMethodNotImplemented(NotImplementedError):

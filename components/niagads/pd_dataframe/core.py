@@ -1,8 +1,7 @@
-''' utilities for manipulating pandas DataFrames '''
+''' utilities for cleaning data in pandas DataFrames '''
 
 from pandas import DataFrame
-from pandas.api.types import is_string_dtype
-from .sys import warning
+# from pandas.api.types import is_string_dtype
 
 def strip(df:DataFrame) -> DataFrame:
     """

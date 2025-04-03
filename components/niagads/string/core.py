@@ -11,6 +11,21 @@ from typing import List
 from dateutil.parser import parse as parse_date
 from datetime import datetime
 
+
+def list_to_string(value, nullStr="NULL", delim=','):
+    """ checks if list, if so, converts to string; 
+    None/empty -> nullStr; 
+    all other return str(value) 
+    """
+    if value is None or len(value) == 0:
+        return nullStr
+    
+    if isinstance(value, list):
+        return delim.join([xstr(v, nullStr=nullStr) for v in value])
+    
+    return xstr(value)
+
+
 def string_in_list(value: str, array: List[str], ignoreCase=False):
     """
     wrapper for seeing if a string value is 'in' a list 
