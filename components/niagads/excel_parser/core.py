@@ -6,8 +6,8 @@ from typing import Union
 from pandas import read_excel, DataFrame
 from openpyxl import Workbook as wb, load_workbook
 
-from niagads.dict.core import convert_str2numeric_values
-from niagads.string.core import xstr, to_snake_case
+from niagads.dict_utils.core import convert_str2numeric_values
+from niagads.string_utils.core import xstr, to_snake_case
 from niagads.pd_dataframe.core import strip
 
 class ExcelFileParser:

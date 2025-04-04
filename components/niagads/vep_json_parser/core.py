@@ -24,8 +24,8 @@ import logging
 from operator import itemgetter
 from copy import deepcopy
 
-from niagads.string.core import xstr
-from niagads.list.core import qw
+from niagads.string_utils.core import xstr
+from niagads.list_utils.core import qw
 from niagads.objects.core import AutoVivificationDict 
 from niagads.adsp_annotation.core import VEPConsequenceParser as ConsequenceParser
 

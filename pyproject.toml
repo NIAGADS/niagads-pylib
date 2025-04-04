@@ -11,32 +11,30 @@ requires-python = ">=3.11,<4.0"
 homepage = "https://github.com/NIAGADS/niagads-pylib"
 repository = "https://github.com/NIAGADS/niagads-pylib"
 packages = [
-    { include = "niagads/string", from = "components" },
-    { include = "niagads/list", from = "components" },
-    { include = "niagads/dict", from = "components" },
     { include = "niagads/enums", from = "components" },
-    { include = "niagads/numeric", from = "components" },
-    { include = "niagads/logging", from = "components" },
     { include = "niagads/exceptions", from = "components" },
     { include = "niagads/pd_dataframe", from = "components" },
-    { include = "niagads/sys", from = "components" },
     { include = "niagads/decorators", from = "components" },
     { include = "niagads/postgres_dbi", from = "components" },
     { include = "niagads/objects", from = "components" },
     { include = "niagads/chromosomes", from = "components" },
     { include = "niagads/excel_parser", from = "components" },
-    { include = "niagads/argparser", from = "components" },
     { include = "niagads/variant_annotator", from = "components" },
     { include = "niagads/csv_parser", from = "components" },
     { include = "niagads/vcf_parser", from = "components" },
-    { include = "niagads/adsp", from = "components" },
     { include = "niagads/vep_json_parser", from = "components" },
     { include = "niagads/adsp_annotation", from = "components" },
     { include = "niagads/metadata_validator", from = "components" },
     { include = "niagads/json_validator", from = "components" },
-    {include = "niagads/csv_validator",from = "components"},
+    { include = "niagads/csv_validator", from = "components" },
+    { include = "niagads/logging_utils", from = "components" },
+    { include = "niagads/list_utils", from = "components" },
+    { include = "niagads/dict_utils", from = "components" },
+    { include = "niagads/sys_utils", from = "components" },
+    { include = "niagads/string_utils", from = "components" },
+    { include = "niagads/numeric_utils", from = "components" },
+    { include = "niagads/arg_parser", from = "components" },
 ]
-
 
 [tool.poetry.dependencies]
 openpyxl = "^3.1.5"

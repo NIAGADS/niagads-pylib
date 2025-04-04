@@ -1,7 +1,7 @@
 from enum import Enum 
 import csv
 import logging
-from niagads.string.core import xstr
+from niagads.string_utils.core import xstr
 
 class Human(str, Enum):
     # name, value pair

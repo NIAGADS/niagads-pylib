@@ -24,9 +24,9 @@ import logging
 from types import SimpleNamespace
 
 from niagads.exceptions.core import ParserError
-from niagads.string.core import xstr, to_numeric
-from niagads.dict.core import convert_str2numeric_values
-from niagads.list.core import qw
+from niagads.string_utils.core import xstr, to_numeric
+from niagads.dict_utils.core import convert_str2numeric_values
+from niagads.list_utils.core import qw
 from niagads.variant_annotator.core import VariantAnnotator
 
 class VCFEntryParser(object):

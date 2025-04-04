@@ -2,7 +2,7 @@ from enum import auto
 import json
 import logging
 from niagads.enums.core import CustomStrEnum
-from niagads.string.core import xstr
+from niagads.string_utils.core import xstr
 from strenum import UppercaseStrEnum
 class ErrorActions(CustomStrEnum, UppercaseStrEnum):
     """enum for possible behaviors on critical errors

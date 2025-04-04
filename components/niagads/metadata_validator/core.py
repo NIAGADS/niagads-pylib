@@ -2,7 +2,7 @@ from typing import List
 
 from niagads.csv_validator.core import CSVTableValidator
 from niagads.exceptions.core import ValidationError
-from niagads.list.core import get_duplicates, list_to_string
+from niagads.list_utils.core import get_duplicates, list_to_string
 
 class FileManifestValidator(CSVTableValidator):
     """

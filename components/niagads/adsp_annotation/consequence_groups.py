@@ -17,7 +17,7 @@
 
 # pylint: disable=line-too-long,invalid-name,no-self-use
 from enum import Enum
-from niagads.list.core import list_to_indexed_dict, is_subset, is_overlapping_list
+from niagads.list_utils.core import list_to_indexed_dict, is_subset, is_overlapping_list
 
 class ConseqGroup(Enum):
     """! Enum class to store & manipulate groups of consequence terms 

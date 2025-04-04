@@ -2,8 +2,12 @@
 # TODO - test whether pyscopg2 connection is need to convert to string
 
 from typing import Dict, List, Union
-from psycopg2.sql import SQL as psSQL, Identifier as psIdentifier, Placeholder as psPlaceholder 
-from ...utils.enums import CustomStrEnum, UppercaseStrEnum, auto
+
+from niagads.enums.core import CustomStrEnum, UppercaseStrEnum, auto
+from psycopg2.sql import SQL as psSQL
+from psycopg2.sql import Identifier as psIdentifier
+from psycopg2.sql import Placeholder as psPlaceholder
+
 
 class Statement(CustomStrEnum, UppercaseStrEnum):
     SELECT = auto()

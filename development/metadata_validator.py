@@ -4,11 +4,11 @@ import argparse
 from os import path, getcwd
 from typing import List
 
-from niagads.logging.core import ExitOnExceptionHandler
+from niagads.logging_utils.core import ExitOnExceptionHandler
 from niagads.csv_validator.core import CSVTableValidator as MetadataValidator
 from niagads.metadata_validator.core import FileManifestValidator, BiosourcePropertiesValidator
-from niagads.dict.core import print_dict
-from niagads.list.core import list_to_string
+from niagads.dict_utils.core import print_dict
+from niagads.list_utils.core import list_to_string
 from niagads.exceptions.core import ValidationError
 
 

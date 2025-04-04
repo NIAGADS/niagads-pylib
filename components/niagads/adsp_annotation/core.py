@@ -47,10 +47,10 @@ import logging
 from collections import OrderedDict
 from datetime import date
 
-from niagads.sys.core import warning, die, verify_path
-from niagads.string.core import to_numeric, int_to_alpha, xstr
-from niagads.dict.core import print_dict
-from niagads.list.core import is_equivalent_list, qw, alphabetize_string_list, list_to_indexed_dict
+from niagads.sys_utils.core import warning, die, verify_path
+from niagads.string_utils.core import to_numeric, int_to_alpha, xstr
+from niagads.dict_utils.core import print_dict
+from niagads.list_utils.core import is_equivalent_list, qw, alphabetize_string_list, list_to_indexed_dict
 
 from .consequence_groups import ConseqGroup
 
