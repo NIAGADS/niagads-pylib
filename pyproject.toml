@@ -34,6 +34,7 @@ packages = [
     { include = "niagads/adsp_annotation", from = "components" },
     { include = "niagads/metadata_validator", from = "components" },
     { include = "niagads/json_validator", from = "components" },
+    {include = "niagads/csv_validator",from = "components"},
 ]
 
 

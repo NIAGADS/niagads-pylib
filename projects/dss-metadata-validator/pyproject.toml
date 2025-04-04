@@ -11,6 +11,7 @@ packages = [
     { include = "niagads/enums", from = "../../components" },
     { include = "niagads/pd_dataframe", from = "../../components" },
     { include = "niagads/sys", from = "../../components" },
+    {include = "niagads/csv_validator",from = "../../components"},
 ]
 
 [project]
