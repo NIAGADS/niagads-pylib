@@ -18,6 +18,25 @@ Python's `requests` library is slow, obsolete, and does not support async
 
 Use instead [AIOHTTP](https://docs.aiohttp.org/en/stable/), an Asynchronous HTTP Client/Server for asyncio and Python.
 
+## spaCy
+
+spaCy is a modern natural language processing library that provides pre-trained models for various languages. We use it for word embeddings and semantic similarity calculations.
+
+<https://spacy.io/>
+
+## NLTK
+
+The Natural Language Toolkit (NLTK) is a platform for building Python programs to work with human language data. We use it for text tokenization and stopword removal.
+
+<https://www.nltk.org/>
+
+## scikit-learn
+
+scikit-learn is a machine learning library for Python. We use it for calculating cosine similarity between word embeddings.
+
+<https://scikit-learn.org/>
+
+
 ### Learning Topics
 
 * connection pooling
