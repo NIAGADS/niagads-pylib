@@ -24,15 +24,35 @@ def has_alzheimer_term(article):
     abstract = article.abstract.lower() if hasattr(article, 'abstract') and article.abstract else ''
     return 'alzheimer' in title or 'alzheimer' in abstract
 
+def get_year_range_and_journals():
+    try:
+        df = pd.read_csv('filtered_articles.csv')
+        min_year = df['year'].min()
+        max_year = df['year'].max()
+        journals = set(df['journal'].unique())
+        return min_year, max_year, journals
+    except Exception as e:
+        print(f"Error reading filtered_articles.csv: {str(e)}")
+        return None, None, set()
+
 async def search_pubmed(keywords):
     articles = []
+    
+    # Get year range and journals from filtered articles
+    min_year, max_year, target_journals = get_year_range_and_journals()
     
     search_terms = []
     for keyword in keywords:
         search_terms.append(f'("{keyword}"[Title/Abstract])')
     
     alzheimer_terms = '(("Alzheimer Disease"[MeSH Terms]) OR ("Alzheimer\'s Disease"[Title/Abstract]))'
-    search_query = f'({alzheimer_terms} AND ({" OR ".join(search_terms)}))'
+    
+    # Add year range to search query if available
+    year_filter = ""
+    if min_year and max_year:
+        year_filter = f' AND ({min_year}:{max_year}[pdat])'
+    
+    search_query = f'({alzheimer_terms} AND ({" OR ".join(search_terms)}){year_filter})'
     
     print(f"Searching PubMed with query: {search_query}")
     
@@ -45,7 +65,22 @@ async def search_pubmed(keywords):
             try:
                 article = fetch.article_by_pmid(pmid)
                 if article and not is_preprint(article.journal) and has_alzheimer_term(article):
-                    articles.append({'pmid': pmid, 'title': article.title, 'abstract': article.abstract if hasattr(article, 'abstract') else '', 'journal': article.journal})
+                    # Check if article is from one of the target journals
+                    if target_journals and article.journal not in target_journals:
+                        continue
+                        
+                    # Get publication year
+                    year = None
+                    if article.publication_date:
+                        year = article.publication_date.year
+                    
+                    articles.append({
+                        'pmid': pmid, 
+                        'title': article.title, 
+                        'abstract': article.abstract if hasattr(article, 'abstract') else '', 
+                        'journal': article.journal,
+                        'year': year
+                    })
             except Exception as e:
                 print(f"Error fetching PMID {pmid}: {str(e)}")
                 continue

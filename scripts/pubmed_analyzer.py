@@ -45,7 +45,10 @@ async def fetch_article_info(pubmed_ids):
         try:
             article = fetch.article_by_pmid(pmid)
             if article:
-                articles.append({'pmid': pmid, 'title': article.title, 'journal': article.journal})
+                year = None
+                if article.publication_date:
+                    year = article.publication_date.year
+                articles.append({'pmid': pmid, 'title': article.title, 'journal': article.journal, 'year': year})
         except Exception as e:
             print(f"Error fetching PMID {pmid}: {str(e)}")
     return articles
