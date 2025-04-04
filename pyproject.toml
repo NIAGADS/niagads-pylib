@@ -21,6 +21,7 @@ packages = [
     { include = "niagads/pd_dataframe", from = "components" },
     { include = "niagads/sys", from = "components" },
     { include = "niagads/decorators", from = "components" },
+    {include = "niagads/postgres_dbi",from = "components"},
 ]
 
 

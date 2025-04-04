@@ -2,20 +2,12 @@
 helper functions for postgres database connections and transaction
 management
 """
-
 import logging
-from os import environ
-from sys import exc_info
 
 import json
-from asyncpg import connect, Connection
+from asyncpg import connect
 
-from configparser import ConfigParser as SafeConfigParser # renamed in Python 3.2
-
-from ...utils.exceptions import IllegalArgumentError
-from ...utils.sys import verify_path
-
-from .postgres_dbi import AbstractDatabase
+from .core import AbstractDatabase
 
 class AsyncDatabase(AbstractDatabase):
     def __init__(self, gusConfigFile=None, connectionString=None):

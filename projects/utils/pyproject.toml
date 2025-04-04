@@ -8,7 +8,6 @@ packages = [
     { include = "niagads/numeric", from = "../../components" },
     { include = "niagads/logging", from = "../../components" },
     { include = "niagads/exceptions", from = "../../components" },
-    { include = "niagads/pd_dataframe", from = "../../components" },
     { include = "niagads/sys", from = "../../components" },
     { include = "niagads/decorators", from = "../../components" },
 ]
