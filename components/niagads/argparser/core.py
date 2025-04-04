@@ -1,21 +1,20 @@
-''' helpers for argparse args, including custom eactions '''
+''' helpers for argparse args, including custom actions '''
 
 import json
 from argparse import ArgumentTypeError
-from typing import Dict
 
-def json_type(value: str) -> Dict:
+def json_type(value: str) -> dict:
     """
-    convert to JSON and return a dict
-
+    convert a JSON string argument value to an object
+    
     Args:
         value (str): JSON string
 
     Raises:
-        argparse.ArgumentTypeError: 
+        argparse.ArgumentTypeError
 
     Returns:
-        _type_: _description_
+        dict: decoded JSON
     """
     try:
         return json.decodes(value)
