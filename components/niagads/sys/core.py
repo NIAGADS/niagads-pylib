@@ -1,4 +1,5 @@
 """ i/o and other system (e.g., subprocess) utils"""
+from enum import auto
 import os
 import gzip
 import datetime
@@ -8,12 +9,20 @@ from typing import IO
 from sys import stderr, exit
 from subprocess import check_output, CalledProcessError
 
-from niagads.enums.core import ClassProperties
+from niagads.enums.core import CustomStrEnum
+from strenum import UppercaseStrEnum
 from niagads.dict.core import print_dict
 from niagads.string.core import ascii_safe_str
 from niagads.exceptions.core import RestrictedValueError
 
 LOGGER = logging.getLogger(__name__)
+
+class ClassProperties(CustomStrEnum, UppercaseStrEnum):
+    """enum for functions that extract info about a class -- methods or members?
+    """
+    METHODS = auto()
+    MEMBERS = auto()
+
 
 
 def file_chunker(buffer: IO, chunkSize:int):

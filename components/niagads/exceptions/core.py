@@ -1,8 +1,16 @@
+from enum import auto
 import json
 import logging
+from niagads.enums.core import CustomStrEnum
 from niagads.string.core import xstr
-
-
+from strenum import UppercaseStrEnum
+class ErrorActions(CustomStrEnum, UppercaseStrEnum):
+    """enum for possible behaviors on critical errors
+    """
+    IGNORE = auto()
+    FAIL = auto()
+    WARN = auto()
+    
 class AbstractMethodNotImplemented(NotImplementedError):
     def __init__(self, methodName):  
         self.message = "`" + methodName + "` method has not been implement for the child of this Abstract parent class"

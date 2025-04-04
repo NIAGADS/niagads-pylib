@@ -6,8 +6,8 @@ import logging
 
 import json
 from asyncpg import connect
+from niagads.postgres_dbi.core import AbstractDatabase
 
-from .core import AbstractDatabase
 
 class AsyncDatabase(AbstractDatabase):
     def __init__(self, gusConfigFile=None, connectionString=None):
@@ -53,3 +53,4 @@ class AsyncDatabase(AbstractDatabase):
     def rollback(self):
         # not yet implemented; requires transactions, not just connections
         raise NotImplementedError()
+    
