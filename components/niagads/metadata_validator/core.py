@@ -1,17 +1,16 @@
 import logging
-from json import dumps as j_dumps
+import json
 from abc import ABC, abstractmethod 
 
 from typing import List, Union
 
-from jsonschema import exceptions as jsExceptions
-
-from . import JSONValidator
-from ..parsers import ExcelFileParser, CSVFileParser
-from ..utils.sys import is_xlsx
-from ..utils.string import xstr
-from ..utils.list import drop_nulls, list_to_string, get_duplicates
-from ..utils.exceptions import ValidationError
+from niagads.json_validator.core import JSONValidator
+from niagads.excel_parser.core import ExcelFileParser
+from niagads.csv_parser.core import CSVFileParser
+from niagads.sys.core import is_xlsx
+from niagads.string.core import xstr
+from niagads.list.core import drop_nulls, list_to_string, get_duplicates
+from niagads.exceptions.core import ValidationError
 
 class CSVValidator(ABC):
     """
@@ -53,7 +52,7 @@ class CSVValidator(ABC):
         """
         if self._metadata is None:
             raise ValueError("metadata object has not yet been loaded; please run `load` before accessing")
-        return j_dumps(self._metadata) if asString else self._metadata
+        return json.dumps(self._metadata) if asString else self._metadata
     
     @abstractmethod
     def load(self, worksheet:str=None):

@@ -32,6 +32,8 @@ packages = [
     {include = "niagads/adsp",from = "components"},
     {include = "niagads/vep_json_parser",from = "components"},
     {include = "niagads/adsp_annotation",from = "components"},
+    {include = "niagads/metadata_validator",from = "components"},
+    {include = "niagads/json_validator",from = "components"},
 ]
 
 

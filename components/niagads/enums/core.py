@@ -1,6 +1,5 @@
 from enum import auto
 from strenum import LowercaseStrEnum, UppercaseStrEnum, StrEnum
-from re import RegexFlag
 
 class CustomStrEnum:   
     """extension for a `StrEnum` (generic, Lowercase or Uppercase) that includes custom

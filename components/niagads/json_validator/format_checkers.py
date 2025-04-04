@@ -9,8 +9,10 @@ for more information
 '''
 
 from jsonschema import FormatChecker
-from ...utils.string import matches
-from ...utils import RegularExpressions as RE, RegexFlag
+from re import RegexFlag
+
+from niagads.string.core import matches
+from niagads.enums.core import RegularExpressions as RE
 
 JSONSchemaFormatChecker = FormatChecker()
 
