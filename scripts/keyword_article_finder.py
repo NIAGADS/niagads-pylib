@@ -38,7 +38,6 @@ def get_year_range_and_journals():
 async def search_pubmed(keywords):
     articles = []
     
-    # Get year range and journals from filtered articles
     min_year, max_year, target_journals = get_year_range_and_journals()
     
     search_terms = []
@@ -47,7 +46,6 @@ async def search_pubmed(keywords):
     
     alzheimer_terms = '(("Alzheimer Disease"[MeSH Terms]) OR ("Alzheimer\'s Disease"[Title/Abstract]))'
     
-    # Add year range to search query if available
     year_filter = ""
     if min_year and max_year:
         year_filter = f' AND ({min_year}:{max_year}[pdat])'
@@ -65,11 +63,9 @@ async def search_pubmed(keywords):
             try:
                 article = fetch.article_by_pmid(pmid)
                 if article and not is_preprint(article.journal) and has_alzheimer_term(article):
-                    # Check if article is from one of the target journals
                     if target_journals and article.journal not in target_journals:
                         continue
                         
-                    # Get publication year
                     year = None
                     if article.publication_date:
                         year = article.publication_date.year
