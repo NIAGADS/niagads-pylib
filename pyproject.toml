@@ -21,7 +21,7 @@ packages = [
     { include = "niagads/pd_dataframe", from = "components" },
     { include = "niagads/sys", from = "components" },
     { include = "niagads/decorators", from = "components" },
-    {include = "niagads/postgres_dbi",from = "components"},
+    { include = "niagads/postgres_dbi", from = "components" },
 ]
 
 
@@ -33,10 +33,10 @@ pandas = "^2.2.3"
 python-dateutil = "^2.9.0.post0"
 psycopg2-binary = "^2.9.10"
 jsonschema = "^4.23.0"
-deprecated = "^1.2.18"
 asyncpg = "^0.30.0"
 pydantic = "^2.11.1"
 
+# wrapt for custom decorators
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"

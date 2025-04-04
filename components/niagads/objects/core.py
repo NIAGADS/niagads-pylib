@@ -1,3 +1,5 @@
+from warnings import deprecated
+@deprecated("use Collections `defaultdict` instead (https://docs.python.org/3/library/collections.html#collections.defaultdict)")
 class AutoVivificationDict(dict):
     """Implementation of perl's autovivification feature. Allows initialization of nested dicts on the fly
     see https://en.wikipedia.org/wiki/Autovivification """
