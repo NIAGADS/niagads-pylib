@@ -2,12 +2,10 @@
 import os
 import gzip
 import datetime
-import requests
 import logging
 
 from typing import IO
 from sys import stderr, exit
-from urllib.parse import urlencode
 from subprocess import check_output, CalledProcessError
 
 from niagads.enums.core import ClassProperties
@@ -16,8 +14,6 @@ from niagads.string.core import ascii_safe_str
 from niagads.exceptions.core import RestrictedValueError
 
 LOGGER = logging.getLogger(__name__)
-
-
 
 
 def file_chunker(buffer: IO, chunkSize:int):
@@ -293,35 +289,6 @@ def die(message):
     warning(message)
     exit(1)
 
-
-def make_request(requestUrl, params, returnSuccess=True):
-    """
-    make request and catch errors; return flag indicating 
-    if successful even in case of error if returnSuccess == True
-    
-    Args:
-        requestUrl (string): url + endpoint
-        params (obj): {key:value} for parameters
-        returnSuccess (bool, optional): return success flag even in case of error. Defaults to False.
-
-    Returns:
-        None or flag indicating success
-    """
-
-    ''' make a request and catch errors 
-        return True if call is successful and returnSuccess=True
-    '''
-    requestUrl += "?" + urlencode(params)
-    try:
-        response = requests.get(requestUrl)
-        response.raise_for_status()      
-        if returnSuccess:
-            return True       
-        return response.json()
-    except Exception as err:
-        if returnSuccess:
-            return False
-        return {"message": "ERROR: " + err.args[0]}
 
 # ------------------------------------------------------------------------------------------------------------
 class FakeSecHead(object):

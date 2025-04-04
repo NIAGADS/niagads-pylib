@@ -12,14 +12,15 @@ homepage = "https://github.com/NIAGADS/niagads-pylib"
 repository = "https://github.com/NIAGADS/niagads-pylib"
 packages = [
     { include = "niagads/string", from = "components" },
-    {include = "niagads/list",from = "components"},
-    {include = "niagads/dict",from = "components"},
-    {include = "niagads/enums",from = "components"},
-    {include = "niagads/numeric",from = "components"},
-    {include = "niagads/logging",from = "components"},
-    {include = "niagads/exceptions",from = "components"},
-    {include = "niagads/pd_dataframe",from = "components"},
-    {include = "niagads/sys",from = "components"},
+    { include = "niagads/list", from = "components" },
+    { include = "niagads/dict", from = "components" },
+    { include = "niagads/enums", from = "components" },
+    { include = "niagads/numeric", from = "components" },
+    { include = "niagads/logging", from = "components" },
+    { include = "niagads/exceptions", from = "components" },
+    { include = "niagads/pd_dataframe", from = "components" },
+    { include = "niagads/sys", from = "components" },
+    { include = "niagads/decorators", from = "components" },
 ]
 
 
