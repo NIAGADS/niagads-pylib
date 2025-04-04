@@ -1,12 +1,11 @@
 import logging
 import json
 
-from os import path
 from csv import Sniffer, Dialect
 from pandas import read_csv, DataFrame
 
-from ..utils.dict import convert_str2numeric_values
-from ..utils.pd_dataframe import strip
+from niagads.dict.core import convert_str2numeric_values
+from niagads.pd_dataframe.core import strip
 
 class CSVFileParser:
     """

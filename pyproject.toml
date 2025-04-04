@@ -22,6 +22,10 @@ packages = [
     { include = "niagads/sys", from = "components" },
     { include = "niagads/decorators", from = "components" },
     { include = "niagads/postgres_dbi", from = "components" },
+    {include = "niagads/objects",from = "components"},
+    {include = "niagads/chromosomes",from = "components"},
+    {include = "niagads/excel_parser",from = "components"},
+    {include = "niagads/argparser",from = "components"},
 ]
 
 

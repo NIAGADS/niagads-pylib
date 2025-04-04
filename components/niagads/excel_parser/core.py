@@ -6,9 +6,9 @@ from typing import Union
 from pandas import read_excel, DataFrame
 from openpyxl import Workbook as wb, load_workbook
 
-from ..utils.dict import convert_str2numeric_values
-from ..utils.string import xstr, to_snake_case
-from ..utils.pd_dataframe import strip
+from niagads.dict.core import convert_str2numeric_values
+from niagads.string.core import xstr, to_snake_case
+from niagads.pd_dataframe.core import strip
 
 class ExcelFileParser:
     """
