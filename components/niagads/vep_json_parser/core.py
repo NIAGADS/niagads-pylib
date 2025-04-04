@@ -24,10 +24,10 @@ import logging
 from operator import itemgetter
 from copy import deepcopy
 
-from ..utils.string import xstr
-from ..utils.list import qw
-from .. import AutoVivificationDict 
-from . import VEPConsequenceParser as ConsequenceParser
+from niagads.string.core import xstr
+from niagads.list.core import qw
+from niagads.objects.core import AutoVivificationDict 
+from niagads.adsp_annotation.core import VEPConsequenceParser as ConsequenceParser
 
 CONSEQUENCE_TYPES = qw('transcript regulatory_feature motif_feature intergenic')
 CODING_CONSEQUENCES= qw('synonymous_variant missense_variant inframe_insertion inframe_deletion stop_gained stop_lost stop_retained_variant start_lost frameshift_variant coding_sequence_variant')

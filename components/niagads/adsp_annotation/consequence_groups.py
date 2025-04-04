@@ -1,7 +1,6 @@
 """! @brief ADSP Consequence Group Enum"""
 
 ##
-# @package enums
 # @file consequence_groups.py
 #
 # @brief  ADSP Consequence Group Enum
@@ -12,16 +11,13 @@
 #
 # @section todo_conseq_group_enum TODO
 #
-# @section libraries_conseq_group_enum Libraries/Modules
-#   + provides variety of wrappers for set and list operations
-#
 # @section author_conseq_group_enum Author(s)
 # - Created by Emily Greenfest-Allen (fossilfriend) 2022
 
 
 # pylint: disable=line-too-long,invalid-name,no-self-use
 from enum import Enum
-from ...utils.list import list_to_indexed_dict, is_subset, is_overlapping_list
+from niagads.list.core import list_to_indexed_dict, is_subset, is_overlapping_list
 
 class ConseqGroup(Enum):
     """! Enum class to store & manipulate groups of consequence terms 

@@ -29,6 +29,9 @@ packages = [
     {include = "niagads/variant_annotator",from = "components"},
     {include = "niagads/csv_parser",from = "components"},
     {include = "niagads/vcf_parser",from = "components"},
+    {include = "niagads/adsp",from = "components"},
+    {include = "niagads/vep_json_parser",from = "components"},
+    {include = "niagads/adsp_annotation",from = "components"},
 ]
 
 

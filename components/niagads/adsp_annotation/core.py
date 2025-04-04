@@ -42,19 +42,17 @@
 # - Modified from code by Nick Wheeler, Case Western (W. Bush Group)
 
 # pylint: disable=line-too-long,invalid-name,no-self-use
-from __future__ import print_function
-
 import csv
 import logging
 from collections import OrderedDict
 from datetime import date
 
-from ...utils.sys import warning, die, verify_path
-from ...utils.string import to_numeric, int_to_alpha, xstr
-from ...utils.dict import print_dict
-from ...utils.list import is_equivalent_list, qw, alphabetize_string_list, list_to_indexed_dict
+from niagads.sys.core import warning, die, verify_path
+from niagads.string.core import to_numeric, int_to_alpha, xstr
+from niagads.dict.core import print_dict
+from niagads.list.core import is_equivalent_list, qw, alphabetize_string_list, list_to_indexed_dict
 
-from . import ConseqGroup
+from .consequence_groups import ConseqGroup
 
 class VEPConsequenceParser(object):
     """! Parser for reading and re-ranking ADSP ranked consequences of VEP output """
