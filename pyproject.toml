@@ -1,11 +1,11 @@
 [project]
 name = "niagads-pylib"
-version = "0.1.0"
+version = "0.0.1-alpha.0"
 description = "a collection of python packages, classes, and utility functions in support of NIAGADS projects"
 authors = [{ name = "fossilfriend", email = "egreenfest@gmail.com" }]
 license = { text = "GNU GPLv3" }
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11,<4.0"
 
 [tool.poetry]
 homepage = "https://github.com/NIAGADS/niagads-pylib"
@@ -43,6 +43,8 @@ isort = "^5.13.2"
 mypy = "^1.8.0"
 flake8 = "^7.0.0"
 pytest = "^8.2.2"
+sphinx = "^8.2.3"
+sphinxawesome-theme = "^5.3.2"
 
 
 [tool.isort]
