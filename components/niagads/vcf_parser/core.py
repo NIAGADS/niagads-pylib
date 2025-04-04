@@ -23,12 +23,11 @@
 import logging
 from types import SimpleNamespace
 
-from ..utils.exceptions import ParserError
-from ..utils.string import xstr, to_numeric
-from ..utils.dict import convert_str2numeric_values
-from ..utils.list import qw
-from ..annotators import VariantAnnotator
-
+from niagads.exceptions.core import ParserError
+from niagads.string.core import xstr, to_numeric
+from niagads.dict.core import convert_str2numeric_values
+from niagads.list.core import qw
+from niagads.variant_annotator.core import VariantAnnotator
 
 class VCFEntryParser(object):
     """! utils for parse a single line of a vcf file """

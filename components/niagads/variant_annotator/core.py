@@ -1,7 +1,7 @@
 """ variant annotator functions """
 #!pylint: disable=invalid-name
 import logging
-from ..utils.string import xstr, truncate, reverse
+from niagads.string.core import xstr, truncate, reverse
 
 def truncate_allele(allele: str, long=False):
     """
