@@ -10,64 +10,57 @@ This tool accepts comma separated value files (.csv) as well as excel
 This file can also be imported as a module and contains the following
 functions:
 
-    * initialize_biosource_validator - initializes a biosource validator, a Validator object
-    * initialize_validator - generic initializer conditioned on type to return a Validator object
-    * run - runs the validation on a Validator object
+    * initialize_validator - returns an initialized BiosourcePropertiesValidator or FileManifestValidator
+    * run - initializes a validator and runs the validaton
 """
 
 import argparse
+import json
+import logging
 import sys
-from typing import List, Optional, Union
 
+from typing import Union
+
+from niagads.logging_utils.core import LOG_FORMAT_STR, ExitOnExceptionHandler
 from niagads.metadata_validator.core import (
     BiosourcePropertiesValidator,
     FileManifestValidator,
     MetadataFileType,
 )
-from pydantic import BaseModel
-
-
-class Validator(BaseModel):
-    """
-    A validator and optional id list pair
-    """
-
-    validator: Union[BiosourcePropertiesValidator, FileManifestValidator]
-    ids: Optional[List[str]] = None
-
-
-def initialize_biosource_validator(file: str, schema: str, idField: str) -> Validator:
-    """
-    initialize a generic biosource metadata validator
-
-    Args:
-        metadata (str): metadata file name
-        schema (str): schema file name
-        idField (str): biosource id field in the metadata file
-
-    Returns:
-        BiosourceValidator: validator and extracted list of all biosource
-            ids from the file
-    """
-    bsValidator = BiosourcePropertiesValidator(file, schema)
-    bsValidator.set_biosource_id(idField, requireUnique=True)
-    bsValidator.load()
-
-    return Validator(validator=bsValidator, ids=bsValidator.get_biosource_ids())
+from niagads.sys_utils.core import print_args
 
 
 def initialize_validator(
     file: str, schema: str, metadataType: MetadataFileType, idField: str = None
-) -> Validator:
+) -> Union[BiosourcePropertiesValidator, FileManifestValidator]:
     if metadataType == MetadataFileType.FILE_MANIFEST:
-        return Validator(validator=FileManifestValidator(file, schema))
+        validator = FileManifestValidator(file, schema)
+        validator.load()
+        return validator
     else:
-        return initialize_biosource_validator(file, schema, idField, metadataType)
+        if idField is None:
+            raise RuntimeError(
+                "Must specify biosource id field `idField` to validate a biosource (sample or participants) metadata file"
+            )
+        bsValidator = BiosourcePropertiesValidator(file, schema)
+        bsValidator.set_biosource_id(idField, requireUnique=True)
+        bsValidator.load()
+        return bsValidator
 
 
-def run(validator: Validator, failOnError):
-    validator.validator.load()
-    return validator.validator.run(failOnError=failOnError)
+def run(
+    file: str,
+    schema: str,
+    metadataType: str,
+    idField: str = None,
+    failOnError: bool = False,
+):
+    validator = initialize_validator(file, schema, metadataType, idField)
+    try:
+        result = validator.run(failOnError=failOnError)
+        return result
+    except Exception as err:
+        logger.error(err)
 
 
 if __name__ == "main":
@@ -115,7 +108,30 @@ if __name__ == "main":
         args = parser.parse_args()
 
     idField = args.idField if "idField" in args else None
-    validator = initialize_validator(
-        args.metadataFile, args.schemaFile, args.metadataTyupe, idField
+
+    logger = None
+    if args.log:
+        logger = logging.getLogger(__name__)
+        logging.basicConfig(
+            handlers=[
+                ExitOnExceptionHandler(
+                    filename=f"{args.metadataFile}.log",
+                    mode="w",
+                    encoding="utf-8",
+                )
+            ],
+            format=LOG_FORMAT_STR,
+            level=logging.DEBUG,
+        )
+        logger.info(
+            f"Running metadata validator with the following options : {print_args(args)}"
+        )
+
+    result = run(
+        args.metadataFile, args.schemaFile, args.metadataType, idField, args.failOnError
     )
-    run(validator, args.failOnError)
+
+    if logger is not None:
+        logger.info(f"Validation Status: {result}")
+    else:  # pipe to STDOUT
+        print(json.dumps(result))
