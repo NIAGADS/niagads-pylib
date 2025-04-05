@@ -1,25 +1,24 @@
-from enum import auto
-from strenum import LowercaseStrEnum, UppercaseStrEnum, StrEnum
+from strenum import StrEnum
 
-class CustomStrEnum:   
-    """extension for a `StrEnum` (generic, Lowercase or Uppercase) that includes custom
-    class methods for listing and testing enum values
 
+class CaseInsensitiveEnum(StrEnum):
     """
-    @classmethod
-    def has_value(self, value):
-        """ test if the StrEnum contains a value
-        currently only works w/StrEnum, LowercaseStrEnum, UppercaseStrEnum"""
-        if type(self) == LowercaseStrEnum:
-            return value.lower() in self._value2member_map_ 
-        elif type(self) == StrEnum:
-            return value in self.__value2member_map_
-        else:
-            return value.upper() in self._value2member_map_ 
-        
-    @classmethod
-    def list(self):
-        """ return a list of all values in the StrEnum """
-        return [e.value for e in self]
-    
+    extension for a `StrEnum` that allows for case insensitivity on the values
+    """
 
+    # after from https://stackoverflow.com/a/76131490
+    @classmethod
+    def _missing_(cls, value: str):  # allow to be case insensitive
+        for member in cls:
+            if member.value.lower() == value.lower():
+                return member
+
+        raise KeyError(value)
+
+    @classmethod
+    def has_value(self, value: str) -> bool:
+        """test if the StrEnum contains a value"""
+        return value.lower() in [v.lower() for v in self._value2member_map_]
+
+    def __str__(self):  # this will allow for list(Enum)
+        return self.value
