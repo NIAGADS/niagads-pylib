@@ -16,11 +16,9 @@ functions:
 """
 
 import argparse
-from importlib import metadata
 import sys
 from typing import List, Optional, Union
 
-from niagads.exceptions.core import ValidationError
 from niagads.metadata_validator.core import (
     BiosourcePropertiesValidator,
     FileManifestValidator,
