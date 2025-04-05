@@ -239,6 +239,27 @@ tests = ["cloudpickle ; platform_python_implementation == \"CPython\"", "hypothe
 tests-mypy = ["mypy (>=1.11.1) ; platform_python_implementation == \"CPython\" and python_version >= \"3.10\"", "pytest-mypy-plugins ; platform_python_implementation == \"CPython\" and python_version >= \"3.10\""]
 
 [[package]]
+name = "autoclasstoc"
+version = "1.7.0"
+description = "Add a succinct TOC to auto-documented classes."
+optional = false
+python-versions = ">=3.6"
+groups = ["dev"]
+files = [
+    {file = "autoclasstoc-1.7.0-py3-none-any.whl", hash = "sha256:00d7f8450d9fb043a500a0ac5fe9cda3699d51d68211f183178734f14df526ec"},
+    {file = "autoclasstoc-1.7.0.tar.gz", hash = "sha256:93a604be070a1f0ab19b0a0dd9d03d3fb16377da8a7a49ed8919692ef882775a"},
+]
+
+[package.dependencies]
+docutils = "*"
+more_itertools = "*"
+sphinx = ">=3.0"
+
+[package.extras]
+docs = ["sphinx (>=3.1)", "sphinx_rtd_theme"]
+tests = ["coverage[toml]", "coverage_enable_subprocess", "lxml", "parametrize_from_file", "pytest", "pytest_tmp_files", "re_assert", "tox"]
+
+[[package]]
 name = "babel"
 version = "2.17.0"
 description = "Internationalization utilities"
@@ -796,6 +817,18 @@ groups = ["dev"]
 files = [
     {file = "mccabe-0.7.0-py2.py3-none-any.whl", hash = "sha256:6c2d30ab6be0e4a46919781807b4f0d834ebdd6c6e3dca0bda5a15f863427b6e"},
     {file = "mccabe-0.7.0.tar.gz", hash = "sha256:348e0240c33b60bbdf4e523192ef919f28cb2c3d7d5c7794f74009290f236325"},
+]
+
+[[package]]
+name = "more-itertools"
+version = "10.6.0"
+description = "More routines for operating on iterables, beyond itertools"
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+files = [
+    {file = "more-itertools-10.6.0.tar.gz", hash = "sha256:2cd7fad1009c31cc9fb6a035108509e6547547a7a738374f10bd49a09eb3ee3b"},
+    {file = "more_itertools-10.6.0-py3-none-any.whl", hash = "sha256:6eb054cb4b6db1473f6e15fcc676a08e4732548acd47c708f0e179c2c7c01e89"},
 ]
 
 [[package]]
@@ -1847,6 +1880,39 @@ lint = ["betterproto (==2.0.0b6)", "mypy (==1.15.0)", "pypi-attestations (==0.0.
 test = ["cython (>=3.0)", "defusedxml (>=0.7.1)", "pytest (>=8.0)", "pytest-xdist[psutil] (>=3.4)", "setuptools (>=70.0)", "typing_extensions (>=4.9)"]
 
 [[package]]
+name = "sphinx-autodoc-annotation"
+version = "1.0"
+description = "Use Python 3 annotations in sphinx-enabled docstrings"
+optional = false
+python-versions = "*"
+groups = ["dev"]
+files = [
+    {file = "sphinx-autodoc-annotation-1.0.tar.gz", hash = "sha256:ab320d88f094ee4f8539cc08323f8486d8be856f8ab2fe9dc85607984b21e885"},
+]
+
+[package.dependencies]
+sphinx = ">=1.1"
+
+[[package]]
+name = "sphinx-autodoc-typehints"
+version = "3.1.0"
+description = "Type hints (PEP 484) support for the Sphinx autodoc extension"
+optional = false
+python-versions = ">=3.11"
+groups = ["dev"]
+files = [
+    {file = "sphinx_autodoc_typehints-3.1.0-py3-none-any.whl", hash = "sha256:67bdee7e27ba943976ce92ebc5647a976a7a08f9f689a826c54617b96a423913"},
+    {file = "sphinx_autodoc_typehints-3.1.0.tar.gz", hash = "sha256:a6b7b0b6df0a380783ce5b29150c2d30352746f027a3e294d37183995d3f23ed"},
+]
+
+[package.dependencies]
+sphinx = ">=8.2"
+
+[package.extras]
+docs = ["furo (>=2024.8.6)"]
+testing = ["covdefaults (>=2.3)", "coverage (>=7.6.12)", "defusedxml (>=0.7.1)", "diff-cover (>=9.2.3)", "pytest (>=8.3.4)", "pytest-cov (>=6)", "sphobjinv (>=2.3.1.2)", "typing-extensions (>=4.12.2)"]
+
+[[package]]
 name = "sphinxawesome-theme"
 version = "5.3.2"
 description = "An awesome theme for the Sphinx documentation generator"
@@ -2136,4 +2202,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "b261fac3434fd869930d1755f3515a72b013a847098a00339ffd4d4335cc4a8d"
+content-hash = "308d5c584c606284951516f4d96bc42d83c50c7bda363c24f97a9d5dbb85d685"
