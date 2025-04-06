@@ -21,9 +21,13 @@ class CaseInsensitiveEnum(StrEnum):
         raise KeyError(value)
 
     @classmethod
-    def has_value(self, value: str) -> bool:
+    def has_value(cls, value: str) -> bool:
         """test if the StrEnum contains a value"""
-        return value.lower() in [v.lower() for v in self._value2member_map_]
+        return value.lower() in [v.lower() for v in cls._value2member_map_]
 
-    def __str__(self):  # this will allow for list(Enum)
+    def __str__(self):
         return self.value
+
+    @classmethod
+    def list(cls) -> bool:
+        return [v for v in cls._value2member_map_]

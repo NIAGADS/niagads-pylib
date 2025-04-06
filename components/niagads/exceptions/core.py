@@ -36,15 +36,16 @@ class RestrictedValueError(Exception):
         enum (enum) -- enum containing allowable values
     """
 
-    def __init__(self, label, value, enum):
+    def __init__(self, label, value, enum: CaseInsensitiveEnum):
         self.message = (
             "Invalid value for "
             + label
             + ": "
             + xstr(value)
             + "; valid values are: "
-            + xstr(list(enum))
+            + xstr(enum.list())
         )
+
         super().__init__(json.dumps(self.message))
 
 
