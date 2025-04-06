@@ -34,7 +34,7 @@ packages = [
     { include = "niagads/string_utils", from = "components" },
     { include = "niagads/numeric_utils", from = "components" },
     { include = "niagads/arg_parser", from = "components" },
-    {include = "niagads/validate_metadata",from = "bases"},
+    { include = "niagads/validate_metadata", from = "bases" },
 ]
 
 [tool.poetry.dependencies]
@@ -66,6 +66,8 @@ autoclasstoc = "^1.7.0"
 [tool.isort]
 profile = "black"
 
+[tool.black]
+# line-length = 80
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
