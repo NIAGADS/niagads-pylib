@@ -1,9 +1,10 @@
 # generate prepared statements leveraging psycopg2.sql
 # TODO - test whether pyscopg2 connection is need to convert to string
 
+from enum import auto
 from typing import Dict, List, Union
 
-from niagads.enums.core import CaseInsensitiveEnum, auto
+from niagads.enums.core import CaseInsensitiveEnum
 from psycopg2.sql import SQL as psSQL
 from psycopg2.sql import Identifier as psIdentifier
 from psycopg2.sql import Placeholder as psPlaceholder

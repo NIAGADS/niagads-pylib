@@ -1,21 +1,8 @@
-from enum import auto
-from typing import List, Annotated
+from typing import List
 
 from niagads.csv_validator.core import CSVTableValidator
-from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError
 from niagads.list_utils.core import get_duplicates, list_to_string
-
-
-class MetadataFileType(CaseInsensitiveEnum):
-    """
-    Types of tabular metadata files
-    """
-
-    PARTICIPANT: Annotated[str, "participant or subject file"] = auto()
-    FILE_MANIFEST: Annotated[str, "file manifest; may map samples to files"] = auto()
-    SAMPLE: Annotated[str, "sample biocharacteristics"] = auto()
-    SDRF: Annotated[str, "sample-data-relationship file"] = auto()
 
 
 class FileManifestValidator(CSVTableValidator):
