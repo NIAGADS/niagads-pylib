@@ -146,7 +146,7 @@ if __name__ == "__main__":
         help="template name for schema; assumes also metadata file matches template pattern",
     )
     parser.add_argument(
-        "--metadataType",
+        "--metadataFileType",
         help="type of metadata file",
         choices=MetadataValidatorType.list(),
         type=case_insensitive_enum_type(MetadataValidatorType),
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     result = run(
         args.metadataFile,
         args.schemaFile,
-        args.metadataType,
+        args.metadataFileType,
         args.idField,
         args.failOnError,
     )
