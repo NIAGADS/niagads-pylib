@@ -27,6 +27,7 @@ import sys
 
 from typing import Annotated, List, Union
 
+from niagads.arg_parser.core import case_insensitive_enum_type
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.logging_utils.core import LOG_FORMAT_STR, ExitOnExceptionHandler
 from niagads.metadata_validator.core import (
@@ -137,7 +138,8 @@ def run(
         logger.error(err)
 
 
-if __name__ == "main":
+if __name__ == "__main__":
+    print("running")
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument(
         "--template",
@@ -146,7 +148,8 @@ if __name__ == "main":
     parser.add_argument(
         "--metadataType",
         help="type of metadata file",
-        choices=[list(MetadataValidatorType)],
+        choices=MetadataValidatorType.list(),
+        type=case_insensitive_enum_type(MetadataValidatorType),
         required=True,
     )
     parser.add_argument(
@@ -160,43 +163,49 @@ if __name__ == "main":
         action="store_true",
     )
 
-    knownArgs, _ = parser.parse_known_args()
-    if knownArgs.template:
-        parser.add_argument(
-            "--schemaDir",
-            help="full path to directory containing schema files; if not specified assumes current working directory",
-        )
-        parser.add_argument(
-            "--metadataFilePrefix",
-            help="""full path and optional prefix for the templated metadata file
-                e.g. /files/SA99914/TMP_SSA99914_D1_E2-; 
-                if not specified assumes files are name `template.ext` 
-                and located in current working directory""",
-        )
-    else:
-        parser.add_argument(
-            "--metadataFile",
-            help="full path to metadata file",
-            required=True,
-        )
-        parser.add_argument(
-            "--schemaFile",
-            help="full path to schema file",
-            required=True,
-        ),
+    parser.add_argument(
+        "--schemaDir",
+        help="full path to directory containing schema files; if not specified assumes current working directory; required when `--template` is specified",
+    )
+    parser.add_argument(
+        "--metadataFilePrefix",
+        help="""full path and optional prefix for the templated metadata file; required when `--template` is specified; 
+            e.g. /files/SA99914/TMP_SSA99914_D1_E2-; 
+            if not specified assumes files are name `template.ext` 
+            and located in current working directory""",
+    )
 
-    if knownArgs.metadataType == MetadataValidatorType.BIOSOURCE_PROPERTIES:
-        parser.add_argument(
-            "--idField",
-            required=True,
-            help=f"Biosample or participant id field label; required if `--metadataType = {str(MetadataValidatorType.BIOSOURCE_PROPERTIES)}`",
+    parser.add_argument(
+        "--metadataFile",
+        help="full path to metadata file; required when no template is specified",
+    )
+    parser.add_argument(
+        "--schemaFile",
+        help="full path to schema file;required when no template is specified",
+    ),
+
+    parser.add_argument(
+        "--idField",
+        help=f"Biosample or participant id field label; required if `--metadataType = {str(MetadataValidatorType.BIOSOURCE_PROPERTIES)}`",
+    )
+
+    args = parser.parse_args()
+
+    if args.template and (args.schemaDir is None or args.metadataFilePrefix is None):
+        parser.error("--template requires --schemaDir and --metadataFilePrefix")
+
+    if args.template is None and (args.schemaFile is None or args.metadataFile is None):
+        parser.error(
+            "no `template` specified; --schemaFile and --metadataFile required"
         )
 
-    # only need to parse the args again if --help was not requested
-    if "--help" not in sys.argv and "-h" not in sys.argv:
-        args = parser.parse_args()
-
-    idField = args.idField if "idField" in args else None
+    if (
+        args.metadataFileType == MetadataValidatorType.BIOSOURCE_PROPERTIES
+        and args.idField is None
+    ):
+        parser.error(
+            f"metadataFileType is set to {str(MetadataValidatorType.BIOSOURCE_PROPERTIES)}; --idField is required"
+        )
 
     logger = None
     if args.log:
@@ -228,7 +237,11 @@ if __name__ == "main":
     )
 
     result = run(
-        args.metadataFile, args.schemaFile, args.metadataType, idField, args.failOnError
+        args.metadataFile,
+        args.schemaFile,
+        args.metadataType,
+        args.idField,
+        args.failOnError,
     )
 
     if logger is not None:
