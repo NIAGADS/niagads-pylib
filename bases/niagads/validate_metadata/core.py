@@ -23,7 +23,6 @@ from enum import auto
 import json
 import logging
 from os import path
-import sys
 
 from typing import Annotated, List, Union
 
@@ -51,7 +50,7 @@ class MetadataValidatorType(CaseInsensitiveEnum):
     # SDRF: Annotated[str, "sample-data-relationship file"] = auto()
 
 
-def get_templated_schema_file(path: str, template: str) -> str:
+def get_templated_schema_file(dir: str, template: str) -> str:
     """
     verify that templated schema file ${schemaDir}/{vType}.json exists
 
@@ -67,7 +66,7 @@ def get_templated_schema_file(path: str, template: str) -> str:
     """
 
     schemaFile = (
-        path.join(path, f"{template}.json") if path is not None else f"{template}.json"
+        path.join(dir, f"{template}.json") if dir is not None else f"{template}.json"
     )
     if verify_path(schemaFile):
         return schemaFile
@@ -76,7 +75,7 @@ def get_templated_schema_file(path: str, template: str) -> str:
 
 
 def get_templated_metadata_file(
-    path: str,
+    prefix: str,
     template: str,
     extensions: List[str] = ["xlsx", "xls", "txt", "csv", "tab"],
 ) -> str:
@@ -94,7 +93,7 @@ def get_templated_metadata_file(
     Returns:
         str: metadata file name
     """
-    fileRoot = f"{path}{template}" if path is not None else f"{template}"
+    fileRoot = f"{prefix}{template}" if prefix is not None else f"{template}"
     for ext in extensions:
         file = f"{fileRoot}.{ext}"
         if verify_path(file):
@@ -108,19 +107,25 @@ def get_templated_metadata_file(
 def initialize_validator(
     file: str, schema: str, metadataType: MetadataValidatorType, idField: str = None
 ) -> Union[BiosourcePropertiesValidator, FileManifestValidator]:
-    if metadataType == MetadataValidatorType.FILE_MANIFEST:
-        validator = FileManifestValidator(file, schema)
-        validator.load()
-        return validator
-    else:
-        if idField is None:
-            raise RuntimeError(
-                "Must specify biosource id field `idField` to validate a biosource (sample or participants) metadata file"
-            )
-        bsValidator = BiosourcePropertiesValidator(file, schema)
-        bsValidator.set_biosource_id(idField, requireUnique=True)
-        bsValidator.load()
-        return bsValidator
+
+    try:
+        if MetadataValidatorType(metadataType) == MetadataValidatorType.FILE_MANIFEST:
+            validator = FileManifestValidator(file, schema)
+            validator.load()
+            return validator
+        else:
+            if idField is None:
+                raise RuntimeError(
+                    "Must specify biosource id field `idField` to validate a biosource (sample or participants) metadata file"
+                )
+            bsValidator = BiosourcePropertiesValidator(file, schema)
+            bsValidator.set_biosource_id(idField, requireUnique=True)
+            bsValidator.load()
+            return bsValidator
+    except KeyError:
+        raise ValueError(
+            f"Invalid `metadataType` : '{str(metadataType)}'.  Valid values are: {', '.join(MetadataValidatorType.list())}"
+        )
 
 
 def run(
@@ -237,8 +242,8 @@ if __name__ == "__main__":
     )
 
     result = run(
-        args.metadataFile,
-        args.schemaFile,
+        metadataFile,
+        schemaFile,
         args.metadataFileType,
         args.idField,
         args.failOnError,
