@@ -25,16 +25,17 @@ class FileManifestValidator(CSVTableValidator):
     def set_sample_field(self, field: str):
         self.__sampleField = field
 
-    def validate_samples(self, failOnError: bool = False):
+    def validate_samples(self, validationResult: dict, failOnError: bool = False):
         """
         verifies that samples in the file manifest are
         present in a reference list of samples
 
         Args:
+            validationResult (dict): validation result to be updated
             failOnError (bool, optional): fail on error; if False, returns list of errors.  Defaults to False.
 
         Returns:
-            list of invalid samples
+            updated validation result
         """
 
         sampleIds = self.get_field_values(self.__sampleField, dropNulls=True)
@@ -44,10 +45,6 @@ class FileManifestValidator(CSVTableValidator):
         invalidSamples = list(sampleSet - referenceSet)
         missingSamples = list(referenceSet - sampleSet)
 
-        if len(invalidSamples) == 0 and len(missingSamples) == 0:
-            return True
-
-        messages = []
         if len(invalidSamples) > 0:
             error = ValidationError(
                 "Invalid samples found: " + list_to_string(invalidSamples, delim=", ")
@@ -55,15 +52,18 @@ class FileManifestValidator(CSVTableValidator):
             if failOnError:
                 raise error
             else:
-                messages.append(f"ERROR: {error.message}")
+                validationResult["errors"].append(
+                    {f"invalid_{self.__sampleField.upper()}": invalidSamples}
+                )
 
         if len(missingSamples) > 0:
-            msg = "WARNING: Files not found for all samples: " + list_to_string(
-                missingSamples, delim=", "
-            )
-            messages.append(msg)
+            warning = {f"no_file_for_{self.__sampleField.upper()}": missingSamples}
+            if "warnings" in validationResult:
+                validationResult["warnings"].append(warning)
+            else:
+                validationResult["warnings"] = [warning]
 
-        return messages
+        return validationResult
 
     def run(self, failOnError: bool = False):
         """
@@ -74,13 +74,7 @@ class FileManifestValidator(CSVTableValidator):
         result = super().run(failOnError)
 
         if self.__sampleReference is not None:
-            sampleValidationResult = self.validate_samples(failOnError)
-            if not isinstance(sampleValidationResult, bool):
-                result = [] if isinstance(result, bool) else result
-                if isinstance(result, list):
-                    return result + sampleValidationResult
-                else:
-                    return [sampleValidationResult]
+            result = self.validate_samples(result, failOnError)
 
         return result
 
@@ -104,7 +98,9 @@ class BiosourcePropertiesValidator(CSVTableValidator):
     def require_unique_identifiers(self):
         self.__requireUniqueIDs = True
 
-    def validate_unqiue_identifiers(self, failOnError: bool = False):
+    def validate_unqiue_identifiers(
+        self, validationResult: dict, failOnError: bool = False
+    ):
         duplicates = get_duplicates(self.get_biosource_ids())
         if len(duplicates) > 0:
             error = ValidationError(
@@ -113,8 +109,10 @@ class BiosourcePropertiesValidator(CSVTableValidator):
             if failOnError:
                 raise error
             else:
-                return f"ERROR: {error.message}"
-        return True
+                validationResult["errors"].append(
+                    {f"duplicate_{self.__biosourceID.upper()}": duplicates}
+                )
+        return validationResult
 
     def get_biosource_ids(self):
         """
@@ -129,12 +127,8 @@ class BiosourcePropertiesValidator(CSVTableValidator):
         wrapper of TableValidator.riun that also does sample validation
         """
         result = super().run(failOnError)
+
         if self.__requireUniqueIDs:
-            sampleValidationResult = self.validate_unqiue_identifiers(failOnError)
-            if not isinstance(sampleValidationResult, bool):
-                if isinstance(result, list):
-                    return result + sampleValidationResult
-                else:
-                    return [sampleValidationResult]
+            result = self.validate_unqiue_identifiers(result, failOnError)
 
         return result

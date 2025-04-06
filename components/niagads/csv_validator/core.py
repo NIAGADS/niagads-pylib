@@ -188,7 +188,7 @@ class CSVTableValidator(CSVValidator):
             parser = CSVFileParser(self._file)
             self._metadata = parser.to_json(returnStr=False, header=0)
 
-    def run(self, failOnError: bool = False):
+    def run(self, failOnError: bool = False) -> dict:
         """
         run validation on each row
 
@@ -215,4 +215,4 @@ class CSVTableValidator(CSVValidator):
                 else:
                     result.append({index + 1: rowValidation})
 
-        return result  # empty array; all rows passed
+        return {"errors": result}  # empty array; all rows passed
