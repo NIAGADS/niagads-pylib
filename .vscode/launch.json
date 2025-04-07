@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Sphinx Autobuild",
+            "type": "debugpy",
+            "request": "launch",
+            "program": ".venv/bin/sphinx-build",
+            "args": [
+                "docs",
+                "docs/_build/html"
+            ],
+            "justMyCode": false
+        }
+    ]
+}
