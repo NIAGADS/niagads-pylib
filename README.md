@@ -4,15 +4,19 @@ a collection of python packages, classes, and utility functions in support of NI
 
 ## Documentation
 
-see https://niagads.github.io/niagads-pylib
+github.io link TBA
 
 ## Python Version
 
 * python 3.12+
 
-## Usage
+## Usage - Packages
 
-TBD
+TBA
+
+## Usage - Services
+
+TBA
 
 ## Developers
 
@@ -31,6 +35,10 @@ Clone the repository and run the following the root directory to set up the virt
 ```bash
 poetry install
 ```
+
+### Polylith Architecture
+
+Details TBA
 
 ### VSCode Config
 
