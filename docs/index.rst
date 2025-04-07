@@ -1,16 +1,18 @@
-.. NIAGADS-pylib documentation master file, created by
-   sphinx-quickstart on Mon Oct 16 17:16:54 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+NIAGADS-pylib
+===================================
 
-Welcome to NIAGADS-pylib's documentation!
-=========================================
+**NIAGADS-pylib** is a collection of Python tools and microservices developed to support `NIAGADS<https://www.niagads.org>` services and research initiatives. 
+
+.. note::
+
+   This project is under active development and is not suitable for usage outside of the NIAGADS organization. 
 
 .. toctree::
    :maxdepth: 4
    :caption: Contents:
-    
-   _apidocs/modules
+
+   _utils/index
+   
 
 Indices and tables
 ==================

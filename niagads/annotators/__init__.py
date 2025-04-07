@@ -1,1 +1,0 @@
-from .variant import VariantAnnotator
