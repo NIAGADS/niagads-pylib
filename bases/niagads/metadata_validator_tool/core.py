@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
-"""
-This script allows the user validate a sample or file manifest metadata file
-arranged in tabular format (field names in columns, values in rows) against a JSON-Schema file.
-Results are piped to STDOUT unless `--log` option is specified.
+"""NIAGADS JSON Schema based metadata validation.
 
-This tool accepts tab separated value files (.tab) as well as excel
+This tool allows the user to perform [JSON Schema](https://json-schema.org/)-based validation
+of a sample or file manifest metadata file
+arranged in tabular format (with a header row that has field names matching the validation schema).
+
+The tool works for delimited text files (.tab, .csv., .txt) as well as excel
 (.xls, .xlsx) files.
 
-This file can also be imported as a module and contains the following
-functions / tyes:
-
-    * MetadataValidatorType - enum of types of expected metadata files
-    * initialize_validator - returns an initialized BiosourcePropertiesValidator or FileManifestValidator
-    * get_templated_schema_file - builds schema file name and verifies that file exists
-    * get_templated_metadata_file - builds metadata file name and verifies that file exists
-    * run - initializes a validator and runs the validaton
+This tool can be run as a script or can also be imported as a module.  When run as a script,
+results are piped to STDOUT unless the `--log` option is specified.
 """
 
 import argparse
@@ -23,7 +18,7 @@ import json
 import logging
 from os import path
 
-from typing import Annotated, List, Union
+from typing import List, Union
 
 from niagads.arg_parser.core import case_insensitive_enum_type
 from niagads.enums.core import CaseInsensitiveEnum
@@ -37,21 +32,23 @@ from niagads.sys_utils.core import print_args, verify_path
 
 
 class MetadataValidatorType(CaseInsensitiveEnum):
-    """
-    Types of tabular metadata files
+    """Enum defining types of supported tabular metadata files.
+
+    ```python
+    BIOSOURCE_PROPERTIES = '''biosource properties file;
+    a file that maps a sample or participant to descriptive properties
+    (e.g., phenotype or material) or a ISA-TAB-like sample file'''
+
+    FILE_MANIFEST = "file manifest or a sample-data-relationship (SDRF) file"
+    ```
     """
 
-    BIOSOURCE_PROPERTIES: Annotated[
-        str,
-        "biosource properties files, maps a sample or participant to descriptive properties (e.g., phenotype or material)",
-    ] = auto()
-    FILE_MANIFEST: Annotated[str, "file manifest"] = auto()
-    # SDRF: Annotated[str, "sample-data-relationship file"] = auto()
+    BIOSOURCE_PROPERTIES = auto()
+    FILE_MANIFEST = auto()
 
 
 def get_templated_schema_file(dir: str, template: str) -> str:
-    """
-    verify that templated schema file ${schemaDir}/{vType}.json exists
+    """Verify that templated schema file `{schemaDir}/{vType}.json` exists.
 
     Args:
         path (str): path to directory containing schema file
@@ -78,8 +75,7 @@ def get_templated_metadata_file(
     template: str,
     extensions: List[str] = ["xlsx", "xls", "txt", "csv", "tab"],
 ) -> str:
-    """
-    find metadata file based on templated name {prefix}{validator_type}.{ext}
+    """Find metadata file based on templated name `{prefix}{validator_type}.{ext}`.
 
     Args:
         path (str): file path; may include prefix/file pattern to match (e.g. /files/study1/experiment1-)
@@ -106,7 +102,21 @@ def get_templated_metadata_file(
 def initialize_validator(
     file: str, schema: str, metadataType: MetadataValidatorType, idField: str = None
 ) -> Union[BiosourcePropertiesValidator, FileManifestValidator]:
+    """Initialize and return a metadata validator.
 
+    Args:
+        file (str): metadata file name
+        schema (str): JSONschema file name
+        metadataType (MetadataValidatorType): type of metadata to be validated
+        idField (str, optional): biosource id field in the metadata file; required for `BIOSOURCE_PROPERTIES` validation. Defaults to None.
+
+    Raises:
+        RuntimeError: if `metadataType == 'BIOSOURCE_PROPERTIES'` and no `idField` was provided
+        ValueError: if invalid `metadataType` is specified
+
+    Returns:
+        Union[BiosourcePropertiesValidator, FileManifestValidator]: the validator object
+    """
     try:
         if MetadataValidatorType(metadataType) == MetadataValidatorType.FILE_MANIFEST:
             validator = FileManifestValidator(file, schema)
@@ -134,6 +144,20 @@ def run(
     idField: str = None,
     failOnError: bool = False,
 ):
+    """Run validation.
+
+    Validator initialization fully encapsulated.  Returns validation result.
+
+    Args:
+        file (str): metadata file name
+        schema (str): JSONschema file name
+        metadataType (MetadataValidatorType): type of metadata to be validated
+        idField (str, optional): biosource id field in the metadata file; required for `BIOSOURCE_PROPERTIES` valdiatoin. Defaults to None.
+        failOnError (bool, optional): raise an exception on validation error if true, otherwise returns list of validation errors. Defaults to False.
+
+    Returns:
+        list: list of validation errors
+    """
     validator = initialize_validator(file, schema, metadataType, idField)
     try:
         result = validator.run(failOnError=failOnError)
