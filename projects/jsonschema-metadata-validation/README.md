@@ -11,9 +11,40 @@ The tool works for delimited text files (.tab, .csv., .txt) as well as excel (.x
 
 This tool can be run as a script or can also be imported as a module.  When run as a script, results are piped to STDOUT unless the `--log` option is specified. 
 
-**Global Variables**
----------------
-- **LOG_FORMAT_STR**
+## Requirements
+
+* Python: >3.12,<4.0
+
+---
+
+## Usage
+
+### command-line
+
+Run with the `--help` option to get full USAGE information
+
+```bash
+validate-metadata --help
+```
+
+### module
+
+Import package into your python script.
+
+```python
+import niagads.metadata_validator_tool.core as mv_tool
+```
+
+Use [`vm_tool.initialize_validator`](#function-initialize_validator) to initialize and retrieve a validator object for further manipulation. Use [`vm_tool.run`](#function-run) to initialize and run a validation with default configuration. See [validator documentation](https://github.com/NIAGADS/niagads-pylib/blob/main/components/niagads/metadata_validator/README.md) for more information about validator properties and member functions.
+
+
+
+
+Explore example code in a Jupyter notebook, schema, and metadata files in the repository: [nigads-pylib/examples/metadata-validator-test](https://github.com/NIAGADS/niagads-pylib/tree/6b54d6b1b836564e79f5cf40afaf3522c3379732/development/metadata-validator-test).
+
+---
+
+## API Reference
 
 ---
 
