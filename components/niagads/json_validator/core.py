@@ -4,8 +4,8 @@ import json
 from jsonschema import Draft7Validator as DraftValidator, exceptions as jsExceptions, validators as jsValidators
 from typing import List
 
-from niagads.dict.core import print_dict
-from niagads.list.core import list_to_string
+from niagads.dict_utils.core import print_dict
+from niagads.list_utils.core import list_to_string
 
 from niagads.json_validator.format_checkers import JSONSchemaFormatChecker
 

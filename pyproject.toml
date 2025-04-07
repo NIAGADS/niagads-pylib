@@ -11,31 +11,32 @@ requires-python = ">=3.11,<4.0"
 homepage = "https://github.com/NIAGADS/niagads-pylib"
 repository = "https://github.com/NIAGADS/niagads-pylib"
 packages = [
-    { include = "niagads/string", from = "components" },
-    { include = "niagads/list", from = "components" },
-    { include = "niagads/dict", from = "components" },
     { include = "niagads/enums", from = "components" },
-    { include = "niagads/numeric", from = "components" },
-    { include = "niagads/logging", from = "components" },
     { include = "niagads/exceptions", from = "components" },
     { include = "niagads/pd_dataframe", from = "components" },
-    { include = "niagads/sys", from = "components" },
     { include = "niagads/decorators", from = "components" },
     { include = "niagads/postgres_dbi", from = "components" },
     { include = "niagads/objects", from = "components" },
     { include = "niagads/chromosomes", from = "components" },
     { include = "niagads/excel_parser", from = "components" },
-    { include = "niagads/argparser", from = "components" },
     { include = "niagads/variant_annotator", from = "components" },
     { include = "niagads/csv_parser", from = "components" },
     { include = "niagads/vcf_parser", from = "components" },
-    { include = "niagads/adsp", from = "components" },
     { include = "niagads/vep_json_parser", from = "components" },
     { include = "niagads/adsp_annotation", from = "components" },
     { include = "niagads/metadata_validator", from = "components" },
     { include = "niagads/json_validator", from = "components" },
+    { include = "niagads/csv_validator", from = "components" },
+    { include = "niagads/logging_utils", from = "components" },
+    { include = "niagads/list_utils", from = "components" },
+    { include = "niagads/dict_utils", from = "components" },
+    { include = "niagads/sys_utils", from = "components" },
+    { include = "niagads/string_utils", from = "components" },
+    { include = "niagads/numeric_utils", from = "components" },
+    { include = "niagads/arg_parser", from = "components" },
+    { include = "niagads/csv_triples_parser", from = "components" },
+    { include = "niagads/validate_metadata", from = "bases" },
 ]
-
 
 [tool.poetry.dependencies]
 openpyxl = "^3.1.5"
@@ -49,6 +50,7 @@ asyncpg = "^0.30.0"
 pydantic = "^2.11.1"
 
 # wrapt for custom decorators
+rdflib = "^7.1.4"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
@@ -58,11 +60,20 @@ flake8 = "^7.0.0"
 pytest = "^8.2.2"
 sphinx = "^8.2.3"
 sphinxawesome-theme = "^5.3.2"
+sphinx-autodoc-annotation = "^1.0"
+sphinx-autodoc-typehints = "^3.1.0"
+autoclasstoc = "^1.7.0"
+ipykernel = "^6.29.5"
+sphinx-autobuild = "^2024.10.3"
+sphinx-rtd-theme = "^3.0.2"
+sphinx-autoapi = "^3.6.0"
 
 
 [tool.isort]
 profile = "black"
 
+[tool.black]
+# line-length = 80
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

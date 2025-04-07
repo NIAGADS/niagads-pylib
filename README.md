@@ -97,4 +97,3 @@ Executable scripts can be added to the `scripts` directory. `setup.py` will also
 * use [type hints](https://docs.python.org/3/library/typing.html) when possible help the `Pylance` (the Python interpreter) provide better autocompletion examples
 
 * use `enums` to define variables limited to controlled vocabularies (see the [enums utilities](niagads/utils/enums.py) and the [api_wrapper constants](niagads/api_wrapper/constants.py) for examples)
-

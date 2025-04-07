@@ -11,8 +11,8 @@ for more information
 from jsonschema import FormatChecker
 from re import RegexFlag
 
-from niagads.string.core import matches
-from niagads.string.regular_expressions import RegularExpressions as RE
+from niagads.string_utils.core import matches
+from niagads.string_utils.regular_expressions import RegularExpressions as RE
 
 JSONSchemaFormatChecker = FormatChecker()
 
