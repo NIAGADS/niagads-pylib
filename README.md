@@ -4,6 +4,15 @@ a collection of python packages, classes, and utility functions in support of NI
 
 > This project is under-development and not recommended for third-party users
 
+## Legacy Usage
+
+> This project has been recently migrated to the Polylith Architecture.  Until the migration is complete, 
+> the old package-based version can be used as follows:
+
+```bash
+pip3 install git+https://github.com/NIAGADS/niagads-pylib.git#package-architecture
+```
+
 ## Documentation
 
 github.io link TBA
