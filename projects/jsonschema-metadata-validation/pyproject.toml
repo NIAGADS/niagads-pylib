@@ -1,20 +1,20 @@
 [tool.poetry]
 packages = [
-    { include = "niagads/validate_metadata", from = "bases" },
-    { include = "niagads/csv_parser", from = "../../components" },
-    { include = "niagads/logging_utils", from = "../../components" },
+    { include = "niagads/metadata_validator_tool", from = "../../bases" },
+    { include = "niagads/csv_validator", from = "../../components" },
     { include = "niagads/arg_parser", from = "../../components" },
-    { include = "niagads/metadata_validator", from = "../../components" },
     { include = "niagads/exceptions", from = "../../components" },
-    { include = "niagads/json_validator", from = "../../components" },
+    { include = "niagads/metadata_validator", from = "../../components" },
     { include = "niagads/dict_utils", from = "../../components" },
     { include = "niagads/sys_utils", from = "../../components" },
-    { include = "niagads/list_utils", from = "../../components" },
-    { include = "niagads/csv_validator", from = "../../components" },
     { include = "niagads/enums", from = "../../components" },
+    { include = "niagads/list_utils", from = "../../components" },
     { include = "niagads/excel_parser", from = "../../components" },
-    { include = "niagads/pd_dataframe", from = "../../components" },
     { include = "niagads/string_utils", from = "../../components" },
+    { include = "niagads/pd_dataframe", from = "../../components" },
+    { include = "niagads/logging_utils", from = "../../components" },
+    { include = "niagads/json_validator", from = "../../components" },
+    { include = "niagads/csv_parser", from = "../../components" },
 ]
 
 [tool.poetry.group.dev.dependencies]
@@ -35,6 +35,10 @@ dependencies = [
     "pandas (>=2.2.3,<3.0.0)",
     "strenum (>=0.4.15,<0.5.0)",
 ]
+
+[project.scripts]
+validate-metadata = "niagads.metadata_validator_tool:main"
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

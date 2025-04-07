@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""validate_metadata
-
+"""
 This script allows the user validate a sample or file manifest metadata file
 arranged in tabular format (field names in columns, values in rows) against a JSON-Schema file.
 Results are piped to STDOUT unless `--log` option is specified.

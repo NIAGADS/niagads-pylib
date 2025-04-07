@@ -12,7 +12,7 @@ import argparse
 import json
 from typing import List
 
-import niagads.validate_metadata.core as vm
+import niagads.metadata_validator_tool.core as vm
 
 
 def validate_participant_info():
