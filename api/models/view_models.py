@@ -103,5 +103,5 @@ class TableViewModel(BaseModel, arbitrary_types_allowed=True):
     
 class TableViewResponse(BaseViewResponseModel):
     
-    response: TableViewModel
+    data: TableViewModel
     

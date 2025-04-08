@@ -52,8 +52,11 @@ class FILERTrack(GenericTrack):
             fields.remove('provenance')
             # fields.remove('biosample_term_id')
         
-        fields.remove('download_url')
-        fields.remove('release_date')
+            fields.remove('download_url')
+            fields.remove('release_date')
+            fields.remove('raw_file_url')
+            fields.remove('raw_file_md5sum')
+        
         
         duplicates = get_duplicates(fields) # FIXME: some of the nested fields will be duplicated
         for f in duplicates:
@@ -80,7 +83,7 @@ class FILERTrack(GenericTrack):
         return config
 
 class FILERTrackSummaryResponse(PagedResponseModel):
-    response: List[FILERTrackSummary]
+    data: List[FILERTrackSummary]
     
     def to_text(self, format: ResponseView, **kwargs):
         # fields could contain num_overlaps if a result is present
@@ -90,7 +93,7 @@ class FILERTrackSummaryResponse(PagedResponseModel):
 
     
 class FILERTrackResponse(PagedResponseModel):
-    response: List[FILERTrack]
+    data: List[FILERTrack]
 
     def to_text(self, format: ResponseView, **kwargs):
         fields = FILERTrack.get_model_fields()

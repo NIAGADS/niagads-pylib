@@ -18,7 +18,7 @@ class AnnotatedGene(Gene):
     # relationships: Optional[dict] = None
     
 class GeneSummaryResponse(PagedResponseModel):
-    response: List[Gene]
+    data: List[Gene]
     
 class AnnotatedGeneResponse(PagedResponseModel):
-    response: List[AnnotatedGene]
+    data: List[AnnotatedGene]

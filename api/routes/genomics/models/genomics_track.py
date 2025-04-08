@@ -116,7 +116,7 @@ class GenomicsTrack(GenericTrack):
         return {'columns': columns, 'options': options}
     
 class GenomicsTrackSummaryResponse(PagedResponseModel):
-    response: List[GenericTrackSummary]
+    data: List[GenericTrackSummary]
     
     def to_text(self, format: ResponseView, **kwargs):
         fields = self.response[0].get_field_names() \
@@ -125,7 +125,7 @@ class GenomicsTrackSummaryResponse(PagedResponseModel):
 
     
 class GenomicsTrackResponse(PagedResponseModel):
-    response: List[GenomicsTrack]
+    data: List[GenomicsTrack]
 
     def to_text(self, format: ResponseView, **kwargs):
         fields = GenomicsTrack.get_model_fields()

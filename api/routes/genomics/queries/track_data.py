@@ -1,6 +1,5 @@
 from api.models.query_defintion import QueryDefinition
 
-
 _BUILD_VARIANT_DETAILS_SQL="""
     jsonb_build_object(
         'ref_snp_id', details->>'ref_snp_id', 
@@ -36,8 +35,9 @@ _TRACK_QTLGENE_QUERY_SQL=f"""
     r.dist_to_target, r.other_stats->>'z_score_non_ref' AS z_score,
     r.chromosome,
     r.position,
+    r.target_ensembl_id,
     jsonb_build_object(
-        'ensembl_id', target_ensembl_id, 
+        'ensembl_id', r.target_ensembl_id, 
         'gene_symbol', ga.gene_symbol
     ) AS target,
 
@@ -88,3 +88,34 @@ TrackGWASSumStatQuery = QueryDefinition(
     errorOnNull="GWAS summary statistics track not found in the NIAGADS Alzheimer's GenomicsDB"
 )
 
+# TODO: make generic like the data queries
+CountsTrackSummaryQuery = QueryDefinition(
+    query="""
+        SELECT chromosome, count(target_ensembl_id)
+        FROM Results.QTLGene
+        WHERE track_id = :id
+        GROUP BY track_id, chromosome
+        ORDER BY replace(chromosome, 'chr', '')::integer
+    """,
+    bindParameters = ['id'],
+    errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB",
+    rawResponse = True
+)
+
+TopTrackSummaryQuery = QueryDefinition(
+    query="""
+        SELECT r.chromosome, 
+        vd.details->>'ref_snp_id' AS ref_snp_id, vd.details->>'metaseq_id' AS variant,
+        vd.details->>'is_adsp_variant' AS is_adsp_variant,
+        ga.gene_symbol,
+        to_char(r.neg_log10_pvalue, 'FM999999999.00') AS neg_log10_pvalue
+        FROM Results.QTLGene r, CBIL.GeneAttributes ga,  get_variant_display_details(r.variant_record_primary_key) as vd
+        WHERE ga.source_id = r.target_ensembl_id
+        AND r.rank <= 10
+        AND r.track_id = :id
+        ORDER BY r.rank ASC
+    """,
+    bindParameters = ['id'],
+    errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB",
+    rawResponse = True
+)

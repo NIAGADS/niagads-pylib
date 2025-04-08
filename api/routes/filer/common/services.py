@@ -39,10 +39,10 @@ class ApiWrapperService:
         return requestParams
 
 
-    async def __fetch(self, endpoint: FILERApiEndpoint, params: dict):
+    async def __fetch(self, endpoint: FILERApiEndpoint, params: dict, rawParams: bool=False):
         ''' map request params and submit to FILER API'''
         try:
-            requestParams = self.__build_request_params(params)
+            requestParams = params if rawParams else self.__build_request_params(params)
             async with self.__session.get(str(endpoint), params=requestParams) as response:
                 result = await response.json() 
             return result
@@ -83,6 +83,17 @@ class ApiWrapperService:
             return [FILERApiDataResponse(**r) for r in result]
         except:
             raise LookupError(f'Unable to process FILER response for track(s) `{tracks}` in the span: {span} ({assembly})')
+
+
+    async def get_gene_qtls(self, track: str, gene: str, countsOnly: bool=False) -> FILERApiDataResponse: 
+        result = await self.__fetch(FILERApiEndpoint.GENE_QTLS, {'track': track, 'gene': gene}, rawParams=True)
+        
+        try:
+            item = {'Identifier':track, 'features': result}
+            return FILERApiDataResponse(**item)
+        
+        except:
+            raise LookupError(f'Unable to process FILER response for QTL track `{track}` for the gene `{gene}`')
 
 
     async def get_informative_tracks(self, span: str, assembly: str, sort=False) -> List[TrackOverlap]:

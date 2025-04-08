@@ -131,7 +131,7 @@ class VariantPValueScore(VariantScore):
                 c.type = 'float'
         
         defaultColumns = ['variant', 'p_value', 'test_allele', 'ref_snp_id', 
-            'is_adsp_variant', 'consequence', 'impact', 
+            'is_adsp_variant', 'consequence', 'impact', 'is_coding',
             'impacted_gene'
         ]
 
@@ -143,6 +143,7 @@ class QTL(VariantPValueScore):
     z_score: Optional[float] = None
     dist_to_target: Optional[float] = None
     target: Gene
+    target_ensembl_id: str
     
     def to_view_data(self, view: ResponseView, **kwargs):
         data = super().to_view_data(view, **kwargs)
@@ -175,8 +176,8 @@ class QTL(VariantPValueScore):
         return config
 
 class GWASSumStatResponse(PagedResponseModel):
-    response: List[VariantPValueScore]
+    data: List[VariantPValueScore]
     
 class QTLResponse(PagedResponseModel):
-    response: List[QTL]
+    data: List[QTL]
     

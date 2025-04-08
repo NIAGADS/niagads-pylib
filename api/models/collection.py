@@ -14,5 +14,5 @@ class Collection(SQLModel, RowModel):
         return self.model_dump()
     
 class CollectionResponse(BaseResponseModel):
-    response: List[Collection]
+    data: List[Collection]
     

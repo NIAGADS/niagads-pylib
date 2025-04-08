@@ -50,8 +50,8 @@ app = FastAPI(
 # app.add_middleware(SessionMiddleware, secret_key=get_settings().SESSION_SECRET)
 app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
 app.add_middleware(CORSMiddleware, 
-    allow_origins=[get_settings().API_PUBLIC_URL],
-    # allow_origins=['*'],
+    # allow_origins=[get_settings().API_PUBLIC_URL],
+    allow_origins=['*'],
     allow_origin_regex=r'https://.*\.niagads\.org',
     # allow_credentials=False,
     allow_methods=['GET'],

@@ -82,16 +82,21 @@ class MetadataQueryService:
         return t
         
 
-    async def get_sharded_track_ids(self, rootShardTrackId):
+    async def get_sharded_track_ids(self, rootShardTrackId:str):
         statement = select(Track.track_id).where(col(Track.shard_parent_track_id) == rootShardTrackId).order_by(Track.track_id)
         result = (await self.__session.execute(statement)).scalars().all()
         return result
     
     
-    async def get_sharded_track_urls(self, rootShardTrackId):
+    async def get_sharded_track_urls(self, rootShardTrackId:str):
         statement = select(Track.url).where(col(Track.shard_parent_track_id) == rootShardTrackId).order_by(Track.track_id)
         result = (await self.__session.execute(statement)).scalars().all()
         return result
+    
+    
+    async def get_shard(self, track:str, chromosome:str):
+        # statement = select(Track).where(col())
+        pass
     
     
     async def get_collection_track_metadata(self, collectionName:str, track:str = None,

@@ -80,12 +80,12 @@ class IGVBrowserTrackMetadata(RowModel):
 
 
 class IGVBrowserTrackConfigResponse(BaseResponseModel):
-    response: List[IGVBrowserTrackConfig]
+    data: List[IGVBrowserTrackConfig]
     
 
     
 class IGVBrowserTrackSelectorResponse(BaseResponseModel):
-    response: TableViewModel
+    data: TableViewModel
     
     @classmethod
     def build_table(cls, metadata: RowModel, tableId: str):

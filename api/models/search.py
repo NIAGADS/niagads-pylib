@@ -27,4 +27,4 @@ class RecordSearchResult(RowModel):
     
     
 class RecordSearchResultResponse(PagedResponseModel):
-    response: List[RecordSearchResult]
+    data: List[RecordSearchResult]

@@ -2,6 +2,7 @@ from typing import Optional
 from fastapi.exceptions import RequestValidationError
 
 from pydantic import BaseModel
+from sqlalchemy import RowMapping
 from sqlmodel import bindparam, func, select, text
 from sqlalchemy.exc import NoResultFound
 
@@ -87,8 +88,7 @@ class GenomicsRouteHelper(MetadataRouteHelper):
                 statement = statement.bindparams(*parameters)
 
         return statement
-    
-    
+        
     async def __run_query(self, opts: QueryOptions): 
         statement = self.__build_statement(opts)
         try:
