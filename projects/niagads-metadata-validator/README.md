@@ -35,12 +35,11 @@ Import package into your python script.
 import niagads.metadata_validator_tool.core as mv_tool
 ```
 
-Use [`vm_tool.initialize_validator`](#function-initialize_validator) to initialize and retrieve a validator object for further manipulation. Use [`vm_tool.run`](#function-run) to initialize and run a validation with default configuration. See [validator documentation](https://github.com/NIAGADS/niagads-pylib/blob/main/components/niagads/metadata_validator/README.md) for more information about validator properties and member functions.
+Use [`mv_tool.initialize_validator`](#function-initialize_validator) to initialize and retrieve a validator object for further manipulation. Use [`mv_tool.run`](#function-run) to initialize and run a validation with default configuration. See [validator documentation](https://github.com/NIAGADS/niagads-pylib/blob/main/components/niagads/metadata_validator/README.md) for more information about validator properties and member functions.
 
 
 
-
-Explore example code in a Jupyter notebook, schema, and metadata files in the repository: [nigads-pylib/examples/metadata-validator-test](https://github.com/NIAGADS/niagads-pylib/tree/6b54d6b1b836564e79f5cf40afaf3522c3379732/development/metadata-validator-test).
+Example code, with schema and metadata files are availble in the code repostory:  [examples/niagads-metadata-validator](https://github.com/NIAGADS/niagads-pylib/blob/e58808f2ef2b412e68ef66ff214683783d2f7576/projects/examples/niagads-metadata-validator/example.ipynb).
 
 ---
 
