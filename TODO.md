@@ -7,6 +7,8 @@
 
 ## Documentation
 
-* replace reStructuredText w/Google comments
-* generate documentation and write README for SOP as it will be auto combined w/manual
+* use lazydocs instead of sphinx
   
+## Developer notes
+
+* settings/configuration for `_api` bases; see <https://docs.pydantic.dev/latest/concepts/pydantic_settings/#usage>

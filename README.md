@@ -51,6 +51,10 @@ poetry install
 
 Details TBA
 
+#### Hot Reloads for FastAPI
+
+see <https://davidvujic.blogspot.com/2023/07/python-fastapi-microservices-with-polylith.html>
+
 ### VSCode Config
 
 #### Recommended extensions
