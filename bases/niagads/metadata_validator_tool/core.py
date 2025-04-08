@@ -165,11 +165,10 @@ def run(
             result["warnings"] = []
         return result
     except Exception as err:
-        logger.error(err)
+        raise err
 
 
-if __name__ == "__main__":
-    print("running")
+def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument(
         "--template",
@@ -266,15 +265,25 @@ if __name__ == "__main__":
         else args.metadataFile
     )
 
-    result = run(
-        metadataFile,
-        schemaFile,
-        args.metadataFileType,
-        args.idField,
-        args.failOnError,
-    )
+    try:
+        result = run(
+            metadataFile,
+            schemaFile,
+            args.metadataFileType,
+            args.idField,
+            args.failOnError,
+        )
+    except Exception as err:
+        if logger is not None:
+            logger.critical(err)
+        else:
+            raise err
 
     if logger is not None:
         logger.info(f"Validation Status: {result}")
     else:  # pipe to STDOUT
         print(json.dumps(result))
+
+
+if __name__ == "__main__":
+    main()
