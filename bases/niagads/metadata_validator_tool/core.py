@@ -161,6 +161,8 @@ def run(
     validator = initialize_validator(file, schema, metadataType, idField)
     try:
         result = validator.run(failOnError=failOnError)
+        if "warnings" not in result:
+            result["warnings"] = []
         return result
     except Exception as err:
         logger.error(err)
