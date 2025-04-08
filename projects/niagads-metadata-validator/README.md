@@ -2,8 +2,7 @@
 
 <a href="https://github.com/NIAGADS/niagads-pylib/blob/main/bases/niagads/metadata_validator_tool/core.py#L0"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-# <kbd>package</kbd> `NIAGADS: niagads-metadata-validator`
-NIAGADS JSON Schema based metadata validation. 
+# NIAGADS JSON Schema based metadata validation tools
 
 This tool allows the user to perform [JSON Schema](https://json-schema.org/)-based validation of a sample or file manifest metadata file arranged in tabular format (with a header row that has field names matching the validation schema). 
 
@@ -17,7 +16,7 @@ This tool can be run as a script or can also be imported as a module.  When run 
 
 ---
 
-## Usage
+## Usage    
 
 ### command-line
 
@@ -46,8 +45,6 @@ Example code, with schema and metadata files are availble in the code repostory:
 ## API Reference
 
 ---
-
-<a href="https://github.com/NIAGADS/niagads-pylib/blob/main/bases/niagads/metadata_validator_tool/core.py#L50"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `get_templated_schema_file`
 
@@ -78,8 +75,6 @@ Verify that templated schema file `{schemaDir}/{vType}.json` exists.
 
 
 ---
-
-<a href="https://github.com/NIAGADS/niagads-pylib/blob/main/bases/niagads/metadata_validator_tool/core.py#L73"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `get_templated_metadata_file`
 
@@ -115,8 +110,6 @@ Find metadata file based on templated name `{prefix}{validator_type}.{ext}`.
 
 
 ---
-
-<a href="https://github.com/NIAGADS/niagads-pylib/blob/main/bases/niagads/metadata_validator_tool/core.py#L102"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `initialize_validator`
 
@@ -156,7 +149,6 @@ Initialize and return a metadata validator.
 
 ---
 
-<a href="https://github.com/NIAGADS/niagads-pylib/blob/main/bases/niagads/metadata_validator_tool/core.py#L140"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ## <kbd>function</kbd> `run`
 
