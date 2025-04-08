@@ -1,8 +1,8 @@
-import runpy
-import sys
+# import runpy
+# import sys
+# import pytest
 
-import pytest
-from niagads.validate_metadata import core
+from niagads.metadata_validator_tool import core
 
 
 def test_sample():
@@ -24,6 +24,6 @@ def test_sample():
 #                 metadataFileType,
 #             ],
 #         )
-#         runpy.run_module("niagads.validate_metadata.core", run_name="__main__")
+#         runpy.run_module("niagads.metadata_validator_tool.core", run_name="__main__")
 #         captured = capsys.readouterr()
 #         assert captured.out != ""

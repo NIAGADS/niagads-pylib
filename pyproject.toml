@@ -35,7 +35,7 @@ packages = [
     { include = "niagads/numeric_utils", from = "components" },
     { include = "niagads/arg_parser", from = "components" },
     { include = "niagads/csv_triples_parser", from = "components" },
-    { include = "niagads/validate_metadata", from = "bases" },
+    { include = "niagads/metadata_validator_tool", from = "bases" },
 ]
 
 [tool.poetry.dependencies]
@@ -67,6 +67,8 @@ ipykernel = "^6.29.5"
 sphinx-autobuild = "^2024.10.3"
 sphinx-rtd-theme = "^3.0.2"
 sphinx-autoapi = "^3.6.0"
+pydocstyle = "^6.3.0"
+lazydoc = "^1.0.1"
 
 
 [tool.isort]

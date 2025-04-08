@@ -1,3 +1,4 @@
+from math import e
 from strenum import StrEnum
 
 
@@ -15,10 +16,12 @@ class CaseInsensitiveEnum(StrEnum):
     # after from https://stackoverflow.com/a/76131490
     @classmethod
     def _missing_(cls, value: str):  # allow to be case insensitive
-        for member in cls:
-            if member.value.lower() == value.lower():
-                return member
-        raise KeyError(value)
+        try:
+            for member in cls:
+                if member.value.lower() == value.lower():
+                    return member
+        except ValueError as err:
+            raise err
 
     @classmethod
     def has_value(cls, value: str) -> bool:
