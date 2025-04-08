@@ -23,7 +23,7 @@ lazydocs = "^0.4.8"
 [project]
 name = "niagads-metadata-validator"
 description = "JSON Schema based validation of dataset metadata developed to support submissions to the NIAGADS Data Sharing Service"
-version = "0.2.0"
+version = "0.2.2"
 
 authors = [{ name = "fossilfriend", email = "egreenfest@gmail.com" }]
 license = { text = "GNU GPLv3" }
@@ -45,7 +45,7 @@ dependencies = [
 "Source" = "https://github.com/NIAGADS/niagads-pylib"
 
 [project.scripts]
-metadata-validator = "niagads.metadata_validator_tool:main"
+metadata-validator = "niagads.metadata_validator_tool.core:main"
 
 
 [build-system]
