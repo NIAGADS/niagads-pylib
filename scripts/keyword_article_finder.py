@@ -13,7 +13,7 @@ fetch = PubMedFetcher()
 
 PREPRINT_KEYWORDS = {'medrxiv', 'biorxiv', 'arxiv', 'preprint', 'pre-print', 'preprint server', 'preprint repository', 'preprint archive'}
 
-NUMBER_TO_FETCH = 2000
+NUMBER_TO_FETCH = 5000
 
 def is_preprint(journal):
     journal_lower = journal.lower()
@@ -67,8 +67,8 @@ async def search_pubmed(keywords):
                         continue
                         
                     year = None
-                    if article.publication_date:
-                        year = article.publication_date.year
+                    if article.year:
+                        year = article.year
                     
                     articles.append({
                         'pmid': pmid, 

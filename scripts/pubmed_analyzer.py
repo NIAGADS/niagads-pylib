@@ -46,8 +46,8 @@ async def fetch_article_info(pubmed_ids):
             article = fetch.article_by_pmid(pmid)
             if article:
                 year = None
-                if article.publication_date:
-                    year = article.publication_date.year
+                if article.year:
+                    year = article.year
                 articles.append({'pmid': pmid, 'title': article.title, 'journal': article.journal, 'year': year})
         except Exception as e:
             print(f"Error fetching PMID {pmid}: {str(e)}")
@@ -80,7 +80,7 @@ def extract_keywords(titles):
 
 async def main():
     try:
-        df = pd.read_csv('pubmed_ids.csv')
+        df = pd.read_csv('scripts/pubmed_ids.csv')
         pubmed_ids = df['PMID'].tolist()
     except Exception as e:
         print(f"Error reading CSV file: {str(e)}")
