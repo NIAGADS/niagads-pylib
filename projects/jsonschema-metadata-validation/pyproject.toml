@@ -22,6 +22,7 @@ lazydocs = "^0.4.8"
 
 [project]
 name = "jsonschema-metadata-validation"
+description = "JSON Schema based validation of dataset metadata developed to support submissions to the NIAGADS Data Sharing Service"
 version = "0.1.0"
 
 authors = [{ name = "fossilfriend", email = "egreenfest@gmail.com" }]

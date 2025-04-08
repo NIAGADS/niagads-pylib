@@ -1,7 +1,7 @@
 file_category	file_name	analysis_category	data_type	file_format	sample_id	md5sum	package_file_manifest	comment
-single-sample	sample1.fasta.gz	Sequencing	sequence	FASTA	SAMPLE1	c6779ec2960296ed9a8d67f64422		
+single-sample	sample1.fasta.gz	Sequencing	sequence	FASTA	SAMPLE7	c6779ec2960296ed9a04f08d67f64422		
 single-sample	sample2.fasta.gz	Sequencing	sequence	FASTA	SAMPLE2	c6779ec2960296ed9a04f08d67f64422		
 sample-independent	annotation.tar.gz	Phenotyping	phenotype	package		c6779ec2960296ed9a04f08d67f64422	sample3_file_manifest.txt	
 single-sample	sample4.txt	GWAS	summary statistics	TAB	SAMPLE4	c6779ec2960296ed9a04f08d67f64422		
 single-sample	sample5.csv	GWAS	summary statistics	CSV	SAMPLE5	c6779ec2960296ed9a04f08d67f64422		
-single-sample	sample3.fasta.gz	Sequencing	sequence	FASTA		c6779ec2960296ed9a04f08d67f64422		
+single-sample	sample3.fasta.gz	Sequencing	sequence	FASTA	SAMPLE4	c6779ec2960296ed9a04f08d67f64422		
