@@ -2,7 +2,7 @@
 
 <a href="https://github.com/NIAGADS/niagads-pylib/blob/main/bases/niagads/metadata_validator_tool/core.py#L0"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-# <kbd>package</kbd> `NIAGADS: jsonschema-metadata-validation`
+# <kbd>package</kbd> `NIAGADS: niagads-metadata-validator`
 NIAGADS JSON Schema based metadata validation. 
 
 This tool allows the user to perform [JSON Schema](https://json-schema.org/)-based validation of a sample or file manifest metadata file arranged in tabular format (with a header row that has field names matching the validation schema). 

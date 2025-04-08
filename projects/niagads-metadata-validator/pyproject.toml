@@ -21,7 +21,7 @@ packages = [
 lazydocs = "^0.4.8"
 
 [project]
-name = "jsonschema-metadata-validation"
+name = "niagads-metadata-validator"
 description = "JSON Schema based validation of dataset metadata developed to support submissions to the NIAGADS Data Sharing Service"
 version = "0.1.0"
 
@@ -45,7 +45,7 @@ dependencies = [
 "Source" = "https://github.com/NIAGADS/niagads-pylib"
 
 [project.scripts]
-validate-metadata = "niagads.metadata_validator_tool:main"
+metadata-validator = "niagads.metadata_validator_tool:main"
 
 
 [build-system]
