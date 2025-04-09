@@ -1,10 +1,12 @@
-from enum import Enum
 import csv
 import logging
+from enum import auto
+
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.string_utils.core import xstr
 
 
-class Human(str, Enum):
+class Human(CaseInsensitiveEnum):
     # name, value pair
     # e.g., for chr in Chromosome: print(chr.name)
     # will print a new line sep list of chr1 chr2 chr3, etc
@@ -41,8 +43,7 @@ class Human(str, Enum):
         for member in cls:
             if value == member.name:
                 return member
-
-        raise KeyError(value)
+        return super()._missing_(cls, value)
 
     def __str__(self):
         return self.name
@@ -68,27 +69,6 @@ class Human(str, Enum):
         return None
 
 
-"""  @brief Chromosome Map Parser"""
-
-##
-# @brief  Parse and Access Chromosome Mappings
-#
-# @section chromosome_map_parser Description
-# parses mappings of third party chromosome source ids (e.g., refseq) to chromosome number
-# may also include chromosome length
-# - for now assumes the tab-delim with at least the following columns:
-# > source_id       chromosome     length
-#
-# @section todo_chromosome_map_parser TODO
-#
-#
-# @section libraries_chromosome_map_parser Libraries/Modules
-# - cvs - reading and parsing the file
-#
-# @section author_chromosome_map_parser Author(s)
-# - Created by Emily Greenfest-Allen (fossilfriend) 2022
-
-
 class ChromosomeMapParser(object):
     """Generator for chromosome map parser/object
     parses mappings of third party chromosome sequence ids (e.g., refseq) to chromosome number
@@ -97,12 +77,15 @@ class ChromosomeMapParser(object):
     > source_id       chromosome     length
     """
 
-    def __init__(self, fileName, verbose=False, debug=False):
-        """ChromosomeMap base class initializer
-        @param fileName             full path to chromosome mapping file
-        @param verbose              verbose output flag
-        @param debug                debug flag
-        @return                     An instance of a ChromosomeMap with initialized mapping dict
+    def __init__(self, fileName: str, verbose: bool = False, debug: bool = False):
+        """ChromosomeMap base class initializer.
+        Args:
+            fileName (_type_): full path to chromosome mapping file
+            verbose (bool, optional): verbose output flag. Defaults to False.
+            debug (bool, optional): debug flag. Defaults to False.
+
+        Returns:
+            An instance of a ChromosomeMap with initialized mapping dict
         """
         self._verbose = verbose
         self._debug = debug
@@ -127,15 +110,11 @@ class ChromosomeMapParser(object):
                 self.__map[key] = value
 
     def chromosome_map(self):
-        """@returns                 the chromosome map"""
+        "Get the chromosome map."
         return self.__map
 
     def get_sequence_id(self, chrmNum):
-        """given a chromosome number, tries to find matching sequence id
-
-        @param chrmNum             chromosome number to match
-        @returns                   matching sequence id, None if not found
-        """
+        """Given a chromosome number, tries to find matching sequence id."""
         for sequenceId, cn in self.__map.items():
             if cn == chrmNum or cn == "chr" + xstr(chrmNum):
                 return sequenceId
@@ -143,10 +122,35 @@ class ChromosomeMapParser(object):
         return None
 
     def get(self, sequenceId):
-        """return chromosome number mapped to the provided sequence ID
-
-        @param sequenceId           sequence ID to look up
-        @returns                    matching chrm number, will fail on error
-        """
+        """Return chromosome number mapped to the provided sequence ID."""
         # want to raise AttributeError if not in the map, so not checking
         return self.__map[sequenceId]
+
+
+class Strand(CaseInsensitiveEnum):
+    SENSE = "+"
+    ANTISENSE = "-"
+
+
+class Assembly(CaseInsensitiveEnum):
+    """enum for genome builds"""
+
+    GRCh37 = "GRCh37"
+    GRCh38 = "GRCh38"
+
+    @classmethod
+    def _missing_(cls, value: str):
+        """Override super to map hg19 or hg38 to GRCh* nomenclature.
+        For everything else call super() to allow case-insensitive matches"""
+        if value.lower() == "hg19":
+            return cls.GRCh37
+        if value.lower() == "hg38":
+            return cls.GRCh38
+        return super(Assembly, cls)._missing_(value)
+
+
+class Feature(CaseInsensitiveEnum):
+    GENE = auto()
+    VARIANT = auto()
+    STRUCTURAL_VARIANT = auto()
+    SPAN = auto()
