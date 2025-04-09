@@ -1,10 +1,28 @@
-from typing import List, Self
+from typing import Self
 from fastapi.exceptions import RequestValidationError
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.string_utils.core import sanitize
 
 
 class EnumParameter(CaseInsensitiveEnum):
+    """Enum that includes a validator for use as a parameter"""
+
+    @classmethod
+    def get_description(cls):
+        return f"Allowable values are: {','.join(cls.list())}."
+
+    @classmethod
+    def validate(cls, value, label: str, returnCls: CaseInsensitiveEnum):
+        try:
+            cls(sanitize(value))
+            return returnCls(value)
+        except:
+            raise RequestValidationError(
+                f"Invalid value provided for `{label}`: {value}.  {cls.get_description()}"
+            )
+
+
+class CustomizableEnumParameter(EnumParameter):
     """Parameter defined by an enum that allows dynamic exclusion of some enum members."""
 
     @classmethod
@@ -22,17 +40,3 @@ class EnumParameter(CaseInsensitiveEnum):
         return EnumParameter(
             name, {member.name: member.value for member in cls if member not in exclude}
         )
-
-    @classmethod
-    def get_description(cls):
-        return f"Allowable values are: {','.join(cls.list())}."
-
-    @classmethod
-    def validate(cls, value, label: str, returnCls: CaseInsensitiveEnum):
-        try:
-            cls(sanitize(value))
-            return returnCls(value)
-        except:
-            raise RequestValidationError(
-                f"Invalid value provided for `{label}`: {value}.  {cls.get_description()}"
-            )
