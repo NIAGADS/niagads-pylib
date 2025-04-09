@@ -4,12 +4,30 @@ string manipulation functions, converters and
 value testers
 """
 
+import nh3
 import json
 import re
 
 from typing import List
 from dateutil.parser import parse as parse_date
 from datetime import datetime
+
+
+def sanitize(htmlStr: str) -> str:
+    """
+    ammonia sanitization that turns a string into unformatted HTML.
+    used to sanitize incoming API query and path arguments
+
+    Args:
+        htmlStr (str): string to be cleaned
+
+    Returns:
+        str: cleaned string
+    """
+    if htmlStr is not None:
+        return nh3.clean_text(htmlStr.strip())
+
+    return htmlStr
 
 
 def list_to_string(value, nullStr="NULL", delim=","):
