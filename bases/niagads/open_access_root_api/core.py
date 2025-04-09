@@ -6,6 +6,9 @@ from io import StringIO
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+# TODO, generate at build from other services
+# see https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/#disable-the-automatic-docs
+
 app = FastAPI(
     title="NIAGADS Open Access API",
     description="an application programming interface (API) that provides programmatic access to Open Access resources at the NIA Genetics of Alzheimer's Disease Data Storage Site (NIAGADS)",
@@ -23,6 +26,9 @@ app = FastAPI(
         "operationsSorter": "alpha",
         "tagsSorter": "alpha",
     },
+    docs_url=None,
+    redoc_url=None,
+    # default_response_class=BaseResponseModel,
     # openapi_tags=ROUTE_TAGS,
 )
 
