@@ -40,6 +40,9 @@ packages = [
     {include = "niagads/open_access_genomics_api",from = "bases"},
     {include = "niagads/open_access_advp_api",from = "bases"},
     {include = "niagads/open_access_root_api",from = "bases"},
+    {include = "niagads/open_access_api_parameters",from = "components"},
+    {include = "niagads/open_access_api_types",from = "components"},
+    {include = "niagads/open_access_api_enums",from = "components"},
 ]
 
 [tool.poetry.dependencies]
@@ -56,6 +59,7 @@ pydantic = "^2.11.1"
 # wrapt for custom decorators
 rdflib = "^7.1.4"
 fastapi = "^0.115.12"
+nh3 = "^0.2.21"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
