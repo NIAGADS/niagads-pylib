@@ -48,6 +48,7 @@ packages = [
     { include = "niagads/open_access_api_memory_cache", from = "components" },
     { include = "niagads/open_access_api_data_models", from = "components" },
     { include = "niagads/genome", from = "components" },
+    {include = "niagads/open_access_api_configuration",from = "components"},
 ]
 
 [tool.poetry.dependencies]
