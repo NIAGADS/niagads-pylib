@@ -25,7 +25,3 @@ def id2title(columnId: str):
         title = title + "?"
 
     return title
-
-
-def print_enum_values(enumClass):
-    return ",".join([f"`{m.value}`" for m in enumClass])
