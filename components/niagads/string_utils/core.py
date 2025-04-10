@@ -4,12 +4,27 @@ string manipulation functions, converters and
 value testers
 """
 
+import hashlib
 import json
 import re
 
 from typing import List
+import uuid
 from dateutil.parser import parse as parse_date
 from datetime import datetime
+
+
+def generate_uuid(self, value: str):
+    """Generates a unique ID (UUID) from a string using SHA-256 hashing.
+
+    Args:
+        input_string: The string to generate a unique ID from.
+
+    Returns:
+        A UUID object representing the unique ID.
+    """
+    hashed_string = hashlib.sha256(value.encode()).hexdigest()
+    return uuid.uuid5(uuid.NAMESPACE_DNS, hashed_string)
 
 
 def list_to_string(value, nullStr="NULL", delim=","):
