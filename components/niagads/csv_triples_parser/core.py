@@ -5,7 +5,7 @@ from typing import List
 from niagads.csv_parser.core import CSVFileParser
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.string_utils.core import generate_uuid
-from rdflib import RDF, RDFS, Graph, Literal, Namespace, URIRef, OWL
+from rdflib import OWL, RDF, RDFS, SKOS, Graph, Literal, Namespace, URIRef
 
 
 class RDFTripleType(CaseInsensitiveEnum):
@@ -33,6 +33,7 @@ class CSVTriplesParser:
         self.__graph: Graph = Graph()
         self.__graph.bind(ontology, self.__namespace)
         self.__graph.bind("owl", OWL)  # use OWL namespace
+        self.__graph.bind("skos", SKOS)  # use OWL namespace
 
         # TODO - set relationship type for class hierarchy? or assume `is_a`?
 
@@ -47,8 +48,11 @@ class CSVTriplesParser:
 
         self.__graph.add((node, RDF.type, OWL.Class))
         self.__graph.add((node, RDFS.subClassOf, OWL.Thing))
-        self.__graph.add((node, RDFS.label, Literal[value]))
-
+        self.__graph.add((node, RDFS.label, Literal(value)))
+        if value in self.__definitions:
+            self.__graph.add(
+                (node, SKOS.definition, Literal(self.__definitions[value]))
+            )
         return node
 
     def parse_class_hierarchy_triple(self, values: List[str]):
@@ -60,8 +64,8 @@ class CSVTriplesParser:
         subClassNode = self.add_owl_class(values[1])
         termNode = self.add_owl_class(values[2])
 
-        self.__graph.add(subClassNode, RDFS.subClassOf, classNode)
-        self.__graph.add(termNode, RDFS.subClassOf, subClassNode)
+        self.__graph.add((subClassNode, RDFS.subClassOf, classNode))
+        self.__graph.add((termNode, RDFS.subClassOf, subClassNode))
 
     def parse(self):
         delimiter = CSVFileParser(self.__csvFile).sniff()
@@ -72,6 +76,29 @@ class CSVTriplesParser:
                     self.parse_semantic_triple(row)
                 else:
                     self.parse_class_hierarchy_triple(row)
+
+    def to_ttl(self, file: str = None):
+        """Convert to turtle format
+        see <https://www.w3.org/TR/turtle/> for specification
+        
+        if `file` is provided, will write the turtle formatted graph to file
+        otherwise returns the turtle object
+
+        Args:
+            file (str, optional): write output to specified file. Defaults to None.
+
+        Returns:
+            str: formatted turtle (ttl) string
+        """
+        ttl = self.__graph.serialize(destination=file, format="ttl")
+        if file is None:
+            return ttl
+
+    def to_xml(self, file: str = None, pretty: bool = False):
+        format = "pretty-xml" if pretty else "xml"
+        xml = self.__graph.serialize(destination=file, format=format)
+        if file is None:
+            return xml
 
 
 # Serialize the graph to a Turtle file (or other RDF format)
