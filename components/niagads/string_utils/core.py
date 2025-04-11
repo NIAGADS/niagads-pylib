@@ -14,7 +14,7 @@ from dateutil.parser import parse as parse_date
 from datetime import datetime
 
 
-def generate_uuid(self, value: str):
+def generate_uuid(value: str):
     """Generates a unique ID (UUID) from a string using SHA-256 hashing.
 
     Args:
