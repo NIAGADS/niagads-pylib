@@ -40,35 +40,70 @@ class CSVTriplesParser:
         # TODO - set relationship type for class hierarchy? or assume `is_a`?
 
     def get_defintions(self):
+        """Return the definition map"""
         return self.__definitions
 
-    def parse_semantic_triple(self, values: List[str]):
+    def parse_semantic_triple(self, triple: List[str]):
+        """Parse a subject <-> predicate <-> object triple"""
         raise NotImplementedError("Semantic triple parsing not yet implemented.")
 
-    def add_owl_class(self, value: str):
-        node = URIRef(self.__namespace[blake2b_hash(value, 4)])
+    def add_owl_class(self, label: str):
+        """
+        create and add a new class node
+            node is of type OWL.Class
+            node is subClassOf OWL.Thing
+            node label = value
+            node definition = self.__defintions[label]
+
+        Args:
+            label (str): the label of the node
+
+        Returns:
+            URIRef : the URIRef for the node
+        """
+        # generate a unique URI by hashing the label
+        node = URIRef(self.__namespace[blake2b_hash(label, 4)])
+
+        # add the node and categorization as OWL.Class/OWL.Thing to the graph
         self.__graph.add((node, RDF.type, OWL.Class))
         self.__graph.add((node, RDFS.subClassOf, OWL.Thing))
-        self.__graph.add((node, RDFS.label, Literal(value)))
-        if value in self.__definitions:
+        self.__graph.add((node, RDFS.label, Literal(label)))
+
+        # check to see if a definition exists, if so add that relationship
+        if label in self.__definitions:
             self.__graph.add(
-                (node, SKOS.definition, Literal(self.__definitions[value]))
+                (node, SKOS.definition, Literal(self.__definitions[label]))
             )
+
         return node
 
-    def parse_class_hierarchy_triple(self, values: List[str]):
-        """class subclass term
-        subclass is_a class, term is_a subclass
+    def parse_class_hierarchy_triple(self, triple: List[str]):
+        """
+        assumes a list of values contains a triple of: class <-> subclass <-> term
+
+        creates a node each for class, subclass, and term
+        creates the following relationships
+            subclass is a subClassOf class
+            term is a subClassOf subclass
+
+        Args:
+            values (List[str]): list containing the class <-> subclass <-> term triple
         """
 
-        classNode = self.add_owl_class(values[0].strip())
-        subClassNode = self.add_owl_class(values[1].strip())
-        termNode = self.add_owl_class(values[2].strip())
+        classNode = self.add_owl_class(triple[0].strip())
+        subClassNode = self.add_owl_class(triple[1].strip())
+        termNode = self.add_owl_class(triple[2].strip())
 
         self.__graph.add((subClassNode, RDFS.subClassOf, classNode))
         self.__graph.add((termNode, RDFS.subClassOf, subClassNode))
 
     def parse(self, header: bool = False):
+        """
+        parse the triples file
+
+        Args:
+            header (bool, optional): set to `True` if file contains header row to be ignored. Defaults to False.
+        """
         delimiter = CSVFileParser(self.__csvFile).sniff()
         with open(self.__csvFile, "r") as fh:
             reader = csv.reader(fh, delimiter=delimiter)
@@ -98,12 +133,24 @@ class CSVTriplesParser:
         if file is None:
             return ttl
 
+    def to_owl(self, file: str = None, pretty: bool = False):
+        """Convert to owl format; wrapper for `to_xml`, just ensures .owl extension on file name"""
+        return self.to_xml(
+            file.replace(".xml", ".owl") if file is not None else None, pretty
+        )
+
     def to_xml(self, file: str = None, pretty: bool = False):
+        """
+        Convert to xml format
+
+        Args:
+            file (str, optional):  write output to specified file. Defaults to None.
+            pretty (bool, optional): pretty print the xml. Defaults to False.
+
+        Returns:
+            str: formatted xml string
+        """
         format = "pretty-xml" if pretty else "xml"
         xml = self.__graph.serialize(destination=file, format=format)
         if file is None:
             return xml
-
-
-# Serialize the graph to a Turtle file (or other RDF format)
-# g.serialize(destination="data.ttl", format="turtle")"""
