@@ -1,0 +1,1250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b3e7f8a5">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#afa72241" />
+        <rdfs:label>Sex Hormones</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#aba17eb4">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#e7e4ce76" />
+        <rdfs:label>Calcium Signaling</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#acbe088a">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d6b9b9c2" />
+        <rdfs:label>PET Other Imaging</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#2356bcbb">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d6b9b9c2" />
+        <rdfs:label>Other Imaging Modalities</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#fa8a1a22">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bc5a53fc" />
+        <rdfs:label>Metabolomic</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b1daf08d">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#5438c754" />
+        <rdfs:label>Other technology assisted care</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#e1dc7f9b">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6558656d" />
+        <rdfs:label>Invertebrates</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#11fc90a7">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#df65f20e" />
+        <rdfs:label>Next generation Sequencing (i.e. WGS, Whole Exome)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b415227a">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d6b9b9c2" />
+        <rdfs:label>PET Amyloid Imaging</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#e636121c">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#43ac12af" />
+        <rdfs:label>Chemical pollutants</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#28da0add">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f845d268" />
+        <rdfs:label>Lymphatic/Glymphatic System Dysfunction</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#9d5fc145">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a89b093e" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f4e1d65d" />
+        <rdfs:label>Sleep-related</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#7481741f">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#409b6efc" />
+        <rdfs:label>Bioinformatics</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#944aebde">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Gut-Brain Axis</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#1271cf25">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#0474fcec" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#1f83c487" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#816eb2ae" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#73379a4e" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#17780f60" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#9383ad6f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#226f9901" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#e818dae5" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3c64aa62" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#ad6d098f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f35d1a26" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f28f8db8" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#30e79492" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#1271cf25" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#638adee2" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#5fb95506" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#9a797f90" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#ffa75f0c" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#734dc165" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6990c8a4" />
+        <rdfs:label></rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#bd725e00">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Multi-target</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#8275f01f">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#5438c754" />
+        <rdfs:label>Environmental modifications</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#74028ac5">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#afa72241" />
+        <rdfs:label>Stress Hormones/HPA Axis</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b54f91b0">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b5fde65d" />
+        <rdfs:label>ApoE in Abeta-Mediated Pathogenesis</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#51dd1a8d">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a552113d" />
+        <rdfs:label>Alpha-Synuclein</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ed232b5c">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#43ac12af" />
+        <rdfs:label>Psychosocial Factors</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#4991d5dc">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bc5a53fc" />
+        <rdfs:label>Multi-omics</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f9569f4f">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a2c89851" />
+        <rdfs:label>APP and Amyloid beta Signaling</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#23e96bc6">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bc5a53fc" />
+        <rdfs:label>Genomic</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#79dd7348">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b5fde65d" />
+        <rdfs:label>Lipid-Mediated Signaling</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#5a1fd8bc">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a2c89851" />
+        <rdfs:label>APP Processing</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#e47f0abf">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d853076a" />
+        <rdfs:label>Tau-Mediated Pathogenesis (AD and ADRD)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#8b6fa21e">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#7af27711" />
+        <rdfs:label>Innate Immunity</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#9966eea8">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#5438c754" />
+        <rdfs:label>Robotic-assisted care</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b3b65fd8">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#593060e1" />
+        <rdfs:label>Synaptic Plasticity and Synaptic Dysfunction</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#5278ff01">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f845d268" />
+        <rdfs:label>Cardiovascular and Cerebrovascular dysfunction</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#499ae5bf">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d6b9b9c2" />
+        <rdfs:label>Functional MRI</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#df269be0">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3e64946a" />
+        <rdfs:label>Intervention design for improving caregiver health and well-being (focus on
+            family caregiver)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#4f209b41">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#593060e1" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Neurogenesis</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#abcb0070">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3305f5b3" />
+        <rdfs:label>Palliative care/End-of-Life</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#fdcee5d5">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a2c89851" />
+        <rdfs:label>Amyloid beta Structure, Assembly, and Aggregation</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#1d077875">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d6b9b9c2" />
+        <rdfs:label>Retinal Imaging</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3524e5b7">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f4e1d65d" />
+        <rdfs:label>Neurostimulation</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f1983506">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f845d268" />
+        <rdfs:label>BBB and Neurovascular Unit</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f164f1e5">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6f6b9d4e" />
+        <rdfs:label>CNS Glucose</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b3581123">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bc5a53fc" />
+        <rdfs:label>Proteomic</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#9820d58d">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Cell death</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#bacf38fb">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f61ed19f" />
+        <rdfs:label>Cell Cycle Re-Entry</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#60f0084b">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#df65f20e" />
+        <rdfs:label>Disease Pathway Identification (gene cluster and network analysis)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#e7b39770">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#cbde95b7" />
+        <rdfs:label>Multi-fluid Biomarkers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#cbcf8b58">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3e64946a" />
+        <rdfs:label>Long term care services and supports (i.e. adult day center and in-home respite
+            care; impact on on family / family caregiver)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ae63ddce">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#593060e1" />
+        <rdfs:label>Neurotransmitter Receptors Structure and Function</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#4732ce2b">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Inflammation</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#18bad54f">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b5fde65d" />
+        <rdfs:label>Brain Lipid Metabolism</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#a1f3151e">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#409b6efc" />
+        <rdfs:label>Data Repositories</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#81cd9ba5">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#43ac12af" />
+        <rdfs:label>Metal pollutants</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#7e44ad9f">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#5438c754" />
+        <rdfs:label>Remote monitoring tools/sensors</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#cea762e6">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Growth Factors and Hormones</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#886d5084">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Vasculature</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#68a4bcb0">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a2c89851" />
+        <rdfs:label>Secretases</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#1ec5bc2a">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#cbde95b7" />
+        <rdfs:label>CSF Biomarkers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ad9c6668">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#7af27711" />
+        <rdfs:label>Astrocyte mediated</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#a7a5c08a">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f61ed19f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Oxidative Stress</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#8af72e02">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f4e1d65d" />
+        <rdfs:label>Cognitive Training</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#2af36b0c">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Unknown target</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#0a3f7117">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3e64946a" />
+        <rdfs:label>Caregiver tools, training and education (interventions for improving caregiver
+            mastery and skills)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ce26ccff">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3305f5b3" />
+        <rdfs:label>Interventions in home or informal care settings (focused on person with
+            dementia)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#e4dc0815">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f61ed19f" />
+        <rdfs:label>Calcium-Mediated Cell Death</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#831a21f9">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>ApoE, Lipids and Lipoprotein Receptors</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#a8942798">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Synaptic Plasticity/Neuroprotection</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b0228ff6">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#728982c5" />
+        <rdfs:label>Translational Infrastructure (ex. Model AD, ACTC)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#e2eb0574">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3305f5b3" />
+        <rdfs:label>Interventions in formal care settings (ie.acute care systems, short stay
+            program)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#462d6f2b">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6f6b9d4e" />
+        <rdfs:label>Insulin Resistance and Type II Diabetes</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#822285d2">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#00b82982" />
+        <rdfs:label>Fellowships</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ae2631e5">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#dd7c6ed6" />
+        <rdfs:label>Genetic (Micro-RNAs)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#845b237c">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a2c89851" />
+        <rdfs:label>Amyloid beta Clearance</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b3dfb5b0">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f4b3013a" />
+        <rdfs:label>Societal-based economic impact</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#e125aab6">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Circadian Rhythm</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#31ceb5a0">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#df65f20e" />
+        <rdfs:label>Genetic Data Sharing and Analysis</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b2a1c453">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a89b093e" />
+        <rdfs:label>Environmental Enrichment</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#81493e82">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#dd7c6ed6" />
+        <rdfs:label>Cardiovascular</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#93e8a0c8">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a552113d" />
+        <rdfs:label>C9ORF-72 and Progranulin</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#72fe5cfe">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d6b9b9c2" />
+        <rdfs:label>Multiple Imaging</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3d83b3e1">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Epigenetic Regulators</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#332ff428">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a89b093e" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f4e1d65d" />
+        <rdfs:label>Diet</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#4f735264">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#1502a83a" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#125fd353" />
+        <rdfs:label>Clinical Research and Epidemiology</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#6d2630d1">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#7af27711" />
+        <rdfs:label>Microglia mediated</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#edbba72c">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b5fde65d" />
+        <rdfs:label>Myelin</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#9b48cfd7">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b5fde65d" />
+        <rdfs:label>ApoE in Pathogenesis Independent of Abeta</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#317f95c4">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#e7e4ce76" />
+        <rdfs:label>Structure-Function Analysis</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ba3e687f">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#00b82982" />
+        <rdfs:label>Faculty Recruitment</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#d2bf5cbf">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d853076a" />
+        <rdfs:label>Tau Phosphorylation, Metabolism, and Assembly</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#04458c65">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#593060e1" />
+        <rdfs:label>Selective Vulnerability</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#29497841">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6f6b9d4e" />
+        <rdfs:label>Dyslipidemia</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3daf2deb">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#dd7c6ed6" />
+        <rdfs:label>White Matter Lesions/Damage</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#365aee64">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d853076a" />
+        <rdfs:label>Normal Functions of Tau</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#91665544">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f61ed19f" />
+        <rdfs:label>Autophagy-Mediated Cell Death</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#c8cf9b62">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#dd7c6ed6" />
+        <rdfs:label>Hormonal</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#d8187313">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#7af27711" />
+        <rdfs:label>Complement Mediators of Inflammation</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#9eb1d93d">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3305f5b3" />
+        <rdfs:label>Staff training and professional development</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#e6091bc4">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#409b6efc" />
+        <rdfs:label>Biobanks</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#0a3c535e">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#00b82982" />
+        <rdfs:label>Career Development (Ks, Travel Grants)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b119ac2c">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a89b093e" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f4e1d65d" />
+        <rdfs:label>Exercise</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3c3e2975">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6558656d" />
+        <rdfs:label>Vertebrates</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#8db5e2c0">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a2c89851" />
+        <rdfs:label>APP Structure and Function</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#bf1fb2b1">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d6b9b9c2" />
+        <rdfs:label>Diffusion Tensor Imaging</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#88f8e606">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#7af27711" />
+        <rdfs:label>Role of Chemokines / Cytokines</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3108d507">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Neurotransmitter Receptors</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#58655cfa">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3305f5b3" />
+        <rdfs:label>Long-term services and supports supporting person(s) with dementia (e.g., in
+            different home and community-based settings LTSS including adult day centers and in-home
+            respite care)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f00d677a">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a97e51e9" />
+        <rdfs:label>Pharmacological</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#4f34609b">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#728982c5" />
+        <rdfs:label>Translational Bioinformatics and Multi-scale Modeling (ex. Drug repurposing)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#09c9ddc3">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#593060e1" />
+        <rdfs:label>Network Function and Failure</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#8cdc1b59">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#00b82982" />
+        <rdfs:label>Conferences/Workshops/Symposia</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#9b8d65d4">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3e64946a" />
+        <rdfs:label>Caregiver assessments (assessing the psychological and physical health of
+            caregiver health, quality of life, and support needs)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#21cfe4b1">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#765e20ba" />
+        <rdfs:label>Exosome (ie. extracellular vesicles)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#2b4fb1e4">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3305f5b3" />
+        <rdfs:label>Advanced care directives/planning interventions in formal care settings (i.e.,
+            acute care systems, short stay program)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#d40bc594">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Proteostasis/Proteinopathies</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#5f6cfcb6">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d6b9b9c2" />
+        <rdfs:label>SPECT</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#222b58a4">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#df65f20e" />
+        <rdfs:label>Nucleic acid-related “omics” studies (Epigenetics and Epigenomic and
+            Transcriptomics, Expression Profiling)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#1bb1eedb">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d6b9b9c2" />
+        <rdfs:label>Structural MRI</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#08dc906f">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3e64946a" />
+        <rdfs:label>Intervention design for improving surrogate communication and decision making</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#4880a867">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f61ed19f" />
+        <rdfs:label>Apoptosis</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3a7058f0">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f4b3013a" />
+        <rdfs:label>Family-based economic impact</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#7b4951e8">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b5fde65d" />
+        <rdfs:label>Nuclear Receptors</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#7e58d66d">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#cbde95b7" />
+        <rdfs:label>Urine Biomarkers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#907d1204">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3e64946a" />
+        <rdfs:label>Couple-based and family-based interventions</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#5267c926">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f4b3013a" />
+        <rdfs:label>Caregiving / Workforce Shortage</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#bb444210">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#5438c754" />
+        <rdfs:label>TV/Video assisted care</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#6844c786">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#728982c5" />
+        <rdfs:label>Enabling Technologies (ex. iPS cells)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#53f34336">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a89b093e" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f4e1d65d" />
+        <rdfs:label>Combination therapy</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#0e85df5c">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f61ed19f" />
+        <rdfs:label>Presenilin-Mediated Cell Death</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#674c59ae">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3305f5b3" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3e64946a" />
+        <rdfs:label>Care coordination</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b0fcacdf">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f61ed19f" />
+        <rdfs:label>Ubiquitin Protease System</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#78a62134">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#1502a83a" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#125fd353" />
+        <rdfs:label>Basic Research</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f057c604">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#cbde95b7" />
+        <rdfs:label>Saliva-based Biomarkers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#a0ffaf33">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#df65f20e" />
+        <rdfs:label>Genome-Wide Association Studies and imputation analysis</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b56c1712">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6f6b9d4e" />
+        <rdfs:label>Obesity</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ea1ab324">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#df65f20e" />
+        <rdfs:label>Gene Editing</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#652c3ac4">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b5fde65d" />
+        <rdfs:label>Lipoprotein Receptors</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f93670d5">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#00b82982" />
+        <rdfs:label>Training Grants (e.g., T32)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3c6c9d6b">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6558656d" />
+        <rdfs:label>Higher Mammals</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#6e80d590">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a552113d" />
+        <rdfs:label>Prions</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#537214b4">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#765e20ba" />
+        <rdfs:label>Proteostasis</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ef53e0c6">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#df65f20e" />
+        <rdfs:label>Functional Validation of Genetic Risk and Protective Factors</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f9ec6599">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d6b9b9c2" />
+        <rdfs:label>MR Microscopy</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#1931b32e">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#afa72241" />
+        <rdfs:label>Growth Hormones</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#40f1753d">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a97e51e9" />
+        <rdfs:label>Non-Pharmacological</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3883d2ad">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b5fde65d" />
+        <rdfs:label>ApoE Structure and Function</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ef024d10">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#765e20ba" />
+        <rdfs:label>Endosomal/Lysosomal Dysfunction</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f666ee32">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#df65f20e" />
+        <rdfs:label>Genetic Architecture (Genetic variation and Chromosome Structure)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#2d3e5d62">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3305f5b3" />
+        <rdfs:label>Assessing quality of care/life of person with dementia</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3c8dd83b">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#5438c754" />
+        <rdfs:label>Personal device assisted care/wearables</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#bb815b96">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#1502a83a" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#125fd353" />
+        <rdfs:label>Translational Research</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f0926866">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#cbde95b7" />
+        <rdfs:label>Blood-based Biomarkers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#c5061fc4">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6f6b9d4e" />
+        <rdfs:label>Mitochondrial Bioenergetics</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#2f608272">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a2c89851" />
+        <rdfs:label>Amyloid beta-Mediated Pathogenesis</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#8bd84d09">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6558656d" />
+        <rdfs:label>Rodents</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#0e4b3d30">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f845d268" />
+        <rdfs:label>Atherosclerosis</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#51f3f1f9">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6f6b9d4e" />
+        <rdfs:label>Metabolic Syndrome</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#e21ada44">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#d6b9b9c2" />
+        <rdfs:label>PET Tau Imaging</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#bc417c58">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#df65f20e" />
+        <rdfs:label>Gene-Gene and Gene Environment Interactions</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#eb897049">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#43ac12af" />
+        <rdfs:label>Air pollutants</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#5fc20511">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#7af27711" />
+        <rdfs:label>Immunotherapy – Mechanisms of Action</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#767fc0cc">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a552113d" />
+        <rdfs:label>TDP-43 and FUS</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#1488dc28">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#7af27711" />
+        <rdfs:label>Calcium-Related Inflammation Mediators</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#8f772225">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#6558656d" />
+        <rdfs:label>iPS Cells</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ade18941">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f845d268" />
+        <rdfs:label>Cerebral Amyloid Angiopathy</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#6692f24c">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f845d268" />
+        <rdfs:label>Hypertension</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#d6b9b9c2">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3d7aebd0" />
+        <rdfs:label>Imaging Biomarkers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3305f5b3">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b215ebb7" />
+        <rdfs:label>Identifying, Assessing and Improving Care and Quality of Life for Persons with
+            Dementia</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#638adee2">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b215ebb7" />
+        <rdfs:label>Health Disparities [Assess Inequality/equity (e.g., access and quality of care)]</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#9a797f90">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a4edeed6" />
+        <rdfs:label>Other Types of Cores or Centers (e.g., P01s, U01s, etc..)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#df65f20e">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Genetics</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ffa75f0c">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a4edeed6" />
+        <rdfs:label>Infrastructure (including equipment, construction, technology, etc..)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b5fde65d">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>ApoE and Lipid Neurobiology</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3c64aa62">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a552113d" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#7af27711" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#43ac12af" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#dd7c6ed6" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bc5a53fc" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3d7aebd0" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a89b093e" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#f4e1d65d" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3305f5b3" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3e64946a" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b215ebb7" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a4edeed6" />
+        <rdfs:label>Other</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#afa72241">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Neuroendocrine Mechanisms</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#e818dae5">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3d7aebd0" />
+        <rdfs:label>Novel Analyses, Methodologies and Techniques for Biomarker Discovery and
+            Validation</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#6f6b9d4e">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Metabolism and Bioenergetics</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f4b3013a">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b215ebb7" />
+        <rdfs:label>Socioeconomic Impact of Dementia</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b215ebb7">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:label>Dementia Care and Impact of Disease</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#1f83c487">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Gut-Brain Axis and Microbiome</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#372a943b">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:label>Non-clinical Drug Development (small molecules and biologics), including
+            toxicology studies</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#ad6d098f">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:label>Identification and Validation of Novel Targets</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#6990c8a4">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#93457e87" />
+        <rdfs:label>Public Private Partnership</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#1502a83a">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#06f3fbce" />
+        <rdfs:label>Brain Aging</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3e64946a">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b215ebb7" />
+        <rdfs:label>Identifying, Assessing and Improving Quality of Life and Care provided by Family
+            or Informal Caregivers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#bef5433b">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:label>Early-stage Clinical Drug Development (Phase I and Phase II Clinical Trials)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f61ed19f">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Cell Death</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#93457e87">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:label>Consortia and Public Private Partnerships ​​</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#06f3fbce">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:label>Brain Aging and Common Mechanisms Related to Dementias</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#9070cfb4">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:label>Molecular Pathogenesis and Physiology of Alzheimer’s Disease and Alzheimer's
+            Disease-related Dementias (AD/ADRDs)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#125fd353">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#06f3fbce" />
+        <rdfs:label>Common Mechanisms Related to Dementias</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#30e79492">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:label>Populational Studies</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f4e1d65d">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:label>Non-Pharmacological Interventions</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#6558656d">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a4edeed6" />
+        <rdfs:label>Disease Models</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#c28fcf3c">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:label>Translational Research and Clinical Interventions</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#765e20ba">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Autophagy, Endocytosis and Membrane Trafficking</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#226f9901">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3d7aebd0" />
+        <rdfs:label>Multimodal Biomarkers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#728982c5">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:label>Research Resources and Enabling Technologies to Accelerate Therapy Development</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#409b6efc">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a4edeed6" />
+        <rdfs:label>Repositories, Bioinformatics and Resources</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#5fb95506">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a4edeed6" />
+        <rdfs:label>Alzheimer’s Disease Centers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#cbde95b7">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3d7aebd0" />
+        <rdfs:label>Fluid Biomarkers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3ab1dc7f">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:label>Drug Discovery (small molecules and biologics), including assay development</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#e7e4ce76">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Presenilin Biology</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#bc5a53fc">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3d7aebd0" />
+        <rdfs:label>Emerging Biomarkers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#a552113d">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Other Proteinopathies</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#0474fcec">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Molecular Mechanisms of Neuroprotection and Resilience</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#734dc165">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#93457e87" />
+        <rdfs:label>Consortia</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#a2c89851">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#9070cfb4" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Amyloid beta</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#73379a4e">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Other Pathogenic Mechanisms</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f35d1a26">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:label>Clinical Trial Design, including Recruitment/ Retention Strategies</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#9383ad6f">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3d7aebd0" />
+        <rdfs:label>Personal assessments (using wearable and mobile technology including cognitive,
+            behavioral, functional reflecting changes in affective, social, decision-making,
+            language/ speech, sensory and motor functions)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#a89b093e">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:label>Non-clinical Proof of Concept for Non-Pharmacological Interventions</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#5438c754">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b215ebb7" />
+        <rdfs:label>Environmental Modifications and Technology Assisted Monitoring and Care</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#43ac12af">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Environmental Factors</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#593060e1">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Circuits and Synapses</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#b7454355">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:label>Late-stage Clinical Drug Development (Phase II/III and III Clinical Trials)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#d853076a">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3ab1dc7f" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#372a943b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#bef5433b" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#b7454355" />
+        <rdfs:label>Tau</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f845d268">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Vascular Etiology</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#dd7c6ed6">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3d7aebd0" />
+        <rdfs:label>Re-Purposed Biomarkers</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#2fa04d0d">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:label>Molecular Pathogenesis and Physiology of Alzheimer’s Disease and Alzheimer’s
+            Disease-related Dementias (AD/ADRDs)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#a97e51e9">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:label>Clinical Therapy Development for the Neuropsychiatric Symptoms of Dementia</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#7af27711">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Immunity and Inflammation</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#a4edeed6">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:label>Research Resources</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#816eb2ae">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#2fa04d0d" />
+        <rdfs:label>Sleep and Circadian Rhythm</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#17780f60">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#3d7aebd0" />
+        <rdfs:label>Traditional assessments (including cognitive, behavioral, functional reflecting
+            changes in affective, social, decision-making, language/ speech, sensory and motor
+            functions)</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#3d7aebd0">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:label>Diagnosis, Assessment, and Disease Monitoring</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#f28f8db8">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#c28fcf3c" />
+        <rdfs:label>Clinical Ethics</rdfs:label>
+    </owl:Class>
+    <owl:Class rdf:about="http://ontology.niagads.org/cadro#00b82982">
+        <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing" />
+        <rdfs:subClassOf rdf:resource="http://ontology.niagads.org/cadro#a4edeed6" />
+        <rdfs:label>Professional and Career Development</rdfs:label>
+    </owl:Class>
+</rdf:RDF>
