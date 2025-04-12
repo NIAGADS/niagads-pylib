@@ -42,19 +42,19 @@ packages = [
     { include = "niagads/open_access_api_parameters", from = "components" },
     { include = "niagads/open_access_api_types", from = "components" },
     { include = "niagads/open_access_api_enums", from = "components" },
-    { include = "niagads/open_access_api_responses", from = "components" },
     { include = "niagads/open_access_api_database_session", from = "components" },
     { include = "niagads/open_access_api_response_configuration", from = "components" },
     { include = "niagads/open_access_api_memory_cache", from = "components" },
     { include = "niagads/open_access_api_data_models", from = "components" },
     { include = "niagads/genome", from = "components" },
-    {include = "niagads/open_access_api_configuration",from = "components"},
+    { include = "niagads/open_access_api_configuration", from = "components" },
+    {include = "niagads/open_access_api_response_models",from = "components"},
 ]
 
 [tool.poetry.dependencies]
 openpyxl = "^3.1.5"
 strenum = "^0.4.15"
-aiohttp = "^3.11.16"
+aiohttp = {extras = ["speedups"], version = "^3.11.16"}
 pandas = "^2.2.3"
 python-dateutil = "^2.9.0.post0"
 psycopg2-binary = "^2.9.10"
@@ -66,6 +66,13 @@ pydantic = "^2.11.1"
 rdflib = "^7.1.4"
 fastapi = "^0.115.12"
 nh3 = "^0.2.21"
+sqlalchemy = "^2.0.40"
+fastapi-cors = "^0.0.6"
+pydantic-settings = "^2.8.1"
+pyparsing = "^3.2.3"
+itsdangerous = "^2.2.0"
+pyyaml = "^6.0.2"
+aiocache = {extras = ["redis"], version = "^0.12.3"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
