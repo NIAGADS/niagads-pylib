@@ -4,7 +4,7 @@ from typing import List
 
 from niagads.csv_parser.core import CSVFileParser
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.string_utils.core import generate_uuid
+from niagads.string_utils.core import blake2b_hash
 from rdflib import OWL, RDF, RDFS, SKOS, Graph, Literal, Namespace, URIRef
 
 
@@ -29,7 +29,9 @@ class CSVTriplesParser:
         )
         self.__parserType: RDFTripleType = RDFTripleType(parserType)
 
-        self.__namespace: Namespace = Namespace(f"https://www.niagads.org/{ontology}#")
+        self.__namespace: Namespace = Namespace(
+            f"http://ontology.niagads.org/{ontology}#"
+        )
         self.__graph: Graph = Graph()
         self.__graph.bind(ontology, self.__namespace)
         self.__graph.bind("owl", OWL)  # use OWL namespace
@@ -44,8 +46,7 @@ class CSVTriplesParser:
         raise NotImplementedError("Semantic triple parsing not yet implemented.")
 
     def add_owl_class(self, value: str):
-        node = URIRef(self.__namespace[generate_uuid(value)])
-
+        node = URIRef(self.__namespace[blake2b_hash(value, 4)])
         self.__graph.add((node, RDF.type, OWL.Class))
         self.__graph.add((node, RDFS.subClassOf, OWL.Thing))
         self.__graph.add((node, RDFS.label, Literal(value)))
@@ -60,17 +61,20 @@ class CSVTriplesParser:
         subclass is_a class, term is_a subclass
         """
 
-        classNode = self.add_owl_class(values[0])
-        subClassNode = self.add_owl_class(values[1])
-        termNode = self.add_owl_class(values[2])
+        classNode = self.add_owl_class(values[0].strip())
+        subClassNode = self.add_owl_class(values[1].strip())
+        termNode = self.add_owl_class(values[2].strip())
 
         self.__graph.add((subClassNode, RDFS.subClassOf, classNode))
         self.__graph.add((termNode, RDFS.subClassOf, subClassNode))
 
-    def parse(self):
+    def parse(self, header: bool = False):
         delimiter = CSVFileParser(self.__csvFile).sniff()
         with open(self.__csvFile, "r") as fh:
             reader = csv.reader(fh, delimiter=delimiter)
+            if header:
+                next(reader, None)  # skip the header
+
             for row in reader:
                 if self.__parserType == RDFTripleType.SEMANTIC:
                     self.parse_semantic_triple(row)
@@ -80,7 +84,7 @@ class CSVTriplesParser:
     def to_ttl(self, file: str = None):
         """Convert to turtle format
         see <https://www.w3.org/TR/turtle/> for specification
-        
+
         if `file` is provided, will write the turtle formatted graph to file
         otherwise returns the turtle object
 

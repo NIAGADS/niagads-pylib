@@ -18,13 +18,27 @@ def generate_uuid(value: str):
     """Generates a unique ID (UUID) from a string using SHA-256 hashing.
 
     Args:
-        input_string: The string to generate a unique ID from.
+        value(str): The string to generate a unique ID from.
 
     Returns:
         A UUID object representing the unique ID.
     """
-    hashed_string = hashlib.sha256(value.encode()).hexdigest()
-    return uuid.uuid5(uuid.NAMESPACE_DNS, hashed_string)
+    hashedString = hashlib.sha256(value.encode()).hexdigest()
+    return uuid.uuid5(uuid.NAMESPACE_DNS, hashedString)
+
+
+def blake2b_hash(value: str, size: int = 20):
+    """hash a string using blake2b hashing.
+
+    Args:
+        value(str): The string to generate a unique ID from.
+        size (str): digest size
+
+    Returns:
+        A UUID object representing the unique ID.
+    """
+    hashedString = hashlib.blake2b(value.encode(), digest_size=size).hexdigest()
+    return hashedString
 
 
 def list_to_string(value, nullStr="NULL", delim=","):
