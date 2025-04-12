@@ -93,7 +93,7 @@ class CSVFileParser:
         if self.__sep is not None:
             return self.__sep
         else:
-            with open(self.__file, "r") as fh:
+            with open(self.__file, "r", encoding="utf-8", errors="ignore") as fh:
                 dialect: Dialect = Sniffer().sniff(fh.read(1024))
                 fh.seek(0)
                 return dialect.delimiter
