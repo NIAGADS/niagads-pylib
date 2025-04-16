@@ -5,6 +5,11 @@ from niagads.enums.core import CaseInsensitiveEnum
 from niagads.string_utils.core import xstr
 
 
+def extract_exception_message(ex: Exception) -> None:
+    """returns last line of stack trace"""
+    return "{0}: {1}".format(ex.__class__.__name__, ex)
+
+
 class ErrorActions(CaseInsensitiveEnum):
     """enum for possible behaviors on critical errors"""
 

@@ -11,7 +11,5 @@ HTTP_CLIENT_TIMEOUT = 30  # timeout in seconds
 DEFAULT_PAGE_SIZE = 5000
 MAX_NUM_PAGES = 10
 
-# regular expressions
-SHARD_PATTERN = r"chr(\d{1,2}|[XYM]|MT)"
-
-DEFAULT_NULL_STRING = "NA"
+# Responses
+RESPONSES = {404: {"description": "Not found"}}
