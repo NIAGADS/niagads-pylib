@@ -78,6 +78,35 @@ def extract_keywords(titles):
     
     return dict(sorted(relevant_terms.items(), key=lambda x: x[1], reverse=True))
 
+def analyze_year_journal_distribution(articles):
+    df = pd.DataFrame(articles)
+    
+    year_counts = df['year'].value_counts().sort_index()
+    total_articles = len(df)
+    
+    journal_dist = df.groupby(['year', 'journal']).size().unstack(fill_value=0)
+    
+    output_data = []
+    
+    for year in year_counts.index:
+        year_data = {
+            'year': year,
+            'article_count': year_counts[year],
+            'proportion': year_counts[year] / total_articles
+        }
+        
+        year_journals = journal_dist.loc[year]
+        for journal in year_journals.index:
+            year_data[f'journal_{journal}'] = year_journals[journal] / year_counts[year]
+        
+        output_data.append(year_data)
+    
+    output_df = pd.DataFrame(output_data)
+    output_df.to_csv('year_journal_distribution.csv', index=False)
+    print("Saved year and journal distribution analysis to year_journal_distribution.csv")
+    
+    return output_df
+
 async def main():
     try:
         df = pd.read_csv('scripts/pubmed_ids.csv')
@@ -94,6 +123,8 @@ async def main():
     df_filtered = pd.DataFrame(filtered_articles)
     df_filtered.to_csv('filtered_articles.csv', index=False)
     print(f"Saved {len(filtered_articles)} articles to filtered_articles.csv")
+    
+    distribution_df = analyze_year_journal_distribution(filtered_articles)
     
     titles = [article['title'] for article in filtered_articles]
     keyword_counts = extract_keywords(titles)

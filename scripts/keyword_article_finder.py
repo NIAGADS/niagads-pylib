@@ -35,10 +35,39 @@ def get_year_range_and_journals():
         print(f"Error reading filtered_articles.csv: {str(e)}")
         return None, None, set()
 
+def load_distribution_data():
+    try:
+        df = pd.read_csv('year_journal_distribution.csv')
+        return df
+    except Exception as e:
+        print(f"Error reading distribution data: {str(e)}")
+        return None
+
+def get_target_distribution(total_articles):
+    distribution_df = load_distribution_data()
+    if distribution_df is None:
+        return None, None
+    
+    year_distribution = {}
+    for _, row in distribution_df.iterrows():
+        year_distribution[int(row['year'])] = {
+            'target_count': int(row['proportion'] * total_articles),
+            'journal_proportions': {col.replace('journal_', ''): val 
+                                  for col, val in row.items() 
+                                  if col.startswith('journal_') and val > 0}
+        }
+    
+    return year_distribution, distribution_df
+
 async def search_pubmed(keywords):
     articles = []
     
     min_year, max_year, target_journals = get_year_range_and_journals()
+    
+    year_distribution, distribution_df = get_target_distribution(NUMBER_TO_FETCH)
+    if year_distribution is None:
+        print("Could not load distribution data, falling back to default search")
+        return await default_search(keywords)
     
     search_terms = []
     for keyword in keywords:
@@ -46,36 +75,68 @@ async def search_pubmed(keywords):
     
     alzheimer_terms = '(("Alzheimer Disease"[MeSH Terms]) OR ("Alzheimer\'s Disease"[Title/Abstract]))'
     
-    year_filter = ""
-    if min_year and max_year:
-        year_filter = f' AND ({min_year}:{max_year}[pdat])'
+    print(f"Searching PubMed with distribution-based sampling...")
     
-    search_query = f'({alzheimer_terms} AND ({" OR ".join(search_terms)}){year_filter})'
+    try:
+        for year, year_data in year_distribution.items():
+            if year_data['target_count'] == 0:
+                continue
+                
+            year_filter = f' AND ({year}[pdat])'
+            search_query = f'({alzheimer_terms} AND ({" OR ".join(search_terms)}){year_filter})'
+            
+            print(f"Searching year {year} for {year_data['target_count']} articles...")
+            
+            try:
+                pmids = fetch.pmids_for_query(search_query, retmax=year_data['target_count'] * 2)  # Fetch extra to account for filtering
+                
+                for pmid in pmids:
+                    try:
+                        article = fetch.article_by_pmid(pmid)
+                        if article and not is_preprint(article.journal) and has_alzheimer_term(article):
+                            journal = article.journal
+                            if journal in year_data['journal_proportions']:
+                                articles.append({
+                                    'pmid': pmid, 
+                                    'title': article.title, 
+                                    'abstract': article.abstract if hasattr(article, 'abstract') else '', 
+                                    'journal': journal,
+                                    'year': year
+                                })
+                    except Exception as e:
+                        print(f"Error fetching PMID {pmid}: {str(e)}")
+                        continue
+                        
+            except Exception as e:
+                print(f"Error during PubMed search for year {year}: {str(e)}")
+                
+    except Exception as e:
+        print(f"Error during PubMed search: {str(e)}")
     
-    print(f"Searching PubMed with query: {search_query}")
+    return articles
+
+async def default_search(keywords):
+    articles = []
+    search_terms = []
+    for keyword in keywords:
+        search_terms.append(f'("{keyword}"[Title/Abstract])')
+    
+    alzheimer_terms = '(("Alzheimer Disease"[MeSH Terms]) OR ("Alzheimer\'s Disease"[Title/Abstract]))'
+    search_query = f'({alzheimer_terms} AND ({" OR ".join(search_terms)}))'
     
     try:
         pmids = fetch.pmids_for_query(search_query, retmax=NUMBER_TO_FETCH)
-        
-        print(f"Found {len(pmids)} articles. Fetching details...")
         
         for pmid in pmids:
             try:
                 article = fetch.article_by_pmid(pmid)
                 if article and not is_preprint(article.journal) and has_alzheimer_term(article):
-                    if target_journals and article.journal not in target_journals:
-                        continue
-                        
-                    year = None
-                    if article.year:
-                        year = article.year
-                    
                     articles.append({
                         'pmid': pmid, 
                         'title': article.title, 
                         'abstract': article.abstract if hasattr(article, 'abstract') else '', 
                         'journal': article.journal,
-                        'year': year
+                        'year': article.year
                     })
             except Exception as e:
                 print(f"Error fetching PMID {pmid}: {str(e)}")
