@@ -1,4 +1,5 @@
-from math import e
+from niagads.string_utils.core import sanitize
+from pydantic import ValidationError
 from strenum import StrEnum
 
 
@@ -34,3 +35,21 @@ class CaseInsensitiveEnum(StrEnum):
     @classmethod
     def list(cls) -> bool:
         return [v for v in cls._value2member_map_]
+
+
+class EnumParameter(CaseInsensitiveEnum):
+    """Enum that includes a validator for use as a parameter"""
+
+    @classmethod
+    def get_description(cls):
+        return f"Allowable values are: {','.join(cls.list())}."
+
+    @classmethod
+    def validate(cls, value, label: str, returnCls: CaseInsensitiveEnum):
+        try:
+            cls(sanitize(value))
+            return returnCls(value)
+        except:
+            raise ValidationError(
+                f"Invalid value provided for `{label}`: {value}.  {cls.get_description()}"
+            )

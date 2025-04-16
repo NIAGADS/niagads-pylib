@@ -29,6 +29,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from niagads.open_access_api_configuration.core import get_settings
 from psycopg2 import DatabaseError
+from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 
@@ -56,7 +57,9 @@ def add_runtime_exception_handler(app: FastAPI) -> None:
 
 def add_not_implemented_exception_handler(app: FastAPI) -> None:
     @app.exception_handler(NotImplementedError)
-    async def not_implemented_error(request: Request, exc: NotImplementedError):
+    async def not_implemented_exception_handler(
+        request: Request, exc: NotImplementedError
+    ):
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content=jsonable_encoder(
@@ -66,9 +69,9 @@ def add_not_implemented_exception_handler(app: FastAPI) -> None:
 
 
 def add_validation_exception_handler(app: FastAPI) -> None:
-    @app.exception_handler(RequestValidationError)
+    @app.exception_handler(Union[RequestValidationError, ValidationError])
     async def validation_exception_handler(
-        request: Request, exc: RequestValidationError
+        request: Request, exc: Union[RequestValidationError, ValidationError]
     ):
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -80,7 +83,7 @@ def add_validation_exception_handler(app: FastAPI) -> None:
 
 def add_system_exception_handler(app: FastAPI) -> None:
     @app.exception_handler(Union[OSError, DatabaseError])
-    async def validation_exception_handler(
+    async def system_exception_handler(
         request: Request, exc: Union[OSError, DatabaseError]
     ):
         query = request.url.path
