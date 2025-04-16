@@ -1,3 +1,9 @@
+from niagads.open_access_api_exception_handlers.core import (
+    add_not_implemented_exception_handler,
+    add_runtime_exception_handler,
+    add_system_exception_handler,
+    add_validation_exception_handler,
+)
 import yaml
 import traceback
 import functools
@@ -43,6 +49,12 @@ app.add_middleware(
     allow_methods=["GET"],
     allow_headers=["*"],
 )
+
+
+add_runtime_exception_handler(app)
+add_validation_exception_handler(app)
+add_system_exception_handler(app)
+add_not_implemented_exception_handler(app)
 
 
 @app.get("/", include_in_schema=False)

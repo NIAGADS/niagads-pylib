@@ -2,10 +2,22 @@
 Defintion and Usage after: https://github.com/fastapi/fastapi/issues/917#issuecomment-578381578
 import in app main.py or Polylith base and call after app initialization:
 
+For example:
 ```python
 app = FastAPI()
 add_runtime_exception_handler(app)
 ```
+
+For niagads/bases that are open_access_api services, please copy the following
+code into the `core.py` file after app initialization:
+
+```python
+add_runtime_exception_handler(app)
+add_not_implemented_exception_handler(app)
+add_validation_exception_handler(app)
+add_system_exception_handler(app)
+```
+
 """
 
 from math import ceil
@@ -15,6 +27,7 @@ from fastapi import FastAPI, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from niagads.open_access_api_configuration.core import get_settings
 from psycopg2 import DatabaseError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
