@@ -1,3 +1,6 @@
+# application db
+CONNECTION_POOL_SIZE = 10
+
 # cache db
 # int or float in seconds specifying maximum timeout for the operations to last. By default (aiocache) its 5. Use 0 or None if you want to disable it.
 CACHEDB_TIMEOUT = 5
