@@ -21,7 +21,7 @@ from api.routes.filer.common.constants import FILER_HTTP_CLIENT_TIMEOUT, ROUTE_D
 # use connection pooling
 ROUTE_SESSION_MANAGER = DatabaseSessionManager(ROUTE_DATABASE)
 API_CLIENT_SESSION_MANAGER = HttpClientSessionManager(
-    get_settings().FILER_REQUEST_URL, timeout=FILER_HTTP_CLIENT_TIMEOUT
+    get_settings().EXTERNAL_REQUEST_URL, timeout=FILER_HTTP_CLIENT_TIMEOUT
 )
 
 

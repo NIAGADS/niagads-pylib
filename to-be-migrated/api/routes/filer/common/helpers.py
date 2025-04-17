@@ -155,12 +155,12 @@ class FILERRouteHelper(MetadataRouteHelper):
             + f'&span={span}&tracks={','.join(tracks)}'
             )
         result = await self._managers.cache.get(cacheKey, 
-            namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
+            namespace=CacheNamespace.EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
         if result is None:   
             result = await ApiWrapperService(self._managers.apiClientSession) \
                 .get_track_hits(tracks, span, assembly, countsOnly=countsOnly)
             await self._managers.cache.set(cacheKey, result, 
-                namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
+                namespace=CacheNamespace.EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
         return result
     
 
@@ -169,12 +169,12 @@ class FILERRouteHelper(MetadataRouteHelper):
             f'/{FILERApiEndpoint.GENE_QTLS}?'
             + f'&gene={gene}&track={track}')
         result = await self._managers.cache.get(cacheKey, 
-            namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
+            namespace=CacheNamespace.EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
         if result is None:   
             result = await ApiWrapperService(self._managers.apiClientSession) \
                 .get_gene_qtls(track, gene)
             await self._managers.cache.set(cacheKey, result, 
-                namespace=CacheNamespace.FILER_EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
+                namespace=CacheNamespace.EXTERNAL_API, timeout=CACHEDB_PARALLEL_TIMEOUT)
         return result
 
 
@@ -287,12 +287,12 @@ class FILERRouteHelper(MetadataRouteHelper):
         cacheKey = CacheKeyDataModel.encrypt_key(cacheKey.replace(':','_'))
         
         informativeTrackOverlaps: List[TrackOverlap] = await self._managers.cache \
-            .get(cacheKey, namespace=CacheNamespace.FILER_EXTERNAL_API)
+            .get(cacheKey, namespace=CacheNamespace.EXTERNAL_API)
         if informativeTrackOverlaps is None:
             informativeTrackOverlaps = await ApiWrapperService(self._managers.apiClientSession) \
                 .get_informative_tracks(self._parameters.span, self._parameters.assembly)
             await self._managers.cache.set(cacheKey, 
-                informativeTrackOverlaps, namespace=CacheNamespace.FILER_EXTERNAL_API)
+                informativeTrackOverlaps, namespace=CacheNamespace.EXTERNAL_API)
             
         if len(informativeTrackOverlaps) == 0:
             self._managers.requestData.add_message('No overlapping features found in the query region.')

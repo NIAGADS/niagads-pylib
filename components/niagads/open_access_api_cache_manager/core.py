@@ -29,7 +29,7 @@ class CacheNamespace(StrEnum):
     """Cache namespaces."""
 
     FILER = auto()  # FILER endpoints
-    FILER_EXTERNAL_API = auto()  # external FILER API endpoints
+    EXTERNAL_API = auto()  # external FILER API endpoints
     GENOMICS = auto()  # genomics endpoints
     ADVP = auto()  # advp endpoints
     VIEW = auto()  # view redirect endpoints
@@ -73,7 +73,7 @@ class CacheManager:
         namespace: CacheNamespace = None,
         ttl=CacheTTL.DEFAULT,
     ):
-        connectionString = get_settings().API_CACHE_DB_URI
+        connectionString = get_settings().CACHE_DB_URI
         config = self.__parse_uri_path(connectionString)
 
         # instantiate the serializer

@@ -26,7 +26,7 @@ class DatabaseSessionManager:
         Args:
             uri (str): database URI in postgresql://[user[:password]@][netloc][:port][/dbname][?param1=value1&...] format
         """
-        connectionString: str = self.__get_async_uri(get_settings().API_APP_DB_URI)
+        connectionString: str = self.__get_async_uri(get_settings().APP_DB_URI)
         self.__engine: AsyncEngine = create_async_engine(
             connectionString,
             echo=True,  # Log SQL queries for debugging (set to False in production)
