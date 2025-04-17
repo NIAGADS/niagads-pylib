@@ -8,9 +8,13 @@ from niagads.string_utils.core import is_camel_case
 from pydantic import BaseModel, Field
 
 
-class BaseViewResponseModel(BaseModel):
-    request: RequestDataModel = Field(description="details about the originating request that generated the response")
-    pagination: Optional[PaginationDataModel] = Field(description="pagination details, if the result is paged")
+class ViewResponse(BaseModel):
+    request: RequestDataModel = Field(
+        description="details about the originating request that generated the response"
+    )
+    pagination: Optional[PaginationDataModel] = Field(
+        description="pagination details, if the result is paged"
+    )
 
 
 # FIXME: front end config? extract

@@ -1,14 +1,15 @@
 """Table View Data and Response Models
 
-FIXME: remove front end rendering and place in configuration JSON 
+FIXME: remove front end rendering and place in configuration JSON
 """
 
 from typing import Any, Dict, List, Optional
 
 from niagads.open_access_api_models.core import NullFreeModel
-from niagads.open_access_api_models.views import BaseViewResponseModel
+from niagads.open_access_api_views.core import ViewResponse
 from niagads.open_access_api_views.table.cells import T_TableRow, TableCellType
 from pydantic import BaseModel
+
 
 # FIXME: get columns and options from config files
 class TableColumn(NullFreeModel):
@@ -27,7 +28,7 @@ class TableViewModel(BaseModel, arbitrary_types_allowed=True):
     columns: List[TableColumn]
     options: Optional[Dict[str, Any]] = None
     id: str
-    
-class TableViewResponse(BaseViewResponseModel):
+
+
+class TableViewResponse(ViewResponse):
     table: TableViewModel
-    

@@ -1,22 +1,27 @@
-from typing import Any, Dict, List, TypeVar
+from typing import List
 
 from fastapi.encoders import jsonable_encoder
 from niagads.dict_utils.core import prune
-from niagads.open_access_api_configuration.constants import DEFAULT_NULL_STRING
-from niagads.open_access_api_parameters.response import ResponseFormat, ResponseView
-from niagads.open_access_api_views.core import id2title
-from niagads.open_access_api_views.table.core import TableColumn
-from niagads.string_utils.core import xstr
-from pydantic import BaseModel, ConfigDict, model_serializer
+
+
+from pydantic import BaseModel, model_serializer
 
 
 class NullFreeModel(BaseModel):
     @model_serializer()
     def serialize_model(self, values, **kwargs):
-        return prune(dict(self), removeNulls=True)  
+        return prune(dict(self), removeNulls=True)
+
 
 class SerializableModel(BaseModel):
-    def serialize(self, exclude: List[str] = None, promoteObjs=False, collapseUrls=False, groupExtra=False, byAlias=False):
+    def serialize(
+        self,
+        exclude: List[str] = None,
+        promoteObjs=False,
+        collapseUrls=False,
+        groupExtra=False,
+        byAlias=False,
+    ):
         """
         basically a customized `model_dumps` but only when explicity called
         returns a dict which contains only serializable fields.
@@ -26,7 +31,9 @@ class SerializableModel(BaseModel):
         groupExtra -> if extra fields are present, group into a JSON object
         """
         # note: encoder is necessary to correctly return enums/dates, etc
-        data:dict = jsonable_encoder(self.model_dump(exclude=exclude, by_alias=byAlias)) 
+        data: dict = jsonable_encoder(
+            self.model_dump(exclude=exclude, by_alias=byAlias)
+        )
         # FIXME: does not handle case if the dict field is null (e.g., experimental_design on genomics tracks)
         if promoteObjs:
             objFields = [k for k, v in data.items() if isinstance(v, dict)]
@@ -35,88 +42,11 @@ class SerializableModel(BaseModel):
 
         if collapseUrls:
             fields = list(data.keys())
-            pairedFields = [ f for f in fields if f + '_url' in fields]
+            pairedFields = [f for f in fields if f + "_url" in fields]
             for f in pairedFields:
-                data.update({f: {'url': data.pop(f +'_url', None), 'value': data[f]}})
+                data.update({f: {"url": data.pop(f + "_url", None), "value": data[f]}})
 
         if groupExtra:
-            raise NotImplementedError()  
-        
+            raise NotImplementedError()
+
         return data
-    
-    
-class RowModel(SerializableModel):
-    """
-    Most API responses are tables represented as lists of objects,
-    wherein each item in the list is a row in the table.
-    
-    A Row Model defines the expected `item` object.
-    
-    The RowModel base class defines class methods 
-    expected for these objects to generate standardized API responses
-    """
-    
-    @classmethod
-    def get_model_fields(cls):
-        return list(cls.model_fields.keys())
-    
-    def has_extras(self):
-        """ test if extra model fields are present """
-        return len(self.model_extra) > 0
-    
-    
-    def to_view_data(self, view: ResponseView, **kwargs):
-        return self.model_dump()
-    
-
-    def to_text(self, format: ResponseFormat, **kwargs):
-        nullStr = kwargs.get('nullStr', DEFAULT_NULL_STRING)
-        match format:
-            case ResponseFormat.TEXT:
-                values = list(self.model_dump().values())
-                return '\t'.join([xstr(v, nullStr=nullStr, dictsAsJson=False) for v in values])
-            case _:
-                raise NotImplementedError(f'Text transformation `{format.value}` not supported for a generic data response')
-            
-    
-    def get_view_config(self, view: ResponseView, **kwargs):
-        """ get configuration object required by the view """
-        match view:
-            case ResponseView.TABLE:
-                return self.__get_table_view_config(**kwargs)
-            case ResponseView.IGV_BROWSER:
-                raise NotImplementedError('IGVBrowser view coming soon')
-            case _:
-                raise NotImplementedError(f'View `{view.value}` not yet supported for this response type')
-            
-        
-    def __get_table_view_config(self, **kwargs):
-        fields = list(self.model_dump().keys())
-        columns: List[TableColumn] = [ TableColumn(id=f, header=id2title(f)) for f in fields]
-        options =  {}
-
-        if 'track_id' in fields:
-            countsPresent = any([True for f in fields if f.startswith('num_')])
-            if countsPresent:
-                options.update({'rowSelect': {
-                        'header': 'Select',
-                        'enableMultiRowSelect': True,
-                        'rowId': 'track_id',
-                        'onRowSelectAction': kwargs['on_row_select'],
-                        'disableColumnFilters': True # FIXME: temporarily disable
-                    }})
-        return {'columns': columns, 'options': options}
-
-
-    
-# allows you to set a type hint to a class and all its subclasses 
-# as long as type is specified as Type[T_RowModel] 
-# Type: from typing import Type
-T_RowModel = TypeVar('T_RowModel', bound=RowModel)
-
-
-class DynamicRowModel(RowModel):
-    """A row model that allows for extra, unknown fields."""
-    __pydantic_extra__: Dict[str, Any]  
-    model_config = ConfigDict(extra='allow')
-    
