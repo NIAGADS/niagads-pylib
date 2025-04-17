@@ -7,9 +7,9 @@ from api.common.enums.response_properties import ResponseFormat, ResponseView
 from api.common.formatters import id2title
 
 from api.models.base_response_models import PagedResponseModel
-from api.models.base_row_models import GenericDataModel
+from api.models.base_row_models import DynamicRowModel
 
-class BEDFeature(GenericDataModel):
+class BEDFeature(DynamicRowModel):
     chrom: str = Field(description="name of the chromosome or scaffold")
     chromStart: int = Field(description="starting position of the feature in the chromosomse. 0-based")
     chromEnd: int = Field(description="ending position of the feature; not included in the display")

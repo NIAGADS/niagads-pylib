@@ -1,11 +1,19 @@
 """Models defining custom types for Response Model class attributes"""
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Type, Union
 
 from fastapi import Request
-from niagads.dict_utils import prune
+from fastapi.exceptions import RequestValidationError
+from niagads.dict_utils.core import prune
 from niagads.open_access_api_cache_manager.core import CacheNamespace
+from niagads.open_access_api_configuration.constants import ALLOWABLE_VIEW_RESPONSE_CONTENTS
+from niagads.open_access_api_base_models.responses.core import ResponseModel
+from niagads.open_access_api_parameters.response import (
+    ResponseContent,
+    ResponseFormat,
+    ResponseView,
+)
 from niagads.string_utils.core import blake2b_hash, dict_to_string, regex_replace
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class RequestDataModel(BaseModel):
@@ -99,3 +107,66 @@ class PaginationDataModel(BaseModel):
     paged_num_records: Optional[int] = Field(default=None, description="number of records in the current paged result set (response)")
     total_num_records: Optional[int] = Field(default=None, description="total number of records in the full result set (response)")
 
+
+class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
+    """Captures response-related parameter values (format, content, view) and model"""
+    format: ResponseFormat = ResponseFormat.JSON
+    content: ResponseContent = ResponseContent.FULL
+    view: ResponseView = ResponseView.DEFAULT
+    model: Type[T_ResponseModel] = None
+
+    @model_validator(mode="after")
+    def validate_config(self, __context):
+        if (
+            self.content not in ALLOWABLE_VIEW_RESPONSE_CONTENTS
+            and self.view != ResponseView.DEFAULT
+        ):
+            raise RequestValidationError(
+                f"Can only generate a `{str(self.view)}` `view` of query result for `{','.join(ALLOWABLE_VIEW_RESPONSE_CONTENTS)}` response content (see `content`)"
+            )
+
+        if self.content != ResponseContent.FULL and self.format in [
+            ResponseFormat.VCF,
+            ResponseFormat.BED,
+        ]:
+
+            raise RequestValidationError(
+                f"Can only generate a `{self.format}` response for a `FULL` data query (see `content`)"
+            )
+
+        return self
+
+    # from https://stackoverflow.com/a/67366461
+    # allows ensurance that model is always a child of ResponseModel
+    @field_validator("model")
+    def validate_model(cls, model):
+        if issubclass(model, ResponseModel):
+            return model
+        raise RuntimeError(
+            f"Wrong type for `model` : `{model}`; must be subclass of `ResponseModel`"
+        )
+
+    @field_validator("content")
+    def validate_content(cls, content):
+        try:
+            return ResponseContent(content)
+        except NameError:
+            raise RequestValidationError(
+                f"Invalid value provided for `content`: {content}"
+            )
+
+    @field_validator("format")
+    def validate_foramt(cls, format):
+        try:
+            return ResponseFormat(format)
+        except NameError:
+            raise RequestValidationError(
+                f"Invalid value provided for `format`: {format}"
+            )
+
+    @field_validator("view")
+    def validate_view(cls, view):
+        try:
+            return ResponseView(view)
+        except NameError:
+            raise RequestValidationError(f"Invalid value provided for `view`: {format}")

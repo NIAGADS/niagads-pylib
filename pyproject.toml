@@ -42,12 +42,12 @@ packages = [
     { from = "components", include = "niagads/objects" },
     { from = "components", include = "niagads/open_access_api_cache_manager" },
     { from = "components", include = "niagads/open_access_api_configuration" },
-    { from = "components", include = "niagads/open_access_api_data_models" },
+    { from = "components", include = "niagads/open_access_api_database_manager" },
     { from = "components", include = "niagads/open_access_api_enums" },
     { from = "components", include = "niagads/open_access_api_exception_handlers" },
+    { from = "components", include = "niagads/open_access_api_models" },
     { from = "components", include = "niagads/open_access_api_parameters" },
     { from = "components", include = "niagads/open_access_api_response_configuration" },
-    { from = "components", include = "niagads/open_access_api_response_models" },
     { from = "components", include = "niagads/open_access_api_types" },
     { from = "components", include = "niagads/pd_dataframe" },
     { from = "components", include = "niagads/postgres_dbi" },
@@ -56,7 +56,7 @@ packages = [
     { from = "components", include = "niagads/variant_annotator" },
     { from = "components", include = "niagads/vcf_parser" },
     { from = "components", include = "niagads/vep_json_parser" },
-    { include = "niagads/open_access_api_database_manager", from = "components" },
+    {include = "niagads/open_access_api_route_helper",from = "components"},
 ]
 
 [tool.poetry.dependencies]
@@ -66,6 +66,7 @@ aiocache = { extras = [
 aiohttp = { extras = [
     "speedups",
 ], version = "^3.11.16" }
+asgi-correlation-id = "^4.3.4"
 asyncpg = "^0.30.0"
 fastapi = "^0.115.12"
 fastapi-cors = "^0.0.6"
@@ -82,9 +83,8 @@ python-dateutil = "^2.9.0.post0"
 pyyaml = "^6.0.2"
 rdflib = "^7.1.4"
 sqlalchemy = "^2.0.40"
-strenum = "^0.4.15"
 sqlmodel = "^0.0.24"
-asgi-correlation-id = "^4.3.4"
+strenum = "^0.4.15"
 
 [tool.poetry.group.dev.dependencies]
 autoclasstoc = "^1.7.0"

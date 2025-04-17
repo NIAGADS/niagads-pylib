@@ -18,9 +18,9 @@ from api.common.services.metadata_query import MetadataQueryService
 from api.common.types import Range
 
 from api.dependencies.parameters.services import InternalRequestParameters
-from api.models.base_row_models import GenericDataModel
+from api.models.base_row_models import DynamicRowModel
 from api.models.response_model_properties import CacheKeyDataModel, PaginationDataModel
-from api.models.base_response_models import BaseResponseModel, T_ResponseModel
+from api.models.base_response_models import ResponseModel, T_ResponseModel
 from api.models.igvbrowser import IGVBrowserTrackSelectorResponse
 from api.models.view_models import TableViewResponse
 
@@ -67,9 +67,9 @@ class RouteHelper:
 
     def _sqa_row2dict(self, result):
         # row = lambda r: {c.name: str(getattr(r, c.name)) for c in r.__table__.columns}
-        if "BaseResponseModel" in str(self._responseConfig.model):
+        if "ResponseModel" in str(self._responseConfig.model):
             if isinstance(result[0], RowMapping):
-                return [GenericDataModel(**row) for row in result]
+                return [DynamicRowModel(**row) for row in result]
 
         return result
 

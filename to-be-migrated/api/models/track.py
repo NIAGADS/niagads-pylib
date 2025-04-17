@@ -7,11 +7,11 @@ from niagads.utils.list import find
 
 from api.common.enums.response_properties import OnRowSelect, ResponseView
 from api.common.formatters import id2title
-from api.models.base_row_models import GenericDataModel
+from api.models.base_row_models import DynamicRowModel
 from api.models.track_properties import BiosampleCharacteristics, ExperimentalDesign, Provenance
 
 # FIXME: data_source here and in provenance
-class GenericTrackSummary(SQLModel, GenericDataModel):
+class GenericTrackSummary(SQLModel, DynamicRowModel):
     track_id: str
     name: str
     genome_build: Optional[str] = None

@@ -9,8 +9,8 @@ from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.optional import page_param
 from api.dependencies.parameters.identifiers import path_track_id
-from api.models.base_response_models import PagedResponseModel, BaseResponseModel
-from api.models.base_row_models import GenericDataModel
+from api.models.base_response_models import PagedResponseModel, ResponseModel
+from api.models.base_row_models import DynamicRowModel
 from api.models.view_models import TableViewResponse
 from api.routes.genomics.common.helpers import GenomicsRouteHelper
 from api.routes.genomics.dependencies.parameters import InternalRequestParameters
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/track", responses=RESPONSES)
 
 tags = ["Record by ID", "Track Metadata by ID"]
 @router.get("/{track}", tags=tags,
-    response_model=Union[GenomicsTrackSummaryResponse, GenomicsTrackResponse, BaseResponseModel],
+    response_model=Union[GenomicsTrackSummaryResponse, GenomicsTrackResponse, ResponseModel],
     name="Get track metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response")
 
@@ -33,7 +33,7 @@ async def get_track_metadata(
     content: str = Query(ResponseContent.SUMMARY, description=ResponseContent.descriptive(description=True)),
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
     internal: InternalRequestParameters = Depends()
-) -> Union[GenomicsTrackSummaryResponse, GenomicsTrackResponse, BaseResponseModel]:
+) -> Union[GenomicsTrackSummaryResponse, GenomicsTrackResponse, ResponseModel]:
     
     rContent = ResponseContent.descriptive().validate(content, 'content', ResponseContent)
     rFormat = ResponseFormat.generic().validate(format, 'format', ResponseFormat)
@@ -58,7 +58,7 @@ tags = ["Record by ID", "Track Data by ID"]
 
 @router.get("/{track}/data", tags=tags,
     name="Get track data",
-    response_model=Union[GWASSumStatResponse, QTLResponse, GenomicsTrackSummaryResponse, TableViewResponse, BaseResponseModel],
+    response_model=Union[GWASSumStatResponse, QTLResponse, GenomicsTrackSummaryResponse, TableViewResponse, ResponseModel],
     description="Get the top scoring (most statistically-significant based on a p-value filter) variant associations or QTLs from a data track.")
 
 async def get_track_data(
@@ -68,7 +68,7 @@ async def get_track_data(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.variant_score(description=True)),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends()
-) -> Union[GWASSumStatResponse, QTLResponse, GenomicsTrackSummaryResponse, TableViewResponse, BaseResponseModel]:
+) -> Union[GWASSumStatResponse, QTLResponse, GenomicsTrackSummaryResponse, TableViewResponse, ResponseModel]:
     
     rContent = ResponseContent.data().validate(content, 'content', ResponseContent)
     
@@ -92,7 +92,7 @@ async def get_track_data(
 
 @router.get("/{track}/data/summary/{summary_type}", tags=tags,
     name="Get track data summary",
-    response_model=BaseResponseModel,
+    response_model=ResponseModel,
     description="Get a summary of the top scoring (most statistically-significant based on a p-value filter) variant associations or QTLs from a data track.")
 
 async def get_track_data_summary(
@@ -102,7 +102,7 @@ async def get_track_data_summary(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.variant_score(description=True)),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends()
-) -> BaseResponseModel:
+) -> ResponseModel:
     
     # TODO: Enum for summary type
     if summary_type not in ['counts', 'top']:
@@ -117,7 +117,7 @@ async def get_track_data_summary(
             content=rContent,
             format=ResponseFormat.variant_score().validate(format, 'format', ResponseFormat),
             view=ResponseView.validate(view, 'view', ResponseView),
-            model=BaseResponseModel
+            model=ResponseModel
         ),
         Parameters(track=track),
         query=CountsTrackSummaryQuery if summary_type == 'counts' else TopTrackSummaryQuery,

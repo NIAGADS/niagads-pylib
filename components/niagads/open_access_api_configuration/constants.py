@@ -1,4 +1,7 @@
 # application db
+from niagads.open_access_api_parameters.response import ResponseContent
+
+
 CONNECTION_POOL_SIZE = 10
 
 # cache db
@@ -21,3 +24,4 @@ SHARD_PATTERN = r"chr(\d{1,2}|[XYM]|MT)"
 
 # default values
 DEFAULT_NULL_STRING = "NA"
+ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMARY]

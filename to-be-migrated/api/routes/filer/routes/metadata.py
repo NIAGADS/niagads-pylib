@@ -10,7 +10,7 @@ from api.common.helpers import Parameters, ResponseConfiguration
 from api.dependencies.parameters.features import assembly_param
 from api.dependencies.parameters.optional import page_param, keyword_param
 
-from api.models.base_response_models import PagedResponseModel, BaseResponseModel
+from api.models.base_response_models import PagedResponseModel, ResponseModel
 from api.models.view_models import TableViewResponse
 
 from api.routes.filer.common.helpers import FILERRouteHelper
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/metadata", responses=RESPONSES)
 tags = ["Track Metadata by ID"]
 
 @router.get("/", tags=tags, 
-    response_model=Union[FILERTrackResponse, FILERTrackSummaryResponse, TableViewResponse, BaseResponseModel],
+    response_model=Union[FILERTrackResponse, FILERTrackSummaryResponse, TableViewResponse, ResponseModel],
     name="Get metadata for multiple tracks",
     description="retrieve full metadata for one or more FILER track records")
 
@@ -32,7 +32,7 @@ async def get_track_metadata(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
     view: str =  Query(ResponseView.DEFAULT, description=ResponseView.table(description=True)),
     internal: InternalRequestParameters = Depends()
-) -> Union[FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponse, BaseResponseModel]:
+) -> Union[FILERTrackSummaryResponse, FILERTrackResponse, TableViewResponse, ResponseModel]:
     
     rContent = ResponseContent.descriptive(inclUrls=True).validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
@@ -43,7 +43,7 @@ async def get_track_metadata(
             content=rContent,
             model=FILERTrackResponse if rContent == ResponseContent.FULL \
                 else FILERTrackSummaryResponse if rContent == ResponseContent.SUMMARY \
-                    else BaseResponseModel
+                    else ResponseModel
         ), 
         Parameters(track=track)
     )

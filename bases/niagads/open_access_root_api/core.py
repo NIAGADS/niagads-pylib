@@ -34,7 +34,7 @@ app = FastAPI(
     },
     docs_url=None,
     redoc_url=None,
-    # default_response_class=BaseResponseModel,
+    # default_response_class=ResponseModel,
     # openapi_tags=ROUTE_TAGS,
 )
 

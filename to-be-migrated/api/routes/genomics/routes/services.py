@@ -6,7 +6,7 @@ from api.common.enums.response_properties import ResponseContent, ResponseFormat
 from api.common.exceptions import RESPONSES
 from api.common.helpers import Parameters, ResponseConfiguration
 
-from api.models.base_response_models import BaseResponseModel, T_ResponseModel
+from api.models.base_response_models import ResponseModel, T_ResponseModel
 from api.models.genome import GenomicRegion
 from api.models.search import RecordSearchResult
 
@@ -42,7 +42,7 @@ async def site_search(
             format=ResponseFormat.JSON,
             content=ResponseContent.FULL,
             view=ResponseView.DEFAULT,
-            model=BaseResponseModel
+            model=ResponseModel
         ),
         Parameters(keyword=keyword),
         query=query
@@ -73,7 +73,7 @@ async def get_browser_feature_region(
             format=ResponseFormat.JSON,
             content=ResponseContent.FULL,
             view=ResponseView.DEFAULT,
-            model=BaseResponseModel
+            model=ResponseModel
         ),
         Parameters(id=id),
         query=IGVFeatureLookupQuery

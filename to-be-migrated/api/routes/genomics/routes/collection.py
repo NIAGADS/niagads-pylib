@@ -10,7 +10,7 @@ from api.common.services.metadata_query import MetadataQueryService
 from api.dependencies.parameters.identifiers import optional_query_track_id_single, path_collection_name
 from api.dependencies.parameters.optional import page_param
 
-from api.models.base_response_models import BaseResponseModel
+from api.models.base_response_models import ResponseModel
 from api.models.collection import CollectionResponse
 from api.models.view_models import TableViewResponse
 
@@ -49,7 +49,7 @@ async def get_collections(
 
 
 @router.get("/{collection}",
-    response_model=Union[BaseResponseModel, GenomicsTrackSummaryResponse, GenomicsTrackResponse, TableViewResponse],
+    response_model=Union[ResponseModel, GenomicsTrackSummaryResponse, GenomicsTrackResponse, TableViewResponse],
     name="Get track metadata by collection", 
     description="retrieve full metadata for FILER track records associated with a collection")
 
@@ -61,7 +61,7 @@ async def get_collection_track_metadata(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
     view: str =  Query(ResponseView.DEFAULT, description=ResponseView.table(description=True)),
     internal: InternalRequestParameters = Depends()
-)-> Union[BaseResponseModel, GenomicsTrackSummaryResponse, GenomicsTrackResponse,TableViewResponse]:
+)-> Union[ResponseModel, GenomicsTrackSummaryResponse, GenomicsTrackResponse,TableViewResponse]:
     
     rContent = ResponseContent.validate(content, 'content', ResponseContent)
     helper = GenomicsRouteHelper(
@@ -72,7 +72,7 @@ async def get_collection_track_metadata(
             view=ResponseView.table().validate(view, 'view', ResponseView), 
             model=GenomicsTrackResponse if rContent == ResponseContent.FULL \
                 else GenomicsTrackSummaryResponse if rContent == ResponseContent.SUMMARY \
-                    else BaseResponseModel
+                    else ResponseModel
         ), 
         Parameters(collection=collection, page=page, track=track)
     )

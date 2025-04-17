@@ -1,16 +1,21 @@
 from typing import Any, Dict, List, TypeVar
 
 from niagads.open_access_api_configuration.constants import DEFAULT_NULL_STRING
-from niagads.open_access_api_data_models.core import SerializableModel
-from niagads.open_access_api_response_configuration.core import ResponseFormat, ResponseView
+from niagads.open_access_api_base_models.core import SerializableModel
+from niagads.open_access_api_base_models.views.views import id2title
+from niagads.open_access_api_base_models.views.table import TableColumn
+from niagads.open_access_api_parameters.response import ResponseFormat, ResponseView
 from niagads.string_utils.core import xstr
 from pydantic import ConfigDict
 
 
 class RowModel(SerializableModel):
     """
-    Most API responses are a lists of objects (rows).
-    A Row Model defines the expected object.
+    Most API responses are tables represented as lists of objects,
+    wherein each item in the list is a row in the table.
+    
+    A Row Model defines the expected `item` object.
+    
     The RowModel base class defines class methods 
     expected for these objects to generate standardized API responses
     """
@@ -74,8 +79,8 @@ class RowModel(SerializableModel):
 T_RowModel = TypeVar('T_RowModel', bound=RowModel)
 
 
-class GenericDataModel(RowModel):
-    """ a row model that allows for extra, unknown fields  """
+class DynamicRowModel(RowModel):
+    """A row model that allows for extra, unknown fields."""
     __pydantic_extra__: Dict[str, Any]  
     model_config = ConfigDict(extra='allow')
     

@@ -8,7 +8,7 @@ from api.common.helpers import Parameters, ResponseConfiguration
 from api.dependencies.parameters.features import loc_param
 from api.dependencies.parameters.optional import page_param
 from api.dependencies.parameters.identifiers import path_track_id
-from api.models.base_response_models import BaseResponseModel
+from api.models.base_response_models import ResponseModel
 from api.models.view_models import TableViewResponse
 
 from api.routes.filer.dependencies.parameters import InternalRequestParameters
@@ -21,7 +21,7 @@ tags = ["Record by ID", "Track Data by ID"]
 
 @router.get("/{track}/", tags=tags,
     name="Get QTLs by Sequence Feature",
-    response_model=Union[BEDResponse, TableViewResponse, BaseResponseModel],
+    response_model=Union[BEDResponse, TableViewResponse, ResponseModel],
     description="retrieve qtl data from FILER for the specific genomic region")
 
 async def get_feature_qtl(
@@ -32,7 +32,7 @@ async def get_feature_qtl(
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.functional_genomics(description=True)),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends()
-) -> Union[BEDResponse, TableViewResponse, BaseResponseModel]:
+) -> Union[BEDResponse, TableViewResponse, ResponseModel]:
     
     rContent = ResponseContent.data().validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
@@ -42,7 +42,7 @@ async def get_feature_qtl(
             format=ResponseFormat.functional_genomics().validate(format, 'format', ResponseFormat),
             view=ResponseView.validate(view, 'view', ResponseView),
             model=BEDResponse if rContent == ResponseContent.FULL \
-                else BaseResponseModel
+                else ResponseModel
         ),
         Parameters(track=track, location=loc, page=page)
     )

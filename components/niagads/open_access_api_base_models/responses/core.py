@@ -1,17 +1,20 @@
+from typing import Any, Dict, TypeVar
+
+from niagads.open_access_api_configuration.constants import DEFAULT_NULL_STRING
+from niagads.open_access_api_base_models.responses.properties import (
+    PaginationDataModel,
+    RequestDataModel,
+)
+from niagads.open_access_api_base_models.data.row import RowModel
+from niagads.open_access_api_parameters.response import ResponseFormat, ResponseView
+from niagads.open_access_api_route_helper.row_select import OnRowSelect
+from niagads.string_utils.core import xstr
 from pydantic import BaseModel, Field
-from typing import Any, Dict, List, TypeVar, Union
 from sqlmodel import SQLModel
 from typing_extensions import Self
 
-from niagads.utils.string import xstr
 
-from api.common.constants import DEFAULT_NULL_STRING
-from api.common.enums.response_properties import OnRowSelect, ResponseFormat, ResponseView
-from api.models.base_row_models import RowModel, T_RowModel
-from api.models.view_models import TableColumn
-from .response_model_properties import PaginationDataModel, RequestDataModel
-
-class BaseResponseModel(SQLModel, BaseModel):
+class ResponseModel(SQLModel, BaseModel):
     data: Any = Field(description="result (data) from the request")
     request: RequestDataModel = Field(description="details about the originating request that generated the response")
 
@@ -93,9 +96,9 @@ class BaseResponseModel(SQLModel, BaseModel):
         return responseStr
         
 
-class PagedResponseModel(BaseResponseModel):
+class PagedResponseModel(ResponseModel):
     pagination: PaginationDataModel = Field(description="pagination details, if the result is paged")
     
     
 # possibly allows you to set a type hint to a class and all its subclasses
-T_ResponseModel = TypeVar('T_ResponseModel', bound=BaseResponseModel)
+T_ResponseModel = TypeVar('T_ResponseModel', bound=ResponseModel)

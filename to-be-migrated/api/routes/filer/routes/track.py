@@ -8,7 +8,7 @@ from api.common.helpers import Parameters, ResponseConfiguration
 from api.dependencies.parameters.features import span_param
 from api.dependencies.parameters.optional import page_param
 from api.dependencies.parameters.identifiers import path_track_id
-from api.models.base_response_models import PagedResponseModel, BaseResponseModel
+from api.models.base_response_models import PagedResponseModel, ResponseModel
 from api.models.view_models import TableViewResponse
 
 from api.routes.filer.dependencies.parameters import InternalRequestParameters
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/track", responses=RESPONSES)
 
 tags = ["Record by ID", "Track Metadata by ID"]
 @router.get("/{track}", tags=tags,
-    response_model=Union[FILERTrackSummaryResponse, FILERTrackResponse, BaseResponseModel],
+    response_model=Union[FILERTrackSummaryResponse, FILERTrackResponse, ResponseModel],
     name="Get track metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response")
 
@@ -29,7 +29,7 @@ async def get_track_metadata(
     content: str = Query(ResponseContent.SUMMARY, description=ResponseContent.descriptive(description=True)),
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
     internal: InternalRequestParameters = Depends()
-) -> Union[FILERTrackSummaryResponse, FILERTrackResponse, BaseResponseModel]:
+) -> Union[FILERTrackSummaryResponse, FILERTrackResponse, ResponseModel]:
     
     rContent = ResponseContent.descriptive().validate(content, 'content', ResponseContent)
     rFormat = ResponseFormat.generic().validate(format, 'format', ResponseFormat)

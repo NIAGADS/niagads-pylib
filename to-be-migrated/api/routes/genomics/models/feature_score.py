@@ -12,7 +12,7 @@ from api.models.genome import Gene, GenomicRegion
 from api.models.view_models import BadgeIcon, BooleanDataCell, FloatDataCell, LinkDataCell, PValueDataCell, TableColumn, TextDataCell
 from api.routes.genomics.models.variant import PredictedConsequence, Variant
 
-# TODO: NHGRI GWAS Catalog/ADVP data -> maybe just make VariantScore a `GenericDataModel`
+# TODO: NHGRI GWAS Catalog/ADVP data -> maybe just make VariantScore a `DynamicRowModel`
 
 class VariantScore(RowModel):
     variant: Variant

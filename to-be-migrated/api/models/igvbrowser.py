@@ -5,7 +5,7 @@ from typing import List, Optional
 from api.common.enums.response_properties import OnRowSelect, ResponseFormat, ResponseView
 from api.common.formatters import id2title
 from api.config.settings import get_settings
-from api.models.base_response_models import BaseResponseModel
+from api.models.base_response_models import ResponseModel
 from api.models.base_row_models import RowModel
 from api.models.track_properties import BiosampleCharacteristics, ExperimentalDesign
 from api.models.view_models import TableViewModel
@@ -79,12 +79,12 @@ class IGVBrowserTrackMetadata(RowModel):
 
 
 
-class IGVBrowserTrackConfigResponse(BaseResponseModel):
+class IGVBrowserTrackConfigResponse(ResponseModel):
     data: List[IGVBrowserTrackConfig]
     
 
     
-class IGVBrowserTrackSelectorResponse(BaseResponseModel):
+class IGVBrowserTrackSelectorResponse(ResponseModel):
     data: TableViewModel
     
     @classmethod

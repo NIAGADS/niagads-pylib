@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.common.services.metadata_query import MetadataQueryService
 from api.models.response_model_properties import RequestDataModel
-from api.models.base_response_models import BaseResponseModel
+from api.models.base_response_models import ResponseModel
 
 from api.routes.filer.common.constants import ROUTE_NAME, ROUTE_TAGS, ROUTE_PREFIX
 from api.routes.filer.dependencies.parameters import ROUTE_SESSION_MANAGER
@@ -23,15 +23,15 @@ router = APIRouter(
 )
 
 tags=['Route Information']
-@router.get("/", name="about", response_model=BaseResponseModel, tags=tags,
+@router.get("/", name="about", response_model=ResponseModel, tags=tags,
             description="brief summary about the " + ROUTE_NAME)
 async def read_root(
     session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)],
     requestData: RequestDataModel = Depends(RequestDataModel.from_request)
-        )-> BaseResponseModel:
+        )-> ResponseModel:
     
     result = await MetadataQueryService(session, dataStore=[DataStore.FILER, DataStore.SHARED]).get_track_count()
-    return BaseResponseModel(data = {"database": "FILER", "number of tracks": result}, request=requestData)
+    return ResponseModel(data = {"database": "FILER", "number of tracks": result}, request=requestData)
 
 
 # --------------------------------------------------------------

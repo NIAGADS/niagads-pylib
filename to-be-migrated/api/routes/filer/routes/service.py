@@ -9,7 +9,7 @@ from api.common.helpers import Parameters, ResponseConfiguration
 
 from api.dependencies.parameters.identifiers import query_collection_name
 from api.dependencies.parameters.features import assembly_param, chromosome_param
-from api.models.base_response_models import BaseResponseModel
+from api.models.base_response_models import ResponseModel
 from api.models.igvbrowser import IGVBrowserTrackConfig, IGVBrowserTrackSelectorResponse, IGVBrowserTrackConfigResponse
 from api.models.view_models import TableViewModel
 
@@ -99,7 +99,7 @@ async def get_track_browser_config(
 tags = ["Lookups"]
 
 @router.get("/lookup/shard", tags=tags, 
-    response_model=Union[FILERTrackResponse, FILERTrackSummaryResponse, BaseResponseModel],
+    response_model=Union[FILERTrackResponse, FILERTrackSummaryResponse, ResponseModel],
     name="Get metadata shard metadata",
     description="Some tracks are sharded by chromosome.  Use this query to find a shard-specific track given a chromosome and related track identifier.")
 
@@ -109,7 +109,7 @@ async def get_shard(
     content: str = Query(ResponseContent.FULL, description=ResponseContent.descriptive(inclUrls=True, description=True)),
     format: str = Query(ResponseFormat.JSON, description=ResponseFormat.generic(description=True)),
     internal: InternalRequestParameters = Depends()
-) -> Union[FILERTrackSummaryResponse, FILERTrackResponse, BaseResponseModel]:
+) -> Union[FILERTrackSummaryResponse, FILERTrackResponse, ResponseModel]:
     
     rContent = ResponseContent.descriptive(inclUrls=True).validate(content, 'content', ResponseContent)
     helper = FILERRouteHelper(
@@ -119,7 +119,7 @@ async def get_shard(
             content=rContent,
             model=FILERTrackResponse if rContent == ResponseContent.FULL \
                 else FILERTrackSummaryResponse if rContent == ResponseContent.SUMMARY \
-                    else BaseResponseModel
+                    else ResponseModel
         ), 
         Parameters(track=track, chromosome=chr)
     )
