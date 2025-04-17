@@ -1,13 +1,14 @@
 from typing import Any, Dict, TypeVar
 
 from niagads.open_access_api_configuration.constants import DEFAULT_NULL_STRING
-from niagads.open_access_api_base_models.responses.properties import (
+from niagads.open_access_api_models.core import RowModel
+from niagads.open_access_api_models.responses.properties import (
     PaginationDataModel,
     RequestDataModel,
 )
-from niagads.open_access_api_base_models.data.row import RowModel
 from niagads.open_access_api_parameters.response import ResponseFormat, ResponseView
 from niagads.open_access_api_route_helper.row_select import OnRowSelect
+from niagads.open_access_api_views.table.core import TableColumn
 from niagads.string_utils.core import xstr
 from pydantic import BaseModel, Field
 from sqlmodel import SQLModel

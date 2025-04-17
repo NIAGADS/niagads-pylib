@@ -3,7 +3,7 @@ from typing import Type
 
 from fastapi.exceptions import RequestValidationError
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.open_access_api_base_models.responses.core import ResponseModel
+from niagads.open_access_api_models.responses.core import ResponseModel
 from niagads.open_access_api_parameters.response import (
     ResponseContent,
     ResponseFormat,

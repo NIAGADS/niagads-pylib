@@ -6,7 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from niagads.dict_utils.core import prune
 from niagads.open_access_api_cache_manager.core import CacheNamespace
 from niagads.open_access_api_configuration.constants import ALLOWABLE_VIEW_RESPONSE_CONTENTS
-from niagads.open_access_api_base_models.responses.core import ResponseModel
+from niagads.open_access_api_models.responses.core import ResponseModel, T_ResponseModel
 from niagads.open_access_api_parameters.response import (
     ResponseContent,
     ResponseFormat,
