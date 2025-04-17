@@ -5,7 +5,7 @@ from niagads.open_access_api_base_models.core import NullFreeModel
 
 # FIXME: is front-end; can we refactor?
 
-class CellType(StrEnum):
+class TableCellType(StrEnum):
     BOOLEAN = auto()
     ABSTRACT = auto()
     FLOAT = auto()
@@ -34,62 +34,62 @@ class BadgeIcon(StrEnum):
         return self.value
 
     
-class DataCell(NullFreeModel):
-    type: CellType = CellType.ABSTRACT
+class TableCell(NullFreeModel):
+    type: TableCellType = TableCellType.ABSTRACT
     value: Optional[Union[str, bool, int, float]] = None
     # nullValue: Optional[str] = None
     # naValue: Optional[str] = 'NA'
 
-
-T_DataCell = TypeVar('T_DataCell', bound=DataCell)
-
-class FloatDataCell(DataCell):
-    type:CellType = CellType.FLOAT
+class FloatTableCell(TableCell):
+    type:TableCellType = TableCellType.FLOAT
     value: Optional[Union[int, float]] = None
     precision: Optional[int] = 2
     
-class PValueDataCell(FloatDataCell):
-    type: CellType = CellType.PVALUE
+class PValueTableCell(FloatTableCell):
+    type: TableCellType = TableCellType.PVALUE
     value:Optional[float] = None
     neg_log10_pvalue: Optional[float] = None
 
-class TextDataCell(DataCell):
-    type: CellType = CellType.TEXT
+class TextTableCell(TableCell):
+    type: TableCellType = TableCellType.TEXT
     value:Optional[str] = None
     truncateTo:Optional[int] = 100
     color: Optional[str] = None
     tooltip: Optional[str] = None
 
-class TextListDataCell(DataCell):
-    type: CellType = CellType.TEXT_LIST
+class TextListTableCell(TableCell):
+    type: TableCellType = TableCellType.TEXT_LIST
     value:Optional[str] = None
-    items: Optional[List[TextDataCell]]
+    items: Optional[List[TextTableCell]]
 
-class BadgeDataCell(TextDataCell):
-    type: CellType = CellType.BADGE
+class BadgeTableCell(TextTableCell):
+    type: TableCellType = TableCellType.BADGE
     backgroundColor:Optional[str] = None
     borderColor: Optional[str] = None
     icon: Optional[BadgeIcon] = None
 
-class BooleanDataCell(BadgeDataCell):
-    type: CellType = CellType.BOOLEAN
+class BooleanTableCell(BadgeTableCell):
+    type: TableCellType = TableCellType.BOOLEAN
     value:Optional[bool] = None
     displayText: Optional[Union[str, bool]] = None
     
-class LinkDataCell(DataCell):
-    type: CellType = CellType.LINK
+class LinkTableCell(TableCell):
+    type: TableCellType = TableCellType.LINK
     url:Optional[str] = None
     tooltip: Optional[str] = None
     
-class LinkListDataCell(DataCell):
-    type: CellType = CellType.LINK_LIST
+class LinkListTableCell(TableCell):
+    type: TableCellType = TableCellType.LINK_LIST
     value:Optional[str] = None
-    items:Optional[List[LinkDataCell]]
+    items:Optional[List[LinkTableCell]]
     
 
-class PercentagBarDataCell(FloatDataCell):
-    type: CellType = CellType.PERCENTAGE
+class PercentagBarTableCell(FloatTableCell):
+    type: TableCellType = TableCellType.PERCENTAGE
     colors: Optional[List[str]] = None
 
-# FIXME: validation failing to recognize subclasses of T_DataCell; see notes in genomics_tracks.py
-T_TableDataCell = Dict[str, Any] # Dict[str, Union[Type[T_DataCell], int, float, str, bool, None]]
+
+T_TableCell = TypeVar('T_TableCell', bound=TableCell)
+
+# FIXME: validation failing to recognize subclasses of T_TableCell; see notes in genomics_tracks.py
+T_TableRow = Dict[str, Any] # Dict[str, Union[Type[T_TableCell], int, float, str, bool, None]]
