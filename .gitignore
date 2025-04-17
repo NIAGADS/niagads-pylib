@@ -402,6 +402,8 @@ FodyWeavers.xsd
 
 # Python specific
 pubmedfetcher.db
+default/pubmedfetcher.db
+**/pubmedfetcher.db
 __pycache__/
 *.py[cod]
 *$py.class
