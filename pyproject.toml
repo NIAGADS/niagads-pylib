@@ -62,12 +62,8 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-aiocache = {extras = [
-    "redis"
-], version = "^0.12.3"}
-aiohttp = {extras = [
-    "speedups"
-], version = "^3.11.16"}
+aiocache = {extras = ["redis"], version = "^0.12.3"}
+aiohttp = {extras = ["speedups"], version = "^3.11.16"}
 asyncpg = "^0.30.0"
 fastapi = "^0.115.12"
 fastapi-cors = "^0.0.6"
