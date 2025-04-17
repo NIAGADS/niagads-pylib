@@ -32,12 +32,9 @@ class ExtractorAgent:
             r'(?i)(?:implications|significance|contribution)[\s:]*',
             r'(?i)(?:take-home message|key points|summary)[\s:]*'
         ]
-        # Load sentence transformer model for semantic similarity
         self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-        # Load section classification model
         self.tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
         self.section_model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=2)
-        # Store previous attempts for feedback
         self.previous_attempts = []
         self.problem_keywords = [
             'problem', 'challenge', 'issue', 'limitation', 'gap',
@@ -51,36 +48,29 @@ class ExtractorAgent:
         ]
 
     def adjust_patterns_based_on_feedback(self, feedback: str) -> None:
-        """Adjust search patterns based on verification feedback."""
         if "too short" in feedback.lower():
-            # Look for longer sections
             self.section_patterns = [p.replace(r'[\s:]*', r'[\s:]+[\w\s]+[\s:]*') for p in self.section_patterns]
         
         if "different part" in feedback.lower():
-            # Add more specific patterns for results/findings
             self.section_patterns.extend([
                 r'(?i)(?:experimental results|data analysis|statistical analysis)[\s:]*',
                 r'(?i)(?:quantitative results|qualitative findings)[\s:]*'
             ])
         
         if "no clear results" in feedback.lower():
-            # Add patterns for implicit results
             self.section_patterns.extend([
                 r'(?i)(?:our analysis|the data|these observations)[\s:]*',
                 r'(?i)(?:we observed|we found|the study shows)[\s:]*'
             ])
 
     def extract_text_from_pdf(self, pdf_path: str) -> str:
-        """Extract text from a PDF file using both PyPDF2 and OCR for better accuracy."""
         text = ""
         try:
-            # First try with PyPDF2
             with open(pdf_path, 'rb') as file:
                 reader = PyPDF2.PdfReader(file)
                 for page in reader.pages:
                     text += page.extract_text() + "\n"
             
-            # If text extraction is poor, use OCR
             if len(text.strip()) < 100:
                 images = convert_from_path(pdf_path)
                 for image in images:
@@ -91,15 +81,12 @@ class ExtractorAgent:
         return text
 
     def calculate_semantic_similarity(self, text1: str, text2: str) -> float:
-        """Calculate semantic similarity between two texts using sentence transformers."""
         embeddings1 = self.sentence_model.encode(text1, convert_to_tensor=True)
         embeddings2 = self.sentence_model.encode(text2, convert_to_tensor=True)
         
-        # Convert tensors to CPU and numpy arrays
         embeddings1 = embeddings1.cpu().numpy()
         embeddings2 = embeddings2.cpu().numpy()
         
-        # Reshape for cosine similarity calculation
         embeddings1 = embeddings1.reshape(1, -1)
         embeddings2 = embeddings2.reshape(1, -1)
         
@@ -107,7 +94,6 @@ class ExtractorAgent:
         return similarity
 
     def is_results_section(self, text: str) -> bool:
-        """Use transformer model to classify if text is from a results section."""
         inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
         with torch.no_grad():
             outputs = self.section_model(**inputs)
@@ -115,7 +101,6 @@ class ExtractorAgent:
             return predictions[0][1].item() > 0.5
 
     def find_conclusion_indicators(self, text: str) -> List[str]:
-        """Find sentences that indicate conclusions or key findings."""
         conclusion_patterns = [
             r'(?:we|this study|our results|the data|these findings|this research) (?:show|demonstrate|indicate|suggest|reveal|propose|conclude|find|establish|confirm|support|provide evidence)',
             r'(?:in conclusion|to conclude|in summary|overall|taken together|collectively|these results)',
@@ -136,29 +121,23 @@ class ExtractorAgent:
         return conclusion_sentences
 
     def find_problem_solution_sections(self, text: str) -> Tuple[List[str], List[str]]:
-        """Find sections discussing problems and solutions."""
         problem_sentences = []
         solution_sentences = []
         
-        # Split into paragraphs
         paragraphs = re.split(r'\n\s*\n', text)
         
         for para in paragraphs:
-            # Check for problem indicators
             if any(keyword in para.lower() for keyword in self.problem_keywords):
                 problem_sentences.extend(re.split(r'(?<=[.!?])\s+', para))
             
-            # Check for solution indicators
             if any(keyword in para.lower() for keyword in self.solution_keywords):
                 solution_sentences.extend(re.split(r'(?<=[.!?])\s+', para))
         
         return problem_sentences, solution_sentences
 
     def find_section(self, text: str, feedback: Optional[str] = None) -> Tuple[Optional[str], str]:
-        """Find and extract the most relevant sections from the text using AI-enhanced methods."""
         if feedback:
             self.adjust_patterns_based_on_feedback(feedback)
-            # Remove previously found sections from consideration
             for prev_section, prev_text in self.previous_attempts:
                 text = text.replace(prev_text, "")
 
@@ -174,35 +153,28 @@ class ExtractorAgent:
                     section_text = text[start_pos:]
                 
                 if len(section_text.strip()) > 100:
-                    # Calculate semantic similarity with known results sections
                     similarity_score = self.calculate_semantic_similarity(
                         section_text,
                         "The results show that our findings indicate significant improvements in the experimental group."
                     )
                     
-                    # Use transformer model to verify if it's a results section
                     is_results = self.is_results_section(section_text)
                     
-                    # Check for conclusion indicators
                     conclusion_sentences = self.find_conclusion_indicators(section_text)
                     conclusion_score = len(conclusion_sentences) / 10
                     
-                    # Combined score with higher weight for conclusions
                     score = (similarity_score * 0.3 + is_results * 0.3 + conclusion_score * 0.4)
                     
                     sections.append((score, match.group(0).strip(), section_text.strip()))
 
-        # Sort sections by score and take top 3
         sections.sort(reverse=True, key=lambda x: x[0])
         top_sections = sections[:3]
         
         if top_sections:
-            # Combine the top sections
             combined_text = "\n\n".join(section[2] for section in top_sections)
             self.previous_attempts.extend([(section[1], section[2]) for section in top_sections])
             return top_sections[0][1], combined_text
 
-        # Fallback to keyword-based search if AI methods fail
         for keyword in self.section_keywords:
             if keyword in text.lower():
                 start_pos = text.lower().find(keyword)
@@ -213,7 +185,6 @@ class ExtractorAgent:
         return None, ""
 
     def analyze_paper(self, pdf_path: str, feedback: Optional[str] = None) -> Tuple[Optional[str], str]:
-        """Main method to analyze a paper and extract relevant section."""
         text = self.extract_text_from_pdf(pdf_path)
         if not text:
             return None, "Could not extract text from PDF"
@@ -242,19 +213,18 @@ class VerifierAgent:
                 'acknowledgements', 'references'
             ]
         }
-        # Load sentence transformer model for semantic analysis
+
         self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-        # Load section classification model
+
         self.tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
         self.section_model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=2)
-        # Load summarization model
+
         self.summarizer_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
         self.summarizer_model = BartForConditionalGeneration.from_pretrained("facebook/bart-large-cnn")
-        # Load model for summary polishing
+
         self.polisher_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
         self.polisher_model = BartForConditionalGeneration.from_pretrained("facebook/bart-large-cnn")
         
-        # Problem and solution keywords
         self.problem_keywords = [
             'problem', 'challenge', 'issue', 'limitation', 'gap',
             'difficulty', 'obstacle', 'barrier', 'drawback',
@@ -267,7 +237,6 @@ class VerifierAgent:
         ]
 
     def find_conclusion_indicators(self, text: str) -> List[str]:
-        """Find sentences that indicate conclusions or key findings."""
         conclusion_patterns = [
             r'(?:we|this study|our results|the data|these findings|this research) (?:show|demonstrate|indicate|suggest|reveal|propose|conclude|find|establish|confirm|support|provide evidence)',
             r'(?:in conclusion|to conclude|in summary|overall|taken together|collectively|these results)',
@@ -288,15 +257,12 @@ class VerifierAgent:
         return conclusion_sentences
 
     def calculate_semantic_similarity(self, text1: str, text2: str) -> float:
-        """Calculate semantic similarity between two texts using sentence transformers."""
         embeddings1 = self.sentence_model.encode(text1, convert_to_tensor=True)
         embeddings2 = self.sentence_model.encode(text2, convert_to_tensor=True)
         
-        # Convert tensors to CPU and numpy arrays
         embeddings1 = embeddings1.cpu().numpy()
         embeddings2 = embeddings2.cpu().numpy()
         
-        # Reshape for cosine similarity calculation
         embeddings1 = embeddings1.reshape(1, -1)
         embeddings2 = embeddings2.reshape(1, -1)
         
@@ -304,23 +270,17 @@ class VerifierAgent:
         return similarity
 
     def calculate_section_quality(self, section_text: str) -> float:
-        """Calculate the quality score of a section using multiple metrics."""
-        # Semantic similarity with known results sections
         reference_text = "The results demonstrate significant findings with statistical significance."
         similarity_score = self.calculate_semantic_similarity(section_text, reference_text)
         
-        # Count of positive indicators
         positive_count = sum(1 for indicator in self.indicators['positive'] 
                            if indicator.lower() in section_text.lower())
         
-        # Length score (normalized between 0 and 1)
         length_score = min(len(section_text) / 2000, 1.0)
         
-        # Combined score
         return (similarity_score * 0.4 + positive_count * 0.3 + length_score * 0.3)
 
     def verify_section(self, section_name: str, section_text: str) -> Tuple[bool, str]:
-        """Verify if the extracted section is actually a results/findings section using AI."""
         quality_score = self.calculate_section_quality(section_text)
         
         if quality_score < 0.5:
@@ -329,7 +289,6 @@ class VerifierAgent:
         if len(section_text) < 200:
             return False, "Section is too short to be a proper results section"
         
-        # Use transformer model to verify if it's a results section
         inputs = self.tokenizer(section_text, return_tensors="pt", truncation=True, max_length=512)
         with torch.no_grad():
             outputs = self.section_model(**inputs)
@@ -340,33 +299,25 @@ class VerifierAgent:
         return True, "Section appears to be valid"
 
     def find_problem_solution_sections(self, text: str) -> Tuple[List[str], List[str]]:
-        """Find sections discussing problems and solutions."""
         problem_sentences = []
         solution_sentences = []
         
-        # Split into paragraphs
         paragraphs = re.split(r'\n\s*\n', text)
         
         for para in paragraphs:
-            # Check for problem indicators
             if any(keyword in para.lower() for keyword in self.problem_keywords):
                 problem_sentences.extend(re.split(r'(?<=[.!?])\s+', para))
             
-            # Check for solution indicators
             if any(keyword in para.lower() for keyword in self.solution_keywords):
                 solution_sentences.extend(re.split(r'(?<=[.!?])\s+', para))
         
         return problem_sentences, solution_sentences
 
     def generate_summary(self, section_text: str) -> str:
-        """Generate a detailed summary of the section using BART model."""
-        # Extract problem and solution sections
         problem_sentences, solution_sentences = self.find_problem_solution_sections(section_text)
         
-        # Extract conclusion sentences
         conclusion_sentences = self.find_conclusion_indicators(section_text)
         
-        # Generate initial summary
         inputs = self.summarizer_tokenizer(section_text, return_tensors="pt", truncation=True, max_length=1024)
         with torch.no_grad():
             summary_ids = self.summarizer_model.generate(
@@ -379,18 +330,17 @@ class VerifierAgent:
             )
         summary = self.summarizer_tokenizer.decode(summary_ids[0], skip_special_tokens=True)
         
-        # Add structured sections if they're not already in the summary
         structured_summary = []
         
         if problem_sentences:
             structured_summary.append("\nProblems Addressed:")
-            for sentence in problem_sentences[:3]:  # Take top 3 problem statements
+            for sentence in problem_sentences[:3]: 
                 if sentence not in summary:
                     structured_summary.append(f"- {sentence}")
         
         if solution_sentences:
             structured_summary.append("\nSolutions Proposed:")
-            for sentence in solution_sentences[:3]:  # Take top 3 solutions
+            for sentence in solution_sentences[:3]:
                 if sentence not in summary:
                     structured_summary.append(f"- {sentence}")
         
@@ -400,16 +350,13 @@ class VerifierAgent:
                 if sentence not in summary:
                     structured_summary.append(f"- {sentence}")
         
-        # Combine all sections
         full_summary = summary + "\n" + "\n".join(structured_summary)
         
-        # Polish the final summary
         polished_summary = self.polish_summary(full_summary)
         
         return polished_summary
 
     def polish_summary(self, summary: str) -> str:
-        """Polish the summary to make it more concise and grammatically correct."""
         inputs = self.polisher_tokenizer(
             summary,
             return_tensors="pt",
@@ -438,7 +385,6 @@ class ResearchPaperAnalyzer:
         self.max_iterations = 4
 
     def analyze_paper_with_verification(self, pdf_path: str) -> Optional[str]:
-        """Main method to analyze a paper with verification loop."""
         feedback = None
         for iteration in range(self.max_iterations):
             print(f"\nIteration {iteration + 1}:")
@@ -469,7 +415,6 @@ class ResearchPaperAnalyzer:
         return None
 
     def save_summary(self, summary: str, pdf_path: str) -> str:
-        """Save the summary to a file."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = "paper_summaries"
         os.makedirs(output_dir, exist_ok=True)
@@ -496,7 +441,6 @@ def main():
     )
     args = parser.parse_args()
     
-    # Verify the PDF file exists
     if not os.path.exists(args.pdf_path):
         print(f"Error: The file '{args.pdf_path}' does not exist.")
         return
