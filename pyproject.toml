@@ -1,8 +1,6 @@
 [project]
 name = "niagads-pylib"
-authors = [
-    { name = "fossilfriend", email = "egreenfest@gmail.com" },
-]
+authors = [{ name = "fossilfriend", email = "egreenfest@gmail.com" }]
 description = "a collection of python packages, classes, and utility functions in support of NIAGADS projects"
 license = { text = "GNU GPLv3" }
 readme = "README.md"
@@ -45,10 +43,13 @@ packages = [
     { from = "components", include = "niagads/open_access_api_database_manager" },
     { from = "components", include = "niagads/open_access_api_enums" },
     { from = "components", include = "niagads/open_access_api_exception_handlers" },
+    { from = "components", include = "niagads/open_access_api_memory_cache" },
     { from = "components", include = "niagads/open_access_api_models" },
     { from = "components", include = "niagads/open_access_api_parameters" },
-    { from = "components", include = "niagads/open_access_api_response_configuration" },
+    { from = "components", include = "niagads/open_access_api_response_models" },
+    { from = "components", include = "niagads/open_access_api_route_helper" },
     { from = "components", include = "niagads/open_access_api_types" },
+    { from = "components", include = "niagads/open_access_api_views" },
     { from = "components", include = "niagads/pd_dataframe" },
     { from = "components", include = "niagads/postgres_dbi" },
     { from = "components", include = "niagads/string_utils" },
@@ -56,17 +57,11 @@ packages = [
     { from = "components", include = "niagads/variant_annotator" },
     { from = "components", include = "niagads/vcf_parser" },
     { from = "components", include = "niagads/vep_json_parser" },
-    { include = "niagads/open_access_api_route_helper", from = "components" },
-    { include = "niagads/open_access_api_views", from = "components" },
 ]
 
 [tool.poetry.dependencies]
-aiocache = { extras = [
-    "redis",
-], version = "^0.12.3" }
-aiohttp = { extras = [
-    "speedups",
-], version = "^3.11.16" }
+aiocache = { extras = ["redis"], version = "^0.12.3" }
+aiohttp = { extras = ["speedups"], version = "^3.11.16" }
 asgi-correlation-id = "^4.3.4"
 asyncpg = "^0.30.0"
 fastapi = "^0.115.12"
@@ -115,6 +110,4 @@ spaces_indent_inline_array = 4
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
-requires = [
-    "poetry-core>=2.0.0,<3.0.0",
-]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
