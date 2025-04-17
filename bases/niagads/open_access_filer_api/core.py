@@ -2,8 +2,6 @@ from fastapi import APIRouter, Depends
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.common.enums.database import DataStore
-from api.common.exceptions import RESPONSES
 from api.common.services.metadata_query import MetadataQueryService
 from api.models.response_model_properties import RequestDataModel
 from api.models.base_response_models import BaseResponseModel
