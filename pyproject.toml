@@ -80,6 +80,8 @@ pyyaml = "^6.0.2"
 rdflib = "^7.1.4"
 sqlalchemy = "^2.0.40"
 strenum = "^0.4.15"
+sqlmodel = "^0.0.24"
+asgi-correlation-id = "^4.3.4"
 
 [tool.poetry.group.dev.dependencies]
 autoclasstoc = "^1.7.0"

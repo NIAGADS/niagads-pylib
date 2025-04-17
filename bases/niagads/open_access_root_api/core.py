@@ -5,12 +5,12 @@ from niagads.open_access_api_exception_handlers.core import (
     add_validation_exception_handler,
 )
 import yaml
-import traceback
 import functools
 
 from io import StringIO
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from asgi_correlation_id import CorrelationIdMiddleware
 
 # TODO, generate at build from other services
 # see https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/#disable-the-automatic-docs
@@ -38,6 +38,7 @@ app = FastAPI(
     # openapi_tags=ROUTE_TAGS,
 )
 
+app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
 
 # TODO make CORS conditional on production v dev
 app.add_middleware(
