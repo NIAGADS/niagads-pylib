@@ -328,6 +328,7 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+*$py.class
 
 # Cake - Uncomment if you are using it
 # tools/**
@@ -398,3 +399,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Python specific
+pubmedfetcher.db
+__pycache__/
+*.py[cod]
+*$py.class
