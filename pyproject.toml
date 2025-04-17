@@ -44,7 +44,6 @@ packages = [
     {from = "components", include = "niagads/open_access_api_configuration"},
     {from = "components", include = "niagads/open_access_api_data_models"},
     {from = "components", include = "niagads/open_access_api_database_managaer"},
-    {from = "components", include = "niagads/open_access_api_database_session"},
     {from = "components", include = "niagads/open_access_api_enums"},
     {from = "components", include = "niagads/open_access_api_exception_handlers"},
     {from = "components", include = "niagads/open_access_api_memory_cache"},
