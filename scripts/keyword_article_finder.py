@@ -5,6 +5,7 @@ from metapub import PubMedFetcher
 import os
 from datetime import datetime
 import argparse
+import random
 
 NCBI_API_KEY = "22b3c09ba6f71022526646140a1d67ee2508"
 os.environ['NCBI_API_KEY'] = NCBI_API_KEY
@@ -13,7 +14,7 @@ fetch = PubMedFetcher()
 
 PREPRINT_KEYWORDS = {'medrxiv', 'biorxiv', 'arxiv', 'preprint', 'pre-print', 'preprint server', 'preprint repository', 'preprint archive'}
 
-NUMBER_TO_FETCH = 5000
+NUMBER_TO_FETCH = 1000
 
 def is_preprint(journal):
     journal_lower = journal.lower()
@@ -75,7 +76,7 @@ async def search_pubmed(keywords):
     
     alzheimer_terms = '(("Alzheimer Disease"[MeSH Terms]) OR ("Alzheimer\'s Disease"[Title/Abstract]))'
     
-    print(f"Searching PubMed with distribution-based sampling...")
+    print(f"Searching PubMed with journal-specific sampling...")
     
     try:
         for year, year_data in year_distribution.items():
@@ -83,32 +84,57 @@ async def search_pubmed(keywords):
                 continue
                 
             year_filter = f' AND ({year}[pdat])'
-            search_query = f'({alzheimer_terms} AND ({" OR ".join(search_terms)}){year_filter})'
+            print(f"\nProcessing year {year}...")
             
-            print(f"Searching year {year} for {year_data['target_count']} articles...")
+            target_journal_articles = {journal: [] for journal in year_data['journal_proportions'].keys()}
             
-            try:
-                pmids = fetch.pmids_for_query(search_query, retmax=year_data['target_count'] * 2)  # Fetch extra to account for filtering
+            for journal, proportion in year_data['journal_proportions'].items():
+                target_count = int(proportion * year_data['target_count'])
+                if target_count == 0:
+                    continue
+                    
+                journal_query = f'("{journal}"[Journal])'
+                search_query = f'({alzheimer_terms} AND ({" OR ".join(search_terms)}){year_filter} AND {journal_query})'
                 
-                for pmid in pmids:
-                    try:
-                        article = fetch.article_by_pmid(pmid)
-                        if article and not is_preprint(article.journal) and has_alzheimer_term(article):
-                            journal = article.journal
-                            if journal in year_data['journal_proportions']:
-                                articles.append({
+                print(f"Searching {journal} in {year} for {target_count} articles...")
+                
+                try:
+                    pmids = fetch.pmids_for_query(search_query, retmax=target_count * 8) 
+                    
+                    for pmid in pmids:
+                        try:
+                            article = fetch.article_by_pmid(pmid)
+                            if article and not is_preprint(article.journal) and has_alzheimer_term(article):
+                                target_journal_articles[journal].append({
                                     'pmid': pmid, 
                                     'title': article.title, 
                                     'abstract': article.abstract if hasattr(article, 'abstract') else '', 
                                     'journal': journal,
                                     'year': year
                                 })
-                    except Exception as e:
-                        print(f"Error fetching PMID {pmid}: {str(e)}")
-                        continue
-                        
-            except Exception as e:
-                print(f"Error during PubMed search for year {year}: {str(e)}")
+                        except Exception as e:
+                            print(f"Error fetching PMID {pmid}: {str(e)}")
+                            continue
+                            
+                    print(f"Found {len(target_journal_articles[journal])} articles for {journal}")
+                            
+                except Exception as e:
+                    print(f"Error during PubMed search for {journal} in {year}: {str(e)}")
+            
+            for journal, journal_articles in target_journal_articles.items():
+                target_count = int(year_data['journal_proportions'][journal] * year_data['target_count'])
+                
+                if len(journal_articles) < target_count:
+                    print(f"Warning: Only found {len(journal_articles)} articles for {journal} in {year}, but needed {target_count}")
+                    articles.extend(journal_articles)
+                else:
+                    selected_articles = random.sample(journal_articles, target_count)
+                    articles.extend(selected_articles)
+            
+            print(f"\nYear {year} summary:")
+            for journal, journal_articles in target_journal_articles.items():
+                target_count = int(year_data['journal_proportions'][journal] * year_data['target_count'])
+                print(f"  - {journal}: Found {len(journal_articles)}, Selected {min(target_count, len(journal_articles))}")
                 
     except Exception as e:
         print(f"Error during PubMed search: {str(e)}")
