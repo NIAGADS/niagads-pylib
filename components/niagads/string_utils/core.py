@@ -55,7 +55,7 @@ def blake2b_hash(value: str, size: int = 20):
     Returns:
         A UUID object representing the unique ID.
     """
-    hashedString = hashlib.blake2b(value.encode(), digest_size=size).hexdigest()
+    hashedString = hashlib.blake2b(value.encode("utf-8"), digest_size=size).hexdigest()
     return hashedString
 
 
