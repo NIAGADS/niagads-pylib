@@ -37,7 +37,8 @@ The NIAGADS-pylib uses a [Polylith architecture](https://polylith.gitbook.io/pol
 
 * python 3.12+
 * pipx: <https://github.com/pypa/pipx>
-* poetry package manager: <https://python-poetry.org/>
+* poetry package manager: <https://python-poetry.org/> (install w/pipx)
+* toml-sort: <https://pypi.org/project/toml-sort/> (install w/pipx)
 
 ### Environment Setup
 
@@ -50,6 +51,22 @@ poetry install
 ### Polylith Architecture
 
 Details TBA
+
+### TOML organization
+
+TODO: integrate in toml-sort in tag/release/publish github-action
+
+Poetry does not organize the .toml files.  As the project grows this can make it difficult to read.  The `toml-sort` Python command-line tool can be installed with `pipx` as follows:
+
+```python
+pipx install toml-sort
+```
+
+and then run to sort (alphabetize) the key-value pairs in the import blocks, as well as the array of `include` statements that link the Polylith bricks to the project.  Run `toml-sort` as follows:
+
+```python
+toml-sort --sort-first "project,tool,name,homepage,repository,packages" pyproject.toml
+```
 
 #### Hot Reloads for FastAPI
 
