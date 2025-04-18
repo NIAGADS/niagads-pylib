@@ -4,15 +4,16 @@ string manipulation functions, converters and
 value testers
 """
 
-import nh3
 import hashlib
 import json
 import re
-
-from typing import List
 import uuid
-from dateutil.parser import parse as parse_date
 from datetime import datetime
+from typing import List
+
+import nh3
+from dateutil.parser import parse as parse_date
+from typing_extensions import deprecated
 
 
 def sanitize(htmlStr: str) -> str:
@@ -58,37 +59,9 @@ def blake2b_hash(value: str, size: int = 20):
     hashedString = hashlib.blake2b(value.encode("utf-8"), digest_size=size).hexdigest()
     return hashedString
 
-
-def list_to_string(value, nullStr="NULL", delim=","):
-    """checks if list, if so, converts to string;
-    None/empty -> nullStr;
-    all other return str(value)
-    """
-    if value is None or len(value) == 0:
-        return nullStr
-
-    if isinstance(value, list):
-        return delim.join([xstr(v, nullStr=nullStr) for v in value])
-
-    return xstr(value)
-
-
+@deprecated("use `list_utils.find_in_list` instead")
 def string_in_list(value: str, array: List[str], ignoreCase=False):
-    """
-    wrapper for seeing if a string value is 'in' a list
-    allows case insensitive matches
-
-    Args:
-        value (str): string value to lookup
-        array (List[str]): list of strings
-        ignoreCase (bool, optional): flag for case sensitive match. Defaults to False.
-    """
-    if not ignoreCase:
-        return value in array
-    else:
-        if value.casefold() in (s.casefold() for s in array):
-            return True
-    return False
+    pass
 
 
 def eval_null(value: str, naIsNull=False):
