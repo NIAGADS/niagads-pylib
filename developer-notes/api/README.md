@@ -18,3 +18,5 @@ Located in [open_access_api_handlers](../components/niagads/open_access_api_exce
 * hopefully resolve issue w/different types of responses from queries against the databases
 
 > see great blog post: <https://medium.com/@tclaitken/setting-up-a-fastapi-app-with-async-sqlalchemy-2-0-pydantic-v2-e6c540be4308>
+
+* helpful Alembic example: <https://qiuhongyuan.medium.com/create-a-simple-table-using-sqlalchemy-and-enable-autogeneration-by-alembic-d31623220d84>
