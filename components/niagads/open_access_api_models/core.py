@@ -1,3 +1,14 @@
+"""Common Pydantic `Models` for the Open Access API services
+
+includes the following:
+
+* core: foundational models for most data and response models
+* responses: response models and models defining response model properities or configuration
+* data: core representation of API responses as table row of one or more records
+* sql:
+
+"""
+
 from typing import List
 
 from fastapi.encoders import jsonable_encoder
@@ -8,12 +19,21 @@ from pydantic import BaseModel, model_serializer
 
 
 class NullFreeModel(BaseModel):
+    """a pydantic model where attributes with NULL values (e.g., None, 'NULL') are removed during serialization"""
+
     @model_serializer()
     def serialize_model(self, values, **kwargs):
         return prune(dict(self), removeNulls=True)
 
 
 class SerializableModel(BaseModel):
+    """a pydantic model w/custom serialization that handles:
+    * promotion of nested JSON attribute to the top level
+    * url/value pairs
+    * grouping of extra fields (not yet implemented)
+    * aliased field names
+    """
+
     def serialize(
         self,
         exclude: List[str] = None,

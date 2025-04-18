@@ -31,6 +31,7 @@ packages = [
     { from = "components", include = "niagads/enums" },
     { from = "components", include = "niagads/excel_parser" },
     { from = "components", include = "niagads/exceptions" },
+    { from = "components", include = "niagads/gene_record" },
     { from = "components", include = "niagads/genome" },
     { from = "components", include = "niagads/json_validator" },
     { from = "components", include = "niagads/list_utils" },
@@ -54,7 +55,9 @@ packages = [
     { from = "components", include = "niagads/postgres_dbi" },
     { from = "components", include = "niagads/string_utils" },
     { from = "components", include = "niagads/sys_utils" },
+    { from = "components", include = "niagads/track_record" },
     { from = "components", include = "niagads/variant_annotator" },
+    { from = "components", include = "niagads/variant_record" },
     { from = "components", include = "niagads/vcf_parser" },
     { from = "components", include = "niagads/vep_json_parser" },
 ]
