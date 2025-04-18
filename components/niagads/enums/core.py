@@ -1,3 +1,4 @@
+from typing import List
 from niagads.string_utils.core import sanitize
 from pydantic import ValidationError
 from strenum import StrEnum
@@ -33,7 +34,7 @@ class CaseInsensitiveEnum(StrEnum):
         return self.value
 
     @classmethod
-    def list(cls) -> bool:
+    def list(cls) -> List[str]:
         return [v for v in cls._value2member_map_]
 
 
