@@ -42,9 +42,14 @@ Get an API Key to reduce likelihood of getting blocked by NCBI servers and make 
 
 ## OpenLLM
 
-Let's deploy our own LLM:
+Deploy our own?
 
 * https://github.com/bentoml/OpenLLM
+
+Stick w/Hugging Face?
+
+* https://huggingface.co/
+* langchain integration: https://huggingface.co/blog/langchain
 
 ## Vector Store: 
 
