@@ -39,3 +39,18 @@ Get an API Key to reduce likelihood of getting blocked by NCBI servers and make 
 ### Python Wrapper
 
 * as a first pass; try using the Metapub library (link in the [Recommended Packages](https://github.com/NIAGADS/ai-bibliography-analysis/blob/main/developer_notes/recommended_packages.md))
+
+## OpenLLM
+
+Let's deploy our own LLM:
+
+* https://github.com/bentoml/OpenLLM
+
+## Vector Store: 
+
+Let's try Chroma
+
+* https://www.trychroma.com/
+* langchain integration: https://python.langchain.com/docs/integrations/vectorstores/chroma/
+
+  
