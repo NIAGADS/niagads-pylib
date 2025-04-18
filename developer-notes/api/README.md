@@ -10,3 +10,11 @@ see [open_access_api_configuration](../components/niagads/open_access_api_config
 
 Located in [open_access_api_handlers](../components/niagads/open_access_api_exception_handlers).  The exception handler is defined in a nested `add_*_exception_handler` function that takes the `app` as a parameter.  The `@app.exception_handler` decorator is called inside the wrapper.  These wrapper can be imported into main and called after the `app` is initialized.  See  <https://github.com/fastapi/fastapi/issues/917#issuecomment-578381578>, for details.  
 
+## Abandon SQLModel and use just SQLAlchemy
+
+* so we can bring in Alembic for versioning
+* b/c SQLModel can't handle complexity in inserts; this way we can use the same models in db creation and data loading
+* not using SQLModel for GenomicsDB
+* hopefully resolve issue w/different types of responses from queries against the databases
+
+> see great blog post: <https://medium.com/@tclaitken/setting-up-a-fastapi-app-with-async-sqlalchemy-2-0-pydantic-v2-e6c540be4308>
