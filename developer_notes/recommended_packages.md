@@ -36,8 +36,12 @@ scikit-learn is a machine learning library for Python. We use it for calculating
 
 <https://scikit-learn.org/>
 
-
 ### Learning Topics
+
+* torch geometrics for ontology leveraging: <https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.nn.models.Node2Vec.html>
+* also, look into: [mOWL: Python library for ML w/biomedical ontologies](https://academic.oup.com/bioinformatics/article/39/1/btac811/6935780)
+
+* hugging face
 
 * connection pooling
   * <https://medium.com/@digi0ps/connection-pooling-what-and-why-8d659e1530f9>
