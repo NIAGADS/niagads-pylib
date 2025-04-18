@@ -1,37 +1,61 @@
-"""core SQLModel defining a `Track` record"""
+"""core defines the `Track` (metadata) record database model"""
 
-from datetime import date
 from typing import Optional
 
-from niagads.open_access_api_models.core import SerializableModel
-from pydantic import computed_field
-from sqlalchemy import BigInteger
-from sqlalchemy.dialects.postgresql import JSONB, TEXT, TIMESTAMP
-from sqlmodel import Column, Field, SQLModel
+from niagads.genome.core import Assembly
+from niagads.list_utils.core import list_to_string
+from niagads.track_record.models.properties import BiosampleCharacteristics
+from sqlalchemy import TEXT, Column, Enum, String
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.schema import CheckConstraint
 
 
-class Track(SQLModel, SerializableModel, table=True):
-    __tablename__ = "metadata"
-    __table_args__ = {"schema": "track"}
+class Base(DeclarativeBase):
+    pass
 
-    track_id: str = Field(default=None, primary_key=True)
-    name: str
-    description: Optional[str] = Field(sa_column=Column(TEXT))
-    genome_build: Optional[str] = "GRCh38"
-    feature_type: Optional[str] = None
-    download_only: Optional[bool] = False
 
-    # biosample
-    biosample_characteristics: BiosampleCharacteristics | None = Field(
-        sa_column=Column(JSONB)
+class Track(Base):
+    __tablename__ = "metadataentry"
+    __table_args__ = (
+        CheckConstraint(
+            f"genome_build in ({list_to_string(Assembly.list(), quote=True, delim=', ')})",
+            name="check_genome_build",
+        ),
+        {"schema": "track"},
     )
 
+    metadata_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    track_id: Mapped[str] = mapped_column(unique=True, index=True)
+    name: Mapped[str]
+    description: Mapped[str] = mapped_column(String(2000))
+
+    genome_build: str = Column(
+        Enum(Assembly, native_enum=False), nullable=False, index=True
+    )
+
+    feature_type: Mapped[str] = mapped_column(String(50), index=True)
+    is_download_only: Mapped[bool] = mapped_column(default=False, index=True)
+
+    searchable_text: str = Column(TEXT, index=True)
+
+    is_shard: Mapped[Optional[bool]]
+    shard_root_track_id: Mapped[Optional[str]] = mapped_column(index=True)
+
+    # biosample
+    biosample_characteristics: Mapped[BiosampleCharacteristics] = mapped_column(JSONB)
+
+    """
     # experimental design
     experimental_design: ExperimentalDesign | None = Field(sa_column=Column(JSONB))
 
     # provenance
     provenance: Provenance | None = Field(sa_column=Column(JSONB))
 
+    # track_properties
+    properties: TrackProperties | None = Field(sa_column=Column(JSONB))
+    
     file_name: Optional[str]
     url: Optional[str]
     md5sum: Optional[str]
@@ -42,12 +66,7 @@ class Track(SQLModel, SerializableModel, table=True):
 
     file_format: Optional[str]
     file_schema: Optional[str]
-
     release_date: Optional[date] = Field(sa_column=Column(TIMESTAMP(timezone=False)))
-
-    searchable_text: Optional[str] = Field(sa_column=Column(TEXT))
-    is_shard: Optional[bool]
-    shard_root_track_id: Optional[str]
 
     # FIXME: move to Provenance
     @computed_field
@@ -70,7 +89,7 @@ class Track(SQLModel, SerializableModel, table=True):
     # =================================
 
     # FIXME: create genome browser properties object and populate
-    """
+
     @computed_field
     @property
     def IGV_browser_config(self) -> IGVBrowserConfig:
