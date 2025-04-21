@@ -1,13 +1,19 @@
 from datetime import date
-from typing import List, Optional
+from enum import auto
+from typing import Optional
 
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.open_access_api_configuration.resource_links import DATASOURCE_URLS
 from niagads.open_access_api_models.core import NullFreeModel
 from niagads.utils.string import matches
 from niagads.utils.regular_expressions import RegularExpressions
-from pydantic import BaseModel, Field, computed_field, field_validator
-from sqlalchemy import Null
-from zmq import PUB
+from pydantic import Field, computed_field, field_validator
+
+
+class TrackDataStore(CaseInsensitiveEnum):
+    GENOMICS = auto()
+    FILER = auto()
+    SHARED = auto()
 
 
 class ExperimentalDesign(NullFreeModel):

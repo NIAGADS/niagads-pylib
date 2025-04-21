@@ -55,6 +55,7 @@ packages = [
     { include = "niagads/collection_record", from = "components" },
     { include = "niagads/open_access_api_memory_cache", from = "components" },
     { include = "niagads/utils", from = "components" },
+    {include = "niagads/database_models",from = "components"},
 ]
 
 [tool.poetry.dependencies]
