@@ -3,8 +3,9 @@ from typing import List, Optional
 
 from niagads.open_access_api_configuration.resource_links import DATASOURCE_URLS
 from niagads.open_access_api_models.core import NullFreeModel
+from niagads.string_utils.core import matches
 from niagads.string_utils.regular_expressions import RegularExpressions
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
 from sqlalchemy import Null
 from zmq import PUB
 
@@ -44,10 +45,20 @@ class Provenance(NullFreeModel):
 
     study_or_project: Optional[str] = None
     accession: str
-    pubmed_id: Optional[str] = Field(regex=RegularExpressions.PUBMED_ID, default=None)
-    doi: Optional[str] = Field(regex=RegularExpressions.DOI, default=None)
+    pubmed_id: Optional[str] = Field(pattern=RegularExpressions.PUBMED_ID, default=None)
+    doi: Optional[str] = None
     consortia: Optional[str] = None
     attribution: Optional[str] = None
+
+    @field_validator("doi", mode="after")
+    def validate_doi(cls, value: Optional[str]):
+        """create validator b/c Pydantic does not support patterns w/lookaheads"""
+        if value is not None:
+            if not matches(RegularExpressions.DOI, value):
+                raise ValueError(
+                    f"Invalid DOI format: {value}. Please provide a valid DOI."
+                )
+        return value
 
     @computed_field
     @property
@@ -69,7 +80,7 @@ class Provenance(NullFreeModel):
 class FileProperties(NullFreeModel):
     file_name: Optional[str] = None
     url: Optional[str] = None
-    md5sum: Optional[str] = Field(regex=RegularExpressions.MD5SUM, default=None)
+    md5sum: Optional[str] = Field(pattern=RegularExpressions.MD5SUM, default=None)
 
     bp_covered: Optional[int] = None
     number_of_intervals: Optional[int] = None
