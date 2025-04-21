@@ -8,7 +8,7 @@ from openpyxl import Workbook as wb, load_workbook
 
 from niagads.utils.dict import convert_str2numeric_values
 from niagads.utils.string import xstr, to_snake_case
-from niagads.pd_dataframe.core import strip
+from niagads.utils.pandas import strip_df
 
 
 class ExcelFileParser:
@@ -187,7 +187,7 @@ class ExcelFileParser:
         Args:
             df (DataFrame): pandas data frame
         """
-        return strip(df) if self.__strip else df
+        return strip_df(df) if self.__strip else df
 
     def to_pandas_df(self, worksheet: str, transpose=False, **kwargs) -> DataFrame:
         """

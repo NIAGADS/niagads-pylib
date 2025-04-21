@@ -1,4 +1,4 @@
-from niagads.open_access_api_exception_handlers.core import (
+from niagads.open_access_api_common.exception_handlers import (
     add_not_implemented_exception_handler,
     add_runtime_exception_handler,
     add_system_exception_handler,
