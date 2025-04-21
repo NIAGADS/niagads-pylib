@@ -5,16 +5,12 @@ packages = [
     { include = "niagads/arg_parser", from = "../../components" },
     { include = "niagads/exceptions", from = "../../components" },
     { include = "niagads/metadata_validator", from = "../../components" },
-    { include = "niagads/dict_utils", from = "../../components" },
-    { include = "niagads/sys_utils", from = "../../components" },
     { include = "niagads/enums", from = "../../components" },
-    { include = "niagads/list_utils", from = "../../components" },
     { include = "niagads/excel_parser", from = "../../components" },
-    { include = "niagads/string_utils", from = "../../components" },
     { include = "niagads/pd_dataframe", from = "../../components" },
-    { include = "niagads/logging_utils", from = "../../components" },
     { include = "niagads/json_validator", from = "../../components" },
     { include = "niagads/csv_parser", from = "../../components" },
+    { include = "niagads/utils", from = "../../components" },
 ]
 
 [tool.poetry.group.dev.dependencies]

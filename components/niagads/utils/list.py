@@ -2,7 +2,7 @@
 
 from collections import OrderedDict, Counter
 from typing import List, Union
-from niagads.string_utils.core import xstr
+from niagads.utils.string import xstr
 
 
 def all_elements_are_none(array):

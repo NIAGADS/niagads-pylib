@@ -7,7 +7,7 @@ from typing import Optional
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome.core import Assembly
-from niagads.list_utils.core import list_to_string
+from niagads.utils.list import list_to_string
 from niagads.open_access_api_configuration.core import DataStore
 from niagads.track_record.models.properties import (
     BiosampleCharacteristics,

@@ -21,7 +21,7 @@ from threading import Semaphore
 from configparser import ConfigParser as SafeConfigParser  # renamed in Python 3.2
 
 from niagads.exceptions.core import IllegalArgumentError, AbstractMethodNotImplemented
-from niagads.sys_utils.core import verify_path
+from niagads.utils.sys import verify_path
 
 
 def initialize_cursor(dbh, name: str = None, realDict=False, withhold=False):

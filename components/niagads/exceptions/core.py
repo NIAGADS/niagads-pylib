@@ -2,7 +2,7 @@ from enum import auto
 import json
 
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.string_utils.core import xstr
+from niagads.utils.string import xstr
 
 
 def extract_exception_message(ex: Exception) -> None:

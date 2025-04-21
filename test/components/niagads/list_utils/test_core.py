@@ -1,4 +1,4 @@
-from niagads.list_utils import core
+from niagads.utils import list as core
 
 
 def test_sample():

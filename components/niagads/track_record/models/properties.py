@@ -3,8 +3,8 @@ from typing import List, Optional
 
 from niagads.open_access_api_configuration.resource_links import DATASOURCE_URLS
 from niagads.open_access_api_models.core import NullFreeModel
-from niagads.string_utils.core import matches
-from niagads.string_utils.regular_expressions import RegularExpressions
+from niagads.utils.string import matches
+from niagads.utils.regular_expressions import RegularExpressions
 from pydantic import BaseModel, Field, computed_field, field_validator
 from sqlalchemy import Null
 from zmq import PUB

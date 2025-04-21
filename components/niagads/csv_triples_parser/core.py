@@ -4,7 +4,7 @@ from typing import List
 
 from niagads.csv_parser.core import CSVFileParser
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.string_utils.core import blake2b_hash
+from niagads.utils.string import blake2b_hash
 from rdflib import OWL, RDF, RDFS, SKOS, Graph, Literal, Namespace, URIRef
 
 

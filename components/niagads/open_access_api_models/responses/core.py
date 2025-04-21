@@ -9,7 +9,7 @@ from niagads.open_access_api_models.responses.properties import (
 from niagads.open_access_api_parameters.response import ResponseFormat, ResponseView
 from niagads.open_access_api_route_helper.row_select import OnRowSelect
 from niagads.open_access_api_views.table.core import TableColumn
-from niagads.string_utils.core import xstr
+from niagads.utils.string import xstr
 from pydantic import BaseModel, Field
 from sqlmodel import SQLModel
 from typing_extensions import Self

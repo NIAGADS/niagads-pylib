@@ -17,7 +17,7 @@
 
 # pylint: disable=line-too-long,invalid-name,no-self-use
 from enum import Enum
-from niagads.list_utils.core import list_to_indexed_dict, is_subset, is_overlapping_list
+from niagads.utils.list import list_to_indexed_dict, is_subset, is_overlapping_list
 
 
 class ConseqGroup(Enum):

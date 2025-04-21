@@ -1,4 +1,4 @@
-""" library of object / dictionary / hash manipulation functions """
+"""library of object / dictionary / hash manipulation functions"""
 
 import json
 from typing import Union
@@ -6,14 +6,18 @@ import warnings
 from collections import abc
 from types import SimpleNamespace
 
-from niagads.string_utils.core import is_bool, is_null, to_bool, to_number
-from niagads.list_utils.core import all_elements_are_none as __list_is_none
+from niagads.utils.string import is_bool, is_null, to_bool, to_number
+from niagads.utils.list import all_elements_are_none as __list_is_none
+
 
 def all_values_are_none(dictObj: dict):
-    """ returns true if all dict is empty or values are none """
+    """returns true if all dict is empty or values are none"""
     return __list_is_none(dictObj.values())
 
-def rename_key(dictObj:dict, oldKey: str, newKey: str, ordered: bool=False): # note does not preserve python3+ ordering
+
+def rename_key(
+    dictObj: dict, oldKey: str, newKey: str, ordered: bool = False
+):  # note does not preserve python3+ ordering
     """
     rename dict key
 
@@ -27,22 +31,25 @@ def rename_key(dictObj:dict, oldKey: str, newKey: str, ordered: bool=False): # n
         updated dict object
     """
     if ordered:
-        return {newKey if k == oldKey else k:v for k,v in dictObj.items()} 
-    
+        return {newKey if k == oldKey else k: v for k, v in dictObj.items()}
+
     dictObj[newKey] = dictObj.pop(oldKey)
     return dictObj
 
+
 def __prune(value, prune):
     """
-    wrapper so we only test strings for na values 
+    wrapper so we only test strings for na values
     note: does not treat empty lists or objs as null
     """
-    if value is None: return True
+    if value is None:
+        return True
     if isinstance(value, str):
         return is_null(value, naIsNull=True) or value in prune
     return False
 
-def prune(dictObj:dict, removeNulls:bool=True, prune:list=[]):
+
+def prune(dictObj: dict, removeNulls: bool = True, prune: list = []):
     """
     remove null entries from dict and entries whose value matches items in `prune`
 
@@ -54,40 +61,46 @@ def prune(dictObj:dict, removeNulls:bool=True, prune:list=[]):
     Returns:
         cleaned up dict
     """
-    return {key: value for key, value in dictObj.items() 
+    return {
+        key: value
+        for key, value in dictObj.items()
         if (removeNulls and value is not None and not __prune(value, prune))
     }
 
 
 def print_dict(dictObj, pretty=True):
-    ''' pretty print a dict / JSON object  '''
+    """pretty print a dict / JSON object"""
     if isinstance(dictObj, SimpleNamespace):
         return dictObj.__repr__()
-    return json.dumps(dictObj, indent=4, sort_keys=True) if pretty else json.dumps(dictObj)
+    return (
+        json.dumps(dictObj, indent=4, sort_keys=True) if pretty else json.dumps(dictObj)
+    )
 
 
 def get(obj, attribute, default=None, errorAction="fail"):
     """
     retrieve attribute if in dict
-    
+
     Args:
         obj (dict): dictionary object to query
         attribute (string): attribute to return
         default (obj): value to return on KeyError. Defaults to None
         errorAction (string, optional): fail or warn on KeyError. Defaults to False
-        
+
     Returns:
-        the value of the attribute or the supplied `default` value if the attribute is missing  
+        the value of the attribute or the supplied `default` value if the attribute is missing
     """
-    if errorAction not in ['warn', 'fail', 'ignore']:
-        raise ValueError("Allowable actions upon a KeyError are `warn`, `fail`, `ignore`")
-    
+    if errorAction not in ["warn", "fail", "ignore"]:
+        raise ValueError(
+            "Allowable actions upon a KeyError are `warn`, `fail`, `ignore`"
+        )
+
     try:
         return obj[attribute]
     except KeyError as err:
-        if errorAction == 'fail':
+        if errorAction == "fail":
             raise err
-        elif errorAction == 'warn':
+        elif errorAction == "warn":
             warnings.warn("KeyError:" + err, RuntimeWarning)
             return default
         else:
@@ -95,18 +108,20 @@ def get(obj, attribute, default=None, errorAction="fail"):
 
 
 def drop_nulls(obj):
-    """ find nulls and remove from the object """
+    """find nulls and remove from the object"""
     if isinstance(obj, list):
-        return ValueError("Use drop_nulls from the list package to remove nulls from a list/array")
+        return ValueError(
+            "Use drop_nulls from the list package to remove nulls from a list/array"
+        )
     if isinstance(obj, dict):
         return {k: v for k, v in obj.items() if v}
-    
+
 
 def deep_update(d, u):
     """
     deep update a nested dict
     based on https://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth/60321833
-    answer: https://stackoverflow.com/a/3233356 
+    answer: https://stackoverflow.com/a/3233356
     TODO: may not handle all variations
 
     Args:
@@ -124,9 +139,8 @@ def deep_update(d, u):
     return d
 
 
-
 def convert_str2numeric_values(cdict: dict, nanAsStr=True, infAsStr=True):
-    """converts numeric values in dictionary stored as strings 
+    """converts numeric values in dictionary stored as strings
     to numeric
 
     Args:
@@ -141,10 +155,10 @@ def convert_str2numeric_values(cdict: dict, nanAsStr=True, infAsStr=True):
     for key, value in cdict.items():
         if value is None:
             continue
-        if str(value).upper() == 'NAN' and nanAsStr:
+        if str(value).upper() == "NAN" and nanAsStr:
             # is_float test will be true for NaN/NAN/nan/Nan etc
             continue
-        if 'inf' in str(value).lower() and infAsStr:
+        if "inf" in str(value).lower() and infAsStr:
             # is_float test will be true for Infinity / -Infinity
             continue
         if is_bool(value):
@@ -156,14 +170,13 @@ def convert_str2numeric_values(cdict: dict, nanAsStr=True, infAsStr=True):
 
 
 def size(obj, n=0):
-    '''
+    """
     recursively find size (number of elements) in a potentially nested dict
     after https://www.tutorialspoint.com/How-to-count-elements-in-a-nested-Python-dictionary
-    '''
+    """
     for key in obj:
         if isinstance(obj[key], dict):
             n = size(obj[key], n + 1)
         else:
-            n += 1          
+            n += 1
     return n
-

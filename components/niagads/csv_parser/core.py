@@ -4,7 +4,7 @@ import json
 from csv import Sniffer, Dialect
 from pandas import read_csv, DataFrame
 
-from niagads.dict_utils.core import convert_str2numeric_values
+from niagads.utils.dict import convert_str2numeric_values
 from niagads.pd_dataframe.core import strip
 
 

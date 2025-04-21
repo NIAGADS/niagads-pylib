@@ -4,7 +4,7 @@ from niagads.open_access_api_models.responses.properties import (
     PaginationDataModel,
     RequestDataModel,
 )
-from niagads.string_utils.core import is_camel_case
+from niagads.utils.string import is_camel_case
 from pydantic import BaseModel, Field
 
 

@@ -11,8 +11,8 @@ from sys import stderr, exit
 from subprocess import check_output, CalledProcessError
 
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.dict_utils.core import print_dict
-from niagads.string_utils.core import ascii_safe_str
+from niagads.utils.dict import print_dict
+from niagads.utils.string import ascii_safe_str
 from niagads.exceptions.core import RestrictedValueError
 
 LOGGER = logging.getLogger(__name__)

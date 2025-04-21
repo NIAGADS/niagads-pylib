@@ -2,7 +2,7 @@
 
 #!pylint: disable=invalid-name
 import logging
-from niagads.string_utils.core import xstr, truncate, reverse
+from niagads.utils.string import xstr, truncate, reverse
 
 
 def truncate_allele(allele: str, long=False):

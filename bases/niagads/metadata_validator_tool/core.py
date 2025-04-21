@@ -22,13 +22,13 @@ from typing import List, Union
 
 from niagads.arg_parser.core import case_insensitive_enum_type
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.logging_utils.core import LOG_FORMAT_STR, ExitOnExceptionHandler
+from niagads.utils.logging import LOG_FORMAT_STR, ExitOnExceptionHandler
 from niagads.metadata_validator.core import (
     BiosourcePropertiesValidator,
     FileManifestValidator,
 )
-from niagads.string_utils.core import xstr
-from niagads.sys_utils.core import print_args, verify_path
+from niagads.utils.string import xstr
+from niagads.utils.sys import print_args, verify_path
 
 
 class MetadataValidatorType(CaseInsensitiveEnum):

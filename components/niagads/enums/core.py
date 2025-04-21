@@ -1,5 +1,5 @@
 from typing import List
-from niagads.string_utils.core import sanitize
+from niagads.utils.string import sanitize
 from pydantic import ValidationError
 from strenum import StrEnum
 

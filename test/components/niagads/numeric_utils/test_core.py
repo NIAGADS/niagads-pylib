@@ -1,4 +1,4 @@
-from niagads.numeric_utils import core
+from niagads.utils import numeric as core
 
 
 def test_sample():

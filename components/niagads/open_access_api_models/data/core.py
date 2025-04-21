@@ -5,7 +5,7 @@ from niagads.open_access_api_models.core import SerializableModel
 from niagads.open_access_api_parameters.response import ResponseFormat, ResponseView
 from niagads.open_access_api_views.core import id2title
 from niagads.open_access_api_views.table.core import TableColumn
-from niagads.string_utils.core import xstr
+from niagads.utils.string import xstr
 from pydantic import ConfigDict
 
 

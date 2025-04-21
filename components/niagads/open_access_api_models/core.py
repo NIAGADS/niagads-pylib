@@ -12,7 +12,7 @@ includes the following:
 from typing import List
 
 from fastapi.encoders import jsonable_encoder
-from niagads.dict_utils.core import prune
+from niagads.utils.dict import prune
 
 
 from pydantic import BaseModel, model_serializer

@@ -4,10 +4,10 @@ from typing import Dict, List, Optional, Union
 
 from fastapi import Request
 
-from niagads.dict_utils.core import prune
+from niagads.utils.dict import prune
 from niagads.open_access_api_cache_manager.core import CacheNamespace
 
-from niagads.string_utils.core import blake2b_hash, dict_to_string, regex_replace
+from niagads.utils.string import blake2b_hash, dict_to_string, regex_replace
 from pydantic import BaseModel, Field
 
 

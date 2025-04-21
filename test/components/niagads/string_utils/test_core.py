@@ -1,10 +1,10 @@
-from niagads.string_utils import core
-from niagads.string_utils.core import reverse
+from niagads.utils import string
+from niagads.utils.string import reverse
 
 
 def test_sample():
-    assert core is not None
+    assert string is not None
 
 
 def test_reverse():
-    assert reverse('abc')
+    assert reverse("abc")
