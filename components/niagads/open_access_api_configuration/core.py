@@ -1,13 +1,22 @@
 # Settings for Open Access API microservices
+from enum import auto
 from typing import Optional
+from niagads.enums.core import CaseInsensitiveEnum
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 import os
 
 
+class DataStore(CaseInsensitiveEnum):
+    GENOMICS = auto()
+    FILER = auto()
+
+
 class Settings(BaseSettings):
     APP_DB_URI: str  # application db (e.g., GenomicsDB or FILER metadata cache)
     CACHE_DB_URI: str  # in memory cache db
+
+    DATA_STORE: DataStore
 
     API_PUBLIC_URL: str = "http://localhost:8000"  # public facing URL for the API
 

@@ -3,6 +3,7 @@
 from datetime import date
 from typing import Optional
 
+from niagads.open_access_api_configuration.core import DataStore
 from niagads.open_access_api_models.core import SerializableModel
 from pydantic import computed_field
 from sqlalchemy import BigInteger
@@ -20,6 +21,7 @@ class Track(SQLModel, SerializableModel, table=True):
     genome_build: Optional[str] = "GRCh38"
     feature_type: Optional[str] = None
     download_only: Optional[bool] = False
+    data_store: DataStore
 
     # biosample
     biosample_characteristics: BiosampleCharacteristics | None = Field(
