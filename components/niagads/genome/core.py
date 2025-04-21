@@ -147,8 +147,12 @@ class Assembly(EnumParameter):
         if value.lower() == "hg38":
             return cls.GRCh38
         return super(Assembly, cls)._missing_(value)
-
-
+    
+    @classmethod
+    def list(cls):
+        """return a list of the enum values"""
+        return super(Assembly, cls).list() + ['hg19', 'hg38']
+    
 class GenomicFeatureType(CaseInsensitiveEnum):
     GENE = auto()
     VARIANT = auto()

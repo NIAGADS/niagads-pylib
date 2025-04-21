@@ -44,10 +44,8 @@ packages = [
     { from = "components", include = "niagads/open_access_api_database_manager" },
     { from = "components", include = "niagads/open_access_api_enums" },
     { from = "components", include = "niagads/open_access_api_exception_handlers" },
-    { from = "components", include = "niagads/open_access_api_memory_cache" },
     { from = "components", include = "niagads/open_access_api_models" },
     { from = "components", include = "niagads/open_access_api_parameters" },
-    { from = "components", include = "niagads/open_access_api_response_models" },
     { from = "components", include = "niagads/open_access_api_route_helper" },
     { from = "components", include = "niagads/open_access_api_types" },
     { from = "components", include = "niagads/open_access_api_views" },
@@ -60,6 +58,7 @@ packages = [
     { from = "components", include = "niagads/variant_record" },
     { from = "components", include = "niagads/vcf_parser" },
     { from = "components", include = "niagads/vep_json_parser" },
+    {include = "niagads/collection_record",from = "components"},
 ]
 
 [tool.poetry.dependencies]
