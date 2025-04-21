@@ -4,6 +4,7 @@ from typing import Optional
 
 from niagads.genome.core import Assembly
 from niagads.list_utils.core import list_to_string
+from niagads.open_access_api_configuration.core import DataStore
 from niagads.track_record.models.properties import BiosampleCharacteristics
 from sqlalchemy import TEXT, Column, Enum, String
 from sqlalchemy.dialects.postgresql import JSONB
@@ -28,6 +29,7 @@ class Track(Base):
     metadata_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     track_id: Mapped[str] = mapped_column(unique=True, index=True)
+    data_store: DataStore
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
 
