@@ -20,28 +20,6 @@ from api.models.track_properties import ExperimentalDesign, Provenance
 # the SQLModel, which will have nulls if no value
 
 
-class Collection(SQLModel, table=True):
-    __tablename__ = "collection"
-    __bind_key__ = "metadata"
-    __table_args__ = {"schema": "metadata"}
-
-    collection_id: int = Field(default=None, primary_key=True)
-    name: str
-    description: str = Field(sa_column=Column(TEXT))
-    tracks_are_sharded: bool
-    data_store: DataStore
-
-
-class TrackCollection(SQLModel, table=True):
-    __tablename__ = "collectiontracklink"
-    __bind_key__ = "metadata"
-    __table_args__ = {"schema": "metadata"}
-
-    collection_track_link_id: str = Field(default=None, primary_key=True)
-    track_id: str = Field(foreign_key="track.track_id")
-    collection_id: int = Field(foreign_key="collection.collection_id")
-
-
 class Track(SQLModel, SerializableModel, table=True):
     __tablename__ = "track"
     __bind_key__ = "metadata"

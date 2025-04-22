@@ -1,8 +1,8 @@
-"""core defines the `Track` (metadata) record database model"""
+"""`Track` (metadata) database model"""
 
 from typing import Optional
 
-from niagads.database.models.track.fields import (
+from niagads.database.models.metadata.composite_attributes import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,
@@ -10,22 +10,17 @@ from niagads.database.models.track.fields import (
     Provenance,
     TrackDataStore,
 )
+from niagads.database.models.metadata.core import MetadataSchemaBase
 from niagads.genome.core import Assembly
 from niagads.utils.list import list_to_string
-from sqlalchemy import TEXT, Column, Enum, Index, MetaData, String
+from sqlalchemy import TEXT, Column, Enum, Index, String
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import CheckConstraint
 
 
-class TrackBase(DeclarativeBase):
-    """base class for the track database models"""
-
-    metadata = MetaData(schema="track")
-
-
-class Track(TrackBase):
-    __tablename__ = "metadataentry"
+class Track(MetadataSchemaBase):
+    __tablename__ = "track"
     __table_args__ = (
         CheckConstraint(
             f"genome_build in ({list_to_string(Assembly.list(), quote=True, delim=', ')})",
@@ -35,18 +30,18 @@ class Track(TrackBase):
             f"data_store in ({list_to_string(TrackDataStore.list(), quote=True, delim=', ')})",
             name="check_data_store",
         ),
-        Index("ix_metadataentry_track_id", "track_id", unique=True),
-        Index("ix_data_store", "data_store"),
-        Index("ix_genome_build", "genome_build"),
-        Index("ix_feature_type", "feature_type"),
-        Index("ix_is_download_only", "is_download_only"),
+        Index("idx_track_track_id", "track_id", unique=True),
+        Index("idx_track_data_store", "data_store"),
+        Index("idx_track_genome_build", "genome_build"),
+        Index("idx_track_feature_type", "feature_type"),
+        Index("idx_track_is_download_only", "is_download_only"),
         Index(
-            "ix_shard_root_track_id",
+            "idx_track_shard_root_track_id",
             "shard_root_track_id",
             postgresql_where=(Column("shard_root_track_id").isnot(None)),
         ),
         Index(
-            "ix_searchable_text",
+            "idx_track_searchable_text",
             "searchable_text",
             postgresql_using="gin",
             postgresql_ops={
@@ -55,7 +50,9 @@ class Track(TrackBase):
         ),
     )
 
-    metadata_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    track_metadata_entry_id: Mapped[int] = mapped_column(
+        primary_key=True, autoincrement=True
+    )
 
     track_id: Mapped[str] = mapped_column(unique=True, index=True)
     data_store: str = Column(

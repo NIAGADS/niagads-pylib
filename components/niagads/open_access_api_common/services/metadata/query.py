@@ -1,7 +1,7 @@
 from fastapi.exceptions import RequestValidationError
 
-from niagads.database.models.track.core import Track
-from niagads.database.models.track.fields import TrackDataStore
+from niagads.database.models.metadata.track import Track
+from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from niagads.open_access_api_common.config.constants import SHARD_PATTERN
 from niagads.open_access_api_common.models.responses.request import RequestDataModel
 from niagads.open_access_api_common.parameters.response import ResponseContent
