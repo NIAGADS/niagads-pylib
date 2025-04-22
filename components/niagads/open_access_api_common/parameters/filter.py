@@ -1,23 +1,20 @@
-from fastapi import Query
 from enum import Enum, auto
+
+from fastapi import Query
 from fastapi.exceptions import RequestValidationError
 from niagads.exceptions.core import extract_exception_message
-from sqlmodel import col, not_
-
 from pyparsing import (
     Group,
     Keyword,
     OneOrMore,
     Optional,
+    ParserElement,
     Word,
     alphas,
     nums,
-    ParserElement,
 )
 from pyparsing.helpers import one_of
-
-
-from ...common.exceptions import get_error_message
+from sqlmodel import col, not_
 
 _NUMBER = Word(nums)
 _TEXT = Word(alphas + "_" + "-")
