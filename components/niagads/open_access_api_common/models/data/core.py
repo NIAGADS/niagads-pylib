@@ -1,4 +1,4 @@
-"""rows.py
+"""core defines a generic row model
 Most API responses are tables represented as lists of objects,
 wherein each item in the list is a row in the table.
 
@@ -75,10 +75,7 @@ class RowModel(SerializableModel):
                     {
                         "rowSelect": {
                             "header": "Select",
-                            "enableMultiRowSelect": True,
                             "rowId": "track_id",
-                            "onRowSelectAction": kwargs["on_row_select"],
-                            "disableColumnFilters": True,  # FIXME: temporarily disable
                         }
                     }
                 )

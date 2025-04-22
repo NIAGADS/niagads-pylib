@@ -11,6 +11,7 @@ from niagads.open_access_api_common.models.cache import (
     CacheKeyQualifier,
     CacheNamespace,
 )
+from niagads.open_access_api_common.models.data.core import DynamicRowModel
 from niagads.open_access_api_common.models.responses.core import (
     ResponseModel,
     T_ResponseModel,
@@ -18,7 +19,6 @@ from niagads.open_access_api_common.models.responses.core import (
 from niagads.open_access_api_common.models.responses.pagination import (
     PaginationDataModel,
 )
-from niagads.open_access_api_common.models.rows import DynamicRowModel
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
 from niagads.open_access_api_common.parameters.response import (

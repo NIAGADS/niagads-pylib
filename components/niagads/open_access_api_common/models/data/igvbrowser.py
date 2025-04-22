@@ -1,21 +1,23 @@
-from pydantic import Field, computed_field, field_validator
-from sqlmodel import SQLModel
 from typing import List, Optional
 
-from api.common.enums.response_properties import (
-    OnRowSelect,
+from niagads.database.models.metadata.composite_attributes import (
+    BiosampleCharacteristics,
+    ExperimentalDesign,
+    Phenotype,
+)
+from niagads.open_access_api_common.config.core import get_settings
+from niagads.open_access_api_common.models.data.core import RowModel
+from niagads.open_access_api_common.models.responses.core import ResponseModel
+from niagads.open_access_api_common.models.views.core import id2title
+from niagads.open_access_api_common.models.views.table.core import TableViewModel
+from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
-from api.common.formatters import id2title
-from api.config.settings import get_settings
-from api.models.base_response_models import ResponseModel
-from api.models.base_row_models import RowModel
-from api.models.track_properties import BiosampleCharacteristics, ExperimentalDesign
-from api.models.view_models import TableViewModel
+from pydantic import Field, computed_field, field_validator
 
 
-class IGVBrowserTrackConfig(SQLModel, RowModel):
+class IGVBrowserTrackConfig(RowModel):
     track_id: str = Field(serialization_alias="id")
     name: str
     url: str
@@ -79,6 +81,7 @@ class IGVBrowserTrackMetadata(RowModel):
     feature_type: str  # = Field(serialization_alias='feature')
     biosample_characteristics: Optional[BiosampleCharacteristics] = None
     experimental_design: Optional[ExperimentalDesign] = None
+    subject_phenotypes: Optional[Phenotype] = None
 
     # model_config = ConfigDict(populate_by_name=True)
 
@@ -107,7 +110,7 @@ class IGVBrowserTrackMetadata(RowModel):
                 "header": "Add/Remove Track",
                 "enableMultiRowSelect": True,
                 "rowId": "track_id",
-                "onRowSelectAction": str(OnRowSelect.UPDATE_GENOME_BROWSER),
+                # "onRowSelectAction": str(OnRowSelect.UPDATE_GENOME_BROWSER),
             },
         }
         return options
