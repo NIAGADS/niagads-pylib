@@ -1,7 +1,9 @@
 from typing import Optional
 
-from niagads.open_access_api_common.models.pagination import PaginationDataModel
-from niagads.open_access_api_common.models.request import RequestDataModel
+from niagads.open_access_api_common.models.responses.pagination import (
+    PaginationDataModel,
+)
+from niagads.open_access_api_common.models.responses.request import RequestDataModel
 from niagads.utils.string import is_camel_case
 from pydantic import BaseModel, Field
 
