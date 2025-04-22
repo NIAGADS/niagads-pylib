@@ -28,7 +28,7 @@ API_CLIENT_SESSION_MANAGER = HttpClientSessionManager(
 class InternalRequestParameters(
     BaseInternalRequestParameters, arbitrary_types_allowed=True
 ):
-    metadataSession: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)]
+    session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)]
     apiClientSession: Annotated[ClientSession, Depends(API_CLIENT_SESSION_MANAGER)]
 
 
