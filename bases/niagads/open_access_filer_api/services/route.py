@@ -15,6 +15,7 @@ from niagads.open_access_api_common.models.cache import (
     CacheNamespace,
 )
 from niagads.open_access_api_common.models.data.genome import Feature
+from niagads.open_access_api_common.models.data.track import TrackResultSize
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
 from niagads.open_access_api_common.parameters.response import ResponseContent
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
@@ -25,6 +26,11 @@ from niagads.open_access_api_common.services.routes import (
     PaginationCursor as _BasePaginationCursor,
     Parameters,
     ResponseConfiguration,
+)
+from niagads.open_access_filer_api.services.wrapper import (
+    ApiWrapperService,
+    FILERApiDataResponse,
+    FILERApiEndpoint,
 )
 from niagads.utils.list import cumulative_sum, chunker
 from pydantic import BaseModel
@@ -55,7 +61,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         )
 
     async def __initialize_data_query_pagination(
-        self, trackOverlaps: List[TrackOverlap]
+        self, trackResultSummary: List[TrackResultSize]
     ) -> PaginationCursor:
         """calculate expected result size, number of pages;
         determines and caches cursor-based pagination
@@ -70,7 +76,9 @@ class FILERRouteHelper(MetadataRouteHelperService):
         returns current set of pagedTracks, and start/end points for slicing within track results
         """
         # sort the track summary
-        sortedTrackOverlaps: List[TrackOverlap] = sort_track_overlaps(trackOverlaps)
+        sortedTrackResultSummary: List[TrackResultSize] = TrackResultSize.sort(
+            trackResultSummary
+        )
 
         # generate cache keys
         noPageCacheKey = self._managers.cacheKey.no_page()
@@ -96,7 +104,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         # if either is uncached, the data may be out of sync so recalculate cache size
         if cursors is None or self._resultSize is None:
             cumulativeSum = cumulative_sum(
-                [t.num_overlaps for t in sortedTrackOverlaps]
+                [t.num_results for t in sortedTrackResultSummary]
             )
             self._resultSize = cumulativeSum[-1]  # last element is total number of hits
 
@@ -126,7 +134,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
                             cursors.append(f"{index}:{offset}")
 
                             residualRecords = (
-                                sortedTrackOverlaps[index].num_overlaps - offset
+                                sortedTrackResultSummary[index].num_results - offset
                             )
                             priorTrackIndex = index
 
@@ -134,7 +142,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
 
             # end of final page is always the last track, last feature
             cursors.append(
-                f"{len(sortedTrackOverlaps)-1}:{sortedTrackOverlaps[-1].num_overlaps}"
+                f"{len(sortedTrackResultSummary)-1}:{sortedTrackResultSummary[-1].num_results}"
             )
 
             # cache the pagination cursor
@@ -155,7 +163,8 @@ class FILERRouteHelper(MetadataRouteHelperService):
             int(x) for x in cursors[self._pagination.page].split(":")
         ]
         pagedTracks = [
-            t.track_id for t in sortedTrackOverlaps[startTrackIndex : endTrackIndex + 1]
+            t.track_id
+            for t in sortedTrackResultSummary[startTrackIndex : endTrackIndex + 1]
         ]
 
         return PaginationCursor(
@@ -251,7 +260,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         return result
 
     async def __get_paged_track_data(
-        self, trackOverlaps: List[TrackOverlap], validate=True
+        self, trackResultSummary: List[TrackResultSize], validate=True
     ):
 
         result = await self._managers.cache.get(
@@ -261,8 +270,8 @@ class FILERRouteHelper(MetadataRouteHelperService):
         if result is not None:
             return await self.generate_response(result, isCached=True)
 
-        cursor: FILERPaginationCursor = await self.__initialize_data_query_pagination(
-            trackOverlaps
+        cursor: PaginationCursor = await self.__initialize_data_query_pagination(
+            trackResultSummary
         )
 
         assembly = self._parameters.get("assembly")
@@ -306,16 +315,20 @@ class FILERRouteHelper(MetadataRouteHelperService):
             assembly = await self.__validate_tracks(tracks)
 
         # get counts - needed for full pagination, counts only, summary
-        trackOverlaps = await self.__get_track_data_task(
+        trackResultSummary = await self.__get_track_data_task(
             tracks, assembly, self._parameters.span, True
         )
 
         if self._responseConfig.content == ResponseContent.FULL:
-            return await self.__get_paged_track_data(trackOverlaps, validate=validate)
+            return await self.__get_paged_track_data(
+                trackResultSummary, validate=validate
+            )
 
         # to ensure pagination order, need to sort by counts
-        sortedTrackOverlaps = sort_track_overlaps(trackOverlaps)
-        self._resultSize = len(sortedTrackOverlaps)
+        sortedTrackResultSummary: List[TrackResultSize] = TrackResultSize.sort(
+            trackResultSummary
+        )
+        self._resultSize = len(sortedTrackResultSummary)
         self.initialize_pagination()
         sliceRange = self.slice_result_by_page()
 
@@ -323,14 +336,14 @@ class FILERRouteHelper(MetadataRouteHelperService):
             case ResponseContent.IDS:
                 result = [
                     t["track_id"]
-                    for t in sortedTrackOverlaps[sliceRange.start : sliceRange.end]
+                    for t in sortedTrackResultSummary[sliceRange.start : sliceRange.end]
                 ]
                 return await self.generate_response(result)
 
             case ResponseContent.COUNTS:
                 # sort by counts to ensure pagination order
                 return await self.generate_response(
-                    sortedTrackOverlaps[sliceRange.start : sliceRange.end]
+                    sortedTrackResultSummary[sliceRange.start : sliceRange.end]
                 )
 
             case ResponseContent.SUMMARY | ResponseContent.URLS:
@@ -338,7 +351,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
                     rawResponse=ResponseContent.SUMMARY
                 )
                 summary = self.__generate_track_overlap_summary(
-                    metadata, sortedTrackOverlaps
+                    metadata, sortedTrackResultSummary
                 )
                 result = (
                     [t["url"] for t in summary[sliceRange.start : sliceRange.end]]
@@ -355,7 +368,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             [t.serialize(promoteObjs=True) for t in metadata],
             data if isinstance(data[0], dict) else [t.serialize() for t in data],
         )
-        result = sorted(result, key=lambda item: item["num_overlaps"], reverse=True)
+        result = sorted(result, key=lambda item: item["num_results"], reverse=True)
         return result
 
     async def search_track_data(self):
@@ -390,8 +403,10 @@ class FILERRouteHelper(MetadataRouteHelperService):
         cacheKey = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.assembly}&span={self._parameters.span}"
         cacheKey = CacheKeyDataModel.encrypt_key(cacheKey.replace(":", "_"))
 
-        informativeTrackOverlaps: List[TrackOverlap] = await self._managers.cache.get(
-            cacheKey, namespace=CacheNamespace.EXTERNAL_API
+        informativeTrackOverlaps: List[TrackResultSize] = (
+            await self._managers.cache.get(
+                cacheKey, namespace=CacheNamespace.EXTERNAL_API
+            )
         )
         if informativeTrackOverlaps is None:
             informativeTrackOverlaps = await ApiWrapperService(
@@ -409,7 +424,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             )
             return await self.generate_response([], isCached=False)
 
-        targetTrackOverlaps = informativeTrackOverlaps
+        targetTrackResultSize = informativeTrackOverlaps
 
         if hasMetadataFilters:
             # filter for tracks that match the filter
@@ -422,15 +437,15 @@ class FILERRouteHelper(MetadataRouteHelperService):
             targetTrackIds = list(
                 set(matchingTrackIds).intersection(informativeTrackIds)
             )
-            targetTrackOverlaps: List[TrackOverlap] = [
+            targetTrackResultSize: List[TrackResultSize] = [
                 t for t in informativeTrackOverlaps if t.track_id in targetTrackIds
             ]
 
         if self._responseConfig.content == ResponseContent.FULL:
-            return await self.__get_paged_track_data(targetTrackOverlaps)
+            return await self.__get_paged_track_data(targetTrackResultSize)
 
         # to ensure pagination order, need to sort by counts
-        result: List[TrackOverlap] = sort_track_overlaps(targetTrackOverlaps)
+        result: List[TrackResultSize] = TrackResultSize.sort(targetTrackResultSize)
         self._resultSize = len(result)
         self.initialize_pagination()
         sliceRange = self.slice_result_by_page()
@@ -479,8 +494,8 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 data: FILERApiDataResponse = await self.__get_gene_qtl_data_task(
                     self._parameters.track, feature.feature_id
                 )
-                counts = TrackOverlap(
-                    track_id=self._parameters.track, num_overlaps=len(data.features)
+                counts = TrackResultSize(
+                    track_id=self._parameters.track, num_results=len(data.features)
                 )
 
                 if self._responseConfig.content == ResponseContent.COUNTS:

@@ -1,5 +1,6 @@
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome.core import Assembly
+from niagads.open_access_api_common.models.data.track import TrackResultSize
 from pydantic import BaseModel
 from aiohttp import ClientSession
 from typing import List, Union
@@ -64,7 +65,7 @@ class ApiWrapperService:
 
     async def __count_track_overlaps(
         self, span: str, assembly: str, tracks: List[str]
-    ) -> List[TrackOverlap]:
+    ) -> List[TrackResultSize]:
         # TODO: new FILER endpoint, count overlaps for specific track ID?
         if (
             len(tracks) <= 3
@@ -73,7 +74,9 @@ class ApiWrapperService:
                 FILERApiEndpoint.OVERLAPS, {"track": ",".join(tracks), "span": span}
             )
             return [
-                TrackOverlap(track_id=t["Identifier"], num_overlaps=len(t["features"]))
+                TrackResultSize(
+                    track_id=t["Identifier"], num_results=len(t["features"])
+                )
                 for t in response
             ]
 
@@ -93,12 +96,12 @@ class ApiWrapperService:
             )  # informative tracks in the requested list
 
             return [tc for tc in response if tc.track_id in informativeTracks] + [
-                TrackOverlap(track_id=t, num_overlaps=0) for t in nonInformativeTracks
+                TrackResultSize(track_id=t, num_results=0) for t in nonInformativeTracks
             ]
 
     async def get_track_hits(
         self, tracks: List[str], span: str, assembly: str, countsOnly: bool = False
-    ) -> Union[List[FILERApiDataResponse], List[TrackOverlap]]:
+    ) -> Union[List[FILERApiDataResponse], List[TrackResultSize]]:
 
         if countsOnly:
             return await self.__count_track_overlaps(span, assembly, tracks)
@@ -134,12 +137,12 @@ class ApiWrapperService:
 
     async def get_informative_tracks(
         self, span: str, assembly: str, sort=False
-    ) -> List[TrackOverlap]:
+    ) -> List[TrackResultSize]:
         result = await self.__fetch(
             FILERApiEndpoint.INFORMATIVE_TRACKS, {"span": span, "assembly": assembly}
         )
         result = [
-            TrackOverlap(track_id=t["Identifier"], num_overlaps=t["numOverlaps"])
+            TrackResultSize(track_id=t["Identifier"], num_results=t["numOverlaps"])
             for t in result
         ]
-        return sort_track_overlaps(result) if sort else result
+        return TrackResultSize.sort(result) if sort else result

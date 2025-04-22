@@ -7,9 +7,12 @@ from niagads.database.models.metadata.composite_attributes import (
     Phenotype,
     Provenance,
 )
-from niagads.open_access_api_common.models.data.core import DynamicRowModel
+from niagads.open_access_api_common.models.data.core import DynamicRowModel, RowModel
 from niagads.open_access_api_common.models.views.core import id2title
-from niagads.open_access_api_common.parameters.response import ResponseView
+from niagads.open_access_api_common.parameters.response import (
+    ResponseFormat,
+    ResponseView,
+)
 from niagads.utils.list import find
 from pydantic import model_validator
 from sqlalchemy import RowMapping
@@ -85,7 +88,7 @@ class GenericTrackSummary(DynamicRowModel):
         columns[index[0]].update({"type": "link"})
 
         options = {}
-        if "num_overlaps" in fields:
+        if "num_results" in fields:
             options.update(
                 {
                     "rowSelect": {
@@ -96,9 +99,9 @@ class GenericTrackSummary(DynamicRowModel):
                     }
                 }
             )
-            fields.remove("num_overlaps")
+            fields.remove("num_results")
             fields.insert(
-                0, "num_overlaps"
+                0, "num_results"
             )  # so that it is in the first 8 and displayed by default
         if len(fields) > 8:
             options.update({"defaultColumns": fields[:8]})
@@ -114,3 +117,22 @@ class GenericTrack(GenericTrackSummary):
 
     def to_view_data(self, view: ResponseView, **kwargs):
         return self.serialize(promoteObjs=True)
+
+
+class TrackResultSize(RowModel):
+    track_id: str
+    num_results: int
+
+    def get_view_config(self, view: ResponseView, **kwargs):
+        raise RuntimeError("View transformations not implemented for this row model.")
+
+    def to_view_data(self, view: ResponseView, **kwargs):
+        raise RuntimeError("View transformations not implemented for this row model.")
+
+    def to_text(self, format: ResponseFormat, **kwargs):
+        return f"{self.track_id}\t{self.num_results}"
+
+    @staticmethod
+    def sort(results: List[Self], reverse=True) -> List[Self]:
+        """sorts a list of track results"""
+        return sorted(results, key=lambda item: item.num_results, reverse=reverse)
