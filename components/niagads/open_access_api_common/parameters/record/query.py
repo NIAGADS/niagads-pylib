@@ -31,3 +31,17 @@ async def optional_track_list_param(
             "Invalid delimiter; please separate multiple identifiers with commas (`,`)."
         )
     return sTrack
+
+
+async def track_list_param(
+    track: str = Query(
+        description="a comma separated list of one or more track identifiers",
+    )
+) -> str:
+    """required track_list parameter"""
+    sTrack: str = sanitize(track)
+    if any(delim in sTrack for delim in [":", "|", ";", " "]):
+        raise RequestValidationError(
+            "Invalid delimiter; please separate multiple identifiers with commas (`,`)."
+        )
+    return sTrack
