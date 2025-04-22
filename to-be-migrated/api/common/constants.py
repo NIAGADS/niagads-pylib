@@ -1,6 +1,3 @@
-from typing import Any, Dict, List, Union
-
-
 ALLOWABLE_FILER_TRACK_FILTERS = {
     "dataSource": "original data source ",
     "assay": "assay type",
@@ -10,15 +7,6 @@ ALLOWABLE_FILER_TRACK_FILTERS = {
     "tissue": "tissue associated with biosample",
 }
 
-BIOSAMPLE_FIELDS = [
-    "life_stage",
-    "biosample_term",
-    "system_category",
-    "tissue_category",
-    "biosample_display",
-    "biosample_summary",
-    "biosample_term_id",
-]
 
 TRACK_SEARCH_FILTER_FIELD_MAP = {
     "biosample": {

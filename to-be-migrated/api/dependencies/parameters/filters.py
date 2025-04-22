@@ -17,8 +17,6 @@ from pyparsing import (
 from pyparsing.helpers import one_of
 
 
-from ...common.exceptions import get_error_message
-
 _NUMBER = Word(nums)
 _TEXT = Word(alphas + "_" + "-")
 _JOIN = Keyword("and") | Keyword(";")  # TODO: | Keyword("or")
