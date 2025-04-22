@@ -30,9 +30,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from niagads.open_access_api_common.config.core import get_settings
 
-# FIXME: do we need to import  this whole package and have this dependency just for this error?!
-from psycopg2 import DatabaseError
 from pydantic import ValidationError
+from sqlalchemy.exc import DatabaseError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 
