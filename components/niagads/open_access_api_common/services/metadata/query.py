@@ -1,5 +1,6 @@
 from fastapi.exceptions import RequestValidationError
 
+from niagads.database.models.metadata.collection import Collection, TrackCollection
 from niagads.database.models.metadata.track import Track
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from niagads.open_access_api_common.config.constants import SHARD_PATTERN
@@ -84,7 +85,7 @@ class MetadataQueryService:
         return result
 
     def generate_sharded_track_metadata(self, t: Track):
-        t.track_id = t.shard_parent_track_id
+        t.track_id = t.shard_root_track_id
         t.url = regex_replace(SHARD_PATTERN, "$CHR", t.url)
 
         # remove _chrN_ from fields
@@ -100,7 +101,7 @@ class MetadataQueryService:
     async def get_sharded_track_ids(self, rootShardTrackId: str):
         statement = (
             select(Track.track_id)
-            .where(col(Track.shard_parent_track_id) == rootShardTrackId)
+            .where(col(Track.shard_root_track_id) == rootShardTrackId)
             .order_by(Track.track_id)
         )
         result = (await self.__session.execute(statement)).scalars().all()
@@ -109,7 +110,7 @@ class MetadataQueryService:
     async def get_sharded_track_urls(self, rootShardTrackId: str):
         statement = (
             select(Track.url)
-            .where(col(Track.shard_parent_track_id) == rootShardTrackId)
+            .where(col(Track.shard_root_track_id) == rootShardTrackId)
             .order_by(Track.track_id)
         )
         result = (await self.__session.execute(statement)).scalars().all()
