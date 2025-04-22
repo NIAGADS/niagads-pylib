@@ -12,6 +12,9 @@ from niagads.open_access_api_common.models.cache import (
     CacheNamespace,
 )
 from niagads.open_access_api_common.models.data.core import DynamicRowModel
+from niagads.open_access_api_common.models.data.igvbrowser import (
+    IGVBrowserTrackSelectorResponse,
+)
 from niagads.open_access_api_common.models.responses.core import (
     ResponseModel,
     T_ResponseModel,
