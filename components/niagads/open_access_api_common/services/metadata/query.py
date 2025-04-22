@@ -183,6 +183,7 @@ class MetadataQueryService:
         return result
 
     def __add_biosample_filters(self, statement, triple: List[str]):
+        """ FIXME 
         conditions = []
         for bsf in BIOSAMPLE_FIELDS:
             conditions.append(
@@ -201,8 +202,11 @@ class MetadataQueryService:
             )
 
         return statement.filter(or_(*conditions))
+        """
+        return statement
 
     def __add_statement_filters(self, statement, filters: List[str]):
+        """ FIXME 
         for phrase in filters:
             # array or join?
             if isinstance(phrase, list):
@@ -217,7 +221,7 @@ class MetadataQueryService:
                             [modelField, phrase[1], phrase[2]], Track
                         )
                     )
-
+        """
         return statement
 
     @staticmethod
@@ -274,7 +278,8 @@ class MetadataQueryService:
     async def get_track_filter_summary(
         self, filterField: str, inclCounts: Optional[bool] = False
     ) -> dict:
-        modelField = TRACK_SEARCH_FILTER_FIELD_MAP[filterField]["model_field"]
+ 
+        modelField = filterField # FIXME: TRACK_SEARCH_FILTER_FIELD_MAP[filterField]["model_field"]
 
         valueCol = col(getattr(Track, modelField))
         if "biosample" in modelField:
