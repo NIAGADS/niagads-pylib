@@ -3,6 +3,7 @@ from enum import Enum, auto
 from fastapi import Query
 from fastapi.exceptions import RequestValidationError
 from niagads.exceptions.core import extract_exception_message
+from niagads.utils.string import sanitize
 from pyparsing import (
     Group,
     Keyword,
@@ -21,7 +22,7 @@ _TEXT = Word(alphas + "_" + "-")
 _JOIN = Keyword("and") | Keyword(";")  # TODO: | Keyword("or")
 
 
-OPERATORS = {
+_OPERATORS = {
     "eq": "`equals`: exact, case sensitive, matches to entire field",
     "neq": "`not equals`: exact, case sensitive, negative matches to entire field",
     "like": "`like`: case-insensitive substring matching; NOTE for queries against `biosample`, `eq` and `neq` will be executed as `like` or `not like`, respeectively",
@@ -107,3 +108,14 @@ class FilterParameter:
             raise RequestValidationError(
                 f"Unable to parse `filter` expression: {filter}; {extract_exception_message(e)}.  Example expression: data_source eq GTEx and biosample like astrocyte.  Test conditions must substitute an underscore (_) for spaces, e.g., histone modification should be written as histone_modification"
             )
+
+
+async def keyword_param(
+    keyword: Optional[str] = Query(
+        default=None,
+        description="Search all text annotations by keyword.  Matches are exact and case-sensitive.",
+    )
+) -> str:
+    if keyword is not None:
+        return sanitize(keyword)
+    return keyword

@@ -66,7 +66,8 @@ class Human(CaseInsensitiveEnum):
         cv = str(value).upper().replace("CHR", "").replace("MT", "M")
         if cv in self._value2member_map_:
             return "chr" + cv if inclPrefix else cv
-        return None
+        else:
+            raise KeyError(f"Invalid chromosome: {value}")
 
 
 class ChromosomeMapParser(object):

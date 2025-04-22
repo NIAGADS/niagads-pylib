@@ -1,12 +1,8 @@
-from typing import List
 from fastapi import Query
-from fastapi.exceptions import RequestValidationError, ResponseValidationError
-from niagads.reference.chromosomes import Human as Chromosome
-from niagads.utils.reg_ex import matches
-
-from api.common.formatters import clean
-from api.common.enums.genome import Assembly, FeatureType
-from api.models.genome import Feature
+from fastapi.exceptions import RequestValidationError
+from niagads.genome.core import Assembly, GenomicFeatureType, Human
+from niagads.open_access_api_common.models.data.genome import Feature
+from niagads.utils.string import matches, sanitize
 
 
 async def assembly_param(
@@ -14,22 +10,20 @@ async def assembly_param(
         Assembly.GRCh38, description="reference genome build (assembly)"
     )
 ):
-    try:
-        return Assembly(sanitize(assembly))
-    except:
-        raise ResponseValidationError(
-            f"Invalid value provided for `assembly`: {assembly}"
-        )
+    return Assembly.validate(assembly)
 
 
 async def chromosome_param(
     chromosome: str = Query(
-        Chromosome.chr19.value,
-        enum=[c.name for c in Chromosome],
+        Human.chr19.value,
+        enum=[c.name for c in Human],
         description="chromosome, specificed as 1..22,X,Y,M,MT or chr1...chr22,chrX,chrY,chrM,chrMT",
     )
 ):
-    return Chromosome.validate(sanitize(chromosome))
+    try:
+        return Human.validate(sanitize(chromosome))
+    except KeyError:
+        raise RequestValidationError(f"Invalid chromosome {chromosome}.")
 
 
 def validate_span(span: str, returnNotMatching: bool = False):
@@ -41,13 +35,15 @@ def validate_span(span: str, returnNotMatching: bool = False):
             return False
         else:
             raise RequestValidationError(
-                f"Invalid genomic span: `{span}`; for a chromosome, N, please specify as chrN:start-end or N:start-end"
+                f"Invalid genomic span: `{span}`;"
+                f"for a chromosome, N, please specify as chrN:start-end or N:start-end"
             )
 
     # split on :
     [chrm, coords] = span.split(":")
-    validChrm = Chromosome.validate(chrm)
-    if validChrm is None:
+    try:
+        validChrm = Human.validate(chrm)
+    except KeyError:
         raise RequestValidationError(
             f"Invalid genomic span: `{span}`; invalid chromosome `{chrm}`"
         )
@@ -88,8 +84,9 @@ def validate_variant(feature: str, returnNotMatching):
 
     # validate chrm
     [chrm, pos, ref, alt] = feature.split(":")
-    validChrm = Chromosome.validate(chrm)
-    if validChrm is None:
+    try:
+        Human.validate(chrm)
+    except KeyError:
         raise RequestValidationError(
             f"Invalid genomic location: `{feature}`; invalid chromosome `{chrm}`"
         )
@@ -109,10 +106,10 @@ async def loc_param(
 
     value = validate_span(location, returnNotMatching=True)
     if not isinstance(value, bool):
-        return Feature(feature_id=value, feature_type=FeatureType.SPAN)
+        return Feature(feature_id=value, feature_type=GenomicFeatureType.SPAN)
 
     value = validate_variant(location, returnNotMatching=True)
     if not isinstance(value, bool):
-        return Feature(feature_id=value, feature_type=FeatureType.VARIANT)
+        return Feature(feature_id=value, feature_type=GenomicFeatureType.VARIANT)
 
-    return Feature(feature_id=location, feature_type=FeatureType.GENE)
+    return Feature(feature_id=location, feature_type=GenomicFeatureType.GENE)
