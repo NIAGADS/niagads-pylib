@@ -1,5 +1,6 @@
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome.core import Assembly
+from niagads.open_access_api_common.models.data.bed import BEDFeature
 from niagads.open_access_api_common.models.data.track import TrackResultSize
 from pydantic import BaseModel
 from aiohttp import ClientSession
@@ -63,7 +64,7 @@ class ApiWrapperService:
                 f"Unable to get FILER response `{response.content}` for the following request: {str(response.url)}"
             )
 
-    async def __count_track_overlaps(
+    async def __get_result_size(
         self, span: str, assembly: str, tracks: List[str]
     ) -> List[TrackResultSize]:
         # TODO: new FILER endpoint, count overlaps for specific track ID?
@@ -104,13 +105,11 @@ class ApiWrapperService:
     ) -> Union[List[FILERApiDataResponse], List[TrackResultSize]]:
 
         if countsOnly:
-            return await self.__count_track_overlaps(span, assembly, tracks)
+            return await self.__get_result_size(span, assembly, tracks)
 
         result = await self.__fetch(
             FILERApiEndpoint.OVERLAPS, {"track": ",".join(tracks), "span": span}
         )
-
-        # FIXME: more efficient?
 
         try:
             return [FILERApiDataResponse(**r) for r in result]

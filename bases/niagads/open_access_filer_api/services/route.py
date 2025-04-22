@@ -14,6 +14,7 @@ from niagads.open_access_api_common.models.cache import (
     CacheKeyQualifier,
     CacheNamespace,
 )
+from niagads.open_access_api_common.models.data.bed import BEDFeature
 from niagads.open_access_api_common.models.data.genome import Feature
 from niagads.open_access_api_common.models.data.track import TrackResultSize
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
@@ -22,7 +23,7 @@ from niagads.open_access_api_common.services.metadata.query import MetadataQuery
 from niagads.open_access_api_common.services.metadata.route import (
     MetadataRouteHelperService,
 )
-from niagads.open_access_api_common.services.routes import (
+from niagads.open_access_api_common.services.route import (
     PaginationCursor as _BasePaginationCursor,
     Parameters,
     ResponseConfiguration,
@@ -37,6 +38,7 @@ from pydantic import BaseModel
 
 FILER_HTTP_CLIENT_TIMEOUT = 60
 CACHEDB_PARALLEL_TIMEOUT = 30
+TRACKS_PER_API_REQUEST_LIMIT = 50
 
 
 class PaginationCursor(BaseModel):
@@ -185,7 +187,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
     async def __validate_tracks(self, tracks: List[str]):
         """by setting validate=True, the service runs .validate_tracks before validating the genome build"""
         assembly = await MetadataQueryService(
-            self._managers.metadataSession, dataStore=self._dataStore
+            self._managers.session, dataStore=self._dataStore
         ).get_genome_build(tracks, validate=True)
         if isinstance(assembly, dict):
             raise RequestValidationError(
@@ -200,10 +202,10 @@ class FILERRouteHelper(MetadataRouteHelperService):
         # sort the response by the cursor pagedTracks so the track order is correct
         # FILER currently processes sequentially so this is unecessary but if updated
         # to process in parallel, it will be required
-        sortedResponse = sorted(data, key=lambda x: cursor.tracks == x.Identifier)
+        sortedData = sorted(data, key=lambda x: cursor.tracks == x.Identifier)
 
         result: List[BEDFeature] = []
-        for trackIndex, track in enumerate(sortedResponse):
+        for trackIndex, track in enumerate(sortedData):
             sliceStart = cursor.start.offset if trackIndex == cursor.start.key else None
             sliceEnd = cursor.end.offset if trackIndex == cursor.end.key else None
 
@@ -291,9 +293,9 @@ class FILERRouteHelper(MetadataRouteHelperService):
 
         data: List[FILERApiDataResponse] = []
         for r in chunkedResults:
-            response = response + r
+            data = data + r
 
-        result = self.__page_data_result(cursor, response)
+        result = self.__page_data_result(cursor, data)
 
         return await self.generate_response(result, isCached=False)
 

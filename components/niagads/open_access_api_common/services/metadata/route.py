@@ -4,7 +4,8 @@ from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from niagads.open_access_api_common.models.cache import CacheKeyQualifier
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
 from niagads.open_access_api_common.parameters.response import ResponseContent
-from niagads.open_access_api_common.services.routes import (
+from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
+from niagads.open_access_api_common.services.route import (
     Parameters,
     ResponseConfiguration,
     RouteHelperService,
@@ -43,7 +44,7 @@ class MetadataRouteHelperService(RouteHelperService):
             tracks = sorted(tracks)  # best for caching & pagination
 
             result = await MetadataQueryService(
-                self._managers.metadataSession, dataStore=self._dataStore
+                self._managers.session, dataStore=self._dataStore
             ).get_track_metadata(tracks, responseType=self._responseConfig.content)
 
             if not rawResponse:
@@ -79,7 +80,7 @@ class MetadataRouteHelperService(RouteHelperService):
             isCached = False
 
             result = await MetadataQueryService(
-                self._managers.metadataSession,
+                self._managers.session,
                 self._managers.requestData,
                 self._dataStore,
             ).get_collection_track_metadata(
@@ -131,7 +132,7 @@ class MetadataRouteHelperService(RouteHelperService):
         if rawResponse is None:
             # get counts to either return or determine pagination
             result = await MetadataQueryService(
-                self._managers.metadataSession, dataStore=self._dataStore
+                self._managers.session, dataStore=self._dataStore
             ).query_track_metadata(
                 self._parameters.assembly,
                 self._parameters.get("filter", None),
@@ -149,7 +150,7 @@ class MetadataRouteHelperService(RouteHelperService):
                 limit = self._pageSize
 
         result = await MetadataQueryService(
-            self._managers.metadataSession, dataStore=self._dataStore
+            self._managers.session, dataStore=self._dataStore
         ).query_track_metadata(
             self._parameters.assembly,
             self._parameters.get("filter", None),
@@ -179,7 +180,7 @@ class MetadataRouteHelperService(RouteHelperService):
 
         # TODO: validate track
 
-        # result = await MetadataQueryService(self._managers.metadataSession, self._managers.requestData, self._dataStore) \
+        # result = await MetadataQueryService(self._managers.session, self._managers.requestData, self._dataStore) \
         #         .get_shard(self._parameters.track, self._parameters.chr,
         #            responseType=self._responseConfig.content)
 

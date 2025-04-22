@@ -30,8 +30,8 @@ from niagads.open_access_api_common.types import Range
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from sqlalchemy import RowMapping
 
-__INTERNAL_PARAMETERS = ["span", "_tracks"]
-__ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMARY]
+_INTERNAL_PARAMETERS = ["span", "_tracks"]
+_ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMARY]
 
 
 class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
@@ -45,12 +45,12 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     @model_validator(mode="after")
     def validate_config(self, __context):
         if (
-            self.content not in __ALLOWABLE_VIEW_RESPONSE_CONTENTS
+            self.content not in _ALLOWABLE_VIEW_RESPONSE_CONTENTS
             and self.view != ResponseView.DEFAULT
         ):
             raise RequestValidationError(
                 f"Can only generate a `{str(self.view)}` `view` of query result for "
-                f"`{','.join(__ALLOWABLE_VIEW_RESPONSE_CONTENTS)}` response content (see `content`)"
+                f"`{','.join(_ALLOWABLE_VIEW_RESPONSE_CONTENTS)}` response content (see `content`)"
             )
 
         if self.content != ResponseContent.FULL and self.format in [
@@ -296,7 +296,7 @@ class RouteHelperService:
         response: Type[T_ResponseModel] = result if isCached else None
         if response is None:
             self._managers.requestData.update_parameters(
-                self._parameters, exclude=INTERNAL_PARAMETERS
+                self._parameters, exclude=_INTERNAL_PARAMETERS
             )
 
             if self._responseConfig.model.is_paged():
