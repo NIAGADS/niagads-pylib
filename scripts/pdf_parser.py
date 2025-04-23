@@ -53,10 +53,9 @@ class PDFParser:
         if self.__text is None:
             self.parse()
 
-        chunkSize: int = self.__max_new_tokens - 2
         return [
-            self.__text[i : i + chunkSize]
-            for i in range(0, len(self.__text), chunkSize)
+            self.__text[i : i + self.__max_new_tokens]
+            for i in range(0, len(self.__text), self.__max_new_tokens)
         ]
 
     def to_json(self):
