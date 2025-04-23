@@ -6,8 +6,14 @@ import os
 from datetime import datetime
 import argparse
 import random
+from dotenv import load_dotenv
 
-NCBI_API_KEY = "22b3c09ba6f71022526646140a1d67ee2508"
+load_dotenv()
+
+NCBI_API_KEY = os.getenv('NCBI_API_KEY')
+if not NCBI_API_KEY:
+    raise ValueError("NCBI_API_KEY not found in environment variables")
+
 os.environ['NCBI_API_KEY'] = NCBI_API_KEY
 
 fetch = PubMedFetcher()
