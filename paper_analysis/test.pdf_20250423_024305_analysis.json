@@ -1,0 +1,72 @@
+{
+  "is_complete": false,
+  "headers": [
+    {
+      "original": "PhD",
+      "verified_as": "phd",
+      "confidence": 1.0,
+      "context": "D.A. Evans, MDABSTRACT\nObjective: To characterize change in depressive symptoms before and after the onset of demen-\ntia in Alzheimer disease (AD)."
+    },
+    {
+      "original": "The objective of the present study was to characterize change in depressive symptoms prior",
+      "verified_as": "et al. cognitive changes following\nsevere depression. j psychophys res 2008;13:521\u2013534.\n\n\n40. m\u00f8ller k",
+      "confidence": 0.7274006605148315,
+      "context": "to and following the onset of dementia in AD. Data are from the Chicago Health and AgingProject, a longitudinal study of aging and AD in a geographically defined biracial community.At 3-year intervals, the entire population completed a brief self-report measure of depressivesymptoms, and persons deemed dementia-free at a previous wave of data collection weresampled for clinical classification of dementia and AD. In primary analyses, we characterizedchange in self-reported depressive symptoms before and after dementia onset in AD. In addi-tion, following the clinical evaluation, depressive symptoms were assessed annually by infor-\nFrom the Rush Alzheimer\u2019s Disease Center (R.S.W., G.H., L.L.B.) and Rush Institute for Healthy Aging (K.B.R., C.F.M.d.L., D.A.E.) and\nDepartments of Neurological Sciences (R.S.W., L.L.B., D.A.E.), Behavioral Sciences (R.S.W., L.L.B.), and Internal Medicine (K.B.R., C.F.M.d.L. ,"
+    },
+    {
+      "original": "RESULTS",
+      "verified_as": "results",
+      "confidence": 1.0,
+      "context": "Self-report of depressive symptoms. Initial\nanalyses focused on a group of 357 individuals whodeveloped AD during the course of the study. At thetime of diagnosis, they had a mean age of 82.5 years(SD 5.7) and a mean of 12.0 years of education (SD3.5), 60.5% were women, and 59.6% were AfricanAmerican. They had a mean Mini-Mental State Ex-amination score of 20.4 (SD 5.2), indicative of milddementia. They had participated in the study for amean of 8 to 9 years.\n22 Neurology 75 July 6, 2010"
+    },
+    {
+      "original": "Because little is known about depression and AD",
+      "verified_as": "we deduced that ad has little effect on the incidence of depression. however",
+      "confidence": 0.7010215520858765,
+      "context": "in different racial subgroups, we repeated the initialanalysis with terms for the interactions of race withprediagnosis time and postdiagnosis time. Neitherinteraction was significant. In subsequent analyses,there was no evidence that sex, age, or educationmodified the trajectory of depressive symptoms be-fore or after AD was diagnosed.\nTo determine whether some aspects of depression\nwere selectively affected, we repeated the initial modelusing depression subscores instead of the total score (ta-ble 1). In these analyses, report of depressed affect in-creased slightly before dementia onset but not after it;report of positive affect decreased slightly before and"
+    },
+    {
+      "original": "Depressed affect",
+      "verified_as": "depression",
+      "confidence": 0.7728879451751709,
+      "context": "Prediagnosis time 0.05 0.02 0.008\nPostdiagnosis time /H110020.03 0.04 0.477\nPositive affect"
+    },
+    {
+      "original": "Positive affect",
+      "verified_as": "positive affect(2 items)",
+      "confidence": 0.8138405084609985,
+      "context": "Prediagnosis time 0.08 0.03 0.010\nPostdiagnosis time 0.10 0.04 0.016\nSomatic complaints"
+    },
+    {
+      "original": "Somatic complaints",
+      "verified_as": "somatic complaint (3 items)",
+      "confidence": 0.8198767304420471,
+      "context": "Prediagnosis time 0.02 0.01 0.140\nPostdiagnosis time /H110020.03 0.03 0.207\nInterpersonal problems"
+    },
+    {
+      "original": "Knowledge about depressive symptoms in AD",
+      "verified_as": "backman\nl. the occurrence of depressive symptoms in the preclini-cal phase of ad: a population-based study. neurology1999;53:1998\u20132002.\n2. devanand dp",
+      "confidence": 0.7549028396606445,
+      "context": "comes mainly from cross-sectional studies. Thus, indefined populations, persons with MCI, dementia,or AD have generally been found to have more de-pressive symptoms than persons without cognitiveimpairment,\n10,11but these data provide limited in-\nsight into the basis of the association between depres-sion and dementia. We are aware of only 2 previousstudies that tracked depressive symptoms during thedevelopment of AD. One study of older Catholicclergy found no change in self-report of depressivesymptoms (10-item, binary response CES-D) duringa mean of 3.9 years before the incidence of AD and3.2 years before the incidence of MCI."
+    },
+    {
+      "original": "symptoms in mild cognitive impairmentand Alzheimer disease",
+      "verified_as": "mild cognitive impairment",
+      "confidence": 0.7403779625892639,
+      "context": "a\nModel term Estimate SE p\nTime /H110020.00 0.04 0.933"
+    },
+    {
+      "original": "of the association between depressive symptoms and",
+      "verified_as": "the entire population completed a brief self-report measure of depressivesymptoms",
+      "confidence": 0.7514261603355408,
+      "context": "subsequent cognitive dysfunction1-9reflects factors\nother than the pathologic lesions traditionally linkedwith late-life dementia. Consistent with this idea, de-pressive symptoms have been associated with re-duced density of dendrites and spines in the CA3region of the hippocampus,\n39a characteristic finding"
+    },
+    {
+      "original": "Cognition andPsychology and Aging and receives research support from the",
+      "verified_as": "and\ncognition andpsychology and aging and receives research support from the\nnih/nia (r01ag024871 [principal investigator]",
+      "confidence": 0.7932565808296204,
+      "context": "NIH/NIA (R01AG024871 [Principal Investigator], P30AG10161 [Coinves-tigator], R01AG11101 [Coinvestigator], R01AG15819 [Coinvestigator],R01AG021972 [Coinvestigator], U24AG026395 [Coinvestigator],R01AG017917 [Coinvestigator], R01AG009966 [Coinvestigator], andU01AG016979 [Coinvestigator]) and NIH/NIEHS (ES10902 [Coinvestiga-tor]). G. Hoganson receives research support from the NIH/NIA(P30AG10161 [Study Coordinator]). Dr. Rajan receives research supportfrom the NIH (R01AG032247 [Biostatistician], R01AG11101 [Biostatisti-cian], R01AG09966 [Biostatistician], R01ES10902\u201301 [Biostatistician], andK23AG030944-0251 [Biostatistician]). Dr. Barnes serves on the editorialboard of the Journal of Aging and Health and receives research support from\nthe NIH (R01AG022018 [Principal Investigator], R01NR009543[Neuropsychologist], P30AG010161 [Coinvestigator], R01ES010902 [Co-\ninvestigator], R01AG031553 [Neuropsychologist], and R01AG032247 [Coin-vestigator]) and the Alzheimer\u2019s Association. Dr. Mendes de Leon serves as an"
+    }
+  ],
+  "timestamp": "20250423_024305"
+}
