@@ -1,4 +1,3 @@
-from enum import StrEnum
 import json
 
 # FIXME: EGA - after integration w/NIAGADS pylib
