@@ -1,7 +1,9 @@
 from fastapi import Query
 from fastapi.exceptions import RequestValidationError
 from niagads.genome.core import Assembly, GenomicFeatureType, Human
-from niagads.open_access_api_common.models.records.features.genomic import Feature
+from niagads.open_access_api_common.models.records.features.genomic import (
+    GenomicFeature,
+)
 from niagads.utils.string import matches, sanitize
 
 
@@ -106,10 +108,10 @@ async def loc_param(
 
     value = validate_span(location, returnNotMatching=True)
     if not isinstance(value, bool):
-        return Feature(feature_id=value, feature_type=GenomicFeatureType.SPAN)
+        return GenomicFeature(feature_id=value, feature_type=GenomicFeatureType.SPAN)
 
     value = validate_variant(location, returnNotMatching=True)
     if not isinstance(value, bool):
-        return Feature(feature_id=value, feature_type=GenomicFeatureType.VARIANT)
+        return GenomicFeature(feature_id=value, feature_type=GenomicFeatureType.VARIANT)
 
-    return Feature(feature_id=location, feature_type=GenomicFeatureType.GENE)
+    return GenomicFeature(feature_id=location, feature_type=GenomicFeatureType.GENE)

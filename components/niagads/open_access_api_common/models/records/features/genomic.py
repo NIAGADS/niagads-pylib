@@ -35,6 +35,6 @@ class Variant(RowModel):
     ref_snp_id: Optional[str] = None
 
 
-class Feature(BaseModel):
+class GenomicFeature(BaseModel):
     feature_id: str
     feature_type: GenomicFeatureType

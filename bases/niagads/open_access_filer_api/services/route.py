@@ -14,8 +14,12 @@ from niagads.open_access_api_common.models.cache import (
     CacheKeyQualifier,
     CacheNamespace,
 )
-from niagads.open_access_api_common.models.records.features.bed import BEDFeature
-from niagads.open_access_api_common.models.records.features.genomic import Feature
+from niagads.open_access_api_common.models.records.features.bed import (
+    BEDFeature,
+)
+from niagads.open_access_api_common.models.records.features.genomic import (
+    GenomicFeature,
+)
 from niagads.open_access_api_common.models.records.track.track import TrackResultSize
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
 from niagads.open_access_api_common.parameters.response import ResponseContent
@@ -485,7 +489,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
 
         assembly = await self.__validate_tracks([self._parameters.track])
 
-        feature: Feature = self._parameters.location
+        feature: GenomicFeature = self._parameters.location
 
         match feature.feature_type:
             case GenomicFeatureType.GENE:
