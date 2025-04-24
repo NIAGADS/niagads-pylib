@@ -1,9 +1,18 @@
 from enum import StrEnum, auto
-from typing import Any, Dict, List, Optional, Union
+from typing import Annotated, Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, model_validator
+from niagads.enums.core import CaseInsensitiveEnum
+from niagads.genome.core import GenomicFeatureType
+from niagads.utils.regular_expressions import RegularExpressions
+from pydantic import BaseModel, Field, constr, model_validator
 
 T_JSON = Union[Dict[str, Any], List[Any], int, float, str, bool, None]
+
+T_PubMedID = Annotated[str, Field(pattern=RegularExpressions.PUBMED_ID)]
+
+
+class RecordType(GenomicFeatureType):
+    TRACK = auto()
 
 
 class Range(BaseModel):
