@@ -1,7 +1,3 @@
-# application db
-from niagads.open_access_api_common.parameters.response import ResponseContent
-
-
 # http client
 HTTP_CLIENT_TIMEOUT = 30  # timeout in seconds
 

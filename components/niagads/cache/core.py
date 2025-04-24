@@ -3,7 +3,7 @@
 from typing_extensions import Self
 from aiocache import RedisCache
 
-from enum import Enum, StrEnum, auto
+from enum import Enum
 from aiocache.serializers import StringSerializer, JsonSerializer, PickleSerializer
 
 # int or float in seconds specifying maximum timeout for the operations to last.
@@ -27,7 +27,7 @@ class CacheTTL(Enum):
     DAY = 86400
 
 
-class CacheManager:
+class KeyDBCacheManager:
     """KeyDB (Redis) cache for responses
     application will instantiate two CacheManagers
         1.  internal cache - for internal use in the FAST-API application

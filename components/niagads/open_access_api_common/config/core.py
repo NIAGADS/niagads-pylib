@@ -2,6 +2,7 @@
 from typing import Optional
 
 # from niagads.database_models.track.properties import TrackDataStore
+from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 import os
@@ -11,7 +12,7 @@ class Settings(BaseSettings):
     APP_DB_URI: str  # application db (e.g., GenomicsDB or FILER metadata cache)
     CACHE_DB_URI: str  # in memory cache db
 
-    # DATA_STORE: TrackDataStore
+    DATA_STORE: TrackDataStore
 
     API_PUBLIC_URL: str = "http://localhost:8000"  # public facing URL for the API
 

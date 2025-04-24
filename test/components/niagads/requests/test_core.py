@@ -1,4 +1,4 @@
-from niagads.keydb import core
+from niagads.requests import core
 
 
 def test_sample():

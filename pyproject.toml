@@ -1,8 +1,6 @@
 [project]
 name = "niagads-pylib"
-authors = [
-    { name = "fossilfriend", email = "egreenfest@gmail.com" },
-]
+authors = [{ name = "fossilfriend", email = "egreenfest@gmail.com" }]
 description = "a collection of python packages, classes, and utility functions in support of NIAGADS projects"
 license = { text = "GNU GPLv3" }
 readme = "README.md"
@@ -37,7 +35,6 @@ packages = [
     { from = "components", include = "niagads/gene_record" },
     { from = "components", include = "niagads/genome" },
     { from = "components", include = "niagads/json_validator" },
-    { from = "components", include = "niagads/keydb" },
     { from = "components", include = "niagads/metadata_validator" },
     { from = "components", include = "niagads/objects" },
     { from = "components", include = "niagads/open_access_api_common" },
@@ -48,16 +45,13 @@ packages = [
     { from = "components", include = "niagads/variant_record" },
     { from = "components", include = "niagads/vcf_parser" },
     { from = "components", include = "niagads/vep_json_parser" },
-    {include = "niagads/http",from = "components"},
+    { include = "niagads/cache", from = "components" },
+    {include = "niagads/requests",from = "components"},
 ]
 
 [tool.poetry.dependencies]
-aiocache = { extras = [
-    "redis",
-], version = "^0.12.3" }
-aiohttp = { extras = [
-    "speedups",
-], version = "^3.11.16" }
+aiocache = { extras = ["redis"], version = "^0.12.3" }
+aiohttp = { extras = ["speedups"], version = "^3.11.16" }
 asgi-correlation-id = "^4.3.4"
 asyncpg = "^0.30.0"
 fastapi = "^0.115.12"
@@ -106,6 +100,4 @@ spaces_indent_inline_array = 4
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
-requires = [
-    "poetry-core>=2.0.0,<3.0.0",
-]
+requires = ["poetry-core>=2.0.0,<3.0.0"]

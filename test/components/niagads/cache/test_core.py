@@ -1,4 +1,4 @@
-from niagads.http import core
+from niagads.cache import core
 
 
 def test_sample():
