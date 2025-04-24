@@ -14,9 +14,9 @@ from niagads.open_access_api_common.models.cache import (
     CacheKeyQualifier,
     CacheNamespace,
 )
-from niagads.open_access_api_common.models.data.bed import BEDFeature
-from niagads.open_access_api_common.models.data.genome import Feature
-from niagads.open_access_api_common.models.data.track import TrackResultSize
+from niagads.open_access_api_common.models.records.features.bed import BEDFeature
+from niagads.open_access_api_common.models.records.features.genomic import Feature
+from niagads.open_access_api_common.models.records.track.track import TrackResultSize
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
 from niagads.open_access_api_common.parameters.response import ResponseContent
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService

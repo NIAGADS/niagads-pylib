@@ -1,7 +1,7 @@
 from typing import Any, List, Optional, Union
 
-from niagads.open_access_api_common.models.data.core import DynamicRowModel
-from niagads.open_access_api_common.models.responses.core import PagedResponseModel
+from niagads.open_access_api_common.models.records.core import DynamicRowModel
+from niagads.open_access_api_common.models.response.core import PagedResponseModel
 from niagads.open_access_api_common.models.views.core import id2title
 from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,

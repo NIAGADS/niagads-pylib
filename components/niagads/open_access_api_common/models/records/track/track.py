@@ -7,7 +7,8 @@ from niagads.database.models.metadata.composite_attributes import (
     Phenotype,
     Provenance,
 )
-from niagads.open_access_api_common.models.data.core import DynamicRowModel, RowModel
+from niagads.open_access_api_common.models.records.core import DynamicRowModel, RowModel
+from niagads.open_access_api_common.models.response.core import PagedResponseModel
 from niagads.open_access_api_common.models.views.core import id2title
 from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
@@ -136,3 +137,23 @@ class TrackResultSize(RowModel):
     def sort(results: List[Self], reverse=True) -> List[Self]:
         """sorts a list of track results"""
         return sorted(results, key=lambda item: item.num_results, reverse=reverse)
+
+
+class TrackSummaryResponse(PagedResponseModel):
+    data: List[GenericTrackSummary]
+
+    def to_text(self, format: ResponseView, **kwargs):
+        fields = (
+            self.response[0].get_field_names()
+            if len(self.response) > 0
+            else GenericTrackSummary.get_model_fields()
+        )
+        return super().to_text(format, fields=fields)
+
+
+class TrackResponse(PagedResponseModel):
+    data: List[GenericTrack]
+
+    def to_text(self, format: ResponseView, **kwargs):
+        fields = GenericTrack.get_model_fields()
+        return super().to_text(format, fields=fields)

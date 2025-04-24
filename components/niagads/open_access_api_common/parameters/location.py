@@ -1,7 +1,7 @@
 from fastapi import Query
 from fastapi.exceptions import RequestValidationError
 from niagads.genome.core import Assembly, GenomicFeatureType, Human
-from niagads.open_access_api_common.models.data.genome import Feature
+from niagads.open_access_api_common.models.records.features.genomic import Feature
 from niagads.utils.string import matches, sanitize
 
 

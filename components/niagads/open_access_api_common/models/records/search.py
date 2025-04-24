@@ -1,8 +1,8 @@
 from typing import List
 
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.open_access_api_common.models.data.core import RowModel
-from niagads.open_access_api_common.models.responses.core import PagedResponseModel
+from niagads.open_access_api_common.models.records.core import RowModel
+from niagads.open_access_api_common.models.response.core import PagedResponseModel
 from pydantic import AliasChoices, Field
 
 

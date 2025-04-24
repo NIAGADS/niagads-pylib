@@ -4,7 +4,7 @@ from niagads.database.models.metadata.collection import Collection, TrackCollect
 from niagads.database.models.metadata.track import Track
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from niagads.open_access_api_common.config.constants import SHARD_PATTERN
-from niagads.open_access_api_common.models.responses.request import RequestDataModel
+from niagads.open_access_api_common.models.response.request import RequestDataModel
 from niagads.open_access_api_common.parameters.response import ResponseContent
 from niagads.utils.string import regex_replace
 from sqlmodel import select, col, or_, func, distinct
@@ -183,7 +183,7 @@ class MetadataQueryService:
         return result
 
     def __add_biosample_filters(self, statement, triple: List[str]):
-        """ FIXME 
+        """FIXME
         conditions = []
         for bsf in BIOSAMPLE_FIELDS:
             conditions.append(
@@ -206,7 +206,7 @@ class MetadataQueryService:
         return statement
 
     def __add_statement_filters(self, statement, filters: List[str]):
-        """ FIXME 
+        """FIXME
         for phrase in filters:
             # array or join?
             if isinstance(phrase, list):
@@ -278,8 +278,8 @@ class MetadataQueryService:
     async def get_track_filter_summary(
         self, filterField: str, inclCounts: Optional[bool] = False
     ) -> dict:
- 
-        modelField = filterField # FIXME: TRACK_SEARCH_FILTER_FIELD_MAP[filterField]["model_field"]
+
+        modelField = filterField  # FIXME: TRACK_SEARCH_FILTER_FIELD_MAP[filterField]["model_field"]
 
         valueCol = col(getattr(Track, modelField))
         if "biosample" in modelField:

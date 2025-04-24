@@ -1,4 +1,4 @@
-from niagads.open_access_api_common.models.responses.core import (
+from niagads.open_access_api_common.models.response.core import (
     ResponseModel,
     PagedResponseModel,
     T_ResponseModel,

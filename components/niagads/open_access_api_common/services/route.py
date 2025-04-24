@@ -11,15 +11,15 @@ from niagads.open_access_api_common.models.cache import (
     CacheKeyQualifier,
     CacheNamespace,
 )
-from niagads.open_access_api_common.models.data.core import DynamicRowModel
-from niagads.open_access_api_common.models.data.igvbrowser import (
+from niagads.open_access_api_common.models.records.core import DynamicRowModel
+from niagads.open_access_api_common.models.records.track.igvbrowser import (
     IGVBrowserTrackSelectorResponse,
 )
-from niagads.open_access_api_common.models.responses.core import (
+from niagads.open_access_api_common.models.response.core import (
     ResponseModel,
     T_ResponseModel,
 )
-from niagads.open_access_api_common.models.responses.pagination import (
+from niagads.open_access_api_common.models.response.pagination import (
     PaginationDataModel,
 )
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse

@@ -1,11 +1,11 @@
 from typing import Any, Dict, TypeVar
 
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
-from niagads.open_access_api_common.models.data.core import RowModel
-from niagads.open_access_api_common.models.responses.pagination import (
+from niagads.open_access_api_common.models.records.core import RowModel
+from niagads.open_access_api_common.models.response.pagination import (
     PaginationDataModel,
 )
-from niagads.open_access_api_common.models.responses.request import RequestDataModel
+from niagads.open_access_api_common.models.response.request import RequestDataModel
 from niagads.open_access_api_common.models.views.table.core import TableColumn
 from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
