@@ -11,6 +11,8 @@ import os
 import spacy
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import argparse
+
 
 NCBI_API_KEY = os.environ["NCBI_API_KEY"]
 
@@ -149,8 +151,17 @@ def analyze_year_journal_distribution(articles):
 
 
 async def main():
+    parser = argparse.ArgumentParser(description="Analyze PubMed articles")
+    parser.add_argument(
+        "--input", required=True, help="Path to input CSV file containing PubMed IDs"
+    )
+    parser.add_argument(
+        "--output", required=True, help="Path to output directory for results"
+    )
+    args = parser.parse_args()
+
     try:
-        df = pd.read_csv("scripts/pubmed_ids.csv")
+        df = pd.read_csv(args.input)
         pubmed_ids = df["PMID"].tolist()
     except Exception as e:
         print(f"Error reading CSV file: {str(e)}")
@@ -159,11 +170,14 @@ async def main():
     print("Fetching article information...")
     articles = await fetch_article_info(pubmed_ids)
 
+    print(articles[0])
+
     filtered_articles = filter_preprints(articles)
 
     df_filtered = pd.DataFrame(filtered_articles)
-    df_filtered.to_csv("filtered_articles.csv", index=False)
-    print(f"Saved {len(filtered_articles)} articles to filtered_articles.csv")
+    output_path = os.path.join(args.output, "filtered_articles.csv")
+    df_filtered.to_csv(output_path, index=False)
+    print(f"Saved {len(filtered_articles)} articles to {output_path}")
 
     distribution_df = analyze_year_journal_distribution(filtered_articles)
 
@@ -173,8 +187,9 @@ async def main():
     df_keywords = pd.DataFrame(
         list(keyword_counts.items()), columns=["keyword", "frequency"]
     )
-    df_keywords.to_csv("alzheimer_keywords.csv", index=False)
-    print("Saved keyword analysis to alzheimer_keywords.csv")
+    keywords_path = os.path.join(args.output, "alzheimer_keywords.csv")
+    df_keywords.to_csv(keywords_path, index=False)
+    print(f"Saved keyword analysis to {keywords_path}")
 
 
 if __name__ == "__main__":

@@ -1,109 +1,111 @@
-# PubMed Article Analyzer
+# AI Bibliography Analysis
 
-This project analyzes PubMed articles to extract and analyze information about Alzheimer's Disease research. It includes tools for filtering articles, analyzing keywords, and splitting datasets for machine learning purposes.
+This project provides tools for analyzing research papers and PubMed articles using AI. It includes functionality for extracting and analyzing paper sections, finding relevant articles, and analyzing bibliographic data.
 
-## Project Structure
+## Setup
 
-```
-.
-├── scripts/                    # Python scripts
-│   ├── pubmed_analyzer.py      # Main PubMed article analysis script
-│   ├── keyword_article_finder.py # Keyword analysis and article finding
-│   ├── split_dataset.py        # Dataset splitting utility
-│   ├── research_paper_analyzer.py # AI-powered research paper analysis
-│   └── pubmed_ids.csv          # Input PubMed IDs
-├── requirements.txt            # Python dependencies
-└── output files               # Generated analysis results
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd ai-bibliography-analysis
 ```
 
-## Requirements
+2. Create a virtual environment (recommended):
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-- Python 3.12+
-- Tesseract OCR (for PDF text extraction)
-- Required packages:
-  - metapub==0.5.7
-  - aiohttp>=3.9.3
-  - pandas==2.1.4
-  - nltk==3.8.1
-  - scikit-learn==1.4.0
-  - numpy==1.26.3
-  - spacy>=3.7.3
-  - transformers>=4.30.0
-  - torch>=2.0.0
-  - sentence-transformers>=2.2.2
-  - pytesseract>=0.3.10
-  - pdf2image>=1.16.3
-
-## Installation
-
-1. Clone the repository
-2. Install Tesseract OCR:
-   - Windows: Download and install from https://github.com/UB-Mannheim/tesseract/wiki
-   - Linux: `sudo apt-get install tesseract-ocr`
-   - macOS: `brew install tesseract`
-3. Install the required packages:
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
+4. Set up environment variables:
+   - Create a `.env` file in the project root
+   - Add your NCBI API key:
+   ```
+   NCBI_API_KEY=your_api_key_here
+   ```
+   - You can get an API key from [NCBI](https://www.ncbi.nlm.nih.gov/account/)
 
-1. Prepare your input data:
-   - Place your PubMed IDs in `scripts/pubmed_ids.csv` with a column named 'pmid'
-   - For PDF analysis, provide the path to your research paper PDF
-
-2. Run the analysis scripts:
+5. Download required models:
 ```bash
-# Analyze PubMed articles
-python scripts/pubmed_analyzer.py
-
-# Find articles based on keywords
-python scripts/keyword_article_finder.py
-
-# Split dataset into train/test sets (optional)
-python scripts/split_dataset.py
-
-# Analyze a research paper PDF
-python scripts/research_paper_analyzer.py path/to/your/paper.pdf
+python -m spacy download en_core_web_md
 ```
 
-## Features
+## Usage
 
-### Research Paper Analyzer
-The enhanced research paper analyzer uses AI and machine learning to:
-- Extract text from PDFs using both PyPDF2 and OCR
-- Identify results/findings sections using semantic analysis
-- Verify section content using transformer models
-- Generate high-quality summaries using BART model
-- Save summaries with timestamps for reference
+### 1. PubMed Article Analysis
 
-Key AI/ML components:
-- Sentence Transformers for semantic similarity
-- DistilBERT for section classification
-- BART model for summarization
-- Multi-metric quality scoring system
+Analyze a collection of PubMed articles:
 
-### Output Files
+```bash
+python scripts/pubmed_analyzer.py --input path/to/pubmed_ids.csv --output path/to/output/directory
+```
 
-The scripts generate several CSV files:
+Arguments:
+- `--input`: Path to CSV file containing PubMed IDs (must have a 'PMID' column)
+- `--output`: Directory where results will be saved
 
-1. `filtered_articles.csv`: Contains article information of PubMed research with NIAGADS reference
-   - Columns: pmid, title, journal, year
+Output files:
+- `filtered_articles.csv`: Articles after preprocessing
+- `alzheimer_keywords.csv`: Extracted keywords and their frequencies
+- `year_journal_distribution.csv`: Distribution analysis
 
-2. `alzheimer_keywords.csv`: Contains frequency analysis of Alzheimer's Disease related keywords
-   - Columns: keyword, frequency
+### 2. Research Paper Analysis
 
-3. `new_alzheimer_articles.csv`: Contains article information of PubMed research related to Alzheimer's Disease without NIAGADS reference
-   - Columns: pmid, title, abstract, journal, year
+Analyze a single research paper PDF:
 
-4. `alzheimer_articles_train.csv` and `alzheimer_articles_test.csv`: Split datasets for machine learning (if using split_dataset.py)
-   - Contains a subset of the articles split into training and testing sets
-   - Columns: pmid, title, abstract, journal, year
+```bash
+python scripts/research_paper_analyzer.py path/to/paper.pdf
+```
 
-5. Paper summaries: Generated in the `paper_summaries` directory
-   - Format: `{pdf_name}_{timestamp}_summary.txt`
-   - Contains AI-generated summaries of research paper findings
+Output:
+- JSON file containing:
+  - Paper structure completeness
+  - Extracted headers with confidence scores
+  - Context for each section
+
+### 3. Keyword Article Finder
+
+Find articles based on keywords:
+
+```bash
+python scripts/keyword_article_finder.py --keywords path/to/keywords.csv
+```
+
+Arguments:
+- `--keywords`: Path to CSV file containing keywords (must have a 'keyword' column)
+
+## Project Structure
+
+```
+ai-bibliography-analysis/
+├── scripts/
+│   ├── pubmed_analyzer.py      # Analyze PubMed articles
+│   ├── research_paper_analyzer.py  # Analyze PDF papers
+│   ├── keyword_article_finder.py   # Find articles by keywords
+│   └── split_dataset.py        # Split dataset into train/test
+├── .env                        # Environment variables
+├── requirements.txt            # Python dependencies
+└── README.md                   # This file
+```
+
+## Dependencies
+
+- Python 3.7+
+- See `requirements.txt` for full list of Python packages
+- Tesseract OCR (for PDF text extraction)
+- Poppler (for PDF to image conversion)
+
+## Notes
+
+- The PubMed analyzer requires an NCBI API key
+- The research paper analyzer uses SapBERT for semantic analysis
+- All output files are saved in the specified output directory
+- The code uses environment variables for sensitive data
 
 ## License
 
-This project is licensed under the terms included in the LICENSE file.
+[Your License Here]

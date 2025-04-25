@@ -5,63 +5,22 @@ import json
 import os
 from datetime import datetime
 import torch
-from transformers import (
-    AutoTokenizer,
-    AutoModelForSequenceClassification,
-    BartForConditionalGeneration
-)
+from transformers import AutoTokenizer, AutoModel, pipeline
 from sentence_transformers import SentenceTransformer
 from pdf2image import convert_from_path
 import pytesseract
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+import argparse
 
 class ExtractorAgent:
     def __init__(self):
-        self.section_keywords = [
-            'results', 'findings', 'conclusion', 'discussion',
-            'results and discussion', 'findings and discussion',
-            'main results', 'key findings', 'conclusions',
-            'implications', 'significance', 'contribution',
-            'take-home message', 'key points', 'summary'
-        ]
-        self.section_patterns = [
-            r'(?i)(?:results|findings|conclusion|discussion)[\s:]*',
-            r'(?i)(?:results and discussion|findings and discussion)[\s:]*',
-            r'(?i)(?:main results|key findings|conclusions)[\s:]*',
-            r'(?i)(?:implications|significance|contribution)[\s:]*',
-            r'(?i)(?:take-home message|key points|summary)[\s:]*'
-        ]
         self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-        self.section_model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=2)
+        device = 0 if torch.cuda.is_available() else -1
+        self.llm = pipeline("text-generation", model="gpt2", device=device)
         self.previous_attempts = []
-        self.problem_keywords = [
-            'problem', 'challenge', 'issue', 'limitation', 'gap',
-            'difficulty', 'obstacle', 'barrier', 'drawback',
-            'shortcoming', 'weakness', 'deficiency'
-        ]
-        self.solution_keywords = [
-            'solution', 'approach', 'method', 'technique',
-            'propose', 'develop', 'introduce', 'present',
-            'address', 'overcome', 'resolve', 'improve'
-        ]
-
-    def adjust_patterns_based_on_feedback(self, feedback: str) -> None:
-        if "too short" in feedback.lower():
-            self.section_patterns = [p.replace(r'[\s:]*', r'[\s:]+[\w\s]+[\s:]*') for p in self.section_patterns]
-        
-        if "different part" in feedback.lower():
-            self.section_patterns.extend([
-                r'(?i)(?:experimental results|data analysis|statistical analysis)[\s:]*',
-                r'(?i)(?:quantitative results|qualitative findings)[\s:]*'
-            ])
-        
-        if "no clear results" in feedback.lower():
-            self.section_patterns.extend([
-                r'(?i)(?:our analysis|the data|these observations)[\s:]*',
-                r'(?i)(?:we observed|we found|the study shows)[\s:]*'
-            ])
+        self.max_tokens = 1024 
+        self.chunk_overlap = 100 
 
     def extract_text_from_pdf(self, pdf_path: str) -> str:
         text = ""
@@ -80,6 +39,135 @@ class ExtractorAgent:
             return ""
         return text
 
+    def chunk_text(self, text: str, chunk_size: int = None) -> List[str]:
+        """Split text into chunks that fit within the model's context window."""
+        if chunk_size is None:
+            chunk_size = self.max_tokens - 200
+        
+        chunks = []
+        start = 0
+        text_length = len(text)
+        
+        while start < text_length:
+            end = min(start + chunk_size, text_length)
+            chunk = text[start:end]
+            
+            if end < text_length:
+                last_paragraph = chunk.rfind('\n\n')
+                last_sentence = max(
+                    chunk.rfind('. '),
+                    chunk.rfind('! '),
+                    chunk.rfind('? ')
+                )
+                break_point = max(last_paragraph, last_sentence)
+                
+                if break_point > 0:
+                    end = start + break_point + 1
+                    chunk = text[start:end]
+            
+            chunks.append(chunk)
+            start = end - self.chunk_overlap if end < text_length else end
+        
+        return chunks
+
+    def identify_sections(self, text: str) -> List[str]:
+        chunks = self.chunk_text(text)
+        all_sections = set()
+        
+        for chunk in chunks:
+            prompt = f"""You are a domain-expert NLP assistant specialized in parsing biomedical research articles (e.g., PubMed abstracts and full texts). Your goal is to locate only the **primary, top-level** section headings, in the exact order they appear in the text, and output them **as a single comma-separated list**. Do not output anything else.
+
+            === INSTRUCTIONS ===
+            1. **Scope of sections**  
+            - Recognize standard IMRaD headings. Some examples include: Abstract, Introduction, Methods (or Materials and Methods), Results, Discussion, Conclusion(s).  
+            - Also handle structured abstract labels (Background, Objective, Design, Setting, Participants, Interventions, Main Outcome Measures, Results, Conclusion).  
+            - Include other common headings if present: "Graphical Abstract," "Data Availability," "Funding," "Acknowledgments," "References," "Supplementary Material."  
+            - **Ignore** subsection labels (e.g. "2.1 Study Population") and in-line mentions of methods/results.
+
+            2. **Formatting rules**  
+            - Output exactly one line: the list of section names, **in the order they appear**, separated by commas and a single space.  
+            - **Do not** include any additional words, numbers, colons, or punctuation.  
+            - If a heading appears more than once, list it only on its first occurrence.  
+            - If no recognizable headings are found, output: `Unknown`.
+
+            3. **Robustness tips**  
+            - Headings may be in ALL CAPS, Title Case, or sentence case—detect them regardless of capitalization.  
+            - They may be followed by a line break, a horizontal rule, or a blank line.  
+            - There may be PDF-to-text artifacts (extra whitespace, missing colons)—use context to infer true headings.
+
+            === INPUT ===
+
+            Text:
+            {chunk}"""
+            
+            try:
+                response = self.llm(
+                    prompt,
+                    max_new_tokens=100,
+                    num_return_sequences=1,
+                    temperature=0.7,
+                )
+                sections = response[0]["generated_text"].strip().split(',')
+                all_sections.update(section.strip().lower() for section in sections)
+            except Exception as e:
+                print(f"Warning: Error processing chunk: {str(e)}")
+                continue
+        
+        section_order = {
+            'abstract': 0,
+            'introduction': 1,
+            'background': 2,
+            'methods': 3,
+            'materials and methods': 3,
+            'results': 4,
+            'findings': 4,
+            'discussion': 5,
+            'conclusion': 6,
+            'references': 7,
+            'acknowledgments': 8,
+            'supplementary': 9,
+            'appendix': 10
+        }
+        
+        sorted_sections = sorted(
+            all_sections,
+            key=lambda x: section_order.get(x, 999)
+        )
+        
+        return sorted_sections
+
+    def extract_headers(self, text: str) -> List[Dict[str, str]]:
+        header_pattern = r'(?i)^\s*(?:\d+\.\s*)?([A-Z][A-Za-z]+)(?:\s*:)?\s*$'
+        
+        lines = text.split('\n')
+        headers = []
+        
+        expected_sections = self.identify_sections(text)
+        
+        for i, line in enumerate(lines):
+            match = re.match(header_pattern, line.strip())
+            if match:
+                header_text = match.group(1).strip()
+                context = '\n'.join(lines[i+1:i+4])
+                
+                similarities = []
+                for section in expected_sections:
+                    section_words = section.split()
+                    for word in section_words:
+                        similarity = self.calculate_semantic_similarity(header_text.lower(), word)
+                        similarities.append((word, similarity))
+                
+                similarities.sort(key=lambda x: x[1], reverse=True)
+                
+                headers.append({
+                    'text': header_text,
+                    'context': context,
+                    'most_similar': similarities[0][0],
+                    'similarity_score': float(similarities[0][1])
+                })
+        
+        return headers
+
     def calculate_semantic_similarity(self, text1: str, text2: str) -> float:
         embeddings1 = self.sentence_model.encode(text1, convert_to_tensor=True)
         embeddings2 = self.sentence_model.encode(text2, convert_to_tensor=True)
@@ -91,347 +179,313 @@ class ExtractorAgent:
         embeddings2 = embeddings2.reshape(1, -1)
         
         similarity = cosine_similarity(embeddings1, embeddings2)[0][0]
-        return similarity
+        return float(similarity)
 
-    def is_results_section(self, text: str) -> bool:
-        inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
-        with torch.no_grad():
-            outputs = self.section_model(**inputs)
-            predictions = torch.softmax(outputs.logits, dim=1)
-            return predictions[0][1].item() > 0.5
+    def analyze_findings(self, text: str, headers: List[Dict[str, str]]) -> str:
+        header_texts = [h['original'] for h in headers]
+        
+        chunk_size = 5
+        header_chunks = [header_texts[i:i + chunk_size] for i in range(0, len(header_texts), chunk_size)]
+        
+        findings_sections = set()
+        for chunk in header_chunks:
+            prompt = f"""
+            You are a domain-expert NLP assistant specialized in analyzing the structure of scientific papers. Given only a flat list of section headers (and possible non-header strings) from a research article, your task is to pick out which ones are most likely to contain the authors' findings, conclusions, or key results.
 
-    def find_conclusion_indicators(self, text: str) -> List[str]:
-        conclusion_patterns = [
-            r'(?:we|this study|our results|the data|these findings|this research) (?:show|demonstrate|indicate|suggest|reveal|propose|conclude|find|establish|confirm|support|provide evidence)',
-            r'(?:in conclusion|to conclude|in summary|overall|taken together|collectively|these results)',
-            r'(?:the main|key|important|significant|major) (?:finding|result|conclusion|implication)',
-            r'(?:this|our) (?:work|study|research) (?:contributes|advances|improves|enhances)',
-            r'(?:therefore|thus|hence|consequently|as a result)'
-        ]
-        
-        sentences = re.split(r'(?<=[.!?])\s+', text)
-        conclusion_sentences = []
-        
-        for sentence in sentences:
-            for pattern in conclusion_patterns:
-                if re.search(pattern, sentence.lower()):
-                    conclusion_sentences.append(sentence.strip())
-                    break
-        
-        return conclusion_sentences
+            === INSTRUCTIONS ===
+            1. **Filter out noise**  
+            - The input list may include items that are not actual section headers (e.g., running headers, footnotes, page numbers, figure/table captions).  
+            - Ignore any entry that doesn't correspond to a top-level section heading.
 
-    def find_problem_solution_sections(self, text: str) -> Tuple[List[str], List[str]]:
-        problem_sentences = []
-        solution_sentences = []
-        
-        paragraphs = re.split(r'\n\s*\n', text)
-        
-        for para in paragraphs:
-            if any(keyword in para.lower() for keyword in self.problem_keywords):
-                problem_sentences.extend(re.split(r'(?<=[.!?])\s+', para))
+            2. **Target sections**  
+            - From the remaining items, choose those most likely to hold results or wrap up the study: Results, Findings, Discussion, Conclusion, Summary, Interpretation.  
+            - Also consider synonyms in structured abstracts: "Key Findings," "Principal Results," or "Concluding Remarks."  
+
+            3. **Formatting rules**  
+            - Return **only** the chosen section names as **single words**, in **Title Case** (e.g., Results, Discussion).  
+            - If a header is multi-word (e.g. "Key Findings"), extract only the core noun ("Findings").  
+            - Preserve the **order** in which these valid headers appeared in the input list.  
+            - Separate each by a comma and a single space; do **not** add any other punctuation, numbers, or commentary.  
+            - If none match, output `None`.
+
+            4. **Robustness tips**  
+            - Match headings case-insensitively and trim any surrounding whitespace or stray punctuation.  
+            - Deduplicate: if the same core noun appears multiple times, list it only once.
+
+            === INPUT ===  
+                        
+            These are the section headers from a research paper: {', '.join(chunk)}"""
             
-            if any(keyword in para.lower() for keyword in self.solution_keywords):
-                solution_sentences.extend(re.split(r'(?<=[.!?])\s+', para))
+            try:
+                response = self.llm(
+                    prompt,
+                    max_new_tokens=50,
+                    num_return_sequences=1,
+                    temperature=0.7,
+                )
+                sections = response[0]["generated_text"].strip().split(',')
+                findings_sections.update(s.strip().lower() for s in sections)
+            except Exception as e:
+                print(f"Warning: Error processing header chunk: {str(e)}")
+                continue
         
-        return problem_sentences, solution_sentences
-
-    def find_section(self, text: str, feedback: Optional[str] = None) -> Tuple[Optional[str], str]:
-        if feedback:
-            self.adjust_patterns_based_on_feedback(feedback)
-            for prev_section, prev_text in self.previous_attempts:
-                text = text.replace(prev_text, "")
-
-        sections = []
-        for pattern in self.section_patterns:
-            matches = re.finditer(pattern, text)
-            for match in matches:
-                start_pos = match.end()
-                next_section = re.search(r'(?i)(?:methods|references|acknowledgements|appendix)[\s:]*', text[start_pos:])
-                if next_section:
-                    section_text = text[start_pos:start_pos + next_section.start()]
-                else:
-                    section_text = text[start_pos:]
+        findings_content = []
+        lines = text.split('\n')
+        
+        for i, line in enumerate(lines):
+            match = re.match(r'(?i)^\s*(?:\d+\.\s*)?([A-Z][A-Za-z]+)(?:\s*:)?\s*$', line.strip())
+            if match:
+                header_text = match.group(1).strip().lower()
+                if any(self.calculate_semantic_similarity(header_text, section) > 0.7 for section in findings_sections):
+                    content = []
+                    j = i + 1
+                    while j < len(lines) and not re.match(r'(?i)^\s*(?:\d+\.\s*)?([A-Z][A-Za-z]+)(?:\s*:)?\s*$', lines[j].strip()):
+                        content.append(lines[j])
+                        j += 1
+                    findings_content.append({
+                        'header': header_text,
+                        'content': '\n'.join(content)
+                    })
+        
+        if findings_content:
+            chunk_size = 1000 
+            summaries = []
+            
+            for content in findings_content:
+                text_chunks = [content['content'][i:i + chunk_size] for i in range(0, len(content['content']), chunk_size)]
                 
-                if len(section_text.strip()) > 100:
-                    similarity_score = self.calculate_semantic_similarity(
-                        section_text,
-                        "The results show that our findings indicate significant improvements in the experimental group."
+                for chunk in text_chunks:
+                    try:
+                        summary_prompt = f"""You are a domain-expert NLP assistant specialized in parsing and summarizing biomedical research articles. Your goal is to read **only** the single section of a paper specified by its header and produce a concise, detailed summary of the authors' key findings and conclusions from that section.
+
+                        === INSTRUCTIONS ===
+                        1. **Scope of analysis**  
+                        - **Only** consider the content provided under the given section header; do not infer or include information from any other parts of the paper.  
+                        - If the content does not correspond to the specified header, treat it as noise and ignore it.
+
+                        2. **Scope of summary**  
+                        - Extract and synthesize the authors' main results, quantitative metrics (e.g., effect sizes, p-values, confidence intervals), and stated conclusions **present in this section**.  
+                        - Highlight any implications for the field, stated limitations, and potential future directions if mentioned **within this section**.  
+
+                        3. **Formatting rules**  
+                        - Return your summary in **three paragraphs**:  
+                            1. **Key Results**: 2–4 sentences detailing the primary quantitative and qualitative findings in this section. If no quantitative data are present, state "No quantitative data reported."  
+                            2. **Implications**: 2–4 sentences on what these section-specific results mean for practice, theory, or further research.  
+                            3. **Conclusions**: 2–4 sentences wrap-up of the authors' final statements or recommendations **drawn solely from this section**.  
+                        - **Do not** include any headings, labels (e.g., "Paragraph 1"), or extra commentary.  
+
+                        4. **Robustness tips**  
+                        - Interpret statistical notation (e.g., "p<0.05", "HR=1.7 [95% CI 1.2–2.4]") found in this section.  
+                        - Merge closely related findings into a single bullet or sentence.  
+                        - Omit any methods or background details unless they directly influence interpretation of results in this section.
+
+                        === INPUT ===  
+                        
+                        Section: {content['header']}
+                        Content:
+                        {chunk}
+                        """
+                        
+                        response = self.llm(
+                            summary_prompt,
+                            max_new_tokens=200,
+                            num_return_sequences=1,
+                            temperature=0.7,
+                        )
+                        
+                        summaries.append(response[0]["generated_text"].strip())
+                    except Exception as e:
+                        print(f"Warning: Error processing content chunk: {str(e)}")
+                        continue
+            
+            if summaries:
+                final_prompt = f"""You are a domain-expert NLP assistant specialized in synthesizing and integrating scientific content. Given a list of individual summary fragments of research findings, your task is to merge them into a single, coherent, detailed summary that reads like a unified narrative.
+
+                === INSTRUCTIONS ===
+                1. **Scope of synthesis**  
+                - Consider **only** the provided summary fragments. Do not introduce new information or external references.  
+                - Preserve each fragment's key findings, quantitative results, and conclusions.
+
+                2. **Merging strategy**  
+                - Identify overlaps and redundancies across fragments and merge similar points into unified statements.  
+                - Arrange content into a logical flow: start with background/context (if any), then present major results in descending order of importance, followed by implications and conclusions.  
+                - Use transitional phrases (e.g., "Furthermore," "In addition," "Consequently") to link ideas smoothly.
+
+                3. **Formatting rules**  
+                - Output as **one cohesive narrative** in **3–5 paragraphs**:  
+                    1. **Overview**: 1–2 sentences introducing the combined scope and purpose.  
+                    2. **Key Findings**: 2–4 sentences summarizing the main quantitative and qualitative results.  
+                    3. **Implications**: 2–4 sentences on the significance and potential applications.  
+                    4. **Conclusions and Future Directions**: 1–2 sentences wrapping up and noting any recommended next steps.  
+                - Do **not** list bullet points or use headings—write continuous prose.  
+                - Retain any numerical values and statistical measures verbatim from the fragments.
+
+                4. **Robustness tips**  
+                - If two fragments report the same result with slightly different wording, consolidate them into a single clear statement.  
+                - Maintain any acronyms or domain-specific terms used in the fragments.  
+                - Ensure no key finding is lost—every distinct result in the inputs must appear in the synthesis.
+
+                === INPUT ===  
+                {' '.join(summaries)}"""
+                
+                try:
+                    response = self.llm(
+                        final_prompt,
+                        max_new_tokens=300,
+                        num_return_sequences=1,
+                        temperature=0.7,
                     )
-                    
-                    is_results = self.is_results_section(section_text)
-                    
-                    conclusion_sentences = self.find_conclusion_indicators(section_text)
-                    conclusion_score = len(conclusion_sentences) / 10
-                    
-                    score = (similarity_score * 0.3 + is_results * 0.3 + conclusion_score * 0.4)
-                    
-                    sections.append((score, match.group(0).strip(), section_text.strip()))
-
-        sections.sort(reverse=True, key=lambda x: x[0])
-        top_sections = sections[:3]
-        
-        if top_sections:
-            combined_text = "\n\n".join(section[2] for section in top_sections)
-            self.previous_attempts.extend([(section[1], section[2]) for section in top_sections])
-            return top_sections[0][1], combined_text
-
-        for keyword in self.section_keywords:
-            if keyword in text.lower():
-                start_pos = text.lower().find(keyword)
-                section_text = text[start_pos:start_pos + 2000]
-                self.previous_attempts.append((keyword, section_text))
-                return keyword, section_text.strip()
-
-        return None, ""
-
-    def analyze_paper(self, pdf_path: str, feedback: Optional[str] = None) -> Tuple[Optional[str], str]:
-        text = self.extract_text_from_pdf(pdf_path)
-        if not text:
-            return None, "Could not extract text from PDF"
-        
-        section_name, section_text = self.find_section(text, feedback)
-        if not section_text:
-            return None, "Could not find relevant section in the paper"
-        
-        return section_name, section_text
+                    return response[0]["generated_text"].strip()
+                except Exception as e:
+                    print(f"Warning: Error combining summaries: {str(e)}")
+                    return " ".join(summaries)
+            
+        return "No findings sections were identified in the paper."
 
 class VerifierAgent:
     def __init__(self):
-        self.indicators = {
-            'positive': [
-                'results show', 'findings indicate', 'conclusion suggests',
-                'data demonstrate', 'analysis reveals', 'study found',
-                'research shows', 'experiments show', 'we found',
-                'statistically significant', 'p-value', 'confidence interval',
-                'we conclude', 'our results suggest', 'this study demonstrates',
-                'the main finding', 'key contribution', 'important implication',
-                'significant result', 'major conclusion', 'take-home message'
-            ],
-            'negative': [
-                'introduction', 'methods', 'materials', 'background',
-                'literature review', 'future work', 'limitations',
-                'acknowledgements', 'references'
-            ]
+        self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+        device = 0 if torch.cuda.is_available() else -1
+        self.llm = pipeline("text-generation", model="gpt2", device=device)
+        self.findings_keywords = {
+            'results', 'findings', 'conclusion', 'discussion', 'summary', 
+            'interpretation', 'key findings', 'principal results', 'concluding remarks'
         }
 
-        self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-
-        self.tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-        self.section_model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=2)
-
-        self.summarizer_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
-        self.summarizer_model = BartForConditionalGeneration.from_pretrained("facebook/bart-large-cnn")
-
-        self.polisher_tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
-        self.polisher_model = BartForConditionalGeneration.from_pretrained("facebook/bart-large-cnn")
+    def verify_headers(self, headers: List[Dict[str, str]]) -> Tuple[bool, List[Dict[str, str]]]:
+        verified_headers = []
         
-        self.problem_keywords = [
-            'problem', 'challenge', 'issue', 'limitation', 'gap',
-            'difficulty', 'obstacle', 'barrier', 'drawback',
-            'shortcoming', 'weakness', 'deficiency'
-        ]
-        self.solution_keywords = [
-            'solution', 'approach', 'method', 'technique',
-            'propose', 'develop', 'introduce', 'present',
-            'address', 'overcome', 'resolve', 'improve'
-        ]
-
-    def find_conclusion_indicators(self, text: str) -> List[str]:
-        conclusion_patterns = [
-            r'(?:we|this study|our results|the data|these findings|this research) (?:show|demonstrate|indicate|suggest|reveal|propose|conclude|find|establish|confirm|support|provide evidence)',
-            r'(?:in conclusion|to conclude|in summary|overall|taken together|collectively|these results)',
-            r'(?:the main|key|important|significant|major) (?:finding|result|conclusion|implication)',
-            r'(?:this|our) (?:work|study|research) (?:contributes|advances|improves|enhances)',
-            r'(?:therefore|thus|hence|consequently|as a result)'
-        ]
+        header_texts = [h['text'] for h in headers]
+        prompt = f"""Given these section headers from a research paper: {', '.join(header_texts)}
+        Does this paper have a complete structure? Answer with only 'yes' or 'no'."""
         
-        sentences = re.split(r'(?<=[.!?])\s+', text)
-        conclusion_sentences = []
-        
-        for sentence in sentences:
-            for pattern in conclusion_patterns:
-                if re.search(pattern, sentence.lower()):
-                    conclusion_sentences.append(sentence.strip())
-                    break
-        
-        return conclusion_sentences
-
-    def calculate_semantic_similarity(self, text1: str, text2: str) -> float:
-        embeddings1 = self.sentence_model.encode(text1, convert_to_tensor=True)
-        embeddings2 = self.sentence_model.encode(text2, convert_to_tensor=True)
-        
-        embeddings1 = embeddings1.cpu().numpy()
-        embeddings2 = embeddings2.cpu().numpy()
-        
-        embeddings1 = embeddings1.reshape(1, -1)
-        embeddings2 = embeddings2.reshape(1, -1)
-        
-        similarity = cosine_similarity(embeddings1, embeddings2)[0][0]
-        return similarity
-
-    def calculate_section_quality(self, section_text: str) -> float:
-        reference_text = "The results demonstrate significant findings with statistical significance."
-        similarity_score = self.calculate_semantic_similarity(section_text, reference_text)
-        
-        positive_count = sum(1 for indicator in self.indicators['positive'] 
-                           if indicator.lower() in section_text.lower())
-        
-        length_score = min(len(section_text) / 2000, 1.0)
-        
-        return (similarity_score * 0.4 + positive_count * 0.3 + length_score * 0.3)
-
-    def verify_section(self, section_name: str, section_text: str) -> Tuple[bool, str]:
-        quality_score = self.calculate_section_quality(section_text)
-        
-        if quality_score < 0.5:
-            return False, f"Section quality score too low: {quality_score:.2f}"
-        
-        if len(section_text) < 200:
-            return False, "Section is too short to be a proper results section"
-        
-        inputs = self.tokenizer(section_text, return_tensors="pt", truncation=True, max_length=512)
-        with torch.no_grad():
-            outputs = self.section_model(**inputs)
-            predictions = torch.softmax(outputs.logits, dim=1)
-            if predictions[0][1].item() < 0.5:
-                return False, "AI model indicates this is not a results section"
-        
-        return True, "Section appears to be valid"
-
-    def find_problem_solution_sections(self, text: str) -> Tuple[List[str], List[str]]:
-        problem_sentences = []
-        solution_sentences = []
-        
-        paragraphs = re.split(r'\n\s*\n', text)
-        
-        for para in paragraphs:
-            if any(keyword in para.lower() for keyword in self.problem_keywords):
-                problem_sentences.extend(re.split(r'(?<=[.!?])\s+', para))
-            
-            if any(keyword in para.lower() for keyword in self.solution_keywords):
-                solution_sentences.extend(re.split(r'(?<=[.!?])\s+', para))
-        
-        return problem_sentences, solution_sentences
-
-    def generate_summary(self, section_text: str) -> str:
-        problem_sentences, solution_sentences = self.find_problem_solution_sections(section_text)
-        
-        conclusion_sentences = self.find_conclusion_indicators(section_text)
-        
-        inputs = self.summarizer_tokenizer(section_text, return_tensors="pt", truncation=True, max_length=1024)
-        with torch.no_grad():
-            summary_ids = self.summarizer_model.generate(
-                inputs["input_ids"],
-                max_length=600,
-                min_length=100,
-                length_penalty=2.0,
-                num_beams=4,
-                early_stopping=True
-            )
-        summary = self.summarizer_tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-        
-        structured_summary = []
-        
-        if problem_sentences:
-            structured_summary.append("\nProblems Addressed:")
-            for sentence in problem_sentences[:3]: 
-                if sentence not in summary:
-                    structured_summary.append(f"- {sentence}")
-        
-        if solution_sentences:
-            structured_summary.append("\nSolutions Proposed:")
-            for sentence in solution_sentences[:3]:
-                if sentence not in summary:
-                    structured_summary.append(f"- {sentence}")
-        
-        if conclusion_sentences:
-            structured_summary.append("\nKey Conclusions:")
-            for sentence in conclusion_sentences:
-                if sentence not in summary:
-                    structured_summary.append(f"- {sentence}")
-        
-        full_summary = summary + "\n" + "\n".join(structured_summary)
-        
-        polished_summary = self.polish_summary(full_summary)
-        
-        return polished_summary
-
-    def polish_summary(self, summary: str) -> str:
-        inputs = self.polisher_tokenizer(
-            summary,
-            return_tensors="pt",
-            truncation=True,
-            max_length=1024
+        response = self.llm(
+            prompt,
+            max_new_tokens=10,
+            num_return_sequences=1,
+            temperature=0.7,
         )
         
-        with torch.no_grad():
-            polished_ids = self.polisher_model.generate(
-                inputs["input_ids"],
-                max_length=400,
-                min_length=200,
-                length_penalty=2.0,
-                num_beams=4,
-                early_stopping=True,
-                no_repeat_ngram_size=3
-            )
+        is_complete = response[0]["generated_text"].strip().lower().startswith('yes')
         
-        polished = self.polisher_tokenizer.decode(polished_ids[0], skip_special_tokens=True)
-        return polished
+        for header in headers:
+            if header['similarity_score'] > 0.7:
+                verified_headers.append({
+                    'original': header['text'],
+                    'verified_as': header['most_similar'],
+                    'confidence': float(header['similarity_score']),
+                    'context': header['context']
+                })
+        
+        return is_complete, verified_headers
+
+    def verify_findings_headers(self, headers: List[Dict[str, str]], text: str) -> List[Dict[str, str]]:
+        verified_findings_headers = []
+        
+        for header in headers:
+            header_text = header['text'].lower()
+            
+            is_findings_header = any(keyword in header_text for keyword in self.findings_keywords)
+            
+            if is_findings_header:
+                prompt = f"""You are a domain-expert NLP verifier agent whose job is to assess whether a single section of a research paper contains the authors' actual findings, conclusions, or key results.
+
+                === INSTRUCTIONS ===
+                1. **Scope of analysis**  
+                - Consider **only** the provided section header and its content. Do not infer from other parts of the paper.  
+                - Ignore any methods details, background context, or metadata unless they explicitly state results or conclusions.
+
+                2. **Define "findings/conclusions/key results"**  
+                - Look for statements of experimental or observational outcomes (e.g., "we found," "results show," quantitative metrics).  
+                - Identify summary judgments or take-home messages (e.g., "these data suggest," "we conclude that").  
+                - Exclude descriptions of methods, objectives, or literature review.
+
+                3. **Formatting rules**  
+                - Answer **only** with `yes` if the section contains one or more actual findings, conclusions, or key results; otherwise answer `no`.  
+                - Do **not** output any additional words, punctuation, or explanation.
+
+                4. **Robustness tips**  
+                - Match language case-insensitively and trim whitespace.  
+                - Treat statistical expressions (e.g., "p<0.05," "OR=2.3 [95% CI 1.5–3.6]") as evidence of findings.  
+                - If the content only restates aims or methods, answer `no`.
+
+                === INPUT ===  
+                Header: {header['text']}
+                Content: {header['context']}"""
+                
+                try:
+                    response = self.llm(
+                        prompt,
+                        max_new_tokens=10,
+                        num_return_sequences=1,
+                        temperature=0.7,
+                    )
+                    
+                    contains_findings = response[0]["generated_text"].strip().lower().startswith('yes')
+                    
+                    if contains_findings:
+                        verified_findings_headers.append({
+                            'original': header['text'],
+                            'verified_as': 'findings_section',
+                            'confidence': float(header['similarity_score']),
+                            'context': header['context']
+                        })
+                except Exception as e:
+                    print(f"Warning: Error verifying findings header: {str(e)}")
+                    continue
+        
+        return verified_findings_headers
 
 class ResearchPaperAnalyzer:
     def __init__(self):
         self.extractor = ExtractorAgent()
         self.verifier = VerifierAgent()
-        self.max_iterations = 4
 
-    def analyze_paper_with_verification(self, pdf_path: str) -> Optional[str]:
-        feedback = None
-        for iteration in range(self.max_iterations):
-            print(f"\nIteration {iteration + 1}:")
-            if feedback:
-                print(f"Using feedback from previous attempt: {feedback}")
-            
-            section_name, section_text = self.extractor.analyze_paper(pdf_path, feedback)
-            if not section_text:
-                print("Could not extract any text from the paper")
-                return None
-            
-            print(f"Found section: {section_name}")
-            
-            is_valid, feedback = self.verifier.verify_section(section_name, section_text)
-            if is_valid:
-                print("Section verified successfully!")
-                summary = self.verifier.generate_summary(section_text)
-                return summary
-            else:
-                print(f"Verification failed: {feedback}")
-                if iteration < self.max_iterations - 1:
-                    print("Trying to find a better section...")
-                else:
-                    print("Maximum iterations reached. Using best available section.")
-                    summary = self.verifier.generate_summary(section_text)
-                    return summary
+    def analyze_paper(self, pdf_path: str) -> Tuple[bool, List[Dict[str, str]], str]:
+        text = self.extractor.extract_text_from_pdf(pdf_path)
+        if not text:
+            return False, [], "Failed to extract text from PDF"
         
-        return None
+        headers = self.extractor.extract_headers(text)
+        is_complete, verified_headers = self.verifier.verify_headers(headers)
+        
+        findings_headers = self.verifier.verify_findings_headers(verified_headers, text)
+        
+        findings_summary = self.extractor.analyze_findings(text, findings_headers)
+        
+        return is_complete, verified_headers, findings_summary
 
-    def save_summary(self, summary: str, pdf_path: str) -> str:
+    def save_analysis(self, is_complete: bool, headers: List[Dict[str, str]], findings_summary: str, pdf_path: str) -> Tuple[str, str]:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir = "paper_summaries"
+        output_dir = "paper_analysis"
         os.makedirs(output_dir, exist_ok=True)
         
         pdf_name = os.path.basename(pdf_path)
-        output_file = os.path.join(output_dir, f"{pdf_name}_{timestamp}_summary.txt")
+        json_file = os.path.join(output_dir, f"{pdf_name}_{timestamp}_analysis.json")
+        summary_file = os.path.join(output_dir, f"{pdf_name}_{timestamp}_summary.txt")
         
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(summary)
+        analysis = {
+            'is_complete': is_complete,
+            'headers': headers,
+            'findings_summary': findings_summary,
+            'timestamp': timestamp
+        }
         
-        return output_file
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(analysis, f, indent=2)
+        
+        with open(summary_file, 'w', encoding='utf-8') as f:
+            f.write("Research Paper Analysis Summary\n")
+            f.write("=" * 50 + "\n\n")
+            f.write("Key Findings and Conclusions:\n")
+            f.write("-" * 30 + "\n")
+            f.write(findings_summary)
+        
+        return json_file, summary_file
 
 def main():
-    import argparse
-    
     parser = argparse.ArgumentParser(
-        description='Analyze research papers using AI agents to extract and summarize results/findings sections.',
+        description='Analyze research papers using AI to extract and verify section headers.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
@@ -450,15 +504,19 @@ def main():
         return
     
     analyzer = ResearchPaperAnalyzer()
-    summary = analyzer.analyze_paper_with_verification(args.pdf_path)
+    is_complete, headers, findings_summary = analyzer.analyze_paper(args.pdf_path)
     
-    if summary:
-        output_file = analyzer.save_summary(summary, args.pdf_path)
-        print(f"\nSummary saved to: {output_file}")
-        print("\nSummary content:")
-        print(summary)
+    if headers:
+        json_file, summary_file = analyzer.save_analysis(is_complete, headers, findings_summary, args.pdf_path)
+        print(f"\nAnalysis saved to: {json_file}")
+        print(f"Summary saved to: {summary_file}")
+        print("\nFound headers:")
+        for header in headers:
+            print(f"- {header['original']} (verified as: {header['verified_as']}, confidence: {header['confidence']:.2f})")
+        print("\nKey Findings and Conclusions:")
+        print(findings_summary)
     else:
-        print("Failed to generate summary")
+        print("Failed to extract any headers from the paper")
 
 if __name__ == "__main__":
     main() 
