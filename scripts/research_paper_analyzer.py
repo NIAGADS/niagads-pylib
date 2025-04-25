@@ -16,12 +16,11 @@ import argparse
 class ExtractorAgent:
     def __init__(self):
         self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-        # Check if CUDA is available and use GPU if it is
         device = 0 if torch.cuda.is_available() else -1
         self.llm = pipeline("text-generation", model="gpt2", device=device)
         self.previous_attempts = []
-        self.max_tokens = 1024  # GPT-2's context window
-        self.chunk_overlap = 100  # Overlap between chunks
+        self.max_tokens = 1024 
+        self.chunk_overlap = 100 
 
     def extract_text_from_pdf(self, pdf_path: str) -> str:
         text = ""
@@ -43,7 +42,7 @@ class ExtractorAgent:
     def chunk_text(self, text: str, chunk_size: int = None) -> List[str]:
         """Split text into chunks that fit within the model's context window."""
         if chunk_size is None:
-            chunk_size = self.max_tokens - 200  # Leave room for prompt and response
+            chunk_size = self.max_tokens - 200
         
         chunks = []
         start = 0
@@ -53,7 +52,6 @@ class ExtractorAgent:
             end = min(start + chunk_size, text_length)
             chunk = text[start:end]
             
-            # Try to find a good breaking point (e.g., paragraph or sentence end)
             if end < text_length:
                 last_paragraph = chunk.rfind('\n\n')
                 last_sentence = max(
@@ -347,7 +345,6 @@ class ExtractorAgent:
 class VerifierAgent:
     def __init__(self):
         self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-        # Check if CUDA is available and use GPU if it is
         device = 0 if torch.cuda.is_available() else -1
         self.llm = pipeline("text-generation", model="gpt2", device=device)
         self.findings_keywords = {
