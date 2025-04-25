@@ -16,8 +16,12 @@ import argparse
 class ExtractorAgent:
     def __init__(self):
         self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.llm = pipeline("text-generation", model="gpt2")
+        # Check if CUDA is available and use GPU if it is
+        device = 0 if torch.cuda.is_available() else -1
+        self.llm = pipeline("text-generation", model="gpt2", device=device)
         self.previous_attempts = []
+        self.max_tokens = 1024  # GPT-2's context window
+        self.chunk_overlap = 100  # Overlap between chunks
 
     def extract_text_from_pdf(self, pdf_path: str) -> str:
         text = ""
@@ -36,35 +40,80 @@ class ExtractorAgent:
             return ""
         return text
 
-    def identify_sections(self, text: str) -> List[str]:
-        chunk_size = 2000
-        overlap = 500
+    def chunk_text(self, text: str, chunk_size: int = None) -> List[str]:
+        """Split text into chunks that fit within the model's context window."""
+        if chunk_size is None:
+            chunk_size = self.max_tokens - 200  # Leave room for prompt and response
+        
         chunks = []
+        start = 0
+        text_length = len(text)
         
-        for i in range(0, len(text), chunk_size - overlap):
-            chunk = text[i:i + chunk_size]
+        while start < text_length:
+            end = min(start + chunk_size, text_length)
+            chunk = text[start:end]
+            
+            # Try to find a good breaking point (e.g., paragraph or sentence end)
+            if end < text_length:
+                last_paragraph = chunk.rfind('\n\n')
+                last_sentence = max(
+                    chunk.rfind('. '),
+                    chunk.rfind('! '),
+                    chunk.rfind('? ')
+                )
+                break_point = max(last_paragraph, last_sentence)
+                
+                if break_point > 0:
+                    end = start + break_point + 1
+                    chunk = text[start:end]
+            
             chunks.append(chunk)
+            start = end - self.chunk_overlap if end < text_length else end
         
+        return chunks
+
+    def identify_sections(self, text: str) -> List[str]:
+        chunks = self.chunk_text(text)
         all_sections = set()
         
         for chunk in chunks:
-            prompt = f"""Given the following research paper text, identify the main sections and their order. 
-            Return only the section names in order, separated by commas. Do not include any other text.
-            Focus on identifying standard research paper sections like Abstract, Introduction, Methods, Results, Discussion, etc.
-            
+            prompt = f"""You are a domain-expert NLP assistant specialized in parsing biomedical research articles (e.g., PubMed abstracts and full texts). Your goal is to locate only the **primary, top-level** section headings, in the exact order they appear in the text, and output them **as a single comma-separated list**. Do not output anything else.
+
+            === INSTRUCTIONS ===
+            1. **Scope of sections**  
+            - Recognize standard IMRaD headings. Some examples include: Abstract, Introduction, Methods (or Materials and Methods), Results, Discussion, Conclusion(s).  
+            - Also handle structured abstract labels (Background, Objective, Design, Setting, Participants, Interventions, Main Outcome Measures, Results, Conclusion).  
+            - Include other common headings if present: "Graphical Abstract," "Data Availability," "Funding," "Acknowledgments," "References," "Supplementary Material."  
+            - **Ignore** subsection labels (e.g. "2.1 Study Population") and in-line mentions of methods/results.
+
+            2. **Formatting rules**  
+            - Output exactly one line: the list of section names, **in the order they appear**, separated by commas and a single space.  
+            - **Do not** include any additional words, numbers, colons, or punctuation.  
+            - If a heading appears more than once, list it only on its first occurrence.  
+            - If no recognizable headings are found, output: `Unknown`.
+
+            3. **Robustness tips**  
+            - Headings may be in ALL CAPS, Title Case, or sentence case—detect them regardless of capitalization.  
+            - They may be followed by a line break, a horizontal rule, or a blank line.  
+            - There may be PDF-to-text artifacts (extra whitespace, missing colons)—use context to infer true headings.
+
+            === INPUT ===
+
             Text:
-            {chunk}
-            """
+            {chunk}"""
             
-            response = self.llm(
-                prompt,
-                max_new_tokens=100,
-                num_return_sequences=1,
-                temperature=0.7,
-            )
-            
-            sections = response[0]["generated_text"].strip().split(',')
-            all_sections.update(section.strip().lower() for section in sections)
+            try:
+                response = self.llm(
+                    prompt,
+                    max_new_tokens=100,
+                    num_return_sequences=1,
+                    temperature=0.7,
+                )
+                sections = response[0]["generated_text"].strip().split(',')
+                all_sections.update(section.strip().lower() for section in sections)
+            except Exception as e:
+                print(f"Warning: Error processing chunk: {str(e)}")
+                continue
         
         section_order = {
             'abstract': 0,
@@ -142,9 +191,32 @@ class ExtractorAgent:
         
         findings_sections = set()
         for chunk in header_chunks:
-            prompt = f"""Given these section headers from a research paper: {', '.join(chunk)}
-            Which sections are most likely to contain the authors' findings, conclusions, or key results? 
-            Return only single words, separated by commas."""
+            prompt = f"""
+            You are a domain-expert NLP assistant specialized in analyzing the structure of scientific papers. Given only a flat list of section headers (and possible non-header strings) from a research article, your task is to pick out which ones are most likely to contain the authors' findings, conclusions, or key results.
+
+            === INSTRUCTIONS ===
+            1. **Filter out noise**  
+            - The input list may include items that are not actual section headers (e.g., running headers, footnotes, page numbers, figure/table captions).  
+            - Ignore any entry that doesn't correspond to a top-level section heading.
+
+            2. **Target sections**  
+            - From the remaining items, choose those most likely to hold results or wrap up the study: Results, Findings, Discussion, Conclusion, Summary, Interpretation.  
+            - Also consider synonyms in structured abstracts: "Key Findings," "Principal Results," or "Concluding Remarks."  
+
+            3. **Formatting rules**  
+            - Return **only** the chosen section names as **single words**, in **Title Case** (e.g., Results, Discussion).  
+            - If a header is multi-word (e.g. "Key Findings"), extract only the core noun ("Findings").  
+            - Preserve the **order** in which these valid headers appeared in the input list.  
+            - Separate each by a comma and a single space; do **not** add any other punctuation, numbers, or commentary.  
+            - If none match, output `None`.
+
+            4. **Robustness tips**  
+            - Match headings case-insensitively and trim any surrounding whitespace or stray punctuation.  
+            - Deduplicate: if the same core noun appears multiple times, list it only once.
+
+            === INPUT ===  
+                        
+            These are the section headers from a research paper: {', '.join(chunk)}"""
             
             try:
                 response = self.llm(
@@ -186,8 +258,30 @@ class ExtractorAgent:
                 
                 for chunk in text_chunks:
                     try:
-                        summary_prompt = f"""Given the following section from a research paper, provide a detailed summary of the authors' key findings and conclusions. 
-                        Focus on the main results, implications, and conclusions. Be specific and include any quantitative results if present.
+                        summary_prompt = f"""You are a domain-expert NLP assistant specialized in parsing and summarizing biomedical research articles. Your goal is to read **only** the single section of a paper specified by its header and produce a concise, detailed summary of the authors' key findings and conclusions from that section.
+
+                        === INSTRUCTIONS ===
+                        1. **Scope of analysis**  
+                        - **Only** consider the content provided under the given section header; do not infer or include information from any other parts of the paper.  
+                        - If the content does not correspond to the specified header, treat it as noise and ignore it.
+
+                        2. **Scope of summary**  
+                        - Extract and synthesize the authors' main results, quantitative metrics (e.g., effect sizes, p-values, confidence intervals), and stated conclusions **present in this section**.  
+                        - Highlight any implications for the field, stated limitations, and potential future directions if mentioned **within this section**.  
+
+                        3. **Formatting rules**  
+                        - Return your summary in **three paragraphs**:  
+                            1. **Key Results**: 2–4 sentences detailing the primary quantitative and qualitative findings in this section. If no quantitative data are present, state "No quantitative data reported."  
+                            2. **Implications**: 2–4 sentences on what these section-specific results mean for practice, theory, or further research.  
+                            3. **Conclusions**: 2–4 sentences wrap-up of the authors' final statements or recommendations **drawn solely from this section**.  
+                        - **Do not** include any headings, labels (e.g., "Paragraph 1"), or extra commentary.  
+
+                        4. **Robustness tips**  
+                        - Interpret statistical notation (e.g., "p<0.05", "HR=1.7 [95% CI 1.2–2.4]") found in this section.  
+                        - Merge closely related findings into a single bullet or sentence.  
+                        - Omit any methods or background details unless they directly influence interpretation of results in this section.
+
+                        === INPUT ===  
                         
                         Section: {content['header']}
                         Content:
@@ -207,7 +301,33 @@ class ExtractorAgent:
                         continue
             
             if summaries:
-                final_prompt = f"""Combine these summaries of research findings into a coherent, detailed summary:
+                final_prompt = f"""You are a domain-expert NLP assistant specialized in synthesizing and integrating scientific content. Given a list of individual summary fragments of research findings, your task is to merge them into a single, coherent, detailed summary that reads like a unified narrative.
+
+                === INSTRUCTIONS ===
+                1. **Scope of synthesis**  
+                - Consider **only** the provided summary fragments. Do not introduce new information or external references.  
+                - Preserve each fragment's key findings, quantitative results, and conclusions.
+
+                2. **Merging strategy**  
+                - Identify overlaps and redundancies across fragments and merge similar points into unified statements.  
+                - Arrange content into a logical flow: start with background/context (if any), then present major results in descending order of importance, followed by implications and conclusions.  
+                - Use transitional phrases (e.g., "Furthermore," "In addition," "Consequently") to link ideas smoothly.
+
+                3. **Formatting rules**  
+                - Output as **one cohesive narrative** in **3–5 paragraphs**:  
+                    1. **Overview**: 1–2 sentences introducing the combined scope and purpose.  
+                    2. **Key Findings**: 2–4 sentences summarizing the main quantitative and qualitative results.  
+                    3. **Implications**: 2–4 sentences on the significance and potential applications.  
+                    4. **Conclusions and Future Directions**: 1–2 sentences wrapping up and noting any recommended next steps.  
+                - Do **not** list bullet points or use headings—write continuous prose.  
+                - Retain any numerical values and statistical measures verbatim from the fragments.
+
+                4. **Robustness tips**  
+                - If two fragments report the same result with slightly different wording, consolidate them into a single clear statement.  
+                - Maintain any acronyms or domain-specific terms used in the fragments.  
+                - Ensure no key finding is lost—every distinct result in the inputs must appear in the synthesis.
+
+                === INPUT ===  
                 {' '.join(summaries)}"""
                 
                 try:
@@ -227,7 +347,13 @@ class ExtractorAgent:
 class VerifierAgent:
     def __init__(self):
         self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.llm = pipeline("text-generation", model="gpt2")
+        # Check if CUDA is available and use GPU if it is
+        device = 0 if torch.cuda.is_available() else -1
+        self.llm = pipeline("text-generation", model="gpt2", device=device)
+        self.findings_keywords = {
+            'results', 'findings', 'conclusion', 'discussion', 'summary', 
+            'interpretation', 'key findings', 'principal results', 'concluding remarks'
+        }
 
     def verify_headers(self, headers: List[Dict[str, str]]) -> Tuple[bool, List[Dict[str, str]]]:
         verified_headers = []
@@ -256,6 +382,63 @@ class VerifierAgent:
         
         return is_complete, verified_headers
 
+    def verify_findings_headers(self, headers: List[Dict[str, str]], text: str) -> List[Dict[str, str]]:
+        verified_findings_headers = []
+        
+        for header in headers:
+            header_text = header['text'].lower()
+            
+            is_findings_header = any(keyword in header_text for keyword in self.findings_keywords)
+            
+            if is_findings_header:
+                prompt = f"""You are a domain-expert NLP verifier agent whose job is to assess whether a single section of a research paper contains the authors' actual findings, conclusions, or key results.
+
+                === INSTRUCTIONS ===
+                1. **Scope of analysis**  
+                - Consider **only** the provided section header and its content. Do not infer from other parts of the paper.  
+                - Ignore any methods details, background context, or metadata unless they explicitly state results or conclusions.
+
+                2. **Define "findings/conclusions/key results"**  
+                - Look for statements of experimental or observational outcomes (e.g., "we found," "results show," quantitative metrics).  
+                - Identify summary judgments or take-home messages (e.g., "these data suggest," "we conclude that").  
+                - Exclude descriptions of methods, objectives, or literature review.
+
+                3. **Formatting rules**  
+                - Answer **only** with `yes` if the section contains one or more actual findings, conclusions, or key results; otherwise answer `no`.  
+                - Do **not** output any additional words, punctuation, or explanation.
+
+                4. **Robustness tips**  
+                - Match language case-insensitively and trim whitespace.  
+                - Treat statistical expressions (e.g., "p<0.05," "OR=2.3 [95% CI 1.5–3.6]") as evidence of findings.  
+                - If the content only restates aims or methods, answer `no`.
+
+                === INPUT ===  
+                Header: {header['text']}
+                Content: {header['context']}"""
+                
+                try:
+                    response = self.llm(
+                        prompt,
+                        max_new_tokens=10,
+                        num_return_sequences=1,
+                        temperature=0.7,
+                    )
+                    
+                    contains_findings = response[0]["generated_text"].strip().lower().startswith('yes')
+                    
+                    if contains_findings:
+                        verified_findings_headers.append({
+                            'original': header['text'],
+                            'verified_as': 'findings_section',
+                            'confidence': float(header['similarity_score']),
+                            'context': header['context']
+                        })
+                except Exception as e:
+                    print(f"Warning: Error verifying findings header: {str(e)}")
+                    continue
+        
+        return verified_findings_headers
+
 class ResearchPaperAnalyzer:
     def __init__(self):
         self.extractor = ExtractorAgent()
@@ -268,7 +451,10 @@ class ResearchPaperAnalyzer:
         
         headers = self.extractor.extract_headers(text)
         is_complete, verified_headers = self.verifier.verify_headers(headers)
-        findings_summary = self.extractor.analyze_findings(text, verified_headers)
+        
+        findings_headers = self.verifier.verify_findings_headers(verified_headers, text)
+        
+        findings_summary = self.extractor.analyze_findings(text, findings_headers)
         
         return is_complete, verified_headers, findings_summary
 
