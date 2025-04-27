@@ -3,308 +3,243 @@ import aiohttp
 import pandas as pd
 from metapub import PubMedFetcher
 import os
+import json
 from datetime import datetime
 import argparse
 import random
+import requests
+from pathlib import Path
+import urllib.parse
+from enum import Enum
+from typing import Optional, List, Dict, Any, Union
 
-NCBI_API_KEY = os.environ["NCBI_API_KEY"]
+class FilterField(Enum):
+    MESH_TERMS = "MeSH Terms"
+    PUBLICATION_DATE = "Publication Date"
+    OPEN_ACCESS = "Open Access"
 
-if NCBI_API_KEY is None:
-    raise ValueError(
-        "NCBI_API_KEY environment variable is not set. Please set it to your NCBI API key."
-    )
+class PubmedTrainingSetGenerator:
+    def __init__(self, ncbi_api_key: Optional[str] = None):
+        """Initialize the generator with optional API key"""
+        self._ncbi_api_key = self._validate_api_key(ncbi_api_key)
+        self._training_set = None
+        self._filters = {}
+        self._article_limit = 1000
+        self._open_access_only = False
+        self._pdf_output_dir = None
+        self._fetch = PubMedFetcher(api_key=self._ncbi_api_key)
 
-fetch = PubMedFetcher()
+    def _validate_api_key(self, api_key: Optional[str]) -> str:
+        """Validate and set the API key"""
+        if api_key:
+            return api_key
+        elif "NCBI_API_KEY" in os.environ:
+            return os.environ["NCBI_API_KEY"]
+        else:
+            print("Warning: No NCBI API key provided. Requests will be rate limited.")
+            return ""
 
-PREPRINT_KEYWORDS = {
-    "medrxiv",
-    "biorxiv",
-    "arxiv",
-    "preprint",
-    "pre-print",
-    "preprint server",
-    "preprint repository",
-    "preprint archive",
-}
+    def add_filter(self, field: FilterField, value: Any) -> None:
+        """Add a filter to the search query"""
+        self._filters[field] = value
 
-NUMBER_TO_FETCH = 1000
+    def set_limit(self, limit: int) -> None:
+        """Set the maximum number of articles to return"""
+        self._article_limit = limit
 
+    def set_open_access_only(self, open_access_only: bool) -> None:
+        """Set whether to only include open access articles"""
+        self._open_access_only = open_access_only
 
-def is_preprint(journal):
-    journal_lower = journal.lower()
-    return any(keyword in journal_lower for keyword in PREPRINT_KEYWORDS)
+    def set_pdf_output_dir(self, output_dir: str) -> None:
+        """Set the directory where PDFs will be saved"""
+        self._pdf_output_dir = os.path.abspath(output_dir)
+        if not os.path.exists(self._pdf_output_dir):
+            os.makedirs(self._pdf_output_dir)
 
+    async def _download_pdf(self, pmid: str, pdf_url: str) -> Optional[str]:
+        """Download a PDF for a given PMID"""
+        try:
+            safe_filename = f"PMID_{pmid}.pdf"
+            output_path = os.path.join(self._pdf_output_dir, safe_filename)
+            
+            if os.path.exists(output_path):
+                return output_path
+                
+            response = requests.get(pdf_url, stream=True)
+            response.raise_for_status()
+            
+            with open(output_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+                    
+            return output_path
+        except Exception as e:
+            print(f"Error downloading PDF for PMID {pmid}: {str(e)}")
+            return None
 
-def has_alzheimer_term(article):
-    title = article.title.lower() if article.title else ""
-    abstract = (
-        article.abstract.lower()
-        if hasattr(article, "abstract") and article.abstract
-        else ""
-    )
-    return "alzheimer" in title or "alzheimer" in abstract
+    async def search_pubmed(self) -> Dict[str, Dict[str, Any]]:
+        """Search PubMed with the configured filters"""
+        if not self._filters.get(FilterField.MESH_TERMS):
+            raise ValueError("At least one MeSH term must be provided")
 
+        articles = {}
 
-def get_year_range_and_journals():
-    try:
-        df = pd.read_csv("filtered_articles.csv")
-        min_year = df["year"].min()
-        max_year = df["year"].max()
-        journals = set(df["journal"].unique())
-        return min_year, max_year, journals
-    except Exception as e:
-        print(f"Error reading filtered_articles.csv: {str(e)}")
-        return None, None, set()
+        mesh_terms = self._filters.get(FilterField.MESH_TERMS, [])
+        if len(mesh_terms) > 5:
+            raise ValueError("Maximum of 5 MeSH terms allowed")
 
+        mesh_terms_query = " OR ".join([f'("{term}"[MeSH Terms])' for term in mesh_terms])
+        
+        year_filter = ""
+        if FilterField.PUBLICATION_DATE in self._filters:
+            year_start, year_end = self._filters[FilterField.PUBLICATION_DATE]
+            if year_start and year_end:
+                year_filter = f" AND ({year_start}:{year_end}[pdat])"
 
-def load_distribution_data():
-    try:
-        df = pd.read_csv("year_journal_distribution.csv")
-        return df
-    except Exception as e:
-        print(f"Error reading distribution data: {str(e)}")
-        return None
+        open_access_filter = " AND (open access[filter])" if self._open_access_only else ""
+        search_query = f'({mesh_terms_query}{year_filter}{open_access_filter})'
 
+        print(f"Searching PubMed...")
 
-def get_target_distribution(total_articles):
-    distribution_df = load_distribution_data()
-    if distribution_df is None:
-        return None, None
+        try:
+            pmids = self._fetch.pmids_for_query(search_query, retmax=self._article_limit)
 
-    year_distribution = {}
-    for _, row in distribution_df.iterrows():
-        year_distribution[int(row["year"])] = {
-            "target_count": int(row["proportion"] * total_articles),
-            "journal_proportions": {
-                col.replace("journal_", ""): val
-                for col, val in row.items()
-                if col.startswith("journal_") and val > 0
-            },
-        }
-
-    return year_distribution, distribution_df
-
-
-async def search_pubmed(keywords):
-    articles = []
-
-    min_year, max_year, target_journals = get_year_range_and_journals()
-
-    year_distribution, distribution_df = get_target_distribution(NUMBER_TO_FETCH)
-    if year_distribution is None:
-        print("Could not load distribution data, falling back to default search")
-        return await default_search(keywords)
-
-    search_terms = []
-    for keyword in keywords:
-        search_terms.append(f'("{keyword}"[Title/Abstract])')
-
-    alzheimer_terms = '(("Alzheimer Disease"[MeSH Terms]) OR ("Alzheimer\'s Disease"[Title/Abstract]))'
-
-    print(f"Searching PubMed with journal-specific sampling...")
-
-    try:
-        for year, year_data in year_distribution.items():
-            if year_data["target_count"] == 0:
-                continue
-
-            year_filter = f" AND ({year}[pdat])"
-            print(f"\nProcessing year {year}...")
-
-            target_journal_articles = {
-                journal: [] for journal in year_data["journal_proportions"].keys()
-            }
-
-            for journal, proportion in year_data["journal_proportions"].items():
-                target_count = int(proportion * year_data["target_count"])
-                if target_count == 0:
-                    continue
-
-                journal_query = f'("{journal}"[Journal])'
-                search_query = f'({alzheimer_terms} AND ({" OR ".join(search_terms)}){year_filter} AND {journal_query})'
-
-                print(f"Searching {journal} in {year} for {target_count} articles...")
-
+            for pmid in pmids:
                 try:
-                    pmids = fetch.pmids_for_query(search_query, retmax=target_count * 8)
-
-                    for pmid in pmids:
-                        try:
-                            article = fetch.article_by_pmid(pmid)
-                            if (
-                                article
-                                and not is_preprint(article.journal)
-                                and has_alzheimer_term(article)
-                            ):
-                                target_journal_articles[journal].append(
-                                    {
-                                        "pmid": pmid,
-                                        "title": article.title,
-                                        "abstract": (
-                                            article.abstract
-                                            if hasattr(article, "abstract")
-                                            else ""
-                                        ),
-                                        "journal": journal,
-                                        "year": year,
-                                    }
-                                )
-                        except Exception as e:
-                            print(f"Error fetching PMID {pmid}: {str(e)}")
+                    article = self._fetch.article_by_pmid(pmid)
+                    if article and not self._is_preprint(article.journal):
+                        is_open_access = hasattr(article, 'open_access') and article.open_access
+                        
+                        if self._open_access_only and not is_open_access:
                             continue
-
-                    print(
-                        f"Found {len(target_journal_articles[journal])} articles for {journal}"
-                    )
-
-                except Exception as e:
-                    print(
-                        f"Error during PubMed search for {journal} in {year}: {str(e)}"
-                    )
-
-            for journal, journal_articles in target_journal_articles.items():
-                target_count = int(
-                    year_data["journal_proportions"][journal]
-                    * year_data["target_count"]
-                )
-
-                if len(journal_articles) < target_count:
-                    print(
-                        f"Warning: Only found {len(journal_articles)} articles for {journal} in {year}, but needed {target_count}"
-                    )
-                    articles.extend(journal_articles)
-                else:
-                    selected_articles = random.sample(journal_articles, target_count)
-                    articles.extend(selected_articles)
-
-            print(f"\nYear {year} summary:")
-            for journal, journal_articles in target_journal_articles.items():
-                target_count = int(
-                    year_data["journal_proportions"][journal]
-                    * year_data["target_count"]
-                )
-                print(
-                    f"  - {journal}: Found {len(journal_articles)}, Selected {min(target_count, len(journal_articles))}"
-                )
-
-    except Exception as e:
-        print(f"Error during PubMed search: {str(e)}")
-
-    return articles
-
-
-async def default_search(keywords):
-    articles = []
-    search_terms = []
-    for keyword in keywords:
-        search_terms.append(f'("{keyword}"[Title/Abstract])')
-
-    alzheimer_terms = '(("Alzheimer Disease"[MeSH Terms]) OR ("Alzheimer\'s Disease"[Title/Abstract]))'
-    search_query = f'({alzheimer_terms} AND ({" OR ".join(search_terms)}))'
-
-    try:
-        pmids = fetch.pmids_for_query(search_query, retmax=NUMBER_TO_FETCH)
-
-        for pmid in pmids:
-            try:
-                article = fetch.article_by_pmid(pmid)
-                if (
-                    article
-                    and not is_preprint(article.journal)
-                    and has_alzheimer_term(article)
-                ):
-                    articles.append(
-                        {
+                            
+                        pdf_path = None
+                        if is_open_access and hasattr(article, 'pdf_url') and article.pdf_url:
+                            pdf_path = await self._download_pdf(pmid, article.pdf_url)
+                            
+                        if self._open_access_only and not pdf_path:
+                            continue
+                            
+                        articles[pmid] = {
                             "pmid": pmid,
                             "title": article.title,
-                            "abstract": (
-                                article.abstract if hasattr(article, "abstract") else ""
-                            ),
+                            "abstract": article.abstract if hasattr(article, "abstract") else "",
                             "journal": article.journal,
-                            "year": article.year,
+                            "publication_date": article.pubdate,
+                            "mesh_terms": article.mesh_terms if hasattr(article, "mesh_terms") else [],
+                            "is_open_access": is_open_access,
+                            "pdf_path": pdf_path
                         }
-                    )
-            except Exception as e:
-                print(f"Error fetching PMID {pmid}: {str(e)}")
-                continue
+                except Exception as e:
+                    print(f"Error fetching PMID {pmid}: {str(e)}")
+                    continue
 
-    except Exception as e:
-        print(f"Error during PubMed search: {str(e)}")
+        except Exception as e:
+            print(f"Error during PubMed search: {str(e)}")
 
-    return articles
-
-
-def filter_existing_articles(articles):
-    try:
-        existing_pmids = set()
-
-        try:
-            df_new = pd.read_csv("new_alzheimer_articles.csv")
-            existing_pmids.update(df_new["pmid"].astype(str))
-        except FileNotFoundError:
-            pass
-
-        try:
-            df_filtered = pd.read_csv("filtered_articles.csv")
-            existing_pmids.update(df_filtered["pmid"].astype(str))
-        except FileNotFoundError:
-            pass
-
-        filtered_articles = [
-            article
-            for article in articles
-            if str(article["pmid"]) not in existing_pmids
-        ]
-
-        print(f"Removed {len(articles) - len(filtered_articles)} existing articles")
-        return filtered_articles
-
-    except Exception as e:
-        print(f"Error filtering existing articles: {str(e)}")
         return articles
 
+    def _is_preprint(self, journal: str) -> bool:
+        """Check if a journal is a preprint"""
+        journal_lower = journal.lower()
+        preprint_keywords = {
+            "medrxiv", "biorxiv", "arxiv", "preprint", "pre-print",
+            "preprint server", "preprint repository", "preprint archive"
+        }
+        return any(keyword in journal_lower for keyword in preprint_keywords)
 
-async def main():
-    parser = argparse.ArgumentParser(
-        description="Search PubMed for Alzheimer's articles with keywords"
-    )
-    parser.add_argument(
-        "--keywords",
-        default="alzheimer_keywords.csv",
-        help="Path to CSV file containing keywords",
-    )
-    args = parser.parse_args()
-
-    try:
-        keywords_df = pd.read_csv(args.keywords)
-        keywords = keywords_df["keyword"].tolist()
-    except Exception as e:
-        print(f"Error reading keywords file: {str(e)}")
-        return
-
-    articles = await search_pubmed(keywords)
-    print(f"Found {len(articles)} articles after removing preprints")
-
-    filtered_articles = filter_existing_articles(articles)
-    print(f"Found {len(filtered_articles)} new articles")
-
-    if filtered_articles:
-        df_new = pd.DataFrame(filtered_articles)
+    def _filter_existing_articles(self, articles: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """Filter out articles that already exist in the training set"""
         try:
-            df_existing = pd.read_csv("new_alzheimer_articles.csv")
-            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-            df_combined.to_csv("new_alzheimer_articles.csv", index=False)
-            print(
-                f"Added {len(filtered_articles)} new articles to new_alzheimer_articles.csv"
-            )
-        except FileNotFoundError:
-            df_new.to_csv("new_alzheimer_articles.csv", index=False)
-            print(
-                f"Created new_alzheimer_articles.csv with {len(filtered_articles)} articles"
-            )
-    else:
-        print("No new articles found")
+            existing_pmids = set()
+            if self._training_set:
+                existing_pmids.update(self._training_set.keys())
 
+            filtered_articles = {
+                pmid: article 
+                for pmid, article in articles.items() 
+                if str(pmid) not in existing_pmids
+            }
+
+            print(f"Removed {len(articles) - len(filtered_articles)} existing articles")
+            return filtered_articles
+
+        except Exception as e:
+            print(f"Error filtering existing articles: {str(e)}")
+            return articles
+
+    async def run(self) -> None:
+        """Run the generator and save results to self._training_set"""
+        articles = await self.search_pubmed()
+        print(f"Found {len(articles)} articles after removing preprints")
+
+        filtered_articles = self._filter_existing_articles(articles)
+        print(f"Found {len(filtered_articles)} new articles")
+
+        if filtered_articles:
+            if self._training_set:
+                self._training_set.update(filtered_articles)
+            else:
+                self._training_set = filtered_articles
+            print(f"Added {len(filtered_articles)} new articles to training set")
+        else:
+            print("No new articles found")
+
+    def as_dict(self) -> Dict[str, Dict[str, Any]]:
+        """Return the training set as a dictionary"""
+        return self._training_set or {}
+
+    def as_json(self) -> str:
+        """Return the training set as a JSON string"""
+        return json.dumps(self._training_set or {}, indent=2)
+
+    def save_to_file(self, filepath: str) -> None:
+        """Save the training set to a file"""
+        with open(filepath, 'w') as f:
+            json.dump(self._training_set or {}, f, indent=2)
+
+    def get_pubmed_ids(self) -> List[str]:
+        """Get all PubMed IDs in the training set"""
+        return list(self._training_set.keys()) if self._training_set else []
+
+    def get_journals(self) -> List[str]:
+        """Get all unique journals in the training set"""
+        if not self._training_set:
+            return []
+        return list(set(article["journal"] for article in self._training_set.values()))
+
+async def main(**kwargs):
+    """Main function to run the generator from command line"""
+    generator = PubmedTrainingSetGenerator(kwargs.get("ncbi_api_key"))
+    
+    if "mesh_terms" in kwargs:
+        generator.add_filter(FilterField.MESH_TERMS, kwargs["mesh_terms"])
+    
+    if "year_start" in kwargs and "year_end" in kwargs:
+        generator.add_filter(FilterField.PUBLICATION_DATE, (kwargs["year_start"], kwargs["year_end"]))
+    
+    if "open_access_only" in kwargs:
+        generator.set_open_access_only(kwargs["open_access_only"])
+    
+    if "article_limit" in kwargs:
+        generator.set_limit(kwargs["article_limit"])
+    
+    if "pdf_output_dir" in kwargs:
+        generator.set_pdf_output_dir(kwargs["pdf_output_dir"])
+    
+    await generator.run()
+    print(generator.as_json())
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Search PubMed for articles with MeSH terms")
+    parser.add_argument("--mesh_terms", nargs="+", required=True, help="List of up to 5 MeSH terms to search for")
+    parser.add_argument("--year_start", type=int, help="Start year for the search (optional)")
+    parser.add_argument("--year_end", type=int, help="End year for the search (optional)")
+    parser.add_argument("--ncbi_api_key", required=True, help="NCBI API key")
+    parser.add_argument("--open_access_only", action="store_true", help="Only include open access articles")
+    parser.add_argument("--article_limit", type=int, default=1000, help="Maximum number of articles to return")
+    parser.add_argument("--pdf_output_dir", required=True, help="Full path to directory where PDFs will be saved")
+    
+    args = parser.parse_args()
+    asyncio.run(main(**vars(args)))
