@@ -11,6 +11,32 @@
                 "docs/_build/html"
             ],
             "justMyCode": false
+        },
+        {
+            "name": "FILER - dev",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "niagads.open_access_filer_api.core:app",
+                "--reload"
+                //"--no-reload",
+            ],
+            "jinja": true,
+            "justMyCode": true
+        },
+        {
+            "name": "FAST-API - plus dependencies",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "api.main:app",
+                "--reload"
+                //"--no-reload",
+            ],
+            "jinja": true,
+            "justMyCode": false
         }
     ]
 }
