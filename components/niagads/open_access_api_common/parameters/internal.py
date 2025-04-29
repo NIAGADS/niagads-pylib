@@ -11,8 +11,10 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # internal cache; stores responses as is
-__CACHE_MANAGER = KeyDBCacheManager(
-    serializer=CacheSerializer.PICKLE, ttl=get_settings().CACHE_TTL
+_CACHE_MANAGER = KeyDBCacheManager(
+    connectionString=get_settings().CACHE_DB_URI,
+    serializer=CacheSerializer.PICKLE,
+    ttl=get_settings().CACHE_TTL,
 )
 
 
@@ -21,7 +23,7 @@ class InternalRequestParameters(BaseModel, arbitrary_types_allowed=True):
     requestData: RequestDataModel = Depends(RequestDataModel.from_request)
 
     cacheKey: CacheKeyDataModel = Depends(CacheKeyDataModel.from_request)
-    cache: Annotated[KeyDBCacheManager, Depends(__CACHE_MANAGER)]
+    cache: Annotated[KeyDBCacheManager, Depends(_CACHE_MANAGER)]
 
     # session managers; callable to return none, override as needed for each endpoint
     apiClientSession: Optional[ClientSession] = Depends(get_none)
