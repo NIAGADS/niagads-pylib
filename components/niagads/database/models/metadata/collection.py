@@ -4,8 +4,8 @@ from typing import Optional
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from niagads.database.models.metadata.core import MetadataSchemaBase
 from niagads.utils.list import list_to_string
-from sqlalchemy import TEXT, CheckConstraint, Column, Enum, ForeignKey, Index, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import CheckConstraint, Column, Enum, ForeignKey, Index, String
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class Collection(MetadataSchemaBase):
@@ -24,7 +24,7 @@ class Collection(MetadataSchemaBase):
 
     collection_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str]
-    description: str = mapped_column(String(2000))
+    description: Mapped[str] = mapped_column(String(2000))
     tracks_are_sharded: Mapped[Optional[bool]] = mapped_column(default=False)
     data_store: str = Column(
         Enum(TrackDataStore, native_enum=False), nullable=False, index=True
