@@ -1,7 +1,6 @@
-from niagads.database.models.metadata.track import Track, TrackBase
+from niagads.database.models.metadata.track import Track
 
 
 __all__ = [
     "Track",
-    "TrackBase",
 ]

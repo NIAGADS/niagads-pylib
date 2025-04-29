@@ -1,12 +1,10 @@
 from typing import Any, Dict, TypeVar
 
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
-from niagads.open_access_api_common.models.records.core import RowModel
 from niagads.open_access_api_common.models.response.pagination import (
     PaginationDataModel,
 )
 from niagads.open_access_api_common.models.response.request import RequestDataModel
-from niagads.open_access_api_common.models.views.table.core import TableColumn
 from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
     ResponseView,
@@ -50,6 +48,10 @@ class ResponseModel(SQLModel, BaseModel):
         self.request.add_message(str)
 
     def to_view(self, view: ResponseView, **kwargs):
+        # avoid circular imports
+        from niagads.open_access_api_common.models.records.core import RowModel
+        from niagads.open_access_api_common.models.views.table.core import TableColumn
+
         if len(self.data) == 0:
             raise RuntimeError("zero-length response; cannot generate view")
 
@@ -80,6 +82,8 @@ class ResponseModel(SQLModel, BaseModel):
 
     def to_text(self, format: ResponseFormat, **kwargs):
         """return a text response (e.g., BED, VCF, plain text)"""
+        from niagads.open_access_api_common.models.records.core import RowModel
+
         nullStr = kwargs.get("nullStr", DEFAULT_NULL_STRING)
         if isinstance(self.data, dict):
             responseStr = "\t".join(list(self.data.keys())) + "\n"

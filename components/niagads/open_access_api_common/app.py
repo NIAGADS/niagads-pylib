@@ -60,7 +60,7 @@ class AppFactory:
 
         return self.__app
 
-    def add_route(self, route: APIRoute) -> None:
+    def add_router(self, route: APIRoute) -> None:
         """Add a route to the application"""
         if self.__app is None:
             raise RuntimeError("Application is not initialized.")
