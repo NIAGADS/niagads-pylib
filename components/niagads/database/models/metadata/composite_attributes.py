@@ -3,8 +3,8 @@ from enum import auto
 from typing import List, Optional
 
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.open_access_api_common.config.external_resources import DATASOURCE_URLS
-from niagads.open_access_api_common.models.core import NullFreeModel
+from niagads.common.constants.external_resources import DATASOURCE_URLS
+from niagads.common.core import NullFreeModel
 from niagads.utils.string import matches
 from niagads.utils.regular_expressions import RegularExpressions
 from pydantic import Field, computed_field, field_validator

@@ -47,6 +47,9 @@ class DatabaseSessionManager:
     def __get_async_uri(self, uri: str = None):
         return uri.replace("postgresql:", "postgresql+asyncpg:")
 
+    def get_engine(self):
+        return self.__engine
+
     async def close(self):
         """
         This does not actually disconnect from the database,

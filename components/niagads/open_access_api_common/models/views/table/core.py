@@ -5,7 +5,7 @@ FIXME: remove front end rendering and place in configuration JSON
 
 from typing import Any, Dict, List, Optional
 
-from niagads.open_access_api_common.models.core import NullFreeModel
+from niagads.common.core import NullFreeModel
 from niagads.open_access_api_common.models.views.core import ViewResponse
 from niagads.open_access_api_common.models.views.table.cells import (
     T_TableRow,

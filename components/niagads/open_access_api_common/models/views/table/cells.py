@@ -1,7 +1,7 @@
 from enum import StrEnum, auto
 from typing import Any, Dict, List, Optional, TypeVar, Union
 
-from niagads.open_access_api_common.models.core import NullFreeModel
+from niagads.common.core import NullFreeModel
 
 # FIXME: is front-end; can we refactor?
 

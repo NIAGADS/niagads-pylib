@@ -1,5 +1,5 @@
 from niagads.open_access_api_common.config.core import Settings
-from niagads.open_access_api_common.config import external_resources
+from niagads.common.constants import external_resources
 from niagads.open_access_api_common.config import constants
 
 __all__ = [
