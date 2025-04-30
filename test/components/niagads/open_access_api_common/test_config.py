@@ -1,4 +1,5 @@
-from niagads.open_access_api_common.config import core, external_resources
+from niagads.common.constants import external_resources
+from niagads.open_access_api_common.config import core
 
 
 def test_sample():
