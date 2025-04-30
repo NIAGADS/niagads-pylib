@@ -3,7 +3,7 @@
 from typing import Set
 
 from niagads.open_access_api_common.app import OpenAPISpec, OpenAPITag
-from niagads.open_access_api_common.config.core import get_settings
+from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.types import T_PubMedID
 
 OPEN_API_TAGS = OpenAPITag(
@@ -30,8 +30,8 @@ OPEN_API_SPEC = OpenAPISpec(
     title=OPEN_API_TAGS.name,
     description=OPEN_API_TAGS.description,
     summary="NIAGADS Open Access API: FILER",
-    version=get_settings().API_VERSION,
-    admin_email=get_settings().ADMIN_EMAIL,
-    service_url=get_settings().API_PUBLIC_URL,
+    version=Settings.get().API_VERSION,
+    admin_email=Settings.get().ADMIN_EMAIL,
+    service_url=Settings.get().API_PUBLIC_URL,
     openapi_tags=[OPEN_API_TAGS],
 )

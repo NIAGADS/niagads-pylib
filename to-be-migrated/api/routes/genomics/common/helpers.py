@@ -13,7 +13,7 @@ from api.common.enums.response_properties import ResponseContent, ResponseView
 from api.common.helpers import Parameters, ResponseConfiguration, MetadataRouteHelper
 from api.common.services.metadata_query import MetadataQueryService
 from api.common.types import Range
-from api.config.settings import get_settings
+from api.config.settings import Settings
 from api.models.query_defintion import QueryDefinition
 
 from api.routes.genomics.common.constants import (
@@ -161,7 +161,7 @@ class GenomicsRouteHelper(MetadataRouteHelper):
             if self._resultSize > self._pageSize:
                 if self.__query.messageOnResultSize is not None:
                     currentPage = self.page()
-                    query = f'{get_settings().API_PUBLIC_URL}{self._managers.requestData.endpoint}?page={currentPage}'
+                    query = f'{Settings.get().API_PUBLIC_URL}{self._managers.requestData.endpoint}?page={currentPage}'
                     rangeMessage =  f'top {self._pageSize} results'if currentPage == 1 else f'results [{pRange.start + 1}, {pRange.end}]'
                     message = self.__query.messageOnResultSize.format(self._resultSize, rangeMessage, query)
         """

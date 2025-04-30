@@ -1,7 +1,7 @@
 from niagads.open_access_api_common.app import AppFactory
-from niagads.open_access_api_common.config.core import get_service_environment
 from niagads.open_access_filer_api.documentation import OPEN_API_SPEC
 from niagads.open_access_filer_api.routes.root import router as InfoRouter
+from niagads.settings.core import get_service_environment
 import uvicorn
 
 # generate the app

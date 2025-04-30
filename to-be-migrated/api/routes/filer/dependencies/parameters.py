@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from aiohttp import ClientSession
 
 from api.common.constants import TRACK_SEARCH_FILTER_FIELD_MAP
-from api.config.settings import get_settings
+from api.config.settings import Settings
 from api.common.enums.response_properties import ResponseFormat
 from api.common.formatters import clean
 from api.dependencies.database import DatabaseSessionManager
@@ -21,7 +21,7 @@ from api.routes.filer.common.constants import FILER_HTTP_CLIENT_TIMEOUT, ROUTE_D
 # use connection pooling
 ROUTE_SESSION_MANAGER = DatabaseSessionManager(ROUTE_DATABASE)
 API_CLIENT_SESSION_MANAGER = HttpClientSessionManager(
-    get_settings().EXTERNAL_REQUEST_URL, timeout=FILER_HTTP_CLIENT_TIMEOUT
+    Settings.get().EXTERNAL_REQUEST_URL, timeout=FILER_HTTP_CLIENT_TIMEOUT
 )
 
 
