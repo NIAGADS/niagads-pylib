@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from aiohttp import ClientSession
 from fastapi import Depends, Request
 from niagads.cache.core import KeyDBCacheManager, CacheSerializer
-from niagads.open_access_api_common.config.core import get_settings
+from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.dependencies import get_none
 from niagads.open_access_api_common.models.cache import CacheKeyDataModel
 from niagads.open_access_api_common.models.response.request import RequestDataModel
@@ -12,9 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # internal cache; stores responses as is
 _CACHE_MANAGER = KeyDBCacheManager(
-    connectionString=get_settings().CACHE_DB_URI,
+    connectionString=Settings.get().CACHE_DB_URI,
     serializer=CacheSerializer.PICKLE,
-    ttl=get_settings().CACHE_TTL,
+    ttl=Settings.get().CACHE_TTL,
 )
 
 

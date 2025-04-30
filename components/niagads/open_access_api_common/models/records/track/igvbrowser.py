@@ -5,7 +5,7 @@ from niagads.database.models.metadata.composite_attributes import (
     ExperimentalDesign,
     Phenotype,
 )
-from niagads.open_access_api_common.config.core import get_settings
+from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.models.records.core import RowModel
 from niagads.open_access_api_common.models.response.core import ResponseModel
 from niagads.open_access_api_common.models.views.core import id2title
@@ -27,7 +27,7 @@ class IGVBrowserTrackConfig(RowModel):
 
     browser_track_type: str = Field(serialization_alias="type")
     browser_track_format: str = Field(serialization_alias="format")
-    infoURL: str = get_settings().IGV_BROWSER_INFO_URL
+    infoURL: str = Settings.get().IGV_BROWSER_INFO_URL
 
     @field_validator("format", mode="before")
     def extract_track_format(self, fileSchema) -> str:

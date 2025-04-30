@@ -4,10 +4,6 @@ from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
-from niagads.open_access_api_common.config.core import (
-    ServiceEnvironment,
-    get_service_environment,
-)
 from niagads.open_access_api_common.exception_handlers import (
     add_database_exception_handler,
     add_not_implemented_exception_handler,
@@ -16,6 +12,7 @@ from niagads.open_access_api_common.exception_handlers import (
     add_system_exception_handler,
     add_validation_exception_handler,
 )
+from niagads.settings.core import ServiceEnvironment, get_service_environment
 from pydantic import BaseModel
 
 
@@ -111,7 +108,7 @@ class AppFactory:
 
         self.__app.add_middleware(
             CORSMiddleware,
-            # allow_origins=[get_settings().API_PUBLIC_URL],
+            # allow_origins=[Settings.get().API_PUBLIC_URL],
             allow_origins=(
                 ["*"]
                 if serviceEnv in [ServiceEnvironment.DEV, ServiceEnvironment.TEST]

@@ -28,7 +28,7 @@ from fastapi import FastAPI, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from niagads.open_access_api_common.config.core import get_settings
+from niagads.open_access_api_common.config.core import Settings
 
 from pydantic import ValidationError
 from sqlalchemy.exc import DatabaseError
@@ -113,7 +113,7 @@ def add_system_exception_handler(app: FastAPI) -> None:
                     "message": str(exc),  # optionally, include the pydantic errors
                     "error": (
                         f"An system error occurred.  Please email this error response to "
-                        f"{get_settings().ADMIN_EMAIL} with the subject `NIAGADS API Systems Error`"
+                        f"{Settings.get().ADMIN_EMAIL} with the subject `NIAGADS API Systems Error`"
                         f"and we will try and resolve the issue as soon as possible."
                     ),
                     "stack_trace": [
@@ -139,7 +139,7 @@ def add_database_exception_handler(app: FastAPI) -> None:
                     "message": str(exc),  # optionally, include the pydantic errors
                     "error": (
                         f"An system error occurred.  Please email this error response to "
-                        f"{get_settings().ADMIN_EMAIL} with the subject `NIAGADS API Systems Error`"
+                        f"{Settings.get().ADMIN_EMAIL} with the subject `NIAGADS API Systems Error`"
                         f"and we will try and resolve the issue as soon as possible."
                     ),
                     "stack_trace": [
