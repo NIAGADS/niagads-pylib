@@ -70,10 +70,13 @@ def add_not_implemented_exception_handler(app: FastAPI) -> None:
         )
 
 
-def add_validation_exception_handler(app: FastAPI) -> None:
-    @app.exception_handler(Union[RequestValidationError, ValidationError])
-    async def validation_exception_handler(
-        request: Request, exc: Union[RequestValidationError, ValidationError]
+# FIXME: request_validation & validation duplicated b/c couldn't
+# assign two error types to one handler
+# due to startlette runtime checks on the exception type
+def add_request_validation_exception_handler(app: FastAPI) -> None:
+    @app.exception_handler(RequestValidationError)
+    async def request_validation_exception_handler(
+        request: Request, exc: RequestValidationError
     ):
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -83,11 +86,49 @@ def add_validation_exception_handler(app: FastAPI) -> None:
         )
 
 
+def add_validation_exception_handler(app: FastAPI) -> None:
+    @app.exception_handler(ValidationError)
+    async def validation_exception_handler(request: Request, exc: ValidationError):
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=jsonable_encoder(
+                {"error": str(exc), "message": "Invalid parameter value"}
+            ),
+        )
+
+
+# FIXME: OSError & DatabaseError handlers duplicated b/c couldn't
+# assign two error types to one handler
+# due to startlette runtime checks on the exception type
 def add_system_exception_handler(app: FastAPI) -> None:
-    @app.exception_handler(Union[OSError, DatabaseError])
-    async def system_exception_handler(
-        request: Request, exc: Union[OSError, DatabaseError]
-    ):
+    @app.exception_handler(OSError)
+    async def system_exception_handler(request: Request, exc: OSError):
+        query = request.url.path
+        if request.url.query != "":
+            query += "?" + request.url.query
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=jsonable_encoder(
+                {
+                    "message": str(exc),  # optionally, include the pydantic errors
+                    "error": (
+                        f"An system error occurred.  Please email this error response to "
+                        f"{get_settings().ADMIN_EMAIL} with the subject `NIAGADS API Systems Error`"
+                        f"and we will try and resolve the issue as soon as possible."
+                    ),
+                    "stack_trace": [
+                        t.replace("\n", "").replace('"', "'")
+                        for t in traceback.format_tb(exc.__traceback__)
+                    ],
+                    "request": str(query),
+                }
+            ),
+        )
+
+
+def add_database_exception_handler(app: FastAPI) -> None:
+    @app.exception_handler(DatabaseError)
+    async def database_exception_handler(request: Request, exc: DatabaseError):
         query = request.url.path
         if request.url.query != "":
             query += "?" + request.url.query
