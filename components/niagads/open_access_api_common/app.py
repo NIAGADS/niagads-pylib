@@ -9,12 +9,13 @@ from niagads.open_access_api_common.config.core import (
     get_service_environment,
 )
 from niagads.open_access_api_common.exception_handlers import (
+    add_database_exception_handler,
     add_not_implemented_exception_handler,
+    add_request_validation_exception_handler,
     add_runtime_exception_handler,
     add_system_exception_handler,
     add_validation_exception_handler,
 )
-from niagads.open_access_filer_api.routes.root import router as InfoRouter
 from pydantic import BaseModel
 
 
@@ -38,7 +39,12 @@ class AppFactory:
     """Class that to creates and configures a FastAPI application
     for a NIAGADS Open Access API microservice."""
 
-    def __init__(self, metadata: OpenAPISpec, env: str):
+    def __init__(
+        self,
+        metadata: OpenAPISpec,
+        env: str,
+        routePath: str = "",
+    ):
         """
         Initializes the AppFactory
 
@@ -48,6 +54,7 @@ class AppFactory:
         """
         self.__app = None
         self.__metadata = metadata
+        self.__routePath = routePath
 
         self.__create()
         self.__add_middleware()
@@ -70,6 +77,7 @@ class AppFactory:
     def __create(self):
         """Creates the application"""
         self.__app = FastAPI(
+            route_path=f"/v{self.__metadata.version.split('.')[0]}/{self.__routePath}",
             title=self.__metadata.title,
             description=self.__metadata.description,
             summary=self.__metadata.summary,
@@ -122,5 +130,7 @@ class AppFactory:
             raise RuntimeError("Application is not initialized")
         add_runtime_exception_handler(self.__app)
         add_validation_exception_handler(self.__app)
+        add_request_validation_exception_handler(self.__app)
         add_system_exception_handler(self.__app)
+        add_database_exception_handler(self.__app)
         add_not_implemented_exception_handler(self.__app)

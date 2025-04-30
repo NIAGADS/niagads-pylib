@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 _HTTP_CLIENT_TIMEOUT = 60
 
 ROUTE_SESSION_MANAGER: DatabaseSessionManager = DatabaseSessionManager(
-    connectionStr=get_settings().APP_DB_URI
+    connectionString=get_settings().APP_DB_URI
 )
 
 API_CLIENT_SESSION_MANAGER = HttpClientSessionManager(

@@ -23,7 +23,7 @@ OPEN_API_TAGS = OpenAPITag(
 
 PUBMED_IDS: Set[T_PubMedID] = ["PMID:35047815"]
 
-ROUTE_NAME: str = OPEN_API_TAGS["name"]
+ROUTE_NAME: str = OPEN_API_TAGS.name
 
 
 OPEN_API_SPEC = OpenAPISpec(
@@ -33,5 +33,5 @@ OPEN_API_SPEC = OpenAPISpec(
     version=get_settings().API_VERSION,
     admin_email=get_settings().ADMIN_EMAIL,
     service_url=get_settings().API_PUBLIC_URL,
-    tags=[OPEN_API_TAGS],
+    openapi_tags=[OPEN_API_TAGS],
 )
