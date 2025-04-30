@@ -19,13 +19,15 @@
             "module": "uvicorn",
             "args": [
                 "niagads.open_access_filer_api.core:app",
-                "--reload"
+                "--reload",
+                "--env-file",
+                "${workspaceFolder}/../filer.env"
                 //"--no-reload",
             ],
             "jinja": true,
-            "justMyCode": true
+            "justMyCode": false
         },
-        {
+        /*{
             "name": "FAST-API - plus dependencies",
             "type": "debugpy",
             "request": "launch",
@@ -37,6 +39,6 @@
             ],
             "jinja": true,
             "justMyCode": false
-        }
+        }*/
     ]
 }
