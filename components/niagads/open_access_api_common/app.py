@@ -108,7 +108,7 @@ class AppFactory:
 
         self.__app.add_middleware(
             CORSMiddleware,
-            # allow_origins=[Settings.get().API_PUBLIC_URL],
+            # allow_origins=[Settings.from_env().API_PUBLIC_URL],
             allow_origins=(
                 ["*"]
                 if serviceEnv in [ServiceEnvironment.DEV, ServiceEnvironment.TEST]

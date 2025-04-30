@@ -21,12 +21,12 @@ app = FastAPI(
     summary="NIAGADS Open Access API",
     version="0.0.1",  # FIXME: get from settings
     # terms_of_service="http://example.com/terms/",
-    # contact={"name": "NIAGADS Support", "email": Settings.get().ADMIN_EMAIL},
+    # contact={"name": "NIAGADS Support", "email": Settings.from_env().ADMIN_EMAIL},
     license_info={
         "name": "Apache 2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
     },
-    # servers=[{"url": Settings.get().API_PUBLIC_URL}],
+    # servers=[{"url": Settings.from_env().API_PUBLIC_URL}],
     swagger_ui_parameters={
         "apisSorter": "alpha",
         "operationsSorter": "alpha",
@@ -43,7 +43,7 @@ app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
 # TODO make CORS conditional on production v dev
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=[Settings.get().API_PUBLIC_URL],
+    # allow_origins=[Settings.from_env().API_PUBLIC_URL],
     allow_origins=["*"],
     allow_origin_regex=r"https://.*\.niagads\.org",
     # allow_credentials=False,

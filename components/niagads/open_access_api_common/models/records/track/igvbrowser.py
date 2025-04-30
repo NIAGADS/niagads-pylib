@@ -27,7 +27,7 @@ class IGVBrowserTrackConfig(RowModel):
 
     browser_track_type: str = Field(serialization_alias="type")
     browser_track_format: str = Field(serialization_alias="format")
-    infoURL: str = Settings.get().IGV_BROWSER_INFO_URL
+    infoURL: str = Settings.from_env().IGV_BROWSER_INFO_URL
 
     @field_validator("format", mode="before")
     def extract_track_format(self, fileSchema) -> str:

@@ -15,7 +15,7 @@ class CustomSettings(BaseSettings):
 
     @classmethod
     @lru_cache()
-    def get(cls):
+    def from_env(cls):
         """Get application configuration from env file
 
         checks for a `SERVICE_ENV` environmental variable

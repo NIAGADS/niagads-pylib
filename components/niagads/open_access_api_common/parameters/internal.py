@@ -12,9 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # internal cache; stores responses as is
 _CACHE_MANAGER = KeyDBCacheManager(
-    connectionString=Settings.get().CACHE_DB_URI,
+    connectionString=Settings.from_env().CACHE_DB_URI,
     serializer=CacheSerializer.PICKLE,
-    ttl=Settings.get().CACHE_TTL,
+    ttl=Settings.from_env().CACHE_TTL,
 )
 
 

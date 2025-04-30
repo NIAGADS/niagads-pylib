@@ -30,8 +30,8 @@ OPEN_API_SPEC = OpenAPISpec(
     title=OPEN_API_TAGS.name,
     description=OPEN_API_TAGS.description,
     summary="NIAGADS Open Access API: FILER",
-    version=Settings.get().API_VERSION,
-    admin_email=Settings.get().ADMIN_EMAIL,
-    service_url=Settings.get().API_PUBLIC_URL,
+    version=Settings.from_env().API_VERSION,
+    admin_email=Settings.from_env().ADMIN_EMAIL,
+    service_url=Settings.from_env().API_PUBLIC_URL,
     openapi_tags=[OPEN_API_TAGS],
 )
