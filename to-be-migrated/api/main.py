@@ -29,12 +29,12 @@ app = FastAPI(
     summary="NIAGADS API",
     version="0.9.5b",  # FIXME: get from settings
     terms_of_service="http://example.com/terms/",
-    contact={"name": "NIAGADS Support", "email": Settings.get().ADMIN_EMAIL},
+    contact={"name": "NIAGADS Support", "email": Settings.from_env().ADMIN_EMAIL},
     license_info={
         "name": "Apache 2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
     },
-    # servers=[{"url": Settings.get().API_PUBLIC_URL}]
+    # servers=[{"url": Settings.from_env().API_PUBLIC_URL}]
     # root_path="/api",
     swagger_ui_parameters={
         "apisSorter": "alpha",
@@ -44,11 +44,11 @@ app = FastAPI(
     openapi_tags=ROUTE_TAGS,
 )
 
-# app.add_middleware(SessionMiddleware, secret_key=Settings.get().SESSION_SECRET)
+# app.add_middleware(SessionMiddleware, secret_key=Settings.from_env().SESSION_SECRET)
 app.add_middleware(CorrelationIdMiddleware, header_name="X-Request-ID")
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=[Settings.get().API_PUBLIC_URL],
+    # allow_origins=[Settings.from_env().API_PUBLIC_URL],
     allow_origins=["*"],
     allow_origin_regex=r"https://.*\.niagads\.org",
     # allow_credentials=False,

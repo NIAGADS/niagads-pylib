@@ -161,7 +161,7 @@ class GenomicsRouteHelper(MetadataRouteHelper):
             if self._resultSize > self._pageSize:
                 if self.__query.messageOnResultSize is not None:
                     currentPage = self.page()
-                    query = f'{Settings.get().API_PUBLIC_URL}{self._managers.requestData.endpoint}?page={currentPage}'
+                    query = f'{Settings.from_env().API_PUBLIC_URL}{self._managers.requestData.endpoint}?page={currentPage}'
                     rangeMessage =  f'top {self._pageSize} results'if currentPage == 1 else f'results [{pRange.start + 1}, {pRange.end}]'
                     message = self.__query.messageOnResultSize.format(self._resultSize, rangeMessage, query)
         """
