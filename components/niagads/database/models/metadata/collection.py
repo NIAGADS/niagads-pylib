@@ -2,7 +2,7 @@
 
 from typing import Optional
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
-from niagads.database.models.metadata.core import MetadataSchemaBase
+from niagads.database.models.metadata.base import MetadataSchemaBase
 from niagads.utils.list import list_to_string
 from sqlalchemy import CheckConstraint, Column, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -16,7 +16,7 @@ class Collection(MetadataSchemaBase):
             name="check_data_store",
         ),
         Index(
-            "idx_collection_data_store",
+            "ix_metadata_collection_data_store",
             "data_store",
             postgresql_include=["name", "description", "tracks_are_sharded"],
         ),
@@ -26,16 +26,16 @@ class Collection(MetadataSchemaBase):
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
     tracks_are_sharded: Mapped[Optional[bool]] = mapped_column(default=False)
-    data_store: str = Column(
-        Enum(TrackDataStore, native_enum=False), nullable=False, index=True
-    )
+    data_store: str = Column(Enum(TrackDataStore, native_enum=False), nullable=False)
 
 
 class TrackCollection(MetadataSchemaBase):
     __tablename__ = "trackcollectionlink"
     __table_args__ = (
         Index(
-            "idx_tclink_collection_id", "collection_id", postgresql_include=["track_id"]
+            "ix_metadata_trackcollectionlink_collection_id",
+            "collection_id",
+            postgresql_include=["track_id"],
         ),
     )
     track_collection_link: Mapped[int] = mapped_column(
@@ -47,5 +47,5 @@ class TrackCollection(MetadataSchemaBase):
         nullable=False,
     )
     collection_id: Mapped[int] = mapped_column(
-        ForeignKey("collection.collection_id"), index=True, nullable=False
+        ForeignKey("collection.collection_id"), nullable=False
     )

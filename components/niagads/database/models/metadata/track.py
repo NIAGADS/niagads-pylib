@@ -10,7 +10,7 @@ from niagads.database.models.metadata.composite_attributes import (
     Provenance,
     TrackDataStore,
 )
-from niagads.database.models.metadata.core import MetadataSchemaBase
+from niagads.database.models.metadata.base import MetadataSchemaBase
 from niagads.genome.core import Assembly
 from niagads.utils.list import list_to_string
 from sqlalchemy import TEXT, Column, Enum, Index, String
@@ -31,12 +31,12 @@ class Track(MetadataSchemaBase):
             name="check_data_store",
         ),
         Index(
-            "ix_track_shard_root_track_id",
+            "ix_metadata_track_shard_root_track_id",
             "shard_root_track_id",
             postgresql_where=(Column("shard_root_track_id").isnot(None)),
         ),
         Index(
-            "ix_track_searchable_text",
+            "ix_metadata_track_searchable_text",
             "searchable_text",
             postgresql_using="gin",
             postgresql_ops={
