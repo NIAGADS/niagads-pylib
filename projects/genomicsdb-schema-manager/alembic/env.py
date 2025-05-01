@@ -4,12 +4,9 @@ from logging.config import fileConfig
 from alembic import context
 from niagads.database.session.core import DatabaseSessionManager
 from sqlalchemy.engine import Connection
-from sqlalchemy import pool
-from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from lib.schemas import Schema
-from lib.settings import Settings
+from database.schemas import Schema
+from database.config import Settings
 
 # get config options from the .ini file
 # including logging config
@@ -20,9 +17,12 @@ if config.config_file_name is not None:
 
 # get command line arguments (e.g., schema)
 # FIXME: add checks as `schema` is required
-xArgs = context.get_x_argument(as_dictionary=True)
-schema = xArgs.get("schema", None)
-targetMetadata = Schema.base(schema).metadata
+
+
+def get_target_metadata():
+    xArgs = context.get_x_argument(as_dictionary=True)
+    schema = xArgs.get("schema", None)
+    return Schema.base(schema).metadata
 
 
 def run_migrations_offline() -> None:
@@ -40,7 +40,7 @@ def run_migrations_offline() -> None:
     url = Settings.from_env().DATABASE_URI
     context.configure(
         url=url,
-        target_metadata=targetMetadata,
+        target_metadata=get_target_metadata(),
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -50,7 +50,7 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=targetMetadata)
+    context.configure(connection=connection, target_metadata=get_target_metadata())
 
     with context.begin_transaction():
         context.run_migrations()
