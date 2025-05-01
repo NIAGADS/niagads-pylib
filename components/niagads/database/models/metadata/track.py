@@ -30,22 +30,17 @@ class Track(MetadataSchemaBase):
             f"data_store in ({list_to_string(TrackDataStore.list(), quote=True, delim=', ')})",
             name="check_data_store",
         ),
-        Index("idx_track_track_id", "track_id", unique=True),
-        Index("idx_track_data_store", "data_store"),
-        Index("idx_track_genome_build", "genome_build"),
-        Index("idx_track_feature_type", "feature_type"),
-        Index("idx_track_is_download_only", "is_download_only"),
         Index(
-            "idx_track_shard_root_track_id",
+            "ix_track_shard_root_track_id",
             "shard_root_track_id",
             postgresql_where=(Column("shard_root_track_id").isnot(None)),
         ),
         Index(
-            "idx_track_searchable_text",
+            "ix_track_searchable_text",
             "searchable_text",
             postgresql_using="gin",
             postgresql_ops={
-                "name": "gin_trgm_ops",
+                "searchable_text": "gin_trgm_ops",
             },
         ),
     )
@@ -68,10 +63,10 @@ class Track(MetadataSchemaBase):
     feature_type: Mapped[str] = mapped_column(String(50), index=True)
     is_download_only: Mapped[bool] = mapped_column(default=False, index=True)
 
-    searchable_text: Mapped[str] = mapped_column(TEXT, index=True)
+    searchable_text: Mapped[str] = mapped_column(TEXT)
 
     is_shard: Mapped[Optional[bool]]
-    shard_root_track_id: Mapped[Optional[str]] = mapped_column(index=True)
+    shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
     biosample_characteristics: Mapped[Optional[BiosampleCharacteristics]] = (
         mapped_column(JSONB)
