@@ -1,3 +1,4 @@
+from typing import Optional
 from niagads.utils.dict import prune
 from pydantic import BaseModel, model_serializer
 

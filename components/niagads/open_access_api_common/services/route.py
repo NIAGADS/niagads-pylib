@@ -2,6 +2,7 @@ from typing import Any, Dict, Optional, Type, Union
 
 from fastapi import Response
 from fastapi.exceptions import RequestValidationError
+from niagads.common.models.core import Range
 from niagads.open_access_api_common.config.constants import (
     DEFAULT_PAGE_SIZE,
     MAX_NUM_PAGES,
@@ -29,7 +30,7 @@ from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
-from niagads.open_access_api_common.types import Range
+
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from sqlalchemy import RowMapping
 

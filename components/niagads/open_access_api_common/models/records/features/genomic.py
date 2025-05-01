@@ -1,8 +1,8 @@
 from typing import Optional
 
+from niagads.common.models.core import Range
 from niagads.genome.core import GenomicFeatureType, Human, Strand
 from niagads.open_access_api_common.models.records.core import RowModel
-from niagads.open_access_api_common.types import Range
 from pydantic import BaseModel, ConfigDict, field_serializer
 
 

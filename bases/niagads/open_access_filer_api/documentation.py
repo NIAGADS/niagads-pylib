@@ -2,9 +2,10 @@
 
 from typing import Set
 
+from niagads.common.types.core import T_PubMedID
 from niagads.open_access_api_common.app import OpenAPISpec, OpenAPITag
 from niagads.open_access_api_common.config.core import Settings
-from niagads.open_access_api_common.types import T_PubMedID
+
 
 OPEN_API_TAGS = OpenAPITag(
     name="FILER Functional Genomics Repository",

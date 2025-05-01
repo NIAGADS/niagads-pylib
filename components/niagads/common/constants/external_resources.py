@@ -1,39 +1,39 @@
-from types import SimpleNamespace
+from enum import StrEnum
+from niagads.enums.core import CaseInsensitiveEnum
 
-# third party urls
-__urls = {
-    "pubmed": "https://pubmed.ncbi.nlm.nih.gov",
-    "niagads": "https://www.niagads.org",
-    "advp": "https://advp.niagads.org",
-    "filer_api": "https://tf.lisanwanglab.org/FILER2",
-    "filer": "https://tf.lisanwanglab.org/FILER",
-    "filer_downloads": "https://tf.lisanwanglab.org/GADB",
-    "pubmed_api": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=",
-}
 
-__datasource_urls = {
-    "DASHR2": "http://dashr2.lisanwanglab.org/index.php",
-    "DASHR2|small_RNA_Genes": "http://dashr2.lisanwanglab.org/index.php",
-    "ENCODE": "https://www.encodeproject.org",
-    "EpiMap": "https://personal.broadinstitute.org/cboix/epimap/ChromHMM/",
-    "FANTOM5": "http://fantom.gsc.riken.jp/5/",
-    "FANTOM5|Enhancers_SlideBase": "http://slidebase.binf.ku.dk/",
-    "FANTOM5|Enhancers": "https://fantom.gsc.riken.jp/5/",
-    "FactorBook": "https://genome.ucsc.edu/index.html",
-    "FactorBook|lifted": "https://genome.ucsc.edu/index.html",
-    "INFERNO_genomic_partition": "http://inferno.lisanwanglab.org/index.php",
-    "INFERNO_genomic_partition|genomic_partition": "http://inferno.lisanwanglab.org/index.php",
-    "GTEx|v7": "https://gtexportal.org/home/",
-    "GTEx|v8": "https://gtexportal.org/home/",
-    "HOMER": "http://homer.ucsd.edu/homer/",
-    "ROADMAP": "http://www.roadmapepigenomics.org/",
-    "ROADMAP|Enhancers": "http://www.roadmapepigenomics.org/",
-    "ROADMAP|lifted": "http://www.roadmapepigenomics.org/",
-    "Repeats": "http://genome.ucsc.edu/cgi-bin/hgTables",
-    "TargetScan|v7p2": "http://www.targetscan.org/vert_72/",
-    "TargetScan|v7p2-lifted": "http://www.targetscan.org/vert_72/",
-    "Ensembl|Gene_model": "https://useast.ensembl.org/info/genome/genebuild/index.html",
-}
+class NIAGADSResources(CaseInsensitiveEnum):
+    NIAGADS = "https://www.niagads.org"
+    ADVP = "https://advp.niagads.org"
+    FILER = "https://tf.lisanwanglab.org/FILER"
+    GENOMICS = "https://www.niagads.org/genomics"
 
-URLS = SimpleNamespace(**__urls)
-DATASOURCE_URLS = SimpleNamespace(**__datasource_urls)
+
+class ThirdPartyResources(StrEnum):
+    PUBMED = "https://pubmed.ncbi.nlm.nih.gov"
+    PUBMED_API = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id="
+    DASHR2 = "http://dashr2.lisanwanglab.org/index.php"
+    DASHR2_SMALL_RNA_GENES = "http://dashr2.lisanwanglab.org/index.php"
+    ENCODE = "https://www.encodeproject.org"
+    EPIMAP = "https://personal.broadinstitute.org/cboix/epimap/ChromHMM/"
+    FANTOM5 = "http://fantom.gsc.riken.jp/5/"
+    FANTOM5_ENHANCERS_SLIDEBASE = "http://slidebase.binf.ku.dk/"
+    FANTOM5_ENHANCERS = "https://fantom.gsc.riken.jp/5/"
+    FACTORBOOK = "https://genome.ucsc.edu/index.html"
+    FACTORBOOK_LIFTED = "https://genome.ucsc.edu/index.html"
+    INFERNO_GENOMIC_PARTITION = "http://inferno.lisanwanglab.org/index.php"
+    GTEX_V7 = "https://gtexportal.org/home/"
+    GTEX_V8 = "https://gtexportal.org/home/"
+    HOMER = "http://homer.ucsd.edu/homer/"
+    ROADMAP = "http://www.roadmapepigenomics.org/"
+    ROADMAP_ENHANCERS = "http://www.roadmapepigenomics.org/"
+    ROADMAP_LIFTED = "http://www.roadmapepigenomics.org/"
+    REPEATS = "http://genome.ucsc.edu/cgi-bin/hgTables"
+    TARGETSCAN_V7P2 = "http://www.targetscan.org/vert_72/"
+    TARGETSCAN_V7P2_LIFTED = "http://www.targetscan.org/vert_72/"
+    ENSEMBL_GENE_MODEL = "https://useast.ensembl.org/info/genome/genebuild/index.html"
+
+    @classmethod
+    def __missing__(cls, value: str):
+        """handle versions; e.g., DASHR2|small_RNA_Genes" -> DASHR2_SMALL_RNA_GENES"""
+        return cls(value.replace("|", "_").replace("-", "_").upper())
