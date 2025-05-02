@@ -6,7 +6,6 @@ class NIAGADSResources(CaseInsensitiveEnum):
     NIAGADS = "https://www.niagads.org"
     ADVP = "https://advp.niagads.org"
     FILER = "https://tf.lisanwanglab.org/FILER"
-    FILER_DOWNLOADS = 
     GENOMICS = "https://www.niagads.org/genomics"
 
 
