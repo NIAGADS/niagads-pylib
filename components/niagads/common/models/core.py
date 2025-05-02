@@ -1,13 +1,14 @@
 from typing import Dict, Optional
+from niagads.common.core import NullFreeModel
 from pydantic import BaseModel, model_validator
 
 
-class OntologyTerm(BaseModel):
+class OntologyTerm(NullFreeModel):
     term: str
-    term_id: Optional[str]
-    ontology: Optional[str]
-    term_iri: Optional[str]
-    defintion: Optional[str]
+    term_id: Optional[str] = None
+    ontology: Optional[str] = None
+    term_iri: Optional[str] = None
+    defintion: Optional[str] = None
 
 
 class Range(BaseModel):
