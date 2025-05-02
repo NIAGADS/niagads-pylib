@@ -1,12 +1,14 @@
 from datetime import date
 from enum import auto
-from typing import List, Optional
+from typing import List, Optional, Set
 
-from niagads.enums.core import CaseInsensitiveEnum
-from niagads.common.constants.external_resources import DATASOURCE_URLS
+from niagads.common.constants.external_resources import ThirdPartyResources
 from niagads.common.core import NullFreeModel
-from niagads.utils.string import matches
+from niagads.common.models.core import OntologyTerm
+from niagads.common.types.core import T_DOI, T_PubMedID
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import matches
 from pydantic import Field, computed_field, field_validator
 
 
@@ -32,19 +34,64 @@ class Phenotype(NullFreeModel):
     ethnicity: Optional[List[str]] = None
     race: Optional[List[str]] = None
     neuropathology: Optional[List[str]] = None
-    cohorts: Optional[List[str]] = None
+
+
+class BiosampleType(CaseInsensitiveEnum):
+    CELL_LINE = OntologyTerm(
+        term="cell line",
+        term_id="CLO_0000031",
+        term_iri="http://purl.obolibrary.org/obo/CLO_0000031",
+        ontology="Cell Line Ontology",
+        definition=(
+            f"A cultured cell population that represents a "
+            f"genetically stable and homogenous population of "
+            f"cultured cells that shares a common propagation "
+            f"history."
+        ),
+    )
+    CELL = OntologyTerm(
+        term="cell",
+        term_id="CL:0000000",
+        term_iri="http://purl.obolibrary.org/obo/CL_0000000",
+        ontology="Cell Ontology",
+        defintion=(
+            f"A material entity of anatomical origin "
+            f"(part of or deriving from an organism) that "
+            f"has as its parts a maximally connected cell "
+            f"compartment surrounded by a plasma membrane.)"
+        ),
+    )
+    PRIMARY_CELL = OntologyTerm(
+        term="primary cell",
+        term_id="EFO_0002660",
+        term_irl="http://www.ebi.ac.uk/efo/EFO_0002660",
+        ontology="Experimental Factor Ontology",
+        defintion="A cell taken directly from a living organism, which is not immortalized.",
+    )
+    TISSUE = OntologyTerm(
+        term="tissue",
+        term_id="UBERON_0000479",
+        term_iri="http://purl.obolibrary.org/obo/UBERON_0000479",
+        ontology="UBERON",
+        definition=(
+            f"Multicellular anatomical structure that consists "
+            f"of many cells of one or a few types, arranged in an "
+            f"extracellular matrix such that their long-range "
+            f"organisation is at least partly a repetition of their "
+            f"short-range organisation.",
+        ),
+    )
 
 
 class BiosampleCharacteristics(NullFreeModel):
-    system: Optional[str] = None
-    tissue: Optional[str] = None
-    biomarker: Optional[str] = None
-    biosample_term: Optional[str] = Field(
-        default=None, description="mapped ontology term"
+    system: Optional[List[str]] = None
+    tissue: Optional[List[str]] = None
+    biomarker: Optional[List[str]] = None
+    biosample_type: BiosampleType
+    biosample: Optional[List[OntologyTerm]] = Field(
+        default=None, description="ontology term/id pairs describing the biosample"
     )
-    biosample_term_id: Optional[str] = Field(
-        default=None, description="mapped ontology term identifier"
-    )
+
     life_stage: Optional[str] = Field(
         default=None, description="donor/sample life stage: adult, fetal, embryo"
     )
@@ -52,18 +99,20 @@ class BiosampleCharacteristics(NullFreeModel):
 
 class Provenance(NullFreeModel):
     data_source: str
-    data_source_version: Optional[str] = None
 
+    release_version: Optional[str] = None
+    release_date: Optional[date] = None
     download_date: Optional[date] = None
     download_url: Optional[str] = None
 
-    release_date: Optional[date] = None
+    study: Optional[str] = None
+    project: Optional[str] = None
+    accession: Optional[str] = None  # really shouldn't be, but FILER
 
-    study_or_project: Optional[str] = None
-    accession: str
-    pubmed_id: Optional[str] = Field(pattern=RegularExpressions.PUBMED_ID, default=None)
-    doi: Optional[str] = None
-    consortia: Optional[str] = None
+    pubmed_id: Optional[Set[T_PubMedID]] = None
+    doi: Optional[Set[T_DOI]] = None
+
+    consortia: Optional[List[str]] = None
     attribution: Optional[str] = None
 
     @field_validator("doi", mode="after")
@@ -85,11 +134,10 @@ class Provenance(NullFreeModel):
             else self.data_source
         )
         try:
-            return getattr(DATASOURCE_URLS, dsKey)
-
-        except KeyError:
-            raise KeyError(
-                f"Data source URL not found for {dsKey}. Please add to DATASOURCE_URLS."
+            return ThirdPartyResources(dsKey).value
+        except:
+            raise ValueError(
+                f"Data source URL not found for {dsKey}. Please add to external_resources.ThirdParty."
             )
 
 
@@ -99,7 +147,7 @@ class FileProperties(NullFreeModel):
     md5sum: Optional[str] = Field(pattern=RegularExpressions.MD5SUM, default=None)
 
     bp_covered: Optional[int] = None
-    number_of_intervals: Optional[int] = None
+    num_intervals: Optional[int] = None
     file_size: Optional[int] = None
 
     file_format: Optional[str] = None
