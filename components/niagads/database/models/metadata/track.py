@@ -81,5 +81,4 @@ class Track(MetadataSchemaBase):
     subject_phenotypes: Mapped[Optional[Phenotype]] = mapped_column(JSONB)
     experimental_design: Mapped[Optional[ExperimentalDesign]] = mapped_column(JSONB)
     provenance: Mapped[Provenance] = mapped_column(JSONB)
-
     file_properties: Mapped[Optional[FileProperties]] = mapped_column(JSONB)

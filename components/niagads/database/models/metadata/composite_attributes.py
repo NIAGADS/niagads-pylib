@@ -1,5 +1,5 @@
 from datetime import date
-from enum import auto
+from enum import Enum, auto
 from typing import List, Optional, Set
 
 from niagads.common.constants.external_resources import ThirdPartyResources
@@ -36,7 +36,7 @@ class Phenotype(NullFreeModel):
     neuropathology: Optional[List[str]] = None
 
 
-class BiosampleType(CaseInsensitiveEnum):
+class BiosampleType(Enum):
     CELL_LINE = OntologyTerm(
         term="cell line",
         term_id="CLO_0000031",
@@ -82,6 +82,16 @@ class BiosampleType(CaseInsensitiveEnum):
         ),
     )
 
+    # after from https://stackoverflow.com/a/76131490
+    @classmethod
+    def _missing_(cls, value: str):  # allow to be case insensitive
+        try:
+            for member in cls:
+                if member.name.lower() == value.lower():
+                    return member
+        except ValueError as err:
+            raise err
+
 
 class BiosampleCharacteristics(NullFreeModel):
     system: Optional[List[str]] = None
@@ -110,20 +120,21 @@ class Provenance(NullFreeModel):
     accession: Optional[str] = None  # really shouldn't be, but FILER
 
     pubmed_id: Optional[Set[T_PubMedID]] = None
-    doi: Optional[Set[T_DOI]] = None
+    doi: Optional[Set[str]] = None
 
     consortia: Optional[List[str]] = None
     attribution: Optional[str] = None
 
     @field_validator("doi", mode="after")
-    def validate_doi(cls, value: Optional[str]):
+    def validate_doi(cls, values: Set[str]):
         """create validator b/c Pydantic does not support patterns w/lookaheads"""
-        if value is not None:
-            if not matches(RegularExpressions.DOI, value):
-                raise ValueError(
-                    f"Invalid DOI format: {value}. Please provide a valid DOI."
-                )
-        return value
+        if values is not None and len(values) > 0:
+            for v in values:
+                if not matches(RegularExpressions.DOI, v):
+                    raise ValueError(
+                        f"Invalid DOI format: {v}. Please provide a valid DOI."
+                    )
+        return values
 
     @computed_field
     @property
