@@ -2,6 +2,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Alembic autogen",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "alembic",
+            "args": [
+                "-x",
+                "schema=metadata",
+                "revision",
+                "--autogenerate",
+                "-m",
+                "test"
+            ],
+            "cwd": "${workspaceFolder}/projects/genomicsdb-schema-manager"
+
+        },
+        {
             "name": "Sphinx Autobuild",
             "type": "debugpy",
             "request": "launch",
@@ -26,7 +42,7 @@
             ],
             "jinja": true,
             "justMyCode": false
-        },
+        }
         /*{
             "name": "FAST-API - plus dependencies",
             "type": "debugpy",
