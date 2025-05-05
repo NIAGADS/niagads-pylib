@@ -49,6 +49,11 @@ class Human(CaseInsensitiveEnum):
         return self.name
 
     @classmethod
+    def list(cls):
+        """return a list of the enum values"""
+        return [f"chr{v}" for v in super().list()]
+
+    @classmethod
     def sort_order(self):
         """returns a {chr:order} mapping to faciliate chr based sorting"""
         return {chr: index for index, chr in enumerate(self.__members__)}
