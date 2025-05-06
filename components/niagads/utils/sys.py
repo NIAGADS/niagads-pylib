@@ -13,7 +13,6 @@ from subprocess import check_output, CalledProcessError
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.dict import print_dict
 from niagads.utils.string import ascii_safe_str
-from niagads.exceptions.core import RestrictedValueError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -160,6 +159,8 @@ def get_class_properties(instance, property):
         instance (instantiated class object): class to investigate; can also pass the class itself
         entity (str or ClassProperties enum value, optional): one of ClassProperties
     """
+    from niagads.exceptions.core import RestrictedValueError
+
     if ClassProperties.has_value(property):
         lookup = ClassProperties[property.upper()]
         if lookup == ClassProperties.METHODS:

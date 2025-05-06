@@ -12,8 +12,6 @@ from niagads.database.models.metadata.composite_attributes import (
     Provenance,
 )
 from niagads.database.models.metadata.track import Track
-from niagads.metadata_parser.core import is_searchable_string
-from niagads.utils.dict import prune
 from niagads.utils.list import array_in_string, remove_duplicates
 from niagads.utils.string import (
     is_bool,
