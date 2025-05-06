@@ -159,6 +159,9 @@ class Assembly(EnumParameter):
         """return a list of the enum values"""
         return super(Assembly, cls).list() + ["hg19", "hg38"]
 
+    def hg_label(self):
+        return "hg19" if self.value == "GRCh37" else "hg19"
+
 
 class GenomicFeatureType(CaseInsensitiveEnum):
     GENE = auto()

@@ -28,7 +28,7 @@ class ApiWrapperService:
 
     def __map_genome_build(self, assembly: Assembly):
         """return genome build value FILER expects"""
-        return "hg19" if assembly == Assembly.GRCh37 else "hg38"
+        return assembly.hg_label()
 
     def __build_request_params(self, parameters: dict):
         """map request params to format expected by FILER"""

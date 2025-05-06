@@ -6,16 +6,9 @@ import json
 
 from os import path
 
+from niagads.requests.core import HttpClientSessionManager
 from requests import get
 from requests.exceptions import HTTPError
-
-from niagads.db.postgres import Database, PreparedStatement
-from niagads.filer import FILERMetadataParser, FILERApiWrapper
-from niagads.utils.logging import ExitOnExceptionHandler
-from niagads.utils.list import flatten
-from niagads.utils.reg_ex import regex_extract, matches, regex_replace
-
-from constants import URLS, SCHEMA, FILER_TABLE, SHARD_PATTERN
 
 LOGGER = logging.getLogger(__name__)
 
@@ -24,6 +17,7 @@ def fetch_live_FILER_metadata(debug: bool = False):
     """for verifying tracks and removing any not currently available"""
     LOGGER.info("Fetching Live FILER track identifiers reference.")
 
+    x = HttpClientSessionManager()
     api = FILERApiWrapper(URLS.filer_api, debug=debug)
 
     GRCh37 = flatten(

@@ -35,28 +35,40 @@ class MetadataTemplateParser:
     """Parser for FILER metadata templates.
     cleans and transforms to a JSON object that can be mapped to a track record"""
 
-    def __init__(self, templateFile: str, filerDownloadUrl: str, debug: bool = False):
+    def __init__(
+        self,
+        templateFile: str,
+        filerDownloadUrl: str,
+        datesAsStrings: bool = True,
+        debug: bool = False,
+    ):
         self.logger = logging.getLogger(__name__)
         self._debug = debug
 
         self.__template = None
+        self.__templateFile: str = templateFile
         self.__templateHeader = None
         self.__metadata = None
         self.__filerDownloadUrl = filerDownloadUrl
-        self.__load_template(templateFile)
+        self.__datesAsStrings = datesAsStrings
+        self.__load_template()
 
-    def __load_template(self, templateFile: str):
-        self.__template = None
-        if "http" in templateFile:
-            with open(templateFile, "r") as fh:
+    def __load_template(self):
+        if not self.__templateFile.startswith("http"):
+            with open(self.__templateFile, "r") as fh:
                 self.__template = fh.read().splitlines()
 
         else:
-            response = requests.get(self.__template)
+            response = requests.get(self.__templateFile)
             response.raise_for_status()
             self.__template = response.text.split("\n")
 
         self.__templateHeader = self.__template.pop(0).split("\t")
+        if self.__template[-1] == "":  # sometimes extra line is present
+            self.__template.pop()
+
+    def get_template_file_name(self):
+        return self.__templateFile
 
     def get_metadata(self):
         return self.__metadata
@@ -71,9 +83,13 @@ class MetadataTemplateParser:
         ]
         self.__metadata = [
             (
-                FILERMetadataEntryParser(e, self.__filerDownloadUrl).to_track_record()
+                MetadataEntryParser(
+                    e, self.__filerDownloadUrl, datesAsStrings=self.__datesAsStrings
+                ).to_track_record()
                 if asTrackList
-                else FILERMetadataEntryParser(e, self.__filerDownloadUrl).to_json()
+                else MetadataEntryParser(
+                    e, self.__filerDownloadUrl, datesAsStrings=self.__datesAsStrings
+                ).to_json()
             )
             for e in entries
         ]
@@ -81,7 +97,7 @@ class MetadataTemplateParser:
         return self.__metadata
 
 
-class FILERMetadataEntryParser:
+class MetadataEntryParser:
     """parser for a FILER metadata entry from a template file:
     standardizes keys, extracts non-name info from name, cleans up
 

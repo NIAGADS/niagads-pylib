@@ -17,6 +17,17 @@ class HttpClientSessionManager:
             raise_for_status=True,
         )
 
+    async def fetch(self, endpoint: str, params: dict):
+        try:
+            async with self.__session.get(str(endpoint), params=params) as response:
+                result = await response.json()
+            return result
+        except Exception as e:
+            # FIXME: report original error?
+            raise LookupError(
+                f"Unable to get response `{response.content}` for the following request: {str(response.url)}"
+            )
+
     async def close(self):
         if self.__session is not None:
             self.__session.close()
