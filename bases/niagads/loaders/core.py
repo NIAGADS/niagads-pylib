@@ -3,15 +3,20 @@ from abc import ABC, abstractmethod
 
 from niagads.database.session.core import DatabaseSessionManager
 from niagads.exceptions.core import AbstractMethodNotImplemented
+from niagads.settings.core import CustomSettings
 from sqlalchemy.ext.asyncio import AsyncSession
 
 COMMIT_AFTER: int = 5000
 
 
+class Settings(CustomSettings):
+    DATABASE_URI: str
+
+
 class AbstractDataLoader(ABC):
     def __init__(
         self,
-        databaseUri: str,
+        databaseUri: str = None,
         commit: bool = False,
         test: int = None,
         debug: bool = False,
@@ -23,7 +28,9 @@ class AbstractDataLoader(ABC):
         self._verbose: bool = verbose
         self._commitAfter: int = COMMIT_AFTER
         self._commit: bool = commit
-        self._databaseSessionManager = DatabaseSessionManager(databaseUri)
+        self._databaseSessionManager = DatabaseSessionManager(
+            databaseUri if databaseUri is not None else Settings.from_env().DATABASE_URI
+        )
 
     def close(self):
         # reset pool

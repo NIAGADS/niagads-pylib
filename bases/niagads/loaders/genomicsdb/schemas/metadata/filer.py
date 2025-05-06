@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
-import json
 import logging
-from os import path
-from typing import Dict, List
+from typing import List
 
 from niagads.arg_parser.core import case_insensitive_enum_type
 from niagads.common.constants.external_resources import NIAGADSResources
@@ -237,7 +235,8 @@ if __name__ == "__main__":
         help="assembly (genome build)",
     )
     parser.add_argument(
-        "--databaseUri", help="postgres connection string", required=True
+        "--databaseUri",
+        help="postgres connection string; if not set tries to pull from .env file",
     )
     parser.add_argument("--commit", action="store_true")
     parser.add_argument("--debug", action="store_true")
