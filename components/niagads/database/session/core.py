@@ -2,6 +2,10 @@
 
 import logging
 import asyncpg
+
+# FIXME: write custom error so that we don't need to import fastapi
+# just for this in everything that uses
+# the database session manager
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
