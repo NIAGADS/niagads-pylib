@@ -12,7 +12,6 @@ This tool can be run as a script or can also be imported as a module.  When run 
 results are piped to STDOUT unless the `--log` option is specified.
 """
 
-import argparse
 from enum import auto
 import json
 import logging
@@ -169,6 +168,8 @@ def run(
 
 
 def main():
+    import argparse
+
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument(
         "--template",

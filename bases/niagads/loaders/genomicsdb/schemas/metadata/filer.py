@@ -168,56 +168,12 @@ class TrackMetadataLoader(AbstractDataLoader):
         )
 
 
-def run_loader(
-    template: str,
-    databaseUri: str,
-    genomeBuild: Assembly,
-    test: int = None,
-    skipLiveValidation: bool = False,
-    commit: bool = False,
-    debug: bool = False,
-    verbose: bool = False,
-):
+def main():
     """
     Load metadata from a FILER template file into the database.
-
-    Args:
-        template (str): Path to the metadata template file. If the file name does not start with `http`, it is assumed to be locally hosted.
-        databaseUri (str): PostgreSQL connection string.
-        test (int, optional): Number of test tracks to process. Defaults to None.
-        skipLiveValidation (bool, optional): Skip validation against live instance to speed up testing. Defaults to False.
-        commit (bool, optional): Whether to commit changes to the database. Defaults to False.
-        debug (bool, optional): Enable debug logging. Defaults to False.
-        verbose (bool, optional): Enable verbose logging. Defaults to False.
-
-    Raises:
-        Exception: Logs and raises any exceptions encountered during the loading process.
     """
-    try:
-        loader = TrackMetadataLoader(
-            template,
-            databaseUri,
-            genomeBuild,
-            commit=commit,
-            test=test,
-            debug=debug,
-            verbose=verbose,
-        )
+    import argparse
 
-        if skipLiveValidation:
-            loader.skip_live_validation(skipLiveValidation)
-
-        loader.run()
-
-        loader.log_load_summary()
-
-    except Exception as err:
-        loader.logger.critical(err, exc_info=True, stack_info=True)
-    finally:
-        loader.close()
-
-
-if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=f"Load records in {TARGET_TABLE.title()} from a FILER metadata template file",
         allow_abbrev=False,
@@ -255,14 +211,29 @@ if __name__ == "__main__":
         format=LOG_FORMAT_STR,
         level=logging.DEBUG if args.debug else logging.INFO,
     )
+    try:
+        loader = TrackMetadataLoader(
+            args.template,
+            args.databaseUri,
+            args.genomeBuild,
+            test=args.test,
+            commit=args.commit,
+            debug=args.debug,
+            verbose=args.verbose,
+        )
 
-    run_loader(
-        args.template,
-        args.databaseUri,
-        args.genomeBuild,
-        args.test,
-        args.skipLiveValidation,
-        commit=args.commit,
-        debug=args.debug,
-        verbose=args.verbose,
-    )
+        if args.skipLiveValidation:
+            loader.skip_live_validation()
+
+        loader.run()
+
+        loader.log_load_summary()
+
+    except Exception as err:
+        loader.logger.critical(err, exc_info=True, stack_info=True)
+    finally:
+        loader.close()
+
+
+if __name__ == "__main__":
+    main()
