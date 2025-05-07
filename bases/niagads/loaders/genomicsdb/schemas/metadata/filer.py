@@ -114,11 +114,11 @@ class TrackMetadataLoader(AbstractDataLoader):
 
         return self.__shardedTracks[shardKey]
 
-    async def run(self):
+    async def load(self):
         if self.__parsedTracks is None:
             self.parse_template()
 
-        if not self.__skipLiveValidation() and self.__liveTracks is None:
+        if not self.__skipLiveValidation and self.__liveTracks is None:
             self.fetch_live_track_ids()
 
         session: AsyncSession = self.get_db_session()
@@ -168,7 +168,7 @@ class TrackMetadataLoader(AbstractDataLoader):
         )
 
 
-def main():
+async def main():
     """
     Load metadata from a FILER template file into the database.
     """
@@ -225,7 +225,7 @@ def main():
         if args.skipLiveValidation:
             loader.skip_live_validation()
 
-        loader.run()
+        await loader.load()
 
         loader.log_load_summary()
 
@@ -235,5 +235,11 @@ def main():
         loader.close()
 
 
+def run_main():
+    """ wrapper necessary so that the main coroutine gets correctly awaited"""
+    import asyncio
+    asyncio.run(main())
+
 if __name__ == "__main__":
-    main()
+    run_main()
+
