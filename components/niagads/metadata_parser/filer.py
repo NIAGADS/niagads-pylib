@@ -12,8 +12,8 @@ from niagads.database.models.metadata.composite_attributes import (
     Provenance,
 )
 from niagads.database.models.metadata.track import Track
-from niagads.utils.dict import print_dict, prune
-from niagads.utils.list import array_in_string, remove_duplicates
+from niagads.utils.dict import print_dict
+from niagads.utils.list import array_in_string, remove_duplicates, remove_from_list
 from niagads.utils.string import (
     is_bool,
     is_date,
@@ -222,8 +222,7 @@ class MetadataEntryParser:
         self.__metadata.update(
             {
                 "searchable_text": ";".join(
-                    remove_duplicates(prune(self.__searchableTextValues, prune=["Not applicable"]))
-                )
+                    remove_duplicates(remove_from_list(["Not applicable"], self.__searchableTextValues)))
             }
         )
 

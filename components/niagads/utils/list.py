@@ -10,6 +10,19 @@ def all_elements_are_none(array):
     return all(item is None for item in array)
 
 
+def remove_from_list(values: list, arr: list):
+    """
+    Removes all elements listed in values from an array (list)
+
+    Args:
+        values (list): The list from which elements will be removed.
+        arr (list): The list containing elements to remove from list1.
+
+    Returns:
+        list: A new list with elements of values removed from arr.
+    """
+    return [item for item in values if item not in arr]
+
 def find(array, value, field: str = None, returnValues=True):
     """
     filters a list and returns matches
@@ -126,6 +139,7 @@ def list_to_indexed_dict(clist):
     """convert list to hash of value -> index"""
     return OrderedDict(zip(clist, range(1, len(clist) + 1)))
 
+   
 
 def find_in_list(value: str, arr: List[str], ignoreCase=False):
     """
