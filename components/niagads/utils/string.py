@@ -9,7 +9,7 @@ import json
 import re
 import uuid
 from datetime import datetime
-from typing import List
+from typing import List, Union
 
 import nh3
 from dateutil.parser import parse as parse_date
@@ -313,7 +313,7 @@ def to_snake_case(key):
     """converts camel case or space delimited strings to snake case
     from https://stackoverflow.com/a/1176023 / advanced cases"""
     return (
-        re.regex_replace("([a-z0-9])([A-Z])", r"\1_\2", key).lower().replace(" ", "_")
+        regex_replace("([a-z0-9])([A-Z])", r"\1_\2", key).lower().replace(" ", "_")
     )
 
 
@@ -367,7 +367,7 @@ def is_balanced(value, start="(", end=")"):
 
 # regex wrappers to re calls to reduce re imports
 # =================================================
-def regex_replace(pattern, replacement, value, **kwargs):
+def regex_replace(pattern, replacement, value, **kwargs) -> str:
     """
     wrapper for `re.sub`
 
@@ -388,7 +388,7 @@ def regex_replace(pattern, replacement, value, **kwargs):
     return re.sub(pattern, replacement, value, **kwargs)
 
 
-def regex_extract(pattern, value, firstMatchOnly=True, **kwargs):
+def regex_extract(pattern, value, firstMatchOnly=True, **kwargs)->Union[str|List[str]]:
     """
     wrapper for `re.search`
 
@@ -419,7 +419,7 @@ def regex_extract(pattern, value, firstMatchOnly=True, **kwargs):
         return None if len(result) == 0 else result
 
 
-def matches(pattern, value, **kwargs):
+def matches(pattern, value, **kwargs)->bool:
     """
     checks if string contains a pattern
 
