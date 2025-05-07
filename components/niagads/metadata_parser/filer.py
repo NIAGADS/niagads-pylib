@@ -230,7 +230,7 @@ class MetadataEntryParser:
         self.__final_patches()
         
         if self._debug:
-            self.logger.debug(f"Done parsing metadata entry: {print_dict(self.__metadata, pretty=True)}")
+            self.logger.debug(f"Done parsing metadata entry: {self.__metadata}")
 
     def parse_basic_attributes(self):
         """Basic attributes, including setting track_id"""
@@ -550,7 +550,7 @@ class MetadataEntryParser:
         if feature.endswith(" SV"):
             feature = "structural variant (SV)"
 
-        return feature
+        self.__metadata.update({'feature_type': feature})
 
     def __parse_data_category(self):
         category = self.get_entry_attribute("assigned_data_category")
@@ -721,7 +721,9 @@ class MetadataEntryParser:
         e.g. NG00102_Cruchaga_pQTLs Cerebrospinal fluid pQTL pQTL INDEL nominally significant associations
         remove the duplicate feature type from the text field
         """
-        featureType = self.get_entry_attribute("feature_type")
+        
+        featureType = self.__metadata["feature_type"]
+
         if "QTL" in featureType:
             self.__metadata.update(
                 {
