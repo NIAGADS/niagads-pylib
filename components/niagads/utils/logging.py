@@ -30,7 +30,7 @@ class ExitOnExceptionHandler(logging.Handler):
             self.handler = logging.StreamHandler()
 
     def emit(self, record):
-        super().emit(record)
+        self.handler.emit(record)
         if record.levelno in (logging.ERROR, logging.CRITICAL):
             raise SystemExit(-1)
 
@@ -60,7 +60,7 @@ class ExitOnCriticalExceptionHandler(logging.Handler):
             self.handler = logging.StreamHandler()
 
     def emit(self, record):
-        super().emit(record)
+        self.handler.emit(record)
         if record.levelno == logging.CRITICAL:
             raise SystemExit(-1)
 
