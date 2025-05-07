@@ -4,6 +4,7 @@ from typing import Optional
 # from niagads.database_models.track.properties import TrackDataStore
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from niagads.enums.core import CaseInsensitiveEnum
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 import os
@@ -11,7 +12,17 @@ import os
 
 class CustomSettings(BaseSettings):
     # default file is .env in current path
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", extra='allow')
+
+    @model_validator(mode='after')
+    def remove_extra_fields(self):
+        """ basically allow an .env file to have additional fields but don't store them"""
+        if self.__pydantic_extra__:
+            self.__pydantic_extra__ = None
+        return self
+    
+    # TODO add custom setting source so can throw error when .env file does not exist
+    # see https://docs.pydantic.dev/latest/concepts/pydantic_settings/#adding-sources
 
     @classmethod
     @lru_cache()
