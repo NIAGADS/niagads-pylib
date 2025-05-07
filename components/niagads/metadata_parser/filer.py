@@ -1,6 +1,6 @@
 import logging
 from os.path import basename
-from typing import List, Set, Union
+from typing import Dict, List, Set, Union
 from urllib.parse import unquote
 
 from niagads.common.models.core import OntologyTerm
@@ -12,6 +12,7 @@ from niagads.database.models.metadata.composite_attributes import (
     Provenance,
 )
 from niagads.database.models.metadata.track import Track
+from niagads.utils.dict import print_dict, prune
 from niagads.utils.list import array_in_string, remove_duplicates
 from niagads.utils.string import (
     is_bool,
@@ -46,10 +47,11 @@ class MetadataTemplateParser:
         self.__template = None
         self.__templateFile: str = templateFile
         self.__templateHeader = None
-        self.__metadata = None
+        self.__metadata: dict = None
         self.__filerDownloadUrl = filerDownloadUrl
         self.__datesAsStrings = datesAsStrings
         self.__load_template()
+
 
     def __load_template(self):
         if not self.__templateFile.startswith("http"):
@@ -64,6 +66,10 @@ class MetadataTemplateParser:
         self.__templateHeader = self.__template.pop(0).split("\t")
         if self.__template[-1] == "":  # sometimes extra line is present
             self.__template.pop()
+            
+        if self._debug:
+            self.logger.debug(f"Done loading template (n = {len(self.__template)} entries).")
+            self.logger.debug(f"First row in template: {self.__template[0]}")
 
     def get_template_file_name(self):
         return self.__templateFile
@@ -82,11 +88,11 @@ class MetadataTemplateParser:
         self.__metadata = [
             (
                 MetadataEntryParser(
-                    e, self.__filerDownloadUrl, datesAsStrings=self.__datesAsStrings
+                    e, self.__filerDownloadUrl, datesAsStrings=self.__datesAsStrings, debug=self._debug
                 ).to_track_record()
                 if asTrackList
                 else MetadataEntryParser(
-                    e, self.__filerDownloadUrl, datesAsStrings=self.__datesAsStrings
+                    e, self.__filerDownloadUrl, datesAsStrings=self.__datesAsStrings, deubg=self._debug
                 ).to_json()
             )
             for e in entries
@@ -129,12 +135,15 @@ class MetadataEntryParser:
         self.logger = logging.getLogger(__name__)
         self._debug = debug
         self.__entry = None
-        self.__metadata = {}
+        self.__metadata = None
         self.__searchableTextValues = []
         self.__datesAsStrings = datesAsStrings
         self.__filerDownloadUrl = filerDownloadUrl
 
         self.set_entry(entry)
+        
+        if self._debug:
+            self.logger.debug(f"Parsing: {print_dict(entry, pretty=False)}")
 
     def to_json(self):
         if self.__metadata is None:
@@ -200,6 +209,7 @@ class MetadataEntryParser:
         file_properties
         """
 
+        self.__metadata = {}
         self.parse_basic_attributes()
         self.parse_biosample_characteristics()
         self.parse_experimental_design()
@@ -212,13 +222,16 @@ class MetadataEntryParser:
         self.__metadata.update(
             {
                 "searchable_text": ";".join(
-                    remove_duplicates(self.__searchableTextValues)
+                    remove_duplicates(prune(self.__searchableTextValues, prune=["Not applicable"]))
                 )
             }
         )
 
         # patches on assembled metadata
         self.__final_patches()
+        
+        if self._debug:
+            self.logger.debug(f"Done parsing metadata entry: {print_dict(self.__metadata, pretty=True)}")
 
     def parse_basic_attributes(self):
         """Basic attributes, including setting track_id"""
@@ -275,6 +288,8 @@ class MetadataEntryParser:
         self.__metadata.update({"genome_build": genomeBuild})
 
     def update_searchable_text(self, terms: List[str]):
+        if self._debug:
+            self.logger.debug(f"Searchable Text = {self.__searchableTextValues + terms}")
         self.__searchableTextValues = self.__searchableTextValues + [
             self.__clean_text(v) for v in terms if v is not None
         ]
@@ -314,12 +329,9 @@ class MetadataEntryParser:
 
         # pull out searchable text values
         searchableText: List[str] = [
-            term,
-            characteristics.tissue,
-            characteristics.system,
             characteristics.life_stage,
             characteristics.biosample_type.name,
-        ]
+        ] +  characteristics.tissue + characteristics.system + [ot.term for ot in characteristics.biosample]
 
         self.update_searchable_text(searchableText)
 
@@ -337,7 +349,7 @@ class MetadataEntryParser:
         )
 
         self.__metadata.update({"experimental_design": design.model_dump()})
-        self.update_searchable_text(design.model_dump().values())
+        self.update_searchable_text([value for value in design.model_dump().values() if not is_bool(value)])
 
     def parse_cohorts(self):
         info = self.__clean_list(
@@ -377,7 +389,7 @@ class MetadataEntryParser:
                 provenance.accession = regex_extract("study_id=([^;]*)", info)
 
             publications: str = regex_extract("study_pubmed_id=([^;]*)", info)
-            provenance.pubmed_id = Set(
+            provenance.pubmed_id = None if publications is None else Set(
                 [
                     f"PMID:{id}" if "PMID:" not in id else id
                     for id in publications.split(",")
