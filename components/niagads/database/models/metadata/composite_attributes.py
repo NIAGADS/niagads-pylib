@@ -134,7 +134,7 @@ class BiosampleType(Enum):
     ORGANOID = OntologyTerm(
         term="organoid",
         term_id="NCIT_C172259",
-        term_id="http://purl.obolibrary.org/obo/NCIT_C172259",
+        term_iri="http://purl.obolibrary.org/obo/NCIT_C172259",
         ontology="NCIT",
         definition=(
             f"A three dimensional mass comprised of a cultured cell or "
