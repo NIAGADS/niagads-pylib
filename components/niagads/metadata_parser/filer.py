@@ -446,6 +446,8 @@ class MetadataEntryParser:
 
     def __assign_feature_by_assay(self):
         assay = self.__metadata["experimental_design"]["assay"]
+        if self._debug:
+            self.logger.debug(f"Assay = {assay}")
         if assay is not None:
             if "QTL" in assay:
                 return assay
@@ -465,8 +467,9 @@ class MetadataEntryParser:
         return None
 
     def __assign_feature_by_analysis(self):
-        analysis: str = self.__metadata["experimental_design"]["analysis"]
-        outputType: str = self.__metadata["experimental_design"]["output_type"]
+
+        analysis: str = self.__metadata["experimental_design"].get("analysis")
+        outputType: str = self.__metadata["experimental_design"].get("output_type")
         if analysis is not None:
             if analysis == "annotation":
                 # check output type
