@@ -301,10 +301,6 @@ class MetadataEntryParser:
         self.__metadata.update({"genome_build": genomeBuild})
 
     def update_searchable_text(self, terms: List[str]):
-        if self._debug:
-            self.logger.debug(
-                f"Searchable Text = {self.__searchableTextValues + terms}"
-            )
         self.__searchableTextValues = self.__searchableTextValues + [
             self.__clean_text(v) for v in terms if v is not None
         ]
