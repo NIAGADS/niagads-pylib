@@ -30,9 +30,9 @@ class HttpClientSessionManager:
 
     async def close(self):
         if self.__session is not None:
-            self.__session.close()
+            await self.__session.close()
         if self.__connector is not None:
-            self.__connector.close()
+            await self.__connector.close()
 
     async def __call__(self) -> ClientSession:
         if self.__session is None:
