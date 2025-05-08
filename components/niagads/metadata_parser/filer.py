@@ -367,6 +367,8 @@ class MetadataEntryParser:
 
     def parse_experimental_design(self):
         assay = self.__parse_assay()  # parse out `assays` and `analyses`
+        if self._debug:
+            self.logger.debug(f"Assay: {assay}")
 
         design = ExperimentalDesign(
             is_lifted=self.__parse_is_lifted(),
@@ -607,7 +609,7 @@ class MetadataEntryParser:
 
         return category
 
-    def __parse_assay(self):
+    def __parse_assay(self) -> dict:
         analysis = None
 
         classification = self.get_entry_attribute("classification")
@@ -634,7 +636,7 @@ class MetadataEntryParser:
             # TODO: need to check output type b/c assay type may need to be updated
             # e.g. DNASeq Footprinting if output_type == footprints
             elif "DNase" in assay:
-                return "DNase-seq"
+                assay = "DNase-seq"
 
         return {"assay": assay, "analysis": analysis}
 
@@ -771,15 +773,15 @@ class MetadataEntryParser:
         if "QTL" in featureType:
             self.__metadata.update(
                 {
-                    "name": self.get_entry_attribute("name").replace(
+                    "name": self.__metadata["name"].replace(
                         f"${featureType} ${featureType}", featureType
                     ),
-                    "description": self.get_entry_attribute("description").replace(
+                    "description": self.__metadata["description"].replace(
                         f"${featureType} ${featureType}", featureType
                     ),
-                    "searchable_text": self.get_entry_attribute(
-                        "searchable_text"
-                    ).replace(f"${featureType} ${featureType}", featureType),
+                    "searchable_text": self.__metadata["searchable_text"].replace(
+                        f"${featureType} ${featureType}", featureType
+                    ),
                 }
             )
 
