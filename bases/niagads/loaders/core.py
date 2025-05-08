@@ -32,9 +32,9 @@ class AbstractDataLoader(ABC):
             databaseUri if databaseUri is not None else Settings.from_env().DATABASE_URI
         )
 
-    def close(self):
+    async def close(self):
         # reset pool
-        self._databaseSessionManager.close()
+        await self._databaseSessionManager.close()
 
     def get_db_session(self):
         return self._databaseSessionManager()  # callable yields a session

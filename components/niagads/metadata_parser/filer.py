@@ -52,7 +52,6 @@ class MetadataTemplateParser:
         self.__datesAsStrings = datesAsStrings
         self.__load_template()
 
-
     def __load_template(self):
         if not self.__templateFile.startswith("http"):
             with open(self.__templateFile, "r") as fh:
@@ -66,9 +65,11 @@ class MetadataTemplateParser:
         self.__templateHeader = self.__template.pop(0).split("\t")
         if self.__template[-1] == "":  # sometimes extra line is present
             self.__template.pop()
-            
+
         if self._debug:
-            self.logger.debug(f"Done loading template (n = {len(self.__template)} entries).")
+            self.logger.debug(
+                f"Done loading template (n = {len(self.__template)} entries)."
+            )
             self.logger.debug(f"First row in template: {self.__template[0]}")
 
     def get_template_file_name(self):
@@ -88,11 +89,17 @@ class MetadataTemplateParser:
         self.__metadata = [
             (
                 MetadataEntryParser(
-                    e, self.__filerDownloadUrl, datesAsStrings=self.__datesAsStrings, debug=self._debug
+                    e,
+                    self.__filerDownloadUrl,
+                    datesAsStrings=self.__datesAsStrings,
+                    debug=self._debug,
                 ).to_track_record()
                 if asTrackList
                 else MetadataEntryParser(
-                    e, self.__filerDownloadUrl, datesAsStrings=self.__datesAsStrings, deubg=self._debug
+                    e,
+                    self.__filerDownloadUrl,
+                    datesAsStrings=self.__datesAsStrings,
+                    deubg=self._debug,
                 ).to_json()
             )
             for e in entries
@@ -141,7 +148,7 @@ class MetadataEntryParser:
         self.__filerDownloadUrl = filerDownloadUrl
 
         self.set_entry(entry)
-        
+
         if self._debug:
             self.logger.debug(f"Parsing: {print_dict(entry, pretty=False)}")
 
@@ -222,13 +229,18 @@ class MetadataEntryParser:
         self.__metadata.update(
             {
                 "searchable_text": ";".join(
-                    remove_duplicates(remove_from_list(["Not applicable"], self.__searchableTextValues)))
+                    remove_duplicates(
+                        remove_from_list(
+                            ["Not applicable"], self.__searchableTextValues
+                        )
+                    )
+                )
             }
         )
 
         # patches on assembled metadata
         self.__final_patches()
-        
+
         if self._debug:
             self.logger.debug(f"Done parsing metadata entry: {self.__metadata}")
 
@@ -288,7 +300,9 @@ class MetadataEntryParser:
 
     def update_searchable_text(self, terms: List[str]):
         if self._debug:
-            self.logger.debug(f"Searchable Text = {self.__searchableTextValues + terms}")
+            self.logger.debug(
+                f"Searchable Text = {self.__searchableTextValues + terms}"
+            )
         self.__searchableTextValues = self.__searchableTextValues + [
             self.__clean_text(v) for v in terms if v is not None
         ]
@@ -327,10 +341,15 @@ class MetadataEntryParser:
         )
 
         # pull out searchable text values
-        searchableText: List[str] = [
-            characteristics.life_stage,
-            characteristics.biosample_type.name,
-        ] +  characteristics.tissue + characteristics.system + [ot.term for ot in characteristics.biosample]
+        searchableText: List[str] = (
+            [
+                characteristics.life_stage,
+                str(characteristics.biosample_type),
+            ]
+            + characteristics.tissue
+            + characteristics.system
+            + [ot.term for ot in characteristics.biosample]
+        )
 
         self.update_searchable_text(searchableText)
 
@@ -348,7 +367,9 @@ class MetadataEntryParser:
         )
 
         self.__metadata.update({"experimental_design": design.model_dump()})
-        self.update_searchable_text([value for value in design.model_dump().values() if not is_bool(value)])
+        self.update_searchable_text(
+            [value for value in design.model_dump().values() if not is_bool(value)]
+        )
 
     def parse_cohorts(self):
         info = self.__clean_list(
@@ -388,11 +409,15 @@ class MetadataEntryParser:
                 provenance.accession = regex_extract("study_id=([^;]*)", info)
 
             publications: str = regex_extract("study_pubmed_id=([^;]*)", info)
-            provenance.pubmed_id = None if publications is None else Set(
-                [
-                    f"PMID:{id}" if "PMID:" not in id else id
-                    for id in publications.split(",")
-                ]
+            provenance.pubmed_id = (
+                None
+                if publications is None
+                else Set(
+                    [
+                        f"PMID:{id}" if "PMID:" not in id else id
+                        for id in publications.split(",")
+                    ]
+                )
             )
 
         self.__metadata.update({"provenance": provenance.model_dump()})
@@ -550,7 +575,7 @@ class MetadataEntryParser:
         if feature.endswith(" SV"):
             feature = "structural variant (SV)"
 
-        self.__metadata.update({'feature_type': feature})
+        self.__metadata.update({"feature_type": feature})
 
     def __parse_data_category(self):
         category = self.get_entry_attribute("assigned_data_category")
@@ -721,7 +746,7 @@ class MetadataEntryParser:
         e.g. NG00102_Cruchaga_pQTLs Cerebrospinal fluid pQTL pQTL INDEL nominally significant associations
         remove the duplicate feature type from the text field
         """
-        
+
         featureType = self.__metadata["feature_type"]
 
         if "QTL" in featureType:

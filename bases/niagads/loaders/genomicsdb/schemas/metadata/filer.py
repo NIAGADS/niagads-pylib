@@ -232,14 +232,15 @@ async def main():
     except Exception as err:
         loader.logger.critical(err, exc_info=True, stack_info=True)
     finally:
-        loader.close()
+        await loader.close()
 
 
 def run_main():
-    """ wrapper necessary so that the main coroutine gets correctly awaited"""
+    """wrapper necessary so that the main coroutine gets correctly awaited"""
     import asyncio
+
     asyncio.run(main())
+
 
 if __name__ == "__main__":
     run_main()
-

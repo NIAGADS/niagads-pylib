@@ -63,7 +63,7 @@ class DatabaseSessionManager:
         """
         if self.__engine is None:
             raise Exception("DatabaseSessionManager is not initialized")
-        self.__engine.dispose()
+        await self.__engine.dispose()
 
     async def __call__(self):
         session: AsyncSession  # annotated type hint
