@@ -68,6 +68,28 @@ class BiosampleType(Enum):
         ontology="Experimental Factor Ontology",
         defintion="A cell taken directly from a living organism, which is not immortalized.",
     )
+    STEM_CELL = OntologyTerm(
+        term="stem cell",
+        term_id="CL_0000034",
+        term_iri="http://purl.obolibrary.org/obo/CL_0000034",
+        ontology="Cell Ontology",
+        defintion=(
+            f"A relatively undifferentiated cell that retains the ability to divide "
+            f"and proliferate throughout life to provide progenitor "
+            f"cells that can differentiate into specialized cells."
+        ),
+    )
+    PRIMARY_CULTURE = OntologyTerm(
+        term="primary cell culture",
+        term_id="CL_0000001",
+        term_iri="http://purl.obolibrary.org/obo/CL_0000001",
+        ontology="Cell Ontology",
+        defintion=(
+            f"A cultured cell that is freshly isolated from a organismal source, "
+            f"or derives in culture from such a cell prior to the culture being passaged. "
+            f"Covers cells actively being cultured or stored in a quiescent state for future use."
+        ),
+    )
     TISSUE = OntologyTerm(
         term="tissue",
         term_id="UBERON_0000479",
@@ -89,6 +111,8 @@ class BiosampleType(Enum):
             for member in cls:
                 if member.name.lower() == value.replace(" ", "_").lower():
                     return member
+                if value.lower() == "primary tissue":
+                    return cls.TISSUE
         except ValueError as err:
             raise err
 
