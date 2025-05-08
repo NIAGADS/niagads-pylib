@@ -12,7 +12,14 @@ class ExitOnExceptionHandler(logging.Handler):
     see https://stackoverflow.com/a/48201163
     """
 
-    def __init__(self, filename=None, mode="a", encoding=None, delay=False):
+    def __init__(
+        self,
+        filename=None,
+        mode="a",
+        encoding=None,
+        delay=False,
+        format: str = LOG_FORMAT_STR,
+    ):
         """
         Initialize the handler.
 
@@ -21,13 +28,20 @@ class ExitOnExceptionHandler(logging.Handler):
             mode (str): File mode (default: 'a' for append).
             encoding (str): File encoding (default: None).
             delay (bool): Delay file creation until the first emit (default: False).
+            format (Optional, str): format string.  Defaults to {0}
         """
+        ExitOnExceptionHandler.__init__.__doc__ = (
+            ExitOnExceptionHandler.__init__.__doc__.format(LOG_FORMAT_STR)
+        )
+
         if filename:
             super().__init__()
             self.handler = logging.FileHandler(filename, mode, encoding, delay)
         else:
             super().__init__()
             self.handler = logging.StreamHandler()
+
+        self.handler.setFormatter(logging.Formatter(format))
 
     def emit(self, record):
         self.handler.emit(record)
@@ -42,7 +56,14 @@ class ExitOnCriticalExceptionHandler(logging.Handler):
     see https://stackoverflow.com/a/48201163
     """
 
-    def __init__(self, filename=None, mode="a", encoding=None, delay=False):
+    def __init__(
+        self,
+        filename=None,
+        mode="a",
+        encoding=None,
+        delay=False,
+        format: str = LOG_FORMAT_STR,
+    ):
         """
         Initialize the handler.
 
@@ -51,13 +72,19 @@ class ExitOnCriticalExceptionHandler(logging.Handler):
             mode (str): File mode (default: 'a' for append).
             encoding (str): File encoding (default: None).
             delay (bool): Delay file creation until the first emit (default: False).
+            format (Optional, str): format string.  Defaults to {0}
         """
+        ExitOnCriticalExceptionHandler.__init__.__doc__ = (
+            ExitOnCriticalExceptionHandler.__init__.__doc__.format(LOG_FORMAT_STR)
+        )
         if filename:
             super().__init__()
             self.handler = logging.FileHandler(filename, mode, encoding, delay)
         else:
             super().__init__()
             self.handler = logging.StreamHandler()
+
+        self.handler.setFormatter(logging.Formatter(format))
 
     def emit(self, record):
         self.handler.emit(record)
