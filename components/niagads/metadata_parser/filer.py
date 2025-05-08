@@ -167,14 +167,17 @@ class MetadataEntryParser:
         if is_null(value, naIsNull=True):
             return None
 
-        if value == "Not applicable":
-            return None
-
         if is_number(value):
             if "replicate" in key.lower():
                 return value  # leave as string
             else:
                 return to_numeric(value)
+
+        if value in ["Not applicable", "Unknown"]:
+            return None
+
+        if "Not applicable;" in value:
+            return value.replace("Not applicable;", "")
 
         if "date" in key.lower() and is_date(value):
             return to_date(value, returnStr=self.__datesAsStrings)
@@ -232,11 +235,7 @@ class MetadataEntryParser:
         self.__metadata.update(
             {
                 "searchable_text": ";".join(
-                    remove_duplicates(
-                        remove_from_list(
-                            ["Not applicable"], self.__searchableTextValues
-                        )
-                    )
+                    remove_duplicates(self.__searchableTextValues, caseInsensitive=True)
                 )
             }
         )
@@ -321,8 +320,6 @@ class MetadataEntryParser:
 
         else:
             termId = self.get_entry_attribute("biosamples_term_id")
-            if self._debug:
-                self.logger.debug(f"term = {term}; term_id = {termId}")
 
             if term is not None and is_number(term):
                 self.logger.warning(
@@ -338,6 +335,17 @@ class MetadataEntryParser:
                 )
 
             bsType = self.get_entry_attribute("biosample_type")
+
+            if self._debug:
+                self.logger.debug(f"term = {term}; term_id = {termId}; type = {bsType}")
+
+            if bsType in ["Fractionation", "Timecourse"]:
+                self.logger.warning(
+                    f"Found '{bsType} biosample type; assuming Fantom5 misclassified "
+                    f"{term} for {self.get_entry_attribute('identifier')}: "
+                    f"{self.get_entry_attribute('file_name')}; reassinging as `Cell Line`"
+                )
+                bsType = "cell line"
 
             # TODO handle tissue categories, systems to be list
             characteristics = BiosampleCharacteristics(
@@ -367,8 +375,6 @@ class MetadataEntryParser:
 
     def parse_experimental_design(self):
         assay = self.__parse_assay()  # parse out `assays` and `analyses`
-        if self._debug:
-            self.logger.debug(f"Assay: {assay}")
 
         design = ExperimentalDesign(
             is_lifted=self.__parse_is_lifted(),
@@ -460,9 +466,6 @@ class MetadataEntryParser:
 
     def __assign_feature_by_assay(self):
         assay = self.__metadata["experimental_design"].get("assay")
-        if self._debug:
-            self.logger.debug(f"Assay = {assay}")
-
         if assay is not None:
             if "QTL" in assay:
                 return assay
