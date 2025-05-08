@@ -10,18 +10,19 @@ def all_elements_are_none(array):
     return all(item is None for item in array)
 
 
-def remove_from_list(values: list, arr: list):
+def remove_from_list(arr: list, drop: list):
     """
-    Removes all elements listed in values from an array (list)
+    Removes all elements listed in drop from an array (list)
 
     Args:
-        values (list): The list from which elements will be removed.
-        arr (list): The list containing elements to remove from list1.
+        arr (list): The list from which elements will be removed.
+        drop (list): The list containing elements to remove from arr.
 
     Returns:
         list: A new list with elements of values removed from arr.
     """
-    return [item for item in values if item not in arr]
+    return [item for item in arr if item not in drop]
+
 
 def find(array, value, field: str = None, returnValues=True):
     """
@@ -139,7 +140,6 @@ def list_to_indexed_dict(clist):
     """convert list to hash of value -> index"""
     return OrderedDict(zip(clist, range(1, len(clist) + 1)))
 
-   
 
 def find_in_list(value: str, arr: List[str], ignoreCase=False):
     """
@@ -192,9 +192,19 @@ def get_duplicates(array):
     return [k for k, v in Counter(array).items() if v > 1]
 
 
-def remove_duplicates(array):
+def remove_duplicates(array, caseInsensitive: bool = False):
     """remove duplicates from a list by transforming to set and back"""
-    return [*set(array)]
+    if not caseInsensitive:
+        return [*set(array)]
+    else:
+        reference = set()
+        unique = []
+        for value in array:
+            lvalue = value.lower()
+            if lvalue not in reference:
+                reference.add(lvalue)
+                unique.append(value)
+        return unique
 
 
 def array_in_string(value, array):
