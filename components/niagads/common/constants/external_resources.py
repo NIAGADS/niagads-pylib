@@ -6,7 +6,7 @@ class NIAGADSResources(CaseInsensitiveEnum):
     NIAGADS = "https://www.niagads.org"
     ADVP = "https://advp.niagads.org"
     FILER = "https://tf.lisanwanglab.org/FILER"
-    FILER_API = "https://tf.lisanwanglab.org/FILER2"
+    FILER_API = "https://tf.lisanwanglab.org/FILER2/"
     FILER_DOWNLOADS = "https://tf.lisanwanglab.org/GADB"
     GENOMICS = "https://www.niagads.org/genomics"
 
