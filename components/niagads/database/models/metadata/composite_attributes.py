@@ -131,25 +131,42 @@ class BiosampleType(Enum):
             f"short-range organisation.",
         ),
     )
+    ORGANOID = OntologyTerm(
+        term="organoid",
+        term_id="NCIT_C172259",
+        term_id="http://purl.obolibrary.org/obo/NCIT_C172259",
+        ontology="NCIT",
+        definition=(
+            f"A three dimensional mass comprised of a cultured cell or "
+            f"tissue sample that resembles an in vivo tissue or organ. "
+            f"Organoids are grown in vitro from a combination of cells or "
+            f"tissue fragments cultured in medium containing a variety of biochemical factors."
+        ),
+    )
 
     # after from https://stackoverflow.com/a/76131490
     @classmethod
     def _missing_(cls, value: str):  # allow to be case insensitive
         try:
             lvalue = value.lower()
+
             for member in cls:
                 if member.name.lower() == lvalue.replace(" ", "_"):
                     return member
-                if lvalue == "primary tissue":
-                    return cls.TISSUE
-                if lvalue == "in vitro differentiated cells":
-                    return cls.EXPERIMENTALLY_MODIFIED_CELL
-                if lvalue == "induced pluripotent stem cell line" or "ipsc" in lvalue:
-                    return cls.IPSC_CELL_LINE
-                if lvalue == "esc derived":
-                    return cls.ESC_CELL_LINE
-                if lvalue == "immortalized cell line":
-                    return cls.CELL_LINE
+
+            if lvalue == "primary tissue":
+                return cls.TISSUE
+            if lvalue == "in vitro differentiated cells":
+                return cls.EXPERIMENTALLY_MODIFIED_CELL
+            if lvalue == "induced pluripotent stem cell line" or "ipsc" in lvalue:
+                return cls.IPSC_CELL_LINE
+            if lvalue == "esc derived":
+                return cls.ESC_CELL_LINE
+            if lvalue == "immortalized cell line":
+                return cls.CELL_LINE
+            if lvalue == "cell type":
+                return cls.CELL
+
         except ValueError as err:
             raise err
 
