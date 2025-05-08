@@ -87,10 +87,13 @@ class BiosampleType(Enum):
     def _missing_(cls, value: str):  # allow to be case insensitive
         try:
             for member in cls:
-                if member.name.lower() == value.lower():
+                if member.name.lower() == value.replace(" ", "_").lower():
                     return member
         except ValueError as err:
             raise err
+
+    def __str__(self):
+        return self.value.term
 
 
 class BiosampleCharacteristics(NullFreeModel):
