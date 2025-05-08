@@ -37,6 +37,16 @@ class Phenotype(NullFreeModel):
 
 
 class BiosampleType(Enum):
+    EXPERIMENTALLY_MODIFIED_CELL = OntologyTerm(
+        term="experimentally modified cell in vitro",
+        term_id="CL_0000578",
+        term_iri="http://purl.obolibrary.org/obo/CL_0000578",
+        ontology="Cell Ontology",
+        definition=(
+            f"A cell in vitro that has undergone physical changes ",
+            f"as a consequence of a deliberate and specific experimental procedure",
+        ),
+    )
     CELL_LINE = OntologyTerm(
         term="cell line",
         term_id="CLO_0000031",
@@ -48,6 +58,24 @@ class BiosampleType(Enum):
             f"cultured cells that shares a common propagation "
             f"history."
         ),
+    )
+    ESC_CELL_LINE = OntologyTerm(
+        term="embryonic stem cell line cell",
+        term_id="CLO_0037279",
+        term_iri="http://purl.obolibrary.org/obo/CLO_0037279",
+        ontology="Cell Line Ontology",
+        definition=(
+            f"A stem cell line cell that is dervied from an embryotic stem cell, "
+            f" a pluripotent stem cell derived from the inner cell mass "
+            f"of a blastocyst, an early-stage perimplantation embryo."
+        ),
+    )
+    IPSC_CELL_LINE = OntologyTerm(
+        term="induced pluripotent stem cell line cell",
+        term_id="CLO_0037307",
+        term_iri="http://purl.obolibrary.org/obo/CLO_0037307",
+        ontology="Cell Line Ontology",
+        definition="A stem cell line cell that is pluripotent and is generated from an adult somatic cell.",
     )
     CELL = OntologyTerm(
         term="cell",
@@ -108,11 +136,20 @@ class BiosampleType(Enum):
     @classmethod
     def _missing_(cls, value: str):  # allow to be case insensitive
         try:
+            lvalue = value.lower()
             for member in cls:
-                if member.name.lower() == value.replace(" ", "_").lower():
+                if member.name.lower() == lvalue.replace(" ", "_"):
                     return member
-                if value.lower() == "primary tissue":
+                if lvalue == "primary tissue":
                     return cls.TISSUE
+                if lvalue == "in vitro differentiated cells":
+                    return cls.EXPERIMENTALLY_MODIFIED_CELL
+                if lvalue == "induced pluripotent stem cell line" or "ipsc" in lvalue:
+                    return cls.IPSC_CELL_LINE
+                if lvalue == "esc derived":
+                    return cls.ESC_CELL_LINE
+                if lvalue == "immortalized cell line":
+                    return cls.CELL_LINE
         except ValueError as err:
             raise err
 
