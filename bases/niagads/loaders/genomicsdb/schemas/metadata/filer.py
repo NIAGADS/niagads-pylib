@@ -12,7 +12,7 @@ from niagads.loaders.core import AbstractDataLoader
 from niagads.metadata_parser.filer import MetadataTemplateParser
 from niagads.requests.core import HttpClientSessionManager
 from niagads.utils.list import flatten
-from niagads.utils.logging import LOG_FORMAT_STR, ExitOnExceptionHandler
+from niagads.utils.logging import ExitOnExceptionHandler
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches, regex_extract, regex_replace
 from pydantic import BaseModel
@@ -208,7 +208,6 @@ async def main():
 
     logging.basicConfig(
         handlers=[ExitOnExceptionHandler()],
-        format=LOG_FORMAT_STR,
         level=logging.DEBUG if args.debug else logging.INFO,
     )
     try:
