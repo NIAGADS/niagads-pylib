@@ -86,6 +86,9 @@ class TrackMetadataLoader(AbstractDataLoader):
         if "CADD" in track.name:
             return True
 
+        if track.provenance.data_source == "Repeats":
+            return True
+
         if track.provenance.data_source.startswith("Ensembl"):
             return True
 
