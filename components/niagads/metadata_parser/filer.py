@@ -1,6 +1,6 @@
 import logging
 from os.path import basename
-from typing import Dict, List, Set, Union
+from typing import List, Set, Union
 from urllib.parse import unquote
 
 from niagads.common.models.core import OntologyTerm
@@ -167,6 +167,9 @@ class MetadataEntryParser:
         if is_null(value, naIsNull=True):
             return None
 
+        if value == "Not applicable":
+            return None
+
         if is_number(value):
             if "replicate" in key.lower():
                 return value  # leave as string
@@ -312,46 +315,55 @@ class MetadataEntryParser:
     # TODO if cell line, map to cell type and add (or is this part of load?) or introduce cell line mapper?
     def parse_biosample_characteristics(self):
         term = self.get_entry_attribute("cell_type")
-        termId = self.get_entry_attribute("biosamples_term_id")
 
-        if term is not None and is_number(term):
-            self.logger.warning(
-                f"Found numeric `cell_type` - {term} - for track {self.get_entry_attribute('identifier')}"
+        if term is None:
+            self.__metadata.update({"biosample_characteristics": None})
+
+        else:
+            termId = self.get_entry_attribute("biosamples_term_id")
+            if self._debug:
+                self.logger.debug(f"term = {term}; term_id = {termId}")
+
+            if term is not None and is_number(term):
+                self.logger.warning(
+                    f"Found numeric `cell_type` - {term} - for track {self.get_entry_attribute('identifier')}"
+                )
+                self.logger.warning(
+                    f"Updating to {term} from `file_name` = {self.get_entry_attribute('file_name')}"
+                )
+                term = (
+                    unquote(self.get_entry_attribute("file_name"))
+                    .split(".")[0]
+                    .replace(":", " - ")
+                )
+
+            bsType = self.get_entry_attribute("biosample_type")
+
+            # TODO handle tissue categories, systems to be list
+            characteristics = BiosampleCharacteristics(
+                biosample=[OntologyTerm(term=term, term_id=termId)],
+                tissue=[self.get_entry_attribute("tissue_category")],
+                system=[self.get_entry_attribute("system_category")],
+                life_stage=self.get_entry_attribute("life_stage"),
+                biosample_type=None if bsType is None else BiosampleType(bsType),
             )
-            self.logger.warning(
-                f"Updating to {term} from `file_name` = {self.get_entry_attribute('file_name')}"
-            )
-            term = (
-                unquote(self.get_entry_attribute("file_name"))
-                .split(".")[0]
-                .replace(":", " - ")
+
+            self.__metadata.update(
+                {"biosample_characteristics": characteristics.model_dump()}
             )
 
-        # TODO handle tissue categories, systems to be list
-        characteristics = BiosampleCharacteristics(
-            biosample=[OntologyTerm(term=term, term_id=termId)],
-            tissue=[self.get_entry_attribute("tissue_category")],
-            system=[self.get_entry_attribute("system_category")],
-            life_stage=self.get_entry_attribute("life_stage"),
-            biosample_type=BiosampleType(self.get_entry_attribute("biosample_type")),
-        )
+            # pull out searchable text values
+            searchableText: List[str] = (
+                [
+                    characteristics.life_stage,
+                    str(characteristics.biosample_type),
+                ]
+                + characteristics.tissue
+                + characteristics.system
+                + [ot.term for ot in characteristics.biosample]
+            )
 
-        self.__metadata.update(
-            {"biosample_characteristics": characteristics.model_dump()}
-        )
-
-        # pull out searchable text values
-        searchableText: List[str] = (
-            [
-                characteristics.life_stage,
-                str(characteristics.biosample_type),
-            ]
-            + characteristics.tissue
-            + characteristics.system
-            + [ot.term for ot in characteristics.biosample]
-        )
-
-        self.update_searchable_text(searchableText)
+            self.update_searchable_text(searchableText)
 
     def parse_experimental_design(self):
         assay = self.__parse_assay()  # parse out `assays` and `analyses`
@@ -445,9 +457,10 @@ class MetadataEntryParser:
         self.__metadata.update({"file_properties": props.model_dump()})
 
     def __assign_feature_by_assay(self):
-        assay = self.__metadata["experimental_design"]["assay"]
+        assay = self.__metadata["experimental_design"].get("assay")
         if self._debug:
             self.logger.debug(f"Assay = {assay}")
+
         if assay is not None:
             if "QTL" in assay:
                 return assay
@@ -493,46 +506,49 @@ class MetadataEntryParser:
         return None
 
     def __assign_feature_by_output_type(self):
-        outputType: str = self.__metadata["experimental_design"]["output_type"]
-        if "enhancer" in outputType.lower():
-            return "enhancer"
-        if "methylation state" in outputType:
-            state, loc = outputType.split(" at ")
-            return loc + " " + state
-        if "microrna target" in outputType.lower():
-            return "microRNA target"
-        if "microRNA" in outputType:
-            return "microRNA"
-        if "exon" in outputType:
-            return "exon"
-        if "transcription start sites" in outputType or "TSS" in outputType:
-            return "transcription start site"
-        if "transcribed fragments" in outputType:
-            return "transcribed fragment"
+        outputType: str = self.__metadata["experimental_design"].get("output_type")
+        if outputType is not None:
+            if "enhancer" in outputType.lower():
+                return "enhancer"
+            if "methylation state" in outputType:
+                state, loc = outputType.split(" at ")
+                return loc + " " + state
+            if "microrna target" in outputType.lower():
+                return "microRNA target"
+            if "microRNA" in outputType:
+                return "microRNA"
+            if "exon" in outputType:
+                return "exon"
+            if "transcription start sites" in outputType or "TSS" in outputType:
+                return "transcription start site"
+            if "transcribed fragments" in outputType:
+                return "transcribed fragment"
 
-        if outputType in ["footprints", "hotspots"]:
-            # TODO: this may need to be updated, as it varies based on the assay type
-            return outputType
+            if outputType in ["footprints", "hotspots"]:
+                # TODO: this may need to be updated, as it varies based on the assay type
+                return outputType
 
-        # should have been already handled, but just in case
-        if outputType in ["clusters", "ChromHMM", "Genomic Partition"]:
-            return None
+            # should have been already handled, but just in case
+            if outputType in ["clusters", "ChromHMM", "Genomic Partition"]:
+                return None
 
-        if outputType.startswith("Chromatin"):  # standardize case
-            return outputType.lower()
+            if outputType.startswith("Chromatin"):  # standardize case
+                return outputType.lower()
 
-        # peaks are too generic
-        # TODO: handle peaks & correctly map, for now
-        # just return
-        # but there are some "enhancer peaks", which is why
-        # this test is 2nd
-        if "peaks" in outputType:
-            return outputType
+            # peaks are too generic
+            # TODO: handle peaks & correctly map, for now
+            # just return
+            # but there are some "enhancer peaks", which is why
+            # this test is 2nd
+            if "peaks" in outputType:
+                return outputType
 
         return outputType
 
     def __assign_feature_by_classification(self):
-        classification: str = self.__metadata["experimental_design"]["classification"]
+        classification: str = self.__metadata["experimental_design"].get(
+            "classification"
+        )
         if classification is not None:
             classification = classification.lower()
             if "histone-mark" in classification:
