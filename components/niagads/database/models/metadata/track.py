@@ -10,7 +10,7 @@ from niagads.database.models.metadata.composite_attributes import (
     Provenance,
     TrackDataStore,
 )
-from niagads.database.models.metadata.base import MetadataSchemaBase
+from niagads.database.models.metadata.base import MetadataSchemaBase, ModelDumpMixin
 from niagads.genome.core import Assembly, Human
 from niagads.utils.list import list_to_string
 from sqlalchemy import ARRAY, TEXT, Column, Enum, Index, String
@@ -19,7 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import CheckConstraint
 
 
-class Track(MetadataSchemaBase):
+class Track(ModelDumpMixin, MetadataSchemaBase):
     __tablename__ = "track"
     __table_args__ = (
         CheckConstraint(
