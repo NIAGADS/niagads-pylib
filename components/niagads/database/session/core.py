@@ -25,7 +25,10 @@ class DatabaseSessionManager:
     """
 
     def __init__(
-        self, connectionString: str, connectionPoolSize: int = CONNECTION_POOL_SIZE
+        self,
+        connectionString: str,
+        connectionPoolSize: int = CONNECTION_POOL_SIZE,
+        echo: bool = False,
     ):
         """Initialize DatabaseSessionManager object.
 
@@ -35,7 +38,7 @@ class DatabaseSessionManager:
         """
         self.__engine: AsyncEngine = create_async_engine(
             self.__get_async_uri(connectionString),
-            echo=True,  # Log SQL queries for debugging (set to False in production)
+            echo=echo,  # Log SQL queries for debugging (set to False in production)
             pool_size=connectionPoolSize,  # Maximum number of permanent connections to maintain in the pool
             max_overflow=10,  # Maximum number of additional connections that can be created if the pool is exhausted
             pool_timeout=30,  # Number of seconds to wait for a connection if the pool is exhausted
@@ -47,6 +50,10 @@ class DatabaseSessionManager:
             self.__sessionMaker, scopefunc=current_task
         )
         self.logger = logging.getLogger(__name__)
+        logging.getLogger("sqlalchemy").setLevel(logging.ERROR)  # turn off INFO logging
+        logging.getLogger("sqlalchemy.engine").setLevel(
+            logging.ERROR
+        )  # turn off INFO logging
 
     def __get_async_uri(self, uri: str = None):
         return uri.replace("postgresql:", "postgresql+asyncpg:")
