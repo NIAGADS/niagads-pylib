@@ -42,7 +42,7 @@ class MetadataTemplateParser:
         debug: bool = False,
         verbose: bool = False,
     ):
-        self.logger = logging.getLogger(__name__)
+        self.logger: logging.Logger = logging.getLogger(__name__)
         self._debug = debug
         self._verbose = verbose
 
@@ -80,13 +80,18 @@ class MetadataTemplateParser:
     def get_metadata(self):
         return self.__metadata
 
+    def log_section_header(self, label: str, **kwargs):
+        # TODO: abstract  out into custom logger class
+        self.logger.info("=" * 40, **kwargs)
+        self.logger.info(label.center(40), **kwargs)
+        self.logger.info("=" * 40, **kwargs)
+
     def parse(self, asTrackList: bool = False):
         """iterate over list of one or more raw metadata
         objects from FILER API and standardize; returns array of standardized metadata objects
         """
-        self.logger.info(
-            "-------------------- Running Template Parser --------------------\n"
-        )
+        self.log_section_header("Running Template Parser")
+
         entries = [
             dict(zip(self.__templateHeader, line.split("\t")))
             for line in self.__template
@@ -142,7 +147,7 @@ class MetadataEntryParser:
         self,
         entry: dict,
         filerDownloadUrl: str,
-        datesAsStrings: bool = False,
+        datesAsStrings: bool = True,
         debug: bool = False,
         verbose: bool = False,
     ):

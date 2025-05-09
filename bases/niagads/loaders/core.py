@@ -29,7 +29,12 @@ class AbstractDataLoader(ABC):
         self._commitAfter: int = COMMIT_AFTER
         self._commit: bool = commit
         self._databaseSessionManager = DatabaseSessionManager(
-            databaseUri if databaseUri is not None else Settings.from_env().DATABASE_URI
+            (
+                databaseUri
+                if databaseUri is not None
+                else Settings.from_env().DATABASE_URI
+            ),
+            echo=self._debug,
         )
 
     async def close(self):
@@ -85,3 +90,9 @@ class AbstractDataLoader(ABC):
         raise AbstractMethodNotImplemented(
             AbstractDataLoader.report_config.__qualname__
         )
+
+    def log_section_header(self, label: str, **kwargs):
+        # TODO: abstract  out into custom logger class
+        self.logger.info("=" * 40, **kwargs)
+        self.logger.info(label.center(40), **kwargs)
+        self.logger.info("=" * 40, **kwargs)

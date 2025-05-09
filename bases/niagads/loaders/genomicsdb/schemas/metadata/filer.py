@@ -15,9 +15,11 @@ from niagads.utils.logging import ExitOnExceptionHandler
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches, regex_extract, regex_replace
 from pydantic import BaseModel
+from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 TARGET_TABLE = f"{Track.metadata.schema}.{Track.__tablename__}"
+SKIP_DATASOURCES = ["Repeats", "Reference", "1k", "PhastCons", "dbSNP"]
 
 
 class Counts(BaseModel):
@@ -53,7 +55,7 @@ class TrackMetadataLoader(AbstractDataLoader):
         self.__genomeBuild: Assembly = genomeBuild
 
         self.__parsedTracks: List[Track] = None
-        self.__shardedTracks: dict = None
+        self.__shardedTracks: dict = {}
         self.__liveTracks: dict = None
         self.__counts: Counts = Counts()
         self.__skipLiveValidation = False
@@ -91,6 +93,11 @@ class TrackMetadataLoader(AbstractDataLoader):
     def __skip_track(self, track: Track):
         """Determine if a track should be skipped."""
 
+        if "Not applicable" in track.name:
+            raise ValueError(
+                f"Malformed track name: {track.track_id}: {track.name}.  Please review and correct or update skip_track criteria to proceed."
+            )
+
         if track.genome_build is None:
             return True
 
@@ -98,7 +105,7 @@ class TrackMetadataLoader(AbstractDataLoader):
             return True
 
         dataSource = track.provenance.get("data_source")
-        if dataSource in ["Repeats", "Reference"]:
+        if dataSource in SKIP_DATASOURCES:
             return True
 
         if dataSource.startswith("Ensembl"):
@@ -134,11 +141,12 @@ class TrackMetadataLoader(AbstractDataLoader):
         if self.__parsedTracks is None:
             self.parse_template()
 
-        self.logger.info("-------------------- Begin Load --------------------\n")
+        self.log_section_header("Begin Load")
 
         if not self.__skipLiveValidation and self.__liveTracks is None:
             await self.fetch_live_track_ids()
 
+        validTracks = []
         session: AsyncSession
         async for session in self.get_db_session():
             for track in self.__parsedTracks:
@@ -156,30 +164,36 @@ class TrackMetadataLoader(AbstractDataLoader):
                             "_", ""
                         )
                         track.shard_root_track_id = self.__shardedTracks[
-                            self.__get_shard_key(track.file_properties.file_name)
+                            self.__get_shard_key(track.file_properties.get("file_name"))
                         ]
 
                     # set data store
                     track.data_store = str(self.__dataStore)
+                    validTracks.append(track.model_dump())
 
-                    session.add(track)
-
-                    self.__counts.loaded += 1
                 except Exception as err:
                     raise RuntimeError(
                         f"Problem loading track: {track.model_dump()} - {str(err)}"
                     )
 
-                await self.commit(session, self.__counts.loaded, "Track records")
+                if len(validTracks) % self._commitAfter == 0:
+                    await session.execute(insert(Track), validTracks)
+                    self.__counts.loaded += len(validTracks)
+                    await self.commit(session, self.__counts.loaded, "Track records")
+                    validTracks = []
+
                 if self._test and self.__counts.loaded == self._commitAfter:
                     break
 
             # commit residuals
-            await self.commit(
-                session, self.__counts.loaded, "Track records", residuals=True
-            )
+            if len(validTracks) > 0:
+                await session.execute(insert(Track), validTracks)
+                self.__counts.loaded += len(validTracks)
+                await self.commit(
+                    session, self.__counts.loaded, "Track records", residuals=True
+                )
 
-            self.logger.info("-------------------- End Load --------------------\n")
+            self.log_section_header("End Load")
             self.report_status()
 
     def report_status(self):
@@ -201,7 +215,8 @@ class TrackMetadataLoader(AbstractDataLoader):
         """
         Log the configuration of the TrackMetadataLoader instance.
         """
-        self.logger.info("TrackMetadataLoader Configuration:")
+        self.logger.info(f"Running {__file__}")
+        self.log_section_header("Loader Config")
         self.logger.info(f"Template File: {self.__parser.get_template_file_name()}")
         self.logger.info(
             f"Database URI: {self._databaseSessionManager.get_engine().url}"
@@ -209,7 +224,7 @@ class TrackMetadataLoader(AbstractDataLoader):
         self.logger.info(f"Data Store: {self.__dataStore}")
         self.logger.info(f"Genome Build: {self.__genomeBuild}")
         self.logger.info(f"API URL: {self.__apiUrl}")
-        self.logger.info(f"Download URL: {self.__downloadUrl}")
+        self.logger.info(f"FILER File Download URL: {self.__downloadUrl}")
         self.logger.info(f"Commit Mode: {'Enabled' if self._commit else 'Disabled'}")
         self.logger.info(f"Test Mode: {'Enabled' if self._test else 'Disabled'}")
         self.logger.info(f"Debug Mode: {'Enabled' if self._debug else 'Disabled'}")
@@ -270,6 +285,7 @@ async def main():
         handlers=[ExitOnExceptionHandler()],
         level=logging.DEBUG if args.debug else logging.INFO,
     )
+
     try:
         loader = TrackMetadataLoader(
             args.template,
