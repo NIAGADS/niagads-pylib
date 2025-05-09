@@ -166,10 +166,10 @@ class TrackMetadataLoader(AbstractDataLoader):
                 self.__counts.loaded += 1
 
                 await self.commit(session, self.__counts.loaded, "Track records")
-                if self._test is not None and self.__counts.loaded == self._commitAfter:
+                if self._test and self.__counts.loaded == self._commitAfter:
                     break
 
-            # commit residuals / commit test
+            # commit residuals
             await self.commit(
                 session, self.__counts.loaded, "Track records", residuals=True
             )
