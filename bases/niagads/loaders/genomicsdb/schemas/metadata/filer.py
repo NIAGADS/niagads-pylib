@@ -98,7 +98,7 @@ class TrackMetadataLoader(AbstractDataLoader):
             return True
 
         dataSource = track.provenance.get("data_source")
-        if dataSource == "Repeats":
+        if dataSource in ["Repeats", "Reference"]:
             return True
 
         if dataSource.startswith("Ensembl"):
@@ -152,7 +152,7 @@ class TrackMetadataLoader(AbstractDataLoader):
                     ):
                         # set shard properties
                         track.is_shard = True
-                        track.shard_chromosome = f"chr{regex_extract(RegularExpressions.SHARD, track.file_properties.file_name)}".replace(
+                        track.shard_chromosome = f"chr{regex_extract(RegularExpressions.SHARD, track.file_properties.get("file_name"))}".replace(
                             "_", ""
                         )
                         track.shard_root_track_id = self.__shardedTracks[
