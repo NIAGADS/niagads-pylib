@@ -1,4 +1,3 @@
-from datetime import date
 from enum import Enum, auto
 from typing import List, Optional, Set, Union
 
@@ -192,8 +191,8 @@ class Provenance(NullFreeModel):
     data_source: str
 
     release_version: Optional[str] = None
-    release_date: Optional[date] = None
-    download_date: Optional[date] = None
+    release_str: Optional[str] = None
+    download_str: Optional[str] = None
     download_url: Optional[str] = None
 
     study: Optional[str] = None
@@ -207,7 +206,7 @@ class Provenance(NullFreeModel):
     attribution: Optional[str] = None
 
     @field_validator("doi", mode="after")
-    def validate_doi(cls, values: Set[str]):
+    def valistr_doi(cls, values: Set[str]):
         """create validator b/c Pydantic does not support patterns w/lookaheads"""
         if values is not None and len(values) > 0:
             for v in values:
@@ -244,4 +243,4 @@ class FileProperties(NullFreeModel):
 
     file_format: Optional[str] = None
     file_schema: Optional[str] = None
-    release_date: Optional[date] = None
+    release_str: Optional[str] = None
