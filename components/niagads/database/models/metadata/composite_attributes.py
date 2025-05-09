@@ -1,6 +1,6 @@
 from datetime import date
 from enum import Enum, auto
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Union
 
 from niagads.common.constants.external_resources import ThirdPartyResources
 from niagads.common.core import NullFreeModel
@@ -178,7 +178,7 @@ class BiosampleCharacteristics(NullFreeModel):
     system: Optional[List[str]] = None
     tissue: Optional[List[str]] = None
     biomarker: Optional[List[str]] = None
-    biosample_type: BiosampleType
+    biosample_type: Optional[Union[BiosampleType, str]] = None
     biosample: Optional[List[OntologyTerm]] = Field(
         default=None, description="ontology term/id pairs describing the biosample"
     )

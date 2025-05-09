@@ -158,8 +158,10 @@ class MetadataEntryParser:
         return self.__metadata
 
     def to_track_record(self):
+
         if self.__metadata is None:
             self.parse()
+
         return Track(**self.__metadata)
 
     def parse_value(self, key: str, value):
@@ -337,7 +339,7 @@ class MetadataEntryParser:
 
             if bsType in ["Fractionation", "Timecourse"]:
                 self.logger.warning(
-                    f"Found '{bsType} biosample type; assuming Fantom5 misclassified "
+                    f"Found '{bsType}' biosample type; assuming Fantom5 misclassified "
                     f"{term} for {self.get_entry_attribute('identifier')}: "
                     f"{self.get_entry_attribute('file_name')}; reassinging as `Cell Line`"
                 )
@@ -349,7 +351,7 @@ class MetadataEntryParser:
                 tissue=[self.get_entry_attribute("tissue_category")],
                 system=[self.get_entry_attribute("system_category")],
                 life_stage=self.get_entry_attribute("life_stage"),
-                biosample_type=None if bsType is None else BiosampleType(bsType),
+                biosample_type=None if bsType is None else str(BiosampleType(bsType)),
             )
 
             self.__metadata.update(
