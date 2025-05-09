@@ -62,10 +62,10 @@ class AbstractDataLoader(ABC):
         if (nTransactions % self._commitAfter == 0) or residuals:
             if self._commit:
                 self.logger.info(f"COMMITTED: {nTransactions} {msg}")
-                session.commit()
+                await session.commit()
             else:
                 self.logger.info(f"ROLLED BACK: {nTransactions} {msg}")
-                session.rollback()
+                await session.rollback()
 
     @abstractmethod
     def load(
