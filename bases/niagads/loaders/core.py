@@ -18,13 +18,13 @@ class AbstractDataLoader(ABC):
         self,
         databaseUri: str = None,
         commit: bool = False,
-        test: int = None,
+        test: bool = False,
         debug: bool = False,
         verbose: bool = False,
     ):
         self.logger: logging.Logger = logging.getLogger(__name__)
         self._debug: bool = debug
-        self._test: int = test
+        self._test: bool = test
         self._verbose: bool = verbose
         self._commitAfter: int = COMMIT_AFTER
         self._commit: bool = commit
@@ -40,7 +40,7 @@ class AbstractDataLoader(ABC):
         return self._databaseSessionManager()  # callable yields a session
 
     def set_commit_after(self, limit: int):
-        self._commit_after = limit
+        self._commitAfter = limit
 
     async def commit(
         self,
@@ -68,7 +68,20 @@ class AbstractDataLoader(ABC):
                 await session.rollback()
 
     @abstractmethod
-    def load(
-        self,
-    ):
+    def load(self):
+        """function for executing the loader"""
         raise AbstractMethodNotImplemented(AbstractDataLoader.load.__qualname__)
+
+    @abstractmethod
+    def report_status(self):
+        """function for summarizing load result / status"""
+        raise AbstractMethodNotImplemented(
+            AbstractDataLoader.report_status.__qualname__
+        )
+
+    @abstractmethod
+    def report_config(self):
+        """function for summarizing load result / status"""
+        raise AbstractMethodNotImplemented(
+            AbstractDataLoader.report_config.__qualname__
+        )
