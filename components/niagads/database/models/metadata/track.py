@@ -73,7 +73,7 @@ class Track(ModelDumpMixin, MetadataSchemaBase):
     shard_chromosome: str = Column(Enum(Human, native_enum=False))
     shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
-    cohorts: Mapped[List[str]] = mapped_column(ARRAY(String))
+    cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))
 
     biosample_characteristics: Mapped[Optional[BiosampleCharacteristics]] = (
         mapped_column(JSONB)
