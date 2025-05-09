@@ -14,6 +14,7 @@ from niagads.database.models.metadata.composite_attributes import (
 from niagads.database.models.metadata.track import Track
 from niagads.utils.dict import print_dict
 from niagads.utils.list import array_in_string, remove_duplicates, remove_from_list
+from niagads.utils.logging import FullPackageNameAdapter
 from niagads.utils.string import (
     is_bool,
     is_date,
@@ -42,7 +43,10 @@ class MetadataTemplateParser:
         debug: bool = False,
         verbose: bool = False,
     ):
-        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.logger: logging.Logger = FullPackageNameAdapter(
+            logging.getLogger(__name__), {}
+        )
+
         self._debug = debug
         self._verbose = verbose
 

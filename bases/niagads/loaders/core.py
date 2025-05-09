@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from niagads.database.session.core import DatabaseSessionManager
 from niagads.exceptions.core import AbstractMethodNotImplemented
 from niagads.settings.core import CustomSettings
+from niagads.utils.logging import FullPackageNameAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 COMMIT_AFTER: int = 5000
@@ -22,7 +23,10 @@ class AbstractDataLoader(ABC):
         debug: bool = False,
         verbose: bool = False,
     ):
-        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.logger: logging.Logger = FullPackageNameAdapter(
+            logging.getLogger(__name__), {}
+        )
+
         self._debug: bool = debug
         self._test: bool = test
         self._verbose: bool = verbose

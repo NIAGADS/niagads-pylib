@@ -1,8 +1,41 @@
+import inspect
 import logging
 from functools import wraps
 from time import perf_counter
 
-LOG_FORMAT_STR: str = "%(asctime)s %(funcName)s %(levelname)-8s %(message)s"
+LOG_FORMAT_STR: str = "%(asctime)s %(levelname)-8s %(message)s"
+
+
+class FullPackageNameAdapter(logging.LoggerAdapter):
+    """
+    A logging adapter that adds the full package name in dot notation
+    (e.g., niagads.utils.logging) to log messages.
+    """
+
+    def process(self, msg, kwargs):
+        """
+        Process the log message to include the full package name in dot notation.
+        """
+        # Use inspect to get the caller's frame and extract the module/package name
+        # current frame is the logger, so need to go up a level
+        frame = inspect.getouterframes(inspect.currentframe())[1].frame.f_back.f_back
+
+        module = inspect.getmodule(frame)
+        if module and module.__name__:
+            package = f"{module.__name__}:"  # Full package name in dot notation
+        else:
+            package = ""
+
+        # FIXME: might need a null or empty check
+        if frame.f_locals and "self" in frame.f_locals:
+            className = f"{frame.f_locals["self"].__class__.__name__}:"
+        else:
+            className = ""
+
+        function = frame.f_code.co_name
+        lineno = frame.f_lineno
+
+        return f"[{package}{className}{function}:{lineno}] {msg}", kwargs
 
 
 class ExitOnExceptionHandler(logging.Handler):
