@@ -82,6 +82,9 @@ class MetadataTemplateParser:
         """iterate over list of one or more raw metadata
         objects from FILER API and standardize; returns array of standardized metadata objects
         """
+        self.logger.info(
+            "-------------------- Running Template Parser --------------------\n"
+        )
         entries = [
             dict(zip(self.__templateHeader, line.split("\t")))
             for line in self.__template
@@ -104,7 +107,6 @@ class MetadataTemplateParser:
             )
             for e in entries
         ]
-
         return self.__metadata
 
 
