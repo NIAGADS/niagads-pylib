@@ -40,9 +40,11 @@ class MetadataTemplateParser:
         filerDownloadUrl: str,
         datesAsStrings: bool = True,
         debug: bool = False,
+        verbose: bool = False,
     ):
         self.logger = logging.getLogger(__name__)
         self._debug = debug
+        self._verbose = verbose
 
         self.__template = None
         self.__templateFile: str = templateFile
@@ -96,13 +98,15 @@ class MetadataTemplateParser:
                     self.__filerDownloadUrl,
                     datesAsStrings=self.__datesAsStrings,
                     debug=self._debug,
+                    verbose=self._verbose,
                 ).to_track_record()
                 if asTrackList
                 else MetadataEntryParser(
                     e,
                     self.__filerDownloadUrl,
                     datesAsStrings=self.__datesAsStrings,
-                    deubg=self._debug,
+                    debug=self._debug,
+                    verbose=self._verbose,
                 ).to_json()
             )
             for e in entries
@@ -140,9 +144,11 @@ class MetadataEntryParser:
         filerDownloadUrl: str,
         datesAsStrings: bool = False,
         debug: bool = False,
+        verbose: bool = False,
     ):
         self.logger = logging.getLogger(__name__)
         self._debug = debug
+        self._verbose = verbose
         self.__entry = None
         self.__metadata = None
         self.__searchableTextValues = []
@@ -322,12 +328,13 @@ class MetadataEntryParser:
             termId = self.get_entry_attribute("biosamples_term_id")
 
             if term is not None and is_number(term):
-                self.logger.warning(
-                    f"Found numeric `cell_type` - {term} - for track {self.get_entry_attribute('identifier')}"
-                )
-                self.logger.warning(
-                    f"Updating to {term} from `file_name` = {self.get_entry_attribute('file_name')}"
-                )
+                if self._verbose:
+                    self.logger.warning(
+                        f"Found numeric `cell_type` - {term} - for track {self.get_entry_attribute('identifier')}"
+                    )
+                    self.logger.warning(
+                        f"Updating to {term} from `file_name` = {self.get_entry_attribute('file_name')}"
+                    )
                 term = (
                     unquote(self.get_entry_attribute("file_name"))
                     .split(".")[0]
@@ -340,11 +347,12 @@ class MetadataEntryParser:
                 self.logger.debug(f"term = {term}; term_id = {termId}; type = {bsType}")
 
             if bsType in ["Fractionation", "Timecourse"]:
-                self.logger.warning(
-                    f"Found '{bsType}' biosample type; assuming Fantom5 misclassified "
-                    f"{term} for {self.get_entry_attribute('identifier')}: "
-                    f"{self.get_entry_attribute('file_name')}; reassinging as `Cell Line`"
-                )
+                if self._verbose:
+                    self.logger.warning(
+                        f"Found '{bsType}' biosample type; assuming Fantom5 misclassified "
+                        f"{term} for {self.get_entry_attribute('identifier')}: "
+                        f"{self.get_entry_attribute('file_name')}; reassinging as `Cell Line`"
+                    )
                 bsType = "cell line"
 
             # TODO handle tissue categories, systems to be list

@@ -48,7 +48,7 @@ class TrackMetadataLoader(AbstractDataLoader):
         self.__dataStore = dataStore
 
         self.__parser = MetadataTemplateParser(
-            template, self.__downloadUrl, debug=self._debug
+            template, self.__downloadUrl, debug=self._debug, verbose=self._verbose
         )
         self.__genomeBuild: Assembly = genomeBuild
 
@@ -129,7 +129,6 @@ class TrackMetadataLoader(AbstractDataLoader):
         return self.__shardedTracks[shardKey]
 
     async def load(self):
-
         self.report_config()
 
         if self.__parsedTracks is None:
@@ -143,27 +142,33 @@ class TrackMetadataLoader(AbstractDataLoader):
         session: AsyncSession
         async for session in self.get_db_session():
             for track in self.__parsedTracks:
-                if self.__skip_track(track):
-                    self.__counts.skip += 1
-                    continue
+                try:
+                    if self.__skip_track(track):
+                        self.__counts.skip += 1
+                        continue
 
-                if matches(
-                    RegularExpressions.SHARD, track.file_properties.get("file_name")
-                ):
-                    # set shard properties
-                    track.is_shard = True
-                    track.shard_chromosome = f"chr{regex_extract(RegularExpressions.SHARD, track.file_properties.file_name)}".replace(
-                        "_", ""
+                    if matches(
+                        RegularExpressions.SHARD, track.file_properties.get("file_name")
+                    ):
+                        # set shard properties
+                        track.is_shard = True
+                        track.shard_chromosome = f"chr{regex_extract(RegularExpressions.SHARD, track.file_properties.file_name)}".replace(
+                            "_", ""
+                        )
+                        track.shard_root_track_id = self.__shardedTracks[
+                            self.__get_shard_key(track.file_properties.file_name)
+                        ]
+
+                    # set data store
+                    track.data_store = str(self.__dataStore)
+
+                    session.add(track)
+
+                    self.__counts.loaded += 1
+                except Exception as err:
+                    raise RuntimeError(
+                        f"Problem loading track: {track.model_dump()} - {str(err)}"
                     )
-                    track.shard_root_track_id = self.__shardedTracks[
-                        self.__get_shard_key(track.file_properties.file_name)
-                    ]
-
-                # set data store
-                track.data_store = str(self.__dataStore)
-                session.add(track)
-
-                self.__counts.loaded += 1
 
                 await self.commit(session, self.__counts.loaded, "Track records")
                 if self._test and self.__counts.loaded == self._commitAfter:
