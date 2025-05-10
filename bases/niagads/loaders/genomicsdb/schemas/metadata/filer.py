@@ -182,6 +182,7 @@ class TrackMetadataLoader(AbstractDataLoader):
                         track.shard_root_track_id = self.__get_shard_root(
                             track.file_properties.get("file_name")
                         )
+                        self.__counts.shards += 1
 
                     # set data store
                     track.data_store = str(self.__dataStore)
@@ -218,11 +219,11 @@ class TrackMetadataLoader(AbstractDataLoader):
         transactionStatus = "INSERTED" if self._commit else "ROLLED BACK"
         self.logger.info(f"DONE{' WITH TEST' if self._test is not None else ''}")
         self.logger.info(
-            f"PARSED {self.__counts.parsed} Track entries from {self.__parser.get_template_file_name()}"
+            f"PARSED {self.__counts.parsed} track entries from {self.__parser.get_template_file_name()}"
         )
         self.logger.info(f"SKIPPED {self.__counts.skip} invalid track entries.")
         self.logger.info(
-            f"{transactionStatus} {self.__counts.loaded} Track records into {TARGET_TABLE.title()}"
+            f"{transactionStatus} {self.__counts.loaded} track records into {TARGET_TABLE.title()}"
         )
 
         self.logger.info(
