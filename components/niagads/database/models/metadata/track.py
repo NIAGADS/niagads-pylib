@@ -76,9 +76,15 @@ class Track(ModelDumpMixin, MetadataSchemaBase):
     cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))
 
     biosample_characteristics: Mapped[Optional[BiosampleCharacteristics]] = (
-        mapped_column(JSONB)
+        mapped_column(JSONB(none_as_null=True))
     )
-    subject_phenotypes: Mapped[Optional[Phenotype]] = mapped_column(JSONB)
-    experimental_design: Mapped[Optional[ExperimentalDesign]] = mapped_column(JSONB)
-    provenance: Mapped[Provenance] = mapped_column(JSONB)
-    file_properties: Mapped[Optional[FileProperties]] = mapped_column(JSONB)
+    subject_phenotypes: Mapped[Optional[Phenotype]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    experimental_design: Mapped[Optional[ExperimentalDesign]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    provenance: Mapped[Provenance] = mapped_column(JSONB(none_as_null=True))
+    file_properties: Mapped[Optional[FileProperties]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
