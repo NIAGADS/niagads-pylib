@@ -14,7 +14,7 @@ from niagads.database.models.metadata.composite_attributes import (
 from niagads.database.models.metadata.track import Track
 from niagads.utils.dict import print_dict
 from niagads.utils.list import array_in_string, remove_duplicates, remove_from_list
-from niagads.utils.logging import FullPackageNameAdapter
+from niagads.utils.logging import FunctionContextAdapter
 from niagads.utils.string import (
     is_bool,
     is_date,
@@ -43,7 +43,7 @@ class MetadataTemplateParser:
         debug: bool = False,
         verbose: bool = False,
     ):
-        self.logger: logging.Logger = FullPackageNameAdapter(
+        self.logger: logging.Logger = FunctionContextAdapter(
             logging.getLogger(__name__), {}
         )
 
@@ -446,14 +446,19 @@ class MetadataEntryParser:
                 provenance.accession = regex_extract("study_id=([^;]*)", info)
 
             publications: str = regex_extract("study_pubmed_id=([^;]*)", info)
+
+            # first create a set to make sure pubmed_ids are unique, then convert
+            # to list because sets are not JSON serializable
             provenance.pubmed_id = (
                 None
                 if publications is None
-                else Set(
-                    [
-                        f"PMID:{id}" if "PMID:" not in id else id
-                        for id in publications.split(",")
-                    ]
+                else list(
+                    set(
+                        [
+                            f"PMID:{id}" if "PMID:" not in id else id
+                            for id in publications.split(",")
+                        ]
+                    )
                 )
             )
 
@@ -661,6 +666,7 @@ class MetadataEntryParser:
         return {"assay": assay, "analysis": analysis}
 
     def __parse_data_source(self):
+        # FIXME: most of the SKIP_DATASOURCE list in the loader gets parsed incorrectly here
         source = self.get_entry_attribute("data_source")
         if source.startswith("ADSP"):
             source = source.replace("_", " ")

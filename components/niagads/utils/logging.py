@@ -6,9 +6,9 @@ from time import perf_counter
 LOG_FORMAT_STR: str = "%(asctime)s %(levelname)-8s %(message)s"
 
 
-class FullPackageNameAdapter(logging.LoggerAdapter):
+class FunctionContextAdapter(logging.LoggerAdapter):
     """
-    A logging adapter that adds the full package name in dot notation
+    A logging adapter that adds the wrapper class name
     (e.g., niagads.utils.logging) to log messages.
     """
 
@@ -20,11 +20,17 @@ class FullPackageNameAdapter(logging.LoggerAdapter):
         # current frame is the logger, so need to go up a level
         frame = inspect.getouterframes(inspect.currentframe())[1].frame.f_back.f_back
 
+        """ # full pacakge in dot notation; keep for reference in case want it back
+        # i.e., maybe possible for printing lineno etc when debug only
         module = inspect.getmodule(frame)
         if module and module.__name__:
             package = f"{module.__name__}:"  # Full package name in dot notation
         else:
             package = ""
+            
+        # line number
+        lineno = frame.f_lineno
+        """
 
         # FIXME: might need a null or empty check
         if frame.f_locals and "self" in frame.f_locals:
@@ -33,9 +39,8 @@ class FullPackageNameAdapter(logging.LoggerAdapter):
             className = ""
 
         function = frame.f_code.co_name
-        lineno = frame.f_lineno
 
-        return f"[{package}{className}{function}:{lineno}] {msg}", kwargs
+        return f"{className}{function:<20} {msg}", kwargs
 
 
 class ExitOnExceptionHandler(logging.Handler):
