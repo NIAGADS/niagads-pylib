@@ -19,7 +19,20 @@ from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 TARGET_TABLE = f"{Track.metadata.schema}.{Track.__tablename__}"
-SKIP_DATASOURCES = ["Repeats", "Reference", "1k", "PhastCons", "dbSNP"]
+SKIP_DATASOURCES = [
+    "Repeats",
+    "Reference",
+    "1k",
+    "PhastCons",
+    "dbSNP",
+    "DASHR2",
+    "RefSeq",
+    "HOMER",
+    "Inferno",
+    "Centromeres",
+    "Gencode",
+    "Telomeres",
+]
 
 
 class Counts(BaseModel):
@@ -93,15 +106,13 @@ class TrackMetadataLoader(AbstractDataLoader):
     def __skip_track(self, track: Track):
         """Determine if a track should be skipped."""
 
-        if "Not applicable" in track.name:
-            raise ValueError(
-                f"Malformed track name: {track.track_id}: {track.name}.  Please review and correct or update skip_track criteria to proceed."
-            )
-
         if track.genome_build is None:
             return True
 
         if "CADD" in track.name:
+            return True
+
+        if track.name.startswith("GWAS_Catalog"):
             return True
 
         dataSource = track.provenance.get("data_source")
@@ -111,24 +122,28 @@ class TrackMetadataLoader(AbstractDataLoader):
         if dataSource.startswith("Ensembl"):
             return True
 
+        if "Not applicable" in track.name:
+            raise ValueError(
+                f"Malformed track name.  Please review and correct or update skip_track criteria to proceed."
+            )
+
         if not self.__skipLiveValidation:
             if track.track_id not in self.__liveTracks:
                 return True
 
         return False
 
-    def __get_shard_key(self, fileName: str):
-        # check to see if the root of a sharded file has been identified,
-        # if not, find and save
+    def __get_shard_root(self, fileName: str):
+        # get shard root from file name
         shardKey = regex_replace(RegularExpressions.SHARD, "_", fileName)
         if shardKey not in self.__shardedTracks:
             self.__shardedTracks[shardKey] = next(
                 (
-                    t
+                    t.track_id
                     for t in self.__parsedTracks
                     if regex_replace(RegularExpressions.SHARD, "_", fileName)
                     == shardKey
-                    and matches(r"_chr1_", t["file_name"])
+                    and matches(r"_chr1_", t.file_properties.get("file_name"))
                 ),
                 None,
             )
@@ -155,6 +170,7 @@ class TrackMetadataLoader(AbstractDataLoader):
                         self.__counts.skip += 1
                         continue
 
+                    # check for and handle sharded tracks
                     if matches(
                         RegularExpressions.SHARD, track.file_properties.get("file_name")
                     ):
@@ -163,18 +179,20 @@ class TrackMetadataLoader(AbstractDataLoader):
                         track.shard_chromosome = f"chr{regex_extract(RegularExpressions.SHARD, track.file_properties.get("file_name"))}".replace(
                             "_", ""
                         )
-                        track.shard_root_track_id = self.__shardedTracks[
-                            self.__get_shard_key(track.file_properties.get("file_name"))
-                        ]
+                        track.shard_root_track_id = self.__get_shard_root(
+                            track.file_properties.get("file_name")
+                        )
 
                     # set data store
                     track.data_store = str(self.__dataStore)
+
+                    # append to the be loaded list
                     validTracks.append(track.model_dump())
 
                 except Exception as err:
                     raise RuntimeError(
                         f"Problem loading track: {track.model_dump()} - {str(err)}"
-                    )
+                    ) from None
 
                 if len(validTracks) % self._commitAfter == 0:
                     await session.execute(insert(Track), validTracks)
@@ -306,7 +324,7 @@ async def main():
         await loader.load()
 
     except Exception as err:
-        loader.logger.critical(err, exc_info=True, stack_info=True)
+        loader.logger.error(err, exc_info=args.debug, stack_info=args.debug)
     finally:
         await loader.close()
 
