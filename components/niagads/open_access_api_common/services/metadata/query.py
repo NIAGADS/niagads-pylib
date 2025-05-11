@@ -8,7 +8,7 @@ from niagads.open_access_api_common.models.response.request import RequestDataMo
 from niagads.open_access_api_common.parameters.response import ResponseContent
 from niagads.utils.string import regex_replace
 from sqlmodel import select, col, or_, func, distinct
-from sqlalchemy import Values, String, column as sqla_column
+from sqlalchemy import Column, Values, String, column as sqla_column
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -63,7 +63,10 @@ class MetadataQueryService:
             raise RequestValidationError(f"Invalid collection: {name}")
 
     async def get_track_count(self) -> int:
-        statement = select(func.count(Track.track_id))
+        statement = select(func.count(Track.track_id)).where(
+            Track.data_store.in_(self.__dataStore)
+        )
+
         result = (await self.__session.execute(statement)).scalars().first()
         return result
 
