@@ -17,7 +17,7 @@
             "cwd": "${workspaceFolder}/projects/genomicsdb-schema-manager"
 
         },
-        {
+        /*{
             "name": "Sphinx Autobuild",
             "type": "debugpy",
             "request": "launch",
@@ -27,7 +27,7 @@
                 "docs/_build/html"
             ],
             "justMyCode": false
-        },
+        }, */
         {
             "name": "FILER - dev",
             "type": "debugpy",

@@ -37,8 +37,8 @@ async def get_route_description(
 
     result = RouteDescription(
         name=ROUTE_NAME,
-        description=OPEN_API_TAGS["description"],
-        url=OPEN_API_TAGS["externalDocs"]["url"],
+        description=OPEN_API_TAGS.description,
+        url=OPEN_API_TAGS.externalDocs.get("url"),
         pubmed_id=PUBMED_IDS,
         records=[RecordSummary(record_type=RecordType.TRACK, num_records=trackCount)],
     )

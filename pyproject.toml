@@ -76,6 +76,7 @@ sqlalchemy = "^2.0.40"
 sqlmodel = "^0.0.24"
 strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
+email-validator = "^2.2.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"

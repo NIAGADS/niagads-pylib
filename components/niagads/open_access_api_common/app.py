@@ -51,7 +51,7 @@ class AppFactory:
         """
         self.__app = None
         self.__metadata = metadata
-        self.__routePath = routePath
+        self.__prefix = f"/v{self.__metadata.version.split('.')[0]}/{routePath}"
 
         self.__create()
         self.__add_middleware()
@@ -64,17 +64,23 @@ class AppFactory:
 
         return self.__app
 
-    def add_router(self, route: APIRoute) -> None:
+    def add_router(
+        self, route: APIRoute, includeInSchema: bool = True, isDeprecated: bool = False
+    ) -> None:
         """Add a route to the application"""
         if self.__app is None:
             raise RuntimeError("Application is not initialized.")
 
-        self.__app.include_router(route)
+        self.__app.include_router(
+            route,
+            prefix=self.__prefix,
+            include_in_schema=includeInSchema,
+            deprecated=isDeprecated,
+        )
 
     def __create(self):
         """Creates the application"""
         self.__app = FastAPI(
-            route_path=f"/v{self.__metadata.version.split('.')[0]}/{self.__routePath}",
             title=self.__metadata.title,
             description=self.__metadata.description,
             summary=self.__metadata.summary,
@@ -91,9 +97,10 @@ class AppFactory:
                 "operationsSorter": "alpha",
                 "tagsSorter": "alpha",
             },
-            docs_url=None,
-            redoc_url=None,
-            openapi_tags=self.__metadata.openapi_tags,
+            openapi_url=f"{self.__prefix}/openapi.json",
+            docs_url=f"{self.__prefix}/docs",
+            redoc_url=f"{self.__prefix}/redoc",
+            openapi_tags=[t.model_dump() for t in self.__metadata.openapi_tags],
         )
 
     def __add_middleware(self):
