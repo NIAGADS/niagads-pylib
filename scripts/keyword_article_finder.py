@@ -121,16 +121,20 @@ class PubmedTrainingSetGenerator:
             print(f"Error downloading PDF for PMID {pmid}: {str(e)}")
             return None
 
-    def _build_search_query(self, additional_filters: str = "") -> str:
-        """Build the base search query with configured filters"""
-        if not self._filters.get(FilterField.MESH_TERMS):
-            raise ValueError("At least one MeSH term must be provided")
-
+    def _build_search_query(self, additional_filters: str = "", year: Optional[int] = None) -> str:
+        """Build the base search query with configured filters
+        
+        Args:
+            additional_filters: Additional filters to append to the query
+            year: Optional specific year to filter by. If provided, overrides the year range filter
+        """
         mesh_terms = self._filters.get(FilterField.MESH_TERMS, [])
         mesh_terms_query = " OR ".join([f'("{term}"[MeSH Terms])' for term in mesh_terms])
         
         year_filter = ""
-        if FilterField.PUBLICATION_DATE in self._filters:
+        if year is not None:
+            year_filter = f" AND ({year}[pdat])"
+        elif FilterField.PUBLICATION_DATE in self._filters:
             year_start, year_end = self._filters[FilterField.PUBLICATION_DATE]
             if year_start and year_end:
                 year_filter = f" AND ({year_start}:{year_end}[pdat])"

@@ -85,7 +85,7 @@ class JournalSpecificPubmedGenerator(PubmedTrainingSetGenerator):
                         continue
 
                     journal_query = f'("{journal}"[Journal])'
-                    search_query = self._build_search_query(f" AND {journal_query}")
+                    search_query = self._build_search_query(f" AND {journal_query}", year=year)
                     print(f"Searching {journal} in {year} for {target_count} articles...")
 
                     try:
