@@ -624,7 +624,7 @@ class MetadataEntryParser:
         self.__metadata.update({"feature_type": feature})
 
     def __parse_data_category(self):
-        category = self.get_entry_attribute("assigned_data_category")
+        category = self.get_entry_attribute("data_category")
         if category is not None:
             category = category.lower()
             if category == "called peaks expression":
