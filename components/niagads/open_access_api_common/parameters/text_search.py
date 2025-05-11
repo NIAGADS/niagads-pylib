@@ -1,39 +1,21 @@
-from enum import Enum, auto
-
+from abc import ABC, abstractmethod
 from fastapi import Query
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError
 from niagads.exceptions.core import extract_exception_message
+from niagads.open_access_api_common.parameters.expression_filter import FilterParameter
 from niagads.utils.string import sanitize
 from pyparsing import (
     Group,
     Keyword,
     OneOrMore,
     Optional,
-    ParserElement,
     Word,
+    alphanums,
     alphas,
-    nums,
 )
 from pyparsing.helpers import one_of
 from sqlmodel import col, not_
-
-_NUMBER = Word(nums)
-_TEXT = Word(alphas + "_" + "-")
-_JOIN = Keyword("and") | Keyword(";")  # TODO: | Keyword("or")
-
-
-_OPERATORS = {
-    "eq": "`equals`: exact, case sensitive, matches to entire field",
-    "neq": "`not equals`: exact, case sensitive, negative matches to entire field",
-    "like": "`like`: case-insensitive substring matching; NOTE for queries against `biosample`, `eq` and `neq` will be executed as `like` or `not like`, respeectively",
-}
-
-
-class ExpressionType(str, Enum):
-    """enum for text expression types (text vs numeric)"""
-
-    TEXT = auto()
-    RANGE = auto()
 
 
 def tripleToPreparedStatement(triple, model):
@@ -61,53 +43,30 @@ def tripleToPreparedStatement(triple, model):
         )
 
 
-class FilterParameter:
-    def __init__(
-        self, fieldMap: dict | None = None, expressionType: ExpressionType | None = None
-    ):
-        self.__field = one_of(list(fieldMap.keys()), as_keyword=True)
-        self.__expressionType = expressionType
+class TextSearchFilterParameter(FilterParameter):
+    def __init__(fields: CaseInsensitiveEnum):
+        super().__init__(fields)
 
-    def __parse_expression(self, expression: str):
-        if self.__expressionType == ExpressionType.TEXT:
-            return self.__parse_text_expression(expression)
-        return self.__parse_numeric_expression(expression)
-
-    def __parse_text_expression(self, expression: str):
-        operator = Keyword("like") | Keyword("eq") | Keyword("neq")
-        pattern = OneOrMore(Group(self.__field + operator + _TEXT) + Optional(_JOIN))
-        return pattern.parseString(expression, parse_all=True)
-
-    def __parse_numeric_expression(self, expression: str):
+    def set_grammar(self):
+        field = Word(alphas + "_")  # Fields like "data_source" or "biosample"
         operator = (
-            Keyword("eq")
-            | Keyword("lt")
-            | Keyword("le")
-            | Keyword("gt")
-            | Keyword("ge")
-            | Keyword("neq")
-        )
-        pattern = OneOrMore(Group(self.__field + operator + _NUMBER) + Optional(_JOIN))
-        return pattern.parseString(expression, parse_all=True)
+            Keyword("eq") | Keyword("neq") | Keyword("like") | Keyword("not like")
+        )  # Operators
+        value = Word(alphanums + "_ ")  # Values like "histone modification" or "brain"
+        _join = Keyword("and") | Keyword("or")  # Logical operators
 
-    def __call__(
-        self,
-        filter: str = Query(
-            default=None,
-            description="filter expresssion string",
-            examples=["datasource eq GTEx and biosample eq brain"],
-        ),
-    ):
-        try:
-            if filter is not None:
-                return self.__parse_expression(filter).as_list()
-            else:
-                return None
+        # Define the grammar for a single condition
+        condition = Group(field + operator + value)
 
-        except Exception as e:
-            raise ValidationError(
-                f"Unable to parse `filter` expression: {filter}; {extract_exception_message(e)}.  Example expression: data_source eq GTEx and biosample like astrocyte.  Test conditions must substitute an underscore (_) for spaces, e.g., histone modification should be written as histone_modification"
-            )
+        # Define the full grammar for the boolean expression
+        self._grammar = OneOrMore(condition + Optional(_join))
+
+    def parse_expression(self, text: str):
+        expression = self._grammar.parseString(text, parse_all=True).as_list()
+        self.validate_expression(expression)
+
+    def validate_field(self, field):
+        return self._grammar.parseString(text)
 
 
 async def keyword_param(

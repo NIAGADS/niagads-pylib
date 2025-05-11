@@ -1,9 +1,11 @@
+from enum import auto
 from typing import Annotated, List
 
 from aiohttp import ClientSession
 from fastapi import Depends
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from niagads.database.session.core import DatabaseSessionManager
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.parameters.internal import (
     InternalRequestParameters as _InternalRequestParameters,
@@ -30,3 +32,12 @@ class InternalRequestParameters(
 
 
 TRACK_DATA_STORES: List[TrackDataStore] = [TrackDataStore.FILER, TrackDataStore.SHARED]
+
+
+class TextSearchFilterFields(CaseInsensitiveEnum):
+    DATA_SOURCE = auto()
+    ASSAY = auto()
+    FEATURE = auto()
+    TARGET = auto()
+    BIOSAMPLE = auto()
+    CATEGORY = auto()
