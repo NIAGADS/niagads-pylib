@@ -12,6 +12,7 @@ includes the following:
 from typing import List
 
 from fastapi.encoders import jsonable_encoder
+from niagads.utils.dict import promote_nested
 from pydantic import BaseModel
 
 
@@ -45,9 +46,7 @@ class SerializableModel(BaseModel):
         )
         # FIXME: does not handle case if the dict field is null (e.g., experimental_design on genomics tracks)
         if promoteObjs:
-            objFields = [k for k, v in data.items() if isinstance(v, dict)]
-            for f in objFields:
-                data.update(data.pop(f, None))
+            promote_nested(data, True)
 
         if collapseUrls:
             fields = list(data.keys())

@@ -111,7 +111,7 @@ class FilterParameter:
 
 
 async def keyword_param(
-    keyword: Optional[str] = Query(
+    keyword: str = Query(
         default=None,
         description="Search all text annotations by keyword.  Matches are exact and case-sensitive.",
     )

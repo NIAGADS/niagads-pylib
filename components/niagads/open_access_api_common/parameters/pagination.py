@@ -6,7 +6,7 @@ from pyparsing import Optional
 
 
 async def page_param(
-    page: Optional[int] = Query(
+    page: int = Query(
         default=1,
         description="specify which page of the response to return, if response is paginated",
     )

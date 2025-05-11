@@ -14,12 +14,12 @@ from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
+from niagads.utils.dict import promote_nested
 from niagads.utils.list import find
-from pydantic import model_validator
-from sqlalchemy import RowMapping
+from pydantic import ConfigDict, Field, computed_field, model_validator
 
 
-class GenericTrackSummary(DynamicRowModel):
+class TrackSummary(DynamicRowModel):
     track_id: str
     name: str
     description: Optional[str] = None
@@ -29,100 +29,72 @@ class GenericTrackSummary(DynamicRowModel):
     data_category: Optional[str] = None
     url: Optional[str] = None
 
+    # should allow to fill from SQLAlchemy ORM model
+    model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def extract_nested_fields(cls: Self, data: Union[Dict[str, Any], Any]):
+        """
+        promoted nested fields so that can get data_source, data_category,
+        url, etc from `Track` object
+
+        not doing null checks b/c if these values are missing there is an
+        error in the data the needs to be reviewed
+        """
+        if isinstance(data, dict):
+            newDataObj = promote_nested(data, False)
+        else:  # a `Track` ORM with a model_dump mixin
+            newDataObj = promote_nested(data.model_dump(), False)
+        return newDataObj
+
     @model_validator(mode="before")
     @classmethod
     def allowable_extras(cls: Self, data: Union[Dict[str, Any]]):
         """for now, allowable extras are just counts, prefixed with `num_`"""
-        ## FIXME
-        if not type(data) == RowMapping:
-            if (
-                # type(data).__base__ == SQLModel
-                # or
-                isinstance(data, str)
-                or not isinstance(data, dict)
-            ):
-                # then there are no extra fields or FASTAPI is attempting to serialize
-                # unnecessarily when returning a Union[ResponseType Listing]
-                return data
-        modelFields = cls.model_fields.keys()
+        modelFields = TrackSummary.model_fields.keys()
         return {
             k: v for k, v in data.items() if k in modelFields or k.startswith("num_")
         }
 
-    def get_field_names(self):
-        fields = list(self.model_fields.keys())
-        if isinstance(self.model_extra, dict):
-            if len(self.model_extra) > 0:
-                fields += list(self.model_extra.keys())
-        return fields
 
-    def get_view_config(self, view: ResponseView, **kwargs):
-        """get configuration object required by the view"""
-        match view:
-            case view.TABLE:
-                return self._build_table_config()
-            case _:
-                raise NotImplementedError(
-                    f"View `{view.value}` not yet supported for this response type"
-                )
+class Track(RowModel):
+    track_id: str = Field(title="Track")
+    name: str = Field(title="Name")
+    description: Optional[str] = Field(title="Description")
+    genome_build: str = Field(title="Genome Build")
+    feature_type: Optional[str] = Field(title="Feature")
+    is_download_only: Optional[bool] = Field(
+        title="Download Only",
+        description="File is available for download only; data cannot be queried using the NIAGADS Open Access API.",
+    )
+    is_shard: Optional[bool] = Field(
+        title="Is Shard?",
+        description="Flag indicateing whether track is part of a result set sharded by chromosome.",
+    )
+    cohorts: Optional[List[str]] = Field(title="Cohorts")
+    biosample_characteristics: Optional[BiosampleCharacteristics]
+    subject_phenotypes: Optional[Phenotype]
+    experimental_design: Optional[ExperimentalDesign]
+    provenance: Optional[Provenance]
+    file_properties: Optional[FileProperties]
 
-    def to_view_data(self, view: ResponseView, **kwargs):
-        """covert row data to view formatted data"""
-        return self.serialize()
+    # should allow to fill from SQLAlchemy ORM model
+    model_config = ConfigDict(from_attributes=True)
 
-    def _build_table_config(self):
-        """Return a column object for niagads-viz-js/Table"""
-        fields = self.get_field_names()
-        columns: List[dict] = [{"id": f, "header": id2title(f)} for f in fields]
-
-        # update type of is_lifted to boolean
-        index: int = find(columns, "is_lifted", "id", returnValues=False)
-        columns[index[0]].update(
-            {
-                "type": "boolean",
-                "description": "data have been lifted over from an earlier genome build",
-            }
-        )
-
-        # update url to link
-        index: int = find(columns, "url", "id", returnValues=False)
-        columns[index[0]].update({"type": "link"})
-
-        options = {}
-        if "num_results" in fields:
-            options.update(
-                {
-                    "rowSelect": {
-                        "header": "Select",
-                        "enableMultiRowSelect": True,
-                        "rowId": "track_id",
-                        # "onRowSelectAction": OnRowSelect.ACCESS_ROW_DATA,
-                    }
-                }
-            )
-            fields.remove("num_results")
-            fields.insert(
-                0, "num_results"
-            )  # so that it is in the first 8 and displayed by default
-        if len(fields) > 8:
-            options.update({"defaultColumns": fields[:8]})
-        return {"columns": columns, "options": options}
-
-
-class GenericTrack(GenericTrackSummary):
-    experimental_design: Optional[ExperimentalDesign] = None
-    biosample_characteristics: Optional[BiosampleCharacteristics] = None
-    provenance: Optional[Provenance] = None
-    subject_phenotypes: Optional[Phenotype] = None
-    file_properties: Optional[FileProperties] = None
-
-    def to_view_data(self, view: ResponseView, **kwargs):
-        return self.serialize(promoteObjs=True)
+    """
+    # this should be deprecated in Pydantic v2+
+    class Config:
+        orm_mode = True
+    """
 
 
 class TrackResultSize(RowModel):
-    track_id: str
-    num_results: int
+    track_id: str = Field(title="track")
+    num_results: int = Field(
+        title="Num. Results",
+        description="Number of results (hits or overlaps) on this track within the query region and meeting any filter criteria.",
+    )
 
     def get_view_config(self, view: ResponseView, **kwargs):
         raise RuntimeError("View transformations not implemented for this row model.")
@@ -140,20 +112,20 @@ class TrackResultSize(RowModel):
 
 
 class TrackSummaryResponse(PagedResponseModel):
-    data: List[GenericTrackSummary]
+    data: List[TrackSummary]
 
     def to_text(self, format: ResponseView, **kwargs):
         fields = (
             self.response[0].get_field_names()
             if len(self.response) > 0
-            else GenericTrackSummary.get_model_fields()
+            else TrackSummary.get_model_fields()
         )
         return super().to_text(format, fields=fields)
 
 
 class TrackResponse(PagedResponseModel):
-    data: List[GenericTrack]
+    data: List[Track]
 
     def to_text(self, format: ResponseView, **kwargs):
-        fields = GenericTrack.get_model_fields()
+        fields = Track.get_model_fields()
         return super().to_text(format, fields=fields)

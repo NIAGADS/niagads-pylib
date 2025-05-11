@@ -5,9 +5,24 @@ from typing import Union
 import warnings
 from collections import abc
 from types import SimpleNamespace
+from copy import deepcopy, copy
 
 from niagads.utils.string import is_bool, is_null, to_bool, to_number
 from niagads.utils.list import all_elements_are_none as __list_is_none
+
+
+def promote_nested(dictObj: dict, updateByReference: bool = False):
+    """promotes all nested dicts; e.g.:
+    {"A": {"B": 1, "C":2}, "D":3} -> {"B":1, "C":2, "D":3}
+    when updateByReference, will overwrite the original object
+    """
+    newDict = deepcopy(dictObj) if not updateByReference else dictObj
+    objFields = [k for k, v in newDict.items() if isinstance(v, dict)]
+    for f in objFields:
+        newDict.update(dictObj.pop(f, None))
+
+    if not updateByReference:
+        return newDict
 
 
 def all_values_are_none(dictObj: dict):

@@ -30,7 +30,8 @@ class IGVBrowserTrackConfig(RowModel):
     infoURL: str = Settings.from_env().IGV_BROWSER_INFO_URL
 
     @field_validator("format", mode="before")
-    def extract_track_format(self, fileSchema) -> str:
+    @classmethod
+    def extract_track_format(cls, fileSchema) -> str:
         """extract file schema from file format"""
         if fileSchema is None:
             return "bed"
@@ -38,7 +39,8 @@ class IGVBrowserTrackConfig(RowModel):
         return schema[0]
 
     @field_validator("type", mode="before")
-    def extract_track_type(self, fileSchema) -> str:
+    @classmethod
+    def extract_track_type(cls, fileSchema) -> str:
         """extract track type from file schema"""
 
         if "|" in fileSchema:

@@ -1,6 +1,7 @@
 from niagads.open_access_api_common.app import AppFactory
 from niagads.open_access_filer_api.documentation import OPEN_API_SPEC
 from niagads.open_access_filer_api.routes.root import router as InfoRouter
+from niagads.open_access_filer_api.routes.metadata import router as MetadataRouter
 from niagads.settings.core import get_service_environment
 import uvicorn
 
@@ -11,9 +12,10 @@ appFactory = AppFactory(
 
 # add the child routes
 appFactory.add_router(InfoRouter)
+appFactory.add_router(MetadataRouter)
 """
 app.include_router(TrackRouter)
-app.include_router(MetadataRouter)
+
 app.include_router(DataRouter)
 app.include_router(ServiceRouter)
 app.include_router(CollectionRouter)
