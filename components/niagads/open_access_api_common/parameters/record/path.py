@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastapi import Path, Query
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 from niagads.utils.string import sanitize
 
 

@@ -1,5 +1,5 @@
 from fastapi import Query
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 from niagads.open_access_api_common.config.constants import MAX_NUM_PAGES
 from niagads.utils.string import is_integer
 from pyparsing import Optional
@@ -14,7 +14,7 @@ async def page_param(
     if is_integer(page) and page > 0 and page <= MAX_NUM_PAGES:
         return page
     else:
-        raise RequestValidationError(
+        raise ValidationError(
             f"Invalid value specified for `page`: {page}."
             f"Pages should be positive integers in the range [1, {MAX_NUM_PAGES}]"
         )

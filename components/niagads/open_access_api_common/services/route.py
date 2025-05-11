@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional, Type, Union
 
 from fastapi import Response
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 from niagads.common.models.core import Range
 from niagads.open_access_api_common.config.constants import (
     DEFAULT_PAGE_SIZE,
@@ -52,7 +52,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
             self.content not in _ALLOWABLE_VIEW_RESPONSE_CONTENTS
             and self.view != ResponseView.DEFAULT
         ):
-            raise RequestValidationError(
+            raise ValidationError(
                 f"Can only generate a `{str(self.view)}` `view` of query result for "
                 f"`{','.join(_ALLOWABLE_VIEW_RESPONSE_CONTENTS)}` response content (see `content`)"
             )
@@ -62,7 +62,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
             ResponseFormat.BED,
         ]:
 
-            raise RequestValidationError(
+            raise ValidationError(
                 f"Can only generate a `{self.format}` response for a `FULL` data query (see `content`)"
             )
 
@@ -83,25 +83,21 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
         try:
             return ResponseContent(content)
         except NameError:
-            raise RequestValidationError(
-                f"Invalid value provided for `content`: {content}"
-            )
+            raise ValidationError(f"Invalid value provided for `content`: {content}")
 
     @field_validator("format")
     def validate_foramt(cls, format):
         try:
             return ResponseFormat(format)
         except NameError:
-            raise RequestValidationError(
-                f"Invalid value provided for `format`: {format}"
-            )
+            raise ValidationError(f"Invalid value provided for `format`: {format}")
 
     @field_validator("view")
     def validate_view(cls, view):
         try:
             return ResponseView(view)
         except NameError:
-            raise RequestValidationError(f"Invalid value provided for `view`: {format}")
+            raise ValidationError(f"Invalid value provided for `view`: {format}")
 
 
 class PaginationCursor(BaseModel):
@@ -185,7 +181,7 @@ class RouteHelperService:
             )
 
         if page > self._pagination.total_num_pages:
-            raise RequestValidationError(
+            raise ValidationError(
                 f"Request `page` {page} does not exist; this query generates a maximum of {self._pagination.total_num_pages} pages"
             )
 
@@ -201,7 +197,7 @@ class RouteHelperService:
             raise RuntimeError("Attempting to page before estimating result size.")
 
         if self._resultSize > self._pageSize * MAX_NUM_PAGES:
-            raise RequestValidationError(
+            raise ValidationError(
                 f"Result size ({self._resultSize}) is too large; filter for fewer tracks or narrow the queried genomic region."
             )
 

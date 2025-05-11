@@ -6,7 +6,7 @@ import asyncpg
 # FIXME: write custom error so that we don't need to import fastapi
 # just for this in everything that uses
 # the database session manager
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     async_scoped_session,
@@ -80,7 +80,7 @@ class DatabaseSessionManager:
             try:
                 # await session.execute(text("SELECT 1"))
                 yield session
-            except (NotImplementedError, RequestValidationError, RuntimeError):
+            except (NotImplementedError, ValidationError, RuntimeError):
                 await session.rollback()
                 raise
             except (asyncpg.InvalidPasswordError, ConnectionRefusedError) as err:

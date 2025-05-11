@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 
 from pydantic import BaseModel
 from sqlalchemy import RowMapping
@@ -141,7 +141,7 @@ class GenomicsRouteHelper(MetadataRouteHelper):
 
         except NoResultFound as e:
             if self.__query.errorOnNull is not None:
-                raise RequestValidationError(self.__query.errorOnNull)
+                raise ValidationError(self.__query.errorOnNull)
             if self.__query.fetchOne:
                 return {}
             else:
@@ -184,7 +184,7 @@ class GenomicsRouteHelper(MetadataRouteHelper):
             self._managers.session, dataStore=self._dataStore
         ).get_track_metadata(tracks=[self._parameters.track])
         if len(result) == 0:
-            raise RequestValidationError(
+            raise ValidationError(
                 "Track not found in the NIAGADS Alzheimer's GenomicsDB"
             )
 

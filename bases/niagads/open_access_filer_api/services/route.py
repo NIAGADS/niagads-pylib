@@ -1,6 +1,6 @@
 import asyncio
 from typing import List
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 from collections import ChainMap
 from itertools import groupby
 from operator import itemgetter
@@ -194,7 +194,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             self._managers.session, dataStore=self._dataStore
         ).get_genome_build(tracks, validate=True)
         if isinstance(assembly, dict):
-            raise RequestValidationError(
+            raise ValidationError(
                 f"Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently"
             )
         return assembly

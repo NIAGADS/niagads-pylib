@@ -1,7 +1,7 @@
 from enum import Enum, auto
 
 from fastapi import Query
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 from niagads.exceptions.core import extract_exception_message
 from niagads.utils.string import sanitize
 from pyparsing import (
@@ -105,7 +105,7 @@ class FilterParameter:
                 return None
 
         except Exception as e:
-            raise RequestValidationError(
+            raise ValidationError(
                 f"Unable to parse `filter` expression: {filter}; {extract_exception_message(e)}.  Example expression: data_source eq GTEx and biosample like astrocyte.  Test conditions must substitute an underscore (_) for spaces, e.g., histone modification should be written as histone_modification"
             )
 

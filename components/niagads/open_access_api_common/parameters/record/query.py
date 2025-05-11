@@ -3,7 +3,7 @@
 from typing import Optional
 
 from fastapi import Query
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 from niagads.utils.string import sanitize
 
 
@@ -12,7 +12,7 @@ async def optional_track_param(
 ) -> str:
     sTrack: str = sanitize(track)
     if sTrack is not None and "," in sTrack:
-        raise RequestValidationError(
+        raise ValidationError(
             "Lists of track identifiers not allowed for this query.  Please provide a single `track` identifier."
         )
     return sTrack
@@ -27,7 +27,7 @@ async def optional_track_list_param(
 
     sTrack: str = sanitize(track)
     if any(delim in sTrack for delim in [":", "|", ";", " "]):
-        raise RequestValidationError(
+        raise ValidationError(
             "Invalid delimiter; please separate multiple identifiers with commas (`,`)."
         )
     return sTrack
@@ -41,7 +41,7 @@ async def track_list_param(
     """required track_list parameter"""
     sTrack: str = sanitize(track)
     if any(delim in sTrack for delim in [":", "|", ";", " "]):
-        raise RequestValidationError(
+        raise ValidationError(
             "Invalid delimiter; please separate multiple identifiers with commas (`,`)."
         )
     return sTrack

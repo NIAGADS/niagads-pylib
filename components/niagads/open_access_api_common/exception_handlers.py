@@ -28,9 +28,8 @@ from fastapi import FastAPI, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from niagads.exceptions.core import ValidationError
 from niagads.open_access_api_common.config.core import Settings
-
-from pydantic import ValidationError
 from sqlalchemy.exc import DatabaseError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -76,7 +75,7 @@ def add_not_implemented_exception_handler(app: FastAPI) -> None:
 def add_request_validation_exception_handler(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def request_validation_exception_handler(
-        request: Request, exc: RequestValidationError
+        request: Request, exc: ValidationError
     ):
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -1,6 +1,6 @@
 from fastapi import Depends, Path, Query
 from typing import Annotated, Optional
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiohttp import ClientSession
 

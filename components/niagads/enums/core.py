@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import ValidationError
+
 from strenum import StrEnum
 
 
@@ -47,6 +47,7 @@ class EnumParameter(CaseInsensitiveEnum):
     @classmethod
     def validate(cls, value, label: str, returnCls: CaseInsensitiveEnum):
         from niagads.utils.string import sanitize  # avoid circular import
+        from niagads.exceptions.core import ValidationError
 
         try:
             cls(sanitize(value))

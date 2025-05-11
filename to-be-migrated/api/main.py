@@ -5,7 +5,7 @@ import functools
 from io import StringIO
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, Response
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 

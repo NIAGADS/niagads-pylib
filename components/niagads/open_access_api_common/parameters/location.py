@@ -1,5 +1,5 @@
 from fastapi import Query
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 from niagads.genome.core import Assembly, GenomicFeatureType, Human
 from niagads.open_access_api_common.models.records.features.genomic import (
     GenomicFeature,
@@ -25,7 +25,7 @@ async def chromosome_param(
     try:
         return Human.validate(sanitize(chromosome))
     except KeyError:
-        raise RequestValidationError(f"Invalid chromosome {chromosome}.")
+        raise ValidationError(f"Invalid chromosome {chromosome}.")
 
 
 def validate_span(span: str, returnNotMatching: bool = False):
@@ -36,7 +36,7 @@ def validate_span(span: str, returnNotMatching: bool = False):
         if returnNotMatching:
             return False
         else:
-            raise RequestValidationError(
+            raise ValidationError(
                 f"Invalid genomic span: `{span}`;"
                 f"for a chromosome, N, please specify as chrN:start-end or N:start-end"
             )
@@ -46,14 +46,14 @@ def validate_span(span: str, returnNotMatching: bool = False):
     try:
         validChrm = Human.validate(chrm)
     except KeyError:
-        raise RequestValidationError(
+        raise ValidationError(
             f"Invalid genomic span: `{span}`; invalid chromosome `{chrm}`"
         )
 
     # validate start < end
     [start, end] = coords.split("-")
     if int(start) > int(end):
-        raise RequestValidationError(
+        raise ValidationError(
             f"Invalid genomic span: `{span}`; start coordinate must be <= end"
         )
     return validChrm + ":" + coords
@@ -80,7 +80,7 @@ def validate_variant(feature: str, returnNotMatching):
         if returnNotMatching:
             return False
         else:
-            raise RequestValidationError(
+            raise ValidationError(
                 f"Invalid variant: `{feature}`; please specify using the refSNP id or a positional identifier (chr:pos:ref:alt)"
             )
 
@@ -89,7 +89,7 @@ def validate_variant(feature: str, returnNotMatching):
     try:
         Human.validate(chrm)
     except KeyError:
-        raise RequestValidationError(
+        raise ValidationError(
             f"Invalid genomic location: `{feature}`; invalid chromosome `{chrm}`"
         )
 

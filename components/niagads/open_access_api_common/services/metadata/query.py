@@ -1,4 +1,4 @@
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 
 from niagads.database.models.metadata.collection import Collection, TrackCollection
 from niagads.database.models.metadata.track import Track
@@ -43,7 +43,7 @@ class MetadataQueryService:
 
         result = (await self.__session.execute(statement)).all()
         if len(result) > 0:
-            raise RequestValidationError(
+            raise ValidationError(
                 f"Invalid track identifiers found: {list_to_string(result)}"
             )
         else:
@@ -60,7 +60,7 @@ class MetadataQueryService:
             collection = (await self.__session.execute(statement)).scalar_one()
             return collection
         except NoResultFound as e:
-            raise RequestValidationError(f"Invalid collection: {name}")
+            raise ValidationError(f"Invalid collection: {name}")
 
     async def get_track_count(self) -> int:
         statement = select(func.count(Track.track_id)).where(

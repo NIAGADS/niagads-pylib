@@ -1,7 +1,7 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-from fastapi.exceptions import RequestValidationError
+from niagads.exceptions.core import ValidationError
 from niagads.genome.core import Assembly
 from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
@@ -116,7 +116,7 @@ async def search_track_metadata(
 
     filter = None
     if filter is None and keyword is None:
-        raise RequestValidationError(
+        raise ValidationError(
             "must specify either a `filter` and/or a `keyword` to search"
         )
 
