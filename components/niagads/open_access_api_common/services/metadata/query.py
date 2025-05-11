@@ -235,7 +235,7 @@ class MetadataQueryService:
             case ResponseContent.COUNTS:
                 return func.count(Track.track_id)
             case ResponseContent.URLS:
-                return Track.url
+                return Track.file_properties["url"]
             case _:
                 return Track
 

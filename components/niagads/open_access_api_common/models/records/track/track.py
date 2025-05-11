@@ -45,6 +45,12 @@ class TrackSummary(DynamicRowModel):
         After promotion, only keep extra counts, prefixed with `num_` as
         allowable extra fields for a track summary
         """
+
+        # this will happen b/c FastAPI tries all models
+        # until it can successfully serialize
+        if isinstance(data, str):
+            return data
+
         if not isinstance(data, dict):
             data = data.model_dump()  # assume data is an ORM w/model_dump mixin
         promote_nested(data, True)  # should make data_source, url etc available
@@ -114,8 +120,8 @@ class TrackSummaryResponse(PagedResponseModel):
 
     def to_text(self, format: ResponseView, **kwargs):
         fields = (
-            self.response[0].get_field_names()
-            if len(self.response) > 0
+            self.data[0].get_instantiated_fields()
+            if len(self.data) > 0
             else TrackSummary.get_model_fields()
         )
         return super().to_text(format, fields=fields)
@@ -125,5 +131,5 @@ class TrackResponse(PagedResponseModel):
     data: List[Track]
 
     def to_text(self, format: ResponseView, **kwargs):
-        fields = Track.get_model_fields()
+        fields = TrackSummary.get_model_fields()
         return super().to_text(format, fields=fields)

@@ -93,3 +93,14 @@ class DynamicRowModel(RowModel):
 
     __pydantic_extra__: Dict[str, Any]
     model_config = ConfigDict(extra="allow")
+
+    @classmethod
+    def get_model_fields(cls):
+        return list(cls.model_fields.keys())
+
+    def get_instantiated_fields(self):
+        fields = self.__class__.get_model_fields()
+        if isinstance(self.model_extra, dict):
+            if len(self.model_extra) > 0:
+                fields += list(self.model_extra.keys())
+        return fields
