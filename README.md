@@ -38,20 +38,66 @@ python -m spacy download en_core_web_md
 
 ### 1. PubMed Article Analysis
 
-Analyze a collection of PubMed articles:
+#### Basic PubMed Search (PubmedTrainingSetGenerator)
 
-```bash
-python scripts/pubmed_analyzer.py --input path/to/pubmed_ids.csv --output path/to/output/directory
+The base class for searching PubMed articles with various filters:
+
+```python
+from scripts.keyword_article_finder import PubmedTrainingSetGenerator, FilterField
+
+# Initialize the generator
+generator = PubmedTrainingSetGenerator(ncbi_api_key="your_api_key")
+
+# Add filters
+generator.add_filter(FilterField.MESH_TERMS, ["Alzheimer Disease", "Dementia"])
+generator.add_filter(FilterField.PUBLICATION_DATE, (2010, 2023))
+
+# Configure options
+generator.set_open_access_only(True)
+generator.set_limit(1000)
+generator.set_pdf_output_dir("path/to/pdf/directory")
+
+# Run the search
+await generator.run()
+
+# Get results
+results = generator.as_dict()  # Get as dictionary
+json_results = generator.as_json()  # Get as JSON string
 ```
 
-Arguments:
-- `--input`: Path to CSV file containing PubMed IDs (must have a 'PMID' column)
-- `--output`: Directory where results will be saved
+Command line usage:
+```bash
+python scripts/keyword_article_finder.py --meshTerms "Alzheimer Disease" "Dementia" --yearStart 2010 --yearEnd 2023 --openAccessOnly --articleLimit 1000 --pdfOutputDir path/to/pdf/directory
+```
 
-Output files:
-- `filtered_articles.csv`: Articles after preprocessing
-- `alzheimer_keywords.csv`: Extracted keywords and their frequencies
-- `year_journal_distribution.csv`: Distribution analysis
+#### Journal-Specific PubMed Search (JournalSpecificPubmedGenerator)
+
+Advanced search that maintains journal and year distribution from a reference dataset:
+
+```python
+from scripts.journal_specific_pubmed_generator import JournalSpecificPubmedGenerator
+
+# Initialize the generator
+generator = JournalSpecificPubmedGenerator(ncbi_api_key="your_api_key")
+
+# Add filters
+generator.add_filter(FilterField.MESH_TERMS, ["Alzheimer Disease", "Dementia"])
+
+# Configure options
+generator.set_open_access_only(True)
+generator.set_limit(1000)
+generator.set_pdf_output_dir("path/to/pdf/directory")
+
+# Run the search
+await generator.run()
+
+# Get results
+results = generator.as_dict()
+```
+
+The JournalSpecificPubmedGenerator requires:
+- `filtered_articles.csv`: Reference dataset with article information
+- `year_journal_distribution.csv`: Distribution data for sampling
 
 ### 2. Research Paper Analysis
 
@@ -83,14 +129,30 @@ Arguments:
 ```
 ai-bibliography-analysis/
 ├── scripts/
-│   ├── pubmed_analyzer.py      # Analyze PubMed articles
-│   ├── research_paper_analyzer.py  # Analyze PDF papers
-│   ├── keyword_article_finder.py   # Find articles by keywords
-│   └── split_dataset.py        # Split dataset into train/test
-├── .env                        # Environment variables
-├── requirements.txt            # Python dependencies
-└── README.md                   # This file
+│   ├── pubmed_analyzer.py           # Analyze PubMed articles
+│   ├── research_paper_analyzer.py   # Analyze PDF papers
+│   ├── keyword_article_finder.py    # Base PubMed search functionality
+│   ├── journal_specific_pubmed_generator.py  # Journal-specific search
+│   └── split_dataset.py            # Split dataset into train/test
+├── .env                            # Environment variables
+├── requirements.txt                # Python dependencies
+└── README.md                       # This file
 ```
+
+## Key Features
+
+### PubmedTrainingSetGenerator
+- Flexible search with multiple filters (MeSH terms, publication date, open access)
+- PDF downloading for open access articles
+- Configurable article limits
+- Preprint filtering
+- JSON/dictionary output formats
+
+### JournalSpecificPubmedGenerator
+- Maintains journal and year distribution from reference dataset
+- Journal-specific sampling
+- Year-specific filtering
+- Inherits all features from PubmedTrainingSetGenerator
 
 ## Dependencies
 
@@ -101,10 +163,10 @@ ai-bibliography-analysis/
 
 ## Notes
 
-- The PubMed analyzer requires an NCBI API key
+- The PubMed analyzers require an NCBI API key
 - The research paper analyzer uses SapBERT for semantic analysis
 - All output files are saved in the specified output directory
-- The code uses environment variables for sensitive data
+- Open access filtering requires PDF availability
 
 ## License
 
