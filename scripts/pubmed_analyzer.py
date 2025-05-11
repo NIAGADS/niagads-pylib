@@ -6,6 +6,7 @@ import os
 import argparse
 from typing import List, Dict, Any, Optional
 from collections import Counter
+from datetime import datetime
 
 
 class PubmedAnalyzer:
@@ -26,11 +27,46 @@ class PubmedAnalyzer:
             print("Warning: No NCBI API key provided. Requests will be rate limited.")
             return ""
 
+    def _validate_input_file(self, input_path: str) -> str:
+        """Validate input file path and format"""
+        if not os.path.exists(input_path):
+            raise ValueError(f"Input file does not exist: {input_path}")
+        if not input_path.lower().endswith('.csv'):
+            raise ValueError("Input file must be a CSV file")
+        return input_path
+
+    def _validate_pubmed_ids(self, pubmed_ids: List[Any]) -> None:
+        """Validate PubMed IDs"""
+        if not pubmed_ids:
+            raise ValueError("No PubMed IDs provided")
+        if not all(isinstance(pmid, (int, str)) and str(pmid).isdigit() for pmid in pubmed_ids):
+            raise ValueError("All PMIDs must be valid numeric identifiers")
+
+    def _validate_csv_content(self, df: pd.DataFrame) -> None:
+        """Validate CSV content"""
+        if "PMID" not in df.columns:
+            raise ValueError("Input CSV must contain a 'PMID' column")
+
+    def _validate_and_convert_path(self, path: str) -> str:
+        """Validate and convert a path to absolute path if needed"""
+        try:
+            if os.path.isabs(path):
+                abs_path = path
+            else:
+                abs_path = os.path.abspath(path)
+                
+            os.makedirs(abs_path, exist_ok=True)
+            return abs_path
+        except Exception:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            default_dir = os.path.abspath(f"output_{timestamp}")
+            os.makedirs(default_dir, exist_ok=True)
+            print(f"Warning: Invalid output directory provided. Using default directory: {default_dir}")
+            return default_dir
+
     def set_output_dir(self, output_dir: str) -> None:
         """Set the output directory for analysis results"""
-        self._output_dir = os.path.abspath(output_dir)
-        if not os.path.exists(self._output_dir):
-            os.makedirs(self._output_dir)
+        self._output_dir = self._validate_and_convert_path(output_dir)
 
     async def fetch_article_info(self, pubmed_ids: List[str]) -> None:
         """Fetch article information for a list of PubMed IDs"""
@@ -144,24 +180,36 @@ async def main():
         "--input", required=True, help="Path to input CSV file containing PubMed IDs"
     )
     parser.add_argument(
-        "--output", required=True, help="Path to output directory for results"
+        "--output", help="Path to output directory for results (optional, defaults to timestamped directory in working directory)"
     )
     parser.add_argument(
-        "--ncbi_api_key", help="NCBI API key (optional, can also use NCBI_API_KEY environment variable)"
+        "--ncbiApiKey", help="NCBI API key (optional, can also use NCBI_API_KEY environment variable)"
     )
     args = parser.parse_args()
 
     try:
-        df = pd.read_csv(args.input)
+        analyzer = PubmedAnalyzer(args.ncbiApiKey)
+        
+        input_path = analyzer._validate_and_convert_path(args.input)
+        input_path = analyzer._validate_input_file(input_path)
+        
+        output_path = analyzer._validate_and_convert_path(args.output) if args.output else analyzer._validate_and_convert_path("")
+        
+        df = pd.read_csv(input_path)
+        analyzer._validate_csv_content(df)
+        
         pubmed_ids = df["PMID"].tolist()
+        analyzer._validate_pubmed_ids(pubmed_ids)
+        
+        analyzer.set_output_dir(output_path)
+        await analyzer.analyze(pubmed_ids)
+        
+    except ValueError as e:
+        print(f"Error: {str(e)}")
+        exit(1)
     except Exception as e:
-        print(f"Error reading CSV file: {str(e)}")
-        return
-
-    analyzer = PubmedAnalyzer(args.ncbi_api_key)
-    analyzer.set_output_dir(args.output)
-    await analyzer.analyze(pubmed_ids)
-
+        print(f"Unexpected error: {str(e)}")
+        exit(1)
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -1,9 +1,11 @@
 import pandas as pd
-from typing import Dict, Any, Optional, Tuple, Set
+from typing import Dict, Any, Optional, Tuple, Set, List
 from .keyword_article_finder import PubmedTrainingSetGenerator, FilterField
 import random
 import argparse
 import asyncio
+import os
+from datetime import datetime
 
 class JournalSpecificPubmedGenerator(PubmedTrainingSetGenerator):
     def __init__(self, ncbi_api_key: Optional[str] = None):
@@ -64,19 +66,6 @@ class JournalSpecificPubmedGenerator(PubmedTrainingSetGenerator):
             print("Could not load distribution data, falling back to default search")
             return await super().search_pubmed()
 
-        mesh_terms = self._filters.get(FilterField.MESH_TERMS, [])
-        if len(mesh_terms) > 5:
-            raise ValueError("Maximum of 5 MeSH terms allowed")
-
-        mesh_terms_query = " OR ".join([f'("{term}"[MeSH Terms])' for term in mesh_terms])
-        year_filter = ""
-        if FilterField.PUBLICATION_DATE in self._filters:
-            year_start, year_end = self._filters[FilterField.PUBLICATION_DATE]
-            if year_start and year_end:
-                year_filter = f" AND ({year_start}:{year_end}[pdat])"
-
-        open_access_filter = " AND (open access[filter])" if self._open_access_only else ""
-
         print(f"Searching PubMed with journal-specific sampling...")
 
         try:
@@ -96,43 +85,12 @@ class JournalSpecificPubmedGenerator(PubmedTrainingSetGenerator):
                         continue
 
                     journal_query = f'("{journal}"[Journal])'
-                    search_query = f'({mesh_terms_query}{year_filter}{open_access_filter} AND {journal_query})'
-
+                    search_query = self._build_search_query(f" AND {journal_query}")
                     print(f"Searching {journal} in {year} for {target_count} articles...")
 
                     try:
-                        pmids = self._fetch.pmids_for_query(search_query, retmax=target_count * 8)
-
-                        for pmid in pmids:
-                            try:
-                                article = self._fetch.article_by_pmid(pmid)
-                                if article and not self._is_preprint(article.journal):
-                                    is_open_access = hasattr(article, 'open_access') and article.open_access
-                                    
-                                    if self._open_access_only and not is_open_access:
-                                        continue
-                                        
-                                    pdf_path = None
-                                    if is_open_access and hasattr(article, 'pdf_url') and article.pdf_url:
-                                        pdf_path = await self._download_pdf(pmid, article.pdf_url)
-                                        
-                                    if self._open_access_only and not pdf_path:
-                                        continue
-                                        
-                                    target_journal_articles[journal].append({
-                                        "pmid": pmid,
-                                        "title": article.title,
-                                        "abstract": article.abstract if hasattr(article, "abstract") else "",
-                                        "journal": journal,
-                                        "publication_date": article.pubdate,
-                                        "mesh_terms": article.mesh_terms if hasattr(article, "mesh_terms") else [],
-                                        "is_open_access": is_open_access,
-                                        "pdf_path": pdf_path
-                                    })
-                            except Exception as e:
-                                print(f"Error fetching PMID {pmid}: {str(e)}")
-                                continue
-
+                        journal_articles = await self._fetch_and_process_articles(search_query, target_count * 8)
+                        target_journal_articles[journal] = list(journal_articles.values())
                         print(f"Found {len(target_journal_articles[journal])} articles for {journal}")
 
                     except Exception as e:
@@ -158,13 +116,15 @@ class JournalSpecificPubmedGenerator(PubmedTrainingSetGenerator):
         except Exception as e:
             print(f"Error during PubMed search: {str(e)}")
 
-        return articles 
+        return articles
 
 async def main(**kwargs):
     """Main function to run the generator from command line"""
     generator = JournalSpecificPubmedGenerator(kwargs.get("ncbi_api_key"))
     
     if "mesh_terms" in kwargs:
+        if len(kwargs["mesh_terms"]) > 5:
+            raise ValueError("Maximum of 5 MeSH terms allowed")
         generator.add_filter(FilterField.MESH_TERMS, kwargs["mesh_terms"])
     
     if "year_start" in kwargs and "year_end" in kwargs:
@@ -184,13 +144,28 @@ async def main(**kwargs):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Search PubMed for articles with MeSH terms using journal-specific sampling")
-    parser.add_argument("--mesh_terms", nargs="+", required=True, help="List of up to 5 MeSH terms to search for")
-    parser.add_argument("--year_start", type=int, help="Start year for the search (optional)")
-    parser.add_argument("--year_end", type=int, help="End year for the search (optional)")
-    parser.add_argument("--ncbi_api_key", required=True, help="NCBI API key")
-    parser.add_argument("--open_access_only", action="store_true", help="Only include open access articles")
-    parser.add_argument("--article_limit", type=int, default=1000, help="Maximum number of articles to return")
-    parser.add_argument("--pdf_output_dir", required=True, help="Full path to directory where PDFs will be saved")
+    parser.add_argument("--meshTerms", nargs="+", required=True, help="List of up to 5 MeSH terms to search for")
+    parser.add_argument("--yearStart", type=int, help="Start year for the search (optional)")
+    parser.add_argument("--yearEnd", type=int, help="End year for the search (optional)")
+    parser.add_argument("--ncbiApiKey", help="NCBI API key (optional, can also use NCBI_API_KEY environment variable)")
+    parser.add_argument("--openAccessOnly", action="store_true", help="Only include open access articles")
+    parser.add_argument("--articleLimit", type=int, default=1000, help="Maximum number of articles to return")
+    parser.add_argument("--pdfOutputDir", help="Directory where PDFs will be saved (optional, defaults to timestamped directory in working directory)")
     
     args = parser.parse_args()
-    asyncio.run(main(**vars(args))) 
+    
+    kwargs = {
+        "mesh_terms": args.meshTerms,
+        "year_start": args.yearStart,
+        "year_end": args.yearEnd,
+        "ncbi_api_key": args.ncbiApiKey,
+        "open_access_only": args.openAccessOnly,
+        "article_limit": args.articleLimit,
+        "pdf_output_dir": args.pdfOutputDir
+    }
+    
+    try:
+        asyncio.run(main(**kwargs))
+    except ValueError as e:
+        print(f"Error: {str(e)}")
+        exit(1) 
