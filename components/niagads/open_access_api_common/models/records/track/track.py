@@ -34,24 +34,22 @@ class TrackSummary(DynamicRowModel):
 
     @model_validator(mode="before")
     @classmethod
-    def extract_nested_fields(cls: Self, data: Union[Dict[str, Any], Any]):
+    def process_extras(cls: Self, data: Union[Dict[str, Any]]):
         """
         promoted nested fields so that can get data_source, data_category,
         url, etc from `Track` object
 
         not doing null checks b/c if these values are missing there is an
         error in the data the needs to be reviewed
-        """
-        if isinstance(data, dict):
-            newDataObj = promote_nested(data, False)
-        else:  # a `Track` ORM with a model_dump mixin
-            newDataObj = promote_nested(data.model_dump(), False)
-        return newDataObj
 
-    @model_validator(mode="before")
-    @classmethod
-    def allowable_extras(cls: Self, data: Union[Dict[str, Any]]):
-        """for now, allowable extras are just counts, prefixed with `num_`"""
+        After promotion, only keep extra counts, prefixed with `num_` as
+        allowable extra fields for a track summary
+        """
+        if not isinstance(data, dict):
+            data = data.model_dump()  # assume data is an ORM w/model_dump mixin
+        promote_nested(data, True)  # should make data_source, url etc available
+
+        # filter out excess from the Track ORM model
         modelFields = TrackSummary.model_fields.keys()
         return {
             k: v for k, v in data.items() if k in modelFields or k.startswith("num_")
