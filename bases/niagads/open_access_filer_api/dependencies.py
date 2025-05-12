@@ -14,12 +14,14 @@ from niagads.open_access_api_common.parameters.text_search import (
     TextSearchFilterParameter,
 )
 from niagads.requests.core import HttpClientSessionManager
+from niagads.settings.core import ServiceEnvironment, get_service_environment
 from sqlalchemy.ext.asyncio import AsyncSession
 
 _HTTP_CLIENT_TIMEOUT = 60
 
 ROUTE_SESSION_MANAGER: DatabaseSessionManager = DatabaseSessionManager(
-    connectionString=Settings.from_env().APP_DB_URI
+    connectionString=Settings.from_env().APP_DB_URI,
+    echo=get_service_environment() == ServiceEnvironment.DEV,
 )
 
 API_CLIENT_SESSION_MANAGER = HttpClientSessionManager(
@@ -40,10 +42,12 @@ TRACK_DATA_STORES: List[TrackDataStore] = [TrackDataStore.FILER, TrackDataStore.
 class TextSearchFilterFields(CaseInsensitiveEnum):
     DATA_SOURCE = auto()
     ASSAY = auto()
-    FEATURE = auto()
+    FEATURE_TYPE = auto()
     TARGET = auto()
-    BIOSAMPLE = auto()
-    CATEGORY = auto()
+    DATA_CATEGORY = auto()
+    BIOSAMPLE_TYPE = auto()
+    TISSUE = auto()
+    CELL = auto()
 
 
 TEXT_FILTER_PARAMETER = TextSearchFilterParameter(TextSearchFilterFields)
