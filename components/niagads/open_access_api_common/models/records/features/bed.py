@@ -33,17 +33,19 @@ class BEDFeature(DynamicRowModel):
         title="Strand", default=".", description="forward (+) or reverse (-) direction"
     )
 
+    def get_field_names(self, collapseExtras: bool):
+        return list(self.model_fields.keys()) + self.get_extra_fields(collapseExtras)
+
     def get_extra_fields(self, collapseExtras: bool):
         """get list of valid fields"""
         if isinstance(self.model_extra, dict):
             if len(self.model_extra) > 0:
                 if collapseExtras:
-                    fields = fields + ["additional_fields"]
+                    fields = ["other_annotations"]
                 else:
-                    fields += [k for k in self.model_extra.keys() if k != "track_id"]
+                    fields = [k for k in self.model_extra.keys() if k != "track_id"]
 
-        fields = fields + ["track_id"]
-        return fields
+        return fields + ["track_id"]
 
     def add_track(self, trackId: Any):
         self.model_extra["track_id"] = trackId
@@ -69,7 +71,7 @@ class BEDFeature(DynamicRowModel):
             }
             data.update(
                 {
-                    "additional_fields": dict_to_info_string(extraData),
+                    "other_annotations": dict_to_info_string(extraData),
                     "track_id": self.track_id,
                 }
             )
@@ -89,7 +91,7 @@ class BEDFeature(DynamicRowModel):
     def _generate_table_columns(self, model, **kwargs):
         columns = super()._generate_table_columns(model)
         extras = self.get_extra_fields(kwargs.get("collapseExtras", False))
-        extraColumns: List[dict] = [{"id": f, "header": id2title(f)} for f in extras]
+        extraColumns: List[dict] = [{"id": f, "header": f} for f in extras]
         return {"columns": columns + extraColumns}
 
     def _get_table_view_config(self, **kwargs):
@@ -116,7 +118,7 @@ class BEDResponse(PagedResponseModel):
         extras = set()
 
         row: BEDFeature
-        for row in self.response:
+        for row in self.data:
             if row.has_extras():
                 if len(extras) == 0:
                     extras = set(row.model_extra.keys())
@@ -132,8 +134,8 @@ class BEDResponse(PagedResponseModel):
         hasDynamicExtras = self.__has_dynamic_extras()
 
         fields = (
-            self.response[0].get_field_names(collapseExtras=hasDynamicExtras)
-            if len(self.response) > 0
+            self.data[0].get_field_names(collapseExtras=hasDynamicExtras)
+            if len(self.data) > 0
             else BEDFeature.get_model_fields()
         )
 

@@ -1,8 +1,6 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-from niagads.exceptions.core import ValidationError
-from niagads.genome.core import Assembly
 from niagads.open_access_api_common.models.records.features.bed import BEDResponse
 from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
@@ -18,158 +16,83 @@ from niagads.open_access_api_common.parameters.location import (
     span_param,
 )
 from niagads.open_access_api_common.parameters.pagination import page_param
-from niagads.open_access_api_common.parameters.record.query import track_list_param
+from niagads.open_access_api_common.parameters.record.path import track_param
 from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,
     ResponseView,
 )
-from niagads.open_access_api_common.parameters.text_search import keyword_param
 from niagads.open_access_api_common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
 from niagads.open_access_filer_api.dependencies import (
-    TEXT_FILTER_PARAMETER,
     InternalRequestParameters,
 )
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(prefix="/track")
 
-tags = ["Record(s) by ID", "Track Metadata by ID"]
+tags = ["Record(s) by ID"]
 
 
 @router.get(
-    "/info",
+    "/{track}",
     tags=tags,
-    response_model=Union[
-        TrackResponse, TrackSummaryResponse, TableViewResponse, ResponseModel
-    ],
-    name="Get metadata for multiple tracks",
-    description="retrieve full metadata for one or more FILER track records by identifier",
+    response_model=Union[TrackSummaryResponse, TrackResponse, ResponseModel],
+    name="Get track metadata",
+    description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response",
 )
 async def get_track_metadata(
-    track: str = Depends(track_list_param),
+    track=Depends(track_param),
     content: str = Query(
-        ResponseContent.FULL,
-        description=ResponseContent.descriptive(inclUrls=True, description=True),
+        ResponseContent.SUMMARY,
+        description=ResponseContent.descriptive(description=True),
     ),
     format: str = Query(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
-    view: str = Query(
-        ResponseView.DEFAULT, description=ResponseView.table(description=True)
-    ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[TrackSummaryResponse, TrackResponse, TableViewResponse, ResponseModel]:
+) -> Union[TrackSummaryResponse, TrackResponse, ResponseModel]:
 
-    rContent = ResponseContent.descriptive(inclUrls=True).validate(
+    rContent = ResponseContent.descriptive().validate(
         content, "content", ResponseContent
     )
+    rFormat = ResponseFormat.generic().validate(format, "format", ResponseFormat)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
-            format=ResponseFormat.generic().validate(format, "format", ResponseFormat),
-            view=ResponseView.table().validate(view, "view", ResponseView),
             content=rContent,
+            format=rFormat,
             model=(
                 TrackResponse
                 if rContent == ResponseContent.FULL
-                else (
-                    TrackSummaryResponse
-                    if rContent == ResponseContent.SUMMARY
-                    else ResponseModel
-                )
+                else TrackSummaryResponse
             ),
         ),
         Parameters(track=track),
     )
+
     return await helper.get_track_metadata()
 
 
 tags = [
-    "Record(s) by Text Search",
-    "Track Metadata by Text Search",
-]
-
-
-@router.get(
-    "/search",
-    tags=tags,
-    response_model=Union[
-        PagedResponseModel,
-        TrackSummaryResponse,
-        TrackResponse,
-        TableViewResponse,
-    ],
-    name="Search for tracks",
-    description="find functional genomics tracks by a keyword search against all text fields in the track metadata",
-    # description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata",
-)
-async def search_track_metadata(
-    filter=Depends(TEXT_FILTER_PARAMETER),
-    keyword: str = Depends(keyword_param),
-    assembly: Assembly = Depends(assembly_param),
-    page: int = Depends(page_param),
-    content: str = Query(
-        ResponseContent.FULL, description=ResponseContent.get_description(True)
-    ),
-    format: str = Query(
-        ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
-    ),
-    view: str = Query(
-        ResponseView.DEFAULT, description=ResponseView.table(description=True)
-    ),
-    internal: InternalRequestParameters = Depends(),
-) -> Union[PagedResponseModel, TrackSummaryResponse, TrackResponse, TableViewResponse]:
-
-    if filter is None and keyword is None:
-        raise ValidationError(
-            "must specify either a `filter` and/or a `keyword` to search"
-        )
-
-    rContent = ResponseContent.validate(content, "content", ResponseContent)
-    helper = FILERRouteHelper(
-        internal,
-        ResponseConfiguration(
-            format=ResponseFormat.generic().validate(format, "format", ResponseFormat),
-            content=rContent,
-            view=ResponseView.table().validate(view, "view", ResponseView),
-            model=(
-                TrackResponse
-                if rContent == ResponseContent.FULL
-                else (
-                    TrackSummaryResponse
-                    if rContent == ResponseContent.SUMMARY
-                    else PagedResponseModel
-                )
-            ),
-        ),
-        Parameters(page=page, assembly=assembly, filter=filter, keyword=keyword),
-    )
-
-    return await helper.search_track_metadata()
-
-
-tags = [
     "Record(s) by ID",
-    "Track Data by ID",
-    "Track Data by Genomic Region",
+    "Data Retrieval by Region",
 ]
 
 
 @router.get(
-    "/",
+    "/{track}/data",
     tags=tags,
-    name="Get data from multiple tracks by ID",
+    name="Get track data",
     response_model=Union[
-        BEDResponse, PagedResponseModel, TrackSummaryResponse, TableViewResponse
+        BEDResponse, TrackSummaryResponse, TableViewResponse, PagedResponseModel
     ],
-    description="retrieve data from one or more FILER tracks in the specified region",
+    description="retrieve functional genomics track data from FILER in the specified region; specify `content=counts` to just retrieve a count of the number of hits in the specified region",
 )
 async def get_track_data(
-    track: str = Depends(track_list_param),
+    track=Depends(track_param),
     span: str = Depends(span_param),
     page: int = Depends(page_param),
     content: str = Query(
@@ -181,16 +104,16 @@ async def get_track_data(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[BEDResponse, PagedResponseModel, TrackSummaryResponse, TableViewResponse]:
+) -> Union[BEDResponse, TrackSummaryResponse, TableViewResponse, PagedResponseModel]:
 
     rContent = ResponseContent.data().validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
+            content=rContent,
             format=ResponseFormat.functional_genomics().validate(
                 format, "format", ResponseFormat
             ),
-            content=rContent,
             view=ResponseView.validate(view, "view", ResponseView),
             model=(
                 BEDResponse
@@ -206,63 +129,3 @@ async def get_track_data(
     )
 
     return await helper.get_track_data()
-
-
-tags = [
-    "Record(s) by Text Search",
-    "Track Data by Text Search",
-    "Track Data by Genomic Region",
-]
-
-
-@router.get(
-    "/search",
-    tags=tags,
-    response_model=Union[
-        PagedResponseModel, TrackSummaryResponse, BEDResponse, TableViewResponse
-    ],
-    name="Get data from multiple tracks by Search",
-    description="find functional genomics tracks with data in specified region; qualify using category filters or by a keyword search against all text fields in the track metadata",
-)
-async def get_track_data_by_metadata_search(
-    assembly: Assembly = Depends(assembly_param),
-    span: str = Depends(span_param),
-    filter=Depends(TEXT_FILTER_PARAMETER),
-    keyword: str = Depends(keyword_param),
-    page: int = Depends(page_param),
-    content: str = Query(
-        ResponseContent.FULL, description=ResponseContent.data(description=True)
-    ),
-    format: str = Query(
-        ResponseFormat.JSON,
-        description=ResponseFormat.functional_genomics(description=True),
-    ),
-    view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
-    internal: InternalRequestParameters = Depends(),
-) -> Union[PagedResponseModel, TrackSummaryResponse, BEDResponse, TableViewResponse]:
-
-    rContent = ResponseContent.data().validate(content, "content", ResponseContent)
-    helper = FILERRouteHelper(
-        internal,
-        ResponseConfiguration(
-            format=ResponseFormat.functional_genomics().validate(
-                format, "format", ResponseFormat
-            ),
-            content=rContent,
-            view=ResponseView.validate(view, "view", ResponseView),
-            model=(
-                BEDResponse
-                if rContent == ResponseContent.FULL
-                else (
-                    TrackSummaryResponse
-                    if rContent == ResponseContent.SUMMARY
-                    else PagedResponseModel
-                )
-            ),
-        ),
-        Parameters(
-            assembly=assembly, filter=filter, keyword=keyword, span=span, page=page
-        ),
-    )
-
-    return await helper.search_track_data()
