@@ -2,9 +2,15 @@ from niagads.exceptions.core import ValidationError
 
 from niagads.database.models.metadata.collection import Collection, TrackCollection
 from niagads.database.models.metadata.track import Track
-from niagads.database.models.metadata.composite_attributes import TrackDataStore
+from niagads.database.models.metadata.composite_attributes import (
+    ExperimentalDesign,
+    Phenotype,
+    Provenance,
+    TrackDataStore,
+)
 from niagads.open_access_api_common.config.constants import SHARD_PATTERN
 from niagads.open_access_api_common.models.response.request import RequestDataModel
+from niagads.open_access_api_common.parameters.expression_filter import Triple
 from niagads.open_access_api_common.parameters.response import ResponseContent
 from niagads.utils.string import regex_replace
 from sqlmodel import select, col, or_, func, distinct
@@ -185,46 +191,66 @@ class MetadataQueryService:
         result = (await self.__session.execute(statement)).scalars().all()
         return result
 
-    def __add_biosample_filters(self, statement, triple: List[str]):
-        """FIXME
-        conditions = []
-        for bsf in BIOSAMPLE_FIELDS:
-            conditions.append(
-                tripleToPreparedStatement(
-                    [
-                        f"biosample_characteristics|{bsf}",
-                        (
-                            "like"
-                            if (triple[1] == "eq" or triple[1] == "like")
-                            else "not like"
-                        ),
-                        triple[2],
-                    ],
-                    Track,
+    def __add_statement_filters(self, statement, filters: List[Triple]):
+        column: Column = None
+        for triple in filters:
+            tmpT = None
+            if triple.field == "biosample_type":
+                column = Track.biosample_characteristics[triple.field].astext
+            elif triple.field in Phenotype.model_fields:
+                column = Track.subject_phenotypes[triple.field].astext
+            elif triple.field in Provenance.model_fields:
+                column = Track.provenance[triple.field].astext
+            elif triple.field in ExperimentalDesign.model_fields:
+                column = Track.experimental_design[triple.field].astext
+            elif triple.field == "cell":
+                biosampleFilter = Triple(
+                    field="biosample_type", operator="like", value="cell"
                 )
+                statement = self.__add_statement_filters(statement, [biosampleFilter])
+                # don't do like matches b/c wildcards are already present
+                if triple.operator == "like":
+                    operator = "eq"
+                if triple.operator == "not like":
+                    operator = "neq"
+                else:
+                    operator = triple.operator
+
+                # if we don't do this, async overwrite of the value just keep
+                # concantenating "term", etc
+                tmpT = Triple(
+                    value=f'%"term": "%{triple.value}%"%',
+                    operator=operator,
+                    field=triple.field,
+                )
+                column = Track.biosample_characteristics["biosample"].astext
+
+            elif triple.field == "tissue":
+                column = Track.biosample_characteristics["tissue"].astext
+
+                # have to use wildcards b/c array
+                if triple.operator == "eq":
+                    operator = "like"
+                if triple.operator == "neq":
+                    operator = "not like"
+                else:
+                    operator = triple.operator
+
+                tmpT = Triple(
+                    value=triple.value,
+                    operator=operator,
+                    field=triple.field,
+                )
+
+            else:
+                column = Track.__table__.c[triple.field]
+
+            statement = statement.filter(
+                triple.to_prepared_statement(column)
+                if tmpT is None
+                else tmpT.to_prepared_statement(column)
             )
 
-        return statement.filter(or_(*conditions))
-        """
-        return statement
-
-    def __add_statement_filters(self, statement, filters: List[str]):
-        """FIXME
-        for phrase in filters:
-            # array or join?
-            if isinstance(phrase, list):
-                # TODO: handle `or`;
-                # `and` is handled implicitly by adding the next filter
-                if phrase[0] == "biosample":
-                    statement = self.__add_biosample_filters(statement, phrase)
-                else:
-                    modelField = TRACK_SEARCH_FILTER_FIELD_MAP[phrase[0]]["model_field"]
-                    statement = statement.filter(
-                        tripleToPreparedStatement(
-                            [modelField, phrase[1], phrase[2]], Track
-                        )
-                    )
-        """
         return statement
 
     @staticmethod
@@ -250,16 +276,17 @@ class MetadataQueryService:
     ) -> List[Track]:
 
         target = self.__set_query_target(responseType)
-        statement = select(target).filter(col(Track.genome_build) == assembly)
+        statement = (
+            select(target)
+            .filter(col(Track.genome_build) == assembly)
+            .filter(col(Track.data_store).in_(self.__dataStore))
+        )
 
         if filters is not None:
             statement = self.__add_statement_filters(statement, filters)
         if keyword is not None:
             statement = statement.filter(
-                or_(
-                    col(Track.searchable_text).regexp_match(keyword, "i"),
-                    col(Track.antibody_target).regexp_match(keyword, "i"),
-                )
+                col(Track.searchable_text).regexp_match(keyword, "i"),
             )
 
         if responseType != ResponseContent.COUNTS:

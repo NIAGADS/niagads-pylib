@@ -1,48 +1,16 @@
-from abc import ABC, abstractmethod
 from fastapi import Query
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.exceptions.core import ValidationError
-from niagads.exceptions.core import extract_exception_message
+
 from niagads.open_access_api_common.parameters.expression_filter import FilterParameter
 from niagads.utils.string import sanitize
 from pyparsing import (
-    Combine,
-    Dict,
     Group,
     Keyword,
-    NotAny,
     OneOrMore,
     Word,
     ZeroOrMore,
     alphas,
 )
-from pyparsing.helpers import one_of
-from sqlmodel import col, not_
-
-
-def tripleToPreparedStatement(triple, model):
-    """translate filter triple into prepared statement"""
-    field = triple[0].split("|")
-    tableField = col(getattr(model, field[0]))
-    if len(field) > 1:  # jsonb field
-        tableField = tableField[field[1]].astext
-
-    operator = triple[1]
-    test = triple[2].replace("_", " ")
-
-    if operator == "eq":
-        return tableField == test
-    if operator == "neq":
-        return not_(tableField == test)
-    if operator == "like":
-        return tableField.regexp_match(test, "i")
-    if operator == "not like":
-        return not_(tableField.regexp_match(test, "i"))
-
-    else:
-        raise NotImplementedError(
-            f"mapping to prepared statement not yet implemented for operator {operator}"
-        )
 
 
 class TextSearchFilterParameter(FilterParameter):

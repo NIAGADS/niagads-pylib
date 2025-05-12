@@ -117,7 +117,6 @@ async def search_track_metadata(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[PagedResponseModel, TrackSummaryResponse, TrackResponse, TableViewResponse]:
 
-    filter = None
     if filter is None and keyword is None:
         raise ValidationError(
             "must specify either a `filter` and/or a `keyword` to search"
