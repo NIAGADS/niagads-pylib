@@ -25,7 +25,10 @@ from niagads.open_access_api_common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
-from niagads.open_access_filer_api.dependencies import InternalRequestParameters
+from niagads.open_access_filer_api.dependencies import (
+    TEXT_FILTER_PARAMETER,
+    InternalRequestParameters,
+)
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(prefix="/metadata")
@@ -98,7 +101,7 @@ tags = ["Record(s) by Text Search"] + ["Track Metadata by Text Search"]
     # description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata",
 )
 async def search_track_metadata(
-    # TODO: filter=Depends(METADATA_FILTER_PARAM)
+    filter=Depends(TEXT_FILTER_PARAMETER),
     keyword: str = Depends(keyword_param),
     assembly: Assembly = Depends(assembly_param),
     page: int = Depends(page_param),

@@ -6,12 +6,14 @@ from niagads.exceptions.core import extract_exception_message
 from niagads.open_access_api_common.parameters.expression_filter import FilterParameter
 from niagads.utils.string import sanitize
 from pyparsing import (
+    Combine,
+    Dict,
     Group,
     Keyword,
+    NotAny,
     OneOrMore,
-    Optional,
     Word,
-    alphanums,
+    ZeroOrMore,
     alphas,
 )
 from pyparsing.helpers import one_of
@@ -44,29 +46,31 @@ def tripleToPreparedStatement(triple, model):
 
 
 class TextSearchFilterParameter(FilterParameter):
-    def __init__(fields: CaseInsensitiveEnum):
+    def __init__(self, fields: CaseInsensitiveEnum):
         super().__init__(fields)
 
-    def set_grammar(self):
-        field = Word(alphas + "_")  # Fields like "data_source" or "biosample"
+    def _set_grammar(self):
+        field = Word(alphas + "_").set_results_name(
+            "field"
+        )  # Fields like "data_source" or "biosample"
+
         operator = (
             Keyword("eq") | Keyword("neq") | Keyword("like") | Keyword("not like")
+        ).set_results_name(
+            "operator"
         )  # Operators
-        value = Word(alphanums + "_ ")  # Values like "histone modification" or "brain"
-        _join = Keyword("and") | Keyword("or")  # Logical operators
+
+        # TODO: keyword `or`
+        _join = (Keyword("and")).set_results_name("boolean")  # Logical operators
+
+        value = Combine(
+            Word(alphas) + ZeroOrMore(~_join + Word(alphas))
+        ).set_results_name("value")
 
         # Define the grammar for a single condition
         condition = Group(field + operator + value)
-
         # Define the full grammar for the boolean expression
-        self._grammar = OneOrMore(condition + Optional(_join))
-
-    def parse_expression(self, text: str):
-        expression = self._grammar.parseString(text, parse_all=True).as_list()
-        self.validate_expression(expression)
-
-    def validate_field(self, field):
-        return self._grammar.parseString(text)
+        self._grammar = condition + ZeroOrMore(_join + condition)
 
 
 async def keyword_param(

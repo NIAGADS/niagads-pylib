@@ -12,7 +12,7 @@ async def assembly_param(
         Assembly.GRCh38, description="reference genome build (assembly)"
     )
 ):
-    return Assembly.validate(assembly)
+    return Assembly.validate(assembly, "Genome Build", Assembly)
 
 
 async def chromosome_param(

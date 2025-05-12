@@ -10,6 +10,9 @@ from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.parameters.internal import (
     InternalRequestParameters as _InternalRequestParameters,
 )
+from niagads.open_access_api_common.parameters.text_search import (
+    TextSearchFilterParameter,
+)
 from niagads.requests.core import HttpClientSessionManager
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,3 +44,6 @@ class TextSearchFilterFields(CaseInsensitiveEnum):
     TARGET = auto()
     BIOSAMPLE = auto()
     CATEGORY = auto()
+
+
+TEXT_FILTER_PARAMETER = TextSearchFilterParameter(TextSearchFilterFields)
