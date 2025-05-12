@@ -32,7 +32,6 @@ from niagads.open_access_api_common.parameters.response import (
 )
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
-from sqlalchemy import RowMapping
 
 _INTERNAL_PARAMETERS = ["span", "_tracks"]
 _ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMARY]

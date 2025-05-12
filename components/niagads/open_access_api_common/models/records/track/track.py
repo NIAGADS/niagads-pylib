@@ -89,7 +89,9 @@ class TrackSummary(DynamicRowModel):
 
         if not isinstance(data, dict):
             data = data.model_dump()  # assume data is an ORM w/model_dump mixin
-        promote_nested(data, True)  # should make data_source, url etc available
+        promote_nested(
+            data, updateByReference=True
+        )  # should make data_source, url etc available
 
         # filter out excess from the Track ORM model
         modelFields = TrackSummary.model_fields.keys()
@@ -126,7 +128,7 @@ class Track(RowModel):
         row: dict = super().to_view_data(view, **kwargs)
 
         if view == ResponseView.TABLE:
-            promote_nested(row, True)
+            promote_nested(row, updateByReference=True)
             # FIXME: front-end?
 
             row.update({"term": row["biosample"][0]["term"]})

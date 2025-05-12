@@ -12,26 +12,29 @@ from pydantic import Field
 
 
 class BEDFeature(DynamicRowModel):
-    chrom: str = Field(description="name of the chromosome or scaffold")
+    chrom: str = Field(
+        title="Chromosome", description="name of the chromosome or scaffold"
+    )
     chromStart: int = Field(
-        description="starting position of the feature in the chromosomse. 0-based"
+        title="Start",
+        description="starting position of the feature in the chromosomse. 0-based",
     )
     chromEnd: int = Field(
-        description="ending position of the feature; not included in the display"
+        title="End",
+        description="ending position of the feature; not included in the display",
     )
     name: Optional[str] = Field(
-        default=".", description="display label for the feature"
+        title="Name", default=".", description="display label for the feature"
     )
     score: Optional[Union[str, int, float]] = Field(
-        default=".", description="a score between 0 and 1000"
+        title="Score", default=".", description="a score between 0 and 1000"
     )
     strand: Optional[str] = Field(
-        default=".", description="forward (+) or reverse (-) direction"
+        title="Strand", default=".", description="forward (+) or reverse (-) direction"
     )
 
-    def get_field_names(self, collapseExtras: bool):
+    def get_extra_fields(self, collapseExtras: bool):
         """get list of valid fields"""
-        fields = list(self.model_fields.keys())
         if isinstance(self.model_extra, dict):
             if len(self.model_extra) > 0:
                 if collapseExtras:
@@ -83,24 +86,26 @@ class BEDFeature(DynamicRowModel):
                     f"View `{view.value}` not yet supported for this response type"
                 )
 
+    def _generate_table_columns(self, model, **kwargs):
+        columns = super()._generate_table_columns(model)
+        extras = self.get_extra_fields(kwargs.get("collapseExtras", False))
+        extraColumns: List[dict] = [{"id": f, "header": id2title(f)} for f in extras]
+        return {"columns": columns + extraColumns}
+
+    def _get_table_view_config(self, **kwargs):
+        return super()._get_table_view_config(**kwargs)
+
     def get_view_config(self, view: ResponseView, **kwargs):
         """get configuration object required by the view"""
         match view:
             case view.TABLE:
-                return self.__build_table_config(kwargs.get("collapseExtras", False))
+                return self._get_table_view_config(kwargs)
             # case view.IGV_BROWSER:
             #    return {} # config needs request parameters (span)
             case _:
                 raise NotImplementedError(
                     f"View `{view.value}` not yet supported for this response type"
                 )
-
-    def __build_table_config(self, collapseExtras: bool):
-        """Return a column and options object for niagads-viz-js/Table"""
-
-        fields = self.get_field_names(collapseExtras)
-        columns: List[dict] = [{"id": f, "header": id2title(f)} for f in fields]
-        return {"columns": columns, "options": {"defaultColumns": fields[:8]}}
 
 
 class BEDResponse(PagedResponseModel):

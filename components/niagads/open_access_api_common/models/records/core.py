@@ -81,7 +81,7 @@ class RowModel(SerializableModel):
             case _:
                 return TableCellType.ABSTRACT
 
-    def _generate_table_columns(self, model: BaseModel):
+    def _generate_table_columns(self, model: BaseModel, **kwargs):
         fields = model.model_fields
         columns: List[TableColumn] = [
             TableColumn(

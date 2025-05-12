@@ -246,7 +246,6 @@ class IGVBrowserTrackSelectorResponse(ResponseModel):
             tableData.append(rowData.to_view_data(ResponseView.TABLE, fields=fieldIds))
 
         options = IGVBrowserTrackMetadata.get_table_options()
-        options.update({"defaultColumns": [id for id in fieldIds[:8]]})
 
         return {
             "data": tableData,

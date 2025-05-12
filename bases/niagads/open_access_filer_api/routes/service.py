@@ -135,7 +135,7 @@ tags = ["Lookups"]
     "/lookup/shard",
     tags=tags,
     response_model=Union[TrackResponse, TrackSummaryResponse, ResponseModel],
-    name="Get metadata shard metadata",
+    name="Get shard metadata",
     description="Some tracks are sharded by chromosome.  Use this query to find a shard-specific track given a chromosome and related track identifier.",
 )
 async def get_shard(

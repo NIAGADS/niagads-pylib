@@ -1,5 +1,5 @@
 import asyncio
-from typing import List
+from typing import List, Union
 from niagads.exceptions.core import ValidationError
 from collections import ChainMap
 from itertools import groupby
@@ -28,7 +28,7 @@ from niagads.open_access_api_common.services.metadata.route import (
     MetadataRouteHelperService,
 )
 from niagads.open_access_api_common.services.route import (
-    PaginationCursor as _BasePaginationCursor,
+    PaginationCursor as PaginationCursor,
     Parameters,
     ResponseConfiguration,
 )
@@ -45,10 +45,10 @@ CACHEDB_PARALLEL_TIMEOUT = 30
 TRACKS_PER_API_REQUEST_LIMIT = 50
 
 
-class PaginationCursor(BaseModel):
+class TrackPaginationCursor(BaseModel):
     tracks: List[str]
-    start: _BasePaginationCursor
-    end: _BasePaginationCursor
+    start: PaginationCursor
+    end: PaginationCursor
 
 
 class FILERRouteHelper(MetadataRouteHelperService):
@@ -68,7 +68,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
 
     async def __initialize_data_query_pagination(
         self, trackResultSummary: List[TrackResultSize]
-    ) -> PaginationCursor:
+    ) -> TrackPaginationCursor:
         """calculate expected result size, number of pages;
         determines and caches cursor-based pagination
 
@@ -173,7 +173,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             for t in sortedTrackResultSummary[startTrackIndex : endTrackIndex + 1]
         ]
 
-        return PaginationCursor(
+        return TrackPaginationCursor(
             tracks=pagedTracks,
             # cursor list & start/endTrackIndex is based on all tracks; need to adjust for pagedTrack slice
             start=PaginationCursor(key=0, offset=startOffset),
@@ -200,7 +200,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         return assembly
 
     def __page_data_result(
-        self, cursor: PaginationCursor, data: List[FILERApiDataResponse]
+        self, cursor: TrackPaginationCursor, data: List[FILERApiDataResponse]
     ) -> List[BEDFeature]:
 
         # sort the response by the cursor pagedTracks so the track order is correct
@@ -276,7 +276,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         if result is not None:
             return await self.generate_response(result, isCached=True)
 
-        cursor: PaginationCursor = await self.__initialize_data_query_pagination(
+        cursor: TrackPaginationCursor = await self.__initialize_data_query_pagination(
             trackResultSummary
         )
 
@@ -369,10 +369,12 @@ class FILERRouteHelper(MetadataRouteHelperService):
             case _:
                 raise RuntimeError("Invalid response content specified")
 
-    def __generate_track_overlap_summary(self, metadata: List[Track], data):
+    def __generate_track_overlap_summary(
+        self, metadata: List[Track], data: Union[List[dict], List[TrackResultSize]]
+    ):
         result = self.__merge_track_lists(
-            [t.serialize(promoteObjs=True) for t in metadata],
-            data if isinstance(data[0], dict) else [t.serialize() for t in data],
+            [t.model_dump() for t in metadata],
+            data if isinstance(data[0], dict) else [t.model_dump() for t in data],
         )
         result = sorted(result, key=lambda item: item["num_results"], reverse=True)
         return result
@@ -507,7 +509,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 if self._responseConfig.content == ResponseContent.COUNTS:
                     return await self.generate_response(counts)
 
-                cursor: PaginationCursor = (
+                cursor: TrackPaginationCursor = (
                     await self.__initialize_data_query_pagination([counts])
                 )
                 result = self.__page_data_result(cursor, [data])

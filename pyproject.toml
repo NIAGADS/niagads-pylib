@@ -43,14 +43,14 @@ packages = [
     { from = "components", include = "niagads/postgres_dbi" },
     { from = "components", include = "niagads/requests" },
     { from = "components", include = "niagads/settings" },
-    { from = "components", include = "niagads/track_record" },
+    { from = "components", include = "niagads/track" },
     { from = "components", include = "niagads/utils" },
     { from = "components", include = "niagads/variant_annotator" },
     { from = "components", include = "niagads/variant_record" },
     { from = "components", include = "niagads/vcf_parser" },
     { from = "components", include = "niagads/vep_json_parser" },
-    {include = "niagads/metadata_parser",from = "components"},
-    {include = "niagads/loaders",from = "bases"},
+    { include = "niagads/metadata_parser", from = "components" },
+    { include = "niagads/loaders", from = "bases" },
 ]
 
 [tool.poetry.dependencies]

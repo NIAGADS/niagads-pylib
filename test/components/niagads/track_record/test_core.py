@@ -1,4 +1,4 @@
-from niagads.track_record import core
+from niagads.track import core
 
 
 def test_sample():
