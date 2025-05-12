@@ -29,7 +29,7 @@ class TableColumn(NullFreeModel):
 class TableViewModel(BaseModel, arbitrary_types_allowed=True):
     data: List[T_TableRow]
     columns: List[TableColumn]
-    options: Optional[Dict[str, Any]] = None
+    # options: Optional[Dict[str, Any]] = None -> FIXME?: leave options for the front-end
     id: str
 
 
