@@ -138,14 +138,6 @@ class RouteHelperService:
         self._pageSize: int = DEFAULT_PAGE_SIZE
         self._resultSize: int = None
 
-    def _sqa_row2dict(self, result):
-        # row = lambda r: {c.name: str(getattr(r, c.name)) for c in r.__table__.columns}
-        if "ResponseModel" in str(self._responseConfig.model):
-            if isinstance(result[0], RowMapping):
-                return [DynamicRowModel(**row) for row in result]
-
-        return result
-
     def set_page_size(self, pageSize: int):
         self._pageSize = pageSize
 
@@ -311,7 +303,7 @@ class RouteHelperService:
                 response = self._responseConfig.model(
                     request=self._managers.requestData,
                     pagination=self._pagination,
-                    data=self._sqa_row2dict(result),
+                    data=result,  # self._sqa_row2dict(result),
                 )
             else:
                 if self._responseConfig.model == IGVBrowserTrackSelectorResponse:
@@ -327,7 +319,7 @@ class RouteHelperService:
                 else:
                     response = self._responseConfig.model(
                         request=self._managers.requestData,
-                        data=self._sqa_row2dict(result),
+                        data=result,  # self._sqa_row2dict(result),
                     )
 
             # cache the response
