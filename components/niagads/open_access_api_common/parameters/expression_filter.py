@@ -5,7 +5,7 @@ from fastapi import Query
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError, extract_exception_message
 from pydantic import BaseModel
-from pyparsing import Union
+from pyparsing import ParseResults, Union
 
 
 class Triple(BaseModel):
@@ -26,7 +26,11 @@ class FilterParameter(ABC):
 
     def parse_expression(self, text: str) -> dict:
         expression = self._grammar.parseString(text, parse_all=True)
-        triples = [Triple(**(phrase.as_dict())) for phrase in expression]
+        triples = [
+            Triple(**(phrase.as_dict()))
+            for phrase in expression
+            if isinstance(phrase, ParseResults)
+        ]
         self.validate_fields(triples)
         return triples
 

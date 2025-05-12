@@ -63,9 +63,11 @@ class TextSearchFilterParameter(FilterParameter):
         # TODO: keyword `or`
         _join = (Keyword("and")).set_results_name("boolean")  # Logical operators
 
-        value = Combine(
-            Word(alphas) + ZeroOrMore(~_join + Word(alphas))
-        ).set_results_name("value")
+        value = (
+            OneOrMore(~_join + Word(alphas))
+            .add_parse_action(" ".join)
+            .set_results_name("value")
+        )
 
         # Define the grammar for a single condition
         condition = Group(field + operator + value)
