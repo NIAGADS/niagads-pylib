@@ -17,7 +17,7 @@ from niagads.open_access_api_common.parameters.response import (
 )
 from niagads.open_access_api_common.models.views.core import id2title
 from niagads.utils.string import xstr
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 
 
 class RowModel(SerializableModel):
@@ -54,7 +54,7 @@ class RowModel(SerializableModel):
         """get configuration object required by the view"""
         match view:
             case ResponseView.TABLE:
-                return self.get_table_view_config(**kwargs)
+                return self._get_table_view_config(**kwargs)
             case ResponseView.IGV_BROWSER:
                 raise NotImplementedError("IGVBrowser view coming soon")
             case _:
@@ -81,8 +81,8 @@ class RowModel(SerializableModel):
             case _:
                 return TableCellType.ABSTRACT
 
-    def get_table_view_config(self, **kwargs):
-        fields = self.__class__.model_fields
+    def _generate_table_columns(self, model: BaseModel):
+        fields = model.model_fields
         columns: List[TableColumn] = [
             TableColumn(
                 id=k,
@@ -93,8 +93,11 @@ class RowModel(SerializableModel):
             for k, info in fields.items()
         ]
 
+        return columns
+
+    def _get_table_view_config(self, **kwargs):
         # NOTE: options are handled in front-end applications
-        return {"columns": columns}
+        return {"columns": self._generate_table_columns(self)}
 
 
 # allows you to set a type hint to a class and all its subclasses

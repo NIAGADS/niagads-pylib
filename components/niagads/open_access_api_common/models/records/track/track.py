@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Self, Union
 
+from niagads.common.models.core import OntologyTerm
 from niagads.database.models.metadata.composite_attributes import (
     BiosampleCharacteristics,
     ExperimentalDesign,
@@ -10,6 +11,7 @@ from niagads.database.models.metadata.composite_attributes import (
 from niagads.open_access_api_common.models.records.core import DynamicRowModel, RowModel
 from niagads.open_access_api_common.models.response.core import PagedResponseModel
 from niagads.open_access_api_common.models.views.core import id2title
+from niagads.open_access_api_common.models.views.table.core import TableColumn
 from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
     ResponseView,
@@ -17,6 +19,18 @@ from niagads.open_access_api_common.parameters.response import (
 from niagads.utils.dict import promote_nested
 from niagads.utils.list import find
 from pydantic import ConfigDict, Field, computed_field, model_validator
+
+
+EXCLUDE_FROM_TRACK_VIEWS = [
+    "ontology",
+    "definition",
+    "biosample",
+    "biosample_characteristics",
+    "subject_phenotypes",
+    "experimental_design",
+    "provenance",
+    "file_properties",
+]
 
 
 class TrackSummary(DynamicRowModel):
@@ -108,11 +122,45 @@ class Track(RowModel):
     # should allow to fill from SQLAlchemy ORM model
     model_config = ConfigDict(from_attributes=True)
 
-    """
-    # this should be deprecated in Pydantic v2+
-    class Config:
-        orm_mode = True
-    """
+    def to_view_data(self, view: ResponseView, **kwargs):
+        row: dict = super().to_view_data(view, **kwargs)
+
+        if view == ResponseView.TABLE:
+            promote_nested(row, True)
+            # FIXME: front-end?
+            row.update(
+                {
+                    "term": row["biosample"][0]["term"],
+                    "term_id": row["biosample"][0]["term_id"],
+                }
+            )
+
+            orderedRow = {}
+            for field in kwargs["fields"]:
+                if field not in row:
+                    orderedRow.update({field: None})
+                else:
+                    orderedRow.update({field: row[field]})
+
+            return orderedRow
+        else:
+            return row
+
+    def _get_table_view_config(self, **kwargs):
+        columns = super()._get_table_view_config(**kwargs)["columns"]
+
+        # add biosample, provenance, experimental design, file properties
+        columns += self._generate_table_columns(BiosampleCharacteristics)
+        columns += self._generate_table_columns(OntologyTerm)
+        columns += self._generate_table_columns(Phenotype)
+        columns += self._generate_table_columns(ExperimentalDesign)
+        columns += self._generate_table_columns(Provenance)
+        columns += self._generate_table_columns(FileProperties)
+
+        columns = [c for c in columns if c.id not in EXCLUDE_FROM_TRACK_VIEWS]
+
+        # NOTE: options are handled in front-end applications
+        return {"columns": columns}
 
 
 class TrackResultSize(RowModel):

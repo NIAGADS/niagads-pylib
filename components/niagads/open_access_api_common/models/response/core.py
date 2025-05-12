@@ -11,11 +11,10 @@ from niagads.open_access_api_common.parameters.response import (
 )
 from niagads.utils.string import xstr
 from pydantic import BaseModel, Field
-from sqlmodel import SQLModel
 from typing_extensions import Self
 
 
-class ResponseModel(SQLModel, BaseModel):
+class ResponseModel(BaseModel):
 
     data: Any = Field(description="result (data) from the request")
     request: RequestDataModel = Field(
@@ -23,7 +22,9 @@ class ResponseModel(SQLModel, BaseModel):
     )
 
     def has_count_fields(self):
-        if any(f.startswith("num_") for f in self.data[0].model_fields.keys()):
+        if any(
+            f.startswith("num_") for f in self.data[0].__class__.model_fields.keys()
+        ):
             return True
         if isinstance(self.data[0].model_extra, dict):
             return any(f.startswith("num_") for f in self.data[0].model_extra.keys())
@@ -36,7 +37,7 @@ class ResponseModel(SQLModel, BaseModel):
     def row_model(cls: Self, name=False):
         """get the type of the row model in the response"""
 
-        rowType = cls.model_fields["response"].annotation
+        rowType = cls.model_fields["data"].annotation
         try:  # can't explicity test for List[rowType], so just try
             rowType = rowType.__args__[0]  # rowType = typing.List[RowType]
         except:
@@ -51,8 +52,8 @@ class ResponseModel(SQLModel, BaseModel):
         # avoid circular imports
         from niagads.open_access_api_common.models.records.core import RowModel
         from niagads.open_access_api_common.models.views.table.core import (
-            TableViewModel,
             TableColumn,
+            TableViewModel,
         )
 
         if len(self.data) == 0:
@@ -68,8 +69,9 @@ class ResponseModel(SQLModel, BaseModel):
         for index, row in enumerate(self.data):
             if index == 0:
                 viewResponse = row.get_view_config(view, **kwargs)
-                if not isinstance(viewResponse["columns"][0], TableColumn):
-                    kwargs["field_names"] = [c["id"] for c in viewResponse["columns"]]
+                # if not isinstance(viewResponse["columns"][0], TableColumn):
+                #     kwargs["field_names"] = [c["id"] for c in viewResponse["columns"]]
+            kwargs["fields"] = [c.id for c in viewResponse["columns"]]
             data.append(row.to_view_data(view, **kwargs))
         viewResponse.update({"data": data})
 

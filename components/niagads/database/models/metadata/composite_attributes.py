@@ -18,21 +18,36 @@ class TrackDataStore(CaseInsensitiveEnum):
 
 
 class ExperimentalDesign(NullFreeModel):
-    antibody_target: Optional[str] = None
-    assay: Optional[str] = None
-    analysis: Optional[str] = None
-    classification: Optional[str] = None
-    data_category: Optional[str] = None
-    output_type: Optional[str] = None
-    is_lifted: Optional[bool] = False
-    covariates: Optional[List[str]] = None
+    antibody_target: Optional[str] = Field(default=None, title="Antibody Target")
+    assay: Optional[str] = Field(default=None, title="Assay")
+    analysis: Optional[str] = Field(default=None, title="Analysis")
+    classification: Optional[str] = Field(default=None, title="Classification")
+    data_category: Optional[str] = Field(default=None, title="Data Category")
+    output_type: Optional[str] = Field(default=None, title="Output Type")
+    is_lifted: Optional[bool] = Field(
+        default=None,
+        title="Is Lifted?",
+        description="data are lifted from earlier genome build",
+    )
+    covariates: Optional[List[str]] = Field(default=None, title="Covariates")
+
+
+class StudyDiagnosis(CaseInsensitiveEnum):
+    CASE = auto()
+    CONTROL = auto()
+    OTHER = auto()
 
 
 class Phenotype(NullFreeModel):
-    disease: Optional[List[str]] = None
-    ethnicity: Optional[List[str]] = None
-    race: Optional[List[str]] = None
-    neuropathology: Optional[List[str]] = None
+    disease: Optional[List[str]] = Field(default=None, title="Disease")
+    ethnicity: Optional[List[str]] = Field(default=None, title="Ethnicity")
+    race: Optional[List[str]] = Field(default=None, title="Race")
+    neuropathology: Optional[List[str]] = Field(default=None, title="Neuropathology")
+    study_diagnosis: Optional[StudyDiagnosis] = Field(
+        default=None,
+        title="Study Diagnosis",
+        description="status of individual in the study as a case or control",
+    )
 
 
 class BiosampleType(Enum):
@@ -174,25 +189,36 @@ class BiosampleType(Enum):
 
 
 class BiosampleCharacteristics(NullFreeModel):
-    system: Optional[List[str]] = None
-    tissue: Optional[List[str]] = None
-    biomarker: Optional[List[str]] = None
-    biosample_type: Optional[Union[BiosampleType, str]] = None
+    system: Optional[List[str]] = Field(
+        default=None, title="Biosample: Anatomical System"
+    )
+    tissue: Optional[List[str]] = Field(default=None, title="Biosample: Tissue")
+    biomarker: Optional[List[str]] = Field(default=None, title="Biomarker")
+    biosample_type: Optional[Union[BiosampleType, str]] = Field(
+        default=None, title="Biosample Type"
+    )
     biosample: Optional[List[OntologyTerm]] = Field(
-        default=None, description="ontology term/id pairs describing the biosample"
+        default=None,
+        title="Biosample",
+        description="ontology term/id pairs describing the biosample",
     )
 
     life_stage: Optional[str] = Field(
-        default=None, description="donor/sample life stage: adult, fetal, embryo"
+        default=None,
+        title="Biosample: Life Stage",
+        description="donor or sample life stage",
     )
 
 
+# TODO: document provenance and file properties
 class Provenance(NullFreeModel):
-    data_source: str
+    data_source: str = Field(
+        title="Data Source", description="original file data source"
+    )
 
     release_version: Optional[str] = None
-    release_str: Optional[str] = None
-    download_str: Optional[str] = None
+    release_date: Optional[str] = None
+    download_date: Optional[str] = None
     download_url: Optional[str] = None
 
     study: Optional[str] = None
@@ -243,4 +269,4 @@ class FileProperties(NullFreeModel):
 
     file_format: Optional[str] = None
     file_schema: Optional[str] = None
-    release_str: Optional[str] = None
+    release_date: Optional[str] = None
