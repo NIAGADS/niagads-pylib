@@ -16,7 +16,7 @@ class OntologyTerm(NullFreeModel):
         title="Biosample: Term IRI",
         description="mapped ontology term IRI",
     )
-    defintion: Optional[str] = None
+    definition: Optional[str] = None
 
 
 class Range(BaseModel):

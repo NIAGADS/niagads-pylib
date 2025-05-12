@@ -11,13 +11,19 @@ from niagads.utils.string import is_bool, is_null, to_bool, to_number
 from niagads.utils.list import all_elements_are_none as __list_is_none
 
 
-def promote_nested(dictObj: dict, updateByReference: bool = False):
+def promote_nested(dictObj: dict, attributes=None, updateByReference: bool = False):
     """promotes all nested dicts; e.g.:
     {"A": {"B": 1, "C":2}, "D":3} -> {"B":1, "C":2, "D":3}
     when updateByReference, will overwrite the original object
     """
     newDict = deepcopy(dictObj) if not updateByReference else dictObj
-    objFields = [k for k, v in newDict.items() if isinstance(v, dict)]
+    if attributes is not None:
+        objFields = [
+            k for k, v in newDict.items() if isinstance(v, dict) and k in attributes
+        ]
+    else:
+        objFields = [k for k, v in newDict.items() if isinstance(v, dict)]
+
     for f in objFields:
         newDict.update(dictObj.pop(f, None))
 

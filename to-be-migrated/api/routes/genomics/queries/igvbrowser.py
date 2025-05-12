@@ -1,5 +1,5 @@
 from api.models.genome import GenomicRegion
-from api.models.query_defintion import QueryDefinition
+from api.models.query_definition import QueryDefinition
 
 
 IGVFeatureLookupQuery = QueryDefinition(
@@ -21,8 +21,6 @@ IGVFeatureLookupQuery = QueryDefinition(
         
         ORDER BY chromosome NULLS LAST LIMIT 1
     """,
-    bindParameters=['id'],
-    fetchOne=True
+    bindParameters=["id"],
+    fetchOne=True,
 )
-
-

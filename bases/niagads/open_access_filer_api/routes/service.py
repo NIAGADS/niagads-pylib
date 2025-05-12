@@ -1,38 +1,39 @@
 from typing import List, Union
 from fastapi import APIRouter, Depends, Query
 from niagads.exceptions.core import ValidationError
-
-from api.common.enums.genome import Assembly
-from api.common.enums.response_properties import (
+from niagads.genome.core import Assembly
+from niagads.open_access_api_common.models.records.track.igvbrowser import (
+    IGVBrowserTrackConfig,
+    IGVBrowserTrackConfigResponse,
+    IGVBrowserTrackSelectorResponse,
+)
+from niagads.open_access_api_common.models.records.track.track import (
+    TrackResponse,
+    TrackSummaryResponse,
+)
+from niagads.open_access_api_common.models.response.core import ResponseModel
+from niagads.open_access_api_common.models.views.table.core import TableViewModel
+from niagads.open_access_api_common.parameters.location import (
+    assembly_param,
+    chromosome_param,
+)
+from niagads.open_access_api_common.parameters.record.path import query_collection_name
+from niagads.open_access_api_common.parameters.record.query import (
+    optional_track_list_param,
+    track_param,
+)
+from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,
-    ResponseView,
 )
-from api.common.exceptions import RESPONSES
-from api.common.helpers import Parameters, ResponseConfiguration
+from niagads.open_access_api_common.services.route import (
+    Parameters,
+    ResponseConfiguration,
+)
+from niagads.open_access_filer_api.dependencies import InternalRequestParameters
+from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
-from api.dependencies.parameters.identifiers import query_collection_name
-from api.dependencies.parameters.features import assembly_param, chromosome_param
-from api.models.base_response_models import ResponseModel
-from api.models.igvbrowser import (
-    IGVBrowserTrackConfig,
-    IGVBrowserTrackSelectorResponse,
-    IGVBrowserTrackConfigResponse,
-)
-from api.models.view_models import TableViewModel
-
-from api.routes.filer.common.helpers import FILERRouteHelper
-from api.routes.filer.dependencies.parameters import (
-    InternalRequestParameters,
-    optional_query_track_id,
-    required_query_track_id,
-)
-from api.routes.filer.models.filer_track import (
-    FILERTrackResponse,
-    FILERTrackSummaryResponse,
-)
-
-router = APIRouter(prefix="/service", responses=RESPONSES)
+router = APIRouter(prefix="/service")
 
 tags = ["NIAGADS Genome Browser"]
 
@@ -46,7 +47,7 @@ tags = ["NIAGADS Genome Browser"]
 )
 # , or keyword search")
 async def get_track_browser_config(
-    track=Depends(optional_query_track_id),
+    track=Depends(optional_track_list_param),
     assembly: Assembly = Depends(assembly_param),
     collection: str = Depends(query_collection_name),
     # keyword: str = Depends(keyword_param),
@@ -79,7 +80,7 @@ async def get_track_browser_config(
     else:
         result = await helper.get_track_metadata()
 
-    return result.response
+    return result.data
 
 
 @router.get(
@@ -91,7 +92,7 @@ async def get_track_browser_config(
 )
 # , or keyword")
 async def get_track_browser_config(
-    track=Depends(optional_query_track_id),
+    track=Depends(optional_track_list_param),
     assembly: Assembly = Depends(assembly_param),
     collection: str = Depends(query_collection_name),
     # keyword: str = Depends(keyword_param),
@@ -124,7 +125,7 @@ async def get_track_browser_config(
     else:
         result = await helper.get_track_metadata()
 
-    return result.response
+    return result.data
 
 
 tags = ["Lookups"]
@@ -133,12 +134,12 @@ tags = ["Lookups"]
 @router.get(
     "/lookup/shard",
     tags=tags,
-    response_model=Union[FILERTrackResponse, FILERTrackSummaryResponse, ResponseModel],
+    response_model=Union[TrackResponse, TrackSummaryResponse, ResponseModel],
     name="Get metadata shard metadata",
     description="Some tracks are sharded by chromosome.  Use this query to find a shard-specific track given a chromosome and related track identifier.",
 )
 async def get_shard(
-    track: str = Depends(required_query_track_id),
+    track: str = Depends(track_param),
     chr: str = Depends(chromosome_param),
     content: str = Query(
         ResponseContent.FULL,
@@ -148,7 +149,7 @@ async def get_shard(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[FILERTrackSummaryResponse, FILERTrackResponse, ResponseModel]:
+) -> Union[TrackSummaryResponse, TrackResponse, ResponseModel]:
 
     rContent = ResponseContent.descriptive(inclUrls=True).validate(
         content, "content", ResponseContent
@@ -159,10 +160,10 @@ async def get_shard(
             format=ResponseFormat.generic().validate(format, "format", ResponseFormat),
             content=rContent,
             model=(
-                FILERTrackResponse
+                TrackResponse
                 if rContent == ResponseContent.FULL
                 else (
-                    FILERTrackSummaryResponse
+                    TrackSummaryResponse
                     if rContent == ResponseContent.SUMMARY
                     else ResponseModel
                 )

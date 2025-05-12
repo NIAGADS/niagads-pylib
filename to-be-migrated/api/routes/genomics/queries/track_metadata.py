@@ -1,6 +1,6 @@
-from api.models.query_defintion import QueryDefinition
+from api.models.query_definition import QueryDefinition
 
-_TRACK_COLLECTION_METADATA_QUERY="""
+_TRACK_COLLECTION_METADATA_QUERY = """
     SELECT m.*
     FROM NIAGADS.Collection c, 
     NIAGADS.TrackCollectionLink tcl,
@@ -10,7 +10,7 @@ _TRACK_COLLECTION_METADATA_QUERY="""
     AND c.name ILIKE :collection
 """
 
-_TRACK_COLLECTION_QUERY="""
+_TRACK_COLLECTION_QUERY = """
     SELECT c.name, c.description, count(tcl.track_id) AS num_tracks
     FROM NIAGADS.Collection c,
     NIAGADS.TrackCollectionLink tcl
@@ -22,7 +22,7 @@ _TRACK_COLLECTION_QUERY="""
 TrackMetadataQuery = QueryDefinition(
     query="SELECT * FROM NIAGADS.TrackMetadata",
     useIdSelectWrapper=True,
-    errorOnNull="Track not found in the GenomicsDB"
+    errorOnNull="Track not found in the GenomicsDB",
 )
 
 CollectionQuery = QueryDefinition(
@@ -31,7 +31,6 @@ CollectionQuery = QueryDefinition(
 
 CollectionTrackMetadataQuery = QueryDefinition(
     query=_TRACK_COLLECTION_METADATA_QUERY,
-    bindParameters=['collection'],
-    errorOnNull="Collection not found in the GenomicsDB"
+    bindParameters=["collection"],
+    errorOnNull="Collection not found in the GenomicsDB",
 )
-

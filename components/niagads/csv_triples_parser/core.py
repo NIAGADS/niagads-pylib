@@ -39,7 +39,7 @@ class CSVTriplesParser:
 
         # TODO - set relationship type for class hierarchy? or assume `is_a`?
 
-    def get_defintions(self):
+    def get_definitions(self):
         """Return the definition map"""
         return self.__definitions
 
@@ -53,7 +53,7 @@ class CSVTriplesParser:
             node is of type OWL.Class
             node is subClassOf OWL.Thing
             node label = value
-            node definition = self.__defintions[label]
+            node definition = self.__definitions[label]
 
         Args:
             label (str): the label of the node

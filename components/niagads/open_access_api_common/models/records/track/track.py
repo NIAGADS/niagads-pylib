@@ -128,12 +128,12 @@ class Track(RowModel):
         if view == ResponseView.TABLE:
             promote_nested(row, True)
             # FIXME: front-end?
-            row.update(
-                {
-                    "term": row["biosample"][0]["term"],
-                    "term_id": row["biosample"][0]["term_id"],
-                }
-            )
+
+            row.update({"term": row["biosample"][0]["term"]})
+            if "term_id" in row["biosample"]:
+                row.update({"term_id": row["biosample"][0]["term_id"]})
+            else:
+                row.update({"term_id": None})
 
             orderedRow = {}
             for field in kwargs["fields"]:

@@ -1,6 +1,6 @@
-from api.models.query_defintion import QueryDefinition
+from api.models.query_definition import QueryDefinition
 
-_BUILD_VARIANT_DETAILS_SQL="""
+_BUILD_VARIANT_DETAILS_SQL = """
     jsonb_build_object(
         'ref_snp_id', details->>'ref_snp_id', 
         'type', details->>'variant_class_abbrev',
@@ -27,7 +27,7 @@ _BUILD_VARIANT_DETAILS_SQL="""
     ) AS variant
 """
 
-_TRACK_QTLGENE_QUERY_SQL=f"""
+_TRACK_QTLGENE_QUERY_SQL = f"""
     SELECT r.track_id, r.track_id AS id,
     r.pvalue_display AS p_value, 
     r.neg_log10_pvalue,
@@ -51,7 +51,7 @@ _TRACK_QTLGENE_QUERY_SQL=f"""
     ORDER BY rank ASC
 """
 
-_TRACK_GSS_QUERY_SQL=f"""
+_TRACK_GSS_QUERY_SQL = f"""
     SELECT r.track AS track_id, r.track AS id,
     r.pvalue_display AS p_value, 
     r.neg_log10_pvalue,
@@ -66,7 +66,7 @@ _TRACK_GSS_QUERY_SQL=f"""
     ORDER BY r.neg_log10_pvalue DESC
 """
 
-_TRACK_QTLGENE_COUNTS_QUERY_SQL="""
+_TRACK_QTLGENE_COUNTS_QUERY_SQL = """
     SELECT track_id, COUNT(qtl_gene_id) AS result_size 
     FROM Results.QTLGene
     WHERE track_id = :id
@@ -79,13 +79,13 @@ TrackQTLGeneQuery = QueryDefinition(
     useIdSelectWrapper=True,
     errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB",
     messageOnResultSize="Found target {0} genes in this analysis.  Displaying {1}.  To retrieve the full set, please run the following `paged` query using the NIAGADS Open Access API: {2}.",
-    bindParameters = ['rank_start', 'rank_end']
+    bindParameters=["rank_start", "rank_end"],
 )
-    
+
 TrackGWASSumStatQuery = QueryDefinition(
-    query = _TRACK_GSS_QUERY_SQL,
+    query=_TRACK_GSS_QUERY_SQL,
     useIdSelectWrapper=True,
-    errorOnNull="GWAS summary statistics track not found in the NIAGADS Alzheimer's GenomicsDB"
+    errorOnNull="GWAS summary statistics track not found in the NIAGADS Alzheimer's GenomicsDB",
 )
 
 # TODO: make generic like the data queries
@@ -97,9 +97,9 @@ CountsTrackSummaryQuery = QueryDefinition(
         GROUP BY track_id, chromosome
         ORDER BY replace(chromosome, 'chr', '')::integer
     """,
-    bindParameters = ['id'],
+    bindParameters=["id"],
     errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB",
-    rawResponse = True
+    rawResponse=True,
 )
 
 TopTrackSummaryQuery = QueryDefinition(
@@ -115,7 +115,7 @@ TopTrackSummaryQuery = QueryDefinition(
         AND r.track_id = :id
         ORDER BY r.rank ASC
     """,
-    bindParameters = ['id'],
+    bindParameters=["id"],
     errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB",
-    rawResponse = True
+    rawResponse=True,
 )

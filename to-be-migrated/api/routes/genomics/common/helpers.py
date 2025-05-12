@@ -14,7 +14,7 @@ from api.common.helpers import Parameters, ResponseConfiguration, MetadataRouteH
 from api.common.services.metadata_query import MetadataQueryService
 from api.common.types import Range
 from api.config.settings import Settings
-from api.models.query_defintion import QueryDefinition
+from api.models.query_definition import QueryDefinition
 
 from api.routes.genomics.common.constants import (
     CACHEDB_PARALLEL_TIMEOUT,

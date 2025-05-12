@@ -27,7 +27,7 @@ class SerializableModel(BaseModel):
     def serialize(
         self,
         exclude: List[str] = None,
-        promoteObjs=False,
+        promoteObjs=False,  # FIXME: provide optional list of which objects to promote
         collapseUrls=False,
         groupExtra=False,
         byAlias=False,
@@ -46,7 +46,7 @@ class SerializableModel(BaseModel):
         )
         # FIXME: does not handle case if the dict field is null (e.g., experimental_design on genomics tracks)
         if promoteObjs:
-            promote_nested(data, True)
+            promote_nested(data, updateByReference=True)
 
         if collapseUrls:
             fields = list(data.keys())

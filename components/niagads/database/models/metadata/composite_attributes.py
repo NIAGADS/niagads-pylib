@@ -57,8 +57,8 @@ class BiosampleType(Enum):
         term_iri="http://purl.obolibrary.org/obo/CL_0000578",
         ontology="Cell Ontology",
         definition=(
-            f"A cell in vitro that has undergone physical changes ",
-            f"as a consequence of a deliberate and specific experimental procedure",
+            f"A cell in vitro that has undergone physical changes "
+            f"as a consequence of a deliberate and specific experimental procedure"
         ),
     )
     CELL_LINE = OntologyTerm(
@@ -96,7 +96,7 @@ class BiosampleType(Enum):
         term_id="CL:0000000",
         term_iri="http://purl.obolibrary.org/obo/CL_0000000",
         ontology="Cell Ontology",
-        defintion=(
+        definition=(
             f"A material entity of anatomical origin "
             f"(part of or deriving from an organism) that "
             f"has as its parts a maximally connected cell "
@@ -115,7 +115,7 @@ class BiosampleType(Enum):
         term_id="CL_0000034",
         term_iri="http://purl.obolibrary.org/obo/CL_0000034",
         ontology="Cell Ontology",
-        defintion=(
+        definition=(
             f"A relatively undifferentiated cell that retains the ability to divide "
             f"and proliferate throughout life to provide progenitor "
             f"cells that can differentiate into specialized cells."
@@ -142,7 +142,7 @@ class BiosampleType(Enum):
             f"of many cells of one or a few types, arranged in an "
             f"extracellular matrix such that their long-range "
             f"organisation is at least partly a repetition of their "
-            f"short-range organisation.",
+            f"short-range organisation."
         ),
     )
     ORGANOID = OntologyTerm(

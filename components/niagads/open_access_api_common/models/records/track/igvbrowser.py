@@ -1,9 +1,12 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Self, Union
 
+from niagads.common.models.core import OntologyTerm
 from niagads.database.models.metadata.composite_attributes import (
     BiosampleCharacteristics,
     ExperimentalDesign,
+    FileProperties,
     Phenotype,
+    Provenance,
 )
 from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.models.records.core import RowModel
@@ -14,7 +17,27 @@ from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
-from pydantic import Field, computed_field, field_validator
+from niagads.utils.dict import promote_nested
+from pydantic import ConfigDict, Field, computed_field, field_validator, model_validator
+
+EXCLUDE_FROM_METADATA = [
+    "ontology",
+    "definition",
+    "biosample",
+    "biosample_characteristics",
+    "subject_phenotypes",
+    "experimental_design",
+    "provenance",
+    "file_properties",
+    "release_version",
+    "release_date",
+    "download_date",
+    "download_url",
+    "accession",
+    "pubmed_id",
+    "doi",
+    "attribution",
+]
 
 
 class IGVBrowserTrackConfig(RowModel):
@@ -22,31 +45,58 @@ class IGVBrowserTrackConfig(RowModel):
     name: str
     url: str
     description: str
-    type: str
-    format: str
-
-    browser_track_type: str = Field(serialization_alias="type")
-    browser_track_format: str = Field(serialization_alias="format")
+    file_schema: str = Field(exclude=True)
     infoURL: str = Settings.from_env().IGV_BROWSER_INFO_URL
 
-    @field_validator("format", mode="before")
+    # should allow to fill from SQLAlchemy ORM model
+    model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="before")
     @classmethod
-    def extract_track_format(cls, fileSchema) -> str:
+    def process_extras(cls: Self, data: Union[Dict[str, Any]]):
+        """
+        promoted nested fields so that can get data_source, data_category,
+        url, etc from `Track` object
+
+        not doing null checks b/c if these values are missing there is an
+        error in the data the needs to be reviewed
+
+        After promotion, only keep extra counts, prefixed with `num_`
+        allowable extra fields for a track summary
+        """
+
+        # this will happen b/c FastAPI tries all models
+        # until it can successfully serialize
+        if isinstance(data, str):
+            return data
+
+        if not isinstance(data, dict):
+            data = data.model_dump()  # assume data is an ORM w/model_dump mixin
+
+        promote_nested(data, attributes="file_properties", updateByReference=True)
+
+        # filter out excess from the Track ORM model
+        modelFields = IGVBrowserTrackConfig.model_fields.keys()
+        return {k: v for k, v in data.items() if k in modelFields}
+
+    @computed_field
+    @property
+    def format(self) -> str:
         """extract file schema from file format"""
-        if fileSchema is None:
+        if self.file_schema is None:
             return "bed"
-        schema = fileSchema.split("|")
+        schema = self.file_schema.split("|")
         return schema[0]
 
-    @field_validator("type", mode="before")
-    @classmethod
-    def extract_track_type(cls, fileSchema) -> str:
+    @computed_field
+    @property
+    def type(self) -> str:
         """extract track type from file schema"""
+        if self.file_schema is None or "|" not in self.file_schema:
+            return "annotation"
 
-        if "|" in fileSchema:
-            schema = fileSchema.split("|")
-            return schema[1]
-        return "annotation"
+        schema = self.file_schema.split("|")
+        return schema[1]
 
     @computed_field
     @property
@@ -59,9 +109,7 @@ class IGVBrowserTrackConfig(RowModel):
     @computed_field
     @property
     def autoscale(self) -> bool:
-        return self.browser_track_type == "qtl"
-
-    # model_config = ConfigDict(populate_by_name=True)
+        return self.type == "qtl"
 
     def get_view_config(self, view: ResponseView, **kwargs):
         """get configuration object required by the view"""
@@ -76,34 +124,89 @@ class IGVBrowserTrackConfig(RowModel):
 
 # sole purpose of this model is to assemble the information for the track selector
 class IGVBrowserTrackMetadata(RowModel):
-    track_id: str
-    name: str
-    description: str
-    data_source: str
-    feature_type: str  # = Field(serialization_alias='feature')
+    track_id: str = Field(title="Track")
+    name: str = Field(title="Name")
+    description: str = Field(Title="Description")
+    data_source: str = Field(title="Data Source")
+    feature_type: str = Field(title="Feature Type")
     biosample_characteristics: Optional[BiosampleCharacteristics] = None
     experimental_design: Optional[ExperimentalDesign] = None
     subject_phenotypes: Optional[Phenotype] = None
 
-    # model_config = ConfigDict(populate_by_name=True)
+    # should allow to fill from SQLAlchemy ORM model
+    model_config = ConfigDict(from_attributes=True)
 
+    @model_validator(mode="before")
     @classmethod
-    def get_table_columns(self):
-        fields = list(self.model_fields.keys())
-        columns: List[dict] = [
-            {"id": f, "header": id2title(f)}
-            for f in fields
-            if f not in ["biosample_characteristics", "experimental_design"]
-        ]
+    def process_extras(cls: Self, data: Union[Dict[str, Any]]):
+        """
+        promoted nested fields so that can get data_source, data_category,
+        url, etc from `Track` object
+
+        not doing null checks b/c if these values are missing there is an
+        error in the data the needs to be reviewed
+
+        After promotion, only keep extra counts, prefixed with `num_` as
+        allowable extra fields for a track summary
+        """
+
+        # this will happen b/c FastAPI tries all models
+        # until it can successfully serialize
+        if isinstance(data, str):
+            return data
+
+        if not isinstance(data, dict):
+            data = data.model_dump()  # assume data is an ORM w/model_dump mixin
+
+        # get the provenance fields, but leave the rest as dicts
+        promote_nested(
+            data, attributes="provenance", updateByReference=True
+        )  # should make data_source, url etc available
+
+        # filter out excess from the Track ORM model
+        modelFields = IGVBrowserTrackMetadata.model_fields.keys()
+        return {k: v for k, v in data.items() if k in modelFields}
+
+    def _get_table_view_config(self, **kwargs):
+        columns = super()._get_table_view_config(**kwargs)["columns"]
+
+        # add biosample, provenance, experimental design, file properties
+        columns += self._generate_table_columns(BiosampleCharacteristics)
+        columns += self._generate_table_columns(OntologyTerm)
+        columns += self._generate_table_columns(Phenotype)
+        columns += self._generate_table_columns(ExperimentalDesign)
+        # need to remove data_source to avoid duplicate
         columns += [
-            {"id": f, "header": id2title(f)}
-            for f in BiosampleCharacteristics.model_fields
-        ]
-        columns += [
-            {"id": f, "header": id2title(f)} for f in ExperimentalDesign.model_fields
+            c for c in self._generate_table_columns(Provenance) if c.id != "data_source"
         ]
 
-        return columns
+        columns = [c for c in columns if c.id not in EXCLUDE_FROM_METADATA]
+
+        # NOTE: options are handled in front-end applications
+        return {"columns": columns}
+
+    def to_view_data(self, view: ResponseView, **kwargs):
+        row: dict = super().to_view_data(view, **kwargs)
+
+        if view == ResponseView.TABLE:
+            promote_nested(row, updateByReference=True)
+            # FIXME: front-end?
+            row.update({"term": row["biosample"][0]["term"]})
+            if "term_id" in row["biosample"]:
+                row.update({"term_id": row["biosample"][0]["term_id"]})
+            else:
+                row.update({"term_id": None})
+
+            orderedRow = {}
+            for field in kwargs["fields"]:
+                if field not in row:
+                    orderedRow.update({field: None})
+                else:
+                    orderedRow.update({field: row[field]})
+
+            return orderedRow
+        else:
+            return row
 
     @classmethod
     def get_table_options(self):
@@ -131,20 +234,23 @@ class IGVBrowserTrackSelectorResponse(ResponseModel):
 
     @classmethod
     def build_table(cls, metadata: RowModel, tableId: str):
+        config = {}
         tableData = []
         track: RowModel
-        for track in metadata:
-            rowData = track.serialize()
-            rowData = IGVBrowserTrackMetadata(**rowData)
-            tableData.append(rowData.serialize(promoteObjs=True, byAlias=True))
+        for index, track in enumerate(metadata):
+            rowData = IGVBrowserTrackMetadata(**(track.model_dump()))
+            if index == 0:
+                config = rowData._get_table_view_config()
+                fieldIds = [c.id for c in config["columns"]]
 
-        columns = IGVBrowserTrackMetadata.get_table_columns()
+            tableData.append(rowData.to_view_data(ResponseView.TABLE, fields=fieldIds))
+
         options = IGVBrowserTrackMetadata.get_table_options()
-        options.update({"defaultColumns": [c["id"] for c in columns[:8]]})
+        options.update({"defaultColumns": [id for id in fieldIds[:8]]})
 
         return {
             "data": tableData,
-            "columns": columns,
+            "columns": config["columns"],
             "options": options,
             "id": tableId,
         }
