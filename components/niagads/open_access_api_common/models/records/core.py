@@ -9,6 +9,7 @@ from typing import Any, Dict, List, TypeVar
 
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
 from niagads.open_access_api_common.models.core import SerializableModel
+from niagads.open_access_api_common.models.views.table.cells import TableCellType
 from niagads.open_access_api_common.models.views.table.core import TableColumn
 from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
@@ -53,7 +54,7 @@ class RowModel(SerializableModel):
         """get configuration object required by the view"""
         match view:
             case ResponseView.TABLE:
-                return self.__get_table_view_config(**kwargs)
+                return self.get_table_view_config(**kwargs)
             case ResponseView.IGV_BROWSER:
                 raise NotImplementedError("IGVBrowser view coming soon")
             case _:
@@ -61,25 +62,39 @@ class RowModel(SerializableModel):
                     f"View `{view.value}` not yet supported for this response type"
                 )
 
-    def __get_table_view_config(self, **kwargs):
-        fields = list(self.model_dump().keys())
-        columns: List[TableColumn] = [
-            TableColumn(id=f, header=id2title(f)) for f in fields
-        ]
-        options = {}
+    def _assign_table_cell_type(self, fieldId: str, fieldInfo) -> TableCellType:
+        if fieldId == "p_value":
+            return TableCellType.PVALUE
 
-        if "track_id" in fields:
-            countsPresent = any([True for f in fields if f.startswith("num_")])
-            if countsPresent:
-                options.update(
-                    {
-                        "rowSelect": {
-                            "header": "Select",
-                            "rowId": "track_id",
-                        }
-                    }
-                )
-        return {"columns": columns, "options": options}
+        if "url" in fieldId:
+            return TableCellType.LINK
+
+        match str(fieldInfo.annotation):
+            case s if "str" in s:
+                return TableCellType.TEXT
+            case s if "bool" in s:
+                return TableCellType.BOOLEAN
+            case s if "int" in s:
+                return TableCellType.FLOAT
+            case s if "float" in s:
+                return TableCellType.FLOAT
+            case _:
+                return TableCellType.ABSTRACT
+
+    def get_table_view_config(self, **kwargs):
+        fields = self.__class__.model_fields
+        columns: List[TableColumn] = [
+            TableColumn(
+                id=k,
+                header=info.title if info.title is not None else k,
+                description=info.description,
+                type=self._assign_table_cell_type(k, info),
+            )
+            for k, info in fields.items()
+        ]
+
+        # NOTE: options are handled in front-end applications
+        return {"columns": columns}
 
 
 # allows you to set a type hint to a class and all its subclasses

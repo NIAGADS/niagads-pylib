@@ -20,14 +20,36 @@ from pydantic import ConfigDict, Field, computed_field, model_validator
 
 
 class TrackSummary(DynamicRowModel):
-    track_id: str
-    name: str
-    description: Optional[str] = None
-    genome_build: Optional[str] = None
-    feature_type: Optional[str] = None
-    data_source: Optional[str] = None
-    data_category: Optional[str] = None
-    url: Optional[str] = None
+    track_id: str = Field(title="Track")
+    name: str = Field(title="Name")
+    description: Optional[str] = Field(default=None, title="Description")
+    genome_build: str = Field(title="Genome Build")
+    feature_type: Optional[str] = Field(default=None, title="Feature")
+    is_download_only: Optional[bool] = Field(
+        default=False,
+        title="Download Only",
+        description="File is available for download only; data cannot be queried using the NIAGADS Open Access API.",
+    )
+    is_shard: Optional[bool] = Field(
+        default=False,
+        title="Is Shard?",
+        description="Flag indicateing whether track is part of a result set sharded by chromosome.",
+    )
+    data_source: Optional[str] = Field(
+        default=None,
+        title="Data Source",
+        description="original data source for the track",
+    )
+    data_category: Optional[str] = Field(
+        default=None,
+        title="Category",
+        description="data category; may be analysis type",
+    )
+    url: Optional[str] = Field(
+        default=None,
+        title="Download URL",
+        description="URL for NIAGADS-standardized file",
+    )
 
     # should allow to fill from SQLAlchemy ORM model
     model_config = ConfigDict(from_attributes=True)
@@ -65,9 +87,9 @@ class TrackSummary(DynamicRowModel):
 class Track(RowModel):
     track_id: str = Field(title="Track")
     name: str = Field(title="Name")
-    description: Optional[str] = Field(title="Description")
+    description: Optional[str] = Field(default=None, title="Description")
     genome_build: str = Field(title="Genome Build")
-    feature_type: Optional[str] = Field(title="Feature")
+    feature_type: Optional[str] = Field(default=None, title="Feature")
     is_download_only: Optional[bool] = Field(
         title="Download Only",
         description="File is available for download only; data cannot be queried using the NIAGADS Open Access API.",

@@ -50,7 +50,10 @@ class ResponseModel(SQLModel, BaseModel):
     def to_view(self, view: ResponseView, **kwargs):
         # avoid circular imports
         from niagads.open_access_api_common.models.records.core import RowModel
-        from niagads.open_access_api_common.models.views.table.core import TableColumn
+        from niagads.open_access_api_common.models.views.table.core import (
+            TableViewModel,
+            TableColumn,
+        )
 
         if len(self.data) == 0:
             raise RuntimeError("zero-length response; cannot generate view")
@@ -73,6 +76,7 @@ class ResponseModel(SQLModel, BaseModel):
         match view:
             case ResponseView.TABLE:
                 viewResponse.update({"id": kwargs["id"]})
+                return TableViewModel(**viewResponse)
             case ResponseView.IGV_BROWSER:
                 raise NotImplementedError("IGVBrowser view coming soon")
             case _:

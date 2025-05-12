@@ -270,13 +270,11 @@ class RouteHelperService:
                 f"WARNING: `Table` VIEW requested; response format changed to `{ResponseFormat.JSON.value}`"
             )
 
-        viewResponseObj = {
-            "response": response.to_view(ResponseView.TABLE, id=cacheKey),
-            "request": self._managers.requestData,
-            "pagination": response.pagination if response.is_paged() else None,
-        }
-
-        viewResponse = TableViewResponse(**viewResponseObj)
+        viewResponse = TableViewResponse(
+            table=response.to_view(ResponseView.TABLE, id=cacheKey),
+            request=self._managers.requestData,
+            pagination=response.pagination if response.is_paged() else None,
+        )
 
         await self._managers.cache.set(
             cacheKey, viewResponse, namespace=CacheNamespace.VIEW
