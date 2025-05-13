@@ -113,11 +113,11 @@ async def get_browser_feature_region(
 
     result: T_ResponseModel = await helper.get_query_response()
 
-    if len(result.response) == 0:
+    if len(result.data) == 0:
         return JSONResponse({})  # result.response
 
     # add the flank
-    region = GenomicRegion(**result.response)
+    region = GenomicRegion(**result.data)
     region.start -= flank
     region.end += flank
 

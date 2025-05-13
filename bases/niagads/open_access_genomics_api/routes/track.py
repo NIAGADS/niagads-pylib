@@ -189,4 +189,5 @@ async def get_track_data_summary(
         idParameter="track",
     )
 
-    return await helper.get_query_response()
+    result = await helper.get_query_response()
+    return result

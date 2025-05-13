@@ -41,7 +41,8 @@ _TRACK_QTLGENE_QUERY_SQL = f"""
         'ensembl_id', r.target_ensembl_id, 
         'gene_symbol', ga.gene_symbol
     ) AS target,
-
+    num_qtls_targeting_gene,
+    
     {_BUILD_VARIANT_DETAILS_SQL}
 
     FROM Results.QTLGene r,
@@ -92,7 +93,7 @@ TrackGWASSumStatQuery = QueryDefinition(
 # TODO: make generic like the data queries
 CountsTrackSummaryQuery = QueryDefinition(
     query="""
-        SELECT chromosome, count(target_ensembl_id)
+        SELECT chromosome, count(target_ensembl_id) AS num_target_genes
         FROM Results.QTLGene
         WHERE track_id = :id
         GROUP BY track_id, chromosome

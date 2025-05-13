@@ -141,6 +141,7 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
             if self.__query.fetchOne or opts.fetchOne or opts.countsOnly:
                 return result[0]
             else:
+                result = [dict(item) for item in result]
                 return result
 
         except NoResultFound as e:
