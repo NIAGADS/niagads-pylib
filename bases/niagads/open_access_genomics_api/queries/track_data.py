@@ -1,4 +1,5 @@
-from api.models.query_definition import QueryDefinition
+from niagads.open_access_api_common.models.query import QueryDefinition
+
 
 _BUILD_VARIANT_DETAILS_SQL = """
     jsonb_build_object(

@@ -1,39 +1,33 @@
-from fastapi import APIRouter, Depends, Query
 from typing import Union
 
-from api.common.enums.database import DataStore
-from api.common.enums.response_properties import (
+from fastapi import APIRouter, Depends, Query
+from niagads.database.models.metadata.composite_attributes import TrackDataStore
+from niagads.open_access_api_common.models.records.track.collection import (
+    CollectionResponse,
+)
+from niagads.open_access_api_common.models.records.track.track import (
+    TrackResponse,
+    TrackSummaryResponse,
+)
+from niagads.open_access_api_common.models.response.core import ResponseModel
+from niagads.open_access_api_common.models.views.table.core import TableViewResponse
+from niagads.open_access_api_common.parameters.pagination import page_param
+from niagads.open_access_api_common.parameters.record.path import collection_param
+from niagads.open_access_api_common.parameters.record.query import optional_track_param
+from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,
     ResponseView,
 )
-from api.common.exceptions import RESPONSES
-from api.common.helpers import Parameters, ResponseConfiguration
-
-from api.common.services.metadata_query import MetadataQueryService
-from api.dependencies.parameters.identifiers import (
-    optional_query_track_id_single,
-    path_collection_name,
+from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
+from niagads.open_access_api_common.services.route import (
+    Parameters,
+    ResponseConfiguration,
 )
-from api.dependencies.parameters.optional import page_param
+from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
+from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
-from api.models.base_response_models import ResponseModel
-from api.models.collection import CollectionResponse
-from api.models.view_models import TableViewResponse
-
-from api.routes.genomics.common.helpers import GenomicsRouteHelper
-from api.routes.genomics.dependencies.parameters import InternalRequestParameters
-from api.routes.genomics.models.genomics_track import (
-    GenomicsTrackResponse,
-    GenomicsTrackSummaryResponse,
-)
-from api.routes.genomics.queries.track_metadata import (
-    CollectionQuery,
-    CollectionTrackMetadataQuery,
-)
-
-
-router = APIRouter(prefix="/collection", tags=["Collections"], responses=RESPONSES)
+router = APIRouter(prefix="/collection", tags=["Collections"])
 
 
 @router.get(
@@ -60,7 +54,7 @@ async def get_collections(
     )
 
     result = await MetadataQueryService(
-        internal.session, dataStore=[DataStore.GENOMICS, DataStore.SHARED]
+        internal.session, dataStore=[TrackDataStore.GENOMICS, TrackDataStore.SHARED]
     ).get_collections()
     return await helper.generate_response(result)
 
@@ -69,16 +63,16 @@ async def get_collections(
     "/{collection}",
     response_model=Union[
         ResponseModel,
-        GenomicsTrackSummaryResponse,
-        GenomicsTrackResponse,
+        TrackSummaryResponse,
+        TrackResponse,
         TableViewResponse,
     ],
     name="Get track metadata by collection",
     description="retrieve full metadata for FILER track records associated with a collection",
 )
 async def get_collection_track_metadata(
-    collection: str = Depends(path_collection_name),
-    track: str = Depends(optional_query_track_id_single),
+    collection: str = Depends(collection_param),
+    track: str = Depends(optional_track_param),
     page: int = Depends(page_param),
     content: str = Query(
         ResponseContent.FULL, description=ResponseContent.get_description(True)
@@ -92,8 +86,8 @@ async def get_collection_track_metadata(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[
     ResponseModel,
-    GenomicsTrackSummaryResponse,
-    GenomicsTrackResponse,
+    TrackSummaryResponse,
+    TrackResponse,
     TableViewResponse,
 ]:
 
@@ -105,10 +99,10 @@ async def get_collection_track_metadata(
             content=rContent,
             view=ResponseView.table().validate(view, "view", ResponseView),
             model=(
-                GenomicsTrackResponse
+                TrackResponse
                 if rContent == ResponseContent.FULL
                 else (
-                    GenomicsTrackSummaryResponse
+                    TrackSummaryResponse
                     if rContent == ResponseContent.SUMMARY
                     else ResponseModel
                 )

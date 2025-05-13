@@ -1,10 +1,8 @@
 from enum import auto
-from typing import List, Type
+from typing import List
 
-from api.common.enums.base_enums import EnumParameter
-from api.models.base_row_models import T_RowModel
-from api.models.search import RecordSearchResult
-from api.models.query_definition import QueryDefinition
+from niagads.enums.core import EnumParameter
+from niagads.open_access_api_common.models.query import QueryDefinition
 
 
 class SearchType(EnumParameter):  # TODO: move to parameters

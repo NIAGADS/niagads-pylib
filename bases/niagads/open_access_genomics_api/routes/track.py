@@ -2,50 +2,53 @@ from fastapi import APIRouter, Depends, Path, Query
 from typing import Union
 
 from niagads.exceptions.core import ValidationError
-
-from api.common.enums.response_properties import (
+from niagads.open_access_api_common.models.records.features.feature_score import (
+    GWASSumStatResponse,
+    QTLResponse,
+)
+from niagads.open_access_api_common.models.records.track.track import (
+    TrackResponse,
+    TrackSummaryResponse,
+)
+from niagads.open_access_api_common.models.response.core import (
+    PagedResponseModel,
+    ResponseModel,
+)
+from niagads.open_access_api_common.models.views.table.core import TableViewResponse
+from niagads.open_access_api_common.parameters.pagination import page_param
+from niagads.open_access_api_common.parameters.record.path import track_param
+from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,
     ResponseView,
 )
-from api.common.exceptions import RESPONSES
-from api.common.helpers import Parameters, ResponseConfiguration
-
-from api.dependencies.parameters.optional import page_param
-from api.dependencies.parameters.identifiers import path_track_id
-from api.models.base_response_models import PagedResponseModel, ResponseModel
-from api.models.base_row_models import DynamicRowModel
-from api.models.view_models import TableViewResponse
-from api.routes.genomics.common.helpers import GenomicsRouteHelper
-from api.routes.genomics.dependencies.parameters import InternalRequestParameters
-from api.routes.genomics.models.feature_score import GWASSumStatResponse, QTLResponse
-from api.routes.genomics.models.genomics_track import (
-    GenomicsTrackResponse,
-    GenomicsTrackSummaryResponse,
+from niagads.open_access_api_common.services.route import (
+    Parameters,
+    ResponseConfiguration,
 )
-from api.routes.genomics.queries.track_data import (
+from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
+from niagads.open_access_genomics_api.queries.track_data import (
     CountsTrackSummaryQuery,
     TopTrackSummaryQuery,
 )
-from api.routes.genomics.queries.track_metadata import TrackMetadataQuery
+from niagads.open_access_genomics_api.queries.track_metadata import TrackMetadataQuery
+from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 
-router = APIRouter(prefix="/track", responses=RESPONSES)
+router = APIRouter(prefix="/track")
 
-tags = ["Record by ID", "Track Metadata by ID"]
+tags = ["Record(s) by ID", "Track Metadata by ID"]
 
 
 @router.get(
     "/{track}",
     tags=tags,
-    response_model=Union[
-        GenomicsTrackSummaryResponse, GenomicsTrackResponse, ResponseModel
-    ],
+    response_model=Union[TrackSummaryResponse, TrackResponse, ResponseModel],
     name="Get track metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response",
 )
 async def get_track_metadata(
-    track=Depends(path_track_id),
+    track=Depends(track_param),
     content: str = Query(
         ResponseContent.SUMMARY,
         description=ResponseContent.descriptive(description=True),
@@ -54,7 +57,7 @@ async def get_track_metadata(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[GenomicsTrackSummaryResponse, GenomicsTrackResponse, ResponseModel]:
+) -> Union[TrackSummaryResponse, TrackResponse, ResponseModel]:
 
     rContent = ResponseContent.descriptive().validate(
         content, "content", ResponseContent
@@ -66,9 +69,9 @@ async def get_track_metadata(
             content=rContent,
             format=rFormat,
             model=(
-                GenomicsTrackResponse
+                TrackResponse
                 if rContent == ResponseContent.FULL
-                else GenomicsTrackSummaryResponse
+                else TrackSummaryResponse
             ),
         ),
         Parameters(track=track),
@@ -80,7 +83,7 @@ async def get_track_metadata(
     # return await helper.get_query_response()
 
 
-tags = ["Record by ID", "Track Data by ID"]
+tags = ["Record(s) by ID", "Data Retrieval by ID"]
 
 
 @router.get(
@@ -90,14 +93,14 @@ tags = ["Record by ID", "Track Data by ID"]
     response_model=Union[
         GWASSumStatResponse,
         QTLResponse,
-        GenomicsTrackSummaryResponse,
+        TrackSummaryResponse,
         TableViewResponse,
-        ResponseModel,
+        PagedResponseModel,
     ],
     description="Get the top scoring (most statistically-significant based on a p-value filter) variant associations or QTLs from a data track.",
 )
 async def get_track_data(
-    track=Depends(path_track_id),
+    track=Depends(track_param),
     page: int = Depends(page_param),
     content: str = Query(
         ResponseContent.FULL, description=ResponseContent.data(description=True)
@@ -110,9 +113,9 @@ async def get_track_data(
 ) -> Union[
     GWASSumStatResponse,
     QTLResponse,
-    GenomicsTrackSummaryResponse,
+    TrackSummaryResponse,
     TableViewResponse,
-    ResponseModel,
+    PagedResponseModel,
 ]:
 
     rContent = ResponseContent.data().validate(content, "content", ResponseContent)
@@ -127,7 +130,7 @@ async def get_track_data(
             ),
             view=ResponseView.validate(view, "view", ResponseView),
             model=(
-                GenomicsTrackSummaryResponse
+                TrackSummaryResponse
                 if rContent == ResponseContent.SUMMARY
                 else PagedResponseModel
             ),
@@ -148,7 +151,7 @@ async def get_track_data(
     description="Get a summary of the top scoring (most statistically-significant based on a p-value filter) variant associations or QTLs from a data track.",
 )
 async def get_track_data_summary(
-    track=Depends(path_track_id),
+    track=Depends(track_param),
     summary_type=Path(description="summary type: one of counts or top"),
     content: str = Query(
         ResponseContent.FULL, description=ResponseContent.data(description=True)

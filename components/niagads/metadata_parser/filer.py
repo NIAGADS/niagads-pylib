@@ -448,6 +448,9 @@ class MetadataEntryParser:
 
             publications: str = regex_extract("study_pubmed_id=([^;]*)", info)
 
+            # FIXME: failed a regexp test; need to catch 'Not yet published PMID'
+            # also need to trim b/c getting PMID: ID instead of PMID:ID
+
             # first create a set to make sure pubmed_ids are unique, then convert
             # to list because sets are not JSON serializable
             provenance.pubmed_id = (

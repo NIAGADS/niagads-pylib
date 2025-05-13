@@ -25,16 +25,6 @@ class GenomicRegion(RowModel, Range):
             return span
 
 
-class Gene(RowModel):
-    ensembl_id: str
-    gene_symbol: Optional[str] = None
-
-
-class Variant(RowModel):
-    variant_id: str
-    ref_snp_id: Optional[str] = None
-
-
 class GenomicFeature(BaseModel):
     feature_id: str
     feature_type: GenomicFeatureType

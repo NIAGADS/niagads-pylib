@@ -1,32 +1,33 @@
 from typing import Optional
+
+from niagads.common.models.core import Range
+from niagads.database.models.metadata.composite_attributes import TrackDataStore
+from niagads.database.models.metadata.track import Track
 from niagads.exceptions.core import ValidationError
-
-from pydantic import BaseModel
-from sqlalchemy import RowMapping
-from sqlmodel import bindparam, func, select, text
-from sqlalchemy.exc import NoResultFound
-
-from niagads.utils.dict import all_values_are_none
-
-from api.common.enums.database import DataStore
-from api.common.enums.response_properties import ResponseContent, ResponseView
-from api.common.helpers import Parameters, ResponseConfiguration, MetadataRouteHelper
-from api.common.services.metadata_query import MetadataQueryService
-from api.common.types import Range
-from api.config.settings import Settings
-from api.models.query_definition import QueryDefinition
-
-from api.routes.genomics.common.constants import (
-    CACHEDB_PARALLEL_TIMEOUT,
-    DEFAULT_PAGE_SIZE,
+from niagads.open_access_api_common.models.query import QueryDefinition
+from niagads.open_access_api_common.models.records.features.feature_score import (
+    GWASSumStatResponse,
+    QTLResponse,
 )
-from api.routes.genomics.dependencies.parameters import InternalRequestParameters
-from api.routes.genomics.models.feature_score import GWASSumStatResponse, QTLResponse
-from api.routes.genomics.models.genomics_track import GenomicsTrack
-from api.routes.genomics.queries.track_data import (
+from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
+from niagads.open_access_api_common.parameters.response import ResponseContent
+from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
+from niagads.open_access_api_common.services.metadata.route import (
+    MetadataRouteHelperService,
+)
+from niagads.open_access_api_common.services.route import (
+    Parameters,
+    ResponseConfiguration,
+)
+
+from niagads.open_access_genomics_api.queries.track_data import (
     TrackGWASSumStatQuery,
     TrackQTLGeneQuery,
 )
+from niagads.utils.dict import all_values_are_none
+from pydantic import BaseModel
+from sqlalchemy import bindparam, text
+from sqlalchemy.exc import NoResultFound
 
 
 class QueryOptions(BaseModel):
@@ -36,7 +37,7 @@ class QueryOptions(BaseModel):
     range: Optional[Range] = None
 
 
-class GenomicsRouteHelper(MetadataRouteHelper):
+class GenomicsRouteHelper(MetadataRouteHelperService):
 
     def __init__(
         self,
@@ -47,7 +48,10 @@ class GenomicsRouteHelper(MetadataRouteHelper):
         idParameter: str = "id",
     ):
         super().__init__(
-            managers, responseConfig, params, [DataStore.SHARED, DataStore.GENOMICS]
+            managers,
+            responseConfig,
+            params,
+            [TrackDataStore.SHARED, TrackDataStore.GENOMICS],
         )
         self.__query = query
         self.__idParameter: str = idParameter
@@ -196,15 +200,15 @@ class GenomicsRouteHelper(MetadataRouteHelper):
             return cachedResponse
 
         # this will both validate and allow us to determine which kind of track
-        result: GenomicsTrack = await self.__validate_track()
+        result: Track = await self.__validate_track()
         # result: GenomicsTrack = await self.__run_query(QueryOptions(fetchOne=True))
 
-        match result.data_category:
+        match result.experimental_design["data_category"]:
             case "QTL":
                 self.__query = TrackQTLGeneQuery
                 if self._responseConfig.content == ResponseContent.FULL:
                     self._responseConfig.model = QTLResponse
-            case _ if result.data_category.startswith("GWAS"):
+            case _ if result.experimental_design["data_category"].startswith("GWAS"):
                 self.__query = TrackGWASSumStatQuery
                 if self._responseConfig.content == ResponseContent.FULL:
                     self._responseConfig.model = GWASSumStatResponse
@@ -220,7 +224,7 @@ class GenomicsRouteHelper(MetadataRouteHelper):
                 )
                 suffix = (
                     "qtls"
-                    if result.data_category == "QTL"
+                    if result.experimental_design["data_category"] == "QTL"
                     else "significant_associations"
                 )
                 if self._responseConfig.content == ResponseContent.COUNTS:

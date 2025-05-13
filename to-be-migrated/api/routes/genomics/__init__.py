@@ -1,1 +1,0 @@
-from .routes.root import router as GenomicsRouter

@@ -10,7 +10,6 @@ from niagads.open_access_api_common.models.records.track.track import (
 )
 from niagads.open_access_api_common.models.response.core import (
     PagedResponseModel,
-    ResponseModel,
 )
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.location import (
@@ -18,7 +17,6 @@ from niagads.open_access_api_common.parameters.location import (
     span_param,
 )
 from niagads.open_access_api_common.parameters.pagination import page_param
-from niagads.open_access_api_common.parameters.record.query import track_list_param
 from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,

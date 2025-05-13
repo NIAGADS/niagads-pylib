@@ -1,14 +1,22 @@
 from typing import Dict, List, Optional, Union
 
-from api.models.base_response_models import PagedResponseModel
-from api.models.genome import Gene as BaseGene, GenomicRegion
+from niagads.open_access_api_common.models.records.core import RowModel
+from niagads.open_access_api_common.models.records.features.genomic import GenomicRegion
+from niagads.open_access_api_common.models.response.core import PagedResponseModel
 
-class Gene(BaseGene):
+
+class GeneFeature(RowModel):
+    ensembl_id: str
+    gene_symbol: Optional[str] = None
+
+
+class Gene(GeneFeature):
     type: str
     name: str
     location: GenomicRegion
     cytogenic_location: Optional[str] = None
     # summary: Optional[str] = None
+
 
 class AnnotatedGene(Gene):
     mappings: Dict[str, Union[str, int]]
@@ -16,9 +24,11 @@ class AnnotatedGene(Gene):
     function: Optional[dict] = None
     pathways: Optional[dict] = None
     # relationships: Optional[dict] = None
-    
+
+
 class GeneSummaryResponse(PagedResponseModel):
     data: List[Gene]
-    
+
+
 class AnnotatedGeneResponse(PagedResponseModel):
     data: List[AnnotatedGene]

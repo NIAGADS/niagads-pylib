@@ -26,11 +26,16 @@ from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,
 )
+from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
 from niagads.open_access_api_common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
-from niagads.open_access_filer_api.dependencies import InternalRequestParameters
+from niagads.open_access_filer_api.dependencies import (
+    TRACK_DATA_STORES,
+    InternalRequestParameters,
+    TextSearchFilterFields,
+)
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(prefix="/service")
@@ -173,3 +178,22 @@ async def get_shard(
     )
 
     return await helper.get_shard()
+
+
+tags = tags + ["Service Information"]
+
+
+@router.get(
+    "/lookup/filters",
+    tags=tags,
+    response_model=Union[ResponseModel],
+    name="Get text search filter fields",
+    description="List allowable fields for text search filter expressions.",
+)
+async def get_allowable_text_filters(
+    internal: InternalRequestParameters = Depends(),
+) -> ResponseModel:
+
+    return ResponseModel(
+        data=TextSearchFilterFields.list(toLower=True), request=internal.requestData
+    )

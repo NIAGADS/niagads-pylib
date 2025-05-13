@@ -37,7 +37,23 @@
                 "niagads.open_access_filer_api.core:app",
                 "--reload",
                 "--env-file",
-                "${workspaceFolder}/../filer.env"
+                "${workspaceFolder}/../dev.env"
+                //"--no-reload",
+            ],
+            "jinja": true,
+            "justMyCode": false
+        },
+        {
+            "name": "Genomics - dev",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "niagads.open_access_genomics_api.core:app",
+                "--reload",
+                //"--port", "8001",
+                "--env-file",
+                "${workspaceFolder}/../genomics.env"
                 //"--no-reload",
             ],
             "jinja": true,

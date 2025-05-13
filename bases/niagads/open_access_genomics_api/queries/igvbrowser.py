@@ -1,5 +1,4 @@
-from api.models.genome import GenomicRegion
-from api.models.query_definition import QueryDefinition
+from niagads.open_access_api_common.models.query import QueryDefinition
 
 
 IGVFeatureLookupQuery = QueryDefinition(

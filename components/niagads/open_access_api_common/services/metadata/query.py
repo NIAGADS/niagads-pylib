@@ -76,7 +76,7 @@ class MetadataQueryService:
         result = (await self.__session.execute(statement)).scalars().first()
         return result
 
-    async def get_collections(self):
+    async def get_collections(self) -> List[Collection]:
         statement = (
             select(
                 Collection.name,
@@ -90,12 +90,14 @@ class MetadataQueryService:
             .filter(col(Collection.data_store).in_(self.__dataStore))
         )
         statement = statement.group_by(Collection).order_by(Collection.collection_id)
-        result = (await self.__session.execute(statement)).all()
+        result = (await self.__session.execute(statement)).mappings().all()
         return result
 
     def generate_sharded_track_metadata(self, t: Track):
         t.track_id = t.shard_root_track_id
-        t.url = regex_replace(SHARD_PATTERN, "$CHR", t.url)
+        t.file_properties["url"] = regex_replace(
+            SHARD_PATTERN, "$CHR", t.file_properties["url"]
+        )
 
         # remove _chrN_ from fields
         t.name = regex_replace(f" {SHARD_PATTERN} ", " ", t.name)
