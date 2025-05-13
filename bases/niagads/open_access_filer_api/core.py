@@ -11,9 +11,7 @@ from niagads.settings.core import get_service_environment
 import uvicorn
 
 # generate the app
-appFactory = AppFactory(
-    routePath="filer", metadata=OPEN_API_SPEC, env=get_service_environment()
-)
+appFactory = AppFactory(metadata=OPEN_API_SPEC, env=get_service_environment())
 
 # add the child routes
 appFactory.add_router(RootRouter)

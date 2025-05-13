@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Optional, Self, Union
 
-import strawberry
 from niagads.common.models.core import OntologyTerm
 from niagads.database.models.metadata.composite_attributes import (
     BiosampleCharacteristics,
@@ -100,7 +99,6 @@ class TrackSummary(DynamicRowModel):
         }
 
 
-@strawberry.type
 class Track(RowModel):
     track_id: str = Field(title="Track")
     name: str = Field(title="Name")

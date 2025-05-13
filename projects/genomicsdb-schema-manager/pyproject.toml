@@ -25,6 +25,8 @@ packages = [
     { from = "../../components", include = "niagads/settings" },
     { from = "../../components", include = "niagads/utils" },
     { include = "database" },
+    {include = "niagads/open_access_api_common",from = "../../components"},
+    {include = "niagads/cache",from = "../../components"},
 ]
 
 [tool.tomlsort]

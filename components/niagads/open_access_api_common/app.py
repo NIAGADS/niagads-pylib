@@ -51,7 +51,7 @@ class AppFactory:
         """
         self.__app = None
         self.__metadata = metadata
-        self.__prefix = f"/v{self.__metadata.version.split('.')[0]}/{routePath}"
+        self.__prefix = f"/v{self.__metadata.version.split('.')[0]}"  # {routePath}"
 
         self.__create()
         self.__add_middleware()

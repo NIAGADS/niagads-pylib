@@ -55,7 +55,7 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
 
         # endpoints are /version/route; namespace should be the route
         namespace = (
-            "root" if request.url.path == "/" else request.url.path.split("/")[2]
+            "root" if request.url.path == "/" else request.url.path.split("/")[1]
         )
 
         return cls(key=rawKey, namespace=CacheNamespace(namespace))

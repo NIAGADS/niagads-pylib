@@ -75,9 +75,10 @@ pyyaml = "^6.0.2"
 rdflib = "^7.1.4"
 sqlalchemy = "^2.0.40"
 sqlmodel = "^0.0.24"
-strawberry-graphql = { extras = ["fastapi"], version = "^0.268.0" }
 strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
+requests = "^2.32.3"
+uvicorn = "^0.34.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"

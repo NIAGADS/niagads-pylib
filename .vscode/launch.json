@@ -58,6 +58,22 @@
             ],
             "jinja": true,
             "justMyCode": false
+        },
+        {
+            "name": "NIAGADS - dev",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "niagads.open_access_api.core:app",
+                "--reload",
+                //"--port", "8001",
+                "--env-file",
+                "${workspaceFolder}/../genomics.env"
+                //"--no-reload",
+            ],
+            "jinja": true,
+            "justMyCode": false
         }
         /*{
             "name": "FAST-API - plus dependencies",
