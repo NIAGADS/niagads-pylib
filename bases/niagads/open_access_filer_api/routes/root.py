@@ -47,9 +47,9 @@ router = APIRouter()
     "/",
     response_model=ResponseModel,
     description="brief summary about the " + ROUTE_NAME,
-    tags=["Route Overview"],
+    tags=["Service Information"],
 )
-async def get_route_description(
+async def get_database_description(
     internal: InternalRequestParameters = Depends(),
 ) -> ResponseModel:
 

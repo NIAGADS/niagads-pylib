@@ -141,13 +141,18 @@ class TrackMetadataLoader(AbstractDataLoader):
                 (
                     t.track_id
                     for t in self.__parsedTracks
-                    if regex_replace(RegularExpressions.SHARD, "_", fileName)
+                    if regex_replace(
+                        RegularExpressions.SHARD,
+                        "_",
+                        t.file_properties.get("file_name"),
+                    )
                     == shardKey
                     and matches(r"_chr1_", t.file_properties.get("file_name"))
                 ),
                 None,
             )
-
+        if self._debug:
+            self.logger.debug(f"Shard: {shardKey}: {self.__shardedTracks[shardKey]}")
         return self.__shardedTracks[shardKey]
 
     async def load(self):

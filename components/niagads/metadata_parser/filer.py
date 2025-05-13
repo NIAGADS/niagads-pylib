@@ -795,21 +795,19 @@ class MetadataEntryParser:
         remove the duplicate feature type from the text field
         """
 
-        # FIXME: not working see: NGEQC01308	FILER	eQTL_Catalogue Macrophage sQTL sQTL INDEL significant associations
-        #  featureType is sQTL but replacement or update is not happening
         featureType = self.__metadata["feature_type"]
 
         if "QTL" in featureType:
             self.__metadata.update(
                 {
                     "name": self.__metadata["name"].replace(
-                        f"${featureType} ${featureType}", featureType
+                        f"{featureType} {featureType}", featureType
                     ),
                     "description": self.__metadata["description"].replace(
-                        f"${featureType} ${featureType}", featureType
+                        f"{featureType} {featureType}", featureType
                     ),
                     "searchable_text": self.__metadata["searchable_text"].replace(
-                        f"${featureType} ${featureType}", featureType
+                        f"{featureType} {featureType}", featureType
                     ),
                 }
             )

@@ -987,6 +987,18 @@ files = [
 ]
 
 [[package]]
+name = "graphql-core"
+version = "3.2.6"
+description = "GraphQL implementation for Python, a port of GraphQL.js, the JavaScript reference implementation for GraphQL."
+optional = false
+python-versions = "<4,>=3.6"
+groups = ["main"]
+files = [
+    {file = "graphql_core-3.2.6-py3-none-any.whl", hash = "sha256:78b016718c161a6fb20a7d97bbf107f331cd1afe53e45566c59f776ed7f0b45f"},
+    {file = "graphql_core-3.2.6.tar.gz", hash = "sha256:c08eec22f9e40f0bd61d805907e3b3b1b9a320bc606e23dc145eebca07c8fbab"},
+]
+
+[[package]]
 name = "greenlet"
 version = "3.1.1"
 description = "Lightweight in-process concurrent programming"
@@ -2483,6 +2495,18 @@ files = [
 cli = ["click (>=5.0)"]
 
 [[package]]
+name = "python-multipart"
+version = "0.0.20"
+description = "A streaming multipart parser for Python"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "python_multipart-0.0.20-py3-none-any.whl", hash = "sha256:8a62d3a8335e06589fe01f2a3e178cdcc632f3fbe0d492ad9ee0ec35aab1f104"},
+    {file = "python_multipart-0.0.20.tar.gz", hash = "sha256:8dd0cab45b8e23064ae09147625994d090fa46f5b0d1e13af944c331a7fa9d13"},
+]
+
+[[package]]
 name = "pytz"
 version = "2025.2"
 description = "World timezone definitions, modern and historical"
@@ -3059,6 +3083,44 @@ anyio = ">=3.6.2,<5"
 full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.18)", "pyyaml"]
 
 [[package]]
+name = "strawberry-graphql"
+version = "0.268.0"
+description = "A library for creating GraphQL APIs"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "strawberry_graphql-0.268.0-py3-none-any.whl", hash = "sha256:e9dc8fc1603da5ac2eb5b3ce23e9f6a8ea0e4750f2d26bd6deaa523ad7e677ca"},
+    {file = "strawberry_graphql-0.268.0.tar.gz", hash = "sha256:fc9ad39259a812179b86175ef957bbbb9cc7e8041c0f60c59ec36ac2a88d2d0e"},
+]
+
+[package.dependencies]
+fastapi = {version = ">=0.65.2", optional = true, markers = "extra == \"fastapi\""}
+graphql-core = {version = ">=3.2.0,<3.4.0", markers = "python_version >= \"3.9\" and python_version < \"4.0\""}
+packaging = ">=23"
+python-dateutil = ">=2.7.0,<3.0.0"
+python-multipart = {version = ">=0.0.7", optional = true, markers = "extra == \"asgi\" or extra == \"debug-server\" or extra == \"fastapi\""}
+typing-extensions = ">=4.5.0"
+
+[package.extras]
+aiohttp = ["aiohttp (>=3.7.4.post0,<4.0.0)"]
+asgi = ["python-multipart (>=0.0.7)", "starlette (>=0.18.0)"]
+chalice = ["chalice (>=1.22,<2.0)"]
+channels = ["asgiref (>=3.2,<4.0)", "channels (>=3.0.5)"]
+cli = ["libcst (>=0.4.7)", "pygments (>=2.3,<3.0)", "rich (>=12.0.0)", "typer (>=0.7.0)"]
+debug = ["libcst (>=0.4.7)", "rich (>=12.0.0)"]
+debug-server = ["libcst (>=0.4.7)", "pygments (>=2.3,<3.0)", "python-multipart (>=0.0.7)", "rich (>=12.0.0)", "starlette (>=0.18.0)", "typer (>=0.7.0)", "uvicorn (>=0.11.6)"]
+django = ["Django (>=3.2)", "asgiref (>=3.2,<4.0)"]
+fastapi = ["fastapi (>=0.65.2)", "python-multipart (>=0.0.7)"]
+flask = ["flask (>=1.1)"]
+litestar = ["litestar (>=2) ; python_version >= \"3.10\" and python_version < \"4.0\""]
+opentelemetry = ["opentelemetry-api (<2)", "opentelemetry-sdk (<2)"]
+pydantic = ["pydantic (>1.6.1)"]
+pyinstrument = ["pyinstrument (>=4.0.0)"]
+quart = ["quart (>=0.19.3)"]
+sanic = ["sanic (>=20.12.2)"]
+
+[[package]]
 name = "strenum"
 version = "0.4.15"
 description = "An Enum that inherits from str."
@@ -3268,4 +3330,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "e1386f822283aea9c1ee61f5be14847348efade6f78d49918b32678117f36523"
+content-hash = "0c6cacd948afe52ed2218e58ad55a92e273bd8f4479c821562a3c66ffc95a02e"

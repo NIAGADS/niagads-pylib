@@ -42,7 +42,7 @@ tags = ["NIAGADS Genome Browser"]
     "/igvbrowser/config",
     tags=tags,
     response_model=List[IGVBrowserTrackConfig],
-    name="Get IGV Genome Browser for FILER tracks",
+    name="Get Genome Browser Configuration",
     description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) by ID or collection",
 )
 # , or keyword search")
@@ -87,7 +87,7 @@ async def get_track_browser_config(
     "/igvbrowser/selector",
     tags=tags,
     response_model=TableViewModel,
-    name="Get Genome Browser track selector for FILER tracks",
+    name="Get Genome Browser Track Selector Table",
     description="retrieve NIAGADS Genome Browser track selector table for one or more FILER `track`(s) by ID or collection",
 )
 # , or keyword")
@@ -128,7 +128,7 @@ async def get_track_browser_config(
     return result.data
 
 
-tags = ["Lookups"]
+tags = ["Lookup Services"]
 
 
 @router.get(
