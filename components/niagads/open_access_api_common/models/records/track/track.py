@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Self, Union
 
+import strawberry
 from niagads.common.models.core import OntologyTerm
 from niagads.database.models.metadata.composite_attributes import (
     BiosampleCharacteristics,
@@ -19,7 +20,6 @@ from niagads.open_access_api_common.parameters.response import (
 from niagads.utils.dict import promote_nested
 from niagads.utils.list import find
 from pydantic import ConfigDict, Field, computed_field, model_validator
-
 
 EXCLUDE_FROM_TRACK_VIEWS = [
     "ontology",
@@ -100,6 +100,7 @@ class TrackSummary(DynamicRowModel):
         }
 
 
+@strawberry.type
 class Track(RowModel):
     track_id: str = Field(title="Track")
     name: str = Field(title="Name")
@@ -114,7 +115,8 @@ class Track(RowModel):
         title="Is Shard?",
         description="Flag indicateing whether track is part of a result set sharded by chromosome.",
     )
-    cohorts: Optional[List[str]] = Field(title="Cohorts")
+    # FIXME: exclude cohorts until parsing resolved for FILER
+    cohorts: Optional[List[str]] = Field(title="Cohorts", exclude=True)
     biosample_characteristics: Optional[BiosampleCharacteristics]
     subject_phenotypes: Optional[Phenotype]
     experimental_design: Optional[ExperimentalDesign]

@@ -408,6 +408,7 @@ class MetadataEntryParser:
             [value for value in design.model_dump().values() if not is_bool(value)]
         )
 
+    # FIXME: see NGEQC01308 -> getting a cell type instead
     def parse_cohorts(self):
         info = self.__clean_list(
             self.get_entry_attribute("track_description"), delim=";"
@@ -794,6 +795,8 @@ class MetadataEntryParser:
         remove the duplicate feature type from the text field
         """
 
+        # FIXME: not working see: NGEQC01308	FILER	eQTL_Catalogue Macrophage sQTL sQTL INDEL significant associations
+        #  featureType is sQTL but replacement or update is not happening
         featureType = self.__metadata["feature_type"]
 
         if "QTL" in featureType:
