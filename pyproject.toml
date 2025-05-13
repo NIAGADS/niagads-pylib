@@ -16,11 +16,12 @@ profile = "black"
 homepage = "https://github.com/NIAGADS/niagads-pylib"
 repository = "https://github.com/NIAGADS/niagads-pylib"
 packages = [
+    { from = "bases", include = "niagads/loaders" },
     { from = "bases", include = "niagads/metadata_validator_tool" },
     { from = "bases", include = "niagads/open_access_advp_api" },
+    { from = "bases", include = "niagads/open_access_api" },
     { from = "bases", include = "niagads/open_access_filer_api" },
     { from = "bases", include = "niagads/open_access_genomics_api" },
-    { from = "bases", include = "niagads/open_access_root_api" },
     { from = "components", include = "niagads/adsp_annotation" },
     { from = "components", include = "niagads/arg_parser" },
     { from = "components", include = "niagads/cache" },
@@ -37,6 +38,7 @@ packages = [
     { from = "components", include = "niagads/gene_record" },
     { from = "components", include = "niagads/genome" },
     { from = "components", include = "niagads/json_validator" },
+    { from = "components", include = "niagads/metadata_parser" },
     { from = "components", include = "niagads/metadata_validator" },
     { from = "components", include = "niagads/objects" },
     { from = "components", include = "niagads/open_access_api_common" },
@@ -49,8 +51,6 @@ packages = [
     { from = "components", include = "niagads/variant_record" },
     { from = "components", include = "niagads/vcf_parser" },
     { from = "components", include = "niagads/vep_json_parser" },
-    { include = "niagads/metadata_parser", from = "components" },
-    { include = "niagads/loaders", from = "bases" },
 ]
 
 [tool.poetry.dependencies]
@@ -58,6 +58,7 @@ aiocache = { extras = ["redis"], version = "^0.12.3" }
 aiohttp = { extras = ["speedups"], version = "^3.11.16" }
 asgi-correlation-id = "^4.3.4"
 asyncpg = "^0.30.0"
+email-validator = "^2.2.0"
 fastapi = "^0.115.12"
 fastapi-cors = "^0.0.6"
 itsdangerous = "^2.2.0"
@@ -74,10 +75,9 @@ pyyaml = "^6.0.2"
 rdflib = "^7.1.4"
 sqlalchemy = "^2.0.40"
 sqlmodel = "^0.0.24"
+strawberry-graphql = { extras = ["fastapi"], version = "^0.268.0" }
 strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
-email-validator = "^2.2.0"
-strawberry-graphql = {extras = ["fastapi"], version = "^0.268.0"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
@@ -88,7 +88,6 @@ lazydoc = "^1.0.1"
 mypy = "^1.8.0"
 pydocstyle = "^6.3.0"
 pytest = "^8.2.2"
-
 
 [tool.pytest.ini_options]
 addopts = "-vv"

@@ -10,7 +10,7 @@ def start_local_service(api: str):
     import asyncio
 
     from niagads.open_access_filer_api import core as filer
-    from niagads.open_access_root_api import core as root
+    from niagads.open_access_api import core as root
     from uvicorn import Config, Server
 
     service = filer if api == "filer" else root

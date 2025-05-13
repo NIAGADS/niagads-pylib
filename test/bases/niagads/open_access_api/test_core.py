@@ -1,4 +1,4 @@
-from niagads.open_access_root_api import core
+from niagads.open_access_api import core
 
 
 def test_sample():
