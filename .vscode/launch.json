@@ -69,7 +69,7 @@
                 "--reload",
                 //"--port", "8001",
                 "--env-file",
-                "${workspaceFolder}/../genomics.env"
+                "${workspaceFolder}/../niagads.env"
                 //"--no-reload",
             ],
             "jinja": true,
