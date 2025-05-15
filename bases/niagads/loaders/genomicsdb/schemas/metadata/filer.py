@@ -181,7 +181,7 @@ class TrackMetadataLoader(AbstractDataLoader):
                     ):
                         # set shard properties
                         track.is_shard = True
-                        track.shard_chromosome = f"chr{regex_extract(RegularExpressions.SHARD, track.file_properties.get("file_name"))}".replace(
+                        track.shard_chromosome = f"chr{regex_extract(RegularExpressions.SHARD, track.file_properties.get('file_name'))}".replace(
                             "_", ""
                         )
                         track.shard_root_track_id = self.__get_shard_root(

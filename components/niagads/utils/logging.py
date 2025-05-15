@@ -34,7 +34,7 @@ class FunctionContextAdapter(logging.LoggerAdapter):
 
         # FIXME: might need a null or empty check
         if frame.f_locals and "self" in frame.f_locals:
-            className = f"{frame.f_locals["self"].__class__.__name__}:"
+            className = f"{frame.f_locals['self'].__class__.__name__}:"
         else:
             className = ""
 
