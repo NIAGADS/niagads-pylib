@@ -26,7 +26,7 @@ tags = ["Data Retrieval by Region", "xQTL Track Record"]
 
 
 @router.get(
-    "/{track}/",
+    "/{track}",
     tags=tags,
     name="Get QTLs by Region",
     response_model=Union[BEDResponse, TableViewResponse, ResponseModel],

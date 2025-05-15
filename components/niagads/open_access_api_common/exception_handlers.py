@@ -41,7 +41,7 @@ def add_runtime_exception_handler(app: FastAPI) -> None:
         if request.url.query != "":
             query += "?" + request.url.query
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=jsonable_encoder(
                 {
                     "error": str(exc),  # optionally, include the pydantic errors
@@ -62,7 +62,7 @@ def add_not_implemented_exception_handler(app: FastAPI) -> None:
         request: Request, exc: NotImplementedError
     ):
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
             content=jsonable_encoder(
                 {"error": str(exc), "message": "Not yet implemented"}
             ),
@@ -106,7 +106,7 @@ def add_system_exception_handler(app: FastAPI) -> None:
         if request.url.query != "":
             query += "?" + request.url.query
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=jsonable_encoder(
                 {
                     "message": str(exc),  # optionally, include the pydantic errors
@@ -132,7 +132,7 @@ def add_database_exception_handler(app: FastAPI) -> None:
         if request.url.query != "":
             query += "?" + request.url.query
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=jsonable_encoder(
                 {
                     "message": str(exc),  # optionally, include the pydantic errors

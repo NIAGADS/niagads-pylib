@@ -4,6 +4,7 @@ from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
+from niagads.open_access_api_common.config.constants import RESPONSES
 from niagads.open_access_api_common.exception_handlers import (
     add_database_exception_handler,
     add_not_implemented_exception_handler,
@@ -101,6 +102,7 @@ class AppFactory:
             docs_url=f"{self.__prefix}/docs",
             redoc_url=f"{self.__prefix}/redoc",
             openapi_tags=[t.model_dump() for t in self.__metadata.openapi_tags],
+            responses=RESPONSES,
         )
 
     def __add_middleware(self):
