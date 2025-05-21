@@ -1,5 +1,6 @@
 from typing import List
 
+from fastapi.openapi.utils import get_openapi
 from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,7 +42,7 @@ class AppFactory:
         self,
         metadata: OpenAPISpec,
         env: str,
-        routePath: str = "",
+        namespace: str = "niagads",
     ):
         """
         Initializes the AppFactory
@@ -53,7 +54,7 @@ class AppFactory:
         self.__app = None
         self.__metadata = metadata
         self.__prefix = f"/v{self.__metadata.version.split('.')[0]}"  # {routePath}"
-
+        self.__namespace = namespace
         self.__create()
         self.__add_middleware()
         self.__add_exception_handlers()
@@ -105,6 +106,8 @@ class AppFactory:
             responses=RESPONSES,
         )
 
+        self.__app.openapi = self.build_openapi()
+
     def __add_middleware(self):
         """Adds middleware to the application"""
 
@@ -140,3 +143,15 @@ class AppFactory:
         add_system_exception_handler(self.__app)
         add_database_exception_handler(self.__app)
         add_not_implemented_exception_handler(self.__app)
+
+    def build_openapi(self):
+        if self.__app.openapi_schema:
+            return self.__app.openapi_schema
+
+        openapi_schema = get_openapi()
+
+        openapi_schema = self.__app.openapi_schema
+        openapi_schema["info"]["x-namespace"] = self.__namespace
+
+        self.__app.openapi_schema = openapi_schema
+        return self.__app.openapi_schema

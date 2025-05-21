@@ -2,7 +2,7 @@ from enum import StrEnum, auto
 
 from fastapi import Request
 from niagads.open_access_api_common.models.response.request import RequestDataModel
-from niagads.utils.string import blake2b_hash, regex_replace
+from niagads.utils.string import blake2b_hash, matches, regex_replace
 from pydantic import BaseModel, Field
 
 
@@ -57,6 +57,9 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
         namespace = (
             "root" if request.url.path == "/" else request.url.path.split("/")[1]
         )
+
+        if matches(r"v\d", namespace):
+            namespace = "root"
 
         return cls(key=rawKey, namespace=CacheNamespace(namespace))
 
