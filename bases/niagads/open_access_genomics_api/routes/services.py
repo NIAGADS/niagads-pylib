@@ -17,6 +17,7 @@ from niagads.open_access_api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
+from niagads.open_access_genomics_api.documentation import ROUTE_NAME
 from niagads.open_access_genomics_api.queries.igvbrowser import IGVFeatureLookupQuery
 from niagads.open_access_genomics_api.queries.search import (
     SearchType,
@@ -25,14 +26,11 @@ from niagads.open_access_genomics_api.queries.search import (
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 
-router = APIRouter(prefix="/service")
-
-tags = ["Service"]
+router = APIRouter(prefix="/service", tags=[ROUTE_NAME, "Services"])
 
 
 @router.get(
     "/search",
-    tags=tags,
     response_model=Union[List[RecordSearchResult]],
     name="Site Search",
     description="Find Alzheimer's GenomicsDB Records (features, tracks, collections) by identifier or keyword",

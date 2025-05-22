@@ -10,7 +10,7 @@ class Settings(CustomSettings):
     APP_DB_URI: str  # application db (e.g., GenomicsDB or FILER metadata cache)
     CACHE_DB_URI: str  # in memory cache db
 
-    DATA_STORE: TrackDataStore 
+    DATA_STORE: TrackDataStore
 
     API_PUBLIC_URL: str = "http://localhost:8000"  # public facing URL for the API
 
@@ -25,3 +25,6 @@ class Settings(CustomSettings):
     SESSION_SECRET: Optional[str] = None
 
     API_VERSION: str
+
+    def get_major_version(self):
+        return f"v{self.API_VERSION.split('.')[0]}"

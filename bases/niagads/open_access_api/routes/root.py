@@ -1,16 +1,19 @@
 import functools
 
 from fastapi import APIRouter, Request, Response
-from niagads.open_access_api_common.utils import get_openapi_yaml
+from niagads.open_access_api_common.app import AppFactory
 
 router = APIRouter()
 
 
-@router.get("/", include_in_schema=False)
-async def read_root():
+@router.get(
+    "/",
+    include_in_schema=False,
+    tags=["Service Information"],
+)
+async def about_niagads_open_access_api():
     """About the service"""
     return {"messge": "NIAGADS Open Access API"}
-
 
 
 @router.get(
@@ -21,4 +24,4 @@ async def read_root():
 )
 @functools.lru_cache()
 def read_openapi_yaml(request: Request) -> Response:
-    return get_openapi_yaml(request)
+    return Response(AppFactory.get_openapi_yaml(request.app), media_type="text/yaml")

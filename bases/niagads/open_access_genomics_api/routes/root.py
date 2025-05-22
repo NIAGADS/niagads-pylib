@@ -1,5 +1,7 @@
 import functools
 from fastapi import APIRouter, Depends, Request, Response
+from niagads.open_access_api_common.app import AppFactory
+from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.models.records.route import (
     RecordSummary,
     RouteDescription,
@@ -7,7 +9,6 @@ from niagads.open_access_api_common.models.records.route import (
 from niagads.open_access_api_common.models.response.core import ResponseModel
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
 from niagads.open_access_api_common.types import RecordType
-from niagads.open_access_api_common.utils import get_openapi_yaml
 from niagads.open_access_filer_api.dependencies import TRACK_DATA_STORES
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
 from niagads.open_access_genomics_api.documentation import (
@@ -17,7 +18,7 @@ from niagads.open_access_genomics_api.documentation import (
 )
 
 
-router = APIRouter()
+router = APIRouter(tags=[ROUTE_NAME])
 
 
 @router.get(
@@ -52,4 +53,8 @@ async def get_database_description(
 )
 @functools.lru_cache()
 def read_openapi_yaml(request: Request) -> Response:
-    return get_openapi_yaml(request)
+    prefix = f"/{Settings.from_env().get_major_version()}/genomics"
+    return Response(
+        AppFactory.get_openapi_yaml(request.app, pathPrefix=prefix),
+        media_type="text/yaml",
+    )

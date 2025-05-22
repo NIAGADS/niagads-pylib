@@ -27,6 +27,7 @@ from niagads.open_access_api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
+from niagads.open_access_genomics_api.documentation import ROUTE_NAME
 from niagads.open_access_genomics_api.queries.track_data import (
     CountsTrackSummaryQuery,
     TopTrackSummaryQuery,
@@ -35,7 +36,7 @@ from niagads.open_access_genomics_api.queries.track_metadata import TrackMetadat
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 
-router = APIRouter(prefix="/track")
+router = APIRouter(prefix="/track", tags=[ROUTE_NAME, "Track Records"])
 
 tags = ["Record(s) by ID", "Track Metadata by ID"]
 

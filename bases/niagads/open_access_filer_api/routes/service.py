@@ -36,9 +36,10 @@ from niagads.open_access_filer_api.dependencies import (
     InternalRequestParameters,
     TextSearchFilterFields,
 )
+from niagads.open_access_filer_api.documentation import ROUTE_NAME
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
-router = APIRouter(prefix="/service")
+router = APIRouter(prefix="/service", tags=[ROUTE_NAME, "Services"])
 
 tags = ["NIAGADS Genome Browser"]
 

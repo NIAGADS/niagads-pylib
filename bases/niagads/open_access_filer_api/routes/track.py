@@ -29,9 +29,10 @@ from niagads.open_access_api_common.services.route import (
 from niagads.open_access_filer_api.dependencies import (
     InternalRequestParameters,
 )
+from niagads.open_access_filer_api.documentation import ROUTE_NAME
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
-router = APIRouter(prefix="/track", tags=["Track Records"])
+router = APIRouter(prefix="/track", tags=[ROUTE_NAME, "Track Records"])
 
 tags = ["Record(s) by ID"]
 

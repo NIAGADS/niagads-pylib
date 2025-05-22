@@ -31,9 +31,10 @@ from niagads.open_access_filer_api.dependencies import (
     TEXT_FILTER_PARAMETER,
     InternalRequestParameters,
 )
+from niagads.open_access_filer_api.documentation import ROUTE_NAME
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
-router = APIRouter(prefix="/search")
+router = APIRouter(prefix="/search", tags=[ROUTE_NAME, "Track Records"])
 
 tags = [
     "Record(s) by Text Search",

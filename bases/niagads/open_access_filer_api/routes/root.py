@@ -2,6 +2,8 @@ import functools
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query, Request, Response
+from niagads.open_access_api_common.app import AppFactory
+from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.models.records.features.bed import BEDResponse
 from niagads.open_access_api_common.models.records.route import (
     RecordSummary,
@@ -30,7 +32,6 @@ from niagads.open_access_api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.open_access_api_common.types import RecordType
-from niagads.open_access_api_common.utils import get_openapi_yaml
 from niagads.open_access_filer_api.dependencies import (
     TRACK_DATA_STORES,
     InternalRequestParameters,
@@ -42,7 +43,7 @@ from niagads.open_access_filer_api.documentation import (
 )
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
-router = APIRouter()
+router = APIRouter(tags=[ROUTE_NAME])
 
 
 @router.get(
@@ -175,7 +176,6 @@ async def get_track_data(
     return await helper.get_track_data()
 
 
-
 @router.get(
     "/openapi.yaml",
     tags=["OpenAPI Specification"],
@@ -184,4 +184,8 @@ async def get_track_data(
 )
 @functools.lru_cache()
 def read_openapi_yaml(request: Request) -> Response:
-    return get_openapi_yaml(request)
+    prefix = f"/{Settings.from_env().get_major_version()}/filer"
+    return Response(
+        AppFactory.get_openapi_yaml(request.app, pathPrefix=prefix),
+        media_type="text/yaml",
+    )

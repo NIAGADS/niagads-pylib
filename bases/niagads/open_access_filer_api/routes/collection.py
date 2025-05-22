@@ -25,10 +25,13 @@ from niagads.open_access_api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.open_access_filer_api.dependencies import InternalRequestParameters
+from niagads.open_access_filer_api.documentation import ROUTE_NAME
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
 
-router = APIRouter(prefix="/collection", tags=["Collections"])
+router = APIRouter(
+    prefix="/collection", tags=[ROUTE_NAME, "Collections", "Track Records"]
+)
 
 
 @router.get(
