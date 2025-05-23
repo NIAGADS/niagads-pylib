@@ -1,3 +1,4 @@
+from niagads.open_access_api_common.config.core import Settings
 import uvicorn
 from niagads.open_access_api_common.app import AppFactory
 from niagads.open_access_genomics_api.documentation import OPEN_API_SPEC
@@ -8,6 +9,7 @@ from niagads.open_access_genomics_api.routes.root import router as RootRouter
 from niagads.open_access_genomics_api.routes.services import router as ServiceRouter
 from niagads.open_access_genomics_api.routes.track import router as TrackRouter
 from niagads.settings.core import get_service_environment
+
 
 # generate the app
 appFactory = AppFactory(

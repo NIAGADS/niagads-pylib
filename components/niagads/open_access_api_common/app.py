@@ -1,4 +1,3 @@
-from copy import deepcopy
 from io import StringIO
 from typing import List
 
@@ -178,6 +177,12 @@ class AppFactory:
         )
 
         openApiSchema["info"]["x-namespace"] = self.__namespace
+
+        if len(self.__app.servers) > 1:
+            server = self.__app.servers[0]["url"]
+            openApiSchema["paths"] = {
+                f"{server}{k}": v for k, v in openApiSchema["paths"].items()
+            }
         # openApiSchema["info"]["x-logo"] = self.__namespace
 
         self.__app.openapi_schema = openApiSchema
@@ -191,19 +196,14 @@ class AppFactory:
             return f"{route.name}"
 
     @staticmethod
-    def get_openapi_yaml(app: FastAPI, pathPrefix: str = None) -> str:
+    def get_openapi_yaml(app: FastAPI) -> str:
         """Get YAML-formatted openapi specification.
 
         Converts the API openapi JSON specification to yaml format and returns the formatted yaml
 
         adapted from https://github.com/tiangolo/fastapi/issues/1140#issuecomment-659469034
         """
-        openApiJson = deepcopy(app.openapi())
-        if pathPrefix is not None:
-            openApiJson["paths"] = {
-                f"{pathPrefix}{k}": v for k, v in openApiJson["paths"].items()
-            }
-
+        openApiJson = app.openapi()
         yamlStr = StringIO()
         yaml.dump(openApiJson, yamlStr)
         return yamlStr.getvalue()

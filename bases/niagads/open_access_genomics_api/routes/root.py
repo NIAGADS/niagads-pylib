@@ -1,7 +1,6 @@
 import functools
 from fastapi import APIRouter, Depends, Request, Response
 from niagads.open_access_api_common.app import AppFactory
-from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.models.records.route import (
     RecordSummary,
     RouteDescription,
@@ -50,11 +49,11 @@ async def get_database_description(
     tags=["OpenAPI Specification"],
     name="Specification: `YAML`",
     description="Get API Specificiation in `YAML` format",
+    include_in_schema=False,
 )
 @functools.lru_cache()
 def read_openapi_yaml(request: Request) -> Response:
-    prefix = f"/{Settings.from_env().get_major_version()}/genomics"
     return Response(
-        AppFactory.get_openapi_yaml(request.app, pathPrefix=prefix),
+        AppFactory.get_openapi_yaml(request.app),
         media_type="text/yaml",
     )

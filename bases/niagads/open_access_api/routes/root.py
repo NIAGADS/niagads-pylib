@@ -21,6 +21,7 @@ async def about_niagads_open_access_api():
     tags=["OpenAPI Specification"],
     name="Specification: `YAML`",
     description="Get API Specificiation in `YAML` format",
+    include_in_schema=False,
 )
 @functools.lru_cache()
 def read_openapi_yaml(request: Request) -> Response:

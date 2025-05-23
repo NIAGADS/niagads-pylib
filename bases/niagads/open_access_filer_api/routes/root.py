@@ -181,11 +181,12 @@ async def get_track_data(
     tags=["OpenAPI Specification"],
     name="Specification: `YAML`",
     description="Get API Specificiation in `YAML` format",
+    include_in_schema=False,
 )
 @functools.lru_cache()
 def read_openapi_yaml(request: Request) -> Response:
     prefix = f"/{Settings.from_env().get_major_version()}/filer"
     return Response(
-        AppFactory.get_openapi_yaml(request.app, pathPrefix=prefix),
+        AppFactory.get_openapi_yaml(request.app),
         media_type="text/yaml",
     )
