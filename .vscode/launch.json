@@ -51,7 +51,7 @@
             "args": [
                 "niagads.open_access_genomics_api.core:app",
                 "--reload",
-                //"--port", "8001",
+                "--port", "8001",
                 "--env-file",
                 "${workspaceFolder}/../genomics.env"
                 //"--no-reload",
@@ -67,7 +67,7 @@
             "args": [
                 "niagads.open_access_api.core:app",
                 "--reload",
-                "--port", "8001",
+                //"--port", "8001",
                 "--env-file",
                 "${workspaceFolder}/../niagads.env"
                 //"--no-reload",
