@@ -1,5 +1,4 @@
 from io import StringIO
-from typing import List
 
 from fastapi.openapi.utils import get_openapi
 from asgi_correlation_id import CorrelationIdMiddleware
@@ -15,25 +14,9 @@ from niagads.open_access_api_common.exception_handlers import (
     add_system_exception_handler,
     add_validation_exception_handler,
 )
+from niagads.open_access_api_common.types import OpenAPISpec
 from niagads.settings.core import ServiceEnvironment, get_service_environment
-from pydantic import BaseModel
 import yaml
-
-
-class OpenAPITag(BaseModel):
-    name: str
-    description: str
-    externalDocs: dict[str, str]
-
-
-class OpenAPISpec(BaseModel):
-    title: str
-    description: str
-    summary: str
-    version: str
-    admin_email: str
-    service_url: str
-    openapi_tags: List[OpenAPITag]
 
 
 class AppFactory:
@@ -53,21 +36,19 @@ class AppFactory:
         Args:
             metadata (OpenAPISpec): APP metadata
             env (str): production or development environment
-            namespace (str): for openapi specification x-namespace arg. Defaults to 'niagads'
-            version (bool): add API major  version to path.  Defaults to False
+            namespace (str, optional): for openapi specification x-namespace arg. Defaults to 'root'
+            version (bool, optional): add API major  version to path.  Defaults to False
         """
         self.__app = None
         self.__metadata = metadata
-        self.__prefix = (
-            f"/v{self.__metadata.version.split('.')[0]}" if version else ""
-        )  # {routePath}"
+        self.__version = f"/v{self.__metadata.version.split('.')[0]}"
         self.__namespace = namespace
-        self.__create()
+        self.__create(version)
         self.__add_middleware()
         self.__add_exception_handlers()
 
     def get_version_prefix(self):
-        return self.__prefix
+        return self.__version
 
     def get_app(self) -> FastAPI:
         """get the application object"""
@@ -77,7 +58,11 @@ class AppFactory:
         return self.__app
 
     def add_router(
-        self, route: APIRoute, includeInSchema: bool = True, isDeprecated: bool = False
+        self,
+        route: APIRoute,
+        includeInSchema: bool = True,
+        isDeprecated: bool = False,
+        version: bool = False,
     ) -> None:
         """Add a route to the application"""
         if self.__app is None:
@@ -85,13 +70,15 @@ class AppFactory:
 
         self.__app.include_router(
             route,
-            prefix=self.__prefix,
+            prefix=self.__version if version else "",
             include_in_schema=includeInSchema,
             deprecated=isDeprecated,
         )
 
-    def __create(self):
+    def __create(self, version: bool):
         """Creates the application"""
+
+        prefix = self.__version if version else ""
         self.__app = FastAPI(
             title=self.__metadata.title,
             description=self.__metadata.description,
@@ -109,15 +96,15 @@ class AppFactory:
                 "operationsSorter": "alpha",
                 "tagsSorter": "alpha",
             },
-            openapi_url=f"{self.__prefix}/openapi.json",
-            docs_url=f"{self.__prefix}/docs",
-            redoc_url=f"{self.__prefix}/redoc",
+            openapi_url=f"{prefix}/openapi.json",
+            docs_url=f"{prefix}/docs",
+            redoc_url=f"{prefix}/redoc",
             openapi_tags=[t.model_dump() for t in self.__metadata.openapi_tags],
             responses=RESPONSES,
             generate_unique_id_function=self.__generate_unique_id,
         )
 
-        self.__app.openapi = self.__openapi
+        self.__app.openapi = self.openapi
 
     def __add_middleware(self):
         """Adds middleware to the application"""
@@ -155,7 +142,7 @@ class AppFactory:
         add_database_exception_handler(self.__app)
         add_not_implemented_exception_handler(self.__app)
 
-    def __openapi(self):
+    def openapi(self):
         if self.__app.openapi_schema:
             return self.__app.openapi_schema
 
@@ -177,13 +164,7 @@ class AppFactory:
         )
 
         openApiSchema["info"]["x-namespace"] = self.__namespace
-
-        if len(self.__app.servers) > 1:
-            server = self.__app.servers[0]["url"]
-            openApiSchema["paths"] = {
-                f"{server}{k}": v for k, v in openApiSchema["paths"].items()
-            }
-        # openApiSchema["info"]["x-logo"] = self.__namespace
+        openApiSchema["info"]["x-major-version"] = self.__version
 
         self.__app.openapi_schema = openApiSchema
         return self.__app.openapi_schema
