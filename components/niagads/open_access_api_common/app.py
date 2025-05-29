@@ -14,7 +14,7 @@ from niagads.open_access_api_common.exception_handlers import (
     add_system_exception_handler,
     add_validation_exception_handler,
 )
-from niagads.open_access_api_common.types import OpenAPISpec
+from niagads.open_access_api_common.types import OpenAPISpec, OpenAPIxTagGroup
 from niagads.settings.core import ServiceEnvironment, get_service_environment
 import yaml
 
@@ -165,6 +165,10 @@ class AppFactory:
 
         openApiSchema["info"]["x-namespace"] = self.__namespace
         openApiSchema["info"]["x-major-version"] = self.__version
+        
+        # x-tagGroups
+        if self.__metadata.xtag_groups is not None:
+            openApiSchema["x-tagGroups"] = [tg.model_dump() for tg in self.__metadata.xtag_groups]
 
         self.__app.openapi_schema = openApiSchema
         return self.__app.openapi_schema

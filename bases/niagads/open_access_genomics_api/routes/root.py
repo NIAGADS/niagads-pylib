@@ -23,7 +23,8 @@ router = APIRouter(tags=[ROUTE_NAME])
 @router.get(
     "/",
     response_model=ResponseModel,
-    description="brief summary about the " + ROUTE_NAME,
+    name=f"About the {ROUTE_NAME}",
+    description=f"brief summary about the {ROUTE_NAME}",
     tags=["Service Information"],
 )
 async def get_database_description(

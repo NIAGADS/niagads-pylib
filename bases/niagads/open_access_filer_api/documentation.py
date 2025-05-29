@@ -26,7 +26,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
         xSortOrder=3,
     ),
     SharedOpenAPITags.ABOUT.value,
-    SharedOpenAPITags.FG_TRACK_RECORD.value,
+    SharedOpenAPITags.TRACK_RECORD.value,
     SharedOpenAPITags.XQTL_TRACK_RECORD.value,
     SharedOpenAPITags.TRACK_DATA.value,
     SharedOpenAPITags.RECORD_BY_ID.value,
@@ -35,6 +35,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
     SharedOpenAPITags.COLLECTIONS.value,
     SharedOpenAPITags.SERVICES.value,
     SharedOpenAPITags.GENOME_BROWSER.value,
+    SharedOpenAPITags.LOOKUP_SERVICES.value,
 ]
 
 PUBMED_IDS: Set[T_PubMedID] = ["PMID:35047815"]

@@ -7,21 +7,23 @@ from pydantic import BaseModel, Field
 T_JSON = Union[Dict[str, Any], List[Any], int, float, str, bool, None]
 
 
-class OpenAPIxGroupTag(BaseModel):
+class BaseTag(BaseModel):
     name: str
-    tags: List[str]
-
-
-class OpenAPITag(BaseModel):
-    name: str
-    description: Optional[str] = None
-    summary: Optional[str] = None
-    externalDocs: Optional[dict[str, str]] = None
-    xTraitTag: Optional[bool] = Field(default=None, serialization_alias="x-traitTag")
     xSortOrder: int = Field(serialization_alias="x-sortOrder")
 
     def model_dump(self, **kwargs) -> dict[str, Any]:
         return super().model_dump(by_alias=True, **kwargs)
+
+
+class OpenAPIxTagGroup(BaseTag):
+    tags: List[str]
+
+
+class OpenAPITag(BaseTag):
+    description: Optional[str] = None
+    summary: Optional[str] = None
+    externalDocs: Optional[dict[str, str]] = None
+    xTraitTag: Optional[bool] = Field(default=None, serialization_alias="x-traitTag")
 
 
 class OpenAPISpec(BaseModel):
@@ -32,6 +34,7 @@ class OpenAPISpec(BaseModel):
     admin_email: str
     service_url: str
     openapi_tags: List[OpenAPITag]
+    xtag_groups: Optional[List[OpenAPIxTagGroup]] = None
 
 
 class RecordType(CaseInsensitiveEnum):

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Union
 
+from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.features.bed import BEDResponse
 from niagads.open_access_api_common.models.response.core import ResponseModel
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
@@ -21,7 +22,14 @@ from niagads.open_access_filer_api.documentation import ROUTE_NAME
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
 
-router = APIRouter(prefix="/qtl", tags=[ROUTE_NAME, "Track Records"])
+router = APIRouter(
+    prefix="/qtl",
+    tags=[
+        ROUTE_NAME,
+        str(SharedOpenAPITags.TRACK_DATA),
+        str(SharedOpenAPITags.XQTL_TRACK_RECORD),
+    ],
+)
 
 tags = ["Data Retrieval by Region", "xQTL Track Record"]
 

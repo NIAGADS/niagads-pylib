@@ -2,6 +2,7 @@ from typing import List, Union
 from fastapi import APIRouter, Depends, Query
 from niagads.exceptions.core import ValidationError
 from niagads.genome.core import Assembly
+from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.track.igvbrowser import (
     IGVBrowserTrackConfig,
     IGVBrowserTrackConfigResponse,
@@ -39,9 +40,11 @@ from niagads.open_access_filer_api.dependencies import (
 from niagads.open_access_filer_api.documentation import ROUTE_NAME
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
-router = APIRouter(prefix="/service", tags=[ROUTE_NAME, "Services"])
+router = APIRouter(
+    prefix="/service", tags=[ROUTE_NAME, str(SharedOpenAPITags.SERVICES)]
+)
 
-tags = ["NIAGADS Genome Browser"]
+tags = [str(SharedOpenAPITags.GENOME_BROWSER)]
 
 
 @router.get(
@@ -134,7 +137,7 @@ async def get_track_browser_config(
     return result.data
 
 
-tags = ["Lookup Services"]
+tags = [str(SharedOpenAPITags.LOOKUP_SERVICES)]
 
 
 @router.get(
@@ -181,7 +184,7 @@ async def get_shard(
     return await helper.get_shard()
 
 
-tags = tags + ["Service Information"]
+tags = tags + [str(SharedOpenAPITags.ABOUT)]
 
 
 @router.get(

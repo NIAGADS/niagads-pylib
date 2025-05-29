@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from niagads.open_access_api.documentation import OPEN_API_SPEC
 from niagads.open_access_api.routes.root import router as RootRouter
 from niagads.open_access_api_common.app import AppFactory
-from niagads.open_access_api_common.config.constants import SharedOpenAPIxGroupTags
+from niagads.open_access_api_common.config.constants import SharedOpenAPIxTagGroups
 from niagads.open_access_filer_api.core import app as FILERApp  # Import the FILER app
 from niagads.open_access_genomics_api.core import app as GenomicsApp
 from niagads.settings.core import get_service_environment
@@ -17,8 +17,9 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
     specification: Dict[str, Any] = factory.openapi()
     specification.update({"components": {"schemas": {}}})
 
-    # create a set from the dict
+    # gather tags and tag groups as unqiue sets
     tagSet: Set = set([json.dumps(t) for t in specification["tags"]])
+    tagGroupSet: Set = set([json.dumps(tg) for tg in specification["x-tagGroups"]])
 
     # fetch the openapi specification for each sub-api
     api: FastAPI  # typehint
@@ -34,6 +35,9 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
 
         # extract and add tags to the specification; use set to ensure uniqueness
         tagSet.update([json.dumps(t) for t in apiSpec["tags"]])
+        # ditto for tag groups, but do null check
+        if "x-tagGroups" in apiSpec:
+            tagGroupSet.update([json.dumps(tg) for tg in apiSpec["x-tagGroups"]])
 
         # extract and concatenate schemas
         if "components" in apiSpec:
@@ -41,10 +45,12 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
                 apiSpec["components"]["schemas"]
             )
 
-    # x-tagGroups
-    specification["x-tagGroups"] = [tg.serialize() for tg in SharedOpenAPIxGroupTags]
+    # update x-tagGroups
+    specification["x-tagGroups"] = sorted(
+        [json.loads(tg) for tg in tagGroupSet], key=lambda d: d["x-sortOrder"]
+    )
 
-    # update tags and sort alphabetically
+    # update tags and sort
     specification["tags"] = sorted(
         [json.loads(t) for t in tagSet], key=lambda d: d["x-sortOrder"]
     )

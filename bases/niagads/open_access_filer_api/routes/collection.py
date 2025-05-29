@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from typing import Union
 
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
+from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.track.collection import (
     CollectionResponse,
 )
@@ -30,7 +31,12 @@ from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
 
 router = APIRouter(
-    prefix="/collection", tags=[ROUTE_NAME, "Collections", "Track Records"]
+    prefix="/collection",
+    tags=[
+        ROUTE_NAME,
+        str(SharedOpenAPITags.TRACK_RECORD),
+        str(SharedOpenAPITags.COLLECTIONS),
+    ],
 )
 
 
@@ -39,7 +45,7 @@ router = APIRouter(
     response_model=CollectionResponse,
     name="Get Track Collections",
     description="list available collections of related FILER tracks",
-    tags=["Service Information"],
+    tags=[str(SharedOpenAPITags.ABOUT)],
 )
 async def get_collections(
     format: str = Query(
@@ -64,7 +70,7 @@ async def get_collections(
     return await helper.generate_response(result)
 
 
-tags = ["Record(s) by ID"]
+tags = [str(SharedOpenAPITags.RECORD_BY_ID)]
 
 
 @router.get(

@@ -1,6 +1,7 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
+from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.features.bed import BEDResponse
 from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
@@ -32,14 +33,18 @@ from niagads.open_access_filer_api.dependencies import (
 from niagads.open_access_filer_api.documentation import ROUTE_NAME
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
-router = APIRouter(prefix="/track", tags=[ROUTE_NAME, "Track Records"])
-
-tags = ["Record(s) by ID"]
+router = APIRouter(
+    prefix="/track",
+    tags=[
+        ROUTE_NAME,
+        str(SharedOpenAPITags.TRACK_RECORD),
+    ],
+)
 
 
 @router.get(
     "/{track}",
-    tags=tags,
+    tags=[str(SharedOpenAPITags.RECORD_BY_ID)],
     response_model=Union[TrackSummaryResponse, TrackResponse, ResponseModel],
     name="Get track metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response",
@@ -78,8 +83,9 @@ async def get_track_metadata(
 
 
 tags = [
-    "Record(s) by ID",
-    "Data Retrieval by Region",
+    str(SharedOpenAPITags.RECORD_BY_ID),
+    str(SharedOpenAPITags.RECORD_BY_REGION),
+    str(SharedOpenAPITags.TRACK_DATA),
 ]
 
 

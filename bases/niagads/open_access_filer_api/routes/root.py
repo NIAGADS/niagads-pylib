@@ -3,6 +3,7 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 from niagads.open_access_api_common.app import AppFactory
+from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.models.records.features.bed import BEDResponse
 from niagads.open_access_api_common.models.records.route import (
@@ -49,8 +50,9 @@ router = APIRouter(tags=[ROUTE_NAME])
 @router.get(
     "/",
     response_model=ResponseModel,
+    name="About the " + ROUTE_NAME,
     description="brief summary about the " + ROUTE_NAME,
-    tags=["Service Information"],
+    tags=[str(SharedOpenAPITags.ABOUT)],
 )
 async def get_database_description(
     internal: InternalRequestParameters = Depends(),
@@ -70,7 +72,26 @@ async def get_database_description(
     return ResponseModel(data=result, request=internal.requestData)
 
 
-tags = ["Record(s) by ID"]
+tags = [
+    str(SharedOpenAPITags.RECORD_BY_ID),
+    str(SharedOpenAPITags.TRACK_RECORD),
+]
+
+
+@router.get(
+    "/openapi.yaml",
+    tags=[str(SharedOpenAPITags.SPECIFICATION)],
+    name="Specification: `YAML`",
+    description="Get API Specificiation in `YAML` format",
+    include_in_schema=False,
+)
+@functools.lru_cache()
+def read_openapi_yaml(request: Request) -> Response:
+    prefix = f"/{Settings.from_env().get_major_version()}/filer"
+    return Response(
+        AppFactory.get_openapi_yaml(request.app),
+        media_type="text/yaml",
+    )
 
 
 @router.get(
@@ -122,8 +143,10 @@ async def get_track_metadata(
 
 
 tags = [
-    "Record(s) by ID",
-    "Data Retrieval by Region",
+    str(SharedOpenAPITags.RECORD_BY_ID),
+    str(SharedOpenAPITags.RECORD_BY_REGION),
+    str(SharedOpenAPITags.TRACK_RECORD),
+    str(SharedOpenAPITags.TRACK_DATA),
 ]
 
 
@@ -174,19 +197,3 @@ async def get_track_data(
     )
 
     return await helper.get_track_data()
-
-
-@router.get(
-    "/openapi.yaml",
-    tags=["OpenAPI Specification"],
-    name="Specification: `YAML`",
-    description="Get API Specificiation in `YAML` format",
-    include_in_schema=False,
-)
-@functools.lru_cache()
-def read_openapi_yaml(request: Request) -> Response:
-    prefix = f"/{Settings.from_env().get_major_version()}/filer"
-    return Response(
-        AppFactory.get_openapi_yaml(request.app),
-        media_type="text/yaml",
-    )

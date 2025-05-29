@@ -1,7 +1,8 @@
 # http client
 from enum import Enum
+from typing import List
 
-from niagads.open_access_api_common.types import OpenAPITag, OpenAPIxGroupTag
+from niagads.open_access_api_common.types import OpenAPITag, OpenAPIxTagGroup
 
 
 HTTP_CLIENT_TIMEOUT = 30  # timeout in seconds
@@ -29,21 +30,21 @@ DEFAULT_NULL_STRING = "NA"
 class SharedOpenAPITags(Enum):
     ABOUT = OpenAPITag(
         name="Resource Information",
-        description="general information about the knowledge base, including lookups for data descriptors",
+        description="general information and over statistics about the NIAGADS Open Access resources queried by this API, including lookups for data descriptors",
         xSortOrder=10,
     )
-    FG_TRACK_RECORD = OpenAPITag(
-        name="Functional Genomics Data Tracks",
-        description="endpoints that retrieve functional genomics track data or metadata",
+    TRACK_RECORD = OpenAPITag(
+        name="Track Metadata",
+        description="endpoints that retrieve track metadata",
         xSortOrder=20,
     )
     XQTL_TRACK_RECORD = OpenAPITag(
-        name="xQTL Data Tracks",
+        name="xQTLs",
         description="endpoints that retrieve xQTL track data or metadata",
         xSortOrder=21,
     )
     GWAS_TRACK_RECORD = OpenAPITag(
-        name="GWAS Summary Statistics Data Tracks",
+        name="GWAS Summary Statistics",
         description="endpoints that retrieve GWAS summary statistics track data or metadata",
         xSortOrder=22,
     )
@@ -58,7 +59,7 @@ class SharedOpenAPITags(Enum):
         xSortOrder=12,
     )
     TRACK_DATA = OpenAPITag(
-        name="Track Data Retrieval",
+        name="Data Retrieval",
         description="endpoints that retrieve track data",
         xTraitTag=True,
         xSortOrder=13,
@@ -102,6 +103,11 @@ class SharedOpenAPITags(Enum):
         description="service endpoints generating for NIAGADS LocusZoom data adapters",
         xSortOrder=42,
     )
+    LOOKUP_SERVICES = OpenAPITag(
+        name="Lookup Services",
+        description="service endpoints that provide quick record lookups based on relational data (e.g., root shard for sharded data track)",
+        xSortOrder=43,
+    )
     SPECIFICATION = OpenAPITag(
         name="OpenAPI Specification",
         description="service endpoints that retrieve the OpenAPI specification",
@@ -115,16 +121,32 @@ class SharedOpenAPITags(Enum):
         return self.value.model_dump()
 
 
-class SharedOpenAPIxGroupTags(Enum):
-    ABOUT = OpenAPIxGroupTag(name="Information", tags=[str(SharedOpenAPITags.ABOUT)])
-    SERVICES = OpenAPIxGroupTag(
+class SharedOpenAPIxTagGroups(Enum):
+    ABOUT = OpenAPIxTagGroup(
+        name="Information and Statistics",
+        tags=[str(SharedOpenAPITags.ABOUT), str(SharedOpenAPITags.LOOKUP_SERVICES)],
+        xSortOrder=1,
+    )
+    SERVICES = OpenAPIxTagGroup(
         name="Services",
         tags=[
             str(SharedOpenAPITags.SERVICES),
             str(SharedOpenAPITags.GENOME_BROWSER),
             str(SharedOpenAPITags.LOCUSZOOM),
             str(SharedOpenAPITags.SPECIFICATION),
+            str(SharedOpenAPITags.LOOKUP_SERVICES),
         ],
+        xSortOrder=90,
+    )
+    DATA_TRACKS = OpenAPIxTagGroup(
+        name="Data Tracks",
+        tags=[
+            str(SharedOpenAPITags.TRACK_DATA),
+            str(SharedOpenAPITags.TRACK_RECORD),
+            str(SharedOpenAPITags.GWAS_TRACK_RECORD),
+            str(SharedOpenAPITags.XQTL_TRACK_RECORD),
+        ],
+        xSortOrder=20,
     )
 
     def __str__(self):
@@ -132,3 +154,7 @@ class SharedOpenAPIxGroupTags(Enum):
 
     def serialize(self):
         return self.value.model_dump()
+
+    @classmethod
+    def list(cls) -> List[OpenAPIxTagGroup]:
+        return [member.value for member in cls]
