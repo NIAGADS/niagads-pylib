@@ -2,7 +2,7 @@ from enum import auto
 from typing import Any, Dict, List, Optional, Union
 
 from niagads.enums.core import CaseInsensitiveEnum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 T_JSON = Union[Dict[str, Any], List[Any], int, float, str, bool, None]
 
@@ -17,6 +17,11 @@ class OpenAPITag(BaseModel):
     description: Optional[str] = None
     summary: Optional[str] = None
     externalDocs: Optional[dict[str, str]] = None
+    xTraitTag: Optional[bool] = Field(default=None, serialization_alias="x-traitTag")
+    xSortOrder: int = Field(serialization_alias="x-sortOrder")
+
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        return super().model_dump(by_alias=True, **kwargs)
 
 
 class OpenAPISpec(BaseModel):

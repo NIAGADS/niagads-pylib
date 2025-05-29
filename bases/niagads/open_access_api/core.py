@@ -1,11 +1,12 @@
-from copy import deepcopy
-from typing import Any, Dict, List
-from fastapi import FastAPI
-from niagads.open_access_api_common.config.constants import SharedOpenAPIxGroupTags
+import json
+from typing import Any, Dict, List, Set
+
 import uvicorn
+from fastapi import FastAPI
 from niagads.open_access_api.documentation import OPEN_API_SPEC
 from niagads.open_access_api.routes.root import router as RootRouter
 from niagads.open_access_api_common.app import AppFactory
+from niagads.open_access_api_common.config.constants import SharedOpenAPIxGroupTags
 from niagads.open_access_filer_api.core import app as FILERApp  # Import the FILER app
 from niagads.open_access_genomics_api.core import app as GenomicsApp
 from niagads.settings.core import get_service_environment
@@ -15,6 +16,9 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
     # get root openapi
     specification: Dict[str, Any] = factory.openapi()
     specification.update({"components": {"schemas": {}}})
+
+    # create a set from the dict
+    tagSet: Set = set([json.dumps(t) for t in specification["tags"]])
 
     # fetch the openapi specification for each sub-api
     api: FastAPI  # typehint
@@ -28,6 +32,9 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
         routes = {f"{routePrefix}{k}": v for k, v in apiSpec["paths"].items()}
         specification["paths"].update(routes)
 
+        # extract and add tags to the specification; use set to ensure uniqueness
+        tagSet.update([json.dumps(t) for t in apiSpec["tags"]])
+
         # extract and concatenate schemas
         if "components" in apiSpec:
             specification["components"]["schemas"].update(
@@ -36,6 +43,11 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
 
     # x-tagGroups
     specification["x-tagGroups"] = [tg.serialize() for tg in SharedOpenAPIxGroupTags]
+
+    # update tags and sort alphabetically
+    specification["tags"] = sorted(
+        [json.loads(t) for t in tagSet], key=lambda d: d["x-sortOrder"]
+    )
 
     return specification
 

@@ -23,6 +23,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             "description": "NIAGADS",
             "url": "https://www.niagads.org",
         },
+        xSortOrder=1,
     ),
     SharedOpenAPITags.ABOUT.value,
     SharedOpenAPITags.SPECIFICATION.value,

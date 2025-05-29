@@ -30,54 +30,82 @@ class SharedOpenAPITags(Enum):
     ABOUT = OpenAPITag(
         name="Resource Information",
         description="general information about the knowledge base, including lookups for data descriptors",
+        xSortOrder=10,
     )
-    TRACK_RECORD = OpenAPITag(
-        name="Track Records",
-        description="endpoints that retrieve track metadata",
+    FG_TRACK_RECORD = OpenAPITag(
+        name="Functional Genomics Data Tracks",
+        description="endpoints that retrieve functional genomics track data or metadata",
+        xSortOrder=20,
+    )
+    XQTL_TRACK_RECORD = OpenAPITag(
+        name="xQTL Data Tracks",
+        description="endpoints that retrieve xQTL track data or metadata",
+        xSortOrder=21,
+    )
+    GWAS_TRACK_RECORD = OpenAPITag(
+        name="GWAS Summary Statistics Data Tracks",
+        description="endpoints that retrieve GWAS summary statistics track data or metadata",
+        xSortOrder=22,
     )
     GENE_RECORD = OpenAPITag(
-        name="Gene Records",
+        name="Genes",
         description="endpoints that retrieve gene-specific annotations",
+        xSortOrder=11,
     )
     VARIANT_RECORD = OpenAPITag(
-        name="Variant Records",
+        name="Variants",
         description="endpoints that retrieve variant-specific annotations",
+        xSortOrder=12,
     )
     TRACK_DATA = OpenAPITag(
         name="Track Data Retrieval",
         description="endpoints that retrieve track data",
+        xTraitTag=True,
+        xSortOrder=13,
     )
     COLLECTIONS = OpenAPITag(
         name="Collections",
         description="endpoints that retrieve curated lists of records",
+        xSortOrder=19,
     )
     RECORD_BY_ID = OpenAPITag(
         name="Record(s) by ID",
         description="find gene, variant, or data track records by ID",
+        xTraitTag=True,
+        xSortOrder=30,
     )
     RECORD_BY_REGION = OpenAPITag(
         name="Record(s) by Region",
         description="find gene, variant, or data track records by Genomic Region",
+        xTraitTag=True,
+        xSortOrder=31,
     )
     RECORD_BY_TEXT = OpenAPITag(
         name="Record(s) by Text Search",
         description="find gene, variant, or data track records by metadata text search",
+        xTraitTag=True,
+        xSortOrder=32,
     )
     SERVICES = OpenAPITag(
-        name="Services",
+        name="Service",
         description="service endpoints that do specific lookups or return JSON responses for downstream tools, such as the Genome Browser",
+        xTraitTag=True,
+        xSortOrder=40,
     )
     GENOME_BROWSER = OpenAPITag(
         name="Genome Browser",
-        description="service endpoints generating configuration files and data responses for NIAGADS Genome Browser Tracks",
+        description="service endpoints generating configuration files, data adapters, and search services for NIAGADS Genome Browser Tracks",
+        xSortOrder=41,
     )
     LOCUSZOOM = OpenAPITag(
         name="LocusZoom",
         description="service endpoints generating for NIAGADS LocusZoom data adapters",
+        xSortOrder=42,
     )
     SPECIFICATION = OpenAPITag(
         name="OpenAPI Specification",
         description="service endpoints that retrieve the OpenAPI specification",
+        xSortOrder=100,
     )
 
     def __str__(self):
@@ -88,7 +116,7 @@ class SharedOpenAPITags(Enum):
 
 
 class SharedOpenAPIxGroupTags(Enum):
-    ABOUT = OpenAPIxGroupTag(name="About", tags=[str(SharedOpenAPITags.ABOUT)])
+    ABOUT = OpenAPIxGroupTag(name="Information", tags=[str(SharedOpenAPITags.ABOUT)])
     SERVICES = OpenAPIxGroupTag(
         name="Services",
         tags=[
