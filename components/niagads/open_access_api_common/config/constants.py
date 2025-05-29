@@ -88,7 +88,7 @@ class SharedOpenAPITags(Enum):
         xSortOrder=32,
     )
     SERVICES = OpenAPITag(
-        name="Service",
+        name="All Services",
         description="service endpoints that do specific lookups or return JSON responses for downstream tools, such as the Genome Browser",
         xTraitTag=True,
         xSortOrder=40,
@@ -124,27 +124,26 @@ class SharedOpenAPITags(Enum):
 class SharedOpenAPIxTagGroups(Enum):
     ABOUT = OpenAPIxTagGroup(
         name="Information and Statistics",
-        tags=[str(SharedOpenAPITags.ABOUT), str(SharedOpenAPITags.LOOKUP_SERVICES)],
+        tags=[SharedOpenAPITags.ABOUT.value, SharedOpenAPITags.SPECIFICATION.value],
         xSortOrder=1,
     )
     SERVICES = OpenAPIxTagGroup(
         name="Services",
         tags=[
-            str(SharedOpenAPITags.SERVICES),
-            str(SharedOpenAPITags.GENOME_BROWSER),
-            str(SharedOpenAPITags.LOCUSZOOM),
-            str(SharedOpenAPITags.SPECIFICATION),
-            str(SharedOpenAPITags.LOOKUP_SERVICES),
+            SharedOpenAPITags.SERVICES.value,
+            SharedOpenAPITags.GENOME_BROWSER.value,
+            SharedOpenAPITags.LOCUSZOOM.value,
+            SharedOpenAPITags.LOOKUP_SERVICES.value,
         ],
         xSortOrder=90,
     )
     DATA_TRACKS = OpenAPIxTagGroup(
         name="Data Tracks",
         tags=[
-            str(SharedOpenAPITags.TRACK_DATA),
-            str(SharedOpenAPITags.TRACK_RECORD),
-            str(SharedOpenAPITags.GWAS_TRACK_RECORD),
-            str(SharedOpenAPITags.XQTL_TRACK_RECORD),
+            SharedOpenAPITags.TRACK_DATA.value,
+            SharedOpenAPITags.TRACK_RECORD.value,
+            SharedOpenAPITags.GWAS_TRACK_RECORD.value,
+            SharedOpenAPITags.XQTL_TRACK_RECORD.value,
         ],
         xSortOrder=20,
     )

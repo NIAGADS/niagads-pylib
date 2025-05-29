@@ -15,15 +15,23 @@ class BaseTag(BaseModel):
         return super().model_dump(by_alias=True, **kwargs)
 
 
-class OpenAPIxTagGroup(BaseTag):
-    tags: List[str]
-
-
 class OpenAPITag(BaseTag):
     description: Optional[str] = None
     summary: Optional[str] = None
     externalDocs: Optional[dict[str, str]] = None
     xTraitTag: Optional[bool] = Field(default=None, serialization_alias="x-traitTag")
+
+
+class OpenAPIxTagGroup(BaseTag):
+    tags: List[OpenAPITag]
+
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        obj = super().model_dump()
+        # just return the "name" for the tags, but sort by sort order
+        tags = obj["tags"]
+        obj["tags"] = [t["name"] for t in sorted(tags, key=lambda d: d["x-sortOrder"])]
+
+        return obj
 
 
 class OpenAPISpec(BaseModel):
