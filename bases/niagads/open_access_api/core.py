@@ -1,6 +1,7 @@
 from copy import deepcopy
 from typing import Any, Dict, List
 from fastapi import FastAPI
+from niagads.open_access_api_common.config.constants import SharedOpenAPIxGroupTags
 import uvicorn
 from niagads.open_access_api.documentation import OPEN_API_SPEC
 from niagads.open_access_api.routes.root import router as RootRouter
@@ -32,6 +33,9 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
             specification["components"]["schemas"].update(
                 apiSpec["components"]["schemas"]
             )
+
+    # x-tagGroups
+    specification["x-tagGroups"] = [tg.serialize() for tg in SharedOpenAPIxGroupTags]
 
     return specification
 

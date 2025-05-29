@@ -83,18 +83,24 @@ class SharedOpenAPITags(Enum):
     def __str__(self):
         return self.value.name
 
+    def serialize(self):
+        return self.value.model_dump()
+
 
 class SharedOpenAPIxGroupTags(Enum):
-    ABOUT = OpenAPIxGroupTag(name="About", tags=[SharedOpenAPITags.ABOUT])
+    ABOUT = OpenAPIxGroupTag(name="About", tags=[str(SharedOpenAPITags.ABOUT)])
     SERVICES = OpenAPIxGroupTag(
         name="Services",
         tags=[
-            SharedOpenAPITags.SERVICES,
-            SharedOpenAPITags.GENOME_BROWSER,
-            SharedOpenAPITags.LOCUSZOOM,
-            SharedOpenAPITags.SPECIFICATION,
+            str(SharedOpenAPITags.SERVICES),
+            str(SharedOpenAPITags.GENOME_BROWSER),
+            str(SharedOpenAPITags.LOCUSZOOM),
+            str(SharedOpenAPITags.SPECIFICATION),
         ],
     )
 
     def __str__(self):
         return self.value.name
+
+    def serialize(self):
+        return self.value.model_dump()
