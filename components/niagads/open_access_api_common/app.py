@@ -186,5 +186,5 @@ class AppFactory:
         """
         openApiJson = app.openapi()
         yamlStr = StringIO()
-        yaml.dump(openApiJson, yamlStr)
+        yaml.dump(openApiJson, yamlStr, sort_keys=False)
         return yamlStr.getvalue()
