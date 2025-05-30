@@ -61,7 +61,7 @@ class SharedOpenAPITags(Enum):
     TRACK_DATA = OpenAPITag(
         name="Data Retrieval",
         description="endpoints that retrieve track data",
-        xTraitTag=True,
+        xTraitTag=False,
         xSortOrder=13,
     )
     COLLECTIONS = OpenAPITag(
@@ -72,25 +72,25 @@ class SharedOpenAPITags(Enum):
     RECORD_BY_ID = OpenAPITag(
         name="Record(s) by ID",
         description="find gene, variant, or data track records by ID",
-        xTraitTag=True,
+        xTraitTag=False,
         xSortOrder=30,
     )
     RECORD_BY_REGION = OpenAPITag(
         name="Record(s) by Region",
         description="find gene, variant, or data track records by Genomic Region",
-        xTraitTag=True,
+        xTraitTag=False,
         xSortOrder=31,
     )
     RECORD_BY_TEXT = OpenAPITag(
         name="Record(s) by Text Search",
         description="find gene, variant, or data track records by metadata text search",
-        xTraitTag=True,
+        xTraitTag=False,
         xSortOrder=32,
     )
     SERVICES = OpenAPITag(
         name="All Services",
         description="service endpoints that do specific lookups or return JSON responses for downstream tools, such as the Genome Browser",
-        xTraitTag=True,
+        xTraitTag=False,
         xSortOrder=40,
     )
     GENOME_BROWSER = OpenAPITag(

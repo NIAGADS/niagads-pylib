@@ -165,20 +165,23 @@ class AppFactory:
 
         openApiSchema["info"]["x-namespace"] = self.__namespace
         openApiSchema["info"]["x-major-version"] = self.__version
-        
+
         # x-tagGroups
         if self.__metadata.xtag_groups is not None:
-            openApiSchema["x-tagGroups"] = [tg.model_dump() for tg in self.__metadata.xtag_groups]
+            openApiSchema["x-tagGroups"] = [
+                tg.model_dump() for tg in self.__metadata.xtag_groups
+            ]
 
         self.__app.openapi_schema = openApiSchema
         return self.__app.openapi_schema
 
     @staticmethod
     def __generate_unique_id(route: APIRoute):
-        if len(route.tags) > 0:
-            return f"{route.tags[0].lower().replace(' ', '_').replace("'",'')}-{route.name}"
+        rName = route.name.lower().replace(" ", "_")
+        if len(route.tags) > 1:
+            return f"{route.tags[0].lower().replace(' ', '_').replace("'",'')}-{rName}"
         else:
-            return f"{route.name}"
+            return rName
 
     @staticmethod
     def get_openapi_yaml(app: FastAPI) -> str:

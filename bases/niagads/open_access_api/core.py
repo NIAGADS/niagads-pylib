@@ -1,3 +1,4 @@
+from copy import deepcopy
 import json
 from typing import Any, Dict, List, Set
 
@@ -12,6 +13,38 @@ from niagads.open_access_genomics_api.core import app as GenomicsApp
 from niagads.settings.core import get_service_environment
 
 
+def _openapi_update_routes(
+    routes: dict, traitTagRef: list, version: str, namespace: str
+):
+    """
+    update all route paths:
+    1. prefix paths with version and subapi namespace (lower)
+    2. prefix tags with "namespace: "
+
+    Args:
+        routes (dict): the openapi route spec
+        traitTagRef (list): trait tags; don't need to be prefixed
+        version (str): api major version
+        namespace (str): route namespace
+    """
+    # route structure: { <path> : {<method, e.g., get>: props}}
+
+    # all endpoints should only have one 'get' method, but iterating
+    # to cover future scenarios
+    updatedRoutes = {}
+    for path, route in routes.items():
+        updatedPath: str = f"{version}/{namespace.lower()}{path}"
+
+        route: dict
+        for method, props in route.items():
+            updatedRoutes.update({updatedPath: {method: deepcopy(props)}})
+            updatedRoutes[updatedPath][method]["tags"] = [
+                f"{namespace}: {t}" for t in props["tags"] if t not in traitTagRef
+            ]
+
+    return updatedRoutes
+
+
 def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
     # get root openapi
     specification: Dict[str, Any] = factory.openapi()
@@ -21,23 +54,44 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
     tagSet: Set = set([json.dumps(t) for t in specification["tags"]])
     tagGroupSet: Set = set([json.dumps(tg) for tg in specification["x-tagGroups"]])
 
+    traitOnlyTags = []
+
     # fetch the openapi specification for each sub-api
     api: FastAPI  # typehint
     for api in subAPIs:
         apiSpec: Dict[str, Any] = api.openapi()
-
-        # prefix routes
-        routePrefix: str = (
-            f"{factory.get_version_prefix()}/{apiSpec['info']['x-namespace']}"
-        )
-        routes = {f"{routePrefix}{k}": v for k, v in apiSpec["paths"].items()}
-        specification["paths"].update(routes)
+        namespace: str = apiSpec["info"]["x-namespace"]
 
         # extract and add tags to the specification; use set to ensure uniqueness
-        tagSet.update([json.dumps(t) for t in apiSpec["tags"]])
+        # prefix tags by namespace to make unique and ensure relative anchors are
+        # also extract / flag trait-only tags; do not prefix those
+        # generated correctly
+        t: dict
+        for t in apiSpec["tags"]:
+            if t.get("x-traitTag", False):
+                traitOnlyTags.append(t["name"])
+            else:
+                t["name"] = f"{namespace}: {t['name']}"
+            tagSet.add(json.dumps(t))
+        # tagSet.update([json.dumps(t) for t in apiSpec["tags"]])
+
+        # prefix routes
+        # routePrefix: str = f"{factory.get_version_prefix()}/{namespace.lower()}"
+        # routes = {f"{routePrefix}{k}": v for k, v in apiSpec["paths"].items()}
+        routes = _openapi_update_routes(
+            dict(apiSpec["paths"].items()),
+            traitOnlyTags,
+            factory.get_version_prefix(),
+            namespace,
+        )
+        specification["paths"].update(routes)
+
         # ditto for tag groups, but do null check
         if "x-tagGroups" in apiSpec:
-            tagGroupSet.update([json.dumps(tg) for tg in apiSpec["x-tagGroups"]])
+            for tg in apiSpec["x-tagGroups"]:
+                tg["tags"] = [f"{namespace}: {t}" for t in tg["tags"]]
+                tagGroupSet.add(json.dumps(tg))
+            # tagGroupSet.update([json.dumps(tg) for tg in apiSpec["x-tagGroups"]])
 
         # extract and concatenate schemas
         if "components" in apiSpec:

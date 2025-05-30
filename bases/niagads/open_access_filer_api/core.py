@@ -12,7 +12,7 @@ import uvicorn
 
 # generate the app
 appFactory = AppFactory(
-    metadata=OPEN_API_SPEC, env=get_service_environment(), namespace="filer"
+    metadata=OPEN_API_SPEC, env=get_service_environment(), namespace="FILER"
 )
 
 # add the child routes

@@ -3,7 +3,10 @@
 from typing import List, Set
 
 from niagads.common.types.core import T_PubMedID
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.config.constants import (
+    SharedOpenAPITags,
+    SharedOpenAPIxTagGroups,
+)
 from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.types import (
     OpenAPISpec,
@@ -28,6 +31,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             "url": "https://tf.lisanwanglab.org/FILER/",
         },
         xSortOrder=3,
+        xTraitTag=True,
     ),
     SharedOpenAPITags.ABOUT.value,
     SharedOpenAPITags.TRACK_RECORD.value,
@@ -48,7 +52,7 @@ ROUTE_NAME: str = OPEN_API_TAGS[0].name
 
 FILER_TAG_GROUPS = [
     OpenAPIxTagGroup(name=ROUTE_NAME, tags=OPEN_API_TAGS, xSortOrder=40)
-]
+] + SharedOpenAPIxTagGroups.list()
 
 OPEN_API_SPEC = OpenAPISpec(
     title=OPEN_API_TAGS[0].name,

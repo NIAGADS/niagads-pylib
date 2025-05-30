@@ -25,6 +25,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             "url": "https://www.niagads.org/genomics",
         },
         xSortOrder=2,
+        xTraitTag=True,
     ),
     SharedOpenAPITags.ABOUT.value,
     SharedOpenAPITags.GENE_RECORD.value,

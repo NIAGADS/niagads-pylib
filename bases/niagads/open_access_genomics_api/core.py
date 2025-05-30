@@ -13,7 +13,7 @@ from niagads.settings.core import get_service_environment
 
 # generate the app
 appFactory = AppFactory(
-    metadata=OPEN_API_SPEC, env=get_service_environment(), namespace="genomics"
+    metadata=OPEN_API_SPEC, env=get_service_environment(), namespace="Genomics"
 )
 
 # add the child routes
