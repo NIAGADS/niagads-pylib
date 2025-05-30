@@ -13,8 +13,20 @@ from niagads.open_access_genomics_api.core import app as GenomicsApp
 from niagads.settings.core import get_service_environment
 
 
+def _openapi_update_xtag_groups(xTagGroups: List[dict]):
+    # find and combine duplicates
+    uniqueXTags = {}
+    for tagGroup in xTagGroups:
+        if tagGroup["name"] not in uniqueXTags:
+            uniqueXTags[tagGroup["name"]] = tagGroup
+        else:
+            uniqueXTags[tagGroup["name"]]["tags"].extend(tagGroup["tags"])
+
+    return list(uniqueXTags.values())
+
+
 def _openapi_update_routes(
-    routes: dict, traitTagRef: list, version: str, namespace: str
+    routes: dict, traitTagRef: List[str], version: str, namespace: str
 ):
     """
     update all route paths:
@@ -75,9 +87,7 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
             tagSet.add(json.dumps(t))
         # tagSet.update([json.dumps(t) for t in apiSpec["tags"]])
 
-        # prefix routes
-        # routePrefix: str = f"{factory.get_version_prefix()}/{namespace.lower()}"
-        # routes = {f"{routePrefix}{k}": v for k, v in apiSpec["paths"].items()}
+        # prefix route paths and tags
         routes = _openapi_update_routes(
             dict(apiSpec["paths"].items()),
             traitOnlyTags,
@@ -91,7 +101,6 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
             for tg in apiSpec["x-tagGroups"]:
                 tg["tags"] = [f"{namespace}: {t}" for t in tg["tags"]]
                 tagGroupSet.add(json.dumps(tg))
-            # tagGroupSet.update([json.dumps(tg) for tg in apiSpec["x-tagGroups"]])
 
         # extract and concatenate schemas
         if "components" in apiSpec:
@@ -100,9 +109,10 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
             )
 
     # update x-tagGroups
-    specification["x-tagGroups"] = sorted(
+    uniqueXTagGroups = sorted(
         [json.loads(tg) for tg in tagGroupSet], key=lambda d: d["x-sortOrder"]
     )
+    specification["x-tagGroups"] = _openapi_update_xtag_groups(uniqueXTagGroups)
 
     # update tags and sort
     specification["tags"] = sorted(
