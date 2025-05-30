@@ -163,6 +163,26 @@ class AppFactory:
             separate_input_output_schemas=self.__app.separate_input_output_schemas,
         )
 
+        # flag beta route paths / updated by reference
+        paths: dict = openApiSchema["paths"]
+        for path in paths.keys():
+            for method in paths[path]:
+                summary = paths[path][method]["summary"]
+                if "[Beta]" in summary:
+                    paths[path][method]["summary"] = summary.replace("[Beta]", "")
+                    paths[path][method].update(
+                        {
+                            "x-badges": [
+                                {
+                                    "name": "Beta",
+                                    "position": "before",
+                                    "color": "purple",
+                                }
+                            ]
+                        }
+                    )
+
+        # openApiSchema["paths"] = paths
         openApiSchema["info"]["x-namespace"] = self.__namespace
         openApiSchema["info"]["x-major-version"] = self.__version
 

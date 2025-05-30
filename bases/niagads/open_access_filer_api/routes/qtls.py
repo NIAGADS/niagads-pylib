@@ -37,7 +37,7 @@ tags = ["Data Retrieval by Region", "xQTL Track Record"]
 @router.get(
     "/{track}",
     tags=tags,
-    name="Get QTLs by Region",
+    name="Get QTLs by Region[Beta]",
     response_model=Union[BEDResponse, TableViewResponse, ResponseModel],
     description="retrieve xQTL data from FILER for the specified genomic region or sequence feature",
 )
