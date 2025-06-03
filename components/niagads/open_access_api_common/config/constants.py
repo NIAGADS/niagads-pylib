@@ -29,74 +29,82 @@ DEFAULT_NULL_STRING = "NA"
 
 class SharedOpenAPITags(Enum):
     ABOUT = OpenAPITag(
-        name="Resource Information",
+        name="Info",
         description="general information and over statistics about the NIAGADS Open Access resources queried by this API, including lookups for data descriptors",
         xSortOrder=10,
+        xDisplayName="Resource Information",
     )
     TRACK_RECORD = OpenAPITag(
-        name="Track Metadata",
+        name="Metadata",
         description="endpoints that retrieve track metadata",
         xSortOrder=20,
+        xDisplayName="Track Metdata",
     )
     XQTL_TRACK_RECORD = OpenAPITag(
-        name="xQTLs",
+        name="QTL",
         description="endpoints that retrieve xQTL track data or metadata",
         xSortOrder=21,
+        xDisplayName="xQTLs",
     )
     GWAS_TRACK_RECORD = OpenAPITag(
-        name="GWAS Summary Statistics",
+        name="SumStats",
         description="endpoints that retrieve GWAS summary statistics track data or metadata",
         xSortOrder=22,
+        xDisplayName="GWAS Summary Statistics",
     )
     GENE_RECORD = OpenAPITag(
-        name="Genes",
+        name="Gene",
         description="endpoints that retrieve gene-specific annotations",
         xSortOrder=11,
+        xDisplayName="Genes",
     )
     VARIANT_RECORD = OpenAPITag(
-        name="Variants",
+        name="Variant",
         description="endpoints that retrieve variant-specific annotations",
         xSortOrder=12,
+        xDisplayName="Variants",
     )
     TRACK_DATA = OpenAPITag(
-        name="Data Retrieval",
+        name="Track Data Retrieval",
         description="endpoints that retrieve track data",
         xTraitTag=False,
         xSortOrder=13,
     )
     COLLECTIONS = OpenAPITag(
-        name="Collections",
+        name="Collection",
         description="endpoints that retrieve curated lists of records",
         xSortOrder=19,
+        xDisplayName="Collections",
     )
     RECORD_BY_ID = OpenAPITag(
         name="Record(s) by ID",
         description="find gene, variant, or data track records by ID",
-        xTraitTag=False,
+        xTraitTag=True,
         xSortOrder=30,
     )
     RECORD_BY_REGION = OpenAPITag(
         name="Record(s) by Region",
         description="find gene, variant, or data track records by Genomic Region",
-        xTraitTag=False,
+        xTraitTag=True,
         xSortOrder=31,
     )
     RECORD_BY_TEXT = OpenAPITag(
         name="Record(s) by Text Search",
         description="find gene, variant, or data track records by metadata text search",
-        xTraitTag=False,
+        xTraitTag=True,
         xSortOrder=32,
     )
     SERVICES = OpenAPITag(
-        name="All Services",
+        name="Service",
         description="service endpoints that do specific lookups or return JSON responses for downstream tools, such as the Genome Browser",
-        xTraitTag=False,
+        xTraitTag=True,
         xSortOrder=40,
     )
     GENOME_BROWSER = OpenAPITag(
-        name="Genome Browser",
+        name="Browser",
         description="service endpoints generating configuration files, data adapters, and search services for NIAGADS Genome Browser Tracks",
         xSortOrder=41,
+        xDisplayName="Genome Browser",
     )
     LOCUSZOOM = OpenAPITag(
         name="LocusZoom",
@@ -104,14 +112,16 @@ class SharedOpenAPITags(Enum):
         xSortOrder=42,
     )
     LOOKUP_SERVICES = OpenAPITag(
-        name="Lookup Services",
+        name="Lookups",
         description="service endpoints that provide quick record lookups based on relational data (e.g., root shard for sharded data track)",
         xSortOrder=43,
+        xDisplayName="Lookup Services",
     )
     SPECIFICATION = OpenAPITag(
-        name="OpenAPI Specification",
+        name="Spec",
         description="service endpoints that retrieve the OpenAPI specification",
         xSortOrder=100,
+        xDisplayName="OpenAPI Specification",
     )
 
     def __str__(self):
@@ -130,7 +140,7 @@ class SharedOpenAPIxTagGroups(Enum):
     SERVICES = OpenAPIxTagGroup(
         name="Services",
         tags=[
-            SharedOpenAPITags.SERVICES.value,
+            # SharedOpenAPITags.SERVICES.value,
             SharedOpenAPITags.GENOME_BROWSER.value,
             SharedOpenAPITags.LOCUSZOOM.value,
             SharedOpenAPITags.LOOKUP_SERVICES.value,
@@ -140,12 +150,12 @@ class SharedOpenAPIxTagGroups(Enum):
     DATA_TRACKS = OpenAPIxTagGroup(
         name="Data Tracks",
         tags=[
-            SharedOpenAPITags.TRACK_DATA.value,
+            # SharedOpenAPITags.TRACK_DATA.value,
             SharedOpenAPITags.TRACK_RECORD.value,
             SharedOpenAPITags.GWAS_TRACK_RECORD.value,
             SharedOpenAPITags.XQTL_TRACK_RECORD.value,
         ],
-        xSortOrder=20,
+        xSortOrder=80,
     )
 
     def __str__(self):

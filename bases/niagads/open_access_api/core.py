@@ -51,7 +51,7 @@ def _openapi_update_routes(
         for method, props in route.items():
             updatedRoutes.update({updatedPath: {method: deepcopy(props)}})
             updatedRoutes[updatedPath][method]["tags"] = [
-                f"{namespace}: {t}" for t in props["tags"] if t not in traitTagRef
+                f"{namespace}-{t}" for t in props["tags"] if t not in traitTagRef
             ]
 
     return updatedRoutes
@@ -83,7 +83,8 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
             if t.get("x-traitTag", False):
                 traitOnlyTags.append(t["name"])
             else:
-                t["name"] = f"{namespace}: {t['name']}"
+                t["name"] = f"{namespace}-{t['name']}"
+                t["x-displayName"] = f"{namespace}: {t['x-displayName']}"
             tagSet.add(json.dumps(t))
         # tagSet.update([json.dumps(t) for t in apiSpec["tags"]])
 
@@ -99,7 +100,7 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
         # ditto for tag groups, but do null check
         if "x-tagGroups" in apiSpec:
             for tg in apiSpec["x-tagGroups"]:
-                tg["tags"] = [f"{namespace}: {t}" for t in tg["tags"]]
+                tg["tags"] = [f"{namespace}-{t}" for t in tg["tags"]]
                 tagGroupSet.add(json.dumps(tg))
 
         # extract and concatenate schemas

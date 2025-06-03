@@ -3,9 +3,16 @@
 from typing import List, Set
 
 from niagads.common.types.core import T_PubMedID
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.config.constants import (
+    SharedOpenAPITags,
+    SharedOpenAPIxTagGroups,
+)
 from niagads.open_access_api_common.config.core import Settings
-from niagads.open_access_api_common.types import OpenAPISpec, OpenAPITag
+from niagads.open_access_api_common.types import (
+    OpenAPISpec,
+    OpenAPITag,
+    OpenAPIxTagGroup,
+)
 
 
 OPEN_API_TAGS: List[OpenAPITag] = [
@@ -42,10 +49,15 @@ OPEN_API_TAGS: List[OpenAPITag] = [
     # SharedOpenAPITags.LOCUSZOOOM.value,
 ]
 
+
 PUBMED_IDS: Set[T_PubMedID] = ["PMID:37881831"]
 
 ROUTE_NAME: str = OPEN_API_TAGS[0].name
 
+
+GENOMICS_TAG_GROUPS = [
+    OpenAPIxTagGroup(name=ROUTE_NAME, tags=OPEN_API_TAGS, xSortOrder=20)
+] + SharedOpenAPIxTagGroups.list()
 
 OPEN_API_SPEC = OpenAPISpec(
     title=OPEN_API_TAGS[0].name,
@@ -55,4 +67,5 @@ OPEN_API_SPEC = OpenAPISpec(
     admin_email=Settings.from_env().ADMIN_EMAIL,
     service_url=Settings.from_env().API_PUBLIC_URL,
     openapi_tags=OPEN_API_TAGS,
+    xtag_groups=GENOMICS_TAG_GROUPS,
 )

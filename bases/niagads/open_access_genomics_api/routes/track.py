@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Path, Query
 from typing import Union
 
 from niagads.exceptions.core import ValidationError
+from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,
@@ -36,14 +37,17 @@ from niagads.open_access_genomics_api.queries.track_metadata import TrackMetadat
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 
-router = APIRouter(prefix="/track", tags=[ROUTE_NAME, "Track Records"])
-
-tags = ["Record(s) by ID", "Track Metadata by ID"]
+router = APIRouter(
+    prefix="/track",
+    tags=[
+        ROUTE_NAME,
+        str(SharedOpenAPITags.TRACK_RECORD),
+    ],
+)
 
 
 @router.get(
     "/{track}",
-    tags=tags,
     response_model=Union[TrackSummaryResponse, TrackResponse, ResponseModel],
     name="Get track metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response",
@@ -84,7 +88,7 @@ async def get_track_metadata(
     # return await helper.get_query_response()
 
 
-tags = ["Record(s) by ID", "Data Retrieval by ID"]
+tags = [str(SharedOpenAPITags.RECORD_BY_ID), str(SharedOpenAPITags.TRACK_DATA)]
 
 
 @router.get(

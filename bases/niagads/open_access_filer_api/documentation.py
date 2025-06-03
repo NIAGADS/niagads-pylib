@@ -17,7 +17,7 @@ from niagads.open_access_api_common.types import (
 
 OPEN_API_TAGS: List[OpenAPITag] = [
     OpenAPITag(
-        name="FILER Functional Genomics Repository",
+        name="FILER Functional Genomics",
         summary="Query tracks and track data in FILER",
         description=(
             f"Query tracks and track data in FILER, "

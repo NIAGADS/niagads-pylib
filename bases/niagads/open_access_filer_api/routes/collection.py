@@ -79,6 +79,7 @@ tags = [str(SharedOpenAPITags.RECORD_BY_ID)]
         ResponseModel, TrackSummaryResponse, TrackResponse, TableViewResponse
     ],
     name="Get track metadata by collection",
+    tags=tags,
     description="retrieve full metadata for FILER track records associated with a collection",
 )
 async def get_collection_track_metadata(

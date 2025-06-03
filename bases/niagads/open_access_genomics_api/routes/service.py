@@ -1,6 +1,7 @@
 from typing import List, Union
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
+from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.records.search import RecordSearchResult
 from niagads.open_access_api_common.models.response.core import (
@@ -26,13 +27,17 @@ from niagads.open_access_genomics_api.queries.search import (
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 
-router = APIRouter(prefix="/service", tags=[ROUTE_NAME, "Services"])
+router = APIRouter(
+    prefix="/service", tags=[ROUTE_NAME, str(SharedOpenAPITags.SERVICES)]
+)
+
+tags = [str(SharedOpenAPITags.LOOKUP_SERVICES)]
 
 
 @router.get(
     "/search",
     response_model=Union[List[RecordSearchResult]],
-    name="Site Search",
+    name="Database Search",
     description="Find Alzheimer's GenomicsDB Records (features, tracks, collections) by identifier or keyword",
 )
 async def site_search(
@@ -77,7 +82,7 @@ async def site_search(
     return result.data
 
 
-tags = ["NIAGADS Genome Browser"]
+tags = [str(SharedOpenAPITags.GENOME_BROWSER)]
 
 
 @router.get(

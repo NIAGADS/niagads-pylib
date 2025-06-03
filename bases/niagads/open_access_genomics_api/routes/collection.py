@@ -2,6 +2,7 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, Query
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
+from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.track.collection import (
     CollectionResponse,
 )
@@ -29,7 +30,12 @@ from niagads.open_access_genomics_api.documentation import ROUTE_NAME
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 router = APIRouter(
-    prefix="/collection", tags=[ROUTE_NAME, "Collections", "Track Records"]
+    prefix="/collection",
+    tags=[
+        ROUTE_NAME,
+        str(SharedOpenAPITags.TRACK_RECORD),
+        str(SharedOpenAPITags.COLLECTIONS),
+    ],
 )
 
 
@@ -62,6 +68,9 @@ async def get_collections(
     return await helper.generate_response(result)
 
 
+tags = [str(SharedOpenAPITags.RECORD_BY_ID)]
+
+
 @router.get(
     "/{collection}",
     response_model=Union[
@@ -71,6 +80,7 @@ async def get_collections(
         TableViewResponse,
     ],
     name="Get track metadata by collection",
+    tags=tags,
     description="retrieve full metadata for FILER track records associated with a collection",
 )
 async def get_collection_track_metadata(

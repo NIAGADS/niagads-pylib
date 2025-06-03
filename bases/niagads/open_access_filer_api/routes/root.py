@@ -72,12 +72,6 @@ async def get_database_description(
     return ResponseModel(data=result, request=internal.requestData)
 
 
-tags = [
-    str(SharedOpenAPITags.RECORD_BY_ID),
-    str(SharedOpenAPITags.TRACK_RECORD),
-]
-
-
 @router.get(
     "/openapi.yaml",
     tags=[str(SharedOpenAPITags.SPECIFICATION)],
@@ -92,6 +86,12 @@ def read_openapi_yaml(request: Request) -> Response:
         AppFactory.get_openapi_yaml(request.app),
         media_type="text/yaml",
     )
+
+
+tags = [
+    str(SharedOpenAPITags.RECORD_BY_ID),
+    str(SharedOpenAPITags.TRACK_RECORD),
+]
 
 
 @router.get(

@@ -6,7 +6,7 @@ from niagads.open_access_genomics_api.routes.collection import (
     router as CollectionRouter,
 )
 from niagads.open_access_genomics_api.routes.root import router as RootRouter
-from niagads.open_access_genomics_api.routes.services import router as ServiceRouter
+from niagads.open_access_genomics_api.routes.service import router as ServiceRouter
 from niagads.open_access_genomics_api.routes.track import router as TrackRouter
 from niagads.settings.core import get_service_environment
 
