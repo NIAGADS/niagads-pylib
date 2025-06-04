@@ -4,8 +4,8 @@ import json
 from csv import Sniffer, Dialect
 from pandas import read_csv, DataFrame
 
-from niagads.dict_utils.core import convert_str2numeric_values
-from niagads.pd_dataframe.core import strip
+from niagads.utils.dict import convert_str2numeric_values
+from niagads.utils.pandas import strip_df
 
 
 class CSVFileParser:
@@ -84,7 +84,7 @@ class CSVFileParser:
         Args:
             df (DataFrame): pandas data frame
         """
-        return strip(df) if self.__strip else df
+        return strip_df(df) if self.__strip else df
 
     def sniff(self):
         """

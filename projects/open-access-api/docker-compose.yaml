@@ -1,0 +1,17 @@
+version: '3.3'
+
+services:
+  api-cache-db:
+    container_name: api-cache-db-${API_VERSION}
+    # latest versions fails silently and stops the container; see https://github.com/Snapchat/KeyDB/issues/802
+    image: eqalpha/keydb:x86_64_v6.3.3
+    restart: always
+    ports:
+      - ${KEYDB_PORT}:6379
+    # the bind 0.0.0.0 and protected-mode no allow it to be accessed by the host machine
+    # need to re-evaluate for production deployment
+    # note: multi-master requires active replication
+    # command: keydb-server --multi-master yes --protected-mode no --bind 0.0.0.0
+    command: keydb-server --protected-mode no --bind 0.0.0.0
+    volumes:
+      - ${KEYDB_DATA_DIR}:/data

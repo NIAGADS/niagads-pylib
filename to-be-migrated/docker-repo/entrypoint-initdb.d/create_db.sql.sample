@@ -1,0 +1,9 @@
+CREATE DATABASE ApiStaticDB WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
+\connect apistaticdb;
+
+CREATE USER server_app WITH PASSWORD '@CHANGE_READ_ONLY_PWD@';
+
+CREATE SCHEMA ServerApplication;
+
+GRANT USAGE ON SCHEMA ServerApplication TO server_app;
+GRANT SELECT ON ALL TABLES IN SCHEMA ServerApplication TO server_app;

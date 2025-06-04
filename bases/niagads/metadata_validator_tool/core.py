@@ -12,7 +12,6 @@ This tool can be run as a script or can also be imported as a module.  When run 
 results are piped to STDOUT unless the `--log` option is specified.
 """
 
-import argparse
 from enum import auto
 import json
 import logging
@@ -22,13 +21,13 @@ from typing import List, Union
 
 from niagads.arg_parser.core import case_insensitive_enum_type
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.logging_utils.core import LOG_FORMAT_STR, ExitOnExceptionHandler
+from niagads.utils.logging import LOG_FORMAT_STR, ExitOnExceptionHandler
 from niagads.metadata_validator.core import (
     BiosourcePropertiesValidator,
     FileManifestValidator,
 )
-from niagads.string_utils.core import xstr
-from niagads.sys_utils.core import print_args, verify_path
+from niagads.utils.string import xstr
+from niagads.utils.sys import print_args, verify_path
 
 
 class MetadataValidatorType(CaseInsensitiveEnum):
@@ -169,6 +168,8 @@ def run(
 
 
 def main():
+    import argparse
+
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument(
         "--template",

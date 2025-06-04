@@ -6,9 +6,9 @@ from typing import Union
 from niagads.csv_parser.core import CSVFileParser
 from niagads.excel_parser.core import ExcelFileParser
 from niagads.json_validator.core import JSONValidator
-from niagads.list_utils.core import drop_nulls
-from niagads.string_utils.core import xstr
-from niagads.sys_utils.core import is_xlsx
+from niagads.utils.list import drop_nulls
+from niagads.utils.string import xstr
+from niagads.utils.sys import is_xlsx
 
 
 class CSVValidator(ABC):

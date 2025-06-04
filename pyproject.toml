@@ -1,86 +1,103 @@
 [project]
 name = "niagads-pylib"
-version = "0.0.1-alpha.0"
-description = "a collection of python packages, classes, and utility functions in support of NIAGADS projects"
 authors = [{ name = "fossilfriend", email = "egreenfest@gmail.com" }]
+description = "a collection of python packages, classes, and utility functions in support of NIAGADS projects"
 license = { text = "GNU GPLv3" }
 readme = "README.md"
 requires-python = ">=3.11,<4.0"
+version = "0.0.1-alpha.0"
+
+[tool.black]
+
+[tool.isort]
+profile = "black"
 
 [tool.poetry]
 homepage = "https://github.com/NIAGADS/niagads-pylib"
 repository = "https://github.com/NIAGADS/niagads-pylib"
 packages = [
-    { include = "niagads/enums", from = "components" },
-    { include = "niagads/exceptions", from = "components" },
-    { include = "niagads/pd_dataframe", from = "components" },
-    { include = "niagads/decorators", from = "components" },
-    { include = "niagads/postgres_dbi", from = "components" },
-    { include = "niagads/objects", from = "components" },
-    { include = "niagads/chromosomes", from = "components" },
-    { include = "niagads/excel_parser", from = "components" },
-    { include = "niagads/variant_annotator", from = "components" },
-    { include = "niagads/csv_parser", from = "components" },
-    { include = "niagads/vcf_parser", from = "components" },
-    { include = "niagads/vep_json_parser", from = "components" },
-    { include = "niagads/adsp_annotation", from = "components" },
-    { include = "niagads/metadata_validator", from = "components" },
-    { include = "niagads/json_validator", from = "components" },
-    { include = "niagads/csv_validator", from = "components" },
-    { include = "niagads/logging_utils", from = "components" },
-    { include = "niagads/list_utils", from = "components" },
-    { include = "niagads/dict_utils", from = "components" },
-    { include = "niagads/sys_utils", from = "components" },
-    { include = "niagads/string_utils", from = "components" },
-    { include = "niagads/numeric_utils", from = "components" },
-    { include = "niagads/arg_parser", from = "components" },
-    { include = "niagads/csv_triples_parser", from = "components" },
-    { include = "niagads/metadata_validator_tool", from = "bases" },
+    { from = "bases", include = "niagads/loaders" },
+    { from = "bases", include = "niagads/metadata_validator_tool" },
+    { from = "bases", include = "niagads/open_access_advp_api" },
+    { from = "bases", include = "niagads/open_access_api" },
+    { from = "bases", include = "niagads/open_access_filer_api" },
+    { from = "bases", include = "niagads/open_access_genomics_api" },
+    { from = "components", include = "niagads/adsp_annotation" },
+    { from = "components", include = "niagads/arg_parser" },
+    { from = "components", include = "niagads/cache" },
+    { from = "components", include = "niagads/collection_record" },
+    { from = "components", include = "niagads/common" },
+    { from = "components", include = "niagads/csv_parser" },
+    { from = "components", include = "niagads/csv_triples_parser" },
+    { from = "components", include = "niagads/csv_validator" },
+    { from = "components", include = "niagads/database" },
+    { from = "components", include = "niagads/decorators" },
+    { from = "components", include = "niagads/enums" },
+    { from = "components", include = "niagads/excel_parser" },
+    { from = "components", include = "niagads/exceptions" },
+    { from = "components", include = "niagads/gene_record" },
+    { from = "components", include = "niagads/genome" },
+    { from = "components", include = "niagads/json_validator" },
+    { from = "components", include = "niagads/metadata_parser" },
+    { from = "components", include = "niagads/metadata_validator" },
+    { from = "components", include = "niagads/objects" },
+    { from = "components", include = "niagads/open_access_api_common" },
+    { from = "components", include = "niagads/postgres_dbi" },
+    { from = "components", include = "niagads/requests" },
+    { from = "components", include = "niagads/settings" },
+    { from = "components", include = "niagads/track" },
+    { from = "components", include = "niagads/utils" },
+    { from = "components", include = "niagads/variant_annotator" },
+    { from = "components", include = "niagads/variant_record" },
+    { from = "components", include = "niagads/vcf_parser" },
+    { from = "components", include = "niagads/vep_json_parser" },
 ]
 
 [tool.poetry.dependencies]
-openpyxl = "^3.1.5"
-strenum = "^0.4.15"
-aiohttp = "^3.11.16"
-pandas = "^2.2.3"
-python-dateutil = "^2.9.0.post0"
-psycopg2-binary = "^2.9.10"
-jsonschema = "^4.23.0"
+aiocache = { extras = ["redis"], version = "^0.12.3" }
+aiohttp = { extras = ["speedups"], version = "^3.11.16" }
+asgi-correlation-id = "^4.3.4"
 asyncpg = "^0.30.0"
+email-validator = "^2.2.0"
+fastapi = "^0.115.12"
+fastapi-cors = "^0.0.6"
+itsdangerous = "^2.2.0"
+jsonschema = "^4.23.0"
+nh3 = "^0.2.21"
+openpyxl = "^3.1.5"
+pandas = "^2.2.3"
+psycopg2-binary = "^2.9.10"
 pydantic = "^2.11.1"
-
-# wrapt for custom decorators
+pydantic-settings = "^2.8.1"
+pyparsing = "^3.2.3"
+python-dateutil = "^2.9.0.post0"
+pyyaml = "^6.0.2"
 rdflib = "^7.1.4"
+sqlalchemy = "^2.0.40"
+sqlmodel = "^0.0.24"
+strenum = "^0.4.15"
+typing-extensions = "^4.13.2"
+requests = "^2.32.3"
+uvicorn = "^0.34.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
-isort = "^5.13.2"
-mypy = "^1.8.0"
 flake8 = "^7.0.0"
-pytest = "^8.2.2"
-sphinx = "^8.2.3"
-sphinxawesome-theme = "^5.3.2"
-sphinx-autodoc-annotation = "^1.0"
-sphinx-autodoc-typehints = "^3.1.0"
-autoclasstoc = "^1.7.0"
 ipykernel = "^6.29.5"
-sphinx-autobuild = "^2024.10.3"
-sphinx-rtd-theme = "^3.0.2"
-sphinx-autoapi = "^3.6.0"
-pydocstyle = "^6.3.0"
+isort = "^5.13.2"
 lazydoc = "^1.0.1"
-
-
-[tool.isort]
-profile = "black"
-
-[tool.black]
-# line-length = 80
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
-
+mypy = "^1.8.0"
+pydocstyle = "^6.3.0"
+pytest = "^8.2.2"
 
 [tool.pytest.ini_options]
 addopts = "-vv"
+
+[tool.tomlsort]
+all = true
+in_place = true
+spaces_indent_inline_array = 4
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=2.0.0,<3.0.0"]

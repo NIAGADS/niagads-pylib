@@ -1,0 +1,49 @@
+[tool.poetry]
+packages = [
+    { include = "niagads/open_access_api", from = "../../bases" },
+    { include = "niagads/open_access_filer_api", from = "../../bases" },
+    { include = "niagads/open_access_genomics_api", from = "../../bases" },
+    { include = "niagads/enums", from = "../../components" },
+    { include = "niagads/common", from = "../../components" },
+    { include = "niagads/database", from = "../../components" },
+    { include = "niagads/exceptions", from = "../../components" },
+    { include = "niagads/utils", from = "../../components" },
+    { include = "niagads/settings", from = "../../components" },
+    { include = "niagads/open_access_api_common", from = "../../components" },
+    { include = "niagads/genome", from = "../../components" },
+    { include = "niagads/cache", from = "../../components" },
+    { include = "niagads/requests", from = "../../components" },
+]
+
+[project]
+name = "open-access-api"
+version = "0.1.0"
+
+authors = [{ name = "fossilfriend", email = "egreenfest@gmail.com" }]
+
+requires-python = ">=3.11,<4.0"
+
+dependencies = [
+    "pyyaml (>=6.0.2,<7.0.0)",
+    "aiocache (>=0.12.3,<0.13.0)",
+    "aiohttp (>=3.11.18,<4.0.0)",
+    "asgi-correlation-id (>=4.3.4,<5.0.0)",
+    "asyncpg (>=0.30.0,<0.31.0)",
+    "python-dateutil (>=2.9.0.post0,<3.0.0)",
+    "fastapi (>=0.115.12,<0.116.0)",
+    "nh3 (>=0.2.21,<0.3.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "pydantic (>=2.11.4,<3.0.0)",
+    "pydantic-settings (>=2.9.1,<3.0.0)",
+    "pyparsing (>=3.2.3,<4.0.0)",
+    "sqlalchemy (>=2.0.40,<3.0.0)",
+    "sqlmodel (>=0.0.24,<0.0.25)",
+    "starlette (>=0.46.2,<0.47.0)",
+    "strenum (>=0.4.15,<0.5.0)",
+    "typing-extensions (>=4.13.2,<5.0.0)",
+    "uvicorn (>=0.34.2,<0.35.0)",
+]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

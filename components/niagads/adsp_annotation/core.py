@@ -26,17 +26,6 @@
 #
 # - none
 #
-# @section libraries_adsp_consequence_parser Libraries/Modules
-# - csv: csv file reading and writing
-# - collections: container datatypes (e.g., OrderedDict)
-# - datetime: for putting timestamps on updates to consequence ranking file
-# - [GenomicsDBData.Util.utils](https://github.com/NIAGADS/GenomicsDBData/blob/master/Util/lib/python/utils.py)
-#   + provides variety of wrappers for standard file, string, list, and logging operations
-# - [GenomicsDBData.Util.list_utils](https://github.com/NIAGADS/GenomicsDBData/blob/master/Util/lib/python/list_utils.py)
-#   + provides variety of wrappers for set and list operations
-# - [AnnotatedVDB.Util.enums](https://github.com/NIAGADS/AnnotatedVDB/tree/master/Util/lib/python/enums)
-#   + enum listing groupings of consequence terms required to determine ADSP rankings
-#
 # @section author_adsp_consequence_parser Author(s)
 # - Created by Emily Greenfest-Allen (fossilfriend) 2021-2022
 # - Modified from code by Nick Wheeler, Case Western (W. Bush Group)
@@ -47,10 +36,10 @@ import logging
 from collections import OrderedDict
 from datetime import date
 
-from niagads.sys_utils.core import warning, die, verify_path
-from niagads.string_utils.core import to_numeric, int_to_alpha, xstr
-from niagads.dict_utils.core import print_dict
-from niagads.list_utils.core import (
+from niagads.utils.sys import warning, die, verify_path
+from niagads.utils.string import to_numeric, int_to_alpha, xstr
+from niagads.utils.dict import print_dict
+from niagads.utils.list import (
     is_equivalent_list,
     qw,
     alphabetize_string_list,

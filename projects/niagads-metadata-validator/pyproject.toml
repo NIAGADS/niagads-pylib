@@ -1,53 +1,52 @@
-[tool.poetry]
-packages = [
-    { include = "niagads/metadata_validator_tool", from = "../../bases" },
-    { include = "niagads/csv_validator", from = "../../components" },
-    { include = "niagads/arg_parser", from = "../../components" },
-    { include = "niagads/exceptions", from = "../../components" },
-    { include = "niagads/metadata_validator", from = "../../components" },
-    { include = "niagads/dict_utils", from = "../../components" },
-    { include = "niagads/sys_utils", from = "../../components" },
-    { include = "niagads/enums", from = "../../components" },
-    { include = "niagads/list_utils", from = "../../components" },
-    { include = "niagads/excel_parser", from = "../../components" },
-    { include = "niagads/string_utils", from = "../../components" },
-    { include = "niagads/pd_dataframe", from = "../../components" },
-    { include = "niagads/logging_utils", from = "../../components" },
-    { include = "niagads/json_validator", from = "../../components" },
-    { include = "niagads/csv_parser", from = "../../components" },
-]
-
-[tool.poetry.group.dev.dependencies]
-lazydocs = "^0.4.8"
-
 [project]
 name = "niagads-metadata-validator"
-description = "JSON Schema based validation of dataset metadata developed to support submissions to the NIAGADS Data Sharing Service"
-version = "0.2.2"
-
 authors = [{ name = "fossilfriend", email = "egreenfest@gmail.com" }]
-license = { text = "GNU GPLv3" }
-readme = "README.md"
-
-requires-python = ">=3.11,<4.0"
-
 dependencies = [
-    "python-dateutil (>=2.9.0.post0,<3.0.0)",
     "jsonschema (>=4.23.0,<5.0.0)",
+    "nh3 (>=0.2.21,<0.3.0)",
     "openpyxl (>=3.1.5,<4.0.0)",
     "pandas (>=2.2.3,<3.0.0)",
+    "pydantic (>=2.11.3,<3.0.0)",
+    "python-dateutil (>=2.9.0.post0,<3.0.0)",
     "strenum (>=0.4.15,<0.5.0)",
 ]
+description = "JSON Schema based validation of dataset metadata developed to support submissions to the NIAGADS Data Sharing Service"
+license = { text = "GNU GPLv3" }
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+version = "0.2.2"
+
+[project.scripts]
+metadata-validator = "niagads.metadata_validator_tool.core:main"
 
 [project.urls]
 "Bug Reports" = "https://github.com/NIAGADS/niagads-pylib/issues"
 "Homepage" = "https://github.com/NIAGADS/niagads-pylib"
 "Source" = "https://github.com/NIAGADS/niagads-pylib"
 
-[project.scripts]
-metadata-validator = "niagads.metadata_validator_tool.core:main"
+[tool.poetry]
+packages = [
+    { from = "../../bases", include = "niagads/metadata_validator_tool" },
+    { from = "../../components", include = "niagads/arg_parser" },
+    { from = "../../components", include = "niagads/csv_parser" },
+    { from = "../../components", include = "niagads/csv_validator" },
+    { from = "../../components", include = "niagads/enums" },
+    { from = "../../components", include = "niagads/excel_parser" },
+    { from = "../../components", include = "niagads/exceptions" },
+    { from = "../../components", include = "niagads/json_validator" },
+    { from = "../../components", include = "niagads/metadata_validator" },
+    { from = "../../components", include = "niagads/pd_dataframe" },
+    { from = "../../components", include = "niagads/utils" },
+]
 
+[tool.poetry.group.dev.dependencies]
+lazydocs = "^0.4.8"
+
+[tool.tomlsort]
+all = true
+in_place = true
+spaces_indent_inline_array = 4
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]

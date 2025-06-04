@@ -35,21 +35,56 @@ The NIAGADS-pylib uses a [Polylith architecture](https://polylith.gitbook.io/pol
 
 ### Requirements
 
-* python 3.12+
+* Python >3.12, < 4.0
 * pipx: <https://github.com/pypa/pipx>
-* poetry package manager: <https://python-poetry.org/>
+* poetry package manager: <https://python-poetry.org/> (install w/pipx)
+* Python Polylith tools: <https://davidvujic.github.io/python-polylith-docs/>
+* toml-sort: <https://pypi.org/project/toml-sort/> (install w/pipx)
 
 ### Environment Setup
 
-Clone the repository and run the following the root directory to set up the virtual environment and install the packages and third-party dependencies.
+* install `pipx` (see dcoumentation linked above)
+* install `poetry` using `pipx` (see documentation linked above)
+* configure `poetry` to the `polylith` Python command line tools as per the tool documentation:
 
 ```bash
+poetry self add poetry-multiproject-plugin
+poetry self add poetry-polylith-plugin
+```
+
+Clone the repository and run the following the project root directory to set up the virtual environment and install the packages and third-party dependencies.
+
+```bash
+git clone https://github.com/NIAGADS/niagads-pylib
+cd niagads-pylib
 poetry install
 ```
+
+> If working off a specific branch, checkout the branch before running `poetry install`.
 
 ### Polylith Architecture
 
 Details TBA
+
+### TOML organization
+
+TODO: integrate in toml-sort in tag/release/publish github-action
+
+While `poetry` helps sync the overall monorepo and sub-project dependencies, it does not organize the order of include statements or dependencies `.toml` files.  As the project grows this can make it difficult to at-a-glance inspect the the files and make manually adjustments.  The `toml-sort` Python command-line tool can be installed with `pipx` as follows:
+
+```python
+pipx install toml-sort
+```
+
+and then run to sort (alphabetize) the key-value pairs in the import blocks, as well as the array of `include` statements that link the Polylith bricks to the project.  Run `toml-sort` as follows (the `--sort-first` helps keep the basic order of the `.toml` file consistent).
+
+```python
+toml-sort --sort-first "project,tool,name,homepage,repository,packages" pyproject.toml
+```
+
+#### Hot Reloads for FastAPI
+
+see <https://davidvujic.blogspot.com/2023/07/python-fastapi-microservices-with-polylith.html>
 
 ### VSCode Config
 

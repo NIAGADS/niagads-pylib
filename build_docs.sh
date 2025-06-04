@@ -1,2 +1,2 @@
-lazydocs --output-path="." --src-base-url="https://github.com/NIAGADS/niagads-pylib/blob/main/" $1
+lazydocs --output-path=$2 --src-base-url="https://github.com/NIAGADS/niagads-pylib/blob/main/" $1
 
