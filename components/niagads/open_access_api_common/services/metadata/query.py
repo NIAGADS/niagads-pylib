@@ -45,7 +45,7 @@ class MetadataQueryService:
     async def validate_tracks(self, tracks: List[str]):
         # solution for finding tracks not in the table adapted from
         # https://stackoverflow.com/a/73691503
-        lookups = Values(sqla_column("track_id", String), name="lookups").data(
+        lookups = Values(Column("track_id", String), name="lookups").data(
             [(t,) for t in tracks]
         )
         statement = (
