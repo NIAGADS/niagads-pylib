@@ -1,4 +1,4 @@
-FROM python:slim-bookworm
+FROM python:3.12.10-slim-bullseyes
 
 ARG wheel=open-access-api-0.1.0-py3-none-any.whl
 
