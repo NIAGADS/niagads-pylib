@@ -174,7 +174,7 @@ class AppFactory:
                         {
                             "x-badges": [
                                 {
-                                    "name": "Beta",
+                                    "label": "Beta",
                                     "position": "before",
                                     "color": "purple",
                                 }
