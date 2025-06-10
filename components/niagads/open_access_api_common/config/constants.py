@@ -37,7 +37,7 @@ class SharedOpenAPITags(Enum):
     )
     TRACK_RECORD = OpenAPITag(
         name="Metadata",
-        description="endpoints that retrieve track metadata; this includes data endpoints that summarize the data in the context of an abridge metadata response.",
+        description="endpoints that retrieve track record metadata",
         xSortOrder=300,
         xDisplayName="Track Metadata",
     )
