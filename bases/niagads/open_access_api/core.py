@@ -50,9 +50,8 @@ def _openapi_update_routes(
         route: dict
         for method, props in route.items():
             updatedRoutes.update({updatedPath: {method: deepcopy(props)}})
-            # updatedRoutes[updatedPath][method]["tags"] = [
-            #     f"{namespace}-{t}" for t in props["tags"] if t not in traitTagRef
-            # ]
+            summary = updatedRoutes[updatedPath][method]["summary"]
+            updatedRoutes[updatedPath][method]["summary"] = f"{namespace}: {summary}"
 
     return updatedRoutes
 
@@ -136,7 +135,7 @@ appFactory.add_router(RootRouter, version=True)
 app = appFactory.get_app()
 
 app.mount(f"{appFactory.get_version_prefix()}/filer", FILERApp)
-# app.mount(f"{appFactory.get_version_prefix()}/genomics", GenomicsApp)
+app.mount(f"{appFactory.get_version_prefix()}/genomics", GenomicsApp)
 
 app.openapi_schema = custom_openapi(appFactory, [GenomicsApp, FILERApp])
 

@@ -39,16 +39,18 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             "url": "https://www.niagads.org/genomics",
         },
         xSortOrder=2,
-        # xTraitTag=True,
     ),
     SharedOpenAPITags.DOCUMENTATION.value,
     SharedOpenAPITags.GENE_RECORD.value,
     SharedOpenAPITags.VARIANT_RECORD.value,
-    SharedOpenAPITags.XQTL_TRACK_RECORD.value,
+    SharedOpenAPITags.TRACK_RECORD.value,
     SharedOpenAPITags.GWAS_TRACK_RECORD.value,
     SharedOpenAPITags.TRACK_DATA.value,
     SharedOpenAPITags.COLLECTIONS.value,
     SharedOpenAPITags.GENOME_BROWSER.value,
+    SharedOpenAPITags.ONTOLOGIES.value,
+    SharedOpenAPITags.RECORD_SEARCH.value,
+    SharedOpenAPITags.LOOKUP_SERVICES.value,
     # SharedOpenAPITags.LOCUSZOOOM.value,
 ]
 
@@ -60,7 +62,7 @@ APP_NAME: str = OPEN_API_TAGS[1].name
 BASE_TAGS = [APP_NAMESPACE, APP_NAME]
 
 GENOMICS_TAG_GROUPS = [
-    OpenAPIxTagGroup(name=APP_NAME, tags=OPEN_API_TAGS, xSortOrder=20)
+    OpenAPIxTagGroup(name="Knowledge Bases", tags=[OPEN_API_TAGS[1]], xSortOrder=0)
 ] + SharedOpenAPIxTagGroups.list()
 
 OPEN_API_SPEC = OpenAPISpec(

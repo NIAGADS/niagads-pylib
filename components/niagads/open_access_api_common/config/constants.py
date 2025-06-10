@@ -87,7 +87,7 @@ class SharedOpenAPITags(Enum):
     LOCUSZOOM = OpenAPITag(
         name="LocusZoom",
         description="service endpoints generating for NIAGADS LocusZoom data adapters",
-        xSortOrder=520,
+        xSortOrder=420,
     )
     LOOKUP_SERVICES = OpenAPITag(
         name="Lookups",

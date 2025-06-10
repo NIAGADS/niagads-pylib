@@ -39,7 +39,6 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             "url": "https://tf.lisanwanglab.org/FILER/",
         },
         xSortOrder=3,
-        # xTraitTag=True,
     ),
     SharedOpenAPITags.DOCUMENTATION.value,
     SharedOpenAPITags.TRACK_RECORD.value,

@@ -2,6 +2,7 @@ import functools
 from fastapi import APIRouter, Depends, Request, Response
 from niagads.open_access_api_common.app import AppFactory
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.models.records.route import (
     RecordSummary,
     RouteDescription,
@@ -24,8 +25,8 @@ router = APIRouter(tags=[APP_NAME])
 @router.get(
     "/",
     response_model=GenericResponse,
-    name=f"About the {APP_NAME}",
-    description=f"brief summary about the {APP_NAME}",
+    summary="get-api-info",
+    description=f"Retrieve a brief overview of the {APP_NAME}",
     tags=[str(SharedOpenAPITags.DOCUMENTATION)],
 )
 async def get_database_description(
@@ -49,7 +50,7 @@ async def get_database_description(
 @router.get(
     "/openapi.yaml",
     tags=[str(SharedOpenAPITags.DOCUMENTATION)],
-    name="Specification: `YAML`",
+    name="get-specification-yaml",
     description="Get API Specificiation in `YAML` format",
     include_in_schema=False,
 )
