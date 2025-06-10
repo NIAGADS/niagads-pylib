@@ -30,18 +30,12 @@ from niagads.open_access_filer_api.dependencies import (
 from niagads.open_access_filer_api.documentation import BASE_TAGS
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
-router = APIRouter(
-    prefix="/record/track",
-    tags=BASE_TAGS
-    + [
-        str(SharedOpenAPITags.TRACK_RECORD),
-    ],
-)
+router = APIRouter(prefix="/record/track", tags=BASE_TAGS)
 
 
 @router.get(
     "/{track}",
-    tags=[],
+    tags=[str(SharedOpenAPITags.TRACK_RECORD)],
     response_model=Union[AbridgedTrackResponse, TrackResponse, GenericResponse],
     summary="get-track-metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response",
@@ -79,7 +73,7 @@ async def get_track_metadata(
     return await helper.get_track_metadata()
 
 
-tags = [str(SharedOpenAPITags.TRACK_RECORD), str(SharedOpenAPITags.TRACK_DATA)]
+tags = [str(SharedOpenAPITags.TRACK_DATA)]
 
 
 @router.get(

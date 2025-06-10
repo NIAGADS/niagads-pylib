@@ -34,8 +34,7 @@ from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(
     prefix="/data",
-    tags=BASE_TAGS
-    + [str(SharedOpenAPITags.TRACK_RECORD), str(SharedOpenAPITags.TRACK_DATA)],
+    tags=BASE_TAGS + [str(SharedOpenAPITags.TRACK_DATA)],
 )
 
 
