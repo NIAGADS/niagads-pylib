@@ -9,7 +9,7 @@ from niagads.database.models.metadata.composite_attributes import (
     Provenance,
 )
 from niagads.open_access_api_common.models.records.core import DynamicRowModel, RowModel
-from niagads.open_access_api_common.models.response.core import PagedResponseModel
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.core import id2title
 from niagads.open_access_api_common.models.views.table.core import TableColumn
 from niagads.open_access_api_common.parameters.response import (
@@ -32,7 +32,7 @@ EXCLUDE_FROM_TRACK_VIEWS = [
 ]
 
 
-class TrackSummary(DynamicRowModel):
+class AbridgedTrack(DynamicRowModel):
     track_id: str = Field(title="Track")
     name: str = Field(title="Name")
     description: Optional[str] = Field(default=None, title="Description")
@@ -93,7 +93,7 @@ class TrackSummary(DynamicRowModel):
         )  # should make data_source, url etc available
 
         # filter out excess from the Track ORM model
-        modelFields = TrackSummary.model_fields.keys()
+        modelFields = AbridgedTrack.model_fields.keys()
         return {
             k: v for k, v in data.items() if k in modelFields or k.startswith("num_")
         }
@@ -187,21 +187,25 @@ class TrackResultSize(RowModel):
         return sorted(results, key=lambda item: item.num_results, reverse=reverse)
 
 
-class TrackSummaryResponse(PagedResponseModel):
-    data: List[TrackSummary]
+class AbridgedTrackResponse(GenericResponse):
+    data: List[AbridgedTrack] = Field(
+        description="Abridged metadata for each track meeting the query criteria.  Depending on query may include count of records matching query parameters."
+    )
 
     def to_text(self, format: ResponseView, **kwargs):
         fields = (
             self.data[0].get_instantiated_fields()
             if len(self.data) > 0
-            else TrackSummary.get_model_fields()
+            else AbridgedTrack.get_model_fields()
         )
         return super().to_text(format, fields=fields)
 
 
-class TrackResponse(PagedResponseModel):
-    data: List[Track]
+class TrackResponse(GenericResponse):
+    data: List[Track] = Field(
+        description="Full metadata for each track meeting the query criteria."
+    )
 
     def to_text(self, format: ResponseView, **kwargs):
-        fields = TrackSummary.get_model_fields()
+        fields = AbridgedTrack.get_model_fields()
         return super().to_text(format, fields=fields)

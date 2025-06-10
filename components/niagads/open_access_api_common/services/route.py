@@ -12,13 +12,12 @@ from niagads.open_access_api_common.models.cache import (
     CacheKeyQualifier,
     CacheNamespace,
 )
-from niagads.open_access_api_common.models.records.core import DynamicRowModel
 from niagads.open_access_api_common.models.records.track.igvbrowser import (
     IGVBrowserTrackSelectorResponse,
 )
 from niagads.open_access_api_common.models.response.core import (
-    ResponseModel,
-    T_ResponseModel,
+    GenericResponse,
+    T_GenericResponse,
 )
 from niagads.open_access_api_common.models.response.pagination import (
     PaginationDataModel,
@@ -43,7 +42,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     format: ResponseFormat = ResponseFormat.JSON
     content: ResponseContent = ResponseContent.FULL
     view: ResponseView = ResponseView.DEFAULT
-    model: Type[T_ResponseModel] = None
+    model: Type[T_GenericResponse] = None
 
     @model_validator(mode="after")
     def validate_config(self, __context):
@@ -68,13 +67,13 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
         return self
 
     # from https://stackoverflow.com/a/67366461
-    # allows ensurance that model is always a child of ResponseModel
+    # allows ensurance that model is always a child of GenericResponse
     @field_validator("model")
     def validate_model(cls, model):
-        if issubclass(model, ResponseModel):
+        if issubclass(model, GenericResponse):
             return model
         raise RuntimeError(
-            f"Wrong type for `model` : `{model}`; must be subclass of `ResponseModel`"
+            f"Wrong type for `model` : `{model}`; must be subclass of `GenericResponse`"
         )
 
     @field_validator("content")
@@ -205,21 +204,15 @@ class RouteHelperService:
             - 1
         )
 
-    def initialize_pagination(self, raiseError=True):
-        """returns False if not a paged model and raiseError = False"""
-        if self._responseConfig.model.is_paged():
-            self._pagination = PaginationDataModel(
-                page=self.page(),
-                total_num_pages=self.total_num_pages(),
-                paged_num_records=None,
-                total_num_records=self._resultSize,
-            )
+    def initialize_pagination(self):
+        self._pagination = PaginationDataModel(
+            page=self.page(),
+            total_num_pages=self.total_num_pages(),
+            paged_num_records=None,
+            total_num_records=self._resultSize,
+        )
 
-            return self._is_valid_page(self._pagination.page)
-        else:
-            if raiseError:
-                raise RuntimeError("Attempt to page a non-pageable response model")
-            return False
+        return self._is_valid_page(self._pagination.page)
 
     def set_paged_num_records(self, numRecords: int):
         self._pagination_exists()
@@ -247,7 +240,7 @@ class RouteHelperService:
 
         return Range(start=start, end=end)
 
-    async def generate_table_response(self, response: Type[T_ResponseModel]):
+    async def generate_table_response(self, response: Type[T_GenericResponse]):
         # create an encrypted cache key
         cacheKey = CacheKeyDataModel.encrypt_key(
             self._managers.cacheKey.key
@@ -272,7 +265,7 @@ class RouteHelperService:
         viewResponse = TableViewResponse(
             table=response.to_view(ResponseView.TABLE, id=cacheKey),
             request=self._managers.requestData,
-            pagination=response.pagination if response.is_paged() else None,
+            pagination=response.pagination,
         )
 
         await self._managers.cache.set(
@@ -281,14 +274,15 @@ class RouteHelperService:
 
         return viewResponse
 
-    async def generate_response(self, result: Any, isCached=False):
-        response: Type[T_ResponseModel] = result if isCached else None
+    async def generate_response(self, result: Any, isCached: bool = False):
+        response: Type[T_GenericResponse] = result if isCached else None
         if response is None:
             self._managers.requestData.update_parameters(
                 self._parameters, exclude=_INTERNAL_PARAMETERS
             )
 
-            if self._responseConfig.model.is_paged():
+            # set pagination for lists of results
+            if isinstance(response, list):
                 if not self._pagination_exists(raiseError=False):
                     if self._resultSize is None:
                         self._resultSize = len(result)
@@ -300,7 +294,7 @@ class RouteHelperService:
                 response = self._responseConfig.model(
                     request=self._managers.requestData,
                     pagination=self._pagination,
-                    data=result,  # self._sqa_row2dict(result),
+                    data=result,
                 )
             else:
                 if self._responseConfig.model == IGVBrowserTrackSelectorResponse:

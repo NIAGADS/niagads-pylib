@@ -6,7 +6,7 @@ from niagads.open_access_api_common.models.records.features.variant import (
     Variant,
     VariantFeature,
 )
-from niagads.open_access_api_common.models.response.core import PagedResponseModel
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.core import id2title
 from niagads.open_access_api_common.models.views.table.cells import (
     BadgeIcon,
@@ -218,9 +218,9 @@ class QTL(VariantPValueScore):
         return config
 
 
-class GWASSumStatResponse(PagedResponseModel):
+class GWASSumStatResponse(GenericResponse):
     data: List[VariantPValueScore]
 
 
-class QTLResponse(PagedResponseModel):
+class QTLResponse(GenericResponse):
     data: List[QTL]

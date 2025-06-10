@@ -3,6 +3,7 @@ from enum import Enum
 from typing import List
 
 from niagads.open_access_api_common.types import OpenAPITag, OpenAPIxTagGroup
+from pydantic import BaseModel
 
 
 HTTP_CLIENT_TIMEOUT = 30  # timeout in seconds
@@ -12,13 +13,13 @@ DEFAULT_PAGE_SIZE = 5000
 MAX_NUM_PAGES = 10
 
 # Responses
+
 RESPONSES = {
-    404: {"description": "Item not found"},
-    422: {"description": "Validation Error"},
-    500: {"description": "Internal Server Error"},
-    501: {"description": "Not Implemented"},
+    404: {"description": "Record not found"},
+    422: {"description": "Parameter Validation Error"},
     429: {"description": "Too many requests"},
 }
+
 
 # regular expressions
 SHARD_PATTERN = r"chr(\d{1,2}|[XYM]|MT)"
@@ -28,8 +29,8 @@ DEFAULT_NULL_STRING = "NA"
 
 
 class SharedOpenAPITags(Enum):
-    ABOUT = OpenAPITag(
-        name="Info",
+    DOCUMENTATION = OpenAPITag(
+        name="Documentation",
         description="general information and over statistics about the NIAGADS Open Access resources queried by this API, including lookups for data descriptors",
         xSortOrder=10,
         xDisplayName="Resource Information",
@@ -76,30 +77,6 @@ class SharedOpenAPITags(Enum):
         xSortOrder=19,
         xDisplayName="Collections",
     )
-    RECORD_BY_ID = OpenAPITag(
-        name="Record(s) by ID",
-        description="find gene, variant, or data track records by ID",
-        xTraitTag=True,
-        xSortOrder=30,
-    )
-    RECORD_BY_REGION = OpenAPITag(
-        name="Record(s) by Region",
-        description="find gene, variant, or data track records by Genomic Region",
-        xTraitTag=True,
-        xSortOrder=31,
-    )
-    RECORD_BY_TEXT = OpenAPITag(
-        name="Record(s) by Text Search",
-        description="find gene, variant, or data track records by metadata text search",
-        xTraitTag=True,
-        xSortOrder=32,
-    )
-    SERVICES = OpenAPITag(
-        name="Service",
-        description="service endpoints that do specific lookups or return JSON responses for downstream tools, such as the Genome Browser",
-        xTraitTag=True,
-        xSortOrder=40,
-    )
     GENOME_BROWSER = OpenAPITag(
         name="Browser",
         description="service endpoints generating configuration files, data adapters, and search services for NIAGADS Genome Browser Tracks",
@@ -117,11 +94,11 @@ class SharedOpenAPITags(Enum):
         xSortOrder=43,
         xDisplayName="Lookup Services",
     )
-    SPECIFICATION = OpenAPITag(
-        name="Spec",
-        description="service endpoints that retrieve the OpenAPI specification",
-        xSortOrder=100,
-        xDisplayName="OpenAPI Specification",
+    PAGINATION = OpenAPITag(
+        name="Pagination",
+        description="Pagination of Responses: more information coming soon.",
+        xSortOrder=500,
+        xTraitTag=True,
     )
 
     def __str__(self):
@@ -134,13 +111,15 @@ class SharedOpenAPITags(Enum):
 class SharedOpenAPIxTagGroups(Enum):
     ABOUT = OpenAPIxTagGroup(
         name="Information and Statistics",
-        tags=[SharedOpenAPITags.ABOUT.value, SharedOpenAPITags.SPECIFICATION.value],
+        tags=[
+            SharedOpenAPITags.DOCUMENTATION.value,
+            SharedOpenAPITags.LOOKUP_SERVICES.value,
+        ],
         xSortOrder=1,
     )
     SERVICES = OpenAPIxTagGroup(
         name="Services",
         tags=[
-            # SharedOpenAPITags.SERVICES.value,
             SharedOpenAPITags.GENOME_BROWSER.value,
             SharedOpenAPITags.LOCUSZOOM.value,
             SharedOpenAPITags.LOOKUP_SERVICES.value,
@@ -150,7 +129,6 @@ class SharedOpenAPIxTagGroups(Enum):
     DATA_TRACKS = OpenAPIxTagGroup(
         name="Data Tracks",
         tags=[
-            # SharedOpenAPITags.TRACK_DATA.value,
             SharedOpenAPITags.TRACK_RECORD.value,
             SharedOpenAPITags.GWAS_TRACK_RECORD.value,
             SharedOpenAPITags.XQTL_TRACK_RECORD.value,

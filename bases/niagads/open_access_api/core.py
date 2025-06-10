@@ -50,9 +50,9 @@ def _openapi_update_routes(
         route: dict
         for method, props in route.items():
             updatedRoutes.update({updatedPath: {method: deepcopy(props)}})
-            updatedRoutes[updatedPath][method]["tags"] = [
-                f"{namespace}-{t}" for t in props["tags"] if t not in traitTagRef
-            ]
+            # updatedRoutes[updatedPath][method]["tags"] = [
+            #     f"{namespace}-{t}" for t in props["tags"] if t not in traitTagRef
+            # ]
 
     return updatedRoutes
 
@@ -78,6 +78,7 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
         # prefix tags by namespace to make unique and ensure relative anchors are
         # also extract / flag trait-only tags; do not prefix those
         # generated correctly
+
         t: dict
         for t in apiSpec["tags"]:
             if t.get("x-traitTag", False):
@@ -86,6 +87,7 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
                 t["name"] = f"{namespace}-{t['name']}"
                 t["x-displayName"] = f"{namespace}: {t['x-displayName']}"
             tagSet.add(json.dumps(t))
+
         # tagSet.update([json.dumps(t) for t in apiSpec["tags"]])
 
         # prefix route paths and tags
@@ -134,7 +136,7 @@ appFactory.add_router(RootRouter, version=True)
 app = appFactory.get_app()
 
 app.mount(f"{appFactory.get_version_prefix()}/filer", FILERApp)
-app.mount(f"{appFactory.get_version_prefix()}/genomics", GenomicsApp)
+# app.mount(f"{appFactory.get_version_prefix()}/genomics", GenomicsApp)
 
 app.openapi_schema = custom_openapi(appFactory, [GenomicsApp, FILERApp])
 

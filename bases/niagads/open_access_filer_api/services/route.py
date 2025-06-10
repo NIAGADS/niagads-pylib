@@ -304,7 +304,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         return await self.generate_response(result, isCached=False)
 
     async def get_track_data(self, validate=True):
-        """if trackSummary is set, then fetches from the summary not from a parameter"""
+        """if AbridgedTrack is set, then fetches from the summary not from a parameter"""
 
         cachedResponse = await self._get_cached_response()
         if cachedResponse is not None:

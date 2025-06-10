@@ -6,11 +6,9 @@ from niagads.genome.core import Assembly
 from niagads.open_access_api_common.models.records.features.bed import BEDResponse
 from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
-    TrackSummaryResponse,
+    AbridgedTrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import (
-    PagedResponseModel,
-)
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
@@ -45,8 +43,8 @@ tags = [
     "/metadata",
     tags=tags,
     response_model=Union[
-        PagedResponseModel,
-        TrackSummaryResponse,
+        GenericResponse,
+        AbridgedTrackResponse,
         TrackResponse,
         TableViewResponse,
     ],
@@ -69,7 +67,7 @@ async def search_track_metadata(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[PagedResponseModel, TrackSummaryResponse, TrackResponse, TableViewResponse]:
+) -> Union[GenericResponse, AbridgedTrackResponse, TrackResponse, TableViewResponse]:
 
     if filter is None and keyword is None:
         raise ValidationError(
@@ -87,9 +85,9 @@ async def search_track_metadata(
                 TrackResponse
                 if rContent == ResponseContent.FULL
                 else (
-                    TrackSummaryResponse
+                    AbridgedTrackResponse
                     if rContent == ResponseContent.SUMMARY
-                    else PagedResponseModel
+                    else GenericResponse
                 )
             ),
         ),
@@ -111,9 +109,9 @@ tags = [
     "/data",
     tags=tags,
     response_model=Union[
-        PagedResponseModel, TrackSummaryResponse, BEDResponse, TableViewResponse
+        GenericResponse, AbridgedTrackResponse, BEDResponse, TableViewResponse
     ],
-    name="Search tracks and retrieve data",
+    summary="Search tracks and retrieve data",
     description="find functional genomics tracks with data in specified region; qualify using category filters or by a keyword search against all text fields in the track metadata",
 )
 async def get_track_data_by_metadata_search(
@@ -131,7 +129,7 @@ async def get_track_data_by_metadata_search(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[PagedResponseModel, TrackSummaryResponse, BEDResponse, TableViewResponse]:
+) -> Union[GenericResponse, AbridgedTrackResponse, BEDResponse, TableViewResponse]:
 
     rContent = ResponseContent.data().validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
@@ -146,9 +144,9 @@ async def get_track_data_by_metadata_search(
                 BEDResponse
                 if rContent == ResponseContent.FULL
                 else (
-                    TrackSummaryResponse
+                    AbridgedTrackResponse
                     if rContent == ResponseContent.SUMMARY
-                    else PagedResponseModel
+                    else GenericResponse
                 )
             ),
         ),

@@ -17,7 +17,7 @@ from niagads.open_access_api_common.types import (
 
 OPEN_API_TAGS: List[OpenAPITag] = [
     OpenAPITag(
-        name="Alzheimer's Genomics Database",
+        name="Alzheimers Genomics Database",
         summary="Query annotated AD/ADRD-genetic evidence from GWAS summary statistics and ADSP variant annotations",
         description=(
             f"Query annotated AD/ADRD-genetic evidence from GWAS summary statistics "
@@ -32,19 +32,15 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             "url": "https://www.niagads.org/genomics",
         },
         xSortOrder=2,
-        xTraitTag=True,
+        # xTraitTag=True,
     ),
-    SharedOpenAPITags.ABOUT.value,
+    SharedOpenAPITags.DOCUMENTATION.value,
     SharedOpenAPITags.GENE_RECORD.value,
     SharedOpenAPITags.VARIANT_RECORD.value,
     SharedOpenAPITags.XQTL_TRACK_RECORD.value,
     SharedOpenAPITags.GWAS_TRACK_RECORD.value,
     SharedOpenAPITags.TRACK_DATA.value,
-    SharedOpenAPITags.RECORD_BY_ID.value,
-    SharedOpenAPITags.RECORD_BY_REGION.value,
-    SharedOpenAPITags.RECORD_BY_TEXT.value,
     SharedOpenAPITags.COLLECTIONS.value,
-    SharedOpenAPITags.SERVICES.value,
     SharedOpenAPITags.GENOME_BROWSER.value,
     # SharedOpenAPITags.LOCUSZOOOM.value,
 ]

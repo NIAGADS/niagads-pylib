@@ -4,7 +4,7 @@ from niagads.database.models.variant.composite_attributes import (
     RankedConsequences,
 )
 from niagads.open_access_api_common.models.records.core import RowModel
-from niagads.open_access_api_common.models.response.core import PagedResponseModel
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from pydantic import ConfigDict, Field
 
 
@@ -35,9 +35,9 @@ class AnnotatedVariant(Variant):
     predicted_consequences: Optional[RankedConsequences] = None
 
 
-class VariantSummaryResponse(PagedResponseModel):
+class VariantSummaryResponse(GenericResponse):
     data: List[Variant]
 
 
-class AnnotatedVariantResponse(PagedResponseModel):
+class AnnotatedVariantResponse(GenericResponse):
     data: List[AnnotatedVariant]

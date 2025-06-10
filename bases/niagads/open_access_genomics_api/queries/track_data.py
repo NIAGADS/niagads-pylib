@@ -91,7 +91,7 @@ TrackGWASSumStatQuery = QueryDefinition(
 )
 
 # TODO: make generic like the data queries
-CountsTrackSummaryQuery = QueryDefinition(
+CountsAbridgedTrackQuery = QueryDefinition(
     query="""
         SELECT chromosome, count(target_ensembl_id) AS num_target_genes
         FROM Results.QTLGene
@@ -104,7 +104,7 @@ CountsTrackSummaryQuery = QueryDefinition(
     rawResponse=True,
 )
 
-TopTrackSummaryQuery = QueryDefinition(
+TopAbridgedTrackQuery = QueryDefinition(
     query="""
         SELECT r.chromosome, 
         vd.details->>'ref_snp_id' AS ref_snp_id, vd.details->>'metaseq_id' AS variant,

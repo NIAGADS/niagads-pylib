@@ -5,12 +5,9 @@ from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.features.bed import BEDResponse
 from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
-    TrackSummaryResponse,
+    AbridgedTrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import (
-    PagedResponseModel,
-    ResponseModel,
-)
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
@@ -44,8 +41,8 @@ router = APIRouter(
 
 @router.get(
     "/{track}",
-    tags=[str(SharedOpenAPITags.RECORD_BY_ID)],
-    response_model=Union[TrackSummaryResponse, TrackResponse, ResponseModel],
+    tags=[],
+    response_model=Union[AbridgedTrackResponse, TrackResponse, GenericResponse],
     name="Get track metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response",
 )
@@ -59,7 +56,7 @@ async def get_track_metadata(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[TrackSummaryResponse, TrackResponse, ResponseModel]:
+) -> Union[AbridgedTrackResponse, TrackResponse, GenericResponse]:
 
     rContent = ResponseContent.descriptive().validate(
         content, "content", ResponseContent
@@ -73,7 +70,7 @@ async def get_track_metadata(
             model=(
                 TrackResponse
                 if rContent == ResponseContent.FULL
-                else TrackSummaryResponse
+                else AbridgedTrackResponse
             ),
         ),
         Parameters(track=track),
@@ -83,8 +80,6 @@ async def get_track_metadata(
 
 
 tags = [
-    str(SharedOpenAPITags.RECORD_BY_ID),
-    str(SharedOpenAPITags.RECORD_BY_REGION),
     str(SharedOpenAPITags.TRACK_DATA),
 ]
 
@@ -94,7 +89,7 @@ tags = [
     tags=tags,
     name="Get track data",
     response_model=Union[
-        BEDResponse, TrackSummaryResponse, TableViewResponse, PagedResponseModel
+        BEDResponse, AbridgedTrackResponse, TableViewResponse, GenericResponse
     ],
     description="retrieve functional genomics track data from FILER in the specified region; specify `content=counts` to just retrieve a count of the number of hits in the specified region",
 )
@@ -111,7 +106,7 @@ async def get_track_data(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[BEDResponse, TrackSummaryResponse, TableViewResponse, PagedResponseModel]:
+) -> Union[BEDResponse, AbridgedTrackResponse, TableViewResponse, GenericResponse]:
 
     rContent = ResponseContent.data().validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
@@ -126,9 +121,9 @@ async def get_track_data(
                 BEDResponse
                 if rContent == ResponseContent.FULL
                 else (
-                    TrackSummaryResponse
+                    AbridgedTrackResponse
                     if rContent == ResponseContent.SUMMARY
-                    else PagedResponseModel
+                    else GenericResponse
                 )
             ),
         ),

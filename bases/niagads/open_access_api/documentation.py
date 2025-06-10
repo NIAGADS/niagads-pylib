@@ -28,8 +28,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
         },
         xSortOrder=1,
     ),
-    SharedOpenAPITags.ABOUT.value,
-    SharedOpenAPITags.SPECIFICATION.value,
+    SharedOpenAPITags.DOCUMENTATION.value,
 ]
 
 PUBMED_IDS: Set[T_PubMedID] = ["PMID:35047815"]

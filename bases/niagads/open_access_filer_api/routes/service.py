@@ -10,9 +10,9 @@ from niagads.open_access_api_common.models.records.track.igvbrowser import (
 )
 from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
-    TrackSummaryResponse,
+    AbridgedTrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import ResponseModel
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.table.core import TableViewModel
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
@@ -40,9 +40,7 @@ from niagads.open_access_filer_api.dependencies import (
 from niagads.open_access_filer_api.documentation import ROUTE_NAME
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
-router = APIRouter(
-    prefix="/service", tags=[ROUTE_NAME, str(SharedOpenAPITags.SERVICES)]
-)
+router = APIRouter(prefix="/service", tags=[ROUTE_NAME])
 
 tags = [str(SharedOpenAPITags.GENOME_BROWSER)]
 
@@ -143,8 +141,8 @@ tags = [str(SharedOpenAPITags.LOOKUP_SERVICES)]
 @router.get(
     "/lookup/shard",
     tags=tags,
-    response_model=Union[TrackResponse, TrackSummaryResponse, ResponseModel],
-    name="Get shard metadata",
+    response_model=Union[TrackResponse, AbridgedTrackResponse, GenericResponse],
+    summary="get-shard-metadata-beta",
     description="Some tracks are sharded by chromosome.  Use this query to find a shard-specific track given a chromosome and related track identifier.",
 )
 async def get_shard(
@@ -158,7 +156,7 @@ async def get_shard(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[TrackSummaryResponse, TrackResponse, ResponseModel]:
+) -> Union[AbridgedTrackResponse, TrackResponse, GenericResponse]:
 
     rContent = ResponseContent.descriptive(inclUrls=True).validate(
         content, "content", ResponseContent
@@ -172,9 +170,9 @@ async def get_shard(
                 TrackResponse
                 if rContent == ResponseContent.FULL
                 else (
-                    TrackSummaryResponse
+                    AbridgedTrackResponse
                     if rContent == ResponseContent.SUMMARY
-                    else ResponseModel
+                    else GenericResponse
                 )
             ),
         ),
@@ -184,20 +182,20 @@ async def get_shard(
     return await helper.get_shard()
 
 
-tags = tags + [str(SharedOpenAPITags.ABOUT)]
+tags = tags + [str(SharedOpenAPITags.DOCUMENTATION)]
 
 
 @router.get(
     "/lookup/filters",
     tags=tags,
-    response_model=Union[ResponseModel],
+    response_model=Union[GenericResponse],
     name="Get text search filter fields",
     description="List allowable fields for text search filter expressions.",
 )
 async def get_allowable_text_filters(
     internal: InternalRequestParameters = Depends(),
-) -> ResponseModel:
+) -> GenericResponse:
 
-    return ResponseModel(
+    return GenericResponse(
         data=TextSearchFilterFields.list(toLower=True), request=internal.requestData
     )

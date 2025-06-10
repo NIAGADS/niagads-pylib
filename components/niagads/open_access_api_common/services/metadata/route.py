@@ -49,7 +49,7 @@ class MetadataRouteHelperService(RouteHelperService):
 
             if not rawResponse:
                 self._resultSize = len(result)
-                pageResponse = self.initialize_pagination(raiseError=False)
+                pageResponse = self.initialize_pagination()
                 if pageResponse:
                     sliceRange = self.slice_result_by_page()
                     result = result[sliceRange.start : sliceRange.end]
@@ -91,7 +91,7 @@ class MetadataRouteHelperService(RouteHelperService):
 
             if not rawResponse:
                 self._resultSize = len(result)
-                pageResponse = self.initialize_pagination(raiseError=False)
+                pageResponse = self.initialize_pagination()
                 if pageResponse:
                     sliceRange = self.slice_result_by_page()
                     result = result[sliceRange.start : sliceRange.end]
@@ -144,7 +144,7 @@ class MetadataRouteHelperService(RouteHelperService):
                 return await self.generate_response(result, isCached=False)
 
             self._resultSize = result["num_tracks"]
-            pageResponse = self.initialize_pagination(raiseError=False)
+            pageResponse = self.initialize_pagination()
             if pageResponse:  # will return true if model can be paged and page is valid
                 offset = self.offset()
                 limit = self._pageSize

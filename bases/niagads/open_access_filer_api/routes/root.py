@@ -12,12 +12,9 @@ from niagads.open_access_api_common.models.records.route import (
 )
 from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
-    TrackSummaryResponse,
+    AbridgedTrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import (
-    PagedResponseModel,
-    ResponseModel,
-)
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.location import span_param
 from niagads.open_access_api_common.parameters.pagination import page_param
@@ -49,14 +46,14 @@ router = APIRouter(tags=[ROUTE_NAME])
 
 @router.get(
     "/",
-    response_model=ResponseModel,
+    response_model=GenericResponse,
     name="About the " + ROUTE_NAME,
     description="brief summary about the " + ROUTE_NAME,
-    tags=[str(SharedOpenAPITags.ABOUT)],
+    tags=[str(SharedOpenAPITags.DOCUMENTATION)],
 )
 async def get_database_description(
     internal: InternalRequestParameters = Depends(),
-) -> ResponseModel:
+) -> GenericResponse:
 
     trackCount = await MetadataQueryService(
         internal.session, dataStore=TRACK_DATA_STORES
@@ -69,12 +66,12 @@ async def get_database_description(
         pubmed_id=PUBMED_IDS,
         records=[RecordSummary(record_type=RecordType.TRACK, num_records=trackCount)],
     )
-    return ResponseModel(data=result, request=internal.requestData)
+    return GenericResponse(data=result, request=internal.requestData)
 
 
 @router.get(
     "/openapi.yaml",
-    tags=[str(SharedOpenAPITags.SPECIFICATION)],
+    tags=[str(SharedOpenAPITags.DOCUMENTATION)],
     name="Specification: `YAML`",
     description="Get API Specificiation in `YAML` format",
     include_in_schema=False,
@@ -89,7 +86,6 @@ def read_openapi_yaml(request: Request) -> Response:
 
 
 tags = [
-    str(SharedOpenAPITags.RECORD_BY_ID),
     str(SharedOpenAPITags.TRACK_RECORD),
 ]
 
@@ -98,7 +94,7 @@ tags = [
     "/metadata",
     tags=tags,
     response_model=Union[
-        TrackResponse, TrackSummaryResponse, TableViewResponse, ResponseModel
+        TrackResponse, AbridgedTrackResponse, TableViewResponse, GenericResponse
     ],
     name="Get metadata for multiple tracks",
     description="retrieve full metadata for one or more FILER track records by identifier",
@@ -116,7 +112,7 @@ async def get_track_metadata(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[TrackSummaryResponse, TrackResponse, TableViewResponse, ResponseModel]:
+) -> Union[AbridgedTrackResponse, TrackResponse, TableViewResponse, GenericResponse]:
 
     rContent = ResponseContent.descriptive(inclUrls=True).validate(
         content, "content", ResponseContent
@@ -131,9 +127,9 @@ async def get_track_metadata(
                 TrackResponse
                 if rContent == ResponseContent.FULL
                 else (
-                    TrackSummaryResponse
+                    AbridgedTrackResponse
                     if rContent == ResponseContent.SUMMARY
-                    else ResponseModel
+                    else GenericResponse
                 )
             ),
         ),
@@ -143,8 +139,6 @@ async def get_track_metadata(
 
 
 tags = [
-    str(SharedOpenAPITags.RECORD_BY_ID),
-    str(SharedOpenAPITags.RECORD_BY_REGION),
     str(SharedOpenAPITags.TRACK_RECORD),
     str(SharedOpenAPITags.TRACK_DATA),
 ]
@@ -154,9 +148,7 @@ tags = [
     "/data",
     tags=tags,
     name="Get data from multiple tracks",
-    response_model=Union[
-        BEDResponse, PagedResponseModel, TrackSummaryResponse, TableViewResponse
-    ],
+    response_model=Union[BEDResponse, AbridgedTrackResponse, TableViewResponse],
     description="retrieve data from one or more FILER tracks in the specified region",
 )
 async def get_track_data(
@@ -172,7 +164,7 @@ async def get_track_data(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[BEDResponse, PagedResponseModel, TrackSummaryResponse, TableViewResponse]:
+) -> Union[BEDResponse, AbridgedTrackResponse, TableViewResponse]:
 
     rContent = ResponseContent.data().validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
@@ -187,9 +179,9 @@ async def get_track_data(
                 BEDResponse
                 if rContent == ResponseContent.FULL
                 else (
-                    TrackSummaryResponse
+                    AbridgedTrackResponse
                     if rContent == ResponseContent.SUMMARY
-                    else PagedResponseModel
+                    else GenericResponse
                 )
             ),
         ),

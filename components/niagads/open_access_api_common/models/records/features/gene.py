@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Union
 
 from niagads.open_access_api_common.models.records.core import RowModel
 from niagads.open_access_api_common.models.records.features.genomic import GenomicRegion
-from niagads.open_access_api_common.models.response.core import PagedResponseModel
+from niagads.open_access_api_common.models.response.core import GenericResponse
 
 
 class GeneFeature(RowModel):
@@ -26,9 +26,9 @@ class AnnotatedGene(Gene):
     # relationships: Optional[dict] = None
 
 
-class GeneSummaryResponse(PagedResponseModel):
+class GeneSummaryResponse(GenericResponse):
     data: List[Gene]
 
 
-class AnnotatedGeneResponse(PagedResponseModel):
+class AnnotatedGeneResponse(GenericResponse):
     data: List[AnnotatedGene]

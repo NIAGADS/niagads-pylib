@@ -14,7 +14,7 @@ from niagads.open_access_api_common.exception_handlers import (
     add_system_exception_handler,
     add_validation_exception_handler,
 )
-from niagads.open_access_api_common.types import OpenAPISpec, OpenAPIxTagGroup
+from niagads.open_access_api_common.types import OpenAPISpec
 from niagads.settings.core import ServiceEnvironment, get_service_environment
 import yaml
 
@@ -100,7 +100,7 @@ class AppFactory:
             docs_url=f"{prefix}/docs",
             redoc_url=f"{prefix}/redoc",
             openapi_tags=[t.model_dump() for t in self.__metadata.openapi_tags],
-            responses=RESPONSES,
+            # responses=RESPONSES,
             generate_unique_id_function=self.__generate_unique_id,
         )
 
@@ -167,9 +167,9 @@ class AppFactory:
         paths: dict = openApiSchema["paths"]
         for path in paths.keys():
             for method in paths[path]:
-                summary = paths[path][method]["summary"]
-                if "[Beta]" in summary:
-                    paths[path][method]["summary"] = summary.replace("[Beta]", "")
+                summary: str = paths[path][method]["summary"]
+                if summary.endswith("-beta"):
+                    paths[path][method]["summary"] = summary.replace("-beta", "")
                     paths[path][method].update(
                         {
                             "x-badges": [

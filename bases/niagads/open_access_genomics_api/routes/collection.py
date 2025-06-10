@@ -8,9 +8,9 @@ from niagads.open_access_api_common.models.records.track.collection import (
 )
 from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
-    TrackSummaryResponse,
+    AbridgedTrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import ResponseModel
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import collection_param
@@ -68,19 +68,15 @@ async def get_collections(
     return await helper.generate_response(result)
 
 
-tags = [str(SharedOpenAPITags.RECORD_BY_ID)]
-
-
 @router.get(
     "/{collection}",
     response_model=Union[
-        ResponseModel,
-        TrackSummaryResponse,
+        GenericResponse,
+        AbridgedTrackResponse,
         TrackResponse,
         TableViewResponse,
     ],
     name="Get track metadata by collection",
-    tags=tags,
     description="retrieve full metadata for FILER track records associated with a collection",
 )
 async def get_collection_track_metadata(
@@ -98,8 +94,8 @@ async def get_collection_track_metadata(
     ),
     internal: InternalRequestParameters = Depends(),
 ) -> Union[
-    ResponseModel,
-    TrackSummaryResponse,
+    GenericResponse,
+    AbridgedTrackResponse,
     TrackResponse,
     TableViewResponse,
 ]:
@@ -115,9 +111,9 @@ async def get_collection_track_metadata(
                 TrackResponse
                 if rContent == ResponseContent.FULL
                 else (
-                    TrackSummaryResponse
+                    AbridgedTrackResponse
                     if rContent == ResponseContent.SUMMARY
-                    else ResponseModel
+                    else GenericResponse
                 )
             ),
         ),
