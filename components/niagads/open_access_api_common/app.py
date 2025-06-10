@@ -164,12 +164,13 @@ class AppFactory:
         )
 
         # flag beta route paths / updated by reference
+        # update summary formatting
         paths: dict = openApiSchema["paths"]
         for path in paths.keys():
             for method in paths[path]:
                 summary: str = paths[path][method]["summary"]
                 if summary.endswith("-beta"):
-                    paths[path][method]["summary"] = summary.replace("-beta", "")
+                    summary = summary.replace("-beta", "")
                     paths[path][method].update(
                         {
                             "x-badges": [
@@ -181,7 +182,9 @@ class AppFactory:
                             ]
                         }
                     )
-
+                paths[path][method]["summary"] = (
+                    summary.replace("-", " ").capitalize().replace(" api ", " API ")
+                )
         # openApiSchema["paths"] = paths
         openApiSchema["info"]["x-namespace"] = self.__namespace
         openApiSchema["info"]["x-major-version"] = self.__version
