@@ -33,42 +33,42 @@ class SharedOpenAPITags(Enum):
         name="Documentation",
         description="general information and over statistics about the NIAGADS Open Access resources queried by this API, including lookups for data descriptors",
         xSortOrder=10,
-        xDisplayName="Resource Information",
+        xDisplayName="Documentation",
     )
     TRACK_RECORD = OpenAPITag(
         name="Metadata",
-        description="endpoints that retrieve track metadata",
-        xSortOrder=20,
+        description="endpoints that retrieve track metadata; this includes data endpoints that summarize the data in the context of an abridge metadata response.",
+        xSortOrder=300,
         xDisplayName="Track Metadata",
     )
     TRACK_DATA = OpenAPITag(
         name="Track Data Retrieval",
         description="endpoints that retrieve track data",
         xTraitTag=False,
-        xSortOrder=21,
+        xSortOrder=330,
     )
     XQTL_TRACK_RECORD = OpenAPITag(
         name="QTL",
         description="endpoints that retrieve xQTL track data or metadata",
-        xSortOrder=22,
+        xSortOrder=312,
         xDisplayName="xQTLs",
     )
     GWAS_TRACK_RECORD = OpenAPITag(
         name="SumStats",
         description="endpoints that retrieve GWAS summary statistics track data or metadata",
-        xSortOrder=23,
+        xSortOrder=310,
         xDisplayName="GWAS Summary Statistics",
     )
     GENE_RECORD = OpenAPITag(
         name="Gene",
         description="endpoints that retrieve gene-specific annotations",
-        xSortOrder=11,
+        xSortOrder=200,
         xDisplayName="Genes",
     )
     VARIANT_RECORD = OpenAPITag(
         name="Variant",
         description="endpoints that retrieve variant-specific annotations",
-        xSortOrder=12,
+        xSortOrder=100,
         xDisplayName="Variants",
     )
 
@@ -81,30 +81,36 @@ class SharedOpenAPITags(Enum):
     GENOME_BROWSER = OpenAPITag(
         name="Browser",
         description="service endpoints generating configuration files, data adapters, and search services for NIAGADS Genome Browser Tracks",
-        xSortOrder=41,
+        xSortOrder=400,
         xDisplayName="Genome Browser",
     )
     LOCUSZOOM = OpenAPITag(
         name="LocusZoom",
         description="service endpoints generating for NIAGADS LocusZoom data adapters",
-        xSortOrder=42,
+        xSortOrder=520,
     )
     LOOKUP_SERVICES = OpenAPITag(
         name="Lookups",
         description="service endpoints that provide quick record lookups based on relational data (e.g., feature location)",
-        xSortOrder=43,
+        xSortOrder=510,
+        xDisplayName="Lookup Services",
+    )
+    RECORD_SEARCH = OpenAPITag(
+        name="Search",
+        description="service endpoints that find feature, track, or data records based by metadata or annotation text search",
+        xSortOrder=500,
         xDisplayName="Lookup Services",
     )
     ONTOLOGIES = OpenAPITag(
         name="Ontologies",
         description="data descriptors, including allowable values for search filter fields",
-        xSortOrder=43,
+        xSortOrder=530,
         xDisplayName="Data Dictionary",
     )
     PAGINATION = OpenAPITag(
         name="Pagination",
         description="Pagination of Responses: more information coming soon.",
-        xSortOrder=500,
+        xSortOrder=1000,
         xTraitTag=True,
     )
 
@@ -124,6 +130,14 @@ class SharedOpenAPIxTagGroups(Enum):
             SharedOpenAPITags.COLLECTIONS.value,
         ],
         xSortOrder=20,
+    )
+    SEARCH = OpenAPIxTagGroup(
+        name="Search",
+        tags=[
+            SharedOpenAPITags.RECORD_SEARCH.value,
+            SharedOpenAPITags.LOOKUP_SERVICES.value,
+        ],
+        xSortOrder=85,
     )
     SERVICES = OpenAPIxTagGroup(
         name="Services",
