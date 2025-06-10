@@ -13,7 +13,6 @@ from niagads.open_access_api_common.models.views.table.core import TableViewResp
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
     chromosome_param,
-    span_param,
 )
 from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import track_param
