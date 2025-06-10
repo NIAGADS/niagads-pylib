@@ -39,18 +39,24 @@ class SharedOpenAPITags(Enum):
         name="Metadata",
         description="endpoints that retrieve track metadata",
         xSortOrder=20,
-        xDisplayName="Track Metdata",
+        xDisplayName="Track Metadata",
+    )
+    TRACK_DATA = OpenAPITag(
+        name="Track Data Retrieval",
+        description="endpoints that retrieve track data",
+        xTraitTag=False,
+        xSortOrder=21,
     )
     XQTL_TRACK_RECORD = OpenAPITag(
         name="QTL",
         description="endpoints that retrieve xQTL track data or metadata",
-        xSortOrder=21,
+        xSortOrder=22,
         xDisplayName="xQTLs",
     )
     GWAS_TRACK_RECORD = OpenAPITag(
         name="SumStats",
         description="endpoints that retrieve GWAS summary statistics track data or metadata",
-        xSortOrder=22,
+        xSortOrder=23,
         xDisplayName="GWAS Summary Statistics",
     )
     GENE_RECORD = OpenAPITag(
@@ -65,12 +71,7 @@ class SharedOpenAPITags(Enum):
         xSortOrder=12,
         xDisplayName="Variants",
     )
-    TRACK_DATA = OpenAPITag(
-        name="Track Data Retrieval",
-        description="endpoints that retrieve track data",
-        xTraitTag=False,
-        xSortOrder=13,
-    )
+
     COLLECTIONS = OpenAPITag(
         name="Collection",
         description="endpoints that retrieve curated lists of records",
@@ -90,9 +91,15 @@ class SharedOpenAPITags(Enum):
     )
     LOOKUP_SERVICES = OpenAPITag(
         name="Lookups",
-        description="service endpoints that provide quick record lookups based on relational data (e.g., root shard for sharded data track)",
+        description="service endpoints that provide quick record lookups based on relational data (e.g., feature location)",
         xSortOrder=43,
         xDisplayName="Lookup Services",
+    )
+    ONTOLOGIES = OpenAPITag(
+        name="Ontologies",
+        description="data descriptors, including allowable values for search filter fields",
+        xSortOrder=43,
+        xDisplayName="Data Dictionary",
     )
     PAGINATION = OpenAPITag(
         name="Pagination",
@@ -113,9 +120,10 @@ class SharedOpenAPIxTagGroups(Enum):
         name="Information and Statistics",
         tags=[
             SharedOpenAPITags.DOCUMENTATION.value,
-            SharedOpenAPITags.LOOKUP_SERVICES.value,
+            SharedOpenAPITags.ONTOLOGIES.value,
+            SharedOpenAPITags.COLLECTIONS.value,
         ],
-        xSortOrder=1,
+        xSortOrder=20,
     )
     SERVICES = OpenAPIxTagGroup(
         name="Services",
@@ -130,8 +138,10 @@ class SharedOpenAPIxTagGroups(Enum):
         name="Data Tracks",
         tags=[
             SharedOpenAPITags.TRACK_RECORD.value,
+            SharedOpenAPITags.TRACK_DATA.value,
             SharedOpenAPITags.GWAS_TRACK_RECORD.value,
             SharedOpenAPITags.XQTL_TRACK_RECORD.value,
+            SharedOpenAPITags.COLLECTIONS.value,
         ],
         xSortOrder=80,
     )

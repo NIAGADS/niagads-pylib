@@ -37,10 +37,10 @@ from niagads.open_access_filer_api.dependencies import (
     InternalRequestParameters,
     TextSearchFilterFields,
 )
-from niagads.open_access_filer_api.documentation import ROUTE_NAME
+from niagads.open_access_filer_api.documentation import BASE_TAGS
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
-router = APIRouter(prefix="/service", tags=[ROUTE_NAME])
+router = APIRouter(prefix="/service", tags=BASE_TAGS)
 
 tags = [str(SharedOpenAPITags.GENOME_BROWSER)]
 

@@ -26,14 +26,14 @@ from niagads.open_access_api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.open_access_filer_api.dependencies import InternalRequestParameters
-from niagads.open_access_filer_api.documentation import ROUTE_NAME
+from niagads.open_access_filer_api.documentation import BASE_TAGS
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
 
 router = APIRouter(
     prefix="/collection",
-    tags=[
-        ROUTE_NAME,
+    tags=BASE_TAGS
+    + [
         str(SharedOpenAPITags.TRACK_RECORD),
         str(SharedOpenAPITags.COLLECTIONS),
     ],
@@ -43,8 +43,8 @@ router = APIRouter(
 @router.get(
     "/",
     response_model=CollectionResponse,
-    name="Get Track Collections",
-    description="list available collections of related FILER tracks",
+    summary="get-collections",
+    description="Retrieve a full listing of FILER track collections.  Collections are curated lists of related data tracks.  Collections may associate tracks from a single study or experiment, by shared cohort or consortium or by application.",
     tags=[str(SharedOpenAPITags.DOCUMENTATION)],
 )
 async def get_collections(
@@ -75,8 +75,8 @@ async def get_collections(
     response_model=Union[
         GenericResponse, AbridgedTrackResponse, TrackResponse, TableViewResponse
     ],
-    name="Get track metadata by collection",
-    description="retrieve full metadata for FILER track records associated with a collection",
+    summary="get-collection-record-metadata",
+    description="Get the metadata for all tracks associated with a FILER collection.",
 )
 async def get_collection_track_metadata(
     collection: str = Depends(collection_param),

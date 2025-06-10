@@ -18,7 +18,7 @@ from niagads.open_access_api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
-from niagads.open_access_genomics_api.documentation import ROUTE_NAME
+from niagads.open_access_genomics_api.documentation import APP_NAME
 from niagads.open_access_genomics_api.queries.igvbrowser import IGVFeatureLookupQuery
 from niagads.open_access_genomics_api.queries.search import (
     SearchType,
@@ -27,7 +27,7 @@ from niagads.open_access_genomics_api.queries.search import (
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 
-router = APIRouter(prefix="/service", tags=[ROUTE_NAME])
+router = APIRouter(prefix="/service", tags=[APP_NAME])
 
 tags = [str(SharedOpenAPITags.LOOKUP_SERVICES)]
 

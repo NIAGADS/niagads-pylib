@@ -14,18 +14,18 @@ from niagads.open_access_genomics_api.dependencies import InternalRequestParamet
 from niagads.open_access_genomics_api.documentation import (
     OPEN_API_TAGS,
     PUBMED_IDS,
-    ROUTE_NAME,
+    APP_NAME,
 )
 
 
-router = APIRouter(tags=[ROUTE_NAME])
+router = APIRouter(tags=[APP_NAME])
 
 
 @router.get(
     "/",
     response_model=GenericResponse,
-    name=f"About the {ROUTE_NAME}",
-    description=f"brief summary about the {ROUTE_NAME}",
+    name=f"About the {APP_NAME}",
+    description=f"brief summary about the {APP_NAME}",
     tags=[str(SharedOpenAPITags.DOCUMENTATION)],
 )
 async def get_database_description(
@@ -37,7 +37,7 @@ async def get_database_description(
     ).get_track_count()
 
     result = RouteDescription(
-        name=ROUTE_NAME,
+        name=APP_NAME,
         description=OPEN_API_TAGS[0].description,
         url=OPEN_API_TAGS[0].externalDocs.get("url"),
         pubmed_id=PUBMED_IDS,
