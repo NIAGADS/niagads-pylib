@@ -1,15 +1,19 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
+from niagads.exceptions.core import ValidationError
+from niagads.genome.core import Assembly
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
-from niagads.open_access_api_common.models.records.features.bed import BEDResponse
 from niagads.open_access_api_common.models.records.track.track import (
     AbridgedTrackResponse,
     TrackResponse,
 )
 from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
-from niagads.open_access_api_common.parameters.location import span_param
+from niagads.open_access_api_common.parameters.location import (
+    assembly_param,
+    span_param,
+)
 from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.query import track_list_param
 from niagads.open_access_api_common.parameters.response import (
@@ -17,28 +21,26 @@ from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
+from niagads.open_access_api_common.parameters.text_search import keyword_param
 from niagads.open_access_api_common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
 from niagads.open_access_filer_api.dependencies import (
-    TRACK_DATA_STORES,
+    TEXT_FILTER_PARAMETER,
     InternalRequestParameters,
 )
-from niagads.open_access_filer_api.documentation import (
-    APP_NAME,
-    BASE_TAGS,
-    OPEN_API_TAGS,
-)
+from niagads.open_access_filer_api.documentation import BASE_TAGS
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(
-    prefix="/bulk", tags=BASE_TAGS + [str(SharedOpenAPITags.TRACK_RECORD)]
+    prefix="/metadata",
+    tags=BASE_TAGS + [str(SharedOpenAPITags.TRACK_RECORD)],
 )
 
 
 @router.get(
-    "/metadata",
+    "/",
     response_model=Union[
         TrackResponse, AbridgedTrackResponse, TableViewResponse, GenericResponse
     ],
@@ -84,44 +86,53 @@ async def get_track_metadata_bulk(
     return await helper.get_track_metadata()
 
 
-tags = [
-    str(SharedOpenAPITags.TRACK_DATA),
-]
+tags = [str(SharedOpenAPITags.RECORD_SEARCH)]
 
 
 @router.get(
-    "/data",
+    "/search",
     tags=tags,
-    summary="get-track-data-bulk",
-    response_model=Union[BEDResponse, AbridgedTrackResponse, TableViewResponse],
-    description="Retrieve data from one or more FILER tracks in the specified region.",
+    response_model=Union[
+        GenericResponse,
+        AbridgedTrackResponse,
+        TrackResponse,
+        TableViewResponse,
+    ],
+    summary="search-track-records",
+    description="find functional genomics tracks by a keyword search against all text fields in the track metadata",
+    # description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata",
 )
-async def get_track_data_bulk(
-    track: str = Depends(track_list_param),
-    span: str = Depends(span_param),
+async def search_track_metadata(
+    filter=Depends(TEXT_FILTER_PARAMETER),
+    keyword: str = Depends(keyword_param),
+    assembly: Assembly = Depends(assembly_param),
     page: int = Depends(page_param),
     content: str = Query(
-        ResponseContent.FULL, description=ResponseContent.data(description=True)
+        ResponseContent.FULL, description=ResponseContent.get_description(True)
     ),
     format: str = Query(
-        ResponseFormat.JSON,
-        description=ResponseFormat.functional_genomics(description=True),
+        ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
-    view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
+    view: str = Query(
+        ResponseView.DEFAULT, description=ResponseView.table(description=True)
+    ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[BEDResponse, AbridgedTrackResponse, TableViewResponse]:
+) -> Union[GenericResponse, AbridgedTrackResponse, TrackResponse, TableViewResponse]:
 
-    rContent = ResponseContent.data().validate(content, "content", ResponseContent)
+    if filter is None and keyword is None:
+        raise ValidationError(
+            "must specify either a `filter` and/or a `keyword` to search"
+        )
+
+    rContent = ResponseContent.validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
-            format=ResponseFormat.functional_genomics().validate(
-                format, "format", ResponseFormat
-            ),
+            format=ResponseFormat.generic().validate(format, "format", ResponseFormat),
             content=rContent,
-            view=ResponseView.validate(view, "view", ResponseView),
+            view=ResponseView.table().validate(view, "view", ResponseView),
             model=(
-                BEDResponse
+                TrackResponse
                 if rContent == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
@@ -130,7 +141,7 @@ async def get_track_data_bulk(
                 )
             ),
         ),
-        Parameters(track=track, span=span, page=page),
+        Parameters(page=page, assembly=assembly, filter=filter, keyword=keyword),
     )
 
-    return await helper.get_track_data()
+    return await helper.search_track_metadata()

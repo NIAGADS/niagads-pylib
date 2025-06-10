@@ -31,7 +31,7 @@ from niagads.open_access_filer_api.documentation import BASE_TAGS
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(
-    prefix="/track",
+    prefix="/record/track",
     tags=BASE_TAGS
     + [
         str(SharedOpenAPITags.TRACK_RECORD),

@@ -16,6 +16,7 @@ from niagads.open_access_api_common.types import (
 
 APP_NAMESPACE = "FILER"
 
+
 OPEN_API_TAGS: List[OpenAPITag] = [
     OpenAPITag(
         name=APP_NAMESPACE,
