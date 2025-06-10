@@ -45,7 +45,6 @@ router = APIRouter(
     response_model=CollectionResponse,
     summary="get-collections",
     description="Retrieve a full listing of FILER track collections.  Collections are curated lists of related data tracks.  Collections may associate tracks from a single study or experiment, by shared cohort or consortium or by application.",
-    tags=[str(SharedOpenAPITags.DOCUMENTATION)],
 )
 async def get_collections(
     format: str = Query(

@@ -12,9 +12,11 @@ from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
+    chromosome_param,
     span_param,
 )
 from niagads.open_access_api_common.parameters.pagination import page_param
+from niagads.open_access_api_common.parameters.record.path import track_param
 from niagads.open_access_api_common.parameters.record.query import track_list_param
 from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
@@ -145,3 +147,48 @@ async def search_track_metadata(
     )
 
     return await helper.search_track_metadata()
+
+
+@router.get(
+    "/shard/{track}",
+    tags=tags,
+    response_model=Union[TrackResponse, AbridgedTrackResponse, GenericResponse],
+    summary="get-shard-metadata-beta",
+    description="Some tracks are sharded by chromosome.  Use this query to find a shard-specific track given a chromosome and related track identifier.",
+    include_in_schema=False,
+)
+async def get_shard(
+    track: str = Depends(track_param),
+    chr: str = Depends(chromosome_param),
+    content: str = Query(
+        ResponseContent.FULL,
+        description=ResponseContent.descriptive(inclUrls=True, description=True),
+    ),
+    format: str = Query(
+        ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
+    ),
+    internal: InternalRequestParameters = Depends(),
+) -> Union[AbridgedTrackResponse, TrackResponse, GenericResponse]:
+
+    rContent = ResponseContent.descriptive(inclUrls=True).validate(
+        content, "content", ResponseContent
+    )
+    helper = FILERRouteHelper(
+        internal,
+        ResponseConfiguration(
+            format=ResponseFormat.generic().validate(format, "format", ResponseFormat),
+            content=rContent,
+            model=(
+                TrackResponse
+                if rContent == ResponseContent.FULL
+                else (
+                    AbridgedTrackResponse
+                    if rContent == ResponseContent.SUMMARY
+                    else GenericResponse
+                )
+            ),
+        ),
+        Parameters(track=track, chromosome=chr),
+    )
+
+    return await helper.get_shard()

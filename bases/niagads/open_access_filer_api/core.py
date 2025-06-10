@@ -6,6 +6,7 @@ from niagads.open_access_filer_api.routes.metadata import router as MetadataRout
 from niagads.open_access_filer_api.routes.data import router as DataRouter
 from niagads.open_access_filer_api.routes.service import router as ServiceRouter
 from niagads.open_access_filer_api.routes.collection import router as CollectionRouter
+from niagads.open_access_filer_api.routes.dictionary import router as DictionaryRouter
 
 # from niagads.open_access_filer_api.routes.qtls import router as QTLRouter
 
@@ -24,6 +25,7 @@ appFactory.add_router(MetadataRouter)
 appFactory.add_router(DataRouter)
 appFactory.add_router(CollectionRouter)
 appFactory.add_router(ServiceRouter)
+appFactory.add_router(DictionaryRouter)
 
 # appFactory.add_router(QTLRouter)
 
