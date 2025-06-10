@@ -23,7 +23,7 @@ appFactory.add_router(RootRouter)
 appFactory.add_router(RecordRouter)
 appFactory.add_router(MetadataRouter)
 appFactory.add_router(DataRouter)
-appFactory.add_router(CollectionRouter)
+# appFactory.add_router(CollectionRouter)
 appFactory.add_router(ServiceRouter)
 appFactory.add_router(DictionaryRouter)
 
