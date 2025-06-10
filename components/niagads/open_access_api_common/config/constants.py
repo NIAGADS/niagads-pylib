@@ -31,7 +31,7 @@ DEFAULT_NULL_STRING = "NA"
 class SharedOpenAPITags(Enum):
     DOCUMENTATION = OpenAPITag(
         name="Documentation",
-        description="general information and over statistics about the NIAGADS Open Access resources queried by this API, including lookups for data descriptors",
+        description="general information and overview statistics about the NIAGADS Open Access resources queried by this API.",
         xSortOrder=10,
         xDisplayName="Documentation",
     )
@@ -99,7 +99,7 @@ class SharedOpenAPITags(Enum):
         name="Search",
         description="service endpoints that find feature, track, or data records based by metadata or annotation text search",
         xSortOrder=500,
-        xDisplayName="Lookup Services",
+        xDisplayName="Record Search",
     )
     ONTOLOGIES = OpenAPITag(
         name="Ontologies",
