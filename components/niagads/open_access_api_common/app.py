@@ -183,7 +183,10 @@ class AppFactory:
                         }
                     )
                 paths[path][method]["summary"] = (
-                    summary.replace("-", " ").capitalize().replace(" api ", " API ")
+                    summary.replace("-", " ")
+                    .capitalize()
+                    .replace(" api ", " API ")
+                    .replace("bulk", "(Bulk)")
                 )
         # openApiSchema["paths"] = paths
         openApiSchema["info"]["x-namespace"] = self.__namespace
