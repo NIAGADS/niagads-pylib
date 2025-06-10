@@ -282,7 +282,7 @@ class RouteHelperService:
             )
 
             # set pagination for lists of results
-            if isinstance(response, list):
+            if isinstance(result, list):
                 if not self._pagination_exists(raiseError=False):
                     if self._resultSize is None:
                         self._resultSize = len(result)
