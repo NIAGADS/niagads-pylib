@@ -50,9 +50,8 @@ def _openapi_update_routes(
         route: dict
         for method, props in route.items():
             updatedRoutes.update({updatedPath: {method: deepcopy(props)}})
-            updatedRoutes[updatedPath][method]["tags"] = [
-                f"{namespace}-{t}" for t in props["tags"] if t not in traitTagRef
-            ]
+            summary = updatedRoutes[updatedPath][method]["summary"]
+            updatedRoutes[updatedPath][method]["summary"] = f"{namespace}: {summary}"
 
     return updatedRoutes
 
@@ -78,14 +77,16 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
         # prefix tags by namespace to make unique and ensure relative anchors are
         # also extract / flag trait-only tags; do not prefix those
         # generated correctly
+
         t: dict
         for t in apiSpec["tags"]:
             if t.get("x-traitTag", False):
                 traitOnlyTags.append(t["name"])
-            else:
-                t["name"] = f"{namespace}-{t['name']}"
-                t["x-displayName"] = f"{namespace}: {t['x-displayName']}"
+            # else:
+            #     t["name"] = f"{namespace}-{t['name']}"
+            #     t["x-displayName"] = f"{namespace}: {t['x-displayName']}"
             tagSet.add(json.dumps(t))
+
         # tagSet.update([json.dumps(t) for t in apiSpec["tags"]])
 
         # prefix route paths and tags
@@ -100,7 +101,7 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
         # ditto for tag groups, but do null check
         if "x-tagGroups" in apiSpec:
             for tg in apiSpec["x-tagGroups"]:
-                tg["tags"] = [f"{namespace}-{t}" for t in tg["tags"]]
+                # tg["tags"] = [f"{namespace}-{t}" for t in tg["tags"]]
                 tagGroupSet.add(json.dumps(tg))
 
         # extract and concatenate schemas

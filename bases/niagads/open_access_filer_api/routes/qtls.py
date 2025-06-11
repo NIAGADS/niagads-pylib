@@ -3,7 +3,7 @@ from typing import Union
 
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.features.bed import BEDResponse
-from niagads.open_access_api_common.models.response.core import ResponseModel
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.location import loc_param
 from niagads.open_access_api_common.parameters.pagination import page_param
@@ -18,14 +18,15 @@ from niagads.open_access_api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.open_access_filer_api.dependencies import InternalRequestParameters
-from niagads.open_access_filer_api.documentation import ROUTE_NAME
+from niagads.open_access_filer_api.documentation import BASE_TAGS
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
+# TODO: Fix documentation and route nomenclature
 
 router = APIRouter(
     prefix="/qtl",
-    tags=[
-        ROUTE_NAME,
+    tags=BASE_TAGS
+    + [
         str(SharedOpenAPITags.TRACK_DATA),
         str(SharedOpenAPITags.XQTL_TRACK_RECORD),
     ],
@@ -38,7 +39,7 @@ tags = ["Data Retrieval by Region", "xQTL Track Record"]
     "/{track}",
     tags=tags,
     name="Get QTLs by Region[Beta]",
-    response_model=Union[BEDResponse, TableViewResponse, ResponseModel],
+    response_model=Union[BEDResponse, TableViewResponse, GenericResponse],
     description="retrieve xQTL data from FILER for the specified genomic region or sequence feature",
 )
 async def get_feature_qtl(
@@ -54,7 +55,7 @@ async def get_feature_qtl(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[BEDResponse, TableViewResponse, ResponseModel]:
+) -> Union[BEDResponse, TableViewResponse, GenericResponse]:
 
     rContent = ResponseContent.data().validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
@@ -65,7 +66,7 @@ async def get_feature_qtl(
                 format, "format", ResponseFormat
             ),
             view=ResponseView.validate(view, "view", ResponseView),
-            model=BEDResponse if rContent == ResponseContent.FULL else ResponseModel,
+            model=BEDResponse if rContent == ResponseContent.FULL else GenericResponse,
         ),
         Parameters(track=track, location=loc, page=page),
     )

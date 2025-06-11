@@ -5,8 +5,8 @@ from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.records.search import RecordSearchResult
 from niagads.open_access_api_common.models.response.core import (
-    ResponseModel,
-    T_ResponseModel,
+    GenericResponse,
+    T_GenericResponse,
 )
 from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
@@ -18,7 +18,7 @@ from niagads.open_access_api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
-from niagads.open_access_genomics_api.documentation import ROUTE_NAME
+from niagads.open_access_genomics_api.documentation import APP_NAME, BASE_TAGS
 from niagads.open_access_genomics_api.queries.igvbrowser import IGVFeatureLookupQuery
 from niagads.open_access_genomics_api.queries.search import (
     SearchType,
@@ -27,17 +27,16 @@ from niagads.open_access_genomics_api.queries.search import (
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 
-router = APIRouter(
-    prefix="/service", tags=[ROUTE_NAME, str(SharedOpenAPITags.SERVICES)]
-)
+router = APIRouter(prefix="/service", tags=BASE_TAGS)
 
-tags = [str(SharedOpenAPITags.LOOKUP_SERVICES)]
+tags = [str(SharedOpenAPITags.RECORD_SEARCH), str(SharedOpenAPITags.LOOKUP_SERVICES)]
 
 
 @router.get(
     "/search",
     response_model=Union[List[RecordSearchResult]],
-    name="Database Search",
+    tags=tags,
+    summary="search-feature-and-track-records",
     description="Find Alzheimer's GenomicsDB Records (features, tracks, collections) by identifier or keyword",
 )
 async def site_search(
@@ -69,13 +68,13 @@ async def site_search(
             format=ResponseFormat.JSON,
             content=ResponseContent.FULL,
             view=ResponseView.DEFAULT,
-            model=ResponseModel,
+            model=GenericResponse,
         ),
         Parameters(keyword=keyword),
         query=query,
     )
 
-    result: T_ResponseModel = await helper.get_query_response()
+    result: T_GenericResponse = await helper.get_query_response()
     if len(result.data) == 0:
         return JSONResponse([])
 
@@ -87,11 +86,11 @@ tags = [str(SharedOpenAPITags.GENOME_BROWSER)]
 
 @router.get(
     "/igvbrowser/feature",
-    tags=tags,
+    tags=tags + [str(SharedOpenAPITags.LOOKUP_SERVICES)],
     response_model=GenomicRegion,
     response_model_exclude_none=True,
-    name="IGV Genome Browser feature lookup service",
-    description="retrieve genomic location (variants) or footprint (genes) feature in the format required by the IGV Browser",
+    summary="genome-browser-feature-lookup",
+    description="retrieve genomic location (variants) or footprint (genes) feature in the format required by the NIAGADS Genome Browser",
 )
 async def get_browser_feature_region(
     id: str,
@@ -108,13 +107,13 @@ async def get_browser_feature_region(
             format=ResponseFormat.JSON,
             content=ResponseContent.FULL,
             view=ResponseView.DEFAULT,
-            model=ResponseModel,
+            model=GenericResponse,
         ),
         Parameters(id=id),
         query=IGVFeatureLookupQuery,
     )
 
-    result: T_ResponseModel = await helper.get_query_response()
+    result: T_GenericResponse = await helper.get_query_response()
 
     if len(result.data) == 0:
         return JSONResponse({})  # result.response

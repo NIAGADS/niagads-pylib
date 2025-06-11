@@ -9,12 +9,9 @@ from niagads.open_access_api_common.models.records.features.feature_score import
 )
 from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
-    TrackSummaryResponse,
+    AbridgedTrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import (
-    PagedResponseModel,
-    ResponseModel,
-)
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import track_param
@@ -28,10 +25,10 @@ from niagads.open_access_api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
-from niagads.open_access_genomics_api.documentation import ROUTE_NAME
+from niagads.open_access_genomics_api.documentation import APP_NAME
 from niagads.open_access_genomics_api.queries.track_data import (
-    CountsTrackSummaryQuery,
-    TopTrackSummaryQuery,
+    CountsAbridgedTrackQuery,
+    TopAbridgedTrackQuery,
 )
 from niagads.open_access_genomics_api.queries.track_metadata import TrackMetadataQuery
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
@@ -40,7 +37,7 @@ from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 router = APIRouter(
     prefix="/track",
     tags=[
-        ROUTE_NAME,
+        APP_NAME,
         str(SharedOpenAPITags.TRACK_RECORD),
     ],
 )
@@ -48,7 +45,7 @@ router = APIRouter(
 
 @router.get(
     "/{track}",
-    response_model=Union[TrackSummaryResponse, TrackResponse, ResponseModel],
+    response_model=Union[AbridgedTrackResponse, TrackResponse, GenericResponse],
     name="Get track metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response",
 )
@@ -62,7 +59,7 @@ async def get_track_metadata(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[TrackSummaryResponse, TrackResponse, ResponseModel]:
+) -> Union[AbridgedTrackResponse, TrackResponse, GenericResponse]:
 
     rContent = ResponseContent.descriptive().validate(
         content, "content", ResponseContent
@@ -76,7 +73,7 @@ async def get_track_metadata(
             model=(
                 TrackResponse
                 if rContent == ResponseContent.FULL
-                else TrackSummaryResponse
+                else AbridgedTrackResponse
             ),
         ),
         Parameters(track=track),
@@ -88,7 +85,7 @@ async def get_track_metadata(
     # return await helper.get_query_response()
 
 
-tags = [str(SharedOpenAPITags.RECORD_BY_ID), str(SharedOpenAPITags.TRACK_DATA)]
+tags = [str(SharedOpenAPITags.TRACK_DATA)]
 
 
 @router.get(
@@ -98,9 +95,9 @@ tags = [str(SharedOpenAPITags.RECORD_BY_ID), str(SharedOpenAPITags.TRACK_DATA)]
     response_model=Union[
         GWASSumStatResponse,
         QTLResponse,
-        TrackSummaryResponse,
+        AbridgedTrackResponse,
         TableViewResponse,
-        PagedResponseModel,
+        GenericResponse,
     ],
     description="Get the top scoring (most statistically-significant based on a p-value filter) variant associations or QTLs from a data track.",
 )
@@ -118,9 +115,9 @@ async def get_track_data(
 ) -> Union[
     GWASSumStatResponse,
     QTLResponse,
-    TrackSummaryResponse,
+    AbridgedTrackResponse,
     TableViewResponse,
-    PagedResponseModel,
+    GenericResponse,
 ]:
 
     rContent = ResponseContent.data().validate(content, "content", ResponseContent)
@@ -135,9 +132,9 @@ async def get_track_data(
             ),
             view=ResponseView.validate(view, "view", ResponseView),
             model=(
-                TrackSummaryResponse
+                AbridgedTrackResponse
                 if rContent == ResponseContent.SUMMARY
-                else PagedResponseModel
+                else GenericResponse
             ),
         ),
         Parameters(track=track, page=page),
@@ -152,7 +149,7 @@ async def get_track_data(
     "/{track}/data/summary/{summary_type}",
     tags=tags,
     name="Get track data summary",
-    response_model=ResponseModel,
+    response_model=GenericResponse,
     description="Get a summary of the top scoring (most statistically-significant based on a p-value filter) variant associations or QTLs from a data track.",
 )
 async def get_track_data_summary(
@@ -166,7 +163,7 @@ async def get_track_data_summary(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> ResponseModel:
+) -> GenericResponse:
 
     # TODO: Enum for summary type
     if summary_type not in ["counts", "top"]:
@@ -183,13 +180,13 @@ async def get_track_data_summary(
                 format, "format", ResponseFormat
             ),
             view=ResponseView.validate(view, "view", ResponseView),
-            model=ResponseModel,
+            model=GenericResponse,
         ),
         Parameters(track=track),
         query=(
-            CountsTrackSummaryQuery
+            CountsAbridgedTrackQuery
             if summary_type == "counts"
-            else TopTrackSummaryQuery
+            else TopAbridgedTrackQuery
         ),
         idParameter="track",
     )

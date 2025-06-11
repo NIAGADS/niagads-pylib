@@ -1,4 +1,4 @@
-"""OpenAPI and related metadata for the Open Access FILER microservice."""
+"""OpenAPI and related metadata for the Open Access GenomicsDB microservice."""
 
 from typing import List, Set
 
@@ -14,10 +14,17 @@ from niagads.open_access_api_common.types import (
     OpenAPIxTagGroup,
 )
 
+APP_NAMESPACE = "Genomics"
 
 OPEN_API_TAGS: List[OpenAPITag] = [
     OpenAPITag(
-        name="Alzheimer's Genomics Database",
+        name=APP_NAMESPACE,
+        description="sub-API namespace",
+        xTraitTag=True,
+        xSortOrder=0,
+    ),
+    OpenAPITag(
+        name="Alzheimers Genomics Database",
         summary="Query annotated AD/ADRD-genetic evidence from GWAS summary statistics and ADSP variant annotations",
         description=(
             f"Query annotated AD/ADRD-genetic evidence from GWAS summary statistics "
@@ -32,36 +39,35 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             "url": "https://www.niagads.org/genomics",
         },
         xSortOrder=2,
-        xTraitTag=True,
     ),
-    SharedOpenAPITags.ABOUT.value,
+    SharedOpenAPITags.DOCUMENTATION.value,
     SharedOpenAPITags.GENE_RECORD.value,
     SharedOpenAPITags.VARIANT_RECORD.value,
-    SharedOpenAPITags.XQTL_TRACK_RECORD.value,
+    SharedOpenAPITags.TRACK_RECORD.value,
     SharedOpenAPITags.GWAS_TRACK_RECORD.value,
     SharedOpenAPITags.TRACK_DATA.value,
-    SharedOpenAPITags.RECORD_BY_ID.value,
-    SharedOpenAPITags.RECORD_BY_REGION.value,
-    SharedOpenAPITags.RECORD_BY_TEXT.value,
     SharedOpenAPITags.COLLECTIONS.value,
-    SharedOpenAPITags.SERVICES.value,
     SharedOpenAPITags.GENOME_BROWSER.value,
+    SharedOpenAPITags.ONTOLOGIES.value,
+    SharedOpenAPITags.RECORD_SEARCH.value,
+    SharedOpenAPITags.LOOKUP_SERVICES.value,
     # SharedOpenAPITags.LOCUSZOOOM.value,
 ]
 
 
 PUBMED_IDS: Set[T_PubMedID] = ["PMID:37881831"]
 
-ROUTE_NAME: str = OPEN_API_TAGS[0].name
+APP_NAME: str = OPEN_API_TAGS[1].name
 
+BASE_TAGS = [APP_NAMESPACE, APP_NAME]
 
 GENOMICS_TAG_GROUPS = [
-    OpenAPIxTagGroup(name=ROUTE_NAME, tags=OPEN_API_TAGS, xSortOrder=20)
+    OpenAPIxTagGroup(name="Knowledge Bases", tags=[OPEN_API_TAGS[1]], xSortOrder=0)
 ] + SharedOpenAPIxTagGroups.list()
 
 OPEN_API_SPEC = OpenAPISpec(
-    title=OPEN_API_TAGS[0].name,
-    description=OPEN_API_TAGS[0].summary,
+    title=OPEN_API_TAGS[1].name,
+    description=OPEN_API_TAGS[1].summary,
     summary="NIAGADS Open Access API: GenomicsDB",
     version=Settings.from_env().API_VERSION,
     admin_email=Settings.from_env().ADMIN_EMAIL,

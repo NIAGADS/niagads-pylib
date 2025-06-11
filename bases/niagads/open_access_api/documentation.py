@@ -28,13 +28,12 @@ OPEN_API_TAGS: List[OpenAPITag] = [
         },
         xSortOrder=1,
     ),
-    SharedOpenAPITags.ABOUT.value,
-    SharedOpenAPITags.SPECIFICATION.value,
+    SharedOpenAPITags.DOCUMENTATION.value,
 ]
 
 PUBMED_IDS: Set[T_PubMedID] = ["PMID:35047815"]
 
-ROUTE_NAME: str = OPEN_API_TAGS[0].name
+APP_NAME: str = OPEN_API_TAGS[0].name
 
 OPEN_API_SPEC = OpenAPISpec(
     title=OPEN_API_TAGS[0].name,

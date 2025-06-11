@@ -14,7 +14,7 @@ from niagads.open_access_api_common.exception_handlers import (
     add_system_exception_handler,
     add_validation_exception_handler,
 )
-from niagads.open_access_api_common.types import OpenAPISpec, OpenAPIxTagGroup
+from niagads.open_access_api_common.types import OpenAPISpec
 from niagads.settings.core import ServiceEnvironment, get_service_environment
 import yaml
 
@@ -100,7 +100,7 @@ class AppFactory:
             docs_url=f"{prefix}/docs",
             redoc_url=f"{prefix}/redoc",
             openapi_tags=[t.model_dump() for t in self.__metadata.openapi_tags],
-            responses=RESPONSES,
+            # responses=RESPONSES,
             generate_unique_id_function=self.__generate_unique_id,
         )
 
@@ -164,12 +164,13 @@ class AppFactory:
         )
 
         # flag beta route paths / updated by reference
+        # update summary formatting
         paths: dict = openApiSchema["paths"]
         for path in paths.keys():
             for method in paths[path]:
-                summary = paths[path][method]["summary"]
-                if "[Beta]" in summary:
-                    paths[path][method]["summary"] = summary.replace("[Beta]", "")
+                summary: str = paths[path][method]["summary"]
+                if summary.endswith("-beta"):
+                    summary = summary.replace("-beta", "")
                     paths[path][method].update(
                         {
                             "x-badges": [
@@ -181,7 +182,12 @@ class AppFactory:
                             ]
                         }
                     )
-
+                paths[path][method]["summary"] = (
+                    summary.replace("-", " ")
+                    .capitalize()
+                    .replace(" api ", " API ")
+                    .replace("bulk", "(Bulk)")
+                )
         # openApiSchema["paths"] = paths
         openApiSchema["info"]["x-namespace"] = self.__namespace
         openApiSchema["info"]["x-major-version"] = self.__version

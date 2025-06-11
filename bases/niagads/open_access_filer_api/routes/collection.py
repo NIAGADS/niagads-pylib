@@ -8,9 +8,9 @@ from niagads.open_access_api_common.models.records.track.collection import (
 )
 from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
-    TrackSummaryResponse,
+    AbridgedTrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import ResponseModel
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import collection_param
@@ -26,14 +26,14 @@ from niagads.open_access_api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.open_access_filer_api.dependencies import InternalRequestParameters
-from niagads.open_access_filer_api.documentation import ROUTE_NAME
+from niagads.open_access_filer_api.documentation import BASE_TAGS
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
 
 
 router = APIRouter(
     prefix="/collection",
-    tags=[
-        ROUTE_NAME,
+    tags=BASE_TAGS
+    + [
         str(SharedOpenAPITags.TRACK_RECORD),
         str(SharedOpenAPITags.COLLECTIONS),
     ],
@@ -43,9 +43,8 @@ router = APIRouter(
 @router.get(
     "/",
     response_model=CollectionResponse,
-    name="Get Track Collections",
-    description="list available collections of related FILER tracks",
-    tags=[str(SharedOpenAPITags.ABOUT)],
+    summary="get-collections",
+    description="Retrieve a full listing of FILER track collections.  Collections are curated lists of related data tracks.  Collections may associate tracks from a single study or experiment, by shared cohort or consortium or by application.",
 )
 async def get_collections(
     format: str = Query(
@@ -70,17 +69,13 @@ async def get_collections(
     return await helper.generate_response(result)
 
 
-tags = [str(SharedOpenAPITags.RECORD_BY_ID)]
-
-
 @router.get(
     "/{collection}",
     response_model=Union[
-        ResponseModel, TrackSummaryResponse, TrackResponse, TableViewResponse
+        GenericResponse, AbridgedTrackResponse, TrackResponse, TableViewResponse
     ],
-    name="Get track metadata by collection",
-    tags=tags,
-    description="retrieve full metadata for FILER track records associated with a collection",
+    summary="get-collection-record-metadata",
+    description="Get the metadata for all tracks associated with a FILER collection.",
 )
 async def get_collection_track_metadata(
     collection: str = Depends(collection_param),
@@ -96,7 +91,7 @@ async def get_collection_track_metadata(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[ResponseModel, TrackSummaryResponse, TrackResponse, TableViewResponse]:
+) -> Union[GenericResponse, AbridgedTrackResponse, TrackResponse, TableViewResponse]:
 
     rContent = ResponseContent.validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
@@ -109,9 +104,9 @@ async def get_collection_track_metadata(
                 TrackResponse
                 if rContent == ResponseContent.FULL
                 else (
-                    TrackSummaryResponse
+                    AbridgedTrackResponse
                     if rContent == ResponseContent.SUMMARY
-                    else ResponseModel
+                    else GenericResponse
                 )
             ),
         ),

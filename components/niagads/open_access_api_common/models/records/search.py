@@ -2,7 +2,7 @@ from typing import List
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.open_access_api_common.models.records.core import RowModel
-from niagads.open_access_api_common.models.response.core import PagedResponseModel
+from niagads.open_access_api_common.models.response.core import GenericResponse
 from pydantic import AliasChoices, Field
 
 
@@ -27,5 +27,5 @@ class RecordSearchResult(RowModel):
     match_rank: int
 
 
-class RecordSearchResultResponse(PagedResponseModel):
+class RecordSearchResultResponse(GenericResponse):
     data: List[RecordSearchResult]

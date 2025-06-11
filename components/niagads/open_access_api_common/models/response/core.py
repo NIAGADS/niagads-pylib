@@ -1,4 +1,4 @@
-from typing import Any, Dict, TypeVar
+from typing import Any, Dict, Optional, TypeVar
 
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
 from niagads.open_access_api_common.models.response.pagination import (
@@ -14,11 +14,14 @@ from pydantic import BaseModel, Field
 from typing_extensions import Self
 
 
-class ResponseModel(BaseModel):
+class GenericResponse(BaseModel):
 
     data: Any = Field(description="result (data) from the request")
     request: RequestDataModel = Field(
         description="details about the originating request that generated the response"
+    )
+    pagination: Optional[PaginationDataModel] = Field(
+        default=None, description="pagination details, if the result is paged"
     )
 
     def has_count_fields(self):
@@ -30,8 +33,8 @@ class ResponseModel(BaseModel):
             return any(f.startswith("num_") for f in self.data[0].model_extra.keys())
 
     @classmethod
-    def is_paged(cls: Self):
-        return "pagination" in cls.model_fields
+    def is_paged(self: Self):
+        return self.pagination is not None
 
     @classmethod
     def row_model(cls: Self, name=False):
@@ -52,7 +55,6 @@ class ResponseModel(BaseModel):
         # avoid circular imports
         from niagads.open_access_api_common.models.records.core import RowModel
         from niagads.open_access_api_common.models.views.table.core import (
-            TableColumn,
             TableViewModel,
         )
 
@@ -112,11 +114,5 @@ class ResponseModel(BaseModel):
         return responseStr
 
 
-class PagedResponseModel(ResponseModel):
-    pagination: PaginationDataModel = Field(
-        description="pagination details, if the result is paged"
-    )
-
-
 # possibly allows you to set a type hint to a class and all its subclasses
-T_ResponseModel = TypeVar("T_ResponseModel", bound=ResponseModel)
+T_GenericResponse = TypeVar("T_GenericResponse", bound=GenericResponse)

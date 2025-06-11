@@ -14,10 +14,18 @@ from niagads.open_access_api_common.types import (
     OpenAPIxTagGroup,
 )
 
+APP_NAMESPACE = "FILER"
+
 
 OPEN_API_TAGS: List[OpenAPITag] = [
     OpenAPITag(
-        name="FILER Functional Genomics",
+        name=APP_NAMESPACE,
+        description="sub-API namespace",
+        xTraitTag=True,
+        xSortOrder=0,
+    ),
+    OpenAPITag(
+        name="FILER Functional Genomics Repository",
         summary="Query tracks and track data in FILER",
         description=(
             f"Query tracks and track data in FILER, "
@@ -31,32 +39,32 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             "url": "https://tf.lisanwanglab.org/FILER/",
         },
         xSortOrder=3,
-        xTraitTag=True,
     ),
-    SharedOpenAPITags.ABOUT.value,
+    SharedOpenAPITags.DOCUMENTATION.value,
     SharedOpenAPITags.TRACK_RECORD.value,
-    SharedOpenAPITags.XQTL_TRACK_RECORD.value,
+    # SharedOpenAPITags.XQTL_TRACK_RECORD.value,
     SharedOpenAPITags.TRACK_DATA.value,
-    SharedOpenAPITags.RECORD_BY_ID.value,
-    SharedOpenAPITags.RECORD_BY_REGION.value,
-    SharedOpenAPITags.RECORD_BY_TEXT.value,
     SharedOpenAPITags.COLLECTIONS.value,
-    SharedOpenAPITags.SERVICES.value,
     SharedOpenAPITags.GENOME_BROWSER.value,
-    SharedOpenAPITags.LOOKUP_SERVICES.value,
+    SharedOpenAPITags.ONTOLOGIES.value,
+    SharedOpenAPITags.RECORD_SEARCH.value,
 ]
 
 PUBMED_IDS: Set[T_PubMedID] = ["PMID:35047815"]
 
-ROUTE_NAME: str = OPEN_API_TAGS[0].name
+APP_NAME: str = OPEN_API_TAGS[1].name
+
+BASE_TAGS = [APP_NAMESPACE, APP_NAME]
+
 
 FILER_TAG_GROUPS = [
-    OpenAPIxTagGroup(name=ROUTE_NAME, tags=OPEN_API_TAGS, xSortOrder=40)
+    OpenAPIxTagGroup(name="Knowledge Bases", tags=[OPEN_API_TAGS[1]], xSortOrder=0)
 ] + SharedOpenAPIxTagGroups.list()
 
+
 OPEN_API_SPEC = OpenAPISpec(
-    title=OPEN_API_TAGS[0].name,
-    description=OPEN_API_TAGS[0].summary,
+    title=OPEN_API_TAGS[1].name,
+    description=OPEN_API_TAGS[1].summary,
     summary="NIAGADS Open Access API: FILER",
     version=Settings.from_env().API_VERSION,
     admin_email=Settings.from_env().ADMIN_EMAIL,
