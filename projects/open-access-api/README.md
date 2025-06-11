@@ -16,22 +16,14 @@ poetry build-project
 
 ## Set up the environmental variables
 
-``` bash
+```bash
 cp sample.env .env
 ```
 
 Edit the `.env` file
 
-## Build the docker image
+## Build the docker image using the docker compose file:
 
-``` shell
-docker build -t myimage .
+```bash
+docker compose up -d 
 ```
-
-## Run the image
-
-``` shell
-docker run -d --name mycontainer -p 8000:8000 myimage
-```
-
-The OpenAPI specification of this FastAPI app can now be accessed at `http://localhost:8000/vX/docs` where X is the major version.

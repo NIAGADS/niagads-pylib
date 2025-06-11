@@ -142,12 +142,9 @@ Please use `logging` to log script progress and debug statements. Details coming
 
 * override the `__str__` [dunder method](https://mathspp.com/blog/pydonts/dunder-methods) for the class so that users can debug or write class state as output (i.e., convert class to string)
 
-#### Scripts
-
-Executable scripts can be added to the `scripts` directory. `setup.py` will also need to be updated.  Details coming soon.
 
 #### Other
 
 * use [type hints](https://docs.python.org/3/library/typing.html) when possible help the `Pylance` (the Python interpreter) provide better autocompletion examples
 
-* use `enums` to define variables limited to controlled vocabularies (see the [enums utilities](niagads/utils/enums.py) and the [api_wrapper constants](niagads/api_wrapper/constants.py) for examples)
+* use `enums` to define variables limited to controlled vocabularies
