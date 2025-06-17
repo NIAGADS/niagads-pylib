@@ -1,4 +1,4 @@
-from niagads.vcf_parser import core
+from niagads.s3 import core
 
 
 def test_sample():

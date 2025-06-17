@@ -7,7 +7,7 @@ from collections import abc
 from types import SimpleNamespace
 from copy import deepcopy, copy
 
-from niagads.utils.string import is_bool, is_null, to_bool, to_number
+from niagads.utils.string import is_bool, is_null, to_bool, to_json, to_number
 from niagads.utils.list import all_elements_are_none as __list_is_none
 
 
@@ -201,3 +201,22 @@ def size(obj, n=0):
         else:
             n += 1
     return n
+
+
+def info_string_to_dict(infoStr: str) -> dict:
+    """
+    Convert an string (e.g., "DP=100;AF=0.5;DB") into a dictionary.
+    Flags (like DB) will have value True.
+    """
+    infoObj = {}
+    if infoStr is None or infoStr == ".":
+        raise ValueError("Cannot convert null-valued info string")
+    for item in infoStr.split(";"):
+        if "=" in item:
+            key, value = item.split("=", 1)
+            infoObj[key] = to_json(
+                value
+            )  # will convert almost everything to correct type
+        else:
+            infoObj[item] = True  # Flag field
+    return infoObj
