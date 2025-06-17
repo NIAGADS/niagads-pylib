@@ -59,6 +59,7 @@ def blake2b_hash(value: str, size: int = 20):
     hashedString = hashlib.blake2b(value.encode("utf-8"), digest_size=size).hexdigest()
     return hashedString
 
+
 @deprecated("use `list_utils.find_in_list` instead")
 def string_in_list(value: str, array: List[str], ignoreCase=False):
     pass
@@ -253,6 +254,14 @@ def is_integer(value):
         return False
 
 
+def to_json(s: str) -> dict:
+    """tests to see if a string is JSON and optionally returns converted string"""
+    try:
+        return json.loads(s)
+    except (ValueError, TypeError):
+        return s
+
+
 def is_float(value):
     """check if the string is a float"""
     try:
@@ -312,9 +321,7 @@ def is_camel_case(s):
 def to_snake_case(key):
     """converts camel case or space delimited strings to snake case
     from https://stackoverflow.com/a/1176023 / advanced cases"""
-    return (
-        regex_replace("([a-z0-9])([A-Z])", r"\1_\2", key).lower().replace(" ", "_")
-    )
+    return regex_replace("([a-z0-9])([A-Z])", r"\1_\2", key).lower().replace(" ", "_")
 
 
 def int_to_alpha(value, lower=False):
@@ -388,7 +395,9 @@ def regex_replace(pattern, replacement, value, **kwargs) -> str:
     return re.sub(pattern, replacement, value, **kwargs)
 
 
-def regex_extract(pattern, value, firstMatchOnly=True, **kwargs)->Union[str|List[str]]:
+def regex_extract(
+    pattern, value, firstMatchOnly=True, **kwargs
+) -> Union[str | List[str]]:
     """
     wrapper for `re.search`
 
@@ -419,7 +428,7 @@ def regex_extract(pattern, value, firstMatchOnly=True, **kwargs)->Union[str|List
         return None if len(result) == 0 else result
 
 
-def matches(pattern, value, **kwargs)->bool:
+def matches(pattern, value, **kwargs) -> bool:
     """
     checks if string contains a pattern
 
