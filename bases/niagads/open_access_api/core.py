@@ -7,10 +7,10 @@ from fastapi import FastAPI
 from niagads.open_access_api.documentation import OPEN_API_SPEC
 from niagads.open_access_api.routes.root import router as RootRouter
 from niagads.open_access_api_common.app import AppFactory
-from niagads.open_access_api_common.config.constants import SharedOpenAPIxTagGroups
 from niagads.open_access_filer_api.core import app as FILERApp  # Import the FILER app
 from niagads.open_access_genomics_api.core import app as GenomicsApp
 from niagads.settings.core import get_service_environment
+from niagads.open_access_api_common.config.core import Settings
 
 
 def _openapi_update_xtag_groups(xTagGroups: List[dict]):
@@ -26,7 +26,7 @@ def _openapi_update_xtag_groups(xTagGroups: List[dict]):
 
 
 def _openapi_update_routes(
-    routes: dict, traitTagRef: List[str], version: str, namespace: str
+    routes: dict, traitTagRef: List[str], namespace: str, version: str = None
 ):
     """
     update all route paths:
@@ -45,7 +45,9 @@ def _openapi_update_routes(
     # to cover future scenarios
     updatedRoutes = {}
     for path, route in routes.items():
-        updatedPath: str = f"{version}/{namespace.lower()}{path}"
+        updatedPath: str = (
+            f"{version}/{namespace.lower()}{path}" if version is not None else path
+        )
 
         route: dict
         for method, props in route.items():
@@ -56,7 +58,7 @@ def _openapi_update_routes(
     return updatedRoutes
 
 
-def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
+def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI], version: bool = False):
     # get root openapi
     specification: Dict[str, Any] = factory.openapi()
     specification.update({"components": {"schemas": {}}})
@@ -93,8 +95,8 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
         routes = _openapi_update_routes(
             dict(apiSpec["paths"].items()),
             traitOnlyTags,
-            factory.get_version_prefix(),
             namespace,
+            factory.get_version_prefix() if version else None,
         )
         specification["paths"].update(routes)
 
@@ -125,19 +127,23 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI]):
 
 
 # generate the app
+useVersioning = not Settings.from_env().LTS
 appFactory = AppFactory(
-    metadata=OPEN_API_SPEC, env=get_service_environment(), version=True
+    metadata=OPEN_API_SPEC, env=get_service_environment(), version=useVersioning
 )
 
-appFactory.add_router(RootRouter, version=True)
+appFactory.add_router(RootRouter, version=useVersioning)
 
 # get the application object
 app = appFactory.get_app()
 
-app.mount(f"{appFactory.get_version_prefix()}/filer", FILERApp)
-app.mount(f"{appFactory.get_version_prefix()}/genomics", GenomicsApp)
 
-app.openapi_schema = custom_openapi(appFactory, [GenomicsApp, FILERApp])
+app.mount(f"{appFactory.get_version_prefix() if useVersioning else ""}/filer", FILERApp)
+app.mount(
+    f"{appFactory.get_version_prefix() if useVersioning else ""}/genomics", GenomicsApp
+)
+
+app.openapi_schema = custom_openapi(appFactory, [GenomicsApp, FILERApp], useVersioning)
 
 if __name__ == "__main__":
     uvicorn.run(app="app:app")

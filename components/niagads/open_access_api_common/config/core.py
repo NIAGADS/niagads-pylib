@@ -26,5 +26,10 @@ class Settings(CustomSettings):
 
     API_VERSION: str
 
+    LTS: bool = True
+
     def get_major_version(self):
+        if self.LTS:
+            return "lts"
+
         return f"v{self.API_VERSION.split('.')[0]}"
