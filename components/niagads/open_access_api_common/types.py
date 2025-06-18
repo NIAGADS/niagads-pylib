@@ -54,7 +54,7 @@ class OpenAPISpec(BaseModel):
     xtag_groups: Optional[List[OpenAPIxTagGroup]] = None
 
 
-class RecordType(CaseInsensitiveEnum):
+class Entity(CaseInsensitiveEnum):
     GENE = auto()
     VARIANT = auto()
     # STRUCTURAL_VARIANT = auto()

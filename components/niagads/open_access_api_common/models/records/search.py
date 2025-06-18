@@ -9,7 +9,7 @@ from pydantic import AliasChoices, Field
 # TODO: leave here for now b/c not sure if required
 # if required, value probably needs to be endpoint;
 # so maybe need to override __str__
-class RecordType(CaseInsensitiveEnum):
+class Entity(CaseInsensitiveEnum):
     TRACK = "track"
     GENE = "gene"
     VARIANT = "variant"
@@ -22,7 +22,7 @@ class RecordSearchResult(RowModel):
     )  # primary_key (identifier) for the record (e.g., ensembl ID)
     description: str  # descriptive text
     display: str  # display id (e.g. gene symbol)
-    record_type: RecordType
+    record_type: Entity
     matched_term: str
     match_rank: int
 

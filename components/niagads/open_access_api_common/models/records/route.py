@@ -2,12 +2,12 @@ from typing import List, Optional, Set
 
 from niagads.common.types.core import T_PubMedID
 from niagads.open_access_api_common.models.records.core import RowModel
-from niagads.open_access_api_common.types import RecordType
+from niagads.open_access_api_common.types import Entity
 from pydantic import BaseModel
 
 
 class RecordSummary(BaseModel):
-    record_type: RecordType
+    record_type: Entity
     num_records: int
 
 

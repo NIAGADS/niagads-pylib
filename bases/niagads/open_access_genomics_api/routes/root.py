@@ -9,7 +9,7 @@ from niagads.open_access_api_common.models.records.route import (
 )
 from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
-from niagads.open_access_api_common.types import RecordType
+from niagads.open_access_api_common.types import Entity
 from niagads.open_access_genomics_api.dependencies import (
     TRACK_DATA_STORES,
     InternalRequestParameters,
@@ -45,7 +45,7 @@ async def get_database_description(
         description=OPEN_API_TAGS[1].description,
         url=OPEN_API_TAGS[1].externalDocs.get("url"),
         pubmed_id=PUBMED_IDS,
-        records=[RecordSummary(record_type=RecordType.TRACK, num_records=trackCount)],
+        records=[RecordSummary(record_type=Entity.TRACK, num_records=trackCount)],
     )
     return GenericResponse(
         # data=result
