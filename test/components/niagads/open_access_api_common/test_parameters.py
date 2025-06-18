@@ -8,7 +8,7 @@ def test_sample():
 
 def test_response_params():
     x: core.CustomizableEnumParameter = response.ResponseContent.exclude(
-        "no summary", [response.ResponseContent.SUMMARY]
+        "no summary", [response.ResponseContent.BRIEF]
     )
 
     assert "SUMMARY" not in x.get_description()
