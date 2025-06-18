@@ -9,12 +9,10 @@ from niagads.open_access_api_common.models.records.track.track import (
 )
 from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.table.core import TableViewResponse
-from niagads.open_access_api_common.parameters.location import (
-    assembly_param,
-    span_param,
-)
+from niagads.open_access_api_common.parameters.location import loc_param
 from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import track_param
+from niagads.open_access_api_common.parameters.record.query import track_list_param
 from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,
@@ -34,6 +32,53 @@ router = APIRouter(prefix="/record/track", tags=BASE_TAGS)
 
 
 @router.get(
+    "/",
+    response_model=Union[
+        TrackResponse, AbridgedTrackResponse, TableViewResponse, GenericResponse
+    ],
+    summary="get-track-metadata-bulk",
+    description="Retrieve full metadata for one or more FILER track records by identifier",
+)
+async def get_track_metadata_bulk(
+    track: str = Depends(track_list_param),
+    content: str = Query(
+        ResponseContent.FULL,
+        description=ResponseContent.descriptive(inclUrls=True, description=True),
+    ),
+    format: str = Query(
+        ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
+    ),
+    view: str = Query(
+        ResponseView.DEFAULT, description=ResponseView.table(description=True)
+    ),
+    internal: InternalRequestParameters = Depends(),
+) -> Union[AbridgedTrackResponse, TrackResponse, TableViewResponse, GenericResponse]:
+
+    rContent = ResponseContent.descriptive(inclUrls=True).validate(
+        content, "content", ResponseContent
+    )
+    helper = FILERRouteHelper(
+        internal,
+        ResponseConfiguration(
+            format=ResponseFormat.generic().validate(format, "format", ResponseFormat),
+            view=ResponseView.table().validate(view, "view", ResponseView),
+            content=rContent,
+            model=(
+                TrackResponse
+                if rContent == ResponseContent.FULL
+                else (
+                    AbridgedTrackResponse
+                    if rContent == ResponseContent.BRIEF
+                    else GenericResponse
+                )
+            ),
+        ),
+        Parameters(track=track),
+    )
+    return await helper.get_track_metadata()
+
+
+@router.get(
     "/{track}",
     tags=[str(SharedOpenAPITags.TRACK_RECORD)],
     response_model=Union[AbridgedTrackResponse, TrackResponse, GenericResponse],
@@ -43,7 +88,7 @@ router = APIRouter(prefix="/record/track", tags=BASE_TAGS)
 async def get_track_metadata(
     track=Depends(track_param),
     content: str = Query(
-        ResponseContent.SUMMARY,
+        ResponseContent.BRIEF,
         description=ResponseContent.descriptive(description=True),
     ),
     format: str = Query(
@@ -87,7 +132,7 @@ tags = [str(SharedOpenAPITags.TRACK_DATA)]
 )
 async def get_track_data(
     track=Depends(track_param),
-    span: str = Depends(span_param),
+    span: str = Depends(loc_param),
     page: int = Depends(page_param),
     content: str = Query(
         ResponseContent.FULL, description=ResponseContent.data(description=True)
@@ -114,7 +159,7 @@ async def get_track_data(
                 if rContent == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
-                    if rContent == ResponseContent.SUMMARY
+                    if rContent == ResponseContent.BRIEF
                     else GenericResponse
                 )
             ),
