@@ -7,8 +7,8 @@ from niagads.common.models.core import OntologyTerm
 from niagads.common.types.core import T_DOI, T_PubMedID
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.regular_expressions import RegularExpressions
-from niagads.utils.string import matches
-from pydantic import Field, computed_field, field_validator
+from niagads.utils.string import dict_to_info_string, matches
+from pydantic import BaseModel, Field, computed_field, field_validator, model_serializer
 
 
 class TrackDataStore(CaseInsensitiveEnum):
@@ -32,22 +32,52 @@ class ExperimentalDesign(NullFreeModel):
     covariates: Optional[List[str]] = Field(default=None, title="Covariates")
 
 
-class StudyDiagnosis(CaseInsensitiveEnum):
-    CASE = auto()
-    CONTROL = auto()
-    OTHER = auto()
+class PhenotypeCount(BaseModel):
+    term: OntologyTerm
+    num_participants: int
+
+    def __str__(self):
+        return str(self.term)
 
 
 class Phenotype(NullFreeModel):
-    disease: Optional[List[str]] = Field(default=None, title="Disease")
-    ethnicity: Optional[List[str]] = Field(default=None, title="Ethnicity")
-    race: Optional[List[str]] = Field(default=None, title="Race")
-    neuropathology: Optional[List[str]] = Field(default=None, title="Neuropathology")
-    study_diagnosis: Optional[StudyDiagnosis] = Field(
+    disease: Optional[List[OntologyTerm]] = Field(default=None, title="Disease")
+    ethnicity: Optional[List[OntologyTerm]] = Field(default=None, title="Ethnicity")
+    race: Optional[List[OntologyTerm]] = Field(default=None, title="Race")
+    neuropathology: Optional[List[OntologyTerm]] = Field(
+        default=None,
+        title="Neuropathology",
+        description="pathology or classification of the degree of pathology",
+    )
+    genotype: Optional[List[OntologyTerm]] = Field(
+        default=None, title="APOE Allele or Carrier Status"
+    )
+    biological_sex: Optional[OntologyTerm] = Field(default=None, title="Biological Sex")
+    study_diagnosis: Optional[List[PhenotypeCount]] = Field(
         default=None,
         title="Study Diagnosis",
-        description="status of individual in the study as a case or control",
+        description="number of cases and controls",
     )
+
+    @model_serializer()
+    def serialize_model(self, listsAsStrings: bool = False):
+        obj = {}
+        for attr, value in self.__dict__.items():
+            if value is not None:
+                if isinstance(value, list):
+                    terms = [str(term) for term in value]
+                    if listsAsStrings:
+                        obj[attr] = "|".join(terms)
+                    else:
+                        obj[attr] = terms
+                else:
+                    obj[attr] = str(value)
+
+        return obj
+
+    def as_info_str(self):
+        obj = self.serialize_model(listsAsStrings=True)
+        return dict_to_info_string(obj)
 
 
 class BiosampleType(Enum):
@@ -228,7 +258,7 @@ class Provenance(NullFreeModel):
     pubmed_id: Optional[Set[T_PubMedID]] = None
     doi: Optional[Set[str]] = None
 
-    consortia: Optional[List[str]] = None
+    consortium: Optional[Set[str]] = None
     attribution: Optional[str] = None
 
     @field_validator("doi", mode="after")
