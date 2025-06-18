@@ -18,7 +18,7 @@ from niagads.open_access_api_common.parameters.location import (
     assembly_param,
     chromosome_param,
 )
-from niagads.open_access_api_common.parameters.record.path import query_collection_name
+
 from niagads.open_access_api_common.parameters.record.query import (
     optional_track_list_param,
     track_param,
