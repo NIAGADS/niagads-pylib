@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional, Type, Union
 from fastapi import Response
 from niagads.exceptions.core import ValidationError
 from niagads.common.models.core import Range
+from niagads.genome.core import GenomicFeatureType
 from niagads.open_access_api_common.config.constants import (
     DEFAULT_PAGE_SIZE,
     MAX_NUM_PAGES,
@@ -11,6 +12,9 @@ from niagads.open_access_api_common.models.cache import (
     CacheKeyDataModel,
     CacheKeyQualifier,
     CacheNamespace,
+)
+from niagads.open_access_api_common.models.records.features.genomic import (
+    GenomicFeature,
 )
 from niagads.open_access_api_common.models.records.track.igvbrowser import (
     IGVBrowserTrackSelectorResponse,
@@ -30,10 +34,11 @@ from niagads.open_access_api_common.parameters.response import (
     ResponseView,
 )
 
+from niagads.open_access_api_common.services.feature import FeatureQueryService
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 _INTERNAL_PARAMETERS = ["span", "_tracks"]
-_ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.SUMMARY]
+_ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.BRIEF]
 
 
 class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
@@ -357,3 +362,8 @@ class RouteHelperService:
                 raise NotImplementedError(
                     f"A response for view of type {str(self._responseConfig.view)} is coming soon."
                 )
+
+    async def get_feature_location(self):
+        return FeatureQueryService(self._managers.session).get_feature_location(
+            self._parameters.location
+        )

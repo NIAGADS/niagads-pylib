@@ -1,0 +1,70 @@
+from fastapi import HTTPException
+from niagads.genome.core import GenomicFeatureType
+from niagads.open_access_api_common.models.records.features.genomic import (
+    GenomicFeature,
+)
+from niagads.open_access_api_common.models.response.request import RequestDataModel
+from sqlalchemy import func, select, text, column
+from sqlalchemy.exc import NoResultFound
+from sqlalchemy.ext.asyncio import AsyncSession
+
+
+class FeatureQueryService:
+    def __init__(
+        self,
+        session: AsyncSession,
+    ):
+        self.__session = session
+
+    async def get_gene_location(self, gene: GenomicFeature):
+        stmt = select(func.gene_location_lookup(gene.feature_id))
+        try:
+            span = self.__session.execute(stmt).scalar_one()
+            return span
+        except NoResultFound as err:
+            raise HTTPException(status_code=404, detail="Gene not found")
+
+    async def get_variant_location(self, variant: GenomicFeature):
+        if variant.feature_id.startswith("rs"):
+            findByRefSnp = func.find_variant_by_refsnp(
+                variant.feature_id, True
+            ).table_valued(column("chromosome"), column("position"), column("length"))
+
+            stmt = select(
+                (
+                    findByRefSnp.c.chromosome
+                    + ":"
+                    + (findByRefSnp.c.position - 1).cast(text("TEXT"))
+                    + "-"
+                    + (findByRefSnp.c.position + findByRefSnp.c.length).cast(
+                        text("TEXT")
+                    )
+                ).label("span")
+            )
+            try:
+                span = self.__session.execute(stmt).scalar_one()
+                return span
+            except NoResultFound as err:
+                raise HTTPException(status_code=404, detail="refSNP not found")
+
+        else:
+            [chr, pos, ref, alt] = variant.feature_id.split(":")
+            start = int(pos) - 1
+            end = start + len(ref)
+            return f"{chr}:{start}-{end}"
+
+    async def get_feature_location(self, feature: GenomicFeature):
+        match feature.feature_type:
+            case GenomicFeatureType.GENE:
+                return self.get_gene_location()
+
+            case GenomicFeatureType.VARIANT:
+                return self.get_variant_location()
+
+            case GenomicFeatureType.SPAN:
+                return feature.feature_id
+
+            case GenomicFeatureType.STRUCTURAL_VARIANT:
+                raise NotImplementedError(
+                    f"Mapping structural variant spans not yet implemented"
+                )
