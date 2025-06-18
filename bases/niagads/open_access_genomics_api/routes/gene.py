@@ -1,9 +1,31 @@
-from fastapi import APIRouter
+from typing import Union
+from fastapi import APIRouter, Depends, Query
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+
+from niagads.open_access_api_common.models.records.features.gene import (
+    AbridgedGeneResponse,
+    GeneResponse,
+)
+
+from niagads.open_access_api_common.models.records.features.genomic import (
+    GenomicFeature,
+)
+from niagads.open_access_api_common.parameters.record.path import gene_param
+from niagads.open_access_api_common.parameters.response import (
+    ResponseContent,
+    ResponseFormat,
+)
+from niagads.open_access_api_common.services.route import (
+    Parameters,
+    ResponseConfiguration,
+)
+from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
 from niagads.open_access_genomics_api.documentation import APP_NAME
+from niagads.open_access_genomics_api.queries.gene import GeneRecordQuery
+from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 router = APIRouter(
-    prefix="/track",
+    prefix="/record/gene",
     tags=[
         APP_NAME,
         str(SharedOpenAPITags.GENE_RECORD),
@@ -13,12 +35,12 @@ router = APIRouter(
 
 @router.get(
     "/{gene}",
-    response_model=Union[AbridgedTrackResponse, TrackResponse, GenericResponse],
+    response_model=Union[AbridgedGeneResponse, GeneResponse],
     name="Get gene record",
-    description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response",
+    description="retrieve an annotated gene",
 )
-async def get_track_metadata(
-    track=Depends(track_param),
+async def get_gene(
+    gene: GenomicFeature = Depends(gene_param),
     content: str = Query(
         ResponseContent.BRIEF,
         description=ResponseContent.descriptive(description=True),
@@ -27,7 +49,7 @@ async def get_track_metadata(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[AbridgedTrackResponse, TrackResponse, GenericResponse]:
+) -> Union[AbridgedGeneResponse, GeneResponse]:
 
     rContent = ResponseContent.descriptive().validate(
         content, "content", ResponseContent
@@ -39,15 +61,14 @@ async def get_track_metadata(
             content=rContent,
             format=rFormat,
             model=(
-                TrackResponse
+                GeneResponse
                 if rContent == ResponseContent.FULL
-                else AbridgedTrackResponse
+                else AbridgedGeneResponse
             ),
         ),
-        Parameters(track=track),
-        # idParameter='track',
-        # query=TrackMetadataQuery
+        Parameters(id=gene.feature_id),
+        # idParameter="id",
+        query=GeneRecordQuery,
     )
 
-    return await helper.get_track_metadata()
-    # return await helper.get_query_response()
+    return await helper.get_query_response()

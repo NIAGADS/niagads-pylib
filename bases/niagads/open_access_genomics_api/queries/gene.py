@@ -1,5 +1,5 @@
 from niagads.open_access_api_common.models.core import Entity
-from niagads.open_access_api_common.models.query import Query
+from niagads.open_access_api_common.models.query import QueryDefinition
 
 GO_ASSOCIATION_CTE = """
     SELECT ga.source_id AS id, 
@@ -8,7 +8,7 @@ GO_ASSOCIATION_CTE = """
             'go_term', ot.name, 'evidence', goa.evidence, 
             'ontology', CASE ontology.name
                 WHEN 'molecular_function' THEN 'MF'
-                WHEN 'cellular_process' THEN 'CP'
+                WHEN 'cellular_component' THEN 'CC'
                 WHEN 'biological_process' THEN 'BP'  
                 END)
         ) AS go_annotation
@@ -39,7 +39,7 @@ PATHWAY_CTE = """
 """
 
 
-GeneRecordQuery = Query(
+GeneRecordQuery = QueryDefinition(
     query=f"""WITH goa AS ({GO_ASSOCIATION_CTE}),
         pathway AS ({PATHWAY_CTE})
         SELECT source_id AS id, 
@@ -48,18 +48,21 @@ GeneRecordQuery = Query(
         to_json(string_to_array(annotation->>'prev_symbol', '|') 
             || string_to_array(annotation->>'alias_symbol', '|')) AS synonyms,
         gene_type,
-        chromosome,
-        location_start,
-        location_end,
-        CASE WHEN is_reversed THEN '-' ELSE '+' END AS strand,
+        jsonb_build_object(
+            'chromosome', chromosome, 
+            'start', location_start, 
+            'end', location_end,
+            'strand', CASE WHEN is_reversed THEN '-' ELSE '+' END
+        ) AS location,
         annotation AS hgnc_annotation,
         goa.go_annotation,
         pathway.pathway_membership
         FROM CBIL.GeneAttributes ga
         LEFT OUTER JOIN goa ON ga.source_id = goa.id
         LEFT OUTER JOIN pathway on ga.source_id = pathway.id
-        WHERE ga.source_id = (SELECT gene_lookup(':id'))
+        WHERE ga.source_id = (SELECT gene_lookup(:id))
     """,
     bindParameters=["id"],
+    # fetchOne=True,
     entity=Entity.GENE,
 )
