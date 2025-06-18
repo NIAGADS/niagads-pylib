@@ -73,7 +73,7 @@ async def get_track_data_bulk(
                 if rContent == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
-                    if rContent == ResponseContent.SUMMARY
+                    if rContent == ResponseContent.BRIEF
                     else GenericResponse
                 )
             ),
@@ -127,7 +127,7 @@ async def get_track_data_by_metadata_search(
                 if rContent == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
-                    if rContent == ResponseContent.SUMMARY
+                    if rContent == ResponseContent.BRIEF
                     else GenericResponse
                 )
             ),

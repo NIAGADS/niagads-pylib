@@ -8,8 +8,9 @@ class ResponseContent(CustomizableEnumParameter):
     FULL = auto()
     COUNTS = auto()
     IDS = auto()
-    SUMMARY = auto()
+    BRIEF = auto()
     URLS = auto()
+    # SUMMARY = auto()  - for data summaries? or separate endpoints
 
     @classmethod
     def get_description(cls, inclValues=True):
@@ -46,7 +47,7 @@ class ResponseContent(CustomizableEnumParameter):
         """return full data formats only"""
         subset = cls.exclude(
             "full_data_only_content",
-            [ResponseContent.IDS, ResponseContent.URLS, ResponseContent.SUMMARY],
+            [ResponseContent.IDS, ResponseContent.URLS, ResponseContent.BRIEF],
         )
         if description:
             return cls.get_description(False) + " " + subset.get_description()

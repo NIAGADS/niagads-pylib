@@ -352,9 +352,9 @@ class FILERRouteHelper(MetadataRouteHelperService):
                     sortedTrackResultSummary[sliceRange.start : sliceRange.end]
                 )
 
-            case ResponseContent.SUMMARY | ResponseContent.URLS:
+            case ResponseContent.BRIEF | ResponseContent.URLS:
                 metadata: List[Track] = await self.get_track_metadata(
-                    rawResponse=ResponseContent.SUMMARY
+                    rawResponse=ResponseContent.BRIEF
                 )
                 summary = self.__generate_track_overlap_summary(
                     metadata, sortedTrackResultSummary
@@ -395,8 +395,8 @@ class FILERRouteHelper(MetadataRouteHelperService):
         if hasMetadataFilters:
             # get list of tracks that match the search filter
             rawResponse = ResponseContent.IDS
-            if self._responseConfig.content == ResponseContent.SUMMARY:
-                rawResponse = ResponseContent.SUMMARY
+            if self._responseConfig.content == ResponseContent.BRIEF:
+                rawResponse = ResponseContent.BRIEF
             matchingTracks: List[Track] = await self.search_track_metadata(
                 rawResponse=rawResponse
             )
@@ -469,7 +469,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
                     result[sliceRange.start : sliceRange.end]
                 )
 
-            case ResponseContent.SUMMARY | ResponseContent.URLS:
+            case ResponseContent.BRIEF | ResponseContent.URLS:
                 metadata: List[Track] = [
                     t for t in matchingTracks if t.track_id in targetTrackIds
                 ]

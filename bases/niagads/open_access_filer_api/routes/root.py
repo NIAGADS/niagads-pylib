@@ -1,7 +1,7 @@
 import functools
 
 from fastapi import APIRouter, Depends, Request, Response
-from niagads.open_access_api_common.app import AppFactory
+from niagads.open_access_api_common.app.factory import AppFactory
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.models.records.route import (
@@ -10,7 +10,7 @@ from niagads.open_access_api_common.models.records.route import (
 )
 from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
-from niagads.open_access_api_common.types import Entity
+from niagads.open_access_api_common.models.core import Entity
 from niagads.open_access_filer_api.dependencies import (
     TRACK_DATA_STORES,
     InternalRequestParameters,
@@ -45,7 +45,7 @@ async def get_database_description(
         description=OPEN_API_TAGS[1].description,
         url=OPEN_API_TAGS[1].externalDocs.get("url"),
         pubmed_id=PUBMED_IDS,
-        records=[RecordSummary(record_type=Entity.TRACK, num_records=trackCount)],
+        records=[RecordSummary(entity=Entity.TRACK, num_records=trackCount)],
     )
     return GenericResponse(data=result, request=internal.requestData)
 

@@ -1,7 +1,7 @@
 import functools
 
 from fastapi import APIRouter, Request, Response
-from niagads.open_access_api_common.app import AppFactory
+from niagads.open_access_api_common.app.factory import AppFactory
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 
 router = APIRouter()

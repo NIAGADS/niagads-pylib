@@ -52,7 +52,7 @@ router = APIRouter(
 async def get_track_metadata(
     track=Depends(track_param),
     content: str = Query(
-        ResponseContent.SUMMARY,
+        ResponseContent.BRIEF,
         description=ResponseContent.descriptive(description=True),
     ),
     format: str = Query(
@@ -133,7 +133,7 @@ async def get_track_data(
             view=ResponseView.validate(view, "view", ResponseView),
             model=(
                 AbridgedTrackResponse
-                if rContent == ResponseContent.SUMMARY
+                if rContent == ResponseContent.BRIEF
                 else GenericResponse
             ),
         ),

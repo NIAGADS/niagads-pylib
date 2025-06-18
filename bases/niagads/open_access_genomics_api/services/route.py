@@ -1,5 +1,6 @@
 from typing import Optional
 
+from fastapi import HTTPException
 from niagads.common.models.core import Range
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from niagads.database.models.metadata.track import Track
@@ -145,8 +146,10 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
                 return result
 
         except NoResultFound as e:
-            if self.__query.errorOnNull is not None:
-                raise ValidationError(self.__query.errorOnNull)
+            if self.__query.entity is not None:
+                raise HTTPException(
+                    status_code=404, detail=f"{str(self.__query.entity)} not found"
+                )
             if self.__query.fetchOne:
                 return {}
             else:
@@ -219,7 +222,7 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
                 )
 
         match self._responseConfig.content:
-            case ResponseContent.SUMMARY | ResponseContent.COUNTS:
+            case ResponseContent.BRIEF | ResponseContent.COUNTS:
                 counts = await self.get_query_response(
                     QueryOptions(countsOnly=True, rawResponse=True)
                 )

@@ -1,16 +1,22 @@
 from typing import List, Optional
-from niagads.open_access_api_common.types import Entity
+from niagads.open_access_api_common.models.core import Entity
 from pydantic import BaseModel
+from sqlalchemy.sql.expression import Select
 
 
-class QueryDefinition(BaseModel):
-    query: str
-    countsQuery: Optional[str] = None
-    useIdSelectWrapper: bool = False
+class SQLQuery(BaseModel):
     bindParameters: Optional[List[str]] = None  # bind parameter names
     fetchOne: bool = False  # expect only one result, so return query result[0]
-    Entity: Entity
-    messageOnResultSize: str = None
+    entity: Optional[Entity] = None
+
+
+class Statement(SQLQuery):
+    statement: Select
+
+
+class QueryDefinition(SQLQuery):
+    countsQuery: Optional[str] = None
+    useIdSelectWrapper: bool = False
 
     def model_post_init(self, __context):
         if self.useIdSelectWrapper:
