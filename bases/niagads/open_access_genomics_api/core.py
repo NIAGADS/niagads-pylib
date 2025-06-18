@@ -1,5 +1,5 @@
 import uvicorn
-from niagads.open_access_api_common.app import AppFactory
+from niagads.open_access_api_common.app.factory import AppFactory
 from niagads.open_access_genomics_api.documentation import APP_NAMESPACE, OPEN_API_SPEC
 from niagads.open_access_genomics_api.routes.collection import (
     router as CollectionRouter,

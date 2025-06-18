@@ -2,7 +2,7 @@
 from enum import Enum
 from typing import List
 
-from niagads.open_access_api_common.types import OpenAPITag, OpenAPIxTagGroup
+from niagads.open_access_api_common.app.openapi import OpenAPITag, OpenAPIxTagGroup
 from pydantic import BaseModel
 
 

@@ -8,7 +8,7 @@ from niagads.open_access_api_common.config.constants import (
     SharedOpenAPIxTagGroups,
 )
 from niagads.open_access_api_common.config.core import Settings
-from niagads.open_access_api_common.types import OpenAPISpec, OpenAPITag
+from niagads.open_access_api_common.app.openapi import OpenAPISpec, OpenAPITag
 
 
 OPEN_API_TAGS: List[OpenAPITag] = [

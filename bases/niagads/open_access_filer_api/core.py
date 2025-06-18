@@ -1,8 +1,8 @@
-from niagads.open_access_api_common.app import AppFactory
+from niagads.open_access_api_common.app.factory import AppFactory
 from niagads.open_access_filer_api.documentation import OPEN_API_SPEC, APP_NAMESPACE
 from niagads.open_access_filer_api.routes.root import router as RootRouter
 from niagads.open_access_filer_api.routes.record import router as RecordRouter
-from niagads.open_access_filer_api.routes.metadata import router as MetadataRouter
+from niagads.open_access_filer_api.routes.search import router as MetadataRouter
 from niagads.open_access_filer_api.routes.data import router as DataRouter
 from niagads.open_access_filer_api.routes.service import router as ServiceRouter
 from niagads.open_access_filer_api.routes.collection import router as CollectionRouter
