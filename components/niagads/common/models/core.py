@@ -18,6 +18,9 @@ class OntologyTerm(NullFreeModel):
     )
     definition: Optional[str] = None
 
+    def __str__(self):
+        return self.term
+
 
 class Range(BaseModel):
     start: int
