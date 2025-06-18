@@ -28,72 +28,13 @@ async def chromosome_param(
         raise ValidationError(f"Invalid chromosome {chromosome}.")
 
 
-def validate_span(span: str, returnNotMatching: bool = False):
-    pattern = r".+:\d+-\d+$"  # chr:start-enddddd - NOTE: the r prefix declares the pattern as a raw string so that no syntax warning gets thrown for escaping the d
-
-    # check against regexp
-    if matches(pattern, span) == False:
-        if returnNotMatching:
-            return False
-        else:
-            raise ValidationError(
-                f"Invalid genomic span: `{span}`;"
-                f"for a chromosome, N, please specify as chrN:start-end or N:start-end"
-            )
-
-    # split on :
-    [chrm, coords] = span.split(":")
-    try:
-        validChrm = Human.validate(chrm)
-    except KeyError:
-        raise ValidationError(
-            f"Invalid genomic span: `{span}`; invalid chromosome `{chrm}`"
-        )
-
-    # validate start < end
-    [start, end] = coords.split("-")
-    if int(start) > int(end):
-        raise ValidationError(
-            f"Invalid genomic span: `{span}`; start coordinate must be <= end"
-        )
-    return validChrm + ":" + coords
-
-
 async def span_param(
     span: str = Query(
         description="genomic region to query; ",
         examples=["chr19:10000-40000", "19:10000-40000"],
     )
 ):
-    return validate_span(sanitize(span))
-
-
-def validate_variant(feature: str, returnNotMatching):
-    pattern = r".+:\d+:[ACGT]+:[ACGT]+"
-
-    if matches(pattern, feature) == False:
-        feature = feature.lower()
-        pattern = r"rs\d+"
-        if matches(pattern, feature):
-            return feature
-
-        if returnNotMatching:
-            return False
-        else:
-            raise ValidationError(
-                f"Invalid variant: `{feature}`; please specify using the refSNP id or a positional identifier (chr:pos:ref:alt)"
-            )
-
-    # validate chrm
-    [chrm, pos, ref, alt] = feature.split(":")
-    try:
-        Human.validate(chrm)
-    except KeyError:
-        raise ValidationError(
-            f"Invalid genomic location: `{feature}`; invalid chromosome `{chrm}`"
-        )
-
-    return feature
+    return GenomicFeature.validate_span(sanitize(span))
 
 
 async def loc_param(
@@ -106,12 +47,19 @@ async def loc_param(
 
     location = sanitize(loc)
 
-    value = validate_span(location, returnNotMatching=True)
-    if not isinstance(value, bool):
-        return GenomicFeature(feature_id=value, feature_type=GenomicFeatureType.SPAN)
-
-    value = validate_variant(location, returnNotMatching=True)
-    if not isinstance(value, bool):
-        return GenomicFeature(feature_id=value, feature_type=GenomicFeatureType.VARIANT)
-
-    return GenomicFeature(feature_id=location, feature_type=GenomicFeatureType.GENE)
+    try:
+        return GenomicFeature(feature_id=location, feature_type=GenomicFeatureType.SPAN)
+    except ValidationError:
+        try:
+            return GenomicFeature(
+                feature_id=location, feature_type=GenomicFeatureType.VARIANT
+            )
+        except ValidationError:
+            try:
+                return GenomicFeature(
+                    feature_id=location, feature_type=GenomicFeatureType.GENE
+                )
+            except ValidationError:
+                raise ValidationError(
+                    f"Invalid genomic location or feature identifier: {loc}"
+                )
