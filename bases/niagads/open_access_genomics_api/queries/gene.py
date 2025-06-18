@@ -66,3 +66,85 @@ GeneRecordQuery = QueryDefinition(
     # fetchOne=True,
     entity=Entity.GENE,
 )
+
+GeneAssociationsTable = QueryDefinition(
+    bindParameters=["id", "subset", "subset"],
+    query="""WITH 
+            id AS 
+            (   SELECT 
+                    (:id)::text AS source_id 
+            ) 
+            ,
+            tracks AS 
+            (   SELECT 
+                    track_id,
+                    name,
+                    description,
+                    provenance->>'accession' AS accession,
+                    CASE 
+                        WHEN subject_phenotypes->>'ethnicity' IS NULL 
+                        THEN 'European' 
+                        ELSE subject_phenotypes->>'ethnicity' 
+                    END                                     AS ethnicity,
+                    subject_phenotypes->>'biological_sex'   AS biological_sex,
+                    subject_phenotypes->>'genotype'         AS genotype,
+                    biosample_characteristics->>'tissue'    AS tissue,
+                    biosample_characteristics->>'biomarker' AS biomarker,
+                    experimental_design->>'covariates'      AS covariates,
+                    subject_phenotypes->>'disease'          AS disease,
+                    subject_phenotypes->>'neuropathology'   AS neuropathology
+                FROM 
+                    Metadata.Track
+                WHERE 
+                    feature_type = 'variant'
+                AND experimental_design->>'data_category' = 'summary statistics' 
+            ),
+            filteredtracks AS (
+            SELECT * FROM tracks
+            WHERE (:subset = 'AD_ONLY' AND disease::text LIKE '%Alzh%')
+            OR (:subset != 'AD_ONLY' AND disease::text NOT LIKE '%Alzh%')
+            ),
+            RESULT AS
+            (   SELECT
+                    id.source_id,
+                    r.track,
+                    jsonb_build_object( 'variant_id', r.metaseq_id, 'ref_snp_id', r.ref_snp_id, 'type',
+                    r.display_attributes->>'variant_class_abbrev', 'is_adsp_variant', r.is_adsp_variant,
+                    'most_severe_consequence', jsonb_build_object( 'consequence', 
+                    most_severe_consequence(r.annotation ->'ADSP_MOST_SEVERE_CONSEQUENCE'), 'impact', 
+                    r.annotation-> 'ADSP_MOST_SEVERE_CONSEQUENCE'->>'impact', 'is_coding',(r.annotation->
+                    'ADSP_MOST_SEVERE_CONSEQUENCE'->>'consequence_is_coding')::bool, 'impacted_gene',
+                    jsonb_build_object( 'id', r.annotation->'ADSP_MOST_SEVERE_CONSEQUENCE'->>'gene_id',
+                    'gene_symbol', r.annotation->'ADSP_MOST_SEVERE_CONSEQUENCE'->>'gene_symbol' ) ) ) AS
+                    variant,
+                    CASE
+                        WHEN r.position::bigint < ga.location_start
+                        THEN 'upstream'
+                        WHEN r.position::bigint > ga.location_end
+                        THEN 'downstream'
+                        ELSE 'in gene'
+                    END                                            AS relative_position,
+                    r.test_allele                                  AS allele,
+                    TO_CHAR(r.pvalue_display::numeric, '9.99EEEE') AS pvalue,
+                    neg_log10_pvalue,
+                    t.*
+                FROM 
+                    id, 
+                    NIAGADS.VariantGWASTopHits r, 
+                    filteredtracks                     t, 
+                    CBIL.GeneAttributes        ga
+                WHERE 
+                    id.source_id = ga.source_id
+                AND ga.bin_index_100kb_flank @> r.bin_index
+                AND int4range(ga.location_start - 100000, ga.location_end + 100000, '[]') @> r.position
+                AND ga.chromosome = r.chromosome
+                AND t.track_id = r.track 
+            )
+            SELECT 
+            * 
+            FROM 
+            RESULT
+            ORDER BY 
+            neg_log10_pvalue DESC
+    """,
+)
