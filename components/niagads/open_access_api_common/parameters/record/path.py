@@ -3,6 +3,10 @@
 from typing import Optional
 from fastapi import Path, Query
 from niagads.exceptions.core import ValidationError
+from niagads.genome.core import GenomicFeatureType
+from niagads.open_access_api_common.models.records.features.genomic import (
+    GenomicFeature,
+)
 from niagads.utils.string import sanitize
 
 
@@ -18,11 +22,17 @@ async def collection_param(
 
 
 # genomic features
-async def variant_param(variant: str = Query(regex="", description="")):
-    return True
+async def variant_param(
+    variant: str = Path(
+        description="variant record identifier; refSNP ID or positional allele (chr:pos:ref:alt)"
+    ),
+):
+    return GenomicFeature(
+        feature_id=sanitize(variant), feature_type=GenomicFeatureType.VARIANT
+    )
 
 
-async def query_collection_name(
-    collection: Optional[str] = Query(default=None, description="track collection name")
-) -> str:
-    return sanitize(collection)
+async def gene_param(gene: str = Path(description="")):
+    return GenomicFeature(
+        feature_id=sanitize(gene), feature_type=GenomicFeatureType.GENE
+    )
