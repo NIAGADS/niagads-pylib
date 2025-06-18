@@ -1,4 +1,4 @@
-from niagads.open_access_api_common.models.query import Query
+from niagads.open_access_api_common.models.query import QueryDefinition
 
 
 _BUILD_VARIANT_DETAILS_SQL = """
@@ -75,7 +75,7 @@ _TRACK_QTLGENE_COUNTS_QUERY_SQL = """
     GROUP BY track_id
 """
 
-TrackQTLGeneQuery = Query(
+TrackQTLGeneQuery = QueryDefinition(
     query=_TRACK_QTLGENE_QUERY_SQL,
     countsQuery=_TRACK_QTLGENE_COUNTS_QUERY_SQL,
     useIdSelectWrapper=True,
@@ -84,14 +84,14 @@ TrackQTLGeneQuery = Query(
     bindParameters=["rank_start", "rank_end"],
 )
 
-TrackGWASSumStatQuery = Query(
+TrackGWASSumStatQuery = QueryDefinition(
     query=_TRACK_GSS_QUERY_SQL,
     useIdSelectWrapper=True,
     errorOnNull="GWAS summary statistics track not found in the NIAGADS Alzheimer's GenomicsDB",
 )
 
 # TODO: make generic like the data queries
-CountsAbridgedTrackQuery = Query(
+CountsAbridgedTrackQuery = QueryDefinition(
     query="""
         SELECT chromosome, count(target_ensembl_id) AS num_target_genes
         FROM Results.QTLGene
@@ -104,7 +104,7 @@ CountsAbridgedTrackQuery = Query(
     rawResponse=True,
 )
 
-TopAbridgedTrackQuery = Query(
+TopAbridgedTrackQuery = QueryDefinition(
     query="""
         SELECT r.chromosome, 
         vd.details->>'ref_snp_id' AS ref_snp_id, vd.details->>'metaseq_id' AS variant,

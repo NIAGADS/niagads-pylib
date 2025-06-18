@@ -1,4 +1,4 @@
-from niagads.open_access_api_common.models.query import Query
+from niagads.open_access_api_common.models.query import QueryDefinition
 
 
 _TRACK_COLLECTION_METADATA_QUERY = """
@@ -20,17 +20,17 @@ _TRACK_COLLECTION_QUERY = """
 """
 
 
-TrackMetadataQuery = Query(
+TrackMetadataQuery = QueryDefinition(
     query="SELECT * FROM Metadata.TrackMetadata",
     useIdSelectWrapper=True,
     errorOnNull="Track not found in the GenomicsDB",
 )
 
-CollectionQuery = Query(
+CollectionQuery = QueryDefinition(
     query=_TRACK_COLLECTION_QUERY,
 )
 
-CollectionTrackMetadataQuery = Query(
+CollectionTrackMetadataQuery = QueryDefinition(
     query=_TRACK_COLLECTION_METADATA_QUERY,
     bindParameters=["collection"],
     errorOnNull="Collection not found in the GenomicsDB",

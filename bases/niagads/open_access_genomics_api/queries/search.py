@@ -2,7 +2,7 @@ from enum import auto
 from typing import List
 
 from niagads.enums.core import EnumParameter
-from niagads.open_access_api_common.models.query import Query
+from niagads.open_access_api_common.models.query import QueryDefinition
 
 
 class SearchType(EnumParameter):  # TODO: move to parameters
@@ -22,7 +22,7 @@ class SearchType(EnumParameter):  # TODO: move to parameters
 # TODO: test if SqlAlchemy can return JSON directly instead of returning the JSON as text and then parsing back
 
 
-class SiteSearchQuery(Query):
+class SiteSearchQuery(QueryDefinition):
     searchType: SearchType
     fetchOne: bool = False
     query: str = ""  # gets assigned dynamically by model_post_init

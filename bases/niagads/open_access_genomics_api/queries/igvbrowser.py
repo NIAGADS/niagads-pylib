@@ -1,7 +1,7 @@
-from niagads.open_access_api_common.models.query import Query
+from niagads.open_access_api_common.models.query import QueryDefinition
 
 
-IGVFeatureLookupQuery = Query(
+IGVFeatureLookupQuery = QueryDefinition(
     query=""" 
         SELECT v.mapping->>'chromosome' AS chromosome, 
         (v.mapping->>'position')::int AS start, 

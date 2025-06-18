@@ -13,7 +13,7 @@ class Statement(SQLQuery):
     statement: Optional[Any] = None  # sql alchmey statement
 
 
-class Query(SQLQuery):
+class QueryDefinition(SQLQuery):
     query: Optional[str] = None
     countsQuery: Optional[str] = None
     useIdSelectWrapper: bool = False
