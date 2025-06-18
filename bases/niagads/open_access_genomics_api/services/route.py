@@ -5,7 +5,7 @@ from niagads.common.models.core import Range
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from niagads.database.models.metadata.track import Track
 from niagads.exceptions.core import ValidationError
-from niagads.open_access_api_common.models.query import QueryDefinition
+from niagads.open_access_api_common.models.query import Query
 from niagads.open_access_api_common.models.records.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,
@@ -45,7 +45,7 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
         managers: InternalRequestParameters,
         responseConfig: ResponseConfiguration,
         params: Parameters,
-        query: QueryDefinition = None,
+        query: Query = None,
         idParameter: str = "id",
     ):
         super().__init__(

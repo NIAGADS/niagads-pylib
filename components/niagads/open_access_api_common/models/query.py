@@ -1,7 +1,6 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 from niagads.open_access_api_common.models.core import Entity
 from pydantic import BaseModel
-from sqlalchemy.sql.expression import Select
 
 
 class SQLQuery(BaseModel):
@@ -11,10 +10,11 @@ class SQLQuery(BaseModel):
 
 
 class Statement(SQLQuery):
-    statement: Select
+    statement: Optional[Any] = None  # sql alchmey statement
 
 
-class QueryDefinition(SQLQuery):
+class Query(SQLQuery):
+    query: Optional[str] = None
     countsQuery: Optional[str] = None
     useIdSelectWrapper: bool = False
 

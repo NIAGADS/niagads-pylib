@@ -22,7 +22,7 @@ from niagads.open_access_genomics_api.documentation import APP_NAME, BASE_TAGS
 from niagads.open_access_genomics_api.queries.igvbrowser import IGVFeatureLookupQuery
 from niagads.open_access_genomics_api.queries.search import (
     SearchType,
-    SiteSearchQueryDefinition,
+    SiteSearchQuery,
 )
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
@@ -49,7 +49,7 @@ async def site_search(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[List[RecordSearchResult]]:
 
-    query = SiteSearchQueryDefinition(searchType=searchType)
+    query = SiteSearchQuery(searchType=searchType)
 
     test = {
         "primary_key": "ENSG00000130203",

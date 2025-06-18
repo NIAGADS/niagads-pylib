@@ -1,5 +1,5 @@
 from niagads.open_access_api_common.models.core import Entity
-from niagads.open_access_api_common.models.query import QueryDefinition
+from niagads.open_access_api_common.models.query import Query
 
 GO_ASSOCIATION_CTE = """
     SELECT ga.source_id AS id, 
@@ -39,7 +39,7 @@ PATHWAY_CTE = """
 """
 
 
-GeneRecordQuery = QueryDefinition(
+GeneRecordQuery = Query(
     query=f"""WITH goa AS ({GO_ASSOCIATION_CTE}),
         pathway AS ({PATHWAY_CTE})
         SELECT source_id AS id, 
