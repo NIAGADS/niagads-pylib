@@ -13,7 +13,9 @@ from niagads.open_access_api_common.models.views.table.core import TableViewMode
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
 )
-from niagads.open_access_api_common.parameters.record.path import query_collection_name
+from niagads.open_access_api_common.parameters.record.query import (
+    optional_collection_param,
+)
 from niagads.open_access_api_common.parameters.record.query import (
     optional_track_list_param,
 )
@@ -44,7 +46,7 @@ tags = [str(SharedOpenAPITags.GENOME_BROWSER)]
 async def get_track_browser_config_bulk(
     track=Depends(optional_track_list_param),
     assembly: Assembly = Depends(assembly_param),
-    collection: str = Depends(query_collection_name),
+    collection: str = Depends(optional_collection_param),
     # keyword: str = Depends(keyword_param),
     internal: InternalRequestParameters = Depends(),
 ) -> List[IGVBrowserTrackConfig]:
@@ -89,7 +91,7 @@ async def get_track_browser_config_bulk(
 async def get_track_selector(
     track=Depends(optional_track_list_param),
     assembly: Assembly = Depends(assembly_param),
-    collection: str = Depends(query_collection_name),
+    collection: str = Depends(optional_collection_param),
     # keyword: str = Depends(keyword_param),
     internal: InternalRequestParameters = Depends(),
 ) -> TableViewModel:
