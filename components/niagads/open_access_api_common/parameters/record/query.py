@@ -56,3 +56,9 @@ async def track_list_param(
             "Invalid delimiter; please separate multiple identifiers with commas (`,`)."
         )
     return sTrack
+
+
+async def optional_collection_param(
+    collection: Optional[str] = Query(default=None, description="track collection name")
+) -> str:
+    return sanitize(collection)
