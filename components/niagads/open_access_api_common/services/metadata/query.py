@@ -34,6 +34,14 @@ class MetadataQueryService:
     async def validate_tracks(self, tracks: List[str]):
         # solution for finding tracks not in the table adapted from
         # https://stackoverflow.com/a/73691503
+
+        if len(tracks) == 1:
+            statement = select(Track.track_id).where(Track.track_id == tracks[0])
+
+            result = (await self.__session.execute(statement)).fetchone()
+            if result is None:
+                raise HTTPException(status_code=404, detail="Track not found")
+
         lookups = Values(Column("track_id", String), name="lookups").data(
             [(t,) for t in tracks]
         )
@@ -48,7 +56,7 @@ class MetadataQueryService:
         if len(result) > 0:
             raise HTTPException(
                 status_code=404,
-                detail=f"Track(s) `{list_to_string(result)}` not found.",
+                detail=f"Invalid tracks found: `{list_to_string(result)}`.",
             )
         else:
             return True
