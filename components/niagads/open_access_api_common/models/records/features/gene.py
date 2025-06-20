@@ -46,7 +46,7 @@ class PathwayAnnotation(BaseModel):
 
 
 class AnnotatedGene(Gene):
-    hgnc_annotation: Dict[str, Union[str, int]]
+    hgnc_annotation: Optional[Dict[str, Union[str, int]]] = None
     go_annotation: Optional[List[GOAnnotation]] = None
     pathway_membership: Optional[List[PathwayAnnotation]] = None
     # rifs: Optional[dict] = None
