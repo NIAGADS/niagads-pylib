@@ -1,34 +1,23 @@
-from niagads.exceptions.core import ValidationError
+from typing import List, Optional
 
+from fastapi import HTTPException
 from niagads.database.models.metadata.collection import Collection, TrackCollection
-from niagads.database.models.metadata.track import Track
 from niagads.database.models.metadata.composite_attributes import (
     ExperimentalDesign,
     Phenotype,
     Provenance,
     TrackDataStore,
 )
+from niagads.database.models.metadata.track import Track
 from niagads.open_access_api_common.config.constants import SHARD_PATTERN
 from niagads.open_access_api_common.models.response.request import RequestDataModel
 from niagads.open_access_api_common.parameters.expression_filter import Triple
 from niagads.open_access_api_common.parameters.response import ResponseContent
+from niagads.utils.list import list_to_string
 from niagads.utils.string import regex_replace
-
-from sqlalchemy import (
-    Column,
-    Values,
-    String,
-    column,
-    select,
-    func,
-    distinct,
-)
+from sqlalchemy import Column, String, Values, column, distinct, func, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from typing import List, Optional
-
-from niagads.utils.list import list_to_string
 
 
 class MetadataQueryService:
@@ -57,24 +46,25 @@ class MetadataQueryService:
 
         result = (await self.__session.execute(statement)).all()
         if len(result) > 0:
-            raise ValidationError(
-                f"Invalid track identifiers found: {list_to_string(result)}"
+            raise HTTPException(
+                status_code=404,
+                detail=f"Track(s) `{list_to_string(result)}` not found.",
             )
         else:
             return True
 
-    async def validate_collection(self, name: str) -> int:
-        """validate a collection by name"""
+    async def validate_collection(self, pk: str) -> int:
+        """validate a collection by primary_key"""
         statement = (
             select(Collection)
-            .where(Collection.name.ilike(name))
+            .where(Collection.primary_key.ilike(pk))
             .filter(Collection.data_store.in_(self.__dataStore))
         )
         try:
             collection = (await self.__session.execute(statement)).scalar_one()
             return collection
         except NoResultFound as e:
-            raise ValidationError(f"Invalid collection: {name}")
+            raise HTTPException(status_code=404, detail=f"Collection `{pk}` not found")
 
     async def get_track_count(self) -> int:
         statement = select(func.count(Track.track_id)).where(
@@ -87,6 +77,7 @@ class MetadataQueryService:
     async def get_collections(self) -> List[Collection]:
         statement = (
             select(
+                Collection.primary_key,
                 Collection.name,
                 Collection.description,
                 func.count(TrackCollection.track_id).label("num_tracks"),
@@ -138,6 +129,7 @@ class MetadataQueryService:
     async def get_collection_track_metadata(
         self, collectionName: str, track: str = None, responseType=ResponseContent.FULL
     ) -> List[Track]:
+
         collection: Collection = await self.validate_collection(collectionName)
 
         # if sharded URLs need to be mapped through IDS to find all shards
