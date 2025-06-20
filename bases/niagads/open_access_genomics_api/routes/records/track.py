@@ -35,7 +35,7 @@ from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 
 router = APIRouter(
-    prefix="/track",
+    prefix="/record/track",
     tags=[
         APP_NAME,
         str(SharedOpenAPITags.TRACK_RECORD),
