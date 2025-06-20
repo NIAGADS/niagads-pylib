@@ -14,7 +14,7 @@ from typing import List
 from fastapi.encoders import jsonable_encoder
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.dict import promote_nested
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class Entity(CaseInsensitiveEnum):
@@ -34,6 +34,8 @@ class SerializableModel(BaseModel):
     * grouping of extra fields (not yet implemented)
     * aliased field names
     """
+
+    model_config = ConfigDict(serialize_by_alias=True)
 
     def serialize(
         self,
