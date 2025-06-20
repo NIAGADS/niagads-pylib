@@ -19,7 +19,7 @@ class GenomicRegion(RowModel, Range):
     strand: Optional[Strand] = None
 
     # so that strand does not get returned if missing
-    model_config = ConfigDict(exclude_none=True, serialize_by_alias=True)
+    model_config = ConfigDict(exclude_none=True)
 
     @field_serializer("chromosome")
     def serialize_chromosome(self, chromosome: Human, _info):

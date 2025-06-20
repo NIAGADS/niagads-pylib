@@ -65,7 +65,7 @@ class AbridgedTrack(DynamicRowModel):
     )
 
     # should allow to fill from SQLAlchemy ORM model
-    model_config = ConfigDict(from_attributes=True, serialize_by_alias=True)
+    model_config = ConfigDict(from_attributes=True)
 
     @model_validator(mode="before")
     @classmethod
@@ -114,7 +114,7 @@ class Track(RowModel):
         description="Flag indicateing whether track is part of a result set sharded by chromosome.",
     )
     # FIXME: exclude cohorts until parsing resolved for FILER
-    cohorts: Optional[List[str]] = Field(title="Cohorts", exclude=True)
+    cohorts: Optional[List[str]] = Field(title="Cohorts")
     biosample_characteristics: Optional[BiosampleCharacteristics]
     subject_phenotypes: Optional[Phenotype]
     experimental_design: Optional[ExperimentalDesign]
@@ -122,7 +122,7 @@ class Track(RowModel):
     file_properties: Optional[FileProperties]
 
     # should allow to fill from SQLAlchemy ORM model
-    model_config = ConfigDict(from_attributes=True, serialize_by_alias=True)
+    model_config = ConfigDict(from_attributes=True)
 
     def to_view_data(self, view: ResponseView, **kwargs):
         row: dict = super().to_view_data(view, **kwargs)
@@ -181,7 +181,7 @@ class TrackResultSize(RowModel):
     def to_text(self, format: ResponseFormat, **kwargs):
         return f"{self.track_id}\t{self.num_results}"
 
-    model_config = ConfigDict(serialize_by_alias=True)
+    # model_config = ConfigDict(serialize_by_alias=True)
 
     @staticmethod
     def sort(results: List[Self], reverse=True) -> List[Self]:

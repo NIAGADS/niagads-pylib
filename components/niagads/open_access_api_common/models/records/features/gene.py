@@ -10,8 +10,6 @@ class GeneFeature(RowModel):
     id: str
     gene_symbol: Optional[str] = Field(default=None, serialization_alias="symbol")
 
-    model_config = ConfigDict(serialize_by_alias=True)
-
     # should allow to fill from SQLAlchemy ORM model
     # model_config = ConfigDict(from_attributes=True, serialize_by_alias=True)
 
