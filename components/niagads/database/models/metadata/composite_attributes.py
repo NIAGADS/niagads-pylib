@@ -8,7 +8,14 @@ from niagads.common.types.core import T_DOI, T_PubMedID
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import dict_to_info_string, matches
-from pydantic import BaseModel, Field, computed_field, field_validator, model_serializer
+from pydantic import (
+    BaseModel,
+    Field,
+    computed_field,
+    field_serializer,
+    field_validator,
+    model_serializer,
+)
 
 
 class TrackDataStore(CaseInsensitiveEnum):
@@ -32,12 +39,14 @@ class ExperimentalDesign(NullFreeModel):
     covariates: Optional[List[str]] = Field(default=None, title="Covariates")
 
 
-class PhenotypeCount(BaseModel):
-    term: OntologyTerm
-    num_participants: int
+class PhenotypeCount(NullFreeModel):
+    phenotype: Optional[OntologyTerm] = None
+    num_cases: int
+    num_controls: Optional[int]
 
-    def __str__(self):
-        return str(self.term)
+    @field_serializer("phenotype")
+    def serialize_phenotype(self, phenotype: Optional[OntologyTerm], _info):
+        return str(self.phenotype) if self.phenotype is not None else None
 
 
 class Phenotype(NullFreeModel):
@@ -64,7 +73,9 @@ class Phenotype(NullFreeModel):
         obj = {}
         for attr, value in self.__dict__.items():
             if value is not None:
-                if isinstance(value, list):
+                if attr == "study_diagnosis":
+                    obj[attr] = [sd.model_dump() for sd in value]
+                elif isinstance(value, list):
                     terms = [str(term) for term in value]
                     if listsAsStrings:
                         obj[attr] = "|".join(terms)
