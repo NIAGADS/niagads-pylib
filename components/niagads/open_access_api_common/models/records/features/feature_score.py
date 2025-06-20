@@ -31,7 +31,7 @@ class VariantScore(RowModel):
     position: int = Field(title="Position")
 
     @field_serializer("chromosome")
-    def serialize_group(self, chromosome: Human, _info):
+    def serialize_chromosome(self, chromosome: Human, _info):
         return str(chromosome)
 
 
