@@ -77,7 +77,7 @@ async def get_collections(
         TableViewResponse,
     ],
     name="Get track metadata by collection",
-    description="retrieve full metadata for FILER track records associated with a collection",
+    description="retrieve full metadata for collection track records",
 )
 async def get_collection_track_metadata(
     collection: str = Depends(collection_param),
