@@ -152,6 +152,7 @@ class MetadataQueryService:
             .join(TrackCollection, TrackCollection.track_id == Track.track_id)
             .where(TrackCollection.collection_id == collection.collection_id)
             .filter(Track.data_store.in_(self.__dataStore))
+            .order_by(Track.track_id)
         )
 
         if track is not None:
