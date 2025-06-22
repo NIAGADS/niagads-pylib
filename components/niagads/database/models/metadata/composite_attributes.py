@@ -42,7 +42,7 @@ class ExperimentalDesign(NullFreeModel):
 class PhenotypeCount(NullFreeModel):
     phenotype: Optional[OntologyTerm] = None
     num_cases: int
-    num_controls: Optional[int]
+    num_controls: Optional[int] = None
 
     @field_serializer("phenotype")
     def serialize_phenotype(self, phenotype: Optional[OntologyTerm], _info):
@@ -61,7 +61,9 @@ class Phenotype(NullFreeModel):
     genotype: Optional[List[OntologyTerm]] = Field(
         default=None, title="APOE Allele or Carrier Status"
     )
-    biological_sex: Optional[OntologyTerm] = Field(default=None, title="Biological Sex")
+    biological_sex: Optional[List[OntologyTerm]] = Field(
+        default=None, title="Biological Sex"
+    )
     study_diagnosis: Optional[List[PhenotypeCount]] = Field(
         default=None,
         title="Study Diagnosis",
