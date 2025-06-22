@@ -22,9 +22,8 @@ add_system_exception_handler(app)
 
 import traceback
 from math import ceil
-from typing import Union
 
-from fastapi import FastAPI, Request, Response, status
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -44,8 +43,11 @@ def add_runtime_exception_handler(app: FastAPI) -> None:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=jsonable_encoder(
                 {
-                    "error": str(exc),  # optionally, include the pydantic errors
-                    "message": "An unexpected error occurred.  Please submit a `bug` GitHub issue containing this full error response at: https://github.com/NIAGADS/niagads-api/issues",
+                    "detail": str(exc),
+                    "message": (
+                        f"An unexpected error occurred.  Please submit a `bug` GitHub issue "
+                        f"containing this full error response at: https://github.com/NIAGADS/niagads-api/issues"
+                    ),
                     "stack_trace": [
                         t.replace("\n", "").replace('"', "'")
                         for t in traceback.format_tb(exc.__traceback__)
@@ -69,7 +71,7 @@ def add_not_implemented_exception_handler(app: FastAPI) -> None:
         )
 
 
-# FIXME: request_validation & validation duplicated b/c couldn't
+# XXX: request_validation & validation duplicated b/c couldn't
 # assign two error types to one handler
 # due to startlette runtime checks on the exception type
 def add_request_validation_exception_handler(app: FastAPI) -> None:
@@ -77,26 +79,16 @@ def add_request_validation_exception_handler(app: FastAPI) -> None:
     async def request_validation_exception_handler(
         request: Request, exc: ValidationError
     ):
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content=jsonable_encoder(
-                {"error": str(exc), "message": "Invalid parameter value"}
-            ),
-        )
+        raise HTTPException(status_code=422, detail=f"{str(exc)}")
 
 
 def add_validation_exception_handler(app: FastAPI) -> None:
     @app.exception_handler(ValidationError)
     async def validation_exception_handler(request: Request, exc: ValidationError):
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content=jsonable_encoder(
-                {"error": str(exc), "message": "Invalid parameter value"}
-            ),
-        )
+        raise HTTPException(status_code=422, detail=f"{str(exc)}")
 
 
-# FIXME: OSError & DatabaseError handlers duplicated b/c couldn't
+# XXX: OSError & DatabaseError handlers duplicated b/c couldn't
 # assign two error types to one handler
 # due to startlette runtime checks on the exception type
 def add_system_exception_handler(app: FastAPI) -> None:
@@ -109,8 +101,8 @@ def add_system_exception_handler(app: FastAPI) -> None:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=jsonable_encoder(
                 {
-                    "message": str(exc),  # optionally, include the pydantic errors
-                    "error": (
+                    "detail": str(exc),  # optionally, include the pydantic errors
+                    "message": (
                         f"An system error occurred.  Please email this error response to "
                         f"{Settings.from_env().ADMIN_EMAIL} with the subject `NIAGADS API Systems Error`"
                         f"and we will try and resolve the issue as soon as possible."
@@ -135,8 +127,8 @@ def add_database_exception_handler(app: FastAPI) -> None:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=jsonable_encoder(
                 {
-                    "message": str(exc),  # optionally, include the pydantic errors
-                    "error": (
+                    "detail": str(exc),  # optionally, include the pydantic errors
+                    "message": (
                         f"An system error occurred.  Please email this error response to "
                         f"{Settings.from_env().ADMIN_EMAIL} with the subject `NIAGADS API Systems Error`"
                         f"and we will try and resolve the issue as soon as possible."
