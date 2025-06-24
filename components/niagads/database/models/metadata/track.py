@@ -2,6 +2,8 @@
 
 from typing import List, Optional
 
+from niagads.database.models.core import ModelDumpMixin
+from niagads.database.models.metadata.base import MetadataSchemaBase
 from niagads.database.models.metadata.composite_attributes import (
     BiosampleCharacteristics,
     ExperimentalDesign,
@@ -10,7 +12,6 @@ from niagads.database.models.metadata.composite_attributes import (
     Provenance,
     TrackDataStore,
 )
-from niagads.database.models.metadata.base import MetadataSchemaBase, ModelDumpMixin
 from niagads.genome.core import Assembly, Human
 from niagads.utils.list import list_to_string
 from sqlalchemy import ARRAY, TEXT, Column, Enum, Index, String

@@ -1,6 +1,7 @@
 """core defines the `Collection` and link between tracks and collections (metadata) database models"""
 
 from typing import Optional
+from niagads.database.models.core import ModelDumpMixin
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from niagads.database.models.metadata.base import MetadataSchemaBase
 from niagads.utils.list import list_to_string
@@ -8,7 +9,7 @@ from sqlalchemy import CheckConstraint, Column, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class Collection(MetadataSchemaBase):
+class Collection(ModelDumpMixin, MetadataSchemaBase):
     __tablename__ = "collection"
     __table_args__ = (
         CheckConstraint(
