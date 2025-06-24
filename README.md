@@ -10,7 +10,7 @@ a collection of python packages, classes, and utility functions in support of NI
 > the old package-based version can be used as follows:
 
 ```bash
-pip3 install git+https://github.com/NIAGADS/niagads-pylib.git#package-architecture
+pip3 install git+https://github.com/NIAGADS/niagads-pylib.git@package-architecture
 ```
 
 ## Documentation
