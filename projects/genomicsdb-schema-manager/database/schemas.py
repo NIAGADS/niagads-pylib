@@ -2,10 +2,12 @@ from enum import Enum
 
 # note the schema base is imported from core, not base so that all tables are generated
 from niagads.database.models.metadata.core import MetadataSchemaBase
+from niagads.database.models.index.core import IndexSchemaBase
 
 
 class Schema(Enum):
     METADATA = MetadataSchemaBase
+    INDEX = IndexSchemaBase
 
     @classmethod
     def _missing_(cls, value: str):
