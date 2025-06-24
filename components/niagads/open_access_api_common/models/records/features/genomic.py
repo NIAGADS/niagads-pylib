@@ -15,6 +15,7 @@ from pydantic import (
 
 
 class GenomicRegion(RowModel, Range):
+    # zero-based
     chromosome: Human = Field(serialization_alias="chr")
     strand: Optional[Strand] = None
 

@@ -25,7 +25,7 @@ router = APIRouter(tags=[APP_NAME])
 
 
 @router.get(
-    "/",
+    "/status",
     response_model=GenericResponse,
     summary="get-api-info",
     description=f"Retrieve a brief overview of the {APP_NAME}",

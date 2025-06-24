@@ -41,6 +41,7 @@ T_VariantScore = TypeVar("T_VariantScore", bound=VariantScore)
 class VariantPValueScore(VariantScore):
     p_value: Union[float, str] = Field(title="p-Value")
     neg_log10_pvalue: float = Field(title="-log10pValue")
+    trait: str
 
     def get_field_names(self):
         """get list of valid fields"""

@@ -32,7 +32,11 @@ async def variant_param(
     )
 
 
-async def gene_param(gene: str = Path(description="")):
+async def gene_param(
+    gene: str = Path(
+        description="gene record identifier; Ensembl ID, Official Gene Symbol or Entrez (NCBI) gene ID"
+    ),
+):
     return GenomicFeature(
         feature_id=sanitize(gene), feature_type=GenomicFeatureType.GENE
     )

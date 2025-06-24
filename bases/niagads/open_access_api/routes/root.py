@@ -8,7 +8,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/",
+    "/status",
     summary="get-api-info",
     tags=[str(SharedOpenAPITags.DOCUMENTATION)],
 )
