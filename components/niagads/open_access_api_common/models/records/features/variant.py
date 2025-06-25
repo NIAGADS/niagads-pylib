@@ -57,7 +57,7 @@ class AnnotatedVariant(Variant):
     is_multi_allelic: bool
     is_structural_variant: bool
 
-    cadd_score: Optional[Dict[str, float]] = None
+    cadd_score: Optional[CADDScore] = None
     adsp_qc: Optional[dict] = None
 
     allele_frequencies: Optional[dict] = None

@@ -1,7 +1,8 @@
 from enum import auto
 from typing import List, Optional
+from niagads.database.models.core import CompositeAttributeModel
 from niagads.enums.core import CaseInsensitiveEnum
-from pydantic import BaseModel, Field, computed_field
+from pydantic import Field, computed_field
 
 
 class ConsequenceImpact(CaseInsensitiveEnum):
@@ -25,7 +26,11 @@ class ConsequenceImpact(CaseInsensitiveEnum):
                 raise ValueError(f"Invalid consequence impact: {str(self)}")
 
 
-class PredictedConsequence(BaseModel):
+class CADDScore(CompositeAttributeModel):
+    CADD_phred: float = Field(serialization_alias="C")
+
+
+class PredictedConsequence(CompositeAttributeModel):
     consequence: List[str]
     impact: ConsequenceImpact
     is_coding: Optional[bool] = Field(serialization_alias="is_coding")
@@ -57,7 +62,7 @@ class PredictedConsequence(BaseModel):
         return ConsequenceImpact(impact).color()
 
 
-class RankedConsequences(BaseModel):
+class RankedConsequences(CompositeAttributeModel):
     regulatory: List[PredictedConsequence]
     motif: List[PredictedConsequence]
     transcript: List[PredictedConsequence]

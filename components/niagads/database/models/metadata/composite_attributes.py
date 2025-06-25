@@ -2,14 +2,13 @@ from enum import Enum, auto
 from typing import List, Optional, Set, Union
 
 from niagads.common.constants.external_resources import ThirdPartyResources
-from niagads.common.core import NullFreeModel
 from niagads.common.models.core import OntologyTerm
-from niagads.common.types.core import T_DOI, T_PubMedID
+from niagads.common.types.core import T_PubMedID
+from niagads.database.models.core import CompositeAttributeModel
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import dict_to_info_string, matches
 from pydantic import (
-    BaseModel,
     Field,
     computed_field,
     field_serializer,
@@ -24,7 +23,7 @@ class TrackDataStore(CaseInsensitiveEnum):
     SHARED = auto()
 
 
-class ExperimentalDesign(NullFreeModel):
+class ExperimentalDesign(CompositeAttributeModel):
     antibody_target: Optional[str] = Field(default=None, title="Antibody Target")
     assay: Optional[str] = Field(default=None, title="Assay")
     analysis: Optional[str] = Field(default=None, title="Analysis")
@@ -39,7 +38,7 @@ class ExperimentalDesign(NullFreeModel):
     covariates: Optional[List[str]] = Field(default=None, title="Covariates")
 
 
-class PhenotypeCount(NullFreeModel):
+class PhenotypeCount(CompositeAttributeModel):
     phenotype: Optional[OntologyTerm] = None
     num_cases: int
     num_controls: Optional[int] = None
@@ -49,7 +48,7 @@ class PhenotypeCount(NullFreeModel):
         return str(self.phenotype) if self.phenotype is not None else None
 
 
-class Phenotype(NullFreeModel):
+class Phenotype(CompositeAttributeModel):
     disease: Optional[List[OntologyTerm]] = Field(default=None, title="Disease")
     ethnicity: Optional[List[OntologyTerm]] = Field(default=None, title="Ethnicity")
     race: Optional[List[OntologyTerm]] = Field(default=None, title="Race")
@@ -231,7 +230,7 @@ class BiosampleType(Enum):
         return self.value.term
 
 
-class BiosampleCharacteristics(NullFreeModel):
+class BiosampleCharacteristics(CompositeAttributeModel):
     system: Optional[List[str]] = Field(
         default=None, title="Biosample: Anatomical System"
     )
@@ -254,7 +253,7 @@ class BiosampleCharacteristics(NullFreeModel):
 
 
 # TODO: document provenance and file properties
-class Provenance(NullFreeModel):
+class Provenance(CompositeAttributeModel):
     data_source: str = Field(
         title="Data Source", description="original file data source"
     )
@@ -301,7 +300,7 @@ class Provenance(NullFreeModel):
             )
 
 
-class FileProperties(NullFreeModel):
+class FileProperties(CompositeAttributeModel):
     file_name: Optional[str] = None
     url: Optional[str] = None
     md5sum: Optional[str] = Field(pattern=RegularExpressions.MD5SUM, default=None)
