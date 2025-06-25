@@ -94,16 +94,15 @@ class GenomicFeature(BaseModel):
 
     @staticmethod
     def validate_variant_id(id: str):
-        pattern = r".+:\d+:[ACGT]+:[ACGT]+"
+        pattern = r"^.+:\d+:[ACGT]+:[ACGT]+$"
 
         if matches(pattern, id) == False:
-            id = id.lower()
-            pattern = r"rs\d+"
-            if matches(pattern, id):
-                return id
+            pattern = r"^rs\d+$"
+            if matches(pattern, id.lower()):
+                return id.lower()
             else:
                 raise ValidationError(
-                    f"Invalid variant: `{id}`; please specify using the refSNP id or a positional allelic identifier (chr:pos:ref:alt)"
+                    f"Invalid variant: `{id}`; please specify using a refSNP id or a positional allelic identifier (chr:pos:ref:alt) with valid alleles: [A,C,G,T]"
                 )
 
         # validate chrm
