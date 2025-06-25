@@ -1,12 +1,20 @@
 from typing import Any, Dict, List, Optional, Literal, Union
 from niagads.database.models.variant.composite_attributes import (
+    ConsequenceImpact,
     PredictedConsequence,
     RankedConsequences,
 )
 from niagads.open_access_api_common.models.records.core import RowModel
 from niagads.open_access_api_common.models.records.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.response.core import GenericResponse
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_serializer
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_serializer,
+    field_validator,
+)
 
 
 class QCStatus(BaseModel):
@@ -56,6 +64,20 @@ class AnnotatedVariant(Variant):
     vep_predicted_consequences: Optional[RankedConsequences] = None
     associations: Optional[dict] = None
 
+    @field_validator("most_severe_consequence", mode="before")
+    @classmethod
+    def parse_most_severe_consequence(cls, v):
+        if v is None or isinstance(v, PredictedConsequence):
+            return v
+        # else assume it's coming from the database
+        # TODO -> LEFT OFF HERE!!! finish this
+        return PredictedConsequence(
+            consequence=v["conseq"],
+            impact=ConsequenceImpact(v["impact"]),
+            is_coding=v["consequence_is_coding"],
+            impacted_gene_id=v["gene_id"],
+        )
+
     @computed_field(
         default=None,
         title="ADSP QC Status",
@@ -76,9 +98,6 @@ class AnnotatedVariant(Variant):
                         release=release,
                     )
                 )
-
-    passed_qc: bool
-    release: str
 
     @field_serializer
     def serialize_adsp_qc(self, adsp_qc: Optional[dict], _info):

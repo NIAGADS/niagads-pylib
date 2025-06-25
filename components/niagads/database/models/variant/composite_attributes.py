@@ -26,12 +26,14 @@ class ConsequenceImpact(CaseInsensitiveEnum):
 
 
 class PredictedConsequence(BaseModel):
-    consequence: str
+    consequence: List[str]
     impact: ConsequenceImpact
-    is_coding: Optional[bool] = False
+    is_coding: Optional[bool] = Field(serialization_alias="is_coding")
     impacted_gene_id: Optional[str] = Field(default=None, exclude=True)
     impacted_gene_symbol: Optional[str] = Field(default=None, exclude=True)
-    impacted_gene: Optional[d] = Field(default=None, exlude=True)
+    impacted_gene: Optional[str] = Field(default=None, exlude=True)
+    codon_change: Optional[str] = None
+    amino_acid_change: Optional[str] = None
     # info: Optional[dict] <- what else is there; depends on the type of consequence
 
     @computed_field(
