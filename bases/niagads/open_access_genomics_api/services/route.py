@@ -140,8 +140,12 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
                 raise NoResultFound()
 
             if self.__query.fetchOne or opts.fetchOne or opts.countsOnly:
+                if self.__query.jsonField:
+                    return [result[0][self.__query.jsonField]]
                 return result[0]
             else:
+                if self.__query.jsonField:
+                    result = [item for item in result[self.__query.jsonField]]
                 result = [dict(item) for item in result]
                 return result
 

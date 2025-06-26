@@ -98,7 +98,7 @@ def add_system_exception_handler(app: FastAPI) -> None:
         if request.url.query != "":
             query += "?" + request.url.query
         return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content=jsonable_encoder(
                 {
                     "detail": str(exc),  # optionally, include the pydantic errors
@@ -124,7 +124,7 @@ def add_database_exception_handler(app: FastAPI) -> None:
         if request.url.query != "":
             query += "?" + request.url.query
         return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content=jsonable_encoder(
                 {
                     "detail": str(exc),  # optionally, include the pydantic errors

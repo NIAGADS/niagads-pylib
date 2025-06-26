@@ -20,6 +20,7 @@ from niagads.open_access_api_common.services.route import (
 )
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
 from niagads.open_access_genomics_api.documentation import APP_NAME
+from niagads.open_access_genomics_api.queries.variant import VariantRecordQuery
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 router = APIRouter(
@@ -40,7 +41,7 @@ router = APIRouter(
 async def get_variant(
     variant: GenomicFeature = Depends(variant_param),
     content: str = Query(
-        ResponseContent.BRIEF,
+        ResponseContent.FULL,
         description=ResponseContent.descriptive(description=True),
     ),
     format: str = Query(

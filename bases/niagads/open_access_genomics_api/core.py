@@ -8,6 +8,10 @@ from niagads.open_access_genomics_api.routes.root import router as RootRouter
 from niagads.open_access_genomics_api.routes.service import router as ServiceRouter
 from niagads.open_access_genomics_api.routes.records.track import router as TrackRouter
 from niagads.open_access_genomics_api.routes.records.gene import router as GeneRouter
+from niagads.open_access_genomics_api.routes.records.variant import (
+    router as VariantRouter,
+)
+
 from niagads.settings.core import get_service_environment
 
 
@@ -19,6 +23,7 @@ appFactory = AppFactory(
 # add the child routes
 appFactory.add_router(RootRouter)
 appFactory.add_router(GeneRouter)
+appFactory.add_router(VariantRouter)
 appFactory.add_router(TrackRouter)
 appFactory.add_router(CollectionRouter)
 appFactory.add_router(ServiceRouter)

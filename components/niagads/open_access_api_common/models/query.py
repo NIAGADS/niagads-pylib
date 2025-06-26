@@ -6,6 +6,9 @@ from pydantic import BaseModel
 class SQLQuery(BaseModel):
     bindParameters: Optional[List[str]] = None  # bind parameter names
     fetchOne: bool = False  # expect only one result, so return query result[0]
+    jsonField: Optional[str] = (
+        None  # if the SQL builds the JSON which field needs to be extracted & returned? see variant record for eg.
+    )
     entity: Optional[Entity] = None
 
 

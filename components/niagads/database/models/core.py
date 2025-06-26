@@ -1,5 +1,6 @@
+from typing import Any
 from niagads.common.core import NullFreeModel
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 
 
 class ModelDumpMixin(object):

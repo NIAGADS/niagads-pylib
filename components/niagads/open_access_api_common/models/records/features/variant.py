@@ -1,26 +1,18 @@
 from typing import Any, Dict, List, Optional, Literal, Union
 from niagads.database.models.variant.composite_attributes import (
-    ConsequenceImpact,
+    CADDScore,
     PredictedConsequence,
+    QCStatus,
     RankedConsequences,
 )
 from niagads.open_access_api_common.models.records.core import RowModel
 from niagads.open_access_api_common.models.records.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.response.core import GenericResponse
 from pydantic import (
-    BaseModel,
     ConfigDict,
     Field,
-    computed_field,
-    field_serializer,
     field_validator,
 )
-
-
-class QCStatus(BaseModel):
-    status_code: str  #  b/c there are some arbitrary codes
-    passed: bool
-    release: str
 
 
 class VariantFeature(RowModel):
@@ -34,7 +26,6 @@ class VariantFeature(RowModel):
 class Variant(VariantFeature):
     variant_class: str = Field(title="Variant Type")
     location: GenomicRegion
-    length: int
     ref: str
     alt: Optional[str] = None
 
@@ -51,65 +42,95 @@ class AnnotatedVariant(Variant):
         description="most severe consequence predicted by VEP",
     )
     allele_string: str
-    alternative_alleles: Optional[List[str]]
-    colocated_variants: Optional[List[Variant]]
 
-    is_multi_allelic: bool
-    is_structural_variant: bool
+    # FIXME: these queries can take a while; not part of the variant record
+    # alternative_alleles: Optional[List[str]]
+    # colocated_variants: Optional[List[Variant]]
 
-    cadd_score: Optional[CADDScore] = None
-    adsp_qc: Optional[dict] = None
+    is_multi_allelic: bool = Field(
+        default=False,
+        title="Is Multi-allelic?",
+        description="flag indicating whether the dbSNP refSNP is multi-allelic",
+    )
+    is_structural_variant: bool = Field(
+        default=False,
+        title="Is SV?",
+        description="flag indicating whether the variant is a structural variant",
+    )
+
+    cadd_scores: Optional[CADDScore] = Field(
+        serialization_alias="cadd_score",
+        default=None,
+        title="CADD Score(s)",
+        description="score of the deleteriousness of a variant",
+    )
+
+    adsp_qc: Optional[List[QCStatus]] = None
 
     allele_frequencies: Optional[dict] = None
-    vep_predicted_consequences: Optional[RankedConsequences] = None
-    associations: Optional[dict] = None
+    ranked_consequences: Optional[RankedConsequences] = Field(
+        default=None,
+        title="VEP Ranked Consequences",
+        description="ranked consequences from VEP analysis",
+    )
+    associations: Optional[dict] = Field(
+        default=None,
+        description="Significant assocaitions in NIAGADS GWAS summary statistics datasets",
+    )
+
+    # TODO: vrs: [VRS] - ga4gh variant representation
+    @staticmethod
+    def __boolean_null_check(v):
+        if v is None:
+            return False
+        else:
+            return v
+
+    @field_validator("is_multi_allelic", mode="before")
+    @classmethod
+    def parse_is_multi_allelic(cls, v):
+        return cls.__boolean_null_check(v)
+
+    @field_validator("is_structural_variant", mode="before")
+    @classmethod
+    def parse_is_structural_variant(cls, v):
+        return cls.__boolean_null_check(v)
+
+    @field_validator("is_adsp_variant", mode="before")
+    @classmethod
+    def parse_is_adsp_variant(cls, v):
+        return cls.__boolean_null_check(v)
 
     @field_validator("most_severe_consequence", mode="before")
     @classmethod
     def parse_most_severe_consequence(cls, v):
         if v is None or isinstance(v, PredictedConsequence):
             return v
-        # else assume it's coming from the database
-        # TODO -> LEFT OFF HERE!!! finish this
-        return PredictedConsequence(
-            consequence=v["conseq"],
-            impact=ConsequenceImpact(v["impact"]),
-            is_coding=v["consequence_is_coding"],
-            impacted_gene_id=v["gene_id"],
-        )
 
-    @computed_field(
-        default=None,
-        title="ADSP QC Status",
-        description="one of PASS, FAIL, or NA (if not variant not called via joint-genotype calling from ADSP sequencing data)",
-    )
-    @property
-    def adsp_qc_status(self) -> Optional[List[QCStatus]]:
-        if self.adsp_qc is None:
-            return None
-        else:
-            statusList = []
-            for release, scores in self.adsp_qc:
-                status_code = self.adsp_qc["filter"]
-                statusList.append(
-                    QCStatus(
-                        status_code=status_code,
-                        passed="PASS" in status_code,
-                        release=release,
-                    )
+        return PredictedConsequence.from_vep_json(v)
+
+    @field_validator("adsp_qc", mode="before")
+    @classmethod
+    def parse_adsp_qc(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, QCStatus):
+            return [QCStatus]
+        if isinstance(v, list) and isinstance(v[0], QCStatus):
+            return v
+        if isinstance(v, dict):
+            qc = []
+            for release, scores in v.items():
+                status = QCStatus(
+                    status_code=scores["filter"],
+                    passed="PASS" in scores["filter"],
+                    release=release,
+                    scores=scores["info"],
                 )
-
-    @field_serializer
-    def serialize_adsp_qc(self, adsp_qc: Optional[dict], _info):
-        if adsp_qc is None:
-            return None
-
-        qc = []
-        for release, scores in adsp_qc:
-            scores["release"] = release
-            qc.append(scores)
-
-        return qc
+                qc.append(status)
+            return qc
+        else:
+            raise RuntimeError("Unexpected value returned for `adsp_qc` status")
 
 
 class AbridgedVariantResponse(GenericResponse):

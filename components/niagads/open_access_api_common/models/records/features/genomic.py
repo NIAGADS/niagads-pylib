@@ -17,6 +17,9 @@ from pydantic import (
 class GenomicRegion(RowModel, Range):
     # zero-based
     chromosome: Human = Field(serialization_alias="chr")
+    length: Optional[int] = (
+        None  # TODO -> calc length based on range if not set explicitly
+    )
     strand: Optional[Strand] = None
 
     # so that strand does not get returned if missing
