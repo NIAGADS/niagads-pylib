@@ -4,6 +4,7 @@ from niagads.common.models.core import Range
 from niagads.exceptions.core import ValidationError
 from niagads.genome.core import GenomicFeatureType, Human, Strand
 from niagads.open_access_api_common.models.records.core import RowModel
+from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 from pydantic import (
     BaseModel,
@@ -56,7 +57,7 @@ class GenomicFeature(BaseModel):
 
     @staticmethod
     def validate_gene_id(id: str):
-        pattern = r"^(?:[A-Za-z][A-Za-z0-9_.-]*(@)?|\d{5})$"  # matches symbols, ensembl ids, and entrez ids
+        pattern = RegularExpressions.GENE
         # check against regexp
         if matches(pattern, id):
             return id
@@ -68,7 +69,7 @@ class GenomicFeature(BaseModel):
 
     @staticmethod
     def validate_span(span: str):
-        pattern = r".+:\d+-\d+$"  # chr:start-enddddd - NOTE: the r prefix declares the pattern as a raw string so that no syntax warning gets thrown for escaping the d
+        pattern = r".+:\d+-\d+$"  # chr:start-enddddd
 
         # check against regexp
         if matches(pattern, span) == False:
@@ -97,10 +98,10 @@ class GenomicFeature(BaseModel):
 
     @staticmethod
     def validate_variant_id(id: str):
-        pattern = r"^.+:\d+:[ACGT]+:[ACGT]+$"
+        pattern = RegularExpressions.VARIANT
 
         if matches(pattern, id) == False:
-            pattern = r"^rs\d+$"
+            pattern = RegularExpressions.REFSNP
             if matches(pattern, id.lower()):
                 return id.lower()
             else:

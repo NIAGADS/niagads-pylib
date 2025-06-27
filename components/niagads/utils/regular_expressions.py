@@ -12,3 +12,6 @@ class RegularExpressions(StrEnum):
     FILE_SIZE = r"^[.0-9]+\s?(K|M|G)$"
     KEY_VALUE_PAIR = r"^[^\s=]+=[^=;]+$"  # key=value
     SHARD = r"chr(\d{1,2}|[XYM]|MT)"
+    GENE = r"^(?:[A-Za-z][A-Za-z0-9_.-]*(@)?|\d{5})$"  # matches symbols, ensembl ids, and entrez ids
+    VARIANT = r"^.+:\d+:[ACGT]+:[ACGT]+$"
+    REFSNP = r"^rs\d+$"
