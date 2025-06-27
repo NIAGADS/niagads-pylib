@@ -7,7 +7,7 @@ A Row Model is the data hash (key-value pairs) defining the table row.
 
 from typing import Any, Dict, List, TypeVar
 
-from niagads.common.models.core import CompositeAttributeModel
+from niagads.common.models.core import CustomBaseModel
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
 from niagads.open_access_api_common.models.views.table.cells import TableCellType
 from niagads.open_access_api_common.models.views.table.core import TableColumn
@@ -19,7 +19,7 @@ from niagads.utils.string import xstr
 from pydantic import BaseModel, ConfigDict
 
 
-class RowModel(CompositeAttributeModel):
+class RowModel(CustomBaseModel):
     """
     The RowModel base class defines class methods
     expected for these objects to generate standardized API responses

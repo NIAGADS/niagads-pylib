@@ -1,3 +1,4 @@
+from typing import TypeVar
 from niagads.utils.dict import prune
 from pydantic import BaseModel, ConfigDict, model_serializer, model_validator
 
@@ -10,5 +11,8 @@ class NullFreeModel(BaseModel):
         return prune(dict(self), removeNulls=True)
 
 
-class CompositeAttributeModel(BaseModel):
+class CustomBaseModel(BaseModel):
     model_config = ConfigDict(serialize_by_alias=True, use_enum_values=True)
+
+
+T_CustomBaseModel = TypeVar("T_RowModel", bound=CustomBaseModel)

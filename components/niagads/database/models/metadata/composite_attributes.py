@@ -1,4 +1,3 @@
-from enum import Enum, auto
 from typing import List, Optional, Set, Union
 
 from niagads.common.constants.external_resources import ThirdPartyResources
@@ -6,7 +5,6 @@ from niagads.common.constants.ontologies import BiosampleType
 from niagads.common.models.core import CompositeAttributeModel
 from niagads.common.models.ontology import OntologyTerm
 from niagads.common.types import T_PubMedID
-from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import dict_to_info_string, matches
 from pydantic import (
@@ -16,12 +14,6 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
-
-
-class TrackDataStore(CaseInsensitiveEnum):
-    GENOMICS = auto()
-    FILER = auto()
-    SHARED = auto()
 
 
 class ExperimentalDesign(CompositeAttributeModel):
@@ -87,10 +79,6 @@ class Phenotype(CompositeAttributeModel):
                     obj[attr] = str(value)
 
         return obj
-
-    def as_info_str(self):
-        obj = self.serialize_model(listsAsStrings=True)
-        return dict_to_info_string(obj)
 
 
 class BiosampleCharacteristics(CompositeAttributeModel):
