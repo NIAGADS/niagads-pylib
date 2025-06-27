@@ -3,7 +3,7 @@ from typing import List, Optional, Set, Union
 
 from niagads.common.constants.external_resources import ThirdPartyResources
 from niagads.common.models.core import OntologyTerm
-from niagads.common.types.core import T_PubMedID
+from niagads.common.types import T_PubMedID
 from niagads.database.models.core import CompositeAttributeModel
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.regular_expressions import RegularExpressions

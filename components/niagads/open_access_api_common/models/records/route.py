@@ -1,6 +1,6 @@
 from typing import List, Optional, Set
 
-from niagads.common.types.core import T_PubMedID
+from niagads.common.types import T_PubMedID
 from niagads.open_access_api_common.models.records.core import RowModel
 from niagads.open_access_api_common.models.core import Entity
 from pydantic import BaseModel

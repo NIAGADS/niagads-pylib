@@ -1,6 +1,14 @@
 from typing import Dict, Optional
-from niagads.common.core import NullFreeModel
-from pydantic import BaseModel, Field, model_validator
+from niagads.utils.dict import prune
+from pydantic import BaseModel, Field, model_serializer, model_validator
+
+
+class NullFreeModel(BaseModel):
+    """a pydantic model where attributes with NULL values (e.g., None, 'NULL') are removed during serialization"""
+
+    @model_serializer()
+    def serialize_model(self, values, **kwargs):
+        return prune(dict(self), removeNulls=True)
 
 
 class OntologyTerm(NullFreeModel):

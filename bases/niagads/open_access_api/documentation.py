@@ -2,7 +2,7 @@
 
 from typing import List, Set
 
-from niagads.common.types.core import T_PubMedID
+from niagads.common.types import T_PubMedID
 from niagads.open_access_api_common.config.constants import (
     SharedOpenAPITags,
     SharedOpenAPIxTagGroups,
