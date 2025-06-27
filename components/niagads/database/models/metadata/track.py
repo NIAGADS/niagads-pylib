@@ -1,5 +1,6 @@
 """`Track` (metadata) database model"""
 
+from enum import auto
 from typing import List, Optional
 
 from niagads.database.models.core import ModelDumpMixin
@@ -10,14 +11,20 @@ from niagads.database.models.metadata.composite_attributes import (
     FileProperties,
     Phenotype,
     Provenance,
-    TrackDataStore,
 )
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome.core import Assembly, Human
 from niagads.utils.list import list_to_string
 from sqlalchemy import ARRAY, TEXT, Column, Enum, Index, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import CheckConstraint
+
+
+class TrackDataStore(CaseInsensitiveEnum):
+    GENOMICS = auto()
+    FILER = auto()
+    SHARED = auto()
 
 
 class Track(ModelDumpMixin, MetadataSchemaBase):
