@@ -1,6 +1,4 @@
-from typing import Any
-from niagads.common.core import NullFreeModel
-from pydantic import BaseModel, ConfigDict
+# mixins for database models
 
 
 class ModelDumpMixin(object):
@@ -9,7 +7,3 @@ class ModelDumpMixin(object):
         return {
             column.name: getattr(self, column.name) for column in self.__table__.columns
         }
-
-
-class CompositeAttributeModel(NullFreeModel):
-    model_config = ConfigDict(serialize_by_alias=True)

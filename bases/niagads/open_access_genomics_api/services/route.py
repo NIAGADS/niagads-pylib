@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import HTTPException
-from niagads.common.models.core import Range
+from niagads.common.models.structures import Range
 from niagads.database.models.metadata.composite_attributes import TrackDataStore
 from niagads.database.models.metadata.track import Track
 from niagads.exceptions.core import ValidationError
