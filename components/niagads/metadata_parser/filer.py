@@ -3,10 +3,10 @@ from os.path import basename
 from typing import List, Set, Union
 from urllib.parse import unquote
 
+from niagads.common.constants.ontologies import BiosampleType
 from niagads.common.models.ontology import OntologyTerm
 from niagads.database.models.metadata.composite_attributes import (
     BiosampleCharacteristics,
-    BiosampleType,
     ExperimentalDesign,
     FileProperties,
     Provenance,

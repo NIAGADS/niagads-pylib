@@ -46,7 +46,7 @@ class VariantPValueScore(VariantScore):
     def get_field_names(self):
         """get list of valid fields"""
 
-        fields = list(self.model_fields.keys())
+        fields = list(self.__class__.model_fields.keys())
         fields.remove("track_id")
         fields.remove("neg_log10_pvalue")
 
@@ -63,7 +63,9 @@ class VariantPValueScore(VariantScore):
     def to_view_data(self, view: ResponseView, **kwargs):
         match view:
             case view.TABLE:
-                data = self.serialize(promoteObjs=True)
+                data = self.model_dump()
+
+                # FIXME: promote objs
 
                 del data["track_id"]
 

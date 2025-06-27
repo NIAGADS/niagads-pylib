@@ -10,5 +10,5 @@ class NullFreeModel(BaseModel):
         return prune(dict(self), removeNulls=True)
 
 
-class CustomBaseModel(BaseModel):
+class CompositeAttributeModel(BaseModel):
     model_config = ConfigDict(serialize_by_alias=True, use_enum_values=True)
