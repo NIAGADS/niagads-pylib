@@ -125,7 +125,7 @@ class Provenance(CompositeAttributeModel):
     attribution: Optional[str] = None
 
     @field_validator("doi", mode="after")
-    def valistr_doi(cls, values: Set[str]):
+    def validate_doi(cls, values: Set[str]):
         """create validator b/c Pydantic does not support patterns w/lookaheads"""
         if values is not None and len(values) > 0:
             for v in values:
