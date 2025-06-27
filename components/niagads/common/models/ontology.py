@@ -1,20 +1,21 @@
 from typing import Optional
 
-from niagads.common.models.core import NullFreeModel
-from pydantic import Field
+from niagads.common.models.core import CustomBaseModel
+from pydantic import Field, model_serializer
 
 
-class OntologyTerm(NullFreeModel):
+class OntologyTerm(CustomBaseModel):
     term: str = Field(
-        title="Biosample", description="ontology term describing biosample material"
+        title="Ontology Term",
+        description="a term from a controlled vocabular or ontology",
     )
     term_id: Optional[str] = Field(
-        default=None, title="Biosample: Term ID", description="mapped ontology term ID"
+        default=None, title="Ontology Term ID", description="mapped ontology term ID"
     )
     ontology: Optional[str] = None
     term_iri: Optional[str] = Field(
         default=None,
-        title="Biosample: Term IRI",
+        title="Ontology Term IRI",
         description="mapped ontology term IRI",
     )
     definition: Optional[str] = None
