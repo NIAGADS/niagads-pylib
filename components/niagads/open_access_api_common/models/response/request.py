@@ -16,14 +16,6 @@ class RequestDataModel(BaseModel):
     parameters: Dict[str, Union[int, str, bool]] = Field(
         description="request path and query parameters, includes unspecified defaults"
     )
-    message: Optional[List[str]] = Field(
-        default=None, description="warning or info message qualifying the response"
-    )
-
-    def add_message(self, message):
-        if self.message is None:
-            self.message = []
-        self.message.append(message)
 
     def set_request_id(self, id):
         self.request_id = id

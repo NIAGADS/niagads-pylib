@@ -8,67 +8,36 @@ A Row Model is the data hash (key-value pairs) defining the table row.
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, TypeVar
 
-from niagads.common.models.core import CustomBaseModel
-from niagads.common.models.views.table import TableCellType, TableColumn
+from niagads.common.models.core import TransformableModel
+from niagads.common.models.views.table import TableCellType, TableColumn, TableRow
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
-from niagads.open_access_api_common.parameters.response import (
-    ResponseFormat,
-    ResponseView,
-)
+from niagads.open_access_api_common.parameters.response import ResponseFormat
 from niagads.utils.string import xstr
 from pydantic import ConfigDict, Field
 
 
-class AbstractRowModel(ABC):
-    @classmethod
-    @abstractmethod
-    def table_columns(self, **kwargs):
-        """table columns"""
-        raise NotImplementedError(
-            f"This is an abstract method; must be implemented for the child model: {self.__class__.__name__}."
-        )
-
-    @abstractmethod
-    def to_view_data(self, view: ResponseView, **kwargs):
-        # transform data into format needed for a view
-        raise NotImplementedError(
-            f"This is an abstract method; must be implemented for the child model: {self.__class__.__name__}."
-        )
-
-    @abstractmethod
-    def to_text(self, format: ResponseFormat, **kwargs):
-        # transform data into text response
-        raise NotImplementedError(
-            f"This is an abstract method; must be implemented for the child model: {self.__class__.__name__}."
-        )
-
-
-class RowModel(CustomBaseModel, AbstractRowModel):
+class RowModel(TransformableModel):
     """
     The RowModel base class defines class methods
     expected for these objects to generate standardized API responses
     """
 
-    # START abstract methods from CustomBaseModel
+    # START abstract methods from TransformableModel
     def as_info_string(self):
         return super().as_info_string()
 
     def as_table_row(self):
-        return self.model_dump()
+        return super().as_table_row()
 
     def as_list(self, fields=None):
-        if fields is None:
-            return [str(v) for v in self.model_dump().values()]
-        else:
-            return [str(v) for k, v in self.model_dump() if k in fields]
+        return super().as_list(fields)
 
     @classmethod
     def table_fields(cls, asStr: bool = False):
-        return list(cls.model_fields.keys()) if asStr else cls.model_fields
+        return super().table_fields(asStr)
 
-    # END abstract methods from CustomBaseModel
+    # END abstract methods from TransformableModel
 
-    # START Abstract methods from AbstractRowModel
     @classmethod
     def table_columns(self, **kwargs):
         fields = self.table_fields()
@@ -84,27 +53,12 @@ class RowModel(CustomBaseModel, AbstractRowModel):
 
         return columns
 
-    def to_view_data(self, view: ResponseView, **kwargs):
-        match view:
-            case ResponseView.TABLE:
-                return self.as_table_row()
-
-            case _:
-                return self.model_dump()
-
-    def to_text(self, format: ResponseFormat, **kwargs):
-        nullStr = kwargs.get("nullStr", DEFAULT_NULL_STRING)
-        match format:
-            case ResponseFormat.TEXT:
-                fields = self.table_fields(asStr="true")
-                values = self.as_list(fields=fields)
-                return "\t".join(
-                    [xstr(v, nullStr=nullStr, dictsAsJson=False) for v in values]
-                )
-            case _:
-                raise NotImplementedError(
-                    f"Text transformation `{format.value}` not supported for a generic data response"
-                )
+    def as_text(self, fields=None, nullStr=DEFAULT_NULL_STRING):
+        """return row as tab-delimited plain text"""
+        if fields is None:
+            fields = self.table_fields(asStr="true")
+        values = self.as_list(fields=fields)
+        return "\t".join([xstr(v, nullStr=nullStr, dictsAsJson=False) for v in values])
 
 
 # allows you to set a type hint to a class and all its subclasses
@@ -126,16 +80,10 @@ class DynamicRowModel(RowModel):
 
         return False
 
-    def table_fields(self, asStr: bool = False):
-        fields = super().table_fields()
+    def get_fields(self, asStr: bool = False):
+        fields = super().get_fields(asStr)
         if self.has_extras():
             extras = {k: Field() for k in self.model_extra.keys()}
             fields += extras
 
         return list(fields.keys()) if asStr else fields
-
-    def to_text(self, format, **kwargs):
-        return super().to_text(format, **kwargs)
-
-    def to_view_data(self, view, **kwargs):
-        return super().to_view_data(view, **kwargs)

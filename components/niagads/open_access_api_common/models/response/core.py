@@ -1,44 +1,63 @@
-from typing import Any, Dict, Optional, TypeVar
+from abc import ABC, abstractmethod
+from typing import List, Optional, TypeVar
 
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
+from niagads.open_access_api_common.models.records.core import RowModel, T_RowModel
 from niagads.open_access_api_common.models.response.pagination import (
     PaginationDataModel,
 )
 from niagads.open_access_api_common.models.response.request import RequestDataModel
-from niagads.open_access_api_common.parameters.response import (
-    ResponseFormat,
-    ResponseView,
-)
-from niagads.utils.string import xstr
+from niagads.open_access_api_common.models.views.table.core import TableViewModel
 from pydantic import BaseModel, Field
-from typing_extensions import Self
 
 
-class GenericResponse(BaseModel):
+class AbstractResponse(BaseModel, ABC):
 
-    data: Any = Field(description="result (data) from the request")
+    @abstractmethod
+    def to_text(self, inclHeader: bool = False, nullStr: str = DEFAULT_NULL_STRING):
+        """return a plain tab-delimited text reseponse"""
+        pass
+
+    @abstractmethod
+    def to_table(self, id: str = None, title: str = None):
+        """return a table view response"""
+        pass
+
+    @abstractmethod
+    def to_vcf(self, inclHeader: bool = False):
+        """return a plain-text VCF formatted response"""
+        pass
+
+    @abstractmethod
+    def to_bed(self, inclHeader: bool = False):
+        """return a plain-text BED formatted response"""
+        pass
+
+
+class GenericResponse(AbstractResponse):
+
+    data: List[RowModel] = Field(description="query result")
     request: RequestDataModel = Field(
-        description="details about the originating request that generated the response"
+        description="details about the originating request"
     )
     pagination: Optional[PaginationDataModel] = Field(
-        default=None, description="pagination details, if the result is paged"
+        default=None, description="pagination status, if the result is paged"
+    )
+    message: Optional[List[str]] = Field(
+        default=None, description="warning or info message(s) qualifying the response"
     )
 
-    def has_count_fields(self):
-        if any(
-            f.startswith("num_") for f in self.data[0].__class__.model_fields.keys()
-        ):
-            return True
-        if isinstance(self.data[0].model_extra, dict):
-            return any(f.startswith("num_") for f in self.data[0].model_extra.keys())
+    def is_empty(self):
+        return len(self.data) == 0
 
-    @classmethod
-    def is_paged(self: Self):
+    def is_paged(self):
         return self.pagination is not None
 
     @classmethod
-    def row_model(cls: Self, name=False):
-        """get the type of the row model in the response"""
+    def row_model(cls, name=False):
+        """get the type of the row model in the response;
+        if name is True, return the class name, otherwise
+        return the type"""
 
         rowType = cls.model_fields["data"].annotation
         try:  # can't explicity test for List[rowType], so just try
@@ -48,70 +67,72 @@ class GenericResponse(BaseModel):
 
         return rowType.__name__ if name == True else rowType
 
-    def add_message(self, str):
-        self.request.add_message(str)
+    def add_message(self, msg: str):
+        if self.message is None:
+            self.message = [msg]
+        else:
+            self.message.append(msg)
 
-    def to_view(self, view: ResponseView, **kwargs):
-        # avoid circular imports
-        from niagads.open_access_api_common.models.records.core import RowModel
-        from niagads.open_access_api_common.models.views.table.core import (
-            TableViewModel,
+    # START abstract methods
+
+    def to_table(self, id: str = None, title: str = None):
+        model: T_RowModel = self.row_model()
+
+        if self.is_empty():
+            return {}
+
+        else:
+            columns = model.table_columns()
+            data = [r.as_table_row() for r in self.data]
+            table = {"columns": columns, "data": data}
+
+            if title is not None:
+                table.update({"title", title})
+            if id is not None:
+                table.update({"id": id})
+            return TableViewModel(**table)
+
+    def to_vcf(self, inclHeader=False):
+        raise NotImplementedError(
+            "VCF formatted output not available for a generic data response."
         )
 
-        if len(self.data) == 0:
-            raise RuntimeError("zero-length response; cannot generate view")
+    def to_bed(self, inclHeader=False):
+        raise NotImplementedError(
+            "BED formatted output not available for a generic data repsonse."
+        )
 
-        # FIXME: move to front end
-        # if self.has_count_fields():
-        #     kwargs["on_row_select"] = OnRowSelect.ACCESS_ROW_DATA
+    def to_text(self, inclHeader=False, nullStr: str = DEFAULT_NULL_STRING):
 
-        viewResponse: Dict[str, Any] = {}
-        data = []
-        row: RowModel  # annotated type hint
-        for index, row in enumerate(self.data):
-            if index == 0:
-                viewResponse = row.get_view_config(view, **kwargs)
-                # if not isinstance(viewResponse["columns"][0], TableColumn):
-                #     kwargs["field_names"] = [c["id"] for c in viewResponse["columns"]]
-            kwargs["fields"] = [c.id for c in viewResponse["columns"]]
-            data.append(row.to_view_data(view, **kwargs))
-        viewResponse.update({"data": data})
+        if self.is_empty():
+            return ""
 
-        match view:
-            case ResponseView.TABLE:
-                viewResponse.update({"id": kwargs["id"]})
-                return TableViewModel(**viewResponse)
-            case ResponseView.IGV_BROWSER:
-                raise NotImplementedError("IGVBrowser view coming soon")
-            case _:
-                raise RuntimeError(f"Invalid view: {view}")
-
-        return viewResponse
-
-    def to_text(self, format: ResponseFormat, **kwargs):
-        """return a text response (e.g., BED, VCF, plain text)"""
-        from niagads.open_access_api_common.models.records.core import RowModel
-
-        nullStr = kwargs.get("nullStr", DEFAULT_NULL_STRING)
-        if isinstance(self.data, dict):
-            responseStr = "\t".join(list(self.data.keys())) + "\n"
-            responseStr += (
-                "\t".join([xstr(v, nullStr=nullStr) for v in self.data.values()]) + "\n"
-            )
         else:
-            header = kwargs.get("fields", None)
-            responseStr = "" if header is None else "\t".join(header) + "\n"
-            rowText = []
-            if len(self.data) > 0:
-                for row in self.data:
-                    if isinstance(row, str):
-                        rowText.append(row)
-                    else:
-                        row: RowModel
-                        rowText.append(row.to_text(format, **kwargs))
-            responseStr += "\n".join(rowText)
+            # not sure if this check will still be necessary
+            # if isinstance(self.data, dict):
+            #    if inclHeader:
+            #       responseStr = "\t".join(list(self.data.keys())) + "\n"
+            #    responseStr += (
+            #        "\t".join([xstr(v, nullStr=nullStr) for v in self.data.values()]) + "\n"
+            #    )
+
+            model: T_RowModel = self.row_model()
+            fields = model.get_fields(asStr=True)
+
+            rows = []
+            for r in self.data:
+                if isinstance(r, str):
+                    rows.append(r)
+                else:
+                    # pass fields to ensure consistent ordering
+                    rows.append("\t".join(r.as_text(fields=fields, nullStr=nullStr)))
+
+            responseStr = "\t".join(fields) + "\n" if inclHeader else ""
+            responseStr += "\n".join(rows)
 
         return responseStr
+
+    # END abstract methods
 
 
 # possibly allows you to set a type hint to a class and all its subclasses
