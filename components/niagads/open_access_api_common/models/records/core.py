@@ -8,9 +8,8 @@ A Row Model is the data hash (key-value pairs) defining the table row.
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, TypeVar
 
-from niagads.common.models.core import CustomBaseModel, T_CustomBaseModel
-from niagads.common.models.table.cells import TableCellType
-from niagads.common.models.table.core import TableColumn
+from niagads.common.models.core import CustomBaseModel
+from niagads.common.models.views.table import TableCellType, TableColumn
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
 from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
