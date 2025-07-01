@@ -1,7 +1,7 @@
 from typing import Optional
 
 from niagads.common.models.core import CustomBaseModel
-from pydantic import Field, model_serializer
+from pydantic import Field
 
 
 class OntologyTerm(CustomBaseModel):
