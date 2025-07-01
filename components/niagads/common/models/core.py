@@ -73,5 +73,8 @@ class TransformableModel(AbstractTransformableModel):
             else self.__class__.model_fields
         )
 
+    def __str__(self):
+        return self.as_info_string()
+
 
 T_TransformableModel = TypeVar("T_TransformableModel", bound=TransformableModel)
