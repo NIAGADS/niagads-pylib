@@ -17,3 +17,9 @@ class Range(BaseModel):
             if range["start"] > range["end"]:
                 raise RuntimeError(f"Invalid Range: {range['start']} > {range['end']}")
         return range
+
+    def __str__(self):
+        return f"{self.start}-{self.end}"
+
+    def bracket_notation(self, inclusiveEnd: bool = False):
+        return f"[{self.start}, {self.end}{']' if inclusiveEnd else ')'}"
