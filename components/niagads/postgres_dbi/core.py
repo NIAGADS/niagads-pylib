@@ -9,7 +9,7 @@ from sys import exc_info
 
 from abc import ABC, abstractmethod
 
-from psycopg2 import DatabaseError, DataError, connect as db_connect
+from psycopg2 import DatabaseError, connect as db_connect
 from psycopg2.extensions import QueryCanceledError
 from psycopg2.extras import DictCursor, RealDictCursor
 from psycopg2.pool import (
@@ -20,7 +20,7 @@ from threading import Semaphore
 
 from configparser import ConfigParser as SafeConfigParser  # renamed in Python 3.2
 
-from niagads.exceptions.core import IllegalArgumentError, AbstractMethodNotImplemented
+from niagads.exceptions.core import IllegalArgumentError
 from niagads.utils.sys import verify_path
 
 
@@ -106,23 +106,23 @@ class AbstractDatabase(ABC):
 
     @abstractmethod
     def connect(self, timeout=None):
-        raise AbstractMethodNotImplemented(AbstractDatabase.connect.__qualname__)
+        pass
 
     @abstractmethod
     def commit(self):
-        raise AbstractMethodNotImplemented(AbstractDatabase.commit.__qualname__)
+        pass
 
     @abstractmethod
     def rollback(self):
-        raise AbstractMethodNotImplemented(AbstractDatabase.rollback.__qualname__)
+        pass
 
     @abstractmethod
     def connected(self):
-        raise AbstractMethodNotImplemented(AbstractDatabase.connected.__qualname__)
+        pass
 
     @abstractmethod
     def close(self):
-        raise AbstractMethodNotImplemented(AbstractDatabase.close.__qualname__)
+        pass
 
     def _set_connection_string(self, gusConfigFile, connectionString):
         """initialize connection string"""

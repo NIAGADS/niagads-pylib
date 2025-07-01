@@ -79,21 +79,17 @@ class AbstractDataLoader(ABC):
     @abstractmethod
     def load(self):
         """function for executing the loader"""
-        raise AbstractMethodNotImplemented(AbstractDataLoader.load.__qualname__)
+        pass
 
     @abstractmethod
     def report_status(self):
         """function for summarizing load result / status"""
-        raise AbstractMethodNotImplemented(
-            AbstractDataLoader.report_status.__qualname__
-        )
+        pass
 
     @abstractmethod
     def report_config(self):
         """function for summarizing load result / status"""
-        raise AbstractMethodNotImplemented(
-            AbstractDataLoader.report_config.__qualname__
-        )
+        pass
 
     def log_section_header(self, label: str, **kwargs):
         # TODO: abstract  out into custom logger class

@@ -7,7 +7,7 @@ import asyncpg
 # just for this in everything that uses
 # the database session manager
 from fastapi import HTTPException
-from niagads.exceptions.core import ValidationError
+from niagads.exceptions.core import AbstractMethodNotImplemented, ValidationError
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     async_scoped_session,
@@ -78,30 +78,42 @@ class DatabaseSessionManager:
         async with self.__session() as session:
             if session is None:
                 raise Exception("DatabaseSessionManager is not initialized")
+
             try:
                 # await session.execute(text("SELECT 1"))
                 yield session
-            except (NotImplementedError, ValidationError, RuntimeError, HTTPException):
-                await session.rollback()
-                raise
+
+            except (
+                NotImplementedError,
+                AbstractMethodNotImplemented,
+                ValidationError,
+                RuntimeError,
+                HTTPException,
+            ) as err:
+                if isinstance(err, AbstractMethodNotImplemented):
+                    raise NotImplementedError(str(err))
+                else:
+                    raise err
+
             except (
                 asyncpg.InvalidPasswordError,
                 ConnectionRefusedError,
                 ConnectionError,
             ) as err:
-                await session.rollback()
                 self.logger.error("Database Error", exc_info=err, stack_info=True)
                 raise OSError(f"Database Error: {str(err)}")
+
             except Exception as err:
                 # everything else for which we currently have no handler
-                await session.rollback()
-
                 if "Connection refused" in str(err):
                     # don't want to create dependency to redis in this module
+                    # so checking message instead of exception type
                     self.logger.error("Database Error", exc_info=err, stack_info=True)
                     raise OSError(f"Database Error: {str(err)}")
 
                 self.logger.error("Unexpected Error", exc_info=err, stack_info=True)
                 raise RuntimeError(f"Unexpected Error: {str(err)}")
+
             finally:
+                await session.rollback()
                 await session.close()
