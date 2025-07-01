@@ -1,10 +1,4 @@
-from niagads.common.models.table.cells import (
-    BooleanTableCell,
-    LinkTableCell,
-    PValueTableCell,
-    TextTableCell,
-)
-from niagads.common.models.table.core import TableColumn
+from niagads.common.models.views.table import TableColumn
 from niagads.database.models.variant.composite_attributes import PredictedConsequence
 from niagads.genome.core import Human
 from niagads.open_access_api_common.models.records.core import RowModel
@@ -65,7 +59,7 @@ class VariantPValueScore(VariantScore):
                 data = self.model_dump()
 
                 # FIXME: promote objs
-
+                """
                 del data["track_id"]
 
                 if data["is_adsp_variant"] == True:
@@ -109,7 +103,7 @@ class VariantPValueScore(VariantScore):
                             value=data["impacted_gene"]["gene_symbol"],
                             url=f"/gene/{data['impacted_gene']['ensembl_id']}",
                         )
-
+                """
                 return data
             case _:
                 raise NotImplementedError(
@@ -180,9 +174,11 @@ class QTL(VariantPValueScore):
 
     def to_view_data(self, view: ResponseView, **kwargs):
         data = super().to_view_data(view, **kwargs)
+        """
         data["target"] = LinkTableCell(
             value=data["gene_symbol"], url=f"/gene/{data['ensembl_id']}"
         )
+        """
         # data['z_score'] = FloatDataCell(value=data['z_score'], precision=2)
         del data["ensembl_id"]
         del data["gene_symbol"]
