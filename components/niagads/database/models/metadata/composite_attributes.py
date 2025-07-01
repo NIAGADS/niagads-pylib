@@ -2,9 +2,9 @@ from typing import List, Optional, Set, Union
 
 from niagads.common.constants.external_resources import ThirdPartyResources
 from niagads.common.constants.ontologies import BiosampleType
-from niagads.common.models.core import CompositeAttributeModel
 from niagads.common.models.ontology import OntologyTerm
 from niagads.common.types import T_PubMedID
+from niagads.database.models.core import CompositeAttributeModel
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import dict_to_info_string, matches
 from pydantic import (

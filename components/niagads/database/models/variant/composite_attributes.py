@@ -1,6 +1,5 @@
 from enum import auto
 from typing import List, Optional
-from niagads.common.core import NullFreeModel
 from niagads.database.models.core import CompositeAttributeModel
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import ConfigDict, Field, computed_field, field_validator, model_validator
@@ -48,7 +47,7 @@ class QCStatus(CompositeAttributeModel):
     # format: Optional[str]
 
 
-class CADDScore(NullFreeModel):
+class CADDScore(CompositeAttributeModel):
     CADD_phred: float = Field(
         serialization_alias="phred",
         alias_priority=2,

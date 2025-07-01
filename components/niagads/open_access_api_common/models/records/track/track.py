@@ -10,15 +10,12 @@ from niagads.database.models.metadata.composite_attributes import (
 )
 from niagads.open_access_api_common.models.records.core import DynamicRowModel, RowModel
 from niagads.open_access_api_common.models.response.core import GenericResponse
-from niagads.open_access_api_common.models.views.core import id2title
-from niagads.open_access_api_common.models.views.table.core import TableColumn
 from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
 from niagads.utils.dict import promote_nested
-from niagads.utils.list import find
-from pydantic import ConfigDict, Field, computed_field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 EXCLUDE_FROM_TRACK_VIEWS = [
     "ontology",

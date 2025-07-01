@@ -1,6 +1,5 @@
 # mixins and base models
-
-from niagads.common.models.core import CompositeAttributeModel
+from niagads.common.models.core import CustomBaseModel
 from niagads.utils.string import dict_to_info_string
 from pydantic import model_serializer
 
@@ -13,7 +12,7 @@ class ModelDumpMixin(object):
         }
 
 
-class CompositeAttributeModel(CompositeAttributeModel):
+class CompositeAttributeModel(CustomBaseModel):
     @model_serializer()
     def serialize_model(self, listsAsStrings: bool = False):
         if listsAsStrings:
@@ -23,6 +22,9 @@ class CompositeAttributeModel(CompositeAttributeModel):
             )
         return self.model_dump()
 
-    def as_info_str(self):
+    def as_info_string(self):
         obj = self.serialize_model(listsAsStrings=True)
         return dict_to_info_string(obj)
+
+    def serialize_as_table(self):
+        return super().serialize_as_table()

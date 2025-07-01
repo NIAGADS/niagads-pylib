@@ -21,6 +21,20 @@ class TableCellType(StrEnum):
     def __str__(self):
         return self.value.lower()
 
+    def from_field(self, fieldInfo: Any):
+        """infer cell type from from field info"""
+        match str(fieldInfo.annotation):
+            case s if "str" in s:
+                return TableCellType.TEXT
+            case s if "bool" in s:
+                return TableCellType.BOOLEAN
+            case s if "int" in s:
+                return TableCellType.INTEGER
+            case s if "float" in s:
+                return TableCellType.FLOAT
+            case _:
+                return TableCellType.ABSTRACT
+
 
 class TableCell(BaseModel):
     type: TableCellType = TableCellType.ABSTRACT

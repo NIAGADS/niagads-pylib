@@ -5,8 +5,7 @@ from collections import ChainMap
 from itertools import groupby
 from operator import itemgetter
 
-from niagads.database.models.metadata.composite_attributes import TrackDataStore
-from niagads.database.models.metadata.track import Track
+from niagads.database.models.metadata.track import Track, TrackDataStore
 from niagads.database.session.core import DatabaseSessionManager
 from niagads.genome.core import GenomicFeatureType
 from niagads.open_access_api_common.models.cache import (

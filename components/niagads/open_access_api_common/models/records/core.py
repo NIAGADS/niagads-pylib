@@ -5,42 +5,100 @@ wherein each item in the list is a row in the table.
 A Row Model is the data hash (key-value pairs) defining the table row.
 """
 
+from abc import ABC, abstractmethod
 from typing import Any, Dict, List, TypeVar
 
-from niagads.common.models.core import CustomBaseModel
+from niagads.common.models.core import CustomBaseModel, T_CustomBaseModel
+from niagads.common.models.table.cells import TableCellType
+from niagads.common.models.table.core import TableColumn
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
-from niagads.open_access_api_common.models.views.table.cells import TableCellType
-from niagads.open_access_api_common.models.views.table.core import TableColumn
 from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
 from niagads.utils.string import xstr
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict, Field
 
 
-class RowModel(CustomBaseModel):
+class AbstractRowModel(ABC):
+    @classmethod
+    @abstractmethod
+    def table_columns(self, **kwargs):
+        """table columns"""
+        raise NotImplementedError(
+            f"This is an abstract method; must be implemented for the child model: {self.__class__.__name__}."
+        )
+
+    @abstractmethod
+    def to_view_data(self, view: ResponseView, **kwargs):
+        # transform data into format needed for a view
+        raise NotImplementedError(
+            f"This is an abstract method; must be implemented for the child model: {self.__class__.__name__}."
+        )
+
+    @abstractmethod
+    def to_text(self, format: ResponseFormat, **kwargs):
+        # transform data into text response
+        raise NotImplementedError(
+            f"This is an abstract method; must be implemented for the child model: {self.__class__.__name__}."
+        )
+
+
+class RowModel(CustomBaseModel, AbstractRowModel):
     """
     The RowModel base class defines class methods
     expected for these objects to generate standardized API responses
     """
 
-    @classmethod
-    def get_model_fields(cls):
-        return list(cls.model_fields.keys())
+    # START abstract methods from CustomBaseModel
+    def as_info_string(self):
+        return super().as_info_string()
 
-    def has_extras(self):
-        """test if extra model fields are present"""
-        return len(self.model_extra) > 0
+    def as_table_row(self):
+        return self.model_dump()
+
+    def as_list(self, fields=None):
+        if fields is None:
+            return [str(v) for v in self.model_dump().values()]
+        else:
+            return [str(v) for k, v in self.model_dump() if k in fields]
+
+    @classmethod
+    def table_fields(cls, asStr: bool = False):
+        return list(cls.model_fields.keys()) if asStr else cls.model_fields
+
+    # END abstract methods from CustomBaseModel
+
+    # START Abstract methods from AbstractRowModel
+    @classmethod
+    def table_columns(self, **kwargs):
+        fields = self.table_fields()
+        columns: List[TableColumn] = [
+            TableColumn(
+                id=k,
+                header=info.title if info.title is not None else k,
+                description=info.description,
+                type=TableCellType.from_field(info),
+            )
+            for k, info in fields.items()
+        ]
+
+        return columns
 
     def to_view_data(self, view: ResponseView, **kwargs):
-        return self.model_dump()
+        match view:
+            case ResponseView.TABLE:
+                return self.as_table_row()
+
+            case _:
+                return self.model_dump()
 
     def to_text(self, format: ResponseFormat, **kwargs):
         nullStr = kwargs.get("nullStr", DEFAULT_NULL_STRING)
         match format:
             case ResponseFormat.TEXT:
-                values = list(self.model_dump().values())
+                fields = self.table_fields(asStr="true")
+                values = self.as_list(fields=fields)
                 return "\t".join(
                     [xstr(v, nullStr=nullStr, dictsAsJson=False) for v in values]
                 )
@@ -48,55 +106,6 @@ class RowModel(CustomBaseModel):
                 raise NotImplementedError(
                     f"Text transformation `{format.value}` not supported for a generic data response"
                 )
-
-    def get_view_config(self, view: ResponseView, **kwargs):
-        """get configuration object required by the view"""
-        match view:
-            case ResponseView.TABLE:
-                return self._get_table_view_config(**kwargs)
-            case ResponseView.IGV_BROWSER:
-                raise NotImplementedError("IGVBrowser view coming soon")
-            case _:
-                raise NotImplementedError(
-                    f"View `{view.value}` not yet supported for this response type"
-                )
-
-    def _assign_table_cell_type(self, fieldId: str, fieldInfo) -> TableCellType:
-        if fieldId == "p_value":
-            return TableCellType.PVALUE
-
-        if "url" in fieldId:
-            return TableCellType.LINK
-
-        match str(fieldInfo.annotation):
-            case s if "str" in s:
-                return TableCellType.TEXT
-            case s if "bool" in s:
-                return TableCellType.BOOLEAN
-            case s if "int" in s:
-                return TableCellType.FLOAT
-            case s if "float" in s:
-                return TableCellType.FLOAT
-            case _:
-                return TableCellType.ABSTRACT
-
-    def _generate_table_columns(self, model: BaseModel, **kwargs):
-        fields = model.model_fields
-        columns: List[TableColumn] = [
-            TableColumn(
-                id=k,
-                header=info.title if info.title is not None else k,
-                description=info.description,
-                type=self._assign_table_cell_type(k, info),
-            )
-            for k, info in fields.items()
-        ]
-
-        return columns
-
-    def _get_table_view_config(self, **kwargs):
-        # NOTE: options are handled in front-end applications
-        return {"columns": self._generate_table_columns(self)}
 
 
 # allows you to set a type hint to a class and all its subclasses
@@ -111,13 +120,23 @@ class DynamicRowModel(RowModel):
     __pydantic_extra__: Dict[str, Any]
     model_config = ConfigDict(extra="allow")
 
-    @classmethod
-    def get_model_fields(cls):
-        return list(cls.model_fields.keys())
-
-    def get_instantiated_fields(self):
-        fields = self.__class__.get_model_fields()
+    def has_extras(self):
+        """test if extra model fields are present"""
         if isinstance(self.model_extra, dict):
-            if len(self.model_extra) > 0:
-                fields += list(self.model_extra.keys())
-        return fields
+            return len(self.model_extra) > 0
+
+        return False
+
+    def table_fields(self, asStr: bool = False):
+        fields = super().table_fields()
+        if self.has_extras():
+            extras = {k: Field() for k in self.model_extra.keys()}
+            fields += extras
+
+        return list(fields.keys()) if asStr else fields
+
+    def to_text(self, format, **kwargs):
+        return super().to_text(format, **kwargs)
+
+    def to_view_data(self, view, **kwargs):
+        return super().to_view_data(view, **kwargs)

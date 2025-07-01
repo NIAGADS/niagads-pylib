@@ -1,3 +1,10 @@
+from niagads.common.models.table.cells import (
+    BooleanTableCell,
+    LinkTableCell,
+    PValueTableCell,
+    TextTableCell,
+)
+from niagads.common.models.table.core import TableColumn
 from niagads.database.models.variant.composite_attributes import PredictedConsequence
 from niagads.genome.core import Human
 from niagads.open_access_api_common.models.records.core import RowModel
@@ -8,14 +15,6 @@ from niagads.open_access_api_common.models.records.features.variant import (
 )
 from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.models.views.core import id2title
-from niagads.open_access_api_common.models.views.table.cells import (
-    BadgeIcon,
-    BooleanTableCell,
-    LinkTableCell,
-    PValueTableCell,
-    TextTableCell,
-)
-from niagads.open_access_api_common.models.views.table.core import TableColumn
 from niagads.open_access_api_common.parameters.response import ResponseView
 from pydantic import Field, field_serializer
 from typing import List, Optional, TypeVar, Union
@@ -72,7 +71,6 @@ class VariantPValueScore(VariantScore):
                 if data["is_adsp_variant"] == True:
                     data["is_adsp_variant"] = BooleanTableCell(
                         value=data["is_adsp_variant"],
-                        icon=BadgeIcon.SOLID_CHECK,
                         displayText="ADSP",
                         color="red",
                     )
@@ -102,7 +100,6 @@ class VariantPValueScore(VariantScore):
                         if data["is_coding"] == True:
                             data["is_coding"] = BooleanTableCell(
                                 value=data["is_coding"],
-                                icon=BadgeIcon.SOLID_CHECK,
                                 displayText="Coding",
                                 color="green",
                             )

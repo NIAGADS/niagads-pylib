@@ -19,19 +19,6 @@ class TableColumn(BaseModel):
     id: str
     description: Optional[str] = None
     type: Optional[TableCellType] = TableCellType.ABSTRACT
-    canFilter: bool = True
-    disableGlobalFilter: bool = False
-    disableSorting: bool = False
-    required: Optional[bool] = False
-
-    @model_validator(mode="after")
-    def validate_options(self):
-        if self.type in [
-            TableCellType.INTEGER,
-            TableCellType.FLOAT,
-            TableCellType.PVALUE,
-        ]:
-            self.disableGlobalFilter = True
 
 
 class Table(BaseModel):

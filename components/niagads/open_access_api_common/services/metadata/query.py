@@ -6,9 +6,8 @@ from niagads.database.models.metadata.composite_attributes import (
     ExperimentalDesign,
     Phenotype,
     Provenance,
-    TrackDataStore,
 )
-from niagads.database.models.metadata.track import Track
+from niagads.database.models.metadata.track import Track, TrackDataStore
 from niagads.open_access_api_common.config.constants import SHARD_PATTERN
 from niagads.open_access_api_common.models.response.request import RequestDataModel
 from niagads.open_access_api_common.parameters.expression_filter import Triple
