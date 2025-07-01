@@ -83,13 +83,13 @@ def eval_null(value: str, naIsNull=False):
 
 def dict_to_info_string(obj):
     """wrapper for dict_to_string (semantics )
-    in string utils to avoid circular imports"""
+    FIXME: in string utils to avoid circular imports"""
     return dict_to_string(obj, ".")
 
 
 def dict_to_string(obj, nullStr, delimiter=";"):
     """translate dict to attr=value; string list
-    in string utils to avoid circular imports
+    FIXME: in string utils to avoid circular imports
     """
     pairs = [k + "=" + xstr(v, nullStr=nullStr) for k, v in obj.items()]
     pairs.sort()
