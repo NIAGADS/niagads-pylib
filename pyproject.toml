@@ -27,7 +27,6 @@ packages = [
     { from = "components", include = "niagads/adsp_annotation" },
     { from = "components", include = "niagads/arg_parser" },
     { from = "components", include = "niagads/cache" },
-    { from = "components", include = "niagads/collection_record" },
     { from = "components", include = "niagads/common" },
     { from = "components", include = "niagads/csv_parser" },
     { from = "components", include = "niagads/csv_triples_parser" },
