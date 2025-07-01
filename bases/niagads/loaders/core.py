@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 
-from niagads.database.session.core import DatabaseSessionManager
+from niagads.database.session import DatabaseSessionManager
 from niagads.exceptions.core import AbstractMethodNotImplemented
 from niagads.settings.core import CustomSettings
 from niagads.utils.logging import FunctionContextAdapter

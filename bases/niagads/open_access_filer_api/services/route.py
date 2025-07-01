@@ -6,7 +6,7 @@ from itertools import groupby
 from operator import itemgetter
 
 from niagads.database.models.metadata.track import Track, TrackDataStore
-from niagads.database.session.core import DatabaseSessionManager
+from niagads.database.session import DatabaseSessionManager
 from niagads.genome.core import GenomicFeatureType
 from niagads.open_access_api_common.models.cache import (
     CacheKeyDataModel,

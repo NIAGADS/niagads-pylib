@@ -84,13 +84,23 @@ class DatabaseSessionManager:
             except (NotImplementedError, ValidationError, RuntimeError, HTTPException):
                 await session.rollback()
                 raise
-            except (asyncpg.InvalidPasswordError, ConnectionRefusedError) as err:
+            except (
+                asyncpg.InvalidPasswordError,
+                ConnectionRefusedError,
+                ConnectionError,
+            ) as err:
                 await session.rollback()
                 self.logger.error("Database Error", exc_info=err, stack_info=True)
                 raise OSError(f"Database Error: {str(err)}")
             except Exception as err:
                 # everything else for which we currently have no handler
                 await session.rollback()
+
+                if "Connection refused" in str(err):
+                    # don't want to create dependency to redis in this module
+                    self.logger.error("Database Error", exc_info=err, stack_info=True)
+                    raise OSError(f"Database Error: {str(err)}")
+
                 self.logger.error("Unexpected Error", exc_info=err, stack_info=True)
                 raise RuntimeError(f"Unexpected Error: {str(err)}")
             finally:

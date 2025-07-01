@@ -59,6 +59,10 @@ class KeyDBCacheManager:
 
         self.__ttl = CacheTTL[ttl]
 
+    async def test_connection(self):
+        # will throw redis.exceptions.ConnectionError if can't execute
+        await self.exists("connected", "SUCCESS")
+
     def set_TTL(self, ttl: CacheTTL):
         """Set time to life.
 

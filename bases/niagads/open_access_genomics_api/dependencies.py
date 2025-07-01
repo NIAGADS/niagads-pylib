@@ -3,7 +3,7 @@ from typing import Annotated, List
 
 from fastapi import Depends
 from niagads.database.models.metadata.track import TrackDataStore
-from niagads.database.session.core import DatabaseSessionManager
+from niagads.database.session import DatabaseSessionManager
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.parameters.internal import (
