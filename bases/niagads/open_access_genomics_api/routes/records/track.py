@@ -3,7 +3,7 @@ from typing import Union
 
 from niagads.exceptions.core import ValidationError
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
-from niagads.open_access_api_common.models.records.features.feature_score import (
+from niagads.open_access_api_common.models.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,
 )
@@ -12,7 +12,7 @@ from niagads.open_access_api_common.models.records.track.track import (
     AbridgedTrackResponse,
 )
 from niagads.open_access_api_common.models.response.core import GenericResponse
-from niagads.open_access_api_common.models.views.table.core import TableViewResponse
+from niagads.open_access_api_common.views.table import TableViewResponse
 from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import track_param
 from niagads.open_access_api_common.parameters.response import (

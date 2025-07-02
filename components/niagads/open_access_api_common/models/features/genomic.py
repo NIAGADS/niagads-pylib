@@ -3,7 +3,7 @@ from typing import Optional
 from niagads.common.models.structures import Range
 from niagads.exceptions.core import ValidationError
 from niagads.genome.core import GenomicFeatureType, Human, Strand
-from niagads.open_access_api_common.models.records.core import RowModel
+from niagads.open_access_api_common.models.core import RowModel
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 from pydantic import (

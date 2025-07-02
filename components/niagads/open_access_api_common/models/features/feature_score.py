@@ -1,14 +1,14 @@
 from niagads.common.models.views.table import TableColumn
 from niagads.database.models.variant.composite_attributes import PredictedConsequence
 from niagads.genome.core import Human
-from niagads.open_access_api_common.models.records.core import RowModel
-from niagads.open_access_api_common.models.records.features.gene import GeneFeature
-from niagads.open_access_api_common.models.records.features.variant import (
+from niagads.open_access_api_common.models.core import RowModel
+from niagads.open_access_api_common.models.features.gene import GeneFeature
+from niagads.open_access_api_common.models.features.variant import (
     Variant,
     VariantFeature,
 )
 from niagads.open_access_api_common.models.response.core import GenericResponse
-from niagads.open_access_api_common.models.views.core import id2title
+
 from niagads.open_access_api_common.parameters.response import ResponseView
 from pydantic import Field, field_serializer
 from typing import List, Optional, TypeVar, Union

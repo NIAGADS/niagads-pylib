@@ -2,7 +2,7 @@ from typing import List, Union
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
-from niagads.open_access_api_common.models.records.features.genomic import GenomicRegion
+from niagads.open_access_api_common.models.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.records.search import RecordSearchResult
 from niagads.open_access_api_common.models.response.core import (
     GenericResponse,
@@ -18,7 +18,7 @@ from niagads.open_access_api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
-from niagads.open_access_genomics_api.documentation import APP_NAME, BASE_TAGS
+from niagads.open_access_genomics_api.documentation import BASE_TAGS
 from niagads.open_access_genomics_api.queries.igvbrowser import IGVFeatureLookupQuery
 from niagads.open_access_genomics_api.queries.search import (
     SearchType,

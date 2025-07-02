@@ -4,11 +4,11 @@ from fastapi import HTTPException
 from niagads.common.models.structures import Range
 from niagads.database.models.metadata.track import Track, TrackDataStore
 from niagads.exceptions.core import ValidationError
-from niagads.open_access_api_common.models.query import QueryDefinition
-from niagads.open_access_api_common.models.records.features.feature_score import (
+from niagads.open_access_api_common.models.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,
 )
+from niagads.open_access_api_common.models.services.query import QueryDefinition
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
 from niagads.open_access_api_common.parameters.response import ResponseContent
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService

@@ -1,10 +1,8 @@
 from fastapi import Query
 from niagads.exceptions.core import ValidationError
 from niagads.genome.core import Assembly, GenomicFeatureType, Human
-from niagads.open_access_api_common.models.records.features.genomic import (
-    GenomicFeature,
-)
-from niagads.utils.string import matches, sanitize
+from niagads.open_access_api_common.models.features.genomic import GenomicFeature
+from niagads.utils.string import sanitize
 
 
 async def assembly_param(

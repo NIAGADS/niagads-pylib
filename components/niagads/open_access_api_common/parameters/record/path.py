@@ -4,9 +4,7 @@ from typing import Optional
 from fastapi import Path, Query
 from niagads.exceptions.core import ValidationError
 from niagads.genome.core import GenomicFeatureType
-from niagads.open_access_api_common.models.records.features.genomic import (
-    GenomicFeature,
-)
+from niagads.open_access_api_common.models.features.genomic import GenomicFeature
 from niagads.utils.string import sanitize
 
 

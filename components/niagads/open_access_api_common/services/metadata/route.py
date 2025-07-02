@@ -1,7 +1,7 @@
 from typing import Optional
 
 from niagads.database.models.metadata.track import TrackDataStore
-from niagads.open_access_api_common.models.cache import CacheKeyQualifier
+from niagads.open_access_api_common.models.services.cache import CacheKeyQualifier
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
 from niagads.open_access_api_common.parameters.response import ResponseContent
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService

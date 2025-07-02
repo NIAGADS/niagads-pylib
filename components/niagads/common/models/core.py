@@ -29,13 +29,13 @@ class AbstractTransformableModel(BaseModel, ABC):
         pass
 
     @abstractmethod
-    def as_table_row(self) -> TableRow:
+    def as_table_row(self, **kwargs) -> TableRow:
         """returns a {columns: , data: } object for a view table; with custom logic for composite attributes"""
         pass
 
     @classmethod
     @abstractmethod
-    def table_fields(self, asStr: bool = False):
+    def table_fields(self, asStr: bool = False, **kwargs):
         """get fields for tabular data views"""
         pass
 
@@ -57,17 +57,26 @@ class TransformableModel(AbstractTransformableModel):
         else:
             return [v for k, v in self.model_dump() if k in fields]
 
-    def as_table_row(self):
+    def as_table_row(self, **kwargs):
         row = {k: getattr(self, k) for k in self.table_fields(asStr=True)}
         return TableRow(**row)
 
-    @classmethod
-    def table_fields(self, asStr: bool = False):
+    def table_fields(self, asStr: bool = False, **kwargs):
         return self.get_fields(asStr)
 
-    @classmethod
+    # note: not a classmethod b/c will need to be overridden to add model_extras
+    # when relevant
     def get_fields(self, asStr: bool = False):
         """get model fields either as name: FieldInfo pairs or as a list of names if asStr is True"""
+        return (
+            list(self.__class__.model_fields.keys())
+            if asStr
+            else self.__class__.model_fields
+        )
+
+    @classmethod
+    def get_model_fields(self, asStr: bool = False):
+        """classmethod for getting model fields either as name: FieldInfo pairs or as a list of names if asStr is True"""
         return (
             list(self.__class__.model_fields.keys())
             if asStr

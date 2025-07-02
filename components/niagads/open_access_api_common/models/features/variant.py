@@ -1,12 +1,13 @@
-from typing import Any, Dict, List, Optional, Literal, Union
+from typing import List, Optional
 from niagads.database.models.variant.composite_attributes import (
     CADDScore,
     PredictedConsequence,
     QCStatus,
     RankedConsequences,
 )
-from niagads.open_access_api_common.models.records.core import RowModel
-from niagads.open_access_api_common.models.records.features.genomic import GenomicRegion
+
+from niagads.open_access_api_common.models.core import RowModel
+from niagads.open_access_api_common.models.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.response.core import GenericResponse
 from pydantic import (
     ConfigDict,

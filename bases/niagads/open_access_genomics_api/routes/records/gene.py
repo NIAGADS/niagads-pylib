@@ -2,14 +2,11 @@ from typing import Union
 from fastapi import APIRouter, Depends, Query
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 
-from niagads.open_access_api_common.models.records.features.gene import (
+from niagads.open_access_api_common.models.features.gene import (
     AbridgedGeneResponse,
     GeneResponse,
 )
-
-from niagads.open_access_api_common.models.records.features.genomic import (
-    GenomicFeature,
-)
+from niagads.open_access_api_common.models.features.genomic import GenomicFeature
 from niagads.open_access_api_common.parameters.record.path import gene_param
 from niagads.open_access_api_common.parameters.response import (
     ResponseContent,

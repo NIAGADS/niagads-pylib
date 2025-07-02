@@ -5,7 +5,7 @@ from fastapi import Depends, Request
 from niagads.cache.core import KeyDBCacheManager, CacheSerializer
 from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.dependencies import get_none
-from niagads.open_access_api_common.models.cache import CacheKeyDataModel
+from niagads.open_access_api_common.models.services.cache import CacheKeyDataModel
 from niagads.open_access_api_common.models.response.request import RequestDataModel
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession

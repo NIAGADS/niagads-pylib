@@ -1,5 +1,5 @@
 from niagads.open_access_api_common.models.records.core import Entity
-from niagads.open_access_api_common.models.query import QueryDefinition
+from niagads.open_access_api_common.models.services.query import QueryDefinition
 
 
 VariantRecordQuery = QueryDefinition(

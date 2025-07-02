@@ -2,7 +2,7 @@ from enum import auto
 from typing import List
 
 from niagads.enums.core import EnumParameter
-from niagads.open_access_api_common.models.query import QueryDefinition
+from niagads.open_access_api_common.models.services.query import QueryDefinition
 
 
 class SearchType(EnumParameter):  # TODO: move to parameters

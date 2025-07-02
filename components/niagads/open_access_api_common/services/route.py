@@ -8,14 +8,12 @@ from niagads.open_access_api_common.config.constants import (
     DEFAULT_PAGE_SIZE,
     MAX_NUM_PAGES,
 )
-from niagads.open_access_api_common.models.cache import (
+from niagads.open_access_api_common.models.services.cache import (
     CacheKeyDataModel,
     CacheKeyQualifier,
     CacheNamespace,
 )
-from niagads.open_access_api_common.models.records.features.genomic import (
-    GenomicFeature,
-)
+
 from niagads.open_access_api_common.models.records.track.igvbrowser import (
     IGVBrowserTrackSelectorResponse,
 )
@@ -26,7 +24,6 @@ from niagads.open_access_api_common.models.response.core import (
 from niagads.open_access_api_common.models.response.pagination import (
     PaginationDataModel,
 )
-from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
 from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
@@ -35,6 +32,7 @@ from niagads.open_access_api_common.parameters.response import (
 )
 
 from niagads.open_access_api_common.services.feature import FeatureQueryService
+from niagads.open_access_api_common.views.table import TableViewResponse
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 _INTERNAL_PARAMETERS = ["span", "_tracks"]

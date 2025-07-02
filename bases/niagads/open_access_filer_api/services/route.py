@@ -8,16 +8,12 @@ from operator import itemgetter
 from niagads.database.models.metadata.track import Track, TrackDataStore
 from niagads.database.session import DatabaseSessionManager
 from niagads.genome.core import GenomicFeatureType
-from niagads.open_access_api_common.models.cache import (
+from niagads.open_access_api_common.models.features.bed import BEDFeature
+from niagads.open_access_api_common.models.features.genomic import GenomicFeature
+from niagads.open_access_api_common.models.services.cache import (
     CacheKeyDataModel,
     CacheKeyQualifier,
     CacheNamespace,
-)
-from niagads.open_access_api_common.models.records.features.bed import (
-    BEDFeature,
-)
-from niagads.open_access_api_common.models.records.features.genomic import (
-    GenomicFeature,
 )
 from niagads.open_access_api_common.models.records.track.track import TrackResultSize
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters

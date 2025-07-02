@@ -24,12 +24,12 @@ class AbstractResponse(BaseModel, ABC):
         pass
 
     @abstractmethod
-    def to_vcf(self, inclHeader: bool = False):
+    def to_vcf(self):
         """return a plain-text VCF formatted response"""
         pass
 
     @abstractmethod
-    def to_bed(self, inclHeader: bool = False):
+    def to_bed(self):
         """return a plain-text BED formatted response"""
         pass
 
@@ -76,13 +76,11 @@ class GenericResponse(AbstractResponse):
     # START abstract methods
 
     def to_table(self, id: str = None, title: str = None):
-        model: T_RowModel = self.row_model()
-
         if self.is_empty():
             return {}
 
         else:
-            columns = model.table_columns()
+            columns = self.data[0].table_columns()
             data = [r.as_table_row() for r in self.data]
             table = {"columns": columns, "data": data}
 
@@ -92,20 +90,28 @@ class GenericResponse(AbstractResponse):
                 table.update({"id": id})
             return Table(**table)
 
-    def to_vcf(self, inclHeader=False):
+    def to_vcf(self):
         raise NotImplementedError(
             "VCF formatted output not available for a generic data response."
         )
 
-    def to_bed(self, inclHeader=False):
+    def to_bed(self):
         raise NotImplementedError(
             "BED formatted output not available for a generic data repsonse."
         )
 
-    def to_text(self, inclHeader=False, nullStr: str = DEFAULT_NULL_STRING):
+    def _get_empty_header(self):
+        model: T_RowModel = self.row_model()
+        fields = model.get_model_fields(asStr=True)
+        return "\t".join(fields) + "\n"
 
+    def to_text(self, inclHeader=False, nullStr: str = DEFAULT_NULL_STRING):
         if self.is_empty():
-            return ""
+            if inclHeader:
+                # no data so have to get model fields from the class
+                return self._get_empty_header()
+            else:
+                return ""
 
         else:
             # not sure if this check will still be necessary
@@ -116,9 +122,7 @@ class GenericResponse(AbstractResponse):
             #        "\t".join([xstr(v, nullStr=nullStr) for v in self.data.values()]) + "\n"
             #    )
 
-            model: T_RowModel = self.row_model()
-            fields = model.get_fields(asStr=True)
-
+            fields = self.data[0].table_fields(asStr=True)
             rows = []
             for r in self.data:
                 if isinstance(r, str):
@@ -127,7 +131,6 @@ class GenericResponse(AbstractResponse):
                     # pass fields to ensure consistent ordering
                     rows.append("\t".join(r.as_text(fields=fields, nullStr=nullStr)))
 
-            responseStr = "\t".join(fields) + "\n" if inclHeader else ""
             responseStr += "\n".join(rows)
 
         return responseStr

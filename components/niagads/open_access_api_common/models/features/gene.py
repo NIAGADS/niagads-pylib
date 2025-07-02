@@ -1,9 +1,9 @@
 from typing import Dict, List, Optional, Union
 
-from niagads.open_access_api_common.models.records.core import RowModel
-from niagads.open_access_api_common.models.records.features.genomic import GenomicRegion
+from niagads.open_access_api_common.models.core import RowModel
+from niagads.open_access_api_common.models.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.response.core import GenericResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 
 class GeneFeature(RowModel):

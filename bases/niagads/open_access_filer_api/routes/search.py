@@ -9,7 +9,6 @@ from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
 )
 from niagads.open_access_api_common.models.response.core import GenericResponse
-from niagads.open_access_api_common.models.views.table.core import TableViewResponse
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
     chromosome_param,
@@ -26,6 +25,7 @@ from niagads.open_access_api_common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
+from niagads.open_access_api_common.views.table import TableViewResponse
 from niagads.open_access_filer_api.dependencies import (
     TEXT_FILTER_PARAMETER,
     InternalRequestParameters,

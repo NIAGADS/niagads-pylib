@@ -1,6 +1,6 @@
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome.core import Assembly
-from niagads.open_access_api_common.models.records.features.bed import BEDFeature
+from niagads.open_access_api_common.models.features.bed import BEDFeature
 from niagads.open_access_api_common.models.records.track.track import TrackResultSize
 from pydantic import BaseModel
 from aiohttp import ClientSession

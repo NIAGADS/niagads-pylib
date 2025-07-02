@@ -1,9 +1,6 @@
 from fastapi import HTTPException
 from niagads.genome.core import GenomicFeatureType
-from niagads.open_access_api_common.models.records.features.genomic import (
-    GenomicFeature,
-)
-from niagads.open_access_api_common.models.response.request import RequestDataModel
+from niagads.open_access_api_common.models.features.genomic import GenomicFeature
 from sqlalchemy import func, select, text, column
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
