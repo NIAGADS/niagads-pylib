@@ -19,7 +19,8 @@ class TableCellType(StrEnum):
     def __str__(self):
         return self.value.lower()
 
-    def from_field(self, fieldInfo: Any):
+    @staticmethod
+    def from_field(fieldInfo: Any):
         """infer cell type from from field info"""
         match str(fieldInfo.annotation):
             case s if "str" in s:
@@ -51,7 +52,7 @@ class TableCell(BaseModel):
 
 
 class TableRow(BaseModel):
-    __pydantic_extra__: Dict[str, TableCell]
+    __pydantic_extra__: Dict[str, Union[TableCell, str, int, float, bool]]
     model_config = ConfigDict(extra="allow")
 
 
