@@ -35,7 +35,8 @@ class ResponseContent(CustomizableEnumParameter):
     def data(cls, description=False):
         """return data formats only"""
         subset = cls.exclude(
-            "data_only_content", [ResponseContent.IDS, ResponseContent.URLS]
+            "data_only_content",
+            [ResponseContent.IDS, ResponseContent.URLS, ResponseContent.BRIEF],
         )
         if description:
             return cls.get_description(False) + " " + subset.get_description()

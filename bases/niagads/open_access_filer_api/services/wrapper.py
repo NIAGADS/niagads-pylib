@@ -44,7 +44,7 @@ class ApiWrapperService:
             requestParams["trackIDs"] = parameters["track"]
 
         if "span" in parameters:
-            requestParams["region"] = parameters["span"]
+            requestParams["region"] = str(parameters["span"])
 
         return requestParams
 

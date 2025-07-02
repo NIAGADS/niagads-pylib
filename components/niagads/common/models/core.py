@@ -55,7 +55,7 @@ class TransformableModel(AbstractTransformableModel):
         if fields is None:
             return list(self.model_dump().values())
         else:
-            return [v for k, v in self.model_dump() if k in fields]
+            return [v for k, v in self.model_dump().items() if k in fields]
 
     def as_table_row(self, **kwargs):
         row = {k: getattr(self, k) for k in self.table_fields(asStr=True)}
@@ -68,8 +68,20 @@ class TransformableModel(AbstractTransformableModel):
     # when relevant
     def get_fields(self, asStr: bool = False):
         """get model fields either as name: FieldInfo pairs or as a list of names if asStr is True"""
+
+        # need to retrieve serialization alias if present
+        # b/c fields will be mapped against a model_dump
         return (
-            list(self.__class__.model_fields.keys())
+            list(
+                [
+                    (
+                        v.serialization_alias
+                        if getattr(v, "serialization_alias", None) is not None
+                        else k
+                    )
+                    for k, v in self.__class__.model_fields.items()
+                ]
+            )
             if asStr
             else self.__class__.model_fields
         )
@@ -78,9 +90,16 @@ class TransformableModel(AbstractTransformableModel):
     def get_model_fields(self, asStr: bool = False):
         """classmethod for getting model fields either as name: FieldInfo pairs or as a list of names if asStr is True"""
         return (
-            list(self.__class__.model_fields.keys())
+            [
+                (
+                    v.serialization_alias
+                    if getattr(v, "serialization_alias", None) is not None
+                    else k
+                )
+                for k, v in self.model_fields.items()
+            ]
             if asStr
-            else self.__class__.model_fields
+            else self.model_fields
         )
 
     def __str__(self):

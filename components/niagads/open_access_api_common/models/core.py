@@ -88,8 +88,12 @@ class DynamicRowModel(RowModel):
 
     def get_fields(self, asStr: bool = False):
         fields = super().get_fields(asStr)
+
         if self.has_extras():
             extras = {k: Field() for k in self.model_extra.keys()}
-            fields.update(extras)
+            if isinstance(fields, list):
+                fields.extend(list(extras.keys()))
+            else:
+                fields.update(extras)
 
-        return list(fields.keys()) if asStr else fields
+        return fields

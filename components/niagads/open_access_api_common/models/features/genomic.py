@@ -42,6 +42,9 @@ class GenomicFeature(BaseModel):
     feature_id: str
     feature_type: GenomicFeatureType
 
+    def __str__(self):
+        return self.feature_id
+
     @model_validator(mode="after")
     def validate_feature_id(self):
         if self.feature_type == GenomicFeatureType.VARIANT:

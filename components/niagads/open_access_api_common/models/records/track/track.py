@@ -163,22 +163,14 @@ class Track(RowModel):
 
 
 class TrackResultSize(RowModel):
-    id: str = Field(title="track", serialization_alias="id")
+    track_id: str = Field(title="Track ID", serialization_alias="id")
     num_results: int = Field(
         title="Num. Results",
         description="Number of results (hits or overlaps) on this track within the query region and meeting any filter criteria.",
     )
 
-    def get_view_config(self, view: ResponseView, **kwargs):
-        raise RuntimeError("View transformations not implemented for this row model.")
-
-    def to_view_data(self, view: ResponseView, **kwargs):
-        raise RuntimeError("View transformations not implemented for this row model.")
-
-    def to_text(self, format: ResponseFormat, **kwargs):
-        return f"{self.track_id}\t{self.num_results}"
-
-    # model_config = ConfigDict(serialize_by_alias=True)
+    def __str__(self):
+        return self.as_info_string()
 
     @staticmethod
     def sort(results: List[Self], reverse=True) -> List[Self]:

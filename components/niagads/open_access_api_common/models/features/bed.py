@@ -35,7 +35,7 @@ class BEDFeature(DynamicRowModel):
         self.model_extra["track_id"] = trackId
 
     def table_fields(self, asStr=False, **kwargs):
-        fields = super().get_fields(asStr)
+        fields = self.get_model_fields(asStr)
         if self.has_extras():
             if getattr(kwargs, "extrasAsInfoStr", False):
                 extras = {
@@ -48,33 +48,43 @@ class BEDFeature(DynamicRowModel):
                 extras = {
                     k: Field() for k in self.model_extra.keys() if k != "track_id"
                 }
-            fields.update(extras)
-            fields.update(
-                {
-                    "track_id": Field(
-                        title="Track ID",
-                        description="unique identifier for the source data track.",
-                    )
-                }
-            )
 
-        return list(fields.keys()) if asStr else fields
+            if isinstance(fields, list):
+                fields.extend(list(extras.keys()))
+                fields.append("track_id")
+            else:
+                fields.update(extras)
+                fields.update(
+                    {
+                        "track_id": Field(
+                            title="Track ID",
+                            description="unique identifier for the source data track.",
+                        )
+                    }
+                )
+
+        return fields
 
     def get_fields(self, asStr: bool = False):
-        fields = super().get_fields(asStr)
+        # we want track_id to be last, so get model fields and then add extras back in
+        fields = self.get_model_fields(asStr)
         if self.has_extras():
             extras = {k: Field() for k in self.model_extra.keys() if k != "track_id"}
-            fields.update(extras)
-            fields.update(
-                {
-                    "track_id": Field(
-                        title="Track ID",
-                        description="unique identifier for the source data track.",
-                    )
-                }
-            )
+            if isinstance(fields, list):
+                fields.extend(list(extras.keys()))
+                fields.append("track_id")
+            else:
+                fields.update(extras)
+                fields.update(
+                    {
+                        "track_id": Field(
+                            title="Track ID",
+                            description="unique identifier for the source data track",
+                        )
+                    }
+                )
 
-        return list(fields.keys()) if asStr else fields
+        return fields
 
     def __extras_as_info_str(self):
         extras = {
@@ -95,7 +105,7 @@ class BEDFeature(DynamicRowModel):
             values.append(self.__extras_as_info_str(), values.append(obj["track_id"]))
             return values
         else:
-            return [v for k, v in self.model_dump() if k in fields]
+            return [v for k, v in self.model_dump().items() if k in fields]
 
     def as_text(self, fields=None, nullStr=".", **kwargs):
         if fields is None:
@@ -148,7 +158,7 @@ class BEDResponse(GenericResponse):
             return Table(**table)
 
     def to_bed(self):
-        return self.to_text(includeHeader=True, nullStr=".")
+        return self.to_text(includeHeader=False, nullStr=".")
 
     def to_text(self, inclHeader=True, nullStr=DEFAULT_NULL_STRING):
         """return a text response (e.g., BED, plain text)"""
@@ -167,9 +177,7 @@ class BEDResponse(GenericResponse):
             rows = []
             for r in self.data:
                 rows.append(
-                    "\t".join(
-                        r.as_text(fields=fields, nullStr=nullStr, extrasAsInfoStr=True)
-                    )
+                    r.as_text(fields=fields, nullStr=nullStr, extrasAsInfoStr=True)
                 )
             responseStr = "\t".join(fields) + "\n" if inclHeader else ""
             responseStr += "\n".join(rows)

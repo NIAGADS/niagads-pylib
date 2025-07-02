@@ -369,7 +369,11 @@ class FILERRouteHelper(MetadataRouteHelperService):
     ):
         result = self.__merge_track_lists(
             [t.model_dump() for t in metadata],
-            data if isinstance(data[0], dict) else [t.model_dump() for t in data],
+            (
+                data
+                if isinstance(data[0], dict)
+                else [t.model_dump(by_alias=False) for t in data]
+            ),
         )
         result = sorted(result, key=lambda item: item["num_results"], reverse=True)
         return result

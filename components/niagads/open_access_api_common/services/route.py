@@ -266,7 +266,7 @@ class RouteHelperService:
             )
 
         viewResponse = TableViewResponse(
-            table=response.to_view(ResponseView.TABLE, id=cacheKey),
+            table=response.to_table(id=cacheKey),
             request=self._managers.requestData,
             pagination=response.pagination,
         )

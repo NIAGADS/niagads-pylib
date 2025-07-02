@@ -36,7 +36,7 @@ class AbstractResponse(BaseModel, ABC):
 
 class GenericResponse(AbstractResponse):
 
-    data: List[RowModel] = Field(description="query result")
+    data: List[T_RowModel] = Field(description="query result")
     request: RequestDataModel = Field(
         description="details about the originating request"
     )
@@ -129,8 +129,9 @@ class GenericResponse(AbstractResponse):
                     rows.append(r)
                 else:
                     # pass fields to ensure consistent ordering
-                    rows.append("\t".join(r.as_text(fields=fields, nullStr=nullStr)))
+                    rows.append(r.as_text(fields=fields, nullStr=nullStr))
 
+            responseStr = "\t".join(fields) + "\n" if inclHeader else ""
             responseStr += "\n".join(rows)
 
         return responseStr
