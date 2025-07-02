@@ -36,7 +36,7 @@ router = APIRouter(prefix="/record/track", tags=BASE_TAGS)
     response_model=Union[
         TrackResponse, AbridgedTrackResponse, TableViewResponse, GenericResponse
     ],
-    summary="get-track-metadata-bulk",
+    summary="get-track-metadata-by-id-bulk",
     description="Retrieve full metadata for one or more FILER track records by identifier",
 )
 async def get_track_metadata_bulk(
