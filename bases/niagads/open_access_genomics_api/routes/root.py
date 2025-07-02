@@ -7,7 +7,7 @@ from niagads.open_access_api_common.models.records.route import (
     RecordSummary,
     RouteDescription,
 )
-from niagads.open_access_api_common.models.response.core import GenericResponse
+from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
 from niagads.open_access_api_common.models.records.core import Entity
 from niagads.open_access_genomics_api.dependencies import (
@@ -26,14 +26,14 @@ router = APIRouter(tags=[APP_NAME])
 
 @router.get(
     "/status",
-    response_model=GenericResponse,
+    response_model=RecordResponse,
     summary="get-api-info",
     description=f"Retrieve a brief overview of the {APP_NAME}",
     tags=[str(SharedOpenAPITags.DOCUMENTATION)],
 )
 async def get_database_description(
     internal: InternalRequestParameters = Depends(),
-) -> GenericResponse:
+) -> RecordResponse:
 
     # TODO: genes, variants
     trackCount = await MetadataQueryService(
@@ -47,7 +47,7 @@ async def get_database_description(
         pubmed_id=PUBMED_IDS,
         records=[RecordSummary(entity=Entity.TRACK, num_records=trackCount)],
     )
-    return GenericResponse(
+    return RecordResponse(
         # data=result
         data={"Database Statistics currently being updated; check back soon"},
         request=internal.requestData,

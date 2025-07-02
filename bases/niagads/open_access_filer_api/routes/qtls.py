@@ -3,7 +3,7 @@ from typing import Union
 
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.features.bed import BEDResponse
-from niagads.open_access_api_common.models.response.core import GenericResponse
+from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.open_access_api_common.views.table import TableViewResponse
 from niagads.open_access_api_common.parameters.location import loc_param
 from niagads.open_access_api_common.parameters.pagination import page_param
@@ -39,7 +39,7 @@ tags = ["Data Retrieval by Region", "xQTL Track Record"]
     "/{track}",
     tags=tags,
     name="Get QTLs by Region[Beta]",
-    response_model=Union[BEDResponse, TableViewResponse, GenericResponse],
+    response_model=Union[BEDResponse, TableViewResponse, RecordResponse],
     description="retrieve xQTL data from FILER for the specified genomic region or sequence feature",
 )
 async def get_feature_qtl(
@@ -55,7 +55,7 @@ async def get_feature_qtl(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[BEDResponse, TableViewResponse, GenericResponse]:
+) -> Union[BEDResponse, TableViewResponse, RecordResponse]:
 
     rContent = ResponseContent.data().validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
@@ -66,7 +66,7 @@ async def get_feature_qtl(
                 format, "format", ResponseFormat
             ),
             view=ResponseView.validate(view, "view", ResponseView),
-            model=BEDResponse if rContent == ResponseContent.FULL else GenericResponse,
+            model=(BEDResponse if rContent == ResponseContent.FULL else RecordResponse),
         ),
         Parameters(track=track, location=loc, page=page),
     )

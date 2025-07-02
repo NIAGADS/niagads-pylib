@@ -9,24 +9,10 @@ from niagads.database.models.metadata.composite_attributes import (
     Provenance,
 )
 from niagads.open_access_api_common.models.core import DynamicRowModel, RowModel
-from niagads.open_access_api_common.models.response.core import GenericResponse
-from niagads.open_access_api_common.parameters.response import (
-    ResponseFormat,
-    ResponseView,
-)
+from niagads.open_access_api_common.models.response.core import RecordResponse
+
 from niagads.utils.dict import promote_nested
 from pydantic import ConfigDict, Field, model_validator
-
-EXCLUDE_FROM_TRACK_VIEWS = [
-    "ontology",
-    "definition",
-    "biosample",
-    "biosample_characteristics",
-    "subject_phenotypes",
-    "experimental_design",
-    "provenance",
-    "file_properties",
-]
 
 
 class AbridgedTrack(DynamicRowModel):
@@ -85,9 +71,9 @@ class AbridgedTrack(DynamicRowModel):
 
         if not isinstance(data, dict):
             data = data.model_dump()  # assume data is an ORM w/model_dump mixin
-        promote_nested(
-            data, updateByReference=True
-        )  # should make data_source, url etc available
+
+        # should make data_source, url etc available
+        promote_nested(data, updateByReference=True)
 
         # filter out excess from the Track ORM model
         modelFields = AbridgedTrack.model_fields.keys()
@@ -121,45 +107,17 @@ class Track(RowModel):
     # should allow to fill from SQLAlchemy ORM model
     model_config = ConfigDict(from_attributes=True)
 
-    def to_view_data(self, view: ResponseView, **kwargs):
-        row: dict = super().to_view_data(view, **kwargs)
+    def table_fields(self, asStr=False, **kwargs):
+        return super().table_fields(asStr, **kwargs)
 
-        if view == ResponseView.TABLE:
-            promote_nested(row, updateByReference=True)
-            # FIXME: front-end?
+    def as_info_string(self):
+        return super().as_info_string()
 
-            row.update({"term": row["biosample"][0]["term"]})
-            if "term_id" in row["biosample"]:
-                row.update({"term_id": row["biosample"][0]["term_id"]})
-            else:
-                row.update({"term_id": None})
+    def as_list(self, fields=None):
+        return super().as_list(fields)
 
-            orderedRow = {}
-            for field in kwargs["fields"]:
-                if field not in row:
-                    orderedRow.update({field: None})
-                else:
-                    orderedRow.update({field: row[field]})
-
-            return orderedRow
-        else:
-            return row
-
-    def _get_table_view_config(self, **kwargs):
-        columns = super()._get_table_view_config(**kwargs)["columns"]
-
-        # add biosample, provenance, experimental design, file properties
-        columns += self._generate_table_columns(BiosampleCharacteristics)
-        columns += self._generate_table_columns(OntologyTerm)
-        columns += self._generate_table_columns(Phenotype)
-        columns += self._generate_table_columns(ExperimentalDesign)
-        columns += self._generate_table_columns(Provenance)
-        columns += self._generate_table_columns(FileProperties)
-
-        columns = [c for c in columns if c.id not in EXCLUDE_FROM_TRACK_VIEWS]
-
-        # NOTE: options are handled in front-end applications
-        return {"columns": columns}
+    def as_table_row(self, **kwargs):
+        return super().as_table_row(**kwargs)
 
 
 class TrackResultSize(RowModel):
@@ -178,25 +136,13 @@ class TrackResultSize(RowModel):
         return sorted(results, key=lambda item: item.num_results, reverse=reverse)
 
 
-class AbridgedTrackResponse(GenericResponse):
+class AbridgedTrackResponse(RecordResponse):
     data: List[AbridgedTrack] = Field(
         description="Abridged metadata for each track meeting the query criteria.  Depending on query may include count of records matching query parameters."
     )
 
-    def to_text(self, format: ResponseView, **kwargs):
-        fields = (
-            self.data[0].get_instantiated_fields()
-            if len(self.data) > 0
-            else AbridgedTrack.get_model_fields()
-        )
-        return super().to_text(format, fields=fields)
 
-
-class TrackResponse(GenericResponse):
+class TrackResponse(RecordResponse):
     data: List[Track] = Field(
         description="Full metadata for each track meeting the query criteria."
     )
-
-    def to_text(self, format: ResponseView, **kwargs):
-        fields = AbridgedTrack.get_model_fields()
-        return super().to_text(format, fields=fields)

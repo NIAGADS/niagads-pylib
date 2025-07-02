@@ -1,6 +1,6 @@
 from niagads.open_access_api_common.models.response.core import (
-    GenericResponse,
-    T_GenericResponse,
+    RecordResponse,
+    T_RecordResponse,
 )
 
-__all__ = ["GenericResponse", "GenericResponse", "T_GenericResponse"]
+__all__ = ["RecordResponse", "RecordResponse", "T_RecordResponse"]

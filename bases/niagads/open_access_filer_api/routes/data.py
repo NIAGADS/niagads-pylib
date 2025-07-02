@@ -8,7 +8,7 @@ from niagads.open_access_api_common.models.features.bed import BEDResponse
 from niagads.open_access_api_common.models.records.track.track import (
     AbridgedTrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import GenericResponse
+from niagads.open_access_api_common.models.response.core import RecordResponse
 
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
@@ -76,7 +76,7 @@ async def get_track_data_bulk(
                 else (
                     AbridgedTrackResponse
                     if rContent == ResponseContent.BRIEF
-                    else GenericResponse
+                    else RecordResponse
                 )
             ),
         ),
@@ -93,7 +93,7 @@ tags = [str(SharedOpenAPITags.RECORD_SEARCH)]
     "/search",
     tags=tags,
     response_model=Union[
-        GenericResponse, AbridgedTrackResponse, BEDResponse, TableViewResponse
+        RecordResponse, AbridgedTrackResponse, BEDResponse, TableViewResponse
     ],
     summary="get-track-data-by-metadata-search",
     description="find functional genomics tracks with data in specified region; qualify using category filters or by a keyword search against all text fields in the track metadata",
@@ -113,7 +113,7 @@ async def get_track_data_by_metadata_search(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[GenericResponse, AbridgedTrackResponse, BEDResponse, TableViewResponse]:
+) -> Union[RecordResponse, AbridgedTrackResponse, BEDResponse, TableViewResponse]:
 
     rContent = ResponseContent.data().validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
@@ -130,7 +130,7 @@ async def get_track_data_by_metadata_search(
                 else (
                     AbridgedTrackResponse
                     if rContent == ResponseContent.BRIEF
-                    else GenericResponse
+                    else RecordResponse
                 )
             ),
         ),

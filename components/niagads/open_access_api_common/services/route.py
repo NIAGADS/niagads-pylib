@@ -18,8 +18,10 @@ from niagads.open_access_api_common.models.records.track.igvbrowser import (
     IGVBrowserTrackSelectorResponse,
 )
 from niagads.open_access_api_common.models.response.core import (
-    GenericResponse,
-    T_GenericResponse,
+    AbstractResponse,
+    RecordResponse,
+    T_RecordResponse,
+    T_Response,
 )
 from niagads.open_access_api_common.models.response.pagination import (
     PaginationDataModel,
@@ -45,7 +47,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     format: ResponseFormat = ResponseFormat.JSON
     content: ResponseContent = ResponseContent.FULL
     view: ResponseView = ResponseView.DEFAULT
-    model: Type[T_GenericResponse] = None
+    model: Type[T_Response] = None
 
     @model_validator(mode="after")
     def validate_config(self, __context):
@@ -70,13 +72,13 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
         return self
 
     # from https://stackoverflow.com/a/67366461
-    # allows ensurance that model is always a child of GenericResponse
+    # allows ensurance that model is always a child of RecordResponse
     @field_validator("model")
     def validate_model(cls, model):
-        if issubclass(model, GenericResponse):
+        if issubclass(model, AbstractResponse):
             return model
         raise RuntimeError(
-            f"Wrong type for `model` : `{model}`; must be subclass of `GenericResponse`"
+            f"Wrong type for `model` : `{model}`; must be subclass of `AbstractResponse`"
         )
 
     @field_validator("content")
@@ -243,7 +245,7 @@ class RouteHelperService:
 
         return Range(start=start, end=end)
 
-    async def generate_table_response(self, response: Type[T_GenericResponse]):
+    async def generate_table_response(self, response: Type[T_RecordResponse]):
         # create an encrypted cache key
         cacheKey = CacheKeyDataModel.encrypt_key(
             self._managers.cacheKey.key
@@ -278,7 +280,7 @@ class RouteHelperService:
         return viewResponse
 
     async def generate_response(self, result: Any, isCached: bool = False):
-        response: Type[T_GenericResponse] = result if isCached else None
+        response: Type[T_RecordResponse] = result if isCached else None
         if response is None:
             self._managers.requestData.update_parameters(
                 self._parameters, exclude=_INTERNAL_PARAMETERS
@@ -328,33 +330,24 @@ class RouteHelperService:
                 return await self.generate_table_response(response)
 
             case ResponseView.DEFAULT:
-                if self._responseConfig.format in [
-                    ResponseFormat.TEXT,
-                    ResponseFormat.BED,
-                    ResponseFormat.VCF,
-                ]:
-                    try:
-                        nullStr = (
-                            None
-                            if self._responseConfig.format == ResponseFormat.TEXT
-                            else "."
-                        )
+                match self._responseConfig.format:
+                    case ResponseFormat.TEXT:
                         return Response(
-                            response.to_text(
-                                self._responseConfig.format, nullStr=nullStr
-                            ),
+                            response.to_text(inclHeader=True),
                             media_type="text/plain",
                         )
-                    except NotImplementedError as err:
-                        if self._responseConfig.format == ResponseFormat.TEXT:
-                            response.add_message(
-                                f"{str(err)} Returning default JSON response."
-                            )
-                            return response
-                        else:
-                            raise err
-                else:  # JSON
-                    return response
+                    case ResponseFormat.BED:
+                        return Response(
+                            response.to_bed(),
+                            media_type="text/plain",
+                        )
+                    case ResponseFormat.VCF:
+                        return Response(
+                            response.to_vcf(),
+                            media_type="text/plain",
+                        )
+                    case _:  # JSON
+                        return response
 
             case _:  # IGV_BROWSER
                 raise NotImplementedError(

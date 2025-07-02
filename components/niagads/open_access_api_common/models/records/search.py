@@ -2,7 +2,7 @@ from typing import List
 
 from niagads.open_access_api_common.models.records.core import Entity
 from niagads.open_access_api_common.models.core import RowModel
-from niagads.open_access_api_common.models.response.core import GenericResponse
+from niagads.open_access_api_common.models.response.core import RecordResponse
 from pydantic import Field
 
 
@@ -19,7 +19,7 @@ class RecordSearchResult(RowModel):
     match_rank: int
 
 
-class RecordSearchResultResponse(GenericResponse):
+class RecordSearchResultResponse(RecordResponse):
     data: List[RecordSearchResult]
 
     def to_text(self, inclHeader=False, nullStr=...):

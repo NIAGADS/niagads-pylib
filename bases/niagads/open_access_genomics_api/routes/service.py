@@ -5,8 +5,8 @@ from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.records.search import RecordSearchResult
 from niagads.open_access_api_common.models.response.core import (
-    GenericResponse,
-    T_GenericResponse,
+    RecordResponse,
+    T_RecordResponse,
 )
 from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
@@ -68,13 +68,13 @@ async def site_search(
             format=ResponseFormat.JSON,
             content=ResponseContent.FULL,
             view=ResponseView.DEFAULT,
-            model=GenericResponse,
+            model=RecordResponse,
         ),
         Parameters(keyword=keyword),
         query=query,
     )
 
-    result: T_GenericResponse = await helper.get_query_response()
+    result: T_RecordResponse = await helper.get_query_response()
     if len(result.data) == 0:
         return JSONResponse([])
 
@@ -107,13 +107,13 @@ async def get_browser_feature_region(
             format=ResponseFormat.JSON,
             content=ResponseContent.FULL,
             view=ResponseView.DEFAULT,
-            model=GenericResponse,
+            model=RecordResponse,
         ),
         Parameters(id=id),
         query=IGVFeatureLookupQuery,
     )
 
-    result: T_GenericResponse = await helper.get_query_response()
+    result: T_RecordResponse = await helper.get_query_response()
 
     if len(result.data) == 0:
         return JSONResponse({})  # result.response

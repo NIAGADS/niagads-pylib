@@ -8,7 +8,7 @@ from niagads.database.models.variant.composite_attributes import (
 
 from niagads.open_access_api_common.models.core import RowModel
 from niagads.open_access_api_common.models.features.genomic import GenomicRegion
-from niagads.open_access_api_common.models.response.core import GenericResponse
+from niagads.open_access_api_common.models.response.core import RecordResponse
 from pydantic import (
     ConfigDict,
     Field,
@@ -134,9 +134,9 @@ class AnnotatedVariant(Variant):
             raise RuntimeError("Unexpected value returned for `adsp_qc` status")
 
 
-class AbridgedVariantResponse(GenericResponse):
+class AbridgedVariantResponse(RecordResponse):
     data: List[Variant]
 
 
-class VariantResponse(GenericResponse):
+class VariantResponse(RecordResponse):
     data: List[AnnotatedVariant]

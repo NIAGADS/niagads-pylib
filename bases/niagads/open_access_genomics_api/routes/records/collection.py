@@ -10,7 +10,7 @@ from niagads.open_access_api_common.models.records.track.track import (
     AbridgedTrackResponse,
     TrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import GenericResponse
+from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import collection_param
 from niagads.open_access_api_common.parameters.record.query import optional_track_param
@@ -71,7 +71,7 @@ async def get_collections(
 @router.get(
     "/{collection}",
     response_model=Union[
-        GenericResponse,
+        RecordResponse,
         AbridgedTrackResponse,
         TrackResponse,
         TableViewResponse,
@@ -94,7 +94,7 @@ async def get_collection_track_metadata(
     ),
     internal: InternalRequestParameters = Depends(),
 ) -> Union[
-    GenericResponse,
+    RecordResponse,
     AbridgedTrackResponse,
     TrackResponse,
     TableViewResponse,
@@ -113,7 +113,7 @@ async def get_collection_track_metadata(
                 else (
                     AbridgedTrackResponse
                     if rContent == ResponseContent.BRIEF
-                    else GenericResponse
+                    else RecordResponse
                 )
             ),
         ),

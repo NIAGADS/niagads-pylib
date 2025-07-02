@@ -12,7 +12,7 @@ from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
     AbridgedTrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import GenericResponse
+from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
     chromosome_param,
@@ -46,15 +46,15 @@ tags = [str(SharedOpenAPITags.ONTOLOGIES)]
 @router.get(
     "/filters",
     tags=tags,
-    response_model=Union[GenericResponse],
+    response_model=Union[RecordResponse],
     summary="get-text-search-filter-fields",
     description="List allowable fields for text search filter expressions.",
 )
 async def get_allowable_text_filters(
     internal: InternalRequestParameters = Depends(),
-) -> GenericResponse:
+) -> RecordResponse:
 
-    return GenericResponse(
+    return RecordResponse(
         data=TextSearchFilterFields.list(toLower=True), request=internal.requestData
     )
 
@@ -64,15 +64,15 @@ async def get_allowable_text_filters(
 @router.get(
     "/filters/{field}",
     tags=tags,
-    response_model=Union[GenericResponse],
+    response_model=Union[RecordResponse],
     summary="get-text-search-filter-fields",
     description="List allowable fields for text search filter expressions.",
 )
 async def get_allowable_text_filters(
     internal: InternalRequestParameters = Depends(),
-) -> GenericResponse:
+) -> RecordResponse:
 
-    return GenericResponse(
+    return RecordResponse(
         data=TextSearchFilterFields.list(toLower=True), request=internal.requestData
     )
 """

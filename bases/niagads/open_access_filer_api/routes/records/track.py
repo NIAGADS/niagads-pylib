@@ -7,7 +7,10 @@ from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
     AbridgedTrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import GenericResponse
+from niagads.open_access_api_common.models.response.core import (
+    RecordResponse,
+    ListResponse,
+)
 from niagads.open_access_api_common.parameters.location import loc_param
 from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import track_param
@@ -34,7 +37,11 @@ router = APIRouter(prefix="/record/track", tags=BASE_TAGS)
 @router.get(
     "/",
     response_model=Union[
-        TrackResponse, AbridgedTrackResponse, TableViewResponse, GenericResponse
+        TrackResponse,
+        AbridgedTrackResponse,
+        TableViewResponse,
+        RecordResponse,
+        ListResponse,
     ],
     summary="get-track-metadata-by-id-bulk",
     description="Retrieve full metadata for one or more FILER track records by identifier",
@@ -52,7 +59,7 @@ async def get_track_metadata_bulk(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[AbridgedTrackResponse, TrackResponse, TableViewResponse, GenericResponse]:
+):
 
     rContent = ResponseContent.descriptive(inclUrls=True).validate(
         content, "content", ResponseContent
@@ -69,7 +76,11 @@ async def get_track_metadata_bulk(
                 else (
                     AbridgedTrackResponse
                     if rContent == ResponseContent.BRIEF
-                    else GenericResponse
+                    else (
+                        ListResponse
+                        if rContent == ResponseContent.URLS
+                        else RecordResponse
+                    )
                 )
             ),
         ),
@@ -81,7 +92,7 @@ async def get_track_metadata_bulk(
 @router.get(
     "/{track}",
     tags=[str(SharedOpenAPITags.TRACK_RECORD)],
-    response_model=Union[AbridgedTrackResponse, TrackResponse, GenericResponse],
+    response_model=Union[AbridgedTrackResponse, TrackResponse, RecordResponse],
     summary="get-track-metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response",
 )
@@ -95,7 +106,7 @@ async def get_track_metadata(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[AbridgedTrackResponse, TrackResponse, GenericResponse]:
+) -> Union[AbridgedTrackResponse, TrackResponse, RecordResponse]:
 
     rContent = ResponseContent.descriptive().validate(
         content, "content", ResponseContent
@@ -126,7 +137,7 @@ tags = [str(SharedOpenAPITags.TRACK_DATA)]
     tags=tags,
     summary="get-track-data",
     response_model=Union[
-        BEDResponse, AbridgedTrackResponse, TableViewResponse, GenericResponse
+        BEDResponse, AbridgedTrackResponse, TableViewResponse, RecordResponse
     ],
     description="retrieve functional genomics track data from FILER in the specified region; specify `content=counts` to just retrieve a count of the number of hits in the specified region",
 )
@@ -143,7 +154,7 @@ async def get_track_data(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[BEDResponse, AbridgedTrackResponse, TableViewResponse, GenericResponse]:
+) -> Union[BEDResponse, AbridgedTrackResponse, TableViewResponse, RecordResponse]:
 
     rContent = ResponseContent.data().validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
@@ -160,7 +171,7 @@ async def get_track_data(
                 else (
                     AbridgedTrackResponse
                     if rContent == ResponseContent.BRIEF
-                    else GenericResponse
+                    else RecordResponse
                 )
             ),
         ),

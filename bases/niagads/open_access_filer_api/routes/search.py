@@ -8,7 +8,7 @@ from niagads.open_access_api_common.models.records.track.track import (
     AbridgedTrackResponse,
     TrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import GenericResponse
+from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
     chromosome_param,
@@ -45,7 +45,7 @@ tags = [str(SharedOpenAPITags.RECORD_SEARCH)]
     "/",
     tags=tags,
     response_model=Union[
-        GenericResponse,
+        RecordResponse,
         AbridgedTrackResponse,
         TrackResponse,
         TableViewResponse,
@@ -69,7 +69,7 @@ async def search_track_metadata(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[GenericResponse, AbridgedTrackResponse, TrackResponse, TableViewResponse]:
+) -> Union[RecordResponse, AbridgedTrackResponse, TrackResponse, TableViewResponse]:
 
     if filter is None and keyword is None:
         raise ValidationError(
@@ -89,7 +89,7 @@ async def search_track_metadata(
                 else (
                     AbridgedTrackResponse
                     if rContent == ResponseContent.BRIEF
-                    else GenericResponse
+                    else RecordResponse
                 )
             ),
         ),
@@ -102,7 +102,7 @@ async def search_track_metadata(
 @router.get(
     "/shard/{track}",
     tags=tags,
-    response_model=Union[TrackResponse, AbridgedTrackResponse, GenericResponse],
+    response_model=Union[TrackResponse, AbridgedTrackResponse, RecordResponse],
     summary="get-shard-metadata-beta",
     description="Some tracks are sharded by chromosome.  Use this query to find a shard-specific track given a chromosome and related track identifier.",
     include_in_schema=False,
@@ -118,7 +118,7 @@ async def get_shard(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[AbridgedTrackResponse, TrackResponse, GenericResponse]:
+) -> Union[AbridgedTrackResponse, TrackResponse, RecordResponse]:
 
     rContent = ResponseContent.descriptive(inclUrls=True).validate(
         content, "content", ResponseContent
@@ -134,7 +134,7 @@ async def get_shard(
                 else (
                     AbridgedTrackResponse
                     if rContent == ResponseContent.BRIEF
-                    else GenericResponse
+                    else RecordResponse
                 )
             ),
         ),

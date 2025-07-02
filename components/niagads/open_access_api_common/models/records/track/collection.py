@@ -1,7 +1,7 @@
 from typing import List
 
 from niagads.open_access_api_common.models.core import RowModel
-from niagads.open_access_api_common.models.response.core import GenericResponse
+from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.open_access_api_common.parameters.response import ResponseView
 from pydantic import Field
 
@@ -22,5 +22,5 @@ class Collection(RowModel):
         return self.model_dump()
 
 
-class CollectionResponse(GenericResponse):
+class CollectionResponse(RecordResponse):
     data: List[Collection]

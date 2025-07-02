@@ -10,7 +10,7 @@ from niagads.database.models.metadata.composite_attributes import (
 )
 from niagads.open_access_api_common.config.core import Settings
 from niagads.open_access_api_common.models.core import RowModel
-from niagads.open_access_api_common.models.response.core import GenericResponse
+from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
     ResponseView,
@@ -224,11 +224,11 @@ class IGVBrowserTrackMetadata(RowModel):
         return None
 
 
-class IGVBrowserTrackConfigResponse(GenericResponse):
+class IGVBrowserTrackConfigResponse(RecordResponse):
     data: List[IGVBrowserTrackConfig]
 
 
-class IGVBrowserTrackSelectorResponse(GenericResponse):
+class IGVBrowserTrackSelectorResponse(RecordResponse):
     data: Table
 
     @classmethod

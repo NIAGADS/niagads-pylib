@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, TypeVar
+from typing import List, Optional, TypeVar, Union
 
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
 from niagads.open_access_api_common.models.core import RowModel, T_RowModel
@@ -12,6 +12,29 @@ from pydantic import BaseModel, Field
 
 
 class AbstractResponse(BaseModel, ABC):
+    data: Union[list, dict]
+
+    def is_empty(self):
+        return len(self.data) == 0
+
+    request: RequestDataModel = Field(
+        description="details about the originating request"
+    )
+    pagination: Optional[PaginationDataModel] = Field(
+        default=None, description="pagination status, if the result is paged"
+    )
+    message: Optional[List[str]] = Field(
+        default=None, description="warning or info message(s) qualifying the response"
+    )
+
+    def is_paged(self):
+        return self.pagination is not None
+
+    def add_message(self, msg: str):
+        if self.message is None:
+            self.message = [msg]
+        else:
+            self.message.append(msg)
 
     @abstractmethod
     def to_text(self, inclHeader: bool = False, nullStr: str = DEFAULT_NULL_STRING):
@@ -34,24 +57,32 @@ class AbstractResponse(BaseModel, ABC):
         pass
 
 
-class GenericResponse(AbstractResponse):
+class ListResponse(AbstractResponse):
+    data: List[Union[str, int, float]]
+
+    def to_table(self, id=None, title=None):
+        raise NotImplementedError("TABLE views not available for non-tabular data.")
+
+    def to_bed(self):
+        raise NotImplementedError(
+            "BED formatted responses not available for non-tabular data."
+        )
+
+    def to_vcf(self):
+        raise NotImplementedError(
+            "VCF formatted responses not available for non-tabular data."
+        )
+
+    def to_text(self, inclHeader=False, nullStr=DEFAULT_NULL_STRING):
+        if self.is_empty():
+            return ""
+
+        return "\n".join([nullStr if v is None else str(v) for v in self.data])
+
+
+class RecordResponse(AbstractResponse):
 
     data: List[T_RowModel] = Field(description="query result")
-    request: RequestDataModel = Field(
-        description="details about the originating request"
-    )
-    pagination: Optional[PaginationDataModel] = Field(
-        default=None, description="pagination status, if the result is paged"
-    )
-    message: Optional[List[str]] = Field(
-        default=None, description="warning or info message(s) qualifying the response"
-    )
-
-    def is_empty(self):
-        return len(self.data) == 0
-
-    def is_paged(self):
-        return self.pagination is not None
 
     @classmethod
     def row_model(cls, name=False):
@@ -66,12 +97,6 @@ class GenericResponse(AbstractResponse):
             rowType = rowType
 
         return rowType.__name__ if name == True else rowType
-
-    def add_message(self, msg: str):
-        if self.message is None:
-            self.message = [msg]
-        else:
-            self.message.append(msg)
 
     # START abstract methods
 
@@ -140,4 +165,5 @@ class GenericResponse(AbstractResponse):
 
 
 # possibly allows you to set a type hint to a class and all its subclasses
-T_GenericResponse = TypeVar("T_GenericResponse", bound=GenericResponse)
+T_RecordResponse = TypeVar("T_RecordResponse", bound=RecordResponse)
+T_Response = TypeVar("T_Response", bound=AbstractResponse)
