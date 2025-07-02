@@ -8,7 +8,7 @@ from niagads.database.models.metadata.composite_attributes import (
     Phenotype,
     Provenance,
 )
-from niagads.open_access_api_common.models.records.core import DynamicRowModel, RowModel
+from niagads.open_access_api_common.models.core import DynamicRowModel, RowModel
 from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,

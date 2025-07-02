@@ -1,4 +1,4 @@
-from niagads.open_access_api_common.models.core import Entity
+from niagads.open_access_api_common.models.records.core import Entity
 from niagads.open_access_api_common.models.query import QueryDefinition
 
 GO_ASSOCIATION_CTE = """

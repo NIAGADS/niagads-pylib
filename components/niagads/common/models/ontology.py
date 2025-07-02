@@ -1,7 +1,6 @@
 from typing import Optional
 
 from niagads.common.models.core import TransformableModel
-from niagads.common.models.views.table import TableRow
 from pydantic import Field
 
 

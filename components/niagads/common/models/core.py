@@ -1,9 +1,10 @@
+from abc import ABC, abstractmethod
 from typing import Any, List, TypeVar
+
 from niagads.common.models.views.table import TableRow
 from niagads.utils.dict import prune
 from niagads.utils.string import dict_to_info_string
 from pydantic import BaseModel, ConfigDict, model_serializer
-from abc import ABC, abstractmethod
 
 
 class NullFreeModel(BaseModel):

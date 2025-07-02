@@ -9,7 +9,6 @@ from niagads.open_access_api_common.models.records.track.igvbrowser import (
     IGVBrowserTrackSelectorResponse,
 )
 
-from niagads.open_access_api_common.models.views.table.core import TableViewModel
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
 )
@@ -26,6 +25,7 @@ from niagads.open_access_api_common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
+from niagads.open_access_api_common.views.table import TableViewResponse
 from niagads.open_access_filer_api.dependencies import InternalRequestParameters
 from niagads.open_access_filer_api.documentation import BASE_TAGS
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
@@ -83,7 +83,7 @@ async def get_track_browser_config_bulk(
 @router.get(
     "/igvbrowser/selector",
     tags=tags,
-    response_model=TableViewModel,
+    response_model=TableViewResponse,
     summary="get-genome-browser-track-selector-table-definition",
     description="retrieve NIAGADS Genome Browser track selector table for one or more FILER `track`(s) by ID or collection",
 )
@@ -94,7 +94,7 @@ async def get_track_selector(
     collection: str = Depends(optional_collection_param),
     # keyword: str = Depends(keyword_param),
     internal: InternalRequestParameters = Depends(),
-) -> TableViewModel:
+) -> TableViewResponse:
 
     helper = FILERRouteHelper(
         internal,

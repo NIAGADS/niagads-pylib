@@ -5,7 +5,8 @@ FIXME: remove front end rendering and place in configuration JSON
 
 from enum import StrEnum, auto
 from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, ConfigDict, model_serializer, model_validator
+
+from pydantic import BaseModel, ConfigDict, model_serializer
 
 
 class TableCellType(StrEnum):
@@ -62,6 +63,6 @@ class TableColumn(BaseModel):
     type: Optional[TableCellType] = TableCellType.ABSTRACT
 
 
-class Table(BaseModel):
+class BaseTable(BaseModel):
     data: List[TableRow]
     columns: List[TableColumn]

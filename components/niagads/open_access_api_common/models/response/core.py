@@ -2,12 +2,12 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, TypeVar
 
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
-from niagads.open_access_api_common.models.records.core import RowModel, T_RowModel
+from niagads.open_access_api_common.models.core import RowModel, T_RowModel
 from niagads.open_access_api_common.models.response.pagination import (
     PaginationDataModel,
 )
 from niagads.open_access_api_common.models.response.request import RequestDataModel
-from niagads.open_access_api_common.models.views.table.core import TableViewModel
+from niagads.open_access_api_common.views.table import Table
 from pydantic import BaseModel, Field
 
 
@@ -90,7 +90,7 @@ class GenericResponse(AbstractResponse):
                 table.update({"title", title})
             if id is not None:
                 table.update({"id": id})
-            return TableViewModel(**table)
+            return Table(**table)
 
     def to_vcf(self, inclHeader=False):
         raise NotImplementedError(

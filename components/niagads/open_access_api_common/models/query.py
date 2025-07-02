@@ -1,5 +1,5 @@
 from typing import Any, List, Optional
-from niagads.open_access_api_common.models.core import Entity
+from niagads.open_access_api_common.models.records.core import Entity
 from pydantic import BaseModel
 
 

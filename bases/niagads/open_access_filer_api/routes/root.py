@@ -10,7 +10,7 @@ from niagads.open_access_api_common.models.records.route import (
 )
 from niagads.open_access_api_common.models.response.core import GenericResponse
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
-from niagads.open_access_api_common.models.core import Entity
+from niagads.open_access_api_common.models.records.core import Entity
 from niagads.open_access_filer_api.dependencies import (
     TRACK_DATA_STORES,
     InternalRequestParameters,
