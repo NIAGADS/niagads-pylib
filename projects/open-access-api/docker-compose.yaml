@@ -26,7 +26,7 @@ services:
           API_VERSION: ${API_VERSION}
           APP_MODULE: ${APP_MODULE}
       ports:
-        - '${HOST_SERIVCE_PORT}:8000'
+        - '${HOST_SERVICE_PORT}:8000'
 
       # network_mode: bridge
       # networks:
