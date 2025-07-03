@@ -156,7 +156,7 @@ class Provenance(TransformableModel):
             k: (
                 self._list_to_string(list(v), delimiter=delimiter)
                 if isinstance(v, set)
-                else str(v)
+                else str(v) if v is not None else v
             )
             for k, v in super()._flat_dump(nullFree=nullFree).items()
         }

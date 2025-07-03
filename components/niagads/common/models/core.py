@@ -67,7 +67,7 @@ class TransformableModel(AbstractTransformableModel):
 
     def as_table_row(self, **kwargs):
         obj = self._flat_dump(delimiter=" // ")
-        row = {k: getattr(obj, k) for k in self.table_fields(asStr=True)}
+        row = {k: obj.get(k, "NA") for k in self.table_fields(asStr=True)}
         return TableRow(**row)
 
     def table_fields(self, asStr: bool = False, **kwargs):

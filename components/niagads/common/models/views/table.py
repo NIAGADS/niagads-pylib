@@ -52,7 +52,7 @@ class TableCell(BaseModel):
 
 
 class TableRow(BaseModel):
-    __pydantic_extra__: Dict[str, Union[TableCell, str, int, float, bool]]
+    __pydantic_extra__: Dict[str, Optional[Union[TableCell, str, int, float, bool]]]
     model_config = ConfigDict(extra="allow")
 
     def update(self, attribute: str, value: Any):
