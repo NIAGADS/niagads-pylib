@@ -6,7 +6,7 @@ services:
     container_name: oaa-cachedb-${NAMESPACE}
     restart: always
     ports:
-      - ${KEYDB_PORT}:6379
+      - ${HOST_KEYDB_PORT}:6379
     # the bind 0.0.0.0 and protected-mode no allow it to be accessed by the host machine
     # need to re-evaluate for production deployment
     # note: multi-master requires active replication
@@ -26,7 +26,7 @@ services:
           API_VERSION: ${API_VERSION}
           APP_MODULE: ${APP_MODULE}
       ports:
-        - '${API_PORT}:8000'
+        - '${HOST_SERIVCE_PORT}:8000'
 
       # network_mode: bridge
       # networks:
