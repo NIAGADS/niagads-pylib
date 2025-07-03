@@ -1,10 +1,12 @@
+import json
 from typing import List, Optional, Set, Union
 
 from niagads.common.constants.external_resources import ThirdPartyResources
 from niagads.common.constants.ontologies import BiosampleType
 from niagads.common.models.ontology import OntologyTerm
+from niagads.common.models.views.table import TableRow
 from niagads.common.types import T_PubMedID
-from niagads.database.models.core import CompositeAttributeModel
+from niagads.database.models.core import TransformableModel
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import dict_to_info_string, matches
 from pydantic import (
@@ -12,11 +14,10 @@ from pydantic import (
     computed_field,
     field_serializer,
     field_validator,
-    model_serializer,
 )
 
 
-class ExperimentalDesign(CompositeAttributeModel):
+class ExperimentalDesign(TransformableModel):
     antibody_target: Optional[str] = Field(default=None, title="Antibody Target")
     assay: Optional[str] = Field(default=None, title="Assay")
     analysis: Optional[str] = Field(default=None, title="Analysis")
@@ -30,18 +31,32 @@ class ExperimentalDesign(CompositeAttributeModel):
     )
     covariates: Optional[List[str]] = Field(default=None, title="Covariates")
 
+    def __str__(self):
+        return self.as_info_string()
 
-class PhenotypeCount(CompositeAttributeModel):
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = super()._flat_dump(nullFree)
+        if self.covariates is not None:
+            obj["covarites"] = self._list_to_string(
+                self.covariates, delimiter=delimiter
+            )
+        return super()._flat_dump(nullFree)
+
+
+class PhenotypeCount(TransformableModel):
     phenotype: Optional[OntologyTerm] = None
     num_cases: int
     num_controls: Optional[int] = None
+
+    def __str__(self):
+        return self.as_info_string()
 
     @field_serializer("phenotype")
     def serialize_phenotype(self, phenotype: Optional[OntologyTerm], _info):
         return str(self.phenotype) if self.phenotype is not None else None
 
 
-class Phenotype(CompositeAttributeModel):
+class Phenotype(TransformableModel):
     disease: Optional[List[OntologyTerm]] = Field(default=None, title="Disease")
     ethnicity: Optional[List[OntologyTerm]] = Field(default=None, title="Ethnicity")
     race: Optional[List[OntologyTerm]] = Field(default=None, title="Race")
@@ -62,26 +77,23 @@ class Phenotype(CompositeAttributeModel):
         description="number of cases and controls",
     )
 
-    @model_serializer()
-    def serialize_model(self, listsAsStrings: bool = False):
-        obj = {}
-        for attr, value in self.__dict__.items():
-            if value is not None:
-                if attr == "study_diagnosis":
-                    obj[attr] = [sd.model_dump() for sd in value]
-                elif isinstance(value, list):
-                    terms = [str(term) for term in value]
-                    if listsAsStrings:
-                        obj[attr] = "|".join(terms)
-                    else:
-                        obj[attr] = terms
-                else:
-                    obj[attr] = str(value)
-
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = {
+            k: self._list_to_string(v, delimiter=delimiter)
+            for k, v in super()._flat_dump(nullFree=nullFree)
+        }
         return obj
 
+    def as_table_row(self, **kwargs):
+        row = super().as_table_row(**kwargs)
+        if self.study_diagnosis is not None:
+            row.update(
+                "study_diagnosis",
+                {"value": json.dumps([d.model_dump() for d in self.study_diagnosis])},
+            )
 
-class BiosampleCharacteristics(CompositeAttributeModel):
+
+class BiosampleCharacteristics(TransformableModel):
     system: Optional[List[str]] = Field(
         default=None, title="Biosample: Anatomical System"
     )
@@ -102,9 +114,24 @@ class BiosampleCharacteristics(CompositeAttributeModel):
         description="donor or sample life stage",
     )
 
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = {
+            k: (
+                self._list_to_string(v, delimiter=delimiter)
+                if isinstance(v, list) and k != "biosample"
+                else v
+            )
+            for k, v in super()._flat_dump(nullFree=nullFree).items()
+        }
+        if self.biosample is not None:
+            # have to redo b/c its been serialized above
+            obj["biosample"] = self._list_to_string(self.biosample, delimiter=delimiter)
+
+        return obj
+
 
 # TODO: document provenance and file properties
-class Provenance(CompositeAttributeModel):
+class Provenance(TransformableModel):
     data_source: str = Field(
         title="Data Source", description="original file data source"
     )
@@ -112,7 +139,7 @@ class Provenance(CompositeAttributeModel):
     release_version: Optional[str] = None
     release_date: Optional[str] = None
     download_date: Optional[str] = None
-    download_url: Optional[str] = None
+    download_url: Optional[str] = Field(exclude=True)
 
     study: Optional[str] = None
     project: Optional[str] = None
@@ -123,6 +150,17 @@ class Provenance(CompositeAttributeModel):
 
     consortium: Optional[Set[str]] = None
     attribution: Optional[str] = None
+
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = {
+            k: (
+                self._list_to_string(list(v), delimiter=delimiter)
+                if isinstance(v, set)
+                else str(v)
+            )
+            for k, v in super()._flat_dump(nullFree=nullFree).items()
+        }
+        return obj
 
     @field_validator("doi", mode="after")
     def validate_doi(cls, values: Set[str]):
@@ -139,19 +177,19 @@ class Provenance(CompositeAttributeModel):
     @property
     def data_source_url(self) -> str:
         dsKey = (
-            self.data_source + "|" + self.data_source_version
-            if self.data_source_version is not None
+            f"{self.data_source}|{self.release_version}"
+            if self.release_version is not None
             else self.data_source
         )
         try:
-            return ThirdPartyResources(dsKey).value
+            return ThirdPartyResources[dsKey].value
         except:
             raise ValueError(
                 f"Data source URL not found for {dsKey}. Please add to external_resources.ThirdParty."
             )
 
 
-class FileProperties(CompositeAttributeModel):
+class FileProperties(TransformableModel):
     file_name: Optional[str] = None
     url: Optional[str] = None
     md5sum: Optional[str] = Field(pattern=RegularExpressions.MD5SUM, default=None)
@@ -162,4 +200,4 @@ class FileProperties(CompositeAttributeModel):
 
     file_format: Optional[str] = None
     file_schema: Optional[str] = None
-    release_date: Optional[str] = None
+    release_date: Optional[str] = Field(exclude=True)

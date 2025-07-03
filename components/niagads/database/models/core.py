@@ -10,21 +10,3 @@ class ModelDumpMixin(object):
         return {
             column.name: getattr(self, column.name) for column in self.__table__.columns
         }
-
-
-class CompositeAttributeModel(TransformableModel):
-    @model_serializer()
-    def serialize_model(self, listsAsStrings: bool = False):
-        if listsAsStrings:
-            raise NotImplementedError(
-                f"This is an abstract method; please implement a custom model serializer in the child class."
-                f"See metadata.composite_attributes.Phenotype for an example."
-            )
-        return self.model_dump()
-
-    def as_info_string(self):
-        obj = self.serialize_model(listsAsStrings=True)
-        return dict_to_info_string(obj)
-
-    def serialize_as_table(self):
-        return super().serialize_as_table()

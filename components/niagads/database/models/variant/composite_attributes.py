@@ -1,6 +1,6 @@
 from enum import auto
 from typing import List, Optional
-from niagads.database.models.core import CompositeAttributeModel
+from niagads.database.models.core import TransformableModel
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import ConfigDict, Field, computed_field, field_validator, model_validator
 
@@ -26,7 +26,7 @@ class ConsequenceImpact(CaseInsensitiveEnum):
                 raise ValueError(f"Invalid consequence impact: {str(self)}")
 
 
-class QCStatus(CompositeAttributeModel):
+class QCStatus(TransformableModel):
     status_code: str = Field(
         title="QC Status Code",
         description="specific QC status indicator; may vary with ADSP release",
@@ -47,7 +47,7 @@ class QCStatus(CompositeAttributeModel):
     # format: Optional[str]
 
 
-class CADDScore(CompositeAttributeModel):
+class CADDScore(TransformableModel):
     CADD_phred: float = Field(
         serialization_alias="phred",
         alias_priority=2,
@@ -65,7 +65,7 @@ class CADDScore(CompositeAttributeModel):
     )
 
 
-class PredictedConsequence(CompositeAttributeModel):
+class PredictedConsequence(TransformableModel):
     consequence: List[str]
     impact: ConsequenceImpact
     is_coding: Optional[bool] = Field(default=False, serialization_alias="is_coding")
@@ -95,7 +95,7 @@ class PredictedConsequence(CompositeAttributeModel):
         )
 
 
-class RankedConsequences(CompositeAttributeModel):
+class RankedConsequences(TransformableModel):
     transcript_consequences: List[dict] = Field(
         default=None, serialization_alias="transcript"
     )

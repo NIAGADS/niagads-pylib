@@ -1,5 +1,6 @@
 from typing import List
 
+from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
 from niagads.open_access_api_common.models.records.core import Entity
 from niagads.open_access_api_common.models.core import RowModel
 from niagads.open_access_api_common.models.response.core import RecordResponse
@@ -22,7 +23,7 @@ class RecordSearchResult(RowModel):
 class RecordSearchResultResponse(RecordResponse):
     data: List[RecordSearchResult]
 
-    def to_text(self, inclHeader=False, nullStr=...):
+    def to_text(self, inclHeader=False, nullStr=DEFAULT_NULL_STRING):
         raise NotImplementedError(
             "TEXT formatted output not available for a search result response."
         )

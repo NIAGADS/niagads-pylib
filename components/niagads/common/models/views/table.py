@@ -55,6 +55,9 @@ class TableRow(BaseModel):
     __pydantic_extra__: Dict[str, Union[TableCell, str, int, float, bool]]
     model_config = ConfigDict(extra="allow")
 
+    def update(self, attribute: str, value: Any):
+        self.model_extra[attribute] = value
+
 
 # FIXME: get columns and options from config files
 class TableColumn(BaseModel):

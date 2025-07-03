@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional, Self
 
 from niagads.common.models.core import TransformableModel
 from pydantic import Field

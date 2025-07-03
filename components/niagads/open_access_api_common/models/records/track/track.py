@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Self, Union
 
-from niagads.common.models.ontology import OntologyTerm
+from niagads.common.models.core import T_TransformableModel, TransformableModel
 from niagads.database.models.metadata.composite_attributes import (
     BiosampleCharacteristics,
     ExperimentalDesign,
@@ -8,14 +8,25 @@ from niagads.database.models.metadata.composite_attributes import (
     Phenotype,
     Provenance,
 )
-from niagads.open_access_api_common.models.core import DynamicRowModel, RowModel
+from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
+from niagads.open_access_api_common.models.core import (
+    ORMCompatibleDynamicRowModel,
+    ORMCompatibleRowModel,
+)
 from niagads.open_access_api_common.models.response.core import RecordResponse
-
 from niagads.utils.dict import promote_nested
 from pydantic import ConfigDict, Field, model_validator
 
+COMPOSITE_ATTRIBUTES: Dict[str, T_TransformableModel] = {
+    "biosample_characteristics": BiosampleCharacteristics,
+    "subject_phenotypes": Phenotype,
+    "experimental_design": ExperimentalDesign,
+    "provenance": Provenance,
+    "file_properties": FileProperties,
+}
 
-class AbridgedTrack(DynamicRowModel):
+
+class AbridgedTrack(ORMCompatibleDynamicRowModel):
     track_id: str = Field(title="Track", serialization_alias="id")
     name: str = Field(title="Name")
     description: Optional[str] = Field(default=None, title="Description")
@@ -30,6 +41,7 @@ class AbridgedTrack(DynamicRowModel):
         default=False,
         title="Is Shard?",
         description="Flag indicateing whether track is part of a result set sharded by chromosome.",
+        exclude=True,
     )
     data_source: Optional[str] = Field(
         default=None,
@@ -82,7 +94,7 @@ class AbridgedTrack(DynamicRowModel):
         }
 
 
-class Track(RowModel):
+class Track(ORMCompatibleRowModel):
     track_id: str = Field(title="Track", serialization_alias="id")
     name: str = Field(title="Name")
     description: Optional[str] = Field(default=None, title="Description")
@@ -95,6 +107,7 @@ class Track(RowModel):
     is_shard: Optional[bool] = Field(
         title="Is Shard?",
         description="Flag indicateing whether track is part of a result set sharded by chromosome.",
+        exclude=True,
     )
     # FIXME: exclude cohorts until parsing resolved for FILER
     cohorts: Optional[List[str]] = Field(title="Cohorts")
@@ -104,23 +117,43 @@ class Track(RowModel):
     provenance: Optional[Provenance]
     file_properties: Optional[FileProperties]
 
-    # should allow to fill from SQLAlchemy ORM model
-    model_config = ConfigDict(from_attributes=True)
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = super()._flat_dump(nullFree, delimiter)
+        for field, value in self:
+            if field in COMPOSITE_ATTRIBUTES.keys():
+                del obj[field]
+                if value is not None:
+                    obj.update(value._flat_dump())
+                else:
+                    # create dict of {key: None}
+                    obj.update(
+                        {
+                            k: None
+                            for k in COMPOSITE_ATTRIBUTES[field].get_model_fields(
+                                asStr=True
+                            )
+                        }
+                    )
 
-    def table_fields(self, asStr=False, **kwargs):
-        return super().table_fields(asStr, **kwargs)
+        return obj
 
-    def as_info_string(self):
-        return super().as_info_string()
+    @classmethod
+    def get_model_fields(cls, asStr=False):
+        fields = super().get_model_fields()
+        model: T_TransformableModel
+        for fieldId, model in COMPOSITE_ATTRIBUTES.items():
+            fields.update(model.get_model_fields())
 
-    def as_list(self, fields=None):
-        return super().as_list(fields)
+        for fieldId in COMPOSITE_ATTRIBUTES.keys():
+            del fields[fieldId]
+
+        return list(fields.keys()) if asStr else fields
 
     def as_table_row(self, **kwargs):
         return super().as_table_row(**kwargs)
 
 
-class TrackResultSize(RowModel):
+class TrackResultSize(ORMCompatibleRowModel):
     track_id: str = Field(title="Track ID", serialization_alias="id")
     num_results: int = Field(
         title="Num. Results",
@@ -146,3 +179,25 @@ class TrackResponse(RecordResponse):
     data: List[Track] = Field(
         description="Full metadata for each track meeting the query criteria."
     )
+
+    def to_text(self, inclHeader=False, nullStr=DEFAULT_NULL_STRING):
+        if self.is_empty():
+            if inclHeader:
+                return self._get_empty_header()
+            else:
+                return ""
+
+        else:
+            fields = self.data[0].get_fields(asStr=True)
+            rows = []
+            for r in self.data:
+                if isinstance(r, str):
+                    rows.append(r)
+                else:
+                    # pass fields to ensure consistent ordering
+                    rows.append(r.as_text(fields=fields, nullStr=nullStr))
+
+            responseStr = "\t".join(fields) + "\n" if inclHeader else ""
+            responseStr += "\n".join(rows)
+
+        return responseStr

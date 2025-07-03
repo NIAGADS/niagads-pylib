@@ -46,19 +46,28 @@ class TransformableModel(AbstractTransformableModel):
     def null_free_dump(self):
         return prune(self.model_dump(), removeNulls=True)
 
+    @staticmethod
+    def _list_to_string(arr: list, delimiter="|"):
+        return delimiter.join([str(a) for a in arr]) if arr is not None else None
+
+    def _flat_dump(self, nullFree: bool = False, delimiter="|"):
+        """function for creating a flat dump; i.e., remove nesting"""
+        return self.null_free_dump() if nullFree else self.model_dump()
+
     # abstract method overrides
 
     def as_info_string(self):
-        return dict_to_info_string(self.null_free_dump())
+        return dict_to_info_string(self._flat_dump(nullFree=True))
 
     def as_list(self, fields=None):
         if fields is None:
-            return list(self.model_dump().values())
+            return list(self._flat_dump().values())
         else:
-            return [v for k, v in self.model_dump().items() if k in fields]
+            return [v for k, v in self._flat_dump().items() if k in fields]
 
     def as_table_row(self, **kwargs):
-        row = {k: getattr(self, k) for k in self.table_fields(asStr=True)}
+        obj = self._flat_dump(delimiter=" // ")
+        row = {k: getattr(obj, k) for k in self.table_fields(asStr=True)}
         return TableRow(**row)
 
     def table_fields(self, asStr: bool = False, **kwargs):
@@ -68,38 +77,23 @@ class TransformableModel(AbstractTransformableModel):
     # when relevant
     def get_fields(self, asStr: bool = False):
         """get model fields either as name: FieldInfo pairs or as a list of names if asStr is True"""
-
-        # need to retrieve serialization alias if present
-        # b/c fields will be mapped against a model_dump
-        return (
-            list(
-                [
-                    (
-                        v.serialization_alias
-                        if getattr(v, "serialization_alias", None) is not None
-                        else k
-                    )
-                    for k, v in self.__class__.model_fields.items()
-                ]
-            )
-            if asStr
-            else self.__class__.model_fields
-        )
+        return self.get_model_fields(asStr)
 
     @classmethod
-    def get_model_fields(self, asStr: bool = False):
+    def get_model_fields(cls, asStr: bool = False):
         """classmethod for getting model fields either as name: FieldInfo pairs or as a list of names if asStr is True"""
         return (
             [
-                (
-                    v.serialization_alias
-                    if getattr(v, "serialization_alias", None) is not None
-                    else k
-                )
-                for k, v in self.model_fields.items()
+                (v.serialization_alias if v.serialization_alias is not None else k)
+                for k, v in cls.model_fields.items()
+                if not v.exclude
             ]
             if asStr
-            else self.model_fields
+            else {
+                v.serialization_alias if v.serialization_alias is not None else k: v
+                for k, v in cls.model_fields.items()
+                if not v.exclude
+            }
         )
 
     def __str__(self):

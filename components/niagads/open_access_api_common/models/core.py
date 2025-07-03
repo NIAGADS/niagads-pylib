@@ -73,6 +73,11 @@ class RowModel(TransformableModel):
 T_RowModel = TypeVar("T_RowModel", bound=RowModel)
 
 
+class ORMCompatibleRowModel(RowModel):
+    # should allow to fill from SQLAlchemy ORM model
+    model_config = ConfigDict(from_attributes=True)
+
+
 class DynamicRowModel(RowModel):
     """A row model that allows for extra, unknown fields."""
 
@@ -97,3 +102,8 @@ class DynamicRowModel(RowModel):
                 fields.update(extras)
 
         return fields
+
+
+class ORMCompatibleDynamicRowModel(DynamicRowModel):
+    # should allow to fill from SQLAlchemy ORM model
+    model_config = ConfigDict(from_attributes=True)
