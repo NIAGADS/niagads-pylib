@@ -24,7 +24,10 @@ from niagads.open_access_genomics_api.queries.search import (
     SearchType,
     SiteSearchQuery,
 )
-from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
+from niagads.open_access_genomics_api.services.route import (
+    GenomicsRouteHelper,
+    QueryOptions,
+)
 
 
 router = APIRouter(prefix="/service", tags=BASE_TAGS)
@@ -51,17 +54,6 @@ async def site_search(
 
     query = SiteSearchQuery(searchType=searchType)
 
-    test = {
-        "primary_key": "ENSG00000130203",
-        "display": "APOE",
-        "record_type": "gene",
-        "match_rank": 0,
-        "matched_term": "APOE",
-        "description": "Gene // protein coding // apolipoprotein E // Also Known As: AD2 // Location: 19q13.32",
-    }
-
-    x = RecordSearchResult(**test)
-
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
@@ -74,11 +66,7 @@ async def site_search(
         query=query,
     )
 
-    result: T_RecordResponse = await helper.get_query_response()
-    if len(result.data) == 0:
-        return JSONResponse([])
-
-    return result.data
+    return await helper.get_query_response(opts=QueryOptions(rawResponse=True))
 
 
 tags = [str(SharedOpenAPITags.GENOME_BROWSER)]

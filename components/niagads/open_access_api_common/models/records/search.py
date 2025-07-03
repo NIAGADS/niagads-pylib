@@ -2,12 +2,12 @@ from typing import List
 
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
 from niagads.open_access_api_common.models.records.core import Entity
-from niagads.open_access_api_common.models.core import RowModel
+from niagads.open_access_api_common.models.core import ORMCompatibleRowModel, RowModel
 from niagads.open_access_api_common.models.response.core import RecordResponse
 from pydantic import Field
 
 
-class RecordSearchResult(RowModel):
+class RecordSearchResult(ORMCompatibleRowModel):
     primary_key: str = Field(
         serialization_alias="id",
         title="Record ID",
