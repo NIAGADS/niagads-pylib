@@ -53,15 +53,20 @@ class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
             endpoint + "?" + parameters.replace(":", "_")
         )  # ':' delimitates keys in keydb
 
-        # endpoints are /version/route; namespace should be the route
-        namespace = (
-            "root" if request.url.path == "/" else request.url.path.split("/")[1]
-        )
+        namespace = cls.__get_namespace_from_path(request.url.path)
+        return cls(key=rawKey, namespace=namespace)
 
-        if matches(r"v\d", namespace):
-            namespace = "root"
+    @staticmethod
+    def __get_namespace_from_path(path: str):
+        # endpoints are /, /version/namespace/route /version /version/route
+        elements = path.split("/")
+        for el in elements:
+            try:
+                return CacheNamespace(el)
+            except ValueError:
+                continue
 
-        return cls(key=rawKey, namespace=CacheNamespace(namespace))
+        return CacheNamespace("root")
 
     def encrypt(self):
         return self.encrypt_key(self.key)

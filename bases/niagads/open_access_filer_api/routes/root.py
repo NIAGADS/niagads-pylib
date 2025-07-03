@@ -47,7 +47,7 @@ async def get_database_description(
         pubmed_id=PUBMED_IDS,
         records=[RecordSummary(entity=Entity.TRACK, num_records=trackCount)],
     )
-    return RecordResponse(data=result, request=internal.requestData)
+    return RecordResponse(data=[result], request=internal.requestData)
 
 
 @router.get(

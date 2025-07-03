@@ -35,12 +35,12 @@ class ExperimentalDesign(TransformableModel):
         return self.as_info_string()
 
     def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree)
+        obj = super()._flat_dump(nullFree, delimiter=delimiter)
         if self.covariates is not None:
             obj["covarites"] = self._list_to_string(
                 self.covariates, delimiter=delimiter
             )
-        return super()._flat_dump(nullFree)
+        return obj
 
 
 class PhenotypeCount(TransformableModel):

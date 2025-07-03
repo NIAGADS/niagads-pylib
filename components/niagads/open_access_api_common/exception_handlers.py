@@ -65,9 +65,7 @@ def add_not_implemented_exception_handler(app: FastAPI) -> None:
     ):
         return JSONResponse(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            content=jsonable_encoder(
-                {"error": str(exc), "message": "Not yet implemented"}
-            ),
+            content=jsonable_encoder({"detail": str(exc)}),
         )
 
 

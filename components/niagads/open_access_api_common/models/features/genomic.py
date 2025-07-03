@@ -21,10 +21,10 @@ class GenomicRegion(RowModel, Range):
     length: Optional[int] = (
         None  # TODO -> calc length based on range if not set explicitly
     )
-    strand: Optional[Strand] = None
+    strand: Optional[Strand] = Strand.SENSE
 
-    # so that strand does not get returned if missing
-    model_config = ConfigDict(exclude_none=True)
+    def as_info_string(self):
+        raise NotImplementedError("TODO when required")
 
     @field_serializer("chromosome")
     def serialize_chromosome(self, chromosome: Human, _info):

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, TypeVar, Union
+from typing import Dict, List, Optional, TypeVar, Union
 
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
 from niagads.open_access_api_common.models.core import RowModel, T_RowModel
@@ -57,11 +57,27 @@ class AbstractResponse(BaseModel, ABC):
         pass
 
 
+class MessageResponse(AbstractResponse):
+    data: dict = None
+
+    def to_text(self, inclHeader=False, nullStr=DEFAULT_NULL_STRING):
+        raise NotImplementedError("Not implemented for messages")
+
+    def to_bed(self):
+        raise NotImplementedError("Not implemented for messages")
+
+    def to_table(self, id=None, title=None):
+        raise NotImplementedError("Not implemented for messages")
+
+    def to_vcf(self):
+        raise NotImplementedError("Not implemented for messages")
+
+
 class ListResponse(AbstractResponse):
     data: List[Union[str, int, float]]
 
     def to_table(self, id=None, title=None):
-        raise NotImplementedError("TABLE views not available for non-tabular data.")
+        raise NotImplementedError("Table views not available for non-tabular data.")
 
     def to_bed(self):
         raise NotImplementedError(
