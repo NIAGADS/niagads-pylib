@@ -1,13 +1,13 @@
 from typing import List, Optional
 
 from fastapi import HTTPException
-from niagads.database.models.metadata.collection import Collection, TrackCollection
-from niagads.database.models.metadata.composite_attributes import (
+from niagads.database.schemas.dataset.collection import Collection, TrackCollection
+from niagads.database.schemas.dataset.composite_attributes import (
     ExperimentalDesign,
     Phenotype,
     Provenance,
 )
-from niagads.database.models.metadata.track import Track, TrackDataStore
+from niagads.database.schemas.dataset.track import Track, TrackDataStore
 from niagads.open_access_api_common.config.constants import SHARD_PATTERN
 from niagads.open_access_api_common.models.response.request import RequestDataModel
 from niagads.open_access_api_common.parameters.expression_filter import Triple

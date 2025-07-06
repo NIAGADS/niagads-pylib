@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import HTTPException
 from niagads.common.models.structures import Range
-from niagads.database.models.metadata.track import Track, TrackDataStore
+from niagads.database.schemas.dataset.track import Track, TrackDataStore
 from niagads.exceptions.core import ValidationError
 from niagads.open_access_api_common.models.features.feature_score import (
     GWASSumStatResponse,

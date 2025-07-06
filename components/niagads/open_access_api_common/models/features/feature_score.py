@@ -1,5 +1,5 @@
 from niagads.common.models.views.table import TableColumn
-from niagads.database.models.variant.composite_attributes import PredictedConsequence
+from niagads.database.schemas.variant.composite_attributes import PredictedConsequence
 from niagads.genome.core import Human
 from niagads.open_access_api_common.models.core import RowModel
 from niagads.open_access_api_common.models.features.gene import GeneFeature

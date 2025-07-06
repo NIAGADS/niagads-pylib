@@ -1,4 +1,4 @@
-from niagads.database.models.metadata.track import Track
+from niagads.database.schemas.dataset.track import Track
 
 
 __all__ = [

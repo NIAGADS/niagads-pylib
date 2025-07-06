@@ -1,7 +1,7 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-from niagads.database.models.metadata.track import TrackDataStore
+from niagads.database.schemas.dataset.track import TrackDataStore
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.track.collection import (
     CollectionResponse,

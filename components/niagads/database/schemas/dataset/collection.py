@@ -37,7 +37,7 @@ class Collection(ModelDumpMixin, DatasetSchemaBase):
     data_store: str = Column(Enum(TrackDataStore, native_enum=False), nullable=False)
 
 
-class TrackCollection(MetadataSchemaBase):
+class TrackCollection(DatasetSchemaBase):
     __tablename__ = "trackcollectionlink"
     __table_args__ = (
         Index(

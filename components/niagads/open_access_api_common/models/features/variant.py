@@ -1,5 +1,5 @@
 from typing import List, Optional
-from niagads.database.models.variant.composite_attributes import (
+from niagads.database.schemas.variant.composite_attributes import (
     CADDScore,
     PredictedConsequence,
     QCStatus,
