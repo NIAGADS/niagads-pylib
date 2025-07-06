@@ -2,7 +2,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
 
-class MetadataSchemaBase(DeclarativeBase):
+class DatasetSchemaBase(DeclarativeBase):
     """base class for the `Metadata` database models"""
 
-    metadata = MetaData(schema="metadata")
+    metadata = MetaData(schema="dataset")

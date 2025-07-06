@@ -1,8 +1,8 @@
 from enum import auto
 from typing import List, Optional
-from niagads.database.models.core import TransformableModel
+from niagads.common.models.core import TransformableModel
 from niagads.enums.core import CaseInsensitiveEnum
-from pydantic import ConfigDict, Field, computed_field, field_validator, model_validator
+from pydantic import Field
 
 
 class ConsequenceImpact(CaseInsensitiveEnum):

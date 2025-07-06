@@ -1,5 +1,4 @@
 # this set up is necessary for Alembic to import all the models associated with the metadata schema
 # see https://stackoverflow.com/a/77767002
 
-from niagads.database.models.index.base import IndexSchemaBase
-from niagads.database.models.index.dataset_interval import DatasetInterval
+from niagads.database.schemas.core.base import CoreSchemaBase

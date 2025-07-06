@@ -89,7 +89,7 @@ async def get_gene(
 
 
 @router.get(
-    "/{gene}/{attribute}",
+    "/{gene}/associations",
     response_model=Union[RecordResponse, TableViewResponse],
     name="Get specific attributes only",
     description="retrieve an annotated gene",

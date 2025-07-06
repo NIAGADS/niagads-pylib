@@ -3,15 +3,15 @@
 from enum import auto
 from typing import List, Optional
 
-from niagads.database.models.core import ModelDumpMixin
-from niagads.database.models.metadata.base import MetadataSchemaBase
-from niagads.database.models.metadata.composite_attributes import (
+from niagads.database.core import ModelDumpMixin
+from niagads.database.schemas.dataset.composite_attributes import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,
     Phenotype,
     Provenance,
 )
+from niagads.database.schemas.dataset.base import DatasetSchemaBase
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome.core import Assembly, Human
 from niagads.utils.list import list_to_string
@@ -27,7 +27,7 @@ class TrackDataStore(CaseInsensitiveEnum):
     SHARED = auto()
 
 
-class Track(ModelDumpMixin, MetadataSchemaBase):
+class Track(ModelDumpMixin, DatasetSchemaBase):
     __tablename__ = "track"
     __table_args__ = (
         CheckConstraint(

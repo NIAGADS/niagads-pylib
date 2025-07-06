@@ -1,13 +1,13 @@
 from enum import Enum
 
 # note the schema base is imported from core, not base so that all tables are generated
-from niagads.database.models.metadata.core import MetadataSchemaBase
-from niagads.database.models.index.core import IndexSchemaBase
+from niagads.database.schemas.dataset.core import DatasetSchemaBase
+from niagads.database.schemas.core.core import CoreSchemaBase
 
 
 class Schema(Enum):
-    METADATA = MetadataSchemaBase
-    INDEX = IndexSchemaBase
+    DATABASE = DatasetSchemaBase
+    CORE = CoreSchemaBase
 
     @classmethod
     def _missing_(cls, value: str):
