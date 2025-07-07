@@ -38,30 +38,6 @@ from niagads.open_access_genomics_api.queries.gene import (
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
 
 
-class GeneAttribute(EnumParameter):
-    FUNCTION = "go_annotation"
-    PATHWAYS = "pathway_membership"
-
-    def __str__(self):
-        return self.value
-
-    @classmethod
-    def validate(cls, value, label, returnCls):
-        # just throw the valdiation error if this fails
-        attribute = super().validate(value, label, returnCls)
-        return str(attribute)
-
-
-async def gene_attribute_param(
-    attribute: GeneAttribute = Query(
-        default=None, description="annotation to retrieve"
-    ),
-) -> str:
-    if attribute is not None:
-        return GeneAttribute.validate(attribute, "Attribute", GeneAttribute)
-    return None
-
-
 router = APIRouter(
     prefix="/record/gene",
     tags=[
@@ -138,7 +114,7 @@ async def get_gene_pathways(
             view=rView,
             model=GeneAnnotationResponse,
         ),
-        Parameters(id=gene.feature_id, filter=str(GeneAttribute.PATHWAYS)),
+        Parameters(id=gene.feature_id),
         query=GenePathwayQuery,
     )
 
@@ -147,7 +123,7 @@ async def get_gene_pathways(
 
 @router.get(
     "/{gene}/function",
-    response_model=Union[RecordResponse, TableViewResponse],
+    response_model=Union[GeneAnnotationResponse, TableViewResponse],
     name="Get gene-GO associations",
     description="",
 )
