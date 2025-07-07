@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from niagads.common.models.views.table import BaseTable
 from niagads.open_access_api_common.views.core import ViewResponse
@@ -10,4 +10,4 @@ class Table(BaseTable):
 
 
 class TableViewResponse(ViewResponse):
-    table: Table
+    table: Union[Table, dict]
