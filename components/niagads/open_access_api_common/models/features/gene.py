@@ -97,7 +97,7 @@ class GOAnnotation(RowModel):
     go_term_id: str = Field(title="GO Term ID")
     go_term: str = Field(title="Term")
     ontology: str = Field(title="Ontology")
-    evidence: List[GOEvidence] = Field("Evidence Code")
+    evidence: List[GOEvidence] = Field(title="Evidence Code")
 
     def __str__(self):
         return self.as_info_string()
