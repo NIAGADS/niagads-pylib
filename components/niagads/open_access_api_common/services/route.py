@@ -262,11 +262,6 @@ class RouteHelperService:
 
         self._managers.requestData.set_request_id(cacheKey)
 
-        if self._responseConfig.format != ResponseFormat.JSON:
-            self._managers.requestData.add_message(
-                f"WARNING: `Table` VIEW requested; response format changed to `{ResponseFormat.JSON.value}`"
-            )
-
         viewResponse = TableViewResponse(
             table=response.to_table(id=cacheKey),
             request=self._managers.requestData,

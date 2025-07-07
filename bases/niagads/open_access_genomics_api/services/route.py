@@ -85,7 +85,10 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
         if opts.countsOnly:
             statement = self.__build_counts_statement()
         else:
-            query = self.__query.query
+            query: str = self.__query.query
+            if self.__query.useFilterWrapper:
+                query = query.format(filter=self._parameters.get("filter"))
+
             if opts.range is not None:
                 if "rank_start" not in self.__query.bindParameters:
                     query += f" LIMIT {self._pageSize}"
@@ -133,18 +136,30 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
             result = (await self._managers.session.execute(statement)).mappings().all()
 
             if len(result) == 0:
+                if self.__query.useFilterWrapper:
+                    # don't know if this is b/c of failure to map ID or just no annotation
+                    return []
                 raise NoResultFound()
 
             if all_values_are_none(result[0]):
+                if self.__query.useFilterWrapper:
+                    return []
                 raise NoResultFound()
 
             if self.__query.fetchOne or opts.fetchOne or opts.countsOnly:
                 if self.__query.jsonField:
                     return [result[0][self.__query.jsonField]]
-                return result[0]
+                if self.__query.useFilterWrapper:
+                    filteredResult = [
+                        item for item in result[0][self._parameters.get("filter")]
+                    ]
+                    return filteredResult
+                return [result[0]]
             else:
                 if self.__query.jsonField:
                     result = [item for item in result[self.__query.jsonField]]
+                if self.__query.useFilterWrapper:
+                    result = [item for item in result[self._parameters.get("filter")]]
                 result = [dict(item) for item in result]
                 return result
 

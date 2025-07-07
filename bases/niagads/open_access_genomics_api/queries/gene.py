@@ -38,9 +38,7 @@ PATHWAY_CTE = """
     GROUP BY id
 """
 
-
-GeneRecordQuery = QueryDefinition(
-    query=f"""WITH goa AS ({GO_ASSOCIATION_CTE}),
+GENE_RECORD_QUERY = f"""WITH goa AS ({GO_ASSOCIATION_CTE}),
         pathway AS ({PATHWAY_CTE})
         SELECT source_id AS id, 
         gene_symbol,
@@ -54,18 +52,28 @@ GeneRecordQuery = QueryDefinition(
             'end', location_end,
             'strand', CASE WHEN is_reversed THEN '-' ELSE '+' END
         ) AS location,
-        annotation AS hgnc_annotation,
+        annotation AS nomenclature,
         goa.go_annotation,
         pathway.pathway_membership
         FROM CBIL.GeneAttributes ga
         LEFT OUTER JOIN goa ON ga.source_id = goa.id
         LEFT OUTER JOIN pathway on ga.source_id = pathway.id
         WHERE ga.source_id = (SELECT gene_lookup(:id))
-    """,
-    bindParameters=["id"],
-    # fetchOne=True,
-    entity=Entity.GENE,
+    """
+
+
+GeneRecordQuery = QueryDefinition(
+    query=GENE_RECORD_QUERY, bindParameters=["id"], entity=Entity.GENE, fetchOne=True
 )
+
+FilteredGeneRecordQuery = QueryDefinition(
+    query=GENE_RECORD_QUERY,
+    bindParameters=["id"],
+    entity=Entity.GENE,
+    useFilterWrapper=True,
+    fetchOne=True,
+)
+
 
 GeneAssociationsTable = QueryDefinition(
     bindParameters=["id", "subset", "subset"],

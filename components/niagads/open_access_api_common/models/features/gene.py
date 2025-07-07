@@ -4,7 +4,7 @@ from niagads.common.models.core import TransformableModel
 from niagads.open_access_api_common.models.core import RowModel
 from niagads.open_access_api_common.models.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.response.core import RecordResponse
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 
 class GeneFeature(RowModel):
@@ -93,11 +93,11 @@ class GOEvidence(TransformableModel):
         return self.go_evidence_code
 
 
-class GOAnnotation(TransformableModel):
-    go_term_id: str
-    go_term: str
-    ontology: str
-    evidence: List[GOEvidence]
+class GOAnnotation(RowModel):
+    go_term_id: str = Field(title="GO Term ID")
+    go_term: str = Field(title="Term")
+    ontology: str = Field(title="Ontology")
+    evidence: List[GOEvidence] = Field("Evidence Code")
 
     def __str__(self):
         return self.as_info_string()
@@ -109,7 +109,7 @@ class GOAnnotation(TransformableModel):
         return obj
 
 
-class PathwayAnnotation(TransformableModel):
+class PathwayAnnotation(RowModel):
     pathway: str
     pathway_id: str
     pathway_source: str
@@ -131,6 +131,10 @@ class AnnotatedGene(Gene):
 
     def as_table_row(self, **kwargs):
         raise NotImplementedError("Not implemented for Annotated Genes")
+
+
+class GeneAnnotationResponse(RecordResponse):
+    data: Union[List[PathwayAnnotation], List[GOAnnotation], List[RowModel]]
 
 
 class AbridgedGeneResponse(RecordResponse):

@@ -20,6 +20,7 @@ class QueryDefinition(SQLQuery):
     query: Optional[str] = None
     countsQuery: Optional[str] = None
     useIdSelectWrapper: bool = False
+    useFilterWrapper: bool = False
 
     def model_post_init(self, __context):
         if self.useIdSelectWrapper:
@@ -28,3 +29,5 @@ class QueryDefinition(SQLQuery):
                 self.bindParameters.append("id")
             else:
                 self.bindParameters = ["id"]
+        if self.useFilterWrapper:
+            self.query = "SELECT {filter} FROM (" + self.query + ") a"
