@@ -182,7 +182,7 @@ class VariantAssociation(ORMCompatibleRowModel):
     @computed_field
     @property
     def trait(self):
-        pass
+        pass  # implement as field_validator like w/abridgedtrack
 
     def _flat_dump(self, nullFree=False, delimiter="|"):
         obj = super()._flat_dump(nullFree, delimiter=delimiter)
