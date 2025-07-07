@@ -48,7 +48,8 @@ class TransformableModel(AbstractTransformableModel):
 
     @staticmethod
     def _list_to_string(arr: list, delimiter="|"):
-        return delimiter.join([str(a) for a in arr]) if arr is not None else None
+        uniqueValues = set([str(a) for a in arr])
+        return delimiter.join(uniqueValues) if arr is not None else None
 
     def _flat_dump(self, nullFree: bool = False, delimiter="|"):
         """function for creating a flat dump; i.e., remove nesting"""
