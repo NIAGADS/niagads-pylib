@@ -1,4 +1,5 @@
-from typing import List, Optional
+from typing import List, Optional, Union
+from niagads.database.schemas.dataset.composite_attributes import Phenotype
 from niagads.database.schemas.variant.composite_attributes import (
     CADDScore,
     PredictedConsequence,
@@ -6,22 +7,21 @@ from niagads.database.schemas.variant.composite_attributes import (
     RankedConsequences,
 )
 
-from niagads.open_access_api_common.models.core import RowModel
+from niagads.genome.core import Human
+from niagads.open_access_api_common.models.core import ORMCompatibleRowModel, RowModel
 from niagads.open_access_api_common.models.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.response.core import RecordResponse
 from pydantic import (
     ConfigDict,
     Field,
+    computed_field,
     field_validator,
 )
 
 
-class VariantFeature(RowModel):
+class VariantFeature(ORMCompatibleRowModel):
     variant_id: str = Field(title="Variant")
     ref_snp_id: Optional[str] = Field(default=None, title="Ref SNP ID")
-
-    # should allow to fill from SQLAlchemy ORM model
-    model_config = ConfigDict(from_attributes=True)
 
 
 class Variant(VariantFeature):
@@ -30,8 +30,24 @@ class Variant(VariantFeature):
     ref: str
     alt: Optional[str] = None
 
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = super()._flat_dump(nullFree, delimiter=delimiter)
 
-class AnnotatedVariant(Variant):
+        # promote the location fields
+        del obj["location"]
+        obj.update(self.location._flat_dump())
+        return obj
+
+    @classmethod
+    def get_model_fields(cls, asStr=False):
+        fields = super().get_model_fields()
+        del fields["location"]
+        fields.update(GenomicRegion.get_model_fields())
+
+        return list(fields.keys()) if asStr else fields
+
+
+class SimpleAnnotatedVariant(Variant):
     is_adsp_variant: Optional[bool] = Field(
         default=False,
         title="Is ADSP Variant?",
@@ -42,6 +58,27 @@ class AnnotatedVariant(Variant):
         title="Predicted Consequence",
         description="most severe consequence predicted by VEP",
     )
+
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+
+        # promote the location fields
+        del obj["most_severe_consequence"]
+        obj.update(self.most_severe_consequence._flat_dump())
+        return obj
+
+    @classmethod
+    def get_model_fields(cls, asStr=False):
+        fields = super().get_model_fields()
+
+        del fields["most_severe_consequence"]
+        fields.update(PredictedConsequence.get_model_fields())
+
+        return list(fields.keys()) if asStr else fields
+
+
+class AnnotatedVariant(SimpleAnnotatedVariant):
+
     allele_string: str
 
     # FIXME: these queries can take a while; not part of the variant record
@@ -132,6 +169,53 @@ class AnnotatedVariant(Variant):
             return qc
         else:
             raise RuntimeError("Unexpected value returned for `adsp_qc` status")
+
+
+class VariantAssociation(ORMCompatibleRowModel):
+    variant: Union[SimpleAnnotatedVariant] = Field(title="Variant")
+    test_allele: str = Field(title="Test Allele")
+    track_id: str = Field(title="Track")
+    p_value: Union[float, str] = Field(title="p-Value")
+    neg_log10_pvalue: float = Field(title="-log10pValue")
+    subject_phenotypes: Optional[Phenotype] = Field(exclude=True)
+
+    @computed_field
+    @property
+    def trait(self):
+        pass
+
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+
+        # promote the variant fields
+        del obj["variant"]
+        obj.update(self.variant._flat_dump())
+        return obj
+
+    @classmethod
+    def get_model_fields(cls, asStr=False):
+        fields = super().get_model_fields()
+
+        del fields["subject_phenotypes"]
+        del fields["variant"]
+        fields.update(SimpleAnnotatedVariant.get_model_fields())
+
+        return list(fields.keys()) if asStr else fields
+
+    def table_fields(self, asStr=False, **kwargs):
+        return super().table_fields(asStr, **kwargs)
+
+
+class VariantAssociationResponse(RecordResponse):
+    data: List[VariantAssociation]
+
+    def to_vcf(self):
+        raise NotImplementedError("VCF formatted responses coming soon.")
+
+    def to_bed(self):
+        raise NotImplementedError(
+            "BED formatted responses not available for this type of data."
+        )
 
 
 class AbridgedVariantResponse(RecordResponse):

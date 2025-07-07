@@ -1,7 +1,9 @@
+from copy import deepcopy
 from enum import auto
 from typing import List, Optional
 from niagads.common.models.core import TransformableModel
 from niagads.enums.core import CaseInsensitiveEnum
+from niagads.open_access_api_common.models.features.gene import GeneFeature
 from pydantic import Field
 
 
@@ -66,13 +68,17 @@ class CADDScore(TransformableModel):
 
 
 class PredictedConsequence(TransformableModel):
-    consequence: List[str]
-    impact: ConsequenceImpact
-    is_coding: Optional[bool] = Field(default=False, serialization_alias="is_coding")
-    impacted_gene: Optional[dict] = Field(default=None, exlude=True)
-    impacted_transcript: Optional[str]
-    codon_change: Optional[str] = None
-    amino_acid_change: Optional[str] = None
+    consequence: List[str] = Field(title="Predicted Consequence(s)")
+    impact: ConsequenceImpact = Field(title="Impact")
+    is_coding: Optional[bool] = Field(
+        default=False, serialization_alias="is_coding", title="Is Coding?"
+    )
+    impacted_gene: Optional[GeneFeature] = Field(default=None, title="Impacted Gene")
+    impacted_transcript: Optional[str] = Field(
+        default=None, title="Impacted Transcript"
+    )
+    codon_change: Optional[str] = Field(default=None, title="Codon Change")
+    amino_acid_change: Optional[str] = Field(default=None, title="Amino Acid Change")
 
     @staticmethod
     def get_impact_color(impact: str):
@@ -88,11 +94,33 @@ class PredictedConsequence(TransformableModel):
             consequence=v["consequence_terms"],
             impact=ConsequenceImpact(v["impact"]),
             is_coding=v.get("consequence_is_coding", False),
-            impacted_gene=impactedGene,
+            impacted_gene=GeneFeature(**impactedGene),
             impacted_transcript=v.get("transcript_id"),
             codon_change=v.get("codons"),
             amino_acid_chnge=v.get("amino_acids"),
         )
+
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+
+        # promote the gene fields
+        del obj["impacted_gene"]
+        obj.update(self.impacted_gene._flat_dump())
+
+        obj["consequence"] = self._list_to_string(self.consequence, delimiter=delimiter)
+        return obj
+
+    @classmethod
+    def get_model_fields(cls, asStr=False):
+        fields = super().get_model_fields()
+
+        del fields["impacted_gene"]
+        geneFields = deepcopy(GeneFeature.get_model_fields())
+        for f in geneFields:
+            f.title = f"Impacted {f.title}"
+        fields.update(geneFields)
+
+        return list(fields.keys()) if asStr else fields
 
 
 class RankedConsequences(TransformableModel):
