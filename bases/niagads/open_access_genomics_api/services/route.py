@@ -86,8 +86,8 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
             statement = self.__build_counts_statement()
         else:
             query: str = self.__query.query
-            if self.__query.useFilterWrapper:
-                query = query.format(filter=self._parameters.get("filter"))
+            if self.__query.jsonField is not None:
+                query = query.format(field=self.__query.jsonField)
 
             if opts.range is not None:
                 if "rank_start" not in self.__query.bindParameters:
@@ -136,32 +136,26 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
             result = (await self._managers.session.execute(statement)).mappings().all()
 
             if len(result) == 0:
-                if self.__query.useFilterWrapper:
-                    # don't know if this is b/c of failure to map ID or just no annotation
-                    return []
                 raise NoResultFound()
 
             if all_values_are_none(result[0]):
-                if self.__query.useFilterWrapper:
+                if self.__query.jsonField is not None:
+                    # valid record, no data for field
                     return []
                 raise NoResultFound()
 
             if self.__query.fetchOne or opts.fetchOne or opts.countsOnly:
                 if self.__query.jsonField:
-                    return [result[0][self.__query.jsonField]]
-                if self.__query.useFilterWrapper:
-                    filteredResult = [
-                        item for item in result[0][self._parameters.get("filter")]
-                    ]
-                    return filteredResult
+                    result = result[0][self.__query.jsonField]
+                    if isinstance(result, list):
+                        return [dict(item) for item in result]
+                    return [result]
                 return [result[0]]
             else:
-                if self.__query.jsonField:
-                    result = [item for item in result[self.__query.jsonField]]
-                if self.__query.useFilterWrapper:
-                    result = [item for item in result[self._parameters.get("filter")]]
-                result = [dict(item) for item in result]
-                return result
+                # if self.__query.jsonField:
+                #     filteredResult = [item[self.__query.jsonField] for item in result]
+
+                return [dict(item) for item in result]
 
         except NoResultFound as e:
             if self.__query.entity is not None:

@@ -19,6 +19,7 @@ from niagads.open_access_api_common.models.records.track.igvbrowser import (
 )
 from niagads.open_access_api_common.models.response.core import (
     AbstractResponse,
+    MessageResponse,
     RecordResponse,
     T_RecordResponse,
     T_Response,

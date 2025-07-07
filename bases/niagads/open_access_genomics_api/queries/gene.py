@@ -66,11 +66,17 @@ GeneRecordQuery = QueryDefinition(
     query=GENE_RECORD_QUERY, bindParameters=["id"], entity=Entity.GENE, fetchOne=True
 )
 
-FilteredGeneRecordQuery = QueryDefinition(
+GeneFunctionQuery = QueryDefinition(
     query=GENE_RECORD_QUERY,
     bindParameters=["id"],
-    entity=Entity.GENE,
-    useFilterWrapper=True,
+    jsonField="go_annotation",
+    fetchOne=True,
+)
+
+GenePathwayQuery = QueryDefinition(
+    query=GENE_RECORD_QUERY,
+    bindParameters=["id"],
+    jsonField="pathway_membership",
     fetchOne=True,
 )
 

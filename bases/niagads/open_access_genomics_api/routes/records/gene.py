@@ -31,7 +31,8 @@ from niagads.open_access_api_common.views.table import TableViewResponse
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
 from niagads.open_access_genomics_api.documentation import APP_NAME
 from niagads.open_access_genomics_api.queries.gene import (
-    FilteredGeneRecordQuery,
+    GeneFunctionQuery,
+    GenePathwayQuery,
     GeneRecordQuery,
 )
 from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
@@ -138,7 +139,7 @@ async def get_gene_pathways(
             model=GeneAnnotationResponse,
         ),
         Parameters(id=gene.feature_id, filter=str(GeneAttribute.PATHWAYS)),
-        query=FilteredGeneRecordQuery,
+        query=GenePathwayQuery,
     )
 
     return await helper.get_query_response()
@@ -171,8 +172,8 @@ async def get_gene_function(
             view=rView,
             model=GeneAnnotationResponse,
         ),
-        Parameters(id=gene.feature_id, filter=str(GeneAttribute.FUNCTION)),
-        query=FilteredGeneRecordQuery,
+        Parameters(id=gene.feature_id),
+        query=GeneFunctionQuery,
     )
 
     return await helper.get_query_response()
