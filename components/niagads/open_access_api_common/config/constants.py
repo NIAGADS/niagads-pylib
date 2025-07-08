@@ -10,7 +10,7 @@ HTTP_CLIENT_TIMEOUT = 30  # timeout in seconds
 
 # pagination
 DEFAULT_PAGE_SIZE = 5000
-MAX_NUM_PAGES = 10
+MAX_NUM_PAGES = 100
 
 # Responses
 

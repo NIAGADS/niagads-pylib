@@ -1,9 +1,10 @@
-from enum import auto
-from typing import Optional, Union
+from typing import Union
 from fastapi import APIRouter, Depends, Query
-from niagads.enums.core import EnumParameter
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 
+from niagads.open_access_api_common.models.annotations.associations import (
+    GeneticAssociationResponse,
+)
 from niagads.open_access_api_common.models.features.gene import (
     AbridgedGeneResponse,
     GeneAnnotationResponse,
@@ -11,7 +12,7 @@ from niagads.open_access_api_common.models.features.gene import (
 )
 from niagads.open_access_api_common.models.features.genomic import GenomicFeature
 from niagads.open_access_api_common.models.response.core import RecordResponse
-from niagads.open_access_api_common.parameters.gwas import (
+from niagads.open_access_api_common.parameters.associations import (
     GWASSource,
     GWASTrait,
     gwas_source_param,
@@ -31,6 +32,7 @@ from niagads.open_access_api_common.views.table import TableViewResponse
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
 from niagads.open_access_genomics_api.documentation import APP_NAME
 from niagads.open_access_genomics_api.queries.gene import (
+    GeneAssociationsQuery,
     GeneFunctionQuery,
     GenePathwayQuery,
     GeneRecordQuery,
@@ -85,6 +87,9 @@ async def get_gene(
     )
 
     return await helper.get_query_response()
+
+
+tags = []
 
 
 @router.get(
@@ -157,14 +162,14 @@ async def get_gene_function(
 
 @router.get(
     "/{gene}/associations",
-    response_model=Union[RecordResponse, TableViewResponse],
-    name="Get gene associations",
-    description="",
+    response_model=Union[GeneticAssociationResponse, TableViewResponse],
+    name="Get genetic associations",
+    description="Retrieve genetic associations (GWAS) for variants proximal to (+/- 1000kb) or contained within a gene footprint",
 )
-async def get_gene_gwas(
+async def get_gene_genetic_associations(
     gene: GenomicFeature = Depends(gene_param),
-    trait: GWASTrait = Depends(gwas_trait_param),
     source: GWASSource = Depends(gwas_source_param),
+    trait: GWASTrait = Depends(gwas_trait_param),
     format: str = Query(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
@@ -172,7 +177,7 @@ async def get_gene_gwas(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[RecordResponse, TableViewResponse]:
+) -> Union[GeneticAssociationResponse, TableViewResponse]:
 
     rContent = ResponseContent.FULL
     rFormat = ResponseFormat.generic().validate(format, "format", ResponseFormat)
@@ -180,10 +185,13 @@ async def get_gene_gwas(
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
-            content=rContent, format=rFormat, view=rView, model=RecordResponse
+            content=rContent,
+            format=rFormat,
+            view=rView,
+            model=GeneticAssociationResponse,
         ),
         Parameters(id=gene.feature_id, gwas_trait=trait, gwas_source=source),
-        query=GeneRecordQuery,
+        query=GeneAssociationsQuery,
     )
 
     return await helper.get_query_response()

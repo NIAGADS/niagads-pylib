@@ -94,7 +94,9 @@ class PredictedConsequence(TransformableModel):
             consequence=v["consequence_terms"],
             impact=ConsequenceImpact(v["impact"]),
             is_coding=v.get("consequence_is_coding", False),
-            impacted_gene=GeneFeature(**impactedGene),
+            impacted_gene=(
+                GeneFeature(**impactedGene) if impactedGene is not None else None
+            ),
             impacted_transcript=v.get("transcript_id"),
             codon_change=v.get("codons"),
             amino_acid_chnge=v.get("amino_acids"),

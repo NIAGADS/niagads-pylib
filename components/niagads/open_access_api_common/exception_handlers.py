@@ -77,7 +77,30 @@ def add_request_validation_exception_handler(app: FastAPI) -> None:
     async def request_validation_exception_handler(
         request: Request, exc: ValidationError
     ):
-        raise HTTPException(status_code=422, detail=f"{str(exc)}")
+
+        raise HTTPException(
+            status_code=422, detail=getattr(exc, "_errors") or f"{str(exc)}"
+        )
+
+        # TODO: match fastAPI or parse fastAPI validation error
+        """
+        {
+        "detail": [
+            {
+            "type": "enum",
+            "loc": [
+                "query",
+                "trait"
+            ],
+            "msg": "Input should be 'AD', 'ADRD', 'AD_ADRD' or 'ALL'",
+            "input": "AD_ADRDX",
+            "ctx": {
+                "expected": "'AD', 'ADRD', 'AD_ADRD' or 'ALL'"
+            }
+            }
+        ]
+        }
+        """
 
 
 def add_validation_exception_handler(app: FastAPI) -> None:

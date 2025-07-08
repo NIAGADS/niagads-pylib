@@ -4,7 +4,7 @@ from niagads.open_access_api_common.models.services.query import QueryDefinition
 
 VariantRecordQuery = QueryDefinition(
     query=f"""
-    SELECT annotation FROM get_variant_primary_keys_and_annotations_tbl(:id, TRUE);
+    SELECT annotation FROM get_variant_primary_keys_and_annotations_tbl(:id, TRUE)
     """,
     bindParameters=["id"],
     fetchOne=True,

@@ -1,5 +1,5 @@
-from typing import List, Optional, Union
-from niagads.database.schemas.dataset.composite_attributes import Phenotype
+from typing import List, Optional
+
 from niagads.database.schemas.variant.composite_attributes import (
     CADDScore,
     PredictedConsequence,
@@ -7,19 +7,13 @@ from niagads.database.schemas.variant.composite_attributes import (
     RankedConsequences,
 )
 
-from niagads.genome.core import Human
-from niagads.open_access_api_common.models.core import ORMCompatibleRowModel, RowModel
+from niagads.open_access_api_common.models.core import RowModel
 from niagads.open_access_api_common.models.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.response.core import RecordResponse
-from pydantic import (
-    ConfigDict,
-    Field,
-    computed_field,
-    field_validator,
-)
+from pydantic import Field, field_validator
 
 
-class VariantFeature(ORMCompatibleRowModel):
+class VariantFeature(RowModel):
     variant_id: str = Field(title="Variant")
     ref_snp_id: Optional[str] = Field(default=None, title="Ref SNP ID")
 
@@ -47,7 +41,7 @@ class Variant(VariantFeature):
         return list(fields.keys()) if asStr else fields
 
 
-class SimpleAnnotatedVariant(Variant):
+class VariantDisplayAnnotation(RowModel):
     is_adsp_variant: Optional[bool] = Field(
         default=False,
         title="Is ADSP Variant?",
@@ -58,6 +52,19 @@ class SimpleAnnotatedVariant(Variant):
         title="Predicted Consequence",
         description="most severe consequence predicted by VEP",
     )
+
+    @field_validator("most_severe_consequence", mode="before")
+    @classmethod
+    def parse_most_severe_consequence(cls, v):
+        if v is None:
+            return None
+        if not isinstance(v, dict):  # ORM response
+            v = v.model_dump()
+        try:
+            conseq = PredictedConsequence(**v)
+            return conseq
+        except:
+            return PredictedConsequence.from_vep_json(v)
 
     def _flat_dump(self, nullFree=False, delimiter="|"):
         obj = super()._flat_dump(nullFree, delimiter=delimiter)
@@ -77,8 +84,7 @@ class SimpleAnnotatedVariant(Variant):
         return list(fields.keys()) if asStr else fields
 
 
-class AnnotatedVariant(SimpleAnnotatedVariant):
-
+class AnnotatedVariant(VariantFeature, VariantDisplayAnnotation):
     allele_string: str
 
     # FIXME: these queries can take a while; not part of the variant record
@@ -169,53 +175,6 @@ class AnnotatedVariant(SimpleAnnotatedVariant):
             return qc
         else:
             raise RuntimeError("Unexpected value returned for `adsp_qc` status")
-
-
-class VariantAssociation(ORMCompatibleRowModel):
-    variant: Union[SimpleAnnotatedVariant] = Field(title="Variant")
-    test_allele: str = Field(title="Test Allele")
-    track_id: str = Field(title="Track")
-    p_value: Union[float, str] = Field(title="p-Value")
-    neg_log10_pvalue: float = Field(title="-log10pValue")
-    subject_phenotypes: Optional[Phenotype] = Field(exclude=True)
-
-    @computed_field
-    @property
-    def trait(self):
-        pass  # implement as field_validator like w/abridgedtrack
-
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
-
-        # promote the variant fields
-        del obj["variant"]
-        obj.update(self.variant._flat_dump())
-        return obj
-
-    @classmethod
-    def get_model_fields(cls, asStr=False):
-        fields = super().get_model_fields()
-
-        del fields["subject_phenotypes"]
-        del fields["variant"]
-        fields.update(SimpleAnnotatedVariant.get_model_fields())
-
-        return list(fields.keys()) if asStr else fields
-
-    def table_fields(self, asStr=False, **kwargs):
-        return super().table_fields(asStr, **kwargs)
-
-
-class VariantAssociationResponse(RecordResponse):
-    data: List[VariantAssociation]
-
-    def to_vcf(self):
-        raise NotImplementedError("VCF formatted responses coming soon.")
-
-    def to_bed(self):
-        raise NotImplementedError(
-            "BED formatted responses not available for this type of data."
-        )
 
 
 class AbridgedVariantResponse(RecordResponse):

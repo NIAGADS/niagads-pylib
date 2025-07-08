@@ -21,16 +21,16 @@ class GWASSource(EnumParameter):
 async def gwas_trait_param(
     trait: GWASTrait = Query(
         GWASTrait.ALL,
-        description="retrieve genetic associations for AD, AD-related dementias (ADRD), AD/ADRD or all curated associations",
+        description="retrieve genetic associations for AD, AD-related dementias (ADRD), AD/ADRD (AD_ADRD) or all (ALL) curated associations",
     )
 ):
     return GWASTrait.validate(trait, "GWAS Trait", GWASTrait)
 
 
 async def gwas_source_param(
-    trait: GWASSource = Query(
+    source: GWASSource = Query(
         GWASSource.ALL,
         description="retrieve genetic associations from NIAGADS-summary statistics datasets, curated assocation catalogs, or both",
     )
 ):
-    return GWASSource.validate(trait, "GWAS Source", GWASTrait)
+    return GWASSource.validate(source, "GWAS Source", GWASSource)

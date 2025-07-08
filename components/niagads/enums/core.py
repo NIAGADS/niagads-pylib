@@ -54,7 +54,7 @@ class EnumParameter(CaseInsensitiveEnum):
         try:
             cls(sanitize(value))
             return returnCls(value)
-        except:
+        except Exception as err:
             raise ValidationError(
                 f"Invalid value provided for `{label}`: {value}.  {cls.get_description()}"
             )

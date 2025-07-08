@@ -12,13 +12,14 @@ class OntologyTerm(TransformableModel):
     term_id: Optional[str] = Field(
         default=None, title="Ontology Term ID", description="mapped ontology term ID"
     )
-    ontology: Optional[str] = None
+    ontology: Optional[str] = Field(default=None, exclude=True)
     term_iri: Optional[str] = Field(
         default=None,
         title="Ontology Term IRI",
         description="mapped ontology term IRI",
+        exclude=True,
     )
-    definition: Optional[str] = None
+    definition: Optional[str] = Field(default=None, exclude=True)
 
     @model_validator(mode="before")
     @classmethod

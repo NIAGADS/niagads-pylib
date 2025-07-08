@@ -1,6 +1,9 @@
 from typing import Dict, List, Optional, Union
 
-from niagads.common.models.core import TransformableModel
+from niagads.database.schemas.gene.composite_attributes import (
+    GOAnnotation,
+    PathwayAnnotation,
+)
 from niagads.open_access_api_common.models.core import RowModel
 from niagads.open_access_api_common.models.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.response.core import RecordResponse
@@ -56,68 +59,6 @@ class Gene(GeneFeature):
         return list(fields.keys()) if asStr else fields
 
 
-class GOEvidence(TransformableModel):
-    citation: Optional[str] = Field(
-        default=None,
-        title="Citation",
-        description="PMID or GO Reference (non-PMID) used by the GO consortium.  See https://geneontology.org/gorefs.html.",
-        examples=["GO_REF:0000024"],
-    )
-    qualifier: Optional[str] = Field(
-        default=None,
-        title="Qualifier",
-        description="context for interpreting the GO annotation",
-        examples=["involved_in"],
-    )
-    evidence_code: Optional[str] = Field(
-        default=None,
-        title="ECO ID",
-        description="term id in the Evidence and Conclusion Ontology.  See https://www.evidenceontology.org/.",
-        examples=["ECO:0000250"],
-    )  # ontology_term_id
-    go_evidence_code: Optional[str] = Field(
-        default=None,
-        title="Evidence Code",
-        description="GO Evidence Code. See https://geneontology.org/docs/guide-go-evidence-codes/.",
-    )  # code
-    annotation_source: Optional[str] = Field(
-        default=None, title="Annotation Source", description="annotator"
-    )
-
-    # excluding this b/c it is (usually) the gene
-    evidence_code_qualifier: Optional[str] = Field(
-        default=None, title="Evidence Code Qualifier", exclude=True
-    )
-
-    def __str__(self):
-        return self.go_evidence_code
-
-
-class GOAnnotation(RowModel):
-    go_term_id: str = Field(title="GO Term ID")
-    go_term: str = Field(title="Term")
-    ontology: str = Field(title="Ontology")
-    evidence: List[GOEvidence] = Field(title="Evidence Code")
-
-    def __str__(self):
-        return self.as_info_string()
-
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
-        if self.evidence is not None:
-            obj["evidence"] = self._list_to_string(self.evidence, delimiter=delimiter)
-        return obj
-
-
-class PathwayAnnotation(RowModel):
-    pathway: str
-    pathway_id: str
-    pathway_source: str
-
-    def __str__(self):
-        return self.as_info_string()
-
-
 class AnnotatedGene(Gene):
     hgnc_annotation: Optional[Dict[str, Union[str, int]]] = None
     go_annotation: Optional[List[GOAnnotation]] = None
@@ -133,8 +74,28 @@ class AnnotatedGene(Gene):
         raise NotImplementedError("Not implemented for Annotated Genes")
 
 
+class GeneFunction(GOAnnotation, RowModel):
+    def __str__(self):
+        return self.as_info_string()
+
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+        if self.evidence is not None:
+            obj["evidence"] = self._list_to_string(self.evidence, delimiter=delimiter)
+        return obj
+
+
+class GenePathwayMembership(PathwayAnnotation, RowModel):
+    def __str__(self):
+        return self.as_info_string()
+
+
 class GeneAnnotationResponse(RecordResponse):
-    data: Union[List[PathwayAnnotation], List[GOAnnotation], List[RowModel]]
+    data: Union[
+        List[GenePathwayMembership],
+        List[GeneFunction],
+        List[RowModel],
+    ]
 
 
 class AbridgedGeneResponse(RecordResponse):
