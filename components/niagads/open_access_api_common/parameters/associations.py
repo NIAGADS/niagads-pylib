@@ -13,8 +13,8 @@ class GWASTrait(EnumParameter):
 
 
 class GWASSource(EnumParameter):
-    NIAGADS = auto()
-    CATALOG = auto()
+    GWAS = auto()
+    CURATED = auto()
     ALL = auto()
 
 
@@ -30,7 +30,7 @@ async def gwas_trait_param(
 async def gwas_source_param(
     source: GWASSource = Query(
         GWASSource.ALL,
-        description="retrieve genetic associations from NIAGADS-summary statistics datasets, curated assocation catalogs, or both",
+        description="retrieve genetic associations from NIAGADS-summary statistics datasets (GWAS), curated association catalogs (CURATED), or both (ALL)",
     )
 ):
     return GWASSource.validate(source, "GWAS Source", GWASSource)
