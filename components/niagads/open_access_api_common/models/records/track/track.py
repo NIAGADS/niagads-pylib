@@ -15,7 +15,7 @@ from niagads.open_access_api_common.models.core import (
 )
 from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.utils.dict import promote_nested
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import Field, model_validator
 
 COMPOSITE_ATTRIBUTES: Dict[str, T_TransformableModel] = {
     "biosample_characteristics": BiosampleCharacteristics,
@@ -58,9 +58,6 @@ class AbridgedTrack(ORMCompatibleDynamicRowModel):
         title="Download URL",
         description="URL for NIAGADS-standardized file",
     )
-
-    # should allow to fill from SQLAlchemy ORM model
-    model_config = ConfigDict(from_attributes=True)
 
     @model_validator(mode="before")
     @classmethod
