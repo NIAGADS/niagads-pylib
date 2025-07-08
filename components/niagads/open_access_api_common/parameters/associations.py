@@ -8,7 +8,8 @@ class GWASTrait(EnumParameter):
 
     AD = auto()
     ADRD = auto()
-    AD_ADRD = auto()
+    BIOMARKER = auto()
+    ALL_ADRD = auto()
     ALL = auto()
 
 
@@ -21,7 +22,7 @@ class GWASSource(EnumParameter):
 async def gwas_trait_param(
     trait: GWASTrait = Query(
         GWASTrait.ALL,
-        description="retrieve genetic associations for AD, AD-related dementias (ADRD), AD/ADRD (AD_ADRD) or all (ALL) curated associations",
+        description="retrieve genetic associations for AD, AD-related dementias (ADRD), AD biomarkers (BIOMARKER), all AD/ADRD and AD-biomarker (ALL_AD) or all (ALL) curated associations",
     )
 ):
     return GWASTrait.validate(trait, "GWAS Trait", GWASTrait)
