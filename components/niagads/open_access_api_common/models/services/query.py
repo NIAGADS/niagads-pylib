@@ -11,14 +11,14 @@ class Filter(BaseModel):
 class QueryDefinition(BaseModel):
     query: Optional[str] = None
     countsQuery: Optional[str] = None
+
     useIdSelectWrapper: bool = False
-    useFilterWrapper: bool = False
-    filter: Filter = None
+    allowFilters: bool = False  # if filter param is present, add filter wrapper
+    fetchOne: bool = False  # always return exactly one result
+    jsonField: Optional[str] = None  # only return specific field, can be dynamic
     bindParameters: Optional[List[str]] = None  # bind parameter names
-    fetchOne: bool = False  # expect only one result, so return query result[0]
-    # return specific jsonField from the full result
-    jsonField: Optional[str] = None
-    entity: Optional[Entity] = None
+
+    entity: Optional[Entity] = None  # for messaging
 
     def model_post_init(self, __context):
         if self.useIdSelectWrapper:
@@ -29,7 +29,8 @@ class QueryDefinition(BaseModel):
                 self.bindParameters = ["id"]
         if self.jsonField:
             self.query = "SELECT {field} FROM (" + self.query + ") q"
-        if self.useFilterWrapper:
-            self.query = (
-                f"SELECT * FROM ({self.query}) q WHERE {self.filter.field} = [:filter]"
-            )
+
+
+# self.query = (
+#     f"SELECT * FROM ({self.query}) q WHERE {self.filter.field} = [:filter]"
+# )
