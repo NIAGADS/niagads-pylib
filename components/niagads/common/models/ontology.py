@@ -1,7 +1,7 @@
-from typing import List, Optional, Self
+from typing import Any, Dict, List, Optional, Self, Union
 
 from niagads.common.models.core import TransformableModel
-from pydantic import Field
+from pydantic import Field, model_validator
 
 
 class OntologyTerm(TransformableModel):
@@ -19,6 +19,18 @@ class OntologyTerm(TransformableModel):
         description="mapped ontology term IRI",
     )
     definition: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def process_str(cls, data: Union[Dict[str, Any], str]):
+        """create an OntologyTerm from just a term string"""
+        if isinstance(data, str):
+            return cls(term=data)
+
+        if not isinstance(data, dict):
+            data = data.model_dump()  # assume data is an ORM w/model_dump mixin
+
+        return data
 
     def __str__(self):
         return self.term
