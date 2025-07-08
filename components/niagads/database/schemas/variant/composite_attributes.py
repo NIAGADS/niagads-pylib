@@ -107,7 +107,10 @@ class PredictedConsequence(TransformableModel):
 
         # promote the gene fields
         del obj["impacted_gene"]
-        obj.update(self.impacted_gene._flat_dump())
+        if self.impacted_gene is not None:
+            obj.update(self.impacted_gene._flat_dump())
+        else:
+            obj.update({k: None for k in GeneFeature.get_model_fields(asStr=True)})
 
         obj["consequence"] = self._list_to_string(self.consequence, delimiter=delimiter)
         return obj
@@ -118,8 +121,12 @@ class PredictedConsequence(TransformableModel):
 
         del fields["impacted_gene"]
         geneFields = deepcopy(GeneFeature.get_model_fields())
-        for f in geneFields:
-            f.title = f"Impacted {f.title}"
+
+        for k, info in geneFields.items():
+            geneFields[k] = Field(
+                title=f"Impacted {info.title if k != 'id' else 'Gene'}"
+            )
+
         fields.update(geneFields)
 
         return list(fields.keys()) if asStr else fields

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, TypeVar
+from collections import OrderedDict
+from typing import Any, Dict, List, TypeVar
 
 from niagads.common.models.views.table import TableRow
 from niagads.utils.dict import prune
@@ -71,8 +72,22 @@ class TransformableModel(AbstractTransformableModel):
         row = {k: obj.get(k, "NA") for k in self.table_fields(asStr=True)}
         return TableRow(**row)
 
+    def _sort_fields(self, fields: Dict[str, Any], asStr: bool = False):
+        sortedFields = dict(
+            sorted(
+                fields.items(),
+                key=lambda item: (
+                    item[1].json_schema_extra.get("order")
+                    if item[1].json_schema_extra
+                    and "order" in item[1].json_schema_extra
+                    else float("inf")
+                ),
+            )
+        )
+        return [k for k in sortedFields.keys()] if asStr else sortedFields
+
     def table_fields(self, asStr: bool = False, **kwargs):
-        return self.get_fields(asStr)
+        return self._sort_fields(self.get_fields(), asStr=asStr)
 
     # note: not a classmethod b/c will need to be overridden to add model_extras
     # when relevant

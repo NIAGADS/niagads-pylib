@@ -36,6 +36,7 @@ class BEDFeature(DynamicRowModel):
 
     def table_fields(self, asStr=False, **kwargs):
         fields = self.get_model_fields(asStr)
+        # FIXME: add _sort_fields?
         if self.has_extras():
             if getattr(kwargs, "extrasAsInfoStr", False):
                 extras = {

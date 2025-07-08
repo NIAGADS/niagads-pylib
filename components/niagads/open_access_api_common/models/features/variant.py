@@ -14,8 +14,8 @@ from pydantic import Field, field_validator
 
 
 class VariantFeature(RowModel):
-    variant_id: str = Field(title="Variant")
-    ref_snp_id: Optional[str] = Field(default=None, title="Ref SNP ID")
+    variant_id: str = Field(title="Variant", order=1)
+    ref_snp_id: Optional[str] = Field(default=None, title="Ref SNP ID", order=1)
 
 
 class Variant(VariantFeature):
@@ -71,7 +71,12 @@ class VariantDisplayAnnotation(RowModel):
 
         # promote the location fields
         del obj["most_severe_consequence"]
-        obj.update(self.most_severe_consequence._flat_dump())
+        if self.most_severe_consequence is not None:
+            obj.update(self.most_severe_consequence._flat_dump())
+        else:
+            obj.update(
+                {k: None for k in PredictedConsequence.get_model_fields(asStr=True)}
+            )
         return obj
 
     @classmethod
