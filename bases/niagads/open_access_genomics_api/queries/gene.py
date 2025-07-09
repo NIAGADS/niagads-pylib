@@ -106,6 +106,8 @@ GWAS_RESULTS_CTE = """
         ELSE t.track_name 
     END AS track_name,
     t.data_source,
+    t.subject_phenotypes,
+    t.biosample_characteristics,
     CASE WHEN t.category IS NOT NULL 
         THEN t.category 
         ELSE COALESCE((SELECT category 
@@ -167,6 +169,6 @@ GeneAssociationsQuery = QueryDefinition(
         WHERE ((UPPER(:gwas_trait) IN ('AD', 'ALL_ADRD', 'ALL') AND trait_category = 'AD')
         OR (UPPER(:gwas_trait) IN ('BIOMARKER', 'ALL_ADRD', 'ALL') AND trait_category = 'Biomarker')
         OR (UPPER(:gwas_trait) IN ('ADRD', 'ALL_ADRD', 'ALL') AND trait_category = 'ADRD')
-        OR (UPPER(:gwas_trait) = 'ALL' AND trait_category = 'Other'))            
+        OR (UPPER(:gwas_trait) IN ('OTHER', 'ALL') AND trait_category = 'Other'))            
     """,
 )

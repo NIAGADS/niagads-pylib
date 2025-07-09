@@ -11,6 +11,7 @@ class GWASTrait(EnumParameter):
     BIOMARKER = auto()
     ALL_ADRD = auto()
     ALL = auto()
+    OTHER = auto()
 
 
 class GWASSource(EnumParameter):

@@ -26,7 +26,11 @@ class VariantAssociation(RowModel):
     p_value: Union[float, str] = Field(title="p-Value", order=3)
 
     trait: OntologyTerm = Field(title="Trait", description="associated trait", order=4)
-
+    trait_category: str = Field(
+        title="Trait Category",
+        description="One of AD, ADRD, Biomarker (for AD/ADRD), or Other",
+        order=5,
+    )
     track_id: Optional[str] = Field(default=None, title="Track ID", order=6)
     track_name: str = Field(
         title="Study",
@@ -76,7 +80,7 @@ class VariantAssociation(RowModel):
         # if not isinstance(data, dict):
         #     data = data.model_dump()  # assume data is an ORM w/model_dump mixin
 
-        if "trait" in data:
+        if data.get("trait") is not None:
             return data
 
         phenotypes: dict = data.get("subject_phenotypes")
