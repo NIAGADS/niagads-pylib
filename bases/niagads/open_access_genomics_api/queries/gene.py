@@ -76,7 +76,7 @@ GWAS_RESULTS_CTE = f"""
         WHEN r.position::bigint > ga.location_end
         THEN 'downstream'
         ELSE 'in gene'
-    END AS relative_position,
+    END AS relative_position
     FROM NIAGADS.VariantGWASTopHits r, Tracks t, CBIL.GeneAttributes ga
     WHERE ga.source_id = (SELECT gene_lookup(:id))
     AND ga.bin_index_100kb_flank @> r.bin_index
