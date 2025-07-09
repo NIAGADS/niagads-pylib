@@ -8,7 +8,10 @@ from niagads.open_access_api_common.models.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,
 )
-from niagads.open_access_api_common.models.services.query import QueryDefinition
+from niagads.open_access_api_common.models.services.query import (
+    QueryDefinition,
+    QueryFilter,
+)
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
 from niagads.open_access_api_common.parameters.response import ResponseContent
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
@@ -57,14 +60,22 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
         self.__idParameter: str = idParameter
 
     def __build_counts_statement(self):
+        isFiltered = (
+            self.__query.allowFilters and self._parameters.get("filter") is not None
+        )
+        filter: QueryFilter = self._parameters.get("filter")
+
         if self.__query.countsQuery != None:
             statement = text(self.__query.countsQuery)
             parameters = [bindparam("id", self._parameters.get(self.__idParameter))]
             statement = statement.bindparams(*parameters)
         else:
-            statement = text(
-                f"SELECT count(*) AS result_size FROM ({self.__query.query}) r"
+            statement = (
+                self.__query.get_filter_query(filter)
+                if isFiltered
+                else self.__query.query
             )
+            statement = text(f"SELECT count(*) AS result_size FROM ({statement}) r")
             parameters = [
                 bindparam(
                     param,
@@ -77,6 +88,9 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
                 for param in self.__query.bindParameters
             ]
 
+            if isFiltered:
+                parameters.append(bindparam("filter", filter.value))
+
             statement = statement.bindparams(*parameters)
 
         return statement
@@ -85,7 +99,17 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
         if opts.countsOnly:
             statement = self.__build_counts_statement()
         else:
-            query: str = self.__query.query
+            isFiltered = (
+                self.__query.allowFilters and self._parameters.get("filter") is not None
+            )
+            filter: QueryFilter = self._parameters.get("filter")
+
+            query: str = (
+                self.__query.get_filter_query(filter)
+                if isFiltered
+                else self.__query.query
+            )
+
             if self.__query.jsonField is not None:
                 query = query.format(field=self.__query.jsonField)
 
@@ -125,8 +149,13 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
                     else:
                         parameters.append(bindparam(param, self._parameters.get(param)))
 
+                if isFiltered:
+                    parameters.append(bindparam("filter", filter.value))
                 statement = statement.bindparams(*parameters)
-
+            else:
+                if isFiltered:
+                    parameters = [bindparam("filter", filter.value)]
+                    statement = statement.bindparams(*parameters)
         return statement
 
     async def __run_query(self, opts: QueryOptions):
@@ -175,17 +204,6 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
             QueryOptions(range=self.slice_result_by_page())
         )
 
-        """"
-        pRange = self.slice_result_by_page()
-        if self._responseConfig.view == ResponseView.TABLE:
-            if self._resultSize > self._pageSize:
-                if self.__query.messageOnResultSize is not None:
-                    currentPage = self.page()
-                    query = f'{Settings.from_env().API_PUBLIC_URL}{self._managers.requestData.endpoint}?page={currentPage}'
-                    rangeMessage =  f'top {self._pageSize} results'if currentPage == 1 else f'results [{pRange.start + 1}, {pRange.end}]'
-                    message = self.__query.messageOnResultSize.format(self._resultSize, rangeMessage, query)
-        """
-
     async def get_query_response(self, opts: QueryOptions = QueryOptions()):
         # fetchCounts ->  get counts only
         cachedResponse = await self._get_cached_response()
@@ -196,6 +214,13 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
 
         if opts.rawResponse:
             return result
+
+        if not self.__query.fetchOne and isinstance(result, list):
+            self._resultSize = len(result)
+            if self._resultSize > 0:  # not empty
+                self.initialize_pagination()
+                range = self.slice_result_by_page()
+                result = result[range.start : range.end]
 
         return await self.generate_response(result, False)
 

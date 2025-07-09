@@ -11,13 +11,16 @@ from niagads.open_access_api_common.models.features.gene import (
     GeneResponse,
 )
 from niagads.open_access_api_common.models.features.genomic import GenomicFeature
-from niagads.open_access_api_common.models.response.core import RecordResponse
+from niagads.open_access_api_common.models.services.query import QueryFilter
 from niagads.open_access_api_common.parameters.associations import (
     GWASSource,
     GWASTrait,
     gwas_source_param,
     gwas_trait_param,
+    neg_log10_pvalue,
+    pvalue_filter_param,
 )
+from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import gene_param
 from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
@@ -170,6 +173,8 @@ async def get_gene_genetic_associations(
     gene: GenomicFeature = Depends(gene_param),
     source: GWASSource = Depends(gwas_source_param),
     trait: GWASTrait = Depends(gwas_trait_param),
+    page: int = Depends(page_param),
+    pvalue: float = Depends(pvalue_filter_param),
     format: str = Query(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
@@ -190,7 +195,22 @@ async def get_gene_genetic_associations(
             view=rView,
             model=GeneticAssociationResponse,
         ),
-        Parameters(id=gene.feature_id, gwas_trait=trait, gwas_source=source),
+        Parameters(
+            id=gene.feature_id,
+            gwas_trait=trait,
+            gwas_source=source,
+            page=page,
+            pvalue=pvalue,
+            filter=(
+                None
+                if pvalue is None
+                else QueryFilter(
+                    field="neg_log10_pvalue",
+                    value=neg_log10_pvalue(pvalue),
+                    operator=">=",
+                )
+            ),
+        ),
         query=GeneAssociationsQuery,
     )
 

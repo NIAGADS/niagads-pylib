@@ -3,9 +3,10 @@ from niagads.open_access_api_common.models.records.core import Entity
 from pydantic import BaseModel
 
 
-class Filter(BaseModel):
+class QueryFilter(BaseModel):
     field: str
     value: Union[str, int, bool, float]
+    operator: str
 
 
 class QueryDefinition(BaseModel):
@@ -30,7 +31,6 @@ class QueryDefinition(BaseModel):
         if self.jsonField:
             self.query = "SELECT {field} FROM (" + self.query + ") q"
 
-
-# self.query = (
-#     f"SELECT * FROM ({self.query}) q WHERE {self.filter.field} = [:filter]"
-# )
+    def get_filter_query(self, filter: QueryFilter):
+        # do not fill in filter.value; leave for prepared statement using the bind parameter for security
+        return f"SELECT * FROM ({self.query}) q WHERE {filter.field} {filter.operator} :filter"

@@ -124,7 +124,7 @@ GWAS_RESULTS_CTE = """
         'ref_snp_id', r.ref_snp_id, 
         'type', r.display_attributes->>'variant_class_abbrev', 
         'is_adsp_variant', r.is_adsp_variant,
-        'most_severe_consequence',r.annotation->'ADSP_MOST_SEVERE_CONSEQUENCE'
+        'most_severe_consequence',r.annotation->'adsp_most_severe_consequence'
     ) AS variant,
     CASE
         WHEN r.position::bigint < ga.location_start
