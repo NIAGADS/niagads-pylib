@@ -57,6 +57,8 @@ GENE_RECORD_QUERY = f"""WITH goa AS ({GO_ASSOCIATION_CTE}),
             'end', location_end,
             'strand', CASE WHEN is_reversed THEN '-' ELSE '+' END
         ) AS location,
+        CASE WHEN annotation IS NULL THEN NULL
+        ELSE annotation->>'location' END AS cytogenic_location,
         annotation AS nomenclature,
         goa.go_annotation,
         pathway.pathway_membership

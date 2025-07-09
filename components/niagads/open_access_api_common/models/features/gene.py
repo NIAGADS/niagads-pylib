@@ -7,7 +7,7 @@ from niagads.database.schemas.gene.composite_attributes import (
 from niagads.open_access_api_common.models.core import RowModel
 from niagads.open_access_api_common.models.features.genomic import GenomicRegion
 from niagads.open_access_api_common.models.response.core import RecordResponse
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 class GeneFeature(RowModel):
@@ -36,6 +36,11 @@ class Gene(GeneFeature):
         title="Location",
         description="genomic location delimiting the footprint (span) of the gene",
     )
+    cytogenic_location: Optional[str] = Field(
+        default=None,
+        title="Cytogenic Location",
+        description="mapping the gene to a band of the chromosome",
+    )
 
     def __str__(self):
         return self.as_info_string()
@@ -60,7 +65,7 @@ class Gene(GeneFeature):
 
 
 class AnnotatedGene(Gene):
-    hgnc_annotation: Optional[Dict[str, Union[str, int]]] = None
+    nomenclature: Optional[Dict[str, Union[str, int]]] = None
     go_annotation: Optional[List[GOAnnotation]] = None
     pathway_membership: Optional[List[PathwayAnnotation]] = None
 
