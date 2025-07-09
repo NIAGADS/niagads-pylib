@@ -8,7 +8,6 @@ from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 from pydantic import (
     BaseModel,
-    ConfigDict,
     Field,
     field_serializer,
     model_validator,

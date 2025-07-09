@@ -4,7 +4,7 @@ from typing import List, Optional
 from niagads.common.models.core import TransformableModel
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.open_access_api_common.models.features.gene import GeneFeature
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 
 class ConsequenceImpact(CaseInsensitiveEnum):
@@ -68,7 +68,7 @@ class CADDScore(TransformableModel):
 
 
 class PredictedConsequence(TransformableModel):
-    consequence: List[str] = Field(title="Predicted Consequence(s)")
+    consequence_terms: List[str] = Field(title="Predicted Consequence(s)")
     impact: ConsequenceImpact = Field(title="Impact")
     is_coding: Optional[bool] = Field(
         default=False, serialization_alias="is_coding", title="Is Coding?"
@@ -91,7 +91,7 @@ class PredictedConsequence(TransformableModel):
             impactedGene = {"id": v["gene_id"], "gene_symbol": v.get("gene_symbol")}
 
         return cls(
-            consequence=v["consequence_terms"],
+            consequence_terms=v["consequence_terms"],
             impact=ConsequenceImpact(v["impact"]),
             is_coding=v.get("consequence_is_coding", False),
             impacted_gene=(
@@ -132,7 +132,11 @@ class PredictedConsequence(TransformableModel):
         return list(fields.keys()) if asStr else fields
 
 
-class RankedConsequences(TransformableModel):
+class RankedPredictedConsequence(BaseModel):
+    pass
+
+
+class RankedConsequences(BaseModel):
     transcript_consequences: List[dict] = Field(
         default=None, serialization_alias="transcript"
     )

@@ -1,8 +1,5 @@
-from abc import ABC, abstractmethod
-from collections import OrderedDict
-from typing import Any, Dict, List, TypeVar
+from typing import TypeVar
 
-from niagads.common.models.views.table import TableRow
 from niagads.utils.dict import prune
 from niagads.utils.string import dict_to_info_string
 from pydantic import BaseModel, ConfigDict, model_serializer
@@ -18,30 +15,7 @@ class NullFreeModel(BaseModel):
         return prune(dict(self), removeNulls=True)
 
 
-class AbstractTransformableModel(BaseModel, ABC):
-    @abstractmethod
-    def as_info_string(self) -> str:
-        """serializes model as field=value;... info string"""
-        pass
-
-    @abstractmethod
-    def as_list(self, fields: list = None) -> List[Any]:
-        """returns list of model attribute values; if fields is specified returns the selected field values in the listed order"""
-        pass
-
-    @abstractmethod
-    def as_table_row(self, **kwargs) -> TableRow:
-        """returns a {columns: , data: } object for a view table; with custom logic for composite attributes"""
-        pass
-
-    @classmethod
-    @abstractmethod
-    def table_fields(self, asStr: bool = False, **kwargs):
-        """get fields for tabular data views"""
-        pass
-
-
-class TransformableModel(AbstractTransformableModel):
+class TransformableModel(BaseModel):
     model_config = ConfigDict(serialize_by_alias=True, use_enum_values=True)
 
     def null_free_dump(self):
@@ -66,34 +40,6 @@ class TransformableModel(AbstractTransformableModel):
             return list(self._flat_dump().values())
         else:
             return [v for k, v in self._flat_dump().items() if k in fields]
-
-    def as_table_row(self, **kwargs):
-        obj = self._flat_dump(delimiter=" // ")
-        row = {k: obj.get(k, "NA") for k in self.table_fields(asStr=True)}
-        return TableRow(**row)
-
-    def _sort_fields(self, fields: Dict[str, Any], asStr: bool = False):
-        sortedFields = dict(
-            sorted(
-                fields.items(),
-                key=lambda item: (
-                    item[1].json_schema_extra.get("order")
-                    if item[1].json_schema_extra
-                    and "order" in item[1].json_schema_extra
-                    else float("inf")
-                ),
-            )
-        )
-        return [k for k in sortedFields.keys()] if asStr else sortedFields
-
-    def table_fields(self, asStr: bool = False, **kwargs):
-        return self._sort_fields(self.get_fields(), asStr=asStr)
-
-    # note: not a classmethod b/c will need to be overridden to add model_extras
-    # when relevant
-    def get_fields(self, asStr: bool = False):
-        """get model fields either as name: FieldInfo pairs or as a list of names if asStr is True"""
-        return self.get_model_fields(asStr)
 
     @classmethod
     def get_model_fields(cls, asStr: bool = False):

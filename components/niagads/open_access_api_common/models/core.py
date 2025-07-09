@@ -19,7 +19,7 @@ A Row Model is the data hash (key-value pairs) defining the table row.
 from typing import Any, Dict, List, TypeVar
 
 from niagads.common.models.core import TransformableModel
-from niagads.common.models.views.table import TableCellType, TableColumn
+from niagads.common.models.views.table import TableCellType, TableColumn, TableRow
 from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
 from pydantic import ConfigDict, Field
 
@@ -28,20 +28,30 @@ class RowModel(TransformableModel):
     """
     The RowModel base class defines class methods
     expected for these objects to generate standardized API responses
+    and adds member functions for generating table responses
     """
 
-    # START abstract methods from TransformableModel
-    def as_info_string(self):
-        return super().as_info_string()
-
     def as_table_row(self, **kwargs):
-        return super().as_table_row(**kwargs)
+        obj = self._flat_dump(delimiter=" // ")
+        row = {k: obj.get(k, "NA") for k in self.table_fields(asStr=True)}
+        return TableRow(**row)
 
-    def as_list(self, fields=None):
-        return super().as_list(fields)
+    def _sort_fields(self, fields: Dict[str, Any], asStr: bool = False):
+        sortedFields = dict(
+            sorted(
+                fields.items(),
+                key=lambda item: (
+                    item[1].json_schema_extra.get("order")
+                    if item[1].json_schema_extra
+                    and "order" in item[1].json_schema_extra
+                    else float("inf")
+                ),
+            )
+        )
+        return [k for k in sortedFields.keys()] if asStr else sortedFields
 
     def table_fields(self, asStr: bool = False, **kwargs):
-        return super().table_fields(asStr, **kwargs)
+        return self._sort_fields(self.get_model_fields(), asStr=asStr)
 
     # END abstract methods from TransformableModel
 
@@ -91,8 +101,8 @@ class DynamicRowModel(RowModel):
 
         return False
 
-    def get_fields(self, asStr: bool = False):
-        fields = super().get_fields(asStr)
+    def table_fields(self, asStr: bool = False, **kwargs):
+        fields = super().table_fields(asStr, **kwargs)
 
         if self.has_extras():
             extras = {k: Field() for k in self.model_extra.keys()}

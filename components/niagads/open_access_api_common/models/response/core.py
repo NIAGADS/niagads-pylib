@@ -163,7 +163,7 @@ class RecordResponse(AbstractResponse):
             #        "\t".join([xstr(v, nullStr=nullStr) for v in self.data.values()]) + "\n"
             #    )
 
-            fields = self.data[0].get_fields(asStr=True)
+            fields = self.data[0].table_fields(asStr=True)
             rows = []
             for r in self.data:
                 if isinstance(r, str):

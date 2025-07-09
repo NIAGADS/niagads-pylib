@@ -1,5 +1,7 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
+from niagads.common.models.core import TransformableModel
+from niagads.common.models.views.table import TableRow
 from niagads.database.schemas.variant.composite_attributes import (
     CADDScore,
     PredictedConsequence,
@@ -180,6 +182,49 @@ class AnnotatedVariant(VariantFeature, VariantDisplayAnnotation):
             return qc
         else:
             raise RuntimeError("Unexpected value returned for `adsp_qc` status")
+
+
+class FrequencyPopulation(TransformableModel):
+    abbreviation: str = Field(title="Population")
+    population: str = Field(title="Population")
+    description: Optional[str] = None
+
+    def __str__(self):
+        return self.population
+
+
+class AlleleFrequencies(RowModel):
+    population: FrequencyPopulation = Field(title="Population", order=1)
+    allele: str = Field(title="Allele", order=3)
+
+    data_source: str = Field(
+        title="Resource",
+        description="original data source for the frequency information",
+        order=2,
+    )
+    frequency: str = Field(title="Frequency", order=4)
+
+    def as_table_row(self, **kwargs):
+        row = self._flat_dump(delimiter=" // ")
+        population = {"value": self.population.population}
+        if self.population.description is not None:
+            population.update({"info": self.population.description})
+        row.update({"population": population})
+        return TableRow(**row)
+
+
+class VariantFunction(RowModel):
+    """ranked consequences"""
+
+    pass
+
+
+class VariantAnnotationResponse(RecordResponse):
+    data: Union[
+        List[VariantFunction],
+        List[AlleleFrequencies],
+        List[RowModel],
+    ]
 
 
 class AbridgedVariantResponse(RecordResponse):

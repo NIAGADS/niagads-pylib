@@ -38,13 +38,16 @@ class TableCellType(StrEnum):
 class TableCell(BaseModel):
     value: Optional[Union[str, int, float, bool]] = None
     url: Optional[str] = None
+    info: Optional[str] = None
     # items: Optional[List[str]] = None
 
     @model_serializer()
     def serialize_model(self):
         obj = {"value": self.value}
         if self.url is not None:
-            obj.update({"url", self.url})
+            obj.update({"url": self.url})
+        if self.info is not None:
+            obj.update({"info": self.info})
         # if self.items is not None:
         #     obj.update({"items", self.items})
 
