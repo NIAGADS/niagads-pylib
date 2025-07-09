@@ -1,5 +1,10 @@
 from niagads.open_access_api_common.models.records.core import Entity
 from niagads.open_access_api_common.models.services.query import QueryDefinition
+from niagads.open_access_genomics_api.queries.associations import (
+    GWAS_COMMON_FIELDS,
+    GWAS_TRACK_CTE,
+    GWAS_TRAIT_FILTERS,
+)
 
 GO_ASSOCIATION_CTE = """
     SELECT ga.source_id AS id, 
@@ -62,6 +67,26 @@ GENE_RECORD_QUERY = f"""WITH goa AS ({GO_ASSOCIATION_CTE}),
     """
 
 
+GWAS_RESULTS_CTE = f"""
+    SELECT 
+    {GWAS_COMMON_FIELDS},
+    CASE
+        WHEN r.position::bigint < ga.location_start
+        THEN 'upstream'
+        WHEN r.position::bigint > ga.location_end
+        THEN 'downstream'
+        ELSE 'in gene'
+    END AS relative_position,
+    FROM NIAGADS.VariantGWASTopHits r, Tracks t, CBIL.GeneAttributes ga
+    WHERE ga.source_id = (SELECT gene_lookup(:id))
+    AND ga.bin_index_100kb_flank @> r.bin_index
+    AND int4range(ga.location_start - 100000, ga.location_end + 100000, '[]') @> r.position
+    AND ga.chromosome = r.chromosome
+    AND t.track_id = r.track 
+    ORDER BY neg_log10_pvalue DESC
+"""
+
+
 GeneRecordQuery = QueryDefinition(
     query=GENE_RECORD_QUERY, bindParameters=["id"], entity=Entity.GENE, fetchOne=True
 )
@@ -81,77 +106,6 @@ GenePathwayQuery = QueryDefinition(
 )
 
 
-GWAS_TRACK_CTE = """
-    SELECT track_id, name AS track_name,
-        provenance->>'data_source' AS data_source,
-        provenance->'pubmed_id' AS pubmed_id,
-        subject_phenotypes,
-        biosample_characteristics,
-        CASE WHEN (subject_phenotypes->'disease')::text LIKE '%Alzh%' THEN 'AD'
-        WHEN biosample_characteristics IS NOT NULL THEN 'Biomarker'
-        WHEN (subject_phenotypes->'disease')::text NOT LIKE '%Alzh%' OR subject_phenotypes->'neuropathology' IS NOT NULL THEN 'ADRD'
-        ELSE NULL END AS category
-    FROM Dataset.Track
-    WHERE 
-        feature_type = 'variant'
-        AND experimental_design->>'classification' = 'genetic association' 
-        AND ((:gwas_source IN ('GWAS', 'ALL') AND experimental_design->>'data_category' = 'summary statistics')
-        OR (:gwas_source IN ('CURATED', 'ALL') AND experimental_design->>'data_category' = 'curated'))
-"""
-
-GWAS_RESULTS_CTE = """
-    SELECT t.track_id, 
-    CASE WHEN r.restricted_stats->'trait' is NOT NULL 
-        THEN r.restricted_stats->>'study'
-        ELSE t.track_name 
-    END AS track_name,
-    t.data_source,
-    t.subject_phenotypes,
-    t.biosample_characteristics,
-    CASE WHEN t.category IS NOT NULL 
-        THEN t.category 
-        ELSE COALESCE((SELECT category 
-            FROM NIAGADS.ADTerms 
-            WHERE term_id = replace(r.restricted_stats->>'efo_uri','http://www.ebi.ac.uk/efo/', '')),
-            'Other') 
-        END AS trait_category,
-    CASE WHEN r.restricted_stats->'trait' IS NOT NULL 
-        THEN to_jsonb(ARRAY['PMID:' || replace(r.restricted_stats->>'pubmed_url', 'www.ncbi.nlm.nih.gov/pubmed/', '')]) 
-        ELSE t.pubmed_id 
-    END AS pubmed_id,
-    jsonb_build_object(
-        'variant_id', r.metaseq_id, 
-        'ref_snp_id', r.ref_snp_id, 
-        'type', r.display_attributes->>'variant_class_abbrev', 
-        'is_adsp_variant', r.is_adsp_variant,
-        'most_severe_consequence',r.annotation->'adsp_most_severe_consequence'
-    ) AS variant,
-    CASE
-        WHEN r.position::bigint < ga.location_start
-        THEN 'upstream'
-        WHEN r.position::bigint > ga.location_end
-        THEN 'downstream'
-        ELSE 'in gene'
-    END AS relative_position,
-    r.test_allele,
-    TRIM(TO_CHAR(r.pvalue_display::numeric, '9.99EEEE')) AS p_value,
-    neg_log10_pvalue,
-    CASE WHEN r.restricted_stats->'trait' is NOT NULL 
-        THEN jsonb_build_object(
-            'term', r.restricted_stats->>'trait', 
-            'term_id', replace(r.restricted_stats->>'efo_uri', 'http://www.ebi.ac.uk/efo/', '')) 
-        ELSE NULL 
-    END AS trait
-    FROM NIAGADS.VariantGWASTopHits r, Tracks t,CBIL.GeneAttributes ga
-    WHERE ga.source_id = (SELECT gene_lookup(:id))
-    AND ga.bin_index_100kb_flank @> r.bin_index
-    AND int4range(ga.location_start - 100000, ga.location_end + 100000, '[]') @> r.position
-    AND ga.chromosome = r.chromosome
-    AND t.track_id = r.track 
-    ORDER BY neg_log10_pvalue DESC
-"""
-
-
 GeneAssociationsQuery = QueryDefinition(
     bindParameters=[
         "gwas_source",
@@ -166,9 +120,6 @@ GeneAssociationsQuery = QueryDefinition(
     query=f"""WITH Tracks AS ({GWAS_TRACK_CTE}),
         Results AS ({GWAS_RESULTS_CTE})
         SELECT * FROM Results
-        WHERE ((UPPER(:gwas_trait) IN ('AD', 'ALL_ADRD', 'ALL') AND trait_category = 'AD')
-        OR (UPPER(:gwas_trait) IN ('BIOMARKER', 'ALL_ADRD', 'ALL') AND trait_category = 'Biomarker')
-        OR (UPPER(:gwas_trait) IN ('ADRD', 'ALL_ADRD', 'ALL') AND trait_category = 'ADRD')
-        OR (UPPER(:gwas_trait) IN ('OTHER', 'ALL') AND trait_category = 'Other'))            
+        {GWAS_TRAIT_FILTERS}
     """,
 )
