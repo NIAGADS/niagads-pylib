@@ -112,7 +112,9 @@ class PredictedConsequence(TransformableModel):
         else:
             obj.update({k: None for k in GeneFeature.get_model_fields(asStr=True)})
 
-        obj["consequence"] = self._list_to_string(self.consequence, delimiter=delimiter)
+        obj["consequence_terms"] = self._list_to_string(
+            self.consequence_terms, delimiter=delimiter
+        )
         return obj
 
     @classmethod

@@ -71,7 +71,7 @@ VariantRecordQuery = QueryDefinition(
 )
 
 
-VariantssociationsQuery = QueryDefinition(
+VariantAssociationsQuery = QueryDefinition(
     bindParameters=[
         "gwas_source",
         "gwas_source",

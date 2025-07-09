@@ -72,7 +72,7 @@ class RowModel(TransformableModel):
     def as_text(self, fields=None, nullStr=DEFAULT_NULL_STRING, **kwargs):
         """return row as tab-delimited plain text"""
         if fields is None:
-            fields = self.get_fields(asStr="true")
+            fields = self.table_fields(asStr="true")
         values = self.as_list(fields=fields)
         return "\t".join([nullStr if v is None else str(v) for v in values])
 

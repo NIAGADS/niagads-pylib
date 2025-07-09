@@ -2,12 +2,25 @@ from typing import Union
 from fastapi import APIRouter, Depends, Query
 from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 
+from niagads.open_access_api_common.models.annotations.associations import (
+    GeneticAssociationResponse,
+)
 from niagads.open_access_api_common.models.features.genomic import GenomicFeature
 from niagads.open_access_api_common.models.features.variant import (
     AbridgedVariantResponse,
     VariantAnnotationResponse,
     VariantResponse,
 )
+from niagads.open_access_api_common.models.services.query import QueryFilter
+from niagads.open_access_api_common.parameters.associations import (
+    GWASSource,
+    GWASTrait,
+    gwas_source_param,
+    gwas_trait_param,
+    neg_log10_pvalue,
+    pvalue_filter_param,
+)
+from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import variant_param
 from niagads.open_access_api_common.parameters.response import (
     ResponseContent,
@@ -22,6 +35,7 @@ from niagads.open_access_api_common.views.table import TableViewResponse
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
 from niagads.open_access_genomics_api.documentation import APP_NAME
 from niagads.open_access_genomics_api.queries.variant import (
+    VariantAssociationsQuery,
     VariantFrequencyQuery,
     VariantRecordQuery,
 )
@@ -106,6 +120,60 @@ async def get_variant_allele_frequencies(
         ),
         Parameters(id=variant.feature_id),
         query=VariantFrequencyQuery,
+    )
+
+    return await helper.get_query_response()
+
+
+@router.get(
+    "/{variant}/associations",
+    response_model=Union[GeneticAssociationResponse, TableViewResponse],
+    name="Get genetic associations",
+    description="Retrieve genetic associations (GWAS) for the variant",
+)
+async def get_gene_genetic_associations(
+    variant: GenomicFeature = Depends(variant_param),
+    source: GWASSource = Depends(gwas_source_param),
+    trait: GWASTrait = Depends(gwas_trait_param),
+    page: int = Depends(page_param),
+    pvalue: float = Depends(pvalue_filter_param),
+    format: str = Query(
+        ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
+    ),
+    view: str = Query(
+        ResponseView.DEFAULT, description=ResponseView.table(description=True)
+    ),
+    internal: InternalRequestParameters = Depends(),
+) -> Union[GeneticAssociationResponse, TableViewResponse]:
+
+    rContent = ResponseContent.FULL
+    rFormat = ResponseFormat.generic().validate(format, "format", ResponseFormat)
+    rView = ResponseView.table().validate(view, "view", ResponseView)
+    helper = GenomicsRouteHelper(
+        internal,
+        ResponseConfiguration(
+            content=rContent,
+            format=rFormat,
+            view=rView,
+            model=GeneticAssociationResponse,
+        ),
+        Parameters(
+            id=variant.feature_id,
+            gwas_trait=trait,
+            gwas_source=source,
+            page=page,
+            pvalue=pvalue,
+            filter=(
+                None
+                if pvalue is None
+                else QueryFilter(
+                    field="neg_log10_pvalue",
+                    value=neg_log10_pvalue(pvalue),
+                    operator=">=",
+                )
+            ),
+        ),
+        query=VariantAssociationsQuery,
     )
 
     return await helper.get_query_response()

@@ -39,7 +39,8 @@ class TransformableModel(BaseModel):
         if fields is None:
             return list(self._flat_dump().values())
         else:
-            return [v for k, v in self._flat_dump().items() if k in fields]
+            obj = self._flat_dump()
+            return [obj.get(k) for k in fields]
 
     @classmethod
     def get_model_fields(cls, asStr: bool = False):

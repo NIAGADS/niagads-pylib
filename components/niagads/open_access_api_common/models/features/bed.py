@@ -66,27 +66,6 @@ class BEDFeature(DynamicRowModel):
 
         return fields
 
-    def get_fields(self, asStr: bool = False):
-        # we want track_id to be last, so get model fields and then add extras back in
-        fields = self.get_model_fields(asStr)
-        if self.has_extras():
-            extras = {k: Field() for k in self.model_extra.keys() if k != "track_id"}
-            if isinstance(fields, list):
-                fields.extend(list(extras.keys()))
-                fields.append("track_id")
-            else:
-                fields.update(extras)
-                fields.update(
-                    {
-                        "track_id": Field(
-                            title="Track ID",
-                            description="unique identifier for the source data track",
-                        )
-                    }
-                )
-
-        return fields
-
     def __extras_as_info_str(self):
         extras = {
             k: v
@@ -106,6 +85,7 @@ class BEDFeature(DynamicRowModel):
             values.append(self.__extras_as_info_str(), values.append(obj["track_id"]))
             return values
         else:
+            obj = self.model_dump()
             return [v for k, v in self.model_dump().items() if k in fields]
 
     def as_text(self, fields=None, nullStr=".", **kwargs):
