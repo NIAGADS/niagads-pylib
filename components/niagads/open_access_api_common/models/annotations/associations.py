@@ -72,8 +72,11 @@ class VariantAssociation(RowModel):
         not already in the response
         """
 
-        # this will happen b/c FastAPI tries all models
+        # these will happen b/c FastAPI tries all models
         # until it can successfully serialize
+        if data is None:
+            return data
+
         if isinstance(data, str):
             return data
 
@@ -85,6 +88,10 @@ class VariantAssociation(RowModel):
 
         phenotypes: dict = data.get("subject_phenotypes")
         biosample: dict = data.get("biosample_characteristics")
+
+        if phenotypes is None and biosample is None:
+            return data  # again FAST-API attempting to serialize wrong model
+
         # priority: disease, neuropath, biomarker
         """
         e.g. subject phenotypes

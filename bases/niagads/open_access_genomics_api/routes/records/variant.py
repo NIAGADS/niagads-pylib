@@ -35,6 +35,7 @@ from niagads.open_access_api_common.views.table import TableViewResponse
 from niagads.open_access_genomics_api.dependencies import InternalRequestParameters
 from niagads.open_access_genomics_api.documentation import APP_NAME
 from niagads.open_access_genomics_api.queries.variant import (
+    ColocatedVariantQuery,
     VariantAssociationsQuery,
     VariantFrequencyQuery,
     VariantRecordQuery,
@@ -131,7 +132,7 @@ async def get_variant_allele_frequencies(
     name="Get genetic associations",
     description="Retrieve genetic associations (GWAS) for the variant",
 )
-async def get_gene_genetic_associations(
+async def get_variant_genetic_associations(
     variant: GenomicFeature = Depends(variant_param),
     source: GWASSource = Depends(gwas_source_param),
     trait: GWASTrait = Depends(gwas_trait_param),
@@ -174,6 +175,34 @@ async def get_gene_genetic_associations(
             ),
         ),
         query=VariantAssociationsQuery,
+    )
+
+    return await helper.get_query_response()
+
+
+@router.get(
+    "/{variant}/coloc_vars",
+    response_model=VariantAnnotationResponse,
+    name="Get co-located (or alt) variants",
+    description="Retrieve variant identifiers for alternative alleles or co-located (overlapping) INDELs and SVs",
+)
+async def get_colocated_variants(
+    variant: GenomicFeature = Depends(variant_param),
+    internal: InternalRequestParameters = Depends(),
+) -> VariantAnnotationResponse:
+
+    helper = GenomicsRouteHelper(
+        internal,
+        ResponseConfiguration(
+            content=ResponseContent.FULL,
+            format=ResponseFormat.JSON,
+            view=ResponseView.DEFAULT,
+            model=VariantAnnotationResponse,
+        ),
+        Parameters(
+            id=variant.feature_id,
+        ),
+        query=ColocatedVariantQuery,
     )
 
     return await helper.get_query_response()

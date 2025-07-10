@@ -219,8 +219,24 @@ class VariantFunction(RowModel):
     pass
 
 
+class ColocatedVariants(RowModel):
+    alternative: Optional[List[str]] = None
+    colocated: Optional[List[str]] = None
+
+    def as_table_row(self, **kwargs):
+        raise NotImplementedError(
+            "Table views not available for lists of co-located variants."
+        )
+
+    def as_text(self, fields=None, nullStr="NA", **kwargs):
+        raise NotImplementedError(
+            "Plain text response not available for lists of co-located variants."
+        )
+
+
 class VariantAnnotationResponse(RecordResponse):
     data: Union[
+        List[ColocatedVariants],
         List[VariantFunction],
         List[AlleleFrequencies],
         List[RowModel],

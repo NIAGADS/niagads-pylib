@@ -16,6 +16,7 @@ GWAS_RESULTS_CTE = f"""
     ORDER BY neg_log10_pvalue DESC
 """
 
+
 VariantFrequencyQuery = QueryDefinition(
     query="""
         WITH variant AS (
@@ -86,5 +87,33 @@ VariantAssociationsQuery = QueryDefinition(
         Results AS ({GWAS_RESULTS_CTE})
         SELECT * FROM Results
         {GWAS_TRAIT_FILTERS}
+    """,
+)
+
+
+ColocatedVariantQuery = QueryDefinition(
+    bindParameters=["id"],
+    query="""
+        WITH variant AS (
+            SELECT annotation->>'variant_id' AS variant_id,
+            annotation->>'ref_snp_id' AS ref_snp_id,
+            annotation->>'alt' AS alt_allele,
+            annotation->>'ref' AS ref_allele,
+            (annotation->>'bin_index')::ltree AS bin_index,
+            (annotation->'location'->>'start')::int AS location_start,
+            (annotation->'location'->>'start')::int + (annotation->'location'->>'length')::int - 1 AS location_end,
+            annotation->'location'->>'chromosome' AS chromosome
+            FROM get_variant_primary_keys_and_annotations_tbl(:id)
+        ),
+
+        cv AS (
+            SELECT v.variant_id AS lookup_variant_id, v.ref_snp_id AS lookup_ref_snp_id, f.*
+            FROM variant v JOIN LATERAL find_variants_by_range(v.chromosome, v.location_start, v.location_end) f ON TRUE
+            WHERE v.variant_id != f.variant_id --exclude self
+        ) 
+
+        SELECT json_agg(variant_id) FILTER (WHERE lookup_ref_snp_id = annotation->>'ref_snp_id') AS alternative,
+        json_agg(variant_id) FILTER (WHERE lookup_ref_snp_id != annotation->>'ref_snp_id') AS colocated
+        FROM cv
     """,
 )
