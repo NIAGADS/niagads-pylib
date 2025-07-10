@@ -15,3 +15,6 @@ class RegularExpressions(StrEnum):
     GENE = r"^(?:[A-Za-z][A-Za-z0-9_.-]*(@)?|\d{5})$"  # matches symbols, ensembl ids, and entrez ids
     VARIANT = r"^.+:\d+:[ACGT]+:[ACGT]+$"
     REFSNP = r"^rs\d+$"
+    STRUCTUAL_VARIANT = (
+        r"^(DEL|INS|DUP|INV|CNV|TRA)_CHR(\d{1,2}|[XYM]|MT)_([A-Z]|\d){8}$"
+    )

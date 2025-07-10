@@ -107,9 +107,13 @@ class GenomicFeature(BaseModel):
             if matches(pattern, id.lower()):
                 return id.lower()
             else:
-                raise ValidationError(
-                    f"Invalid variant: `{id}`; please specify using a refSNP id or a positional allelic identifier (chr:pos:ref:alt) with valid alleles: [A,C,G,T]"
-                )
+                pattern = RegularExpressions.STRUCTUAL_VARIANT
+                if matches(pattern, id.upper()):
+                    return id.upper()
+                else:
+                    raise ValidationError(
+                        f"Invalid variant: `{id}`; please specify using a refSNP id, a structural variant ID (e.g., DUP_CHR1_4AE4CDB8), or positional allelic identifier (chr:pos:ref:alt) with valid alleles: [A,C,G,T]"
+                    )
 
         # validate chrm
         [chrm, pos, ref, alt] = id.split(":")
