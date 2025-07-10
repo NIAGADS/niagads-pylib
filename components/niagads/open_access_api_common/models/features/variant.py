@@ -92,7 +92,7 @@ class VariantDisplayAnnotation(RowModel):
 
 
 class AnnotatedVariant(VariantFeature, VariantDisplayAnnotation):
-    allele_string: str
+    allele_string: Optional[str] = None
 
     # FIXME: these queries can take a while; not part of the variant record
     # alternative_alleles: Optional[List[str]]
