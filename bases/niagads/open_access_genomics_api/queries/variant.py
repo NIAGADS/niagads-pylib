@@ -113,7 +113,7 @@ ColocatedVariantQuery = QueryDefinition(
         ) 
 
         SELECT json_agg(variant_id) FILTER (WHERE lookup_ref_snp_id = annotation->>'ref_snp_id') AS alternative,
-        json_agg(variant_id) FILTER (WHERE lookup_ref_snp_id != annotation->>'ref_snp_id') AS colocated
+        json_agg(variant_id) FILTER (WHERE annotation->>'ref_snp_id' is NULL OR lookup_ref_snp_id != annotation->>'ref_snp_id') AS colocated_variants
         FROM cv
     """,
 )
