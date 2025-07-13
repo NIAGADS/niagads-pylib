@@ -39,7 +39,7 @@ class RequestDataModel(BaseModel):
             for param in exclude:
                 if param in sortedParams:
                     del sortedParams[param]
-        return dict_to_string(sortedParams, nullStr="null", delimiter="&")
+        return dict_to_string(sortedParams, null_str="null", delimiter="&")
 
     @classmethod
     async def from_request(cls, request: Request):

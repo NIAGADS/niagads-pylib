@@ -20,7 +20,6 @@ from typing import Any, Dict, List, TypeVar
 
 from niagads.common.models.core import TransformableModel
 from niagads.common.models.views.table import TableCellType, TableColumn, TableRow
-from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
 from pydantic import ConfigDict, Field
 
 
@@ -33,11 +32,11 @@ class RowModel(TransformableModel):
 
     def as_table_row(self, **kwargs):
         obj = self._flat_dump(delimiter=" // ")
-        row = {k: obj.get(k, "NA") for k in self.table_fields(asStr=True)}
+        row = {k: obj.get(k, "NA") for k in self.table_fields(as_str=True)}
         return TableRow(**row)
 
-    def _sort_fields(self, fields: Dict[str, Any], asStr: bool = False):
-        sortedFields = dict(
+    def _sort_fields(self, fields: Dict[str, Any], as_str: bool = False):
+        sorted_fields = dict(
             sorted(
                 fields.items(),
                 key=lambda item: (
@@ -48,10 +47,10 @@ class RowModel(TransformableModel):
                 ),
             )
         )
-        return [k for k in sortedFields.keys()] if asStr else sortedFields
+        return [k for k in sorted_fields.keys()] if as_str else sorted_fields
 
-    def table_fields(self, asStr: bool = False, **kwargs):
-        return self._sort_fields(self.get_model_fields(), asStr=asStr)
+    def table_fields(self, as_str: bool = False, **kwargs):
+        return self._sort_fields(self.get_model_fields(), as_str=as_str)
 
     # END abstract methods from TransformableModel
 
@@ -69,12 +68,12 @@ class RowModel(TransformableModel):
 
         return columns
 
-    def as_text(self, fields=None, nullStr=DEFAULT_NULL_STRING, **kwargs):
+    def as_text(self, fields=None, null_str="NA", **kwargs):
         """return row as tab-delimited plain text"""
         if fields is None:
-            fields = self.table_fields(asStr="true")
+            fields = self.table_fields(as_str="true")
         values = self.as_list(fields=fields)
-        return "\t".join([nullStr if v is None else str(v) for v in values])
+        return "\t".join([null_str if v is None else str(v) for v in values])
 
 
 # allows you to set a type hint to a class and all its subclasses
@@ -101,8 +100,8 @@ class DynamicRowModel(RowModel):
 
         return False
 
-    def table_fields(self, asStr: bool = False, **kwargs):
-        fields = super().table_fields(asStr, **kwargs)
+    def table_fields(self, as_str: bool = False, **kwargs):
+        fields = super().table_fields(as_str, **kwargs)
 
         if self.has_extras():
             extras = {k: Field() for k in self.model_extra.keys()}

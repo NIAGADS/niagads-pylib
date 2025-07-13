@@ -56,12 +56,12 @@ class Gene(GeneFeature):
         return obj
 
     @classmethod
-    def get_model_fields(cls, asStr=False):
+    def get_model_fields(cls, as_str=False):
         fields = super().get_model_fields()
         del fields["location"]
         fields.update(GenomicRegion.get_model_fields())
 
-        return list(fields.keys()) if asStr else fields
+        return list(fields.keys()) if as_str else fields
 
 
 class AnnotatedGene(Gene):
@@ -113,7 +113,7 @@ class GeneResponse(RecordResponse):
     def to_table(self, id=None, title=None):
         raise NotImplementedError("Table views not avaialble for `FULL` gene records.")
 
-    def to_text(self, inclHeader=False, nullStr=None):
+    def to_text(self, incl_header=False, null_str=None):
         raise NotImplementedError(
             "Plain text responses not available for `FULL` gene records."
         )

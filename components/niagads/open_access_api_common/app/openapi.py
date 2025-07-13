@@ -1,14 +1,15 @@
 from typing import Any, Dict, List, Optional, Union
 
-from niagads.enums.core import CaseInsensitiveEnum
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 T_JSON = Union[Dict[str, Any], List[Any], int, float, str, bool, None]
 
 
 class BaseTag(BaseModel):
     name: str
-    xSortOrder: int = Field(serialization_alias="x-sortOrder")
+    x_sort_order: int = Field(serialization_alias="x-sortOrder")
+
+    model_config = ConfigDict(serialize_by_alias=True)
 
     def model_dump(self, **kwargs) -> dict[str, Any]:
         return super().model_dump(by_alias=True, **kwargs)
@@ -18,15 +19,15 @@ class OpenAPITag(BaseTag):
     description: Optional[str] = None
     summary: Optional[str] = None
     externalDocs: Optional[dict[str, str]] = None
-    xTraitTag: Optional[bool] = Field(default=False, serialization_alias="x-traitTag")
-    xDisplayName: Optional[str] = Field(
+    x_trait_tag: Optional[bool] = Field(default=False, serialization_alias="x-traitTag")
+    x_display_name: Optional[str] = Field(
         default=None, serialization_alias="x-displayName"
     )
 
     @model_validator(mode="after")
     def set_display_name(self):
-        if self.xDisplayName is None:
-            self.xDisplayName = self.name
+        if self.x_display_name is None:
+            self.x_display_name = self.name
         return self
 
 

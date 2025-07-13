@@ -3,7 +3,7 @@ from typing import Union
 from fastapi import APIRouter, Depends, Query
 from niagads.exceptions.core import ValidationError
 from niagads.genome.core import Assembly
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.track.track import (
     AbridgedTrackResponse,
     TrackResponse,
@@ -76,19 +76,19 @@ async def search_track_metadata(
             "must specify either a `filter` and/or a `keyword` to search"
         )
 
-    rContent = ResponseContent.validate(content, "content", ResponseContent)
+    response_content = ResponseContent.validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
             format=ResponseFormat.generic().validate(format, "format", ResponseFormat),
-            content=rContent,
+            content=response_content,
             view=ResponseView.table().validate(view, "view", ResponseView),
             model=(
                 TrackResponse
-                if rContent == ResponseContent.FULL
+                if response_content == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
-                    if rContent == ResponseContent.BRIEF
+                    if response_content == ResponseContent.BRIEF
                     else RecordResponse
                 )
             ),
@@ -120,20 +120,20 @@ async def get_shard(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[AbridgedTrackResponse, TrackResponse, RecordResponse]:
 
-    rContent = ResponseContent.descriptive(inclUrls=True).validate(
+    response_content = ResponseContent.descriptive(inclUrls=True).validate(
         content, "content", ResponseContent
     )
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
             format=ResponseFormat.generic().validate(format, "format", ResponseFormat),
-            content=rContent,
+            content=response_content,
             model=(
                 TrackResponse
-                if rContent == ResponseContent.FULL
+                if response_content == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
-                    if rContent == ResponseContent.BRIEF
+                    if response_content == ResponseContent.BRIEF
                     else RecordResponse
                 )
             ),

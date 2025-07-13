@@ -20,6 +20,6 @@ IGVFeatureLookupQuery = QueryDefinition(
         
         ORDER BY chromosome NULLS LAST LIMIT 1
     """,
-    bindParameters=["id"],
-    fetchOne=True,
+    bind_parameters=["id"],
+    fetch_one=True,
 )

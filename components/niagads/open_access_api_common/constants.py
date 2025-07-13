@@ -3,8 +3,6 @@ from enum import Enum
 from typing import List
 
 from niagads.open_access_api_common.app.openapi import OpenAPITag, OpenAPIxTagGroup
-from pydantic import BaseModel
-
 
 HTTP_CLIENT_TIMEOUT = 30  # timeout in seconds
 
@@ -31,87 +29,85 @@ DEFAULT_NULL_STRING = "NA"
 class SharedOpenAPITags(Enum):
     DOCUMENTATION = OpenAPITag(
         name="Documentation",
-        description="general information and overview statistics about the NIAGADS Open Access resources queried by this API.",
-        xSortOrder=10,
-        xDisplayName="Documentation",
+        description="general information and overesponse_view statistics about the NIAGADS Open Access resources queried by this API.",
+        x_sort_order=10,
+        x_display_name="Documentation",
     )
     TRACK_RECORD = OpenAPITag(
         name="Metadata",
         description="endpoints that retrieve track record metadata",
-        xSortOrder=300,
-        xDisplayName="Track Metadata",
+        x_sort_order=300,
+        x_display_name="Track Metadata",
     )
     TRACK_DATA = OpenAPITag(
         name="Track Data Retrieval",
         description="endpoints that retrieve track data",
-        xTraitTag=False,
-        xSortOrder=330,
+        x_sort_order=330,
     )
     XQTL_TRACK_RECORD = OpenAPITag(
         name="QTL",
         description="endpoints that retrieve xQTL track data or metadata",
-        xSortOrder=312,
-        xDisplayName="xQTLs",
+        x_sort_order=312,
+        x_display_name="xQTLs",
     )
     GWAS_TRACK_RECORD = OpenAPITag(
         name="SumStats",
         description="endpoints that retrieve GWAS summary statistics track data or metadata",
-        xSortOrder=310,
-        xDisplayName="GWAS Summary Statistics",
+        x_sort_order=310,
+        x_display_name="GWAS Summary Statistics",
     )
     GENE_RECORD = OpenAPITag(
         name="Gene",
         description="endpoints that retrieve gene-specific annotations",
-        xSortOrder=200,
-        xDisplayName="Genes",
+        x_sort_order=200,
+        x_display_name="Genes",
     )
     VARIANT_RECORD = OpenAPITag(
         name="Variant",
         description="endpoints that retrieve variant-specific annotations",
-        xSortOrder=100,
-        xDisplayName="Variants",
+        x_sort_order=100,
+        x_display_name="Variants",
     )
 
     COLLECTIONS = OpenAPITag(
         name="Collection",
         description="endpoints that retrieve curated lists of records",
-        xSortOrder=19,
-        xDisplayName="Collections",
+        x_sort_order=19,
+        x_display_name="Collections",
     )
     GENOME_BROWSER = OpenAPITag(
         name="Browser",
         description="service endpoints generating configuration files, data adapters, and search services for NIAGADS Genome Browser Tracks",
-        xSortOrder=400,
-        xDisplayName="Genome Browser",
+        x_sort_order=400,
+        x_display_name="Genome Browser",
     )
     LOCUSZOOM = OpenAPITag(
         name="LocusZoom",
         description="service endpoints generating for NIAGADS LocusZoom data adapters",
-        xSortOrder=420,
+        x_sort_order=420,
     )
     LOOKUP_SERVICES = OpenAPITag(
         name="Lookups",
         description="service endpoints that provide quick record lookups based on relational data (e.g., feature location)",
-        xSortOrder=510,
-        xDisplayName="Lookup Services",
+        x_sort_order=510,
+        x_display_name="Lookup Services",
     )
     RECORD_SEARCH = OpenAPITag(
         name="Search",
         description="service endpoints that find feature, track, or data records based by metadata or annotation text search",
-        xSortOrder=500,
-        xDisplayName="Record Search",
+        x_sort_order=500,
+        x_display_name="Record Search",
     )
     ONTOLOGIES = OpenAPITag(
         name="Ontologies",
         description="data descriptors, including allowable values for search filter fields",
-        xSortOrder=530,
-        xDisplayName="Data Dictionary",
+        x_sort_order=530,
+        x_display_name="Data Dictionary",
     )
     PAGINATION = OpenAPITag(
         name="Pagination",
         description="Pagination of Responses: more information coming soon.",
-        xSortOrder=1000,
-        xTraitTag=True,
+        x_sort_order=1000,
     )
 
     def __str__(self):
@@ -129,7 +125,7 @@ class SharedOpenAPIxTagGroups(Enum):
             SharedOpenAPITags.ONTOLOGIES.value,
             SharedOpenAPITags.COLLECTIONS.value,
         ],
-        xSortOrder=20,
+        x_sort_order=20,
     )
     SEARCH = OpenAPIxTagGroup(
         name="Search",
@@ -137,7 +133,7 @@ class SharedOpenAPIxTagGroups(Enum):
             SharedOpenAPITags.RECORD_SEARCH.value,
             SharedOpenAPITags.LOOKUP_SERVICES.value,
         ],
-        xSortOrder=85,
+        x_sort_order=85,
     )
     SERVICES = OpenAPIxTagGroup(
         name="Services",
@@ -146,7 +142,7 @@ class SharedOpenAPIxTagGroups(Enum):
             SharedOpenAPITags.LOCUSZOOM.value,
             SharedOpenAPITags.LOOKUP_SERVICES.value,
         ],
-        xSortOrder=90,
+        x_sort_order=90,
     )
     DATA_TRACKS = OpenAPIxTagGroup(
         name="Data Tracks",
@@ -157,7 +153,7 @@ class SharedOpenAPIxTagGroups(Enum):
             SharedOpenAPITags.XQTL_TRACK_RECORD.value,
             SharedOpenAPITags.COLLECTIONS.value,
         ],
-        xSortOrder=80,
+        x_sort_order=80,
     )
 
     def __str__(self):

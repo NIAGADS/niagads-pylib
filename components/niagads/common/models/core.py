@@ -43,15 +43,15 @@ class TransformableModel(BaseModel):
             return [obj.get(k) for k in fields]
 
     @classmethod
-    def get_model_fields(cls, asStr: bool = False):
-        """classmethod for getting model fields either as name: FieldInfo pairs or as a list of names if asStr is True"""
+    def get_model_fields(cls, as_str: bool = False):
+        """classmethod for getting model fields either as name: FieldInfo pairs or as a list of names if as_str is True"""
         return (
             [
                 (v.serialization_alias if v.serialization_alias is not None else k)
                 for k, v in cls.model_fields.items()
                 if not v.exclude
             ]
-            if asStr
+            if as_str
             else {
                 v.serialization_alias if v.serialization_alias is not None else k: v
                 for k, v in cls.model_fields.items()

@@ -22,7 +22,7 @@ _TRACK_COLLECTION_QUERY = """
 
 TrackMetadataQuery = QueryDefinition(
     query="SELECT * FROM Metadata.TrackMetadata",
-    useIdSelectWrapper=True,
+    use_id_select_wrapper=True,
     errorOnNull="Track not found in the GenomicsDB",
 )
 
@@ -32,6 +32,6 @@ CollectionQuery = QueryDefinition(
 
 CollectionTrackMetadataQuery = QueryDefinition(
     query=_TRACK_COLLECTION_METADATA_QUERY,
-    bindParameters=["collection"],
+    bind_parameters=["collection"],
     errorOnNull="Collection not found in the GenomicsDB",
 )

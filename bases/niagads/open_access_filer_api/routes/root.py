@@ -2,15 +2,13 @@ import functools
 
 from fastapi import APIRouter, Depends, Request, Response
 from niagads.open_access_api_common.app.factory import AppFactory
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
-from niagads.open_access_api_common.config.core import Settings
-from niagads.open_access_api_common.models.records.route import (
-    RecordSummary,
-    RouteDescription,
-)
+from niagads.open_access_api_common.constants import SharedOpenAPITags
+
+from niagads.open_access_api_common.models.records import Entity, RecordSummary
 from niagads.open_access_api_common.models.response.core import RecordResponse
+from niagads.open_access_api_common.models.routes import RouteDescription
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
-from niagads.open_access_api_common.models.records.core import Entity
+
 from niagads.open_access_filer_api.dependencies import (
     TRACK_DATA_STORES,
     InternalRequestParameters,
@@ -29,7 +27,7 @@ router = APIRouter(tags=BASE_TAGS)
     "/status",
     response_model=RecordResponse,
     summary="get-api-info",
-    description=f"Retrieve a brief overview of the {APP_NAME}",
+    description=f"Retrieve a brief overesponse_view of the {APP_NAME}",
     tags=[str(SharedOpenAPITags.DOCUMENTATION)],
 )
 async def get_database_description(
@@ -37,7 +35,7 @@ async def get_database_description(
 ) -> RecordResponse:
 
     trackCount = await MetadataQueryService(
-        internal.session, dataStore=TRACK_DATA_STORES
+        internal.session, data_store=TRACK_DATA_STORES
     ).get_track_count()
 
     result = RouteDescription(
@@ -47,7 +45,7 @@ async def get_database_description(
         pubmed_id=PUBMED_IDS,
         records=[RecordSummary(entity=Entity.TRACK, num_records=trackCount)],
     )
-    return RecordResponse(data=[result], request=internal.requestData)
+    return RecordResponse(data=[result], request=internal.request_data)
 
 
 @router.get(

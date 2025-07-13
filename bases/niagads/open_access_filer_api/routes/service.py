@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends
 from niagads.exceptions.core import ValidationError
 from niagads.genome.core import Assembly
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.track.igvbrowser import (
     IGVBrowserTrackConfig,
     IGVBrowserTrackConfigResponse,

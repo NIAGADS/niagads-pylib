@@ -77,16 +77,16 @@ _TRACK_QTLGENE_COUNTS_QUERY_SQL = """
 
 TrackQTLGeneQuery = QueryDefinition(
     query=_TRACK_QTLGENE_QUERY_SQL,
-    countsQuery=_TRACK_QTLGENE_COUNTS_QUERY_SQL,
-    useIdSelectWrapper=True,
+    counts_query=_TRACK_QTLGENE_COUNTS_QUERY_SQL,
+    use_id_select_wrapper=True,
     errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB",
     messageOnResultSize="Found target {0} genes in this analysis.  Displaying {1}.  To retrieve the full set, please run the following `paged` query using the NIAGADS Open Access API: {2}.",
-    bindParameters=["rank_start", "rank_end"],
+    bind_parameters=["rank_start", "rank_end"],
 )
 
 TrackGWASSumStatQuery = QueryDefinition(
     query=_TRACK_GSS_QUERY_SQL,
-    useIdSelectWrapper=True,
+    use_id_select_wrapper=True,
     errorOnNull="GWAS summary statistics track not found in the NIAGADS Alzheimer's GenomicsDB",
 )
 
@@ -99,9 +99,9 @@ CountsAbridgedTrackQuery = QueryDefinition(
         GROUP BY track_id, chromosome
         ORDER BY replace(chromosome, 'chr', '')::integer
     """,
-    bindParameters=["id"],
+    bind_parameters=["id"],
     errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB",
-    rawResponse=True,
+    raw_response=True,
 )
 
 TopAbridgedTrackQuery = QueryDefinition(
@@ -117,7 +117,7 @@ TopAbridgedTrackQuery = QueryDefinition(
         AND r.track_id = :id
         ORDER BY r.rank ASC
     """,
-    bindParameters=["id"],
+    bind_parameters=["id"],
     errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB",
-    rawResponse=True,
+    raw_response=True,
 )

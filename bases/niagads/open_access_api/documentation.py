@@ -3,11 +3,11 @@
 from typing import List, Set
 
 from niagads.common.types import T_PubMedID
-from niagads.open_access_api_common.config.constants import (
+from niagads.open_access_api_common.constants import (
     SharedOpenAPITags,
     SharedOpenAPIxTagGroups,
 )
-from niagads.open_access_api_common.config.core import Settings
+from niagads.open_access_api_common.config import Settings
 from niagads.open_access_api_common.app.openapi import OpenAPISpec, OpenAPITag
 
 
@@ -26,7 +26,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             "description": "NIAGADS",
             "url": "https://www.niagads.org",
         },
-        xSortOrder=1,
+        x_sort_order=1,
     ),
     SharedOpenAPITags.DOCUMENTATION.value,
 ]

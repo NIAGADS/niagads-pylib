@@ -3,11 +3,11 @@
 from typing import List, Set
 
 from niagads.common.types import T_PubMedID
-from niagads.open_access_api_common.config.constants import (
+from niagads.open_access_api_common.constants import (
     SharedOpenAPITags,
     SharedOpenAPIxTagGroups,
 )
-from niagads.open_access_api_common.config.core import Settings
+from niagads.open_access_api_common.config import Settings
 from niagads.open_access_api_common.app.openapi import (
     OpenAPISpec,
     OpenAPITag,
@@ -20,8 +20,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
     OpenAPITag(
         name=APP_NAMESPACE,
         description="sub-API namespace",
-        xTraitTag=True,
-        xSortOrder=0,
+        x_sort_order=0,
     ),
     OpenAPITag(
         name="Alzheimers Genomics Database",
@@ -38,7 +37,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             "description": "Alzheimer's GenomicsDB",
             "url": "https://www.niagads.org/genomics",
         },
-        xSortOrder=2,
+        x_sort_order=2,
     ),
     SharedOpenAPITags.DOCUMENTATION.value,
     SharedOpenAPITags.GENE_RECORD.value,
@@ -62,7 +61,7 @@ APP_NAME: str = OPEN_API_TAGS[1].name
 BASE_TAGS = [APP_NAMESPACE, APP_NAME]
 
 GENOMICS_TAG_GROUPS = [
-    OpenAPIxTagGroup(name="Knowledge Bases", tags=[OPEN_API_TAGS[1]], xSortOrder=0)
+    OpenAPIxTagGroup(name="Knowledge Bases", tags=[OPEN_API_TAGS[1]], x_sort_order=0)
 ] + SharedOpenAPIxTagGroups.list()
 
 OPEN_API_SPEC = OpenAPISpec(

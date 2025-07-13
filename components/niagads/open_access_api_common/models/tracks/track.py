@@ -8,7 +8,7 @@ from niagads.database.schemas.dataset.composite_attributes import (
     Phenotype,
     Provenance,
 )
-from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
+from niagads.open_access_api_common.constants import DEFAULT_NULL_STRING
 from niagads.open_access_api_common.models.core import (
     ORMCompatibleDynamicRowModel,
     ORMCompatibleRowModel,
@@ -127,7 +127,7 @@ class Track(ORMCompatibleRowModel):
                         {
                             k: None
                             for k in COMPOSITE_ATTRIBUTES[field].get_model_fields(
-                                asStr=True
+                                as_str=True
                             )
                         }
                     )
@@ -135,7 +135,7 @@ class Track(ORMCompatibleRowModel):
         return obj
 
     @classmethod
-    def get_model_fields(cls, asStr=False):
+    def get_model_fields(cls, as_str=False):
         fields = super().get_model_fields()
         model: T_TransformableModel
         for fieldId, model in COMPOSITE_ATTRIBUTES.items():
@@ -144,7 +144,7 @@ class Track(ORMCompatibleRowModel):
         for fieldId in COMPOSITE_ATTRIBUTES.keys():
             del fields[fieldId]
 
-        return list(fields.keys()) if asStr else fields
+        return list(fields.keys()) if as_str else fields
 
     def as_table_row(self, **kwargs):
         return super().as_table_row(**kwargs)
@@ -177,24 +177,24 @@ class TrackResponse(RecordResponse):
         description="Full metadata for each track meeting the query criteria."
     )
 
-    def to_text(self, inclHeader=False, nullStr=DEFAULT_NULL_STRING):
+    def to_text(self, incl_header=False, null_str=DEFAULT_NULL_STRING):
         if self.is_empty():
-            if inclHeader:
+            if incl_header:
                 return self._get_empty_header()
             else:
                 return ""
 
         else:
-            fields = self.data[0].get_fields(asStr=True)
+            fields = self.data[0].get_fields(as_str=True)
             rows = []
             for r in self.data:
                 if isinstance(r, str):
                     rows.append(r)
                 else:
                     # pass fields to ensure consistent ordering
-                    rows.append(r.as_text(fields=fields, nullStr=nullStr))
+                    rows.append(r.as_text(fields=fields, null_str=null_str))
 
-            responseStr = "\t".join(fields) + "\n" if inclHeader else ""
-            responseStr += "\n".join(rows)
+            response_str = "\t".join(fields) + "\n" if incl_header else ""
+            response_str += "\n".join(rows)
 
-        return responseStr
+        return response_str

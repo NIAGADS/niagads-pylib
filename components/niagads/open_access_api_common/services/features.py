@@ -22,20 +22,19 @@ class FeatureQueryService:
             raise HTTPException(status_code=404, detail="Gene not found")
 
     async def get_variant_location(self, variant: GenomicFeature):
+        # FIXME: structural variants; just query DB
         if variant.feature_id.startswith("rs"):
-            findByRefSnp = func.find_variant_by_refsnp(
-                variant.feature_id, True
-            ).table_valued(column("chromosome"), column("position"), column("length"))
+            query = func.find_variant_by_refsnp(variant.feature_id, True).table_valued(
+                column("chromosome"), column("position"), column("length")
+            )
 
             stmt = select(
                 (
-                    findByRefSnp.c.chromosome
+                    query.c.chromosome
                     + ":"
-                    + (findByRefSnp.c.position - 1).cast(text("TEXT"))
+                    + (query.c.position - 1).cast(text("TEXT"))
                     + "-"
-                    + (findByRefSnp.c.position + findByRefSnp.c.length).cast(
-                        text("TEXT")
-                    )
+                    + (query.c.position + query.c.length).cast(text("TEXT"))
                 ).label("span")
             )
             try:

@@ -1,7 +1,7 @@
 from typing import Any, List, Optional, Union
 
 from niagads.common.models.views.table import TableRow
-from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
+from niagads.open_access_api_common.constants import DEFAULT_NULL_STRING
 from niagads.open_access_api_common.models.core import DynamicRowModel
 from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.open_access_api_common.views.table import Table
@@ -34,8 +34,8 @@ class BEDFeature(DynamicRowModel):
     def add_track(self, trackId: Any):
         self.model_extra["track_id"] = trackId
 
-    def table_fields(self, asStr=False, **kwargs):
-        fields = self.get_model_fields(asStr)
+    def table_fields(self, as_str=False, **kwargs):
+        fields = self.get_model_fields(as_str)
         # FIXME: add _sort_fields?
         if self.has_extras():
             if getattr(kwargs, "extrasAsInfoStr", False):
@@ -88,15 +88,15 @@ class BEDFeature(DynamicRowModel):
             obj = self.model_dump()
             return [v for k, v in self.model_dump().items() if k in fields]
 
-    def as_text(self, fields=None, nullStr=".", **kwargs):
+    def as_text(self, fields=None, null_str=".", **kwargs):
         if fields is None:
-            fields = self.table_fields(asStr="true", **kwargs)
+            fields = self.table_fields(as_str="true", **kwargs)
         values = self.as_list(fields=fields)
-        return "\t".join([nullStr if v is None else str(v) for v in values])
+        return "\t".join([null_str if v is None else str(v) for v in values])
 
     def as_table_row(self, **kwargs):
         # do this way in case kwargs includes `extrasAsInfoStr`
-        fields = self.table_fields(asStr=True, **kwargs)
+        fields = self.table_fields(as_str=True, **kwargs)
         values = self.as_list(fields=fields)
         row = dict(zip(fields, values))
         return TableRow(**row)
@@ -139,28 +139,28 @@ class BEDResponse(RecordResponse):
             return Table(**table)
 
     def to_bed(self):
-        return self.to_text(includeHeader=False, nullStr=".")
+        return self.to_text(includeHeader=False, null_str=".")
 
-    def to_text(self, inclHeader=True, nullStr=DEFAULT_NULL_STRING):
+    def to_text(self, incl_header=True, null_str="NA"):
         """return a text response (e.g., BED, plain text)"""
         hasDynamicExtras = self.__has_dynamic_extras()
 
         if self.is_empty():
-            if inclHeader:
+            if incl_header:
                 # no data so have to get model fields from the class
                 return self._get_empty_header()
             return ""
 
         else:
             fields = self.data[0].table_fields(
-                asStr=True, extrasAsInfoStr=hasDynamicExtras
+                as_str=True, extrasAsInfoStr=hasDynamicExtras
             )
             rows = []
             for r in self.data:
                 rows.append(
-                    r.as_text(fields=fields, nullStr=nullStr, extrasAsInfoStr=True)
+                    r.as_text(fields=fields, null_str=null_str, extrasAsInfoStr=True)
                 )
-            responseStr = "\t".join(fields) + "\n" if inclHeader else ""
+            responseStr = "\t".join(fields) + "\n" if incl_header else ""
             responseStr += "\n".join(rows)
 
         return responseStr

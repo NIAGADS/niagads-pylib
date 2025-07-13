@@ -1,7 +1,7 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.features.bed import BEDResponse
 from niagads.open_access_api_common.models.records.track.track import (
     TrackResponse,
@@ -61,7 +61,7 @@ async def get_track_metadata_bulk(
     internal: InternalRequestParameters = Depends(),
 ):
 
-    rContent = ResponseContent.descriptive(inclUrls=True).validate(
+    response_content = ResponseContent.descriptive(inclUrls=True).validate(
         content, "content", ResponseContent
     )
     helper = FILERRouteHelper(
@@ -69,16 +69,16 @@ async def get_track_metadata_bulk(
         ResponseConfiguration(
             format=ResponseFormat.generic().validate(format, "format", ResponseFormat),
             view=ResponseView.table().validate(view, "view", ResponseView),
-            content=rContent,
+            content=response_content,
             model=(
                 TrackResponse
-                if rContent == ResponseContent.FULL
+                if response_content == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
-                    if rContent == ResponseContent.BRIEF
+                    if response_content == ResponseContent.BRIEF
                     else (
                         ListResponse
-                        if rContent == ResponseContent.URLS
+                        if response_content == ResponseContent.URLS
                         else RecordResponse
                     )
                 )
@@ -108,18 +108,20 @@ async def get_track_metadata(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[AbridgedTrackResponse, TrackResponse, RecordResponse]:
 
-    rContent = ResponseContent.descriptive().validate(
+    response_content = ResponseContent.descriptive().validate(
         content, "content", ResponseContent
     )
-    rFormat = ResponseFormat.generic().validate(format, "format", ResponseFormat)
+    response_format = ResponseFormat.generic().validate(
+        format, "format", ResponseFormat
+    )
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
-            content=rContent,
-            format=rFormat,
+            content=response_content,
+            format=response_format,
             model=(
                 TrackResponse
-                if rContent == ResponseContent.FULL
+                if response_content == ResponseContent.FULL
                 else AbridgedTrackResponse
             ),
         ),
@@ -156,21 +158,23 @@ async def get_track_data(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[BEDResponse, AbridgedTrackResponse, TableViewResponse, RecordResponse]:
 
-    rContent = ResponseContent.data().validate(content, "content", ResponseContent)
+    response_content = ResponseContent.data().validate(
+        content, "content", ResponseContent
+    )
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
-            content=rContent,
+            content=response_content,
             format=ResponseFormat.functional_genomics().validate(
                 format, "format", ResponseFormat
             ),
             view=ResponseView.validate(view, "view", ResponseView),
             model=(
                 BEDResponse
-                if rContent == ResponseContent.FULL
+                if response_content == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
-                    if rContent == ResponseContent.BRIEF
+                    if response_content == ResponseContent.BRIEF
                     else RecordResponse
                 )
             ),

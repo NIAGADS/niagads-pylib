@@ -89,7 +89,7 @@ class AbstractDatabase(ABC):
     abstract accessor for database connection info / provides database handler
     """
 
-    def __init__(self, gusConfigFile=None, connectionString=None):
+    def __init__(self, gus_config_file=None, connection_string=None):
         self.logger = logging.getLogger(__name__)
         self._dbh = None  # database handler (connection)
         self._URI = None
@@ -99,10 +99,10 @@ class AbstractDatabase(ABC):
             None  # placeholder for resetting PGPASSWORD environmental var
         )
         self._URIConfig = None
-        self._connectionString = connectionString
+        self._connection_string = connection_string
         self._pool = None  # connection pool
 
-        self._set_connection_string(gusConfigFile, connectionString)
+        self._set_connection_string(gus_config_file, connection_string)
 
     @abstractmethod
     def connect(self, timeout=None):
@@ -124,78 +124,78 @@ class AbstractDatabase(ABC):
     def close(self):
         pass
 
-    def _set_connection_string(self, gusConfigFile, connectionString):
+    def _set_connection_string(self, gus_config_file, connection_string):
         """initialize connection string"""
-        if connectionString is not None:
-            self._connectionString = connectionString
+        if connection_string is not None:
+            self._connection_string = connection_string
             # TODO: extract user, etc from connection string & set
         else:
-            self._connectionString = self._parse_gus_config(gusConfigFile)
+            self._connection_string = self._parse_gus_config(gus_config_file)
 
-    def _parse_gus_config(self, gusConfigFile, setMemberVariables=True, url=False):
+    def _parse_gus_config(self, gus_config_file, set_member_variables=True, url=False):
         """
         parse gus config file for DB connection info and return connection string
         """
-        if gusConfigFile is None:
+        if gus_config_file is None:
             if not environ.get("GUS_HOME"):
                 raise IllegalArgumentError(
                     "GUS_HOME environmental variable not set; must provide full path to `gus.config` file or connection string to establish a database connection"
                 )
 
-            gusConfigFile = environ["GUS_HOME"] + "/config/gus.config"
+            gus_config_file = environ["GUS_HOME"] + "/config/gus.config"
 
-        if not verify_path(gusConfigFile):
-            raise FileNotFoundError(gusConfigFile)
+        if not verify_path(gus_config_file):
+            raise FileNotFoundError(gus_config_file)
 
-        configParser = SafeConfigParser()
-        with open(gusConfigFile, "r") as fh:
-            configString = "[section]\n" + fh.read()
-            configParser.read_string(configString)
+        config_parser = SafeConfigParser()
+        with open(gus_config_file, "r") as fh:
+            config_str = "[section]\n" + fh.read()
+            config_parser.read_string(config_str)
 
-        dsn = configParser.get("section", "dbiDsn")
-        user = configParser.get("section", "databaseLogin")
-        password = configParser.get("section", "databasePassword")
+        dsn = config_parser.get("section", "dbiDsn")
+        user = config_parser.get("section", "databaseLogin")
+        password = config_parser.get("section", "databasePassword")
 
         dsn = dsn.replace("dbi:Pg:", "")
         dsn = dsn.replace("DBI:Pg:", "")
-        dsnConfig = dict(param.split("=") for param in dsn.split(";"))
+        dsn_config = dict(param.split("=") for param in dsn.split(";"))
 
         if url:  # postgresql://[userspec:pwd@][host:port][/dbname][?paramspec]
-            connectionString = "postgresql://" + user + ":" + password
-            connectionString = (
-                connectionString + "@" + dsnConfig["host"]
-                if "host" in dsnConfig
+            connection_string = "postgresql://" + user + ":" + password
+            connection_string = (
+                connection_string + "@" + dsn_config["host"]
+                if "host" in dsn_config
                 else "localhost"
             )
-            connectionString = (
-                connectionString + ":" + dsnConfig["port"]
-                if "port" in dsnConfig
+            connection_string = (
+                connection_string + ":" + dsn_config["port"]
+                if "port" in dsn_config
                 else "5432"
             )
-            connectionString = connectionString + "/" + dsnConfig["dbname"]
+            connection_string = connection_string + "/" + dsn_config["dbname"]
 
         else:  # key-value pair form
-            connectionString = "user='" + user + "'"
-            connectionString = connectionString + " password='" + password + "'"
-            connectionString = (
-                connectionString + " dbname='" + dsnConfig["dbname"] + "'"
+            connection_string = "user='" + user + "'"
+            connection_string = connection_string + " password='" + password + "'"
+            connection_string = (
+                connection_string + " dbname='" + dsn_config["dbname"] + "'"
             )
-            if "host" in dsnConfig:
-                connectionString = (
-                    connectionString + " host='" + dsnConfig["host"] + "'"
+            if "host" in dsn_config:
+                connection_string = (
+                    connection_string + " host='" + dsn_config["host"] + "'"
                 )
-            if "port" in dsnConfig:
-                connectionString = (
-                    connectionString + " port='" + dsnConfig["port"] + "'"
+            if "port" in dsn_config:
+                connection_string = (
+                    connection_string + " port='" + dsn_config["port"] + "'"
                 )
 
-        if setMemberVariables:
+        if set_member_variables:
             self._URI = dsn
             self._user = user
             self._password = password
-            self._URIConfig = dsnConfig
+            self._URIConfig = dsn_config
 
-        return connectionString
+        return connection_string
 
     def name(self):
         """
@@ -234,7 +234,7 @@ class AbstractDatabase(ABC):
         return self._user
 
     def connection_string(self):
-        return self._connectionString
+        return self._connection_string
 
     @classmethod
     def connection_string_from_config(self, gusConfigFile=None, url=False):
@@ -244,7 +244,7 @@ class AbstractDatabase(ABC):
             url = True  # connection string format must be a URL for asyncpg
 
         return self._parse_gus_config(
-            self, gusConfigFile=gusConfigFile, setMemberVariables=False, url=url
+            self, gus_config_file=gusConfigFile, set_member_variables=False, url=url
         )
 
     def __exit__(self):
@@ -254,8 +254,8 @@ class AbstractDatabase(ABC):
 class Database(AbstractDatabase):
     """standard psycopg2 database connection"""
 
-    def __init__(self, gusConfigFile=None, connectionString=None):
-        super().__init__(gusConfigFile, connectionString)
+    def __init__(self, gus_config_file=None, connection_string=None):
+        super().__init__(gus_config_file, connection_string)
 
     def pool(self):
         """
@@ -273,7 +273,7 @@ class Database(AbstractDatabase):
         """
         return self._pool
 
-    def create_pool(self, maxConnections: int = 20, threaded=False):
+    def create_pool(self, max_connections: int = 20, threaded=False):
         """
         create (if does not exist) and return connection pool
 
@@ -288,10 +288,12 @@ class Database(AbstractDatabase):
 
         if threaded:
             self._pool = ThreadedConnectionPool(
-                1, maxConnections, self._connectionString
+                1, max_connections, self._connection_string
             )
         else:
-            self._pool = SimpleConnectionPool(1, maxConnections, self._connectionString)
+            self._pool = SimpleConnectionPool(
+                1, max_connections, self._connection_string
+            )
 
     def close_pool(self):
         self._pool.closeall()
@@ -318,16 +320,16 @@ class Database(AbstractDatabase):
 
         return self._dbh.cursor()
 
-    def named_cursor(self, name, cursorFactory=None, withhold=True):
+    def named_cursor(self, name, cursor_factory=None, withhold=True):
         """
         create and return database cursor
         if dictCursor is True, return DictCursor
         """
-        if cursorFactory == "DictCursor":
+        if cursor_factory == "DictCursor":
             return self._dbh.cursor(
                 name=name, cursor_factory=DictCursor, withhold=withhold
             )
-        if cursorFactory == "RealDictCursor":
+        if cursor_factory == "RealDictCursor":
             return self._dbh.cursor(
                 name=name, cursor_factory=RealDictCursor, withhold=withhold
             )
@@ -378,7 +380,7 @@ class Database(AbstractDatabase):
         create database connection
         """
         if not self.connected():
-            connectionString = self._connectionString
+            connectionString = self._connection_string
             if timeout is not None:
                 connectionString += (
                     " options='-c statement_timeout=" + str(timeout) + "'"

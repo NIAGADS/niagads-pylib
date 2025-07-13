@@ -1,8 +1,10 @@
 from enum import auto
-from niagads.open_access_api_common.parameters.core import CustomizableEnumParameter
+
+from niagads.enums.core import CaseInsensitiveEnum
+from niagads.open_access_api_common.parameters.enums import EnumParameter
 
 
-class ResponseContent(CustomizableEnumParameter):
+class ResponseContent(EnumParameter):
     """enum for allowable response types"""
 
     FULL = auto()
@@ -56,7 +58,7 @@ class ResponseContent(CustomizableEnumParameter):
             return subset
 
 
-class ResponseFormat(CustomizableEnumParameter):
+class ResponseFormat(EnumParameter):
     """enum for allowable response / output formats"""
 
     JSON = auto()
@@ -96,7 +98,7 @@ class ResponseFormat(CustomizableEnumParameter):
             return subset
 
 
-class ResponseView(CustomizableEnumParameter):
+class ResponseView(EnumParameter):
     """enum for allowable views"""
 
     TABLE = auto()

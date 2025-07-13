@@ -1,6 +1,6 @@
 from fastapi import Query
 from niagads.exceptions.core import ValidationError
-from niagads.open_access_api_common.config.constants import MAX_NUM_PAGES
+from niagads.open_access_api_common.constants import MAX_NUM_PAGES
 from niagads.utils.string import is_integer
 from pyparsing import Optional
 

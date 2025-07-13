@@ -2,15 +2,13 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, Query
 from niagads.database.schemas.dataset.track import TrackDataStore
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
-from niagads.open_access_api_common.models.records.track.collection import (
-    CollectionResponse,
-)
-from niagads.open_access_api_common.models.records.track.track import (
+from niagads.open_access_api_common.constants import SharedOpenAPITags
+from niagads.open_access_api_common.models.response.core import RecordResponse
+from niagads.open_access_api_common.models.tracks.collection import CollectionResponse
+from niagads.open_access_api_common.models.tracks.track import (
     AbridgedTrackResponse,
     TrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import collection_param
 from niagads.open_access_api_common.parameters.record.query import optional_track_param
@@ -63,7 +61,7 @@ async def get_collections(
     )
 
     result = await MetadataQueryService(
-        internal.session, dataStore=[TrackDataStore.GENOMICS, TrackDataStore.SHARED]
+        internal.session, data_store=[TrackDataStore.GENOMICS, TrackDataStore.SHARED]
     ).get_collections()
     return await helper.generate_response(result)
 
@@ -100,19 +98,19 @@ async def get_collection_track_metadata(
     TableViewResponse,
 ]:
 
-    rContent = ResponseContent.validate(content, "content", ResponseContent)
+    response_content = ResponseContent.validate(content, "content", ResponseContent)
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
             format=ResponseFormat.generic().validate(format, "format", ResponseFormat),
-            content=rContent,
+            content=response_content,
             view=ResponseView.table().validate(view, "view", ResponseView),
             model=(
                 TrackResponse
-                if rContent == ResponseContent.FULL
+                if response_content == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
-                    if rContent == ResponseContent.BRIEF
+                    if response_content == ResponseContent.BRIEF
                     else RecordResponse
                 )
             ),

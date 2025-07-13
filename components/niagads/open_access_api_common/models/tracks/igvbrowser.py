@@ -4,11 +4,10 @@ from niagads.common.models.ontology import OntologyTerm
 from niagads.database.schemas.dataset.composite_attributes import (
     BiosampleCharacteristics,
     ExperimentalDesign,
-    FileProperties,
     Phenotype,
     Provenance,
 )
-from niagads.open_access_api_common.config.core import Settings
+from niagads.open_access_api_common.config import Settings
 from niagads.open_access_api_common.models.core import RowModel
 from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.open_access_api_common.parameters.response import (

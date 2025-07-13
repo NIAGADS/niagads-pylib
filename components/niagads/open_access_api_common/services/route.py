@@ -1,31 +1,24 @@
 from typing import Any, Dict, Optional, Type, Union
 
 from fastapi import Response
-from niagads.exceptions.core import ValidationError
 from niagads.common.models.structures import Range
-
-from niagads.open_access_api_common.config.constants import (
-    DEFAULT_PAGE_SIZE,
-    MAX_NUM_PAGES,
+from niagads.exceptions.core import ValidationError
+from niagads.open_access_api_common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
+from niagads.open_access_api_common.models.response.core import (
+    AbstractResponse,
+    T_RecordResponse,
+    T_Response,
+)
+from niagads.open_access_api_common.models.response.pagination import (
+    PaginationDataModel,
 )
 from niagads.open_access_api_common.models.services.cache import (
     CacheKeyDataModel,
     CacheKeyQualifier,
     CacheNamespace,
 )
-
-from niagads.open_access_api_common.models.records.track.igvbrowser import (
+from niagads.open_access_api_common.models.tracks.igvbrowser import (
     IGVBrowserTrackSelectorResponse,
-)
-from niagads.open_access_api_common.models.response.core import (
-    AbstractResponse,
-    MessageResponse,
-    RecordResponse,
-    T_RecordResponse,
-    T_Response,
-)
-from niagads.open_access_api_common.models.response.pagination import (
-    PaginationDataModel,
 )
 from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
 from niagads.open_access_api_common.parameters.response import (
@@ -33,8 +26,7 @@ from niagads.open_access_api_common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
-
-from niagads.open_access_api_common.services.feature import FeatureQueryService
+from niagads.open_access_api_common.services.features import FeatureQueryService
 from niagads.open_access_api_common.views.table import TableViewResponse
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
@@ -136,23 +128,23 @@ class RouteHelperService:
         params: Parameters,
     ):
         self._managers: InternalRequestParameters = managers
-        self._responseConfig: ResponseConfiguration = responseConfig
+        self._response_config: ResponseConfiguration = responseConfig
         self._pagination: PaginationDataModel = None
         self._parameters: Parameters = params
         self._pageSize: int = DEFAULT_PAGE_SIZE
-        self._resultSize: int = None
+        self._result_size: int = None
 
     def set_page_size(self, pageSize: int):
         self._pageSize = pageSize
 
     async def _get_cached_response(self):
-        cacheKey = self._managers.cacheKey.encrypt()
+        cache_key = self._managers.cache_key.encrypt()
         response = await self._managers.cache.get(
-            cacheKey, namespace=self._managers.cacheKey.namespace
+            cache_key, namespace=self._managers.cache_key.namespace
         )
 
         if response is not None:
-            return await self.generate_response(response, isCached=True)
+            return await self.generate_response(response, is_cached=True)
 
         return None
 
@@ -189,22 +181,22 @@ class RouteHelperService:
         return 1
 
     def total_num_pages(self):
-        if self._resultSize is None:
+        if self._result_size is None:
             raise RuntimeError("Attempting to page before estimating result size.")
 
-        if self._resultSize > self._pageSize * MAX_NUM_PAGES:
+        if self._result_size > self._pageSize * MAX_NUM_PAGES:
             raise ValidationError(
-                f"Result size ({self._resultSize}) is too large; filter for fewer tracks or narrow the queried genomic region."
+                f"Result size ({self._result_size}) is too large; filter for fewer tracks or narrow the queried genomic region."
             )
 
         return (
             1
-            if self._resultSize < self._pageSize
+            if self._result_size < self._pageSize
             else next(
                 (
                     p
                     for p in range(1, MAX_NUM_PAGES)
-                    if (p - 1) * self._pageSize > self._resultSize
+                    if (p - 1) * self._pageSize > self._result_size
                 )
             )
             - 1
@@ -215,7 +207,7 @@ class RouteHelperService:
             page=self.page(),
             total_num_pages=self.total_num_pages(),
             paged_num_records=None,
-            total_num_records=self._resultSize,
+            total_num_records=self._result_size,
         )
 
         return self._is_valid_page(self._pagination.page)
@@ -241,95 +233,95 @@ class RouteHelperService:
         end = (
             start + self._pageSize
         )  # don't subtract 1 b/c python slices are not end-range inclusive
-        if end > self._resultSize:
-            end = self._resultSize
+        if end > self._result_size:
+            end = self._result_size
 
         return Range(start=start, end=end)
 
     async def generate_table_response(self, response: Type[T_RecordResponse]):
         # create an encrypted cache key
-        cacheKey = CacheKeyDataModel.encrypt_key(
-            self._managers.cacheKey.key
+        cache_key = CacheKeyDataModel.encrypt_key(
+            self._managers.cache_key.key
             + str(CacheKeyQualifier.VIEW)
             + str(ResponseView.TABLE)
         )
 
         viewResponse = await self._managers.cache.get(
-            cacheKey, namespace=CacheNamespace.VIEW
+            cache_key, namespace=CacheNamespace.VIEW
         )
 
         if viewResponse:
             return viewResponse
 
-        self._managers.requestData.set_request_id(cacheKey)
+        self._managers.request_data.set_request_id(cache_key)
 
         viewResponse = TableViewResponse(
-            table=response.to_table(id=cacheKey),
-            request=self._managers.requestData,
+            table=response.to_table(id=cache_key),
+            request=self._managers.request_data,
             pagination=response.pagination,
         )
 
         await self._managers.cache.set(
-            cacheKey, viewResponse, namespace=CacheNamespace.VIEW
+            cache_key, viewResponse, namespace=CacheNamespace.VIEW
         )
 
         return viewResponse
 
-    async def generate_response(self, result: Any, isCached: bool = False):
-        response: Type[T_RecordResponse] = result if isCached else None
+    async def generate_response(self, result: Any, is_cached: bool = False):
+        response: Type[T_RecordResponse] = result if is_cached else None
         if response is None:
-            self._managers.requestData.update_parameters(
+            self._managers.request_data.update_parameters(
                 self._parameters, exclude=_INTERNAL_PARAMETERS
             )
 
             # set pagination for lists of results
             if isinstance(result, list):
                 if not self._pagination_exists(raiseError=False):
-                    if self._resultSize is None:
-                        self._resultSize = len(result)
+                    if self._result_size is None:
+                        self._result_size = len(result)
 
                     self.initialize_pagination()
 
                 self.set_paged_num_records(len(result))
 
-                response = self._responseConfig.model(
-                    request=self._managers.requestData,
+                response = self._response_config.model(
+                    request=self._managers.request_data,
                     pagination=self._pagination,
                     data=result,
                 )
             else:
-                if self._responseConfig.model == IGVBrowserTrackSelectorResponse:
-                    queryId = self._managers.cacheKey.encrypt()
+                if self._response_config.model == IGVBrowserTrackSelectorResponse:
+                    queryId = self._managers.cache_key.encrypt()
                     collectionId = self._parameters.get("collection")
 
-                    response = self._responseConfig.model(
-                        request=self._managers.requestData,
+                    response = self._response_config.model(
+                        request=self._managers.request_data,
                         data=IGVBrowserTrackSelectorResponse.build_table(
                             result, queryId if collectionId is None else collectionId
                         ),
                     )
                 else:
-                    response = self._responseConfig.model(
-                        request=self._managers.requestData,
+                    response = self._response_config.model(
+                        request=self._managers.request_data,
                         data=result,  # self._sqa_row2dict(result),
                     )
 
             # cache the response
             await self._managers.cache.set(
-                self._managers.cacheKey.encrypt(),
+                self._managers.cache_key.encrypt(),
                 response,
-                namespace=self._managers.cacheKey.namespace,
+                namespace=self._managers.cache_key.namespace,
             )
 
-        match self._responseConfig.view:
+        match self._response_config.view:
             case ResponseView.TABLE:
                 return await self.generate_table_response(response)
 
             case ResponseView.DEFAULT:
-                match self._responseConfig.format:
+                match self._response_config.format:
                     case ResponseFormat.TEXT:
                         return Response(
-                            response.to_text(inclHeader=True),
+                            response.to_text(incl_header=True),
                             media_type="text/plain",
                         )
                     case ResponseFormat.BED:
@@ -347,10 +339,10 @@ class RouteHelperService:
 
             case _:  # IGV_BROWSER
                 raise NotImplementedError(
-                    f"A response for view of type {str(self._responseConfig.view)} is coming soon."
+                    f"A response for view of type {str(self._response_config.view)} is coming soon."
                 )
 
     async def get_feature_location(self):
         return FeatureQueryService(self._managers.session).get_feature_location(
-            self._parameters.location
+            self._parameters.get("location")
         )

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from typing import Union
 
 from niagads.database.schemas.dataset.track import TrackDataStore
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.track.collection import (
     CollectionResponse,
 )
@@ -64,7 +64,7 @@ async def get_collections(
     )
 
     result = await MetadataQueryService(
-        internal.session, dataStore=[TrackDataStore.FILER, TrackDataStore.SHARED]
+        internal.session, data_store=[TrackDataStore.FILER, TrackDataStore.SHARED]
     ).get_collections()
     return await helper.generate_response(result)
 
@@ -93,19 +93,19 @@ async def get_collection_track_metadata(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[RecordResponse, AbridgedTrackResponse, TrackResponse, TableViewResponse]:
 
-    rContent = ResponseContent.validate(content, "content", ResponseContent)
+    response_content = ResponseContent.validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
             format=ResponseFormat.generic().validate(format, "format", ResponseFormat),
-            content=rContent,
+            content=response_content,
             view=ResponseView.table().validate(view, "view", ResponseView),
             model=(
                 TrackResponse
-                if rContent == ResponseContent.FULL
+                if response_content == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
-                    if rContent == ResponseContent.BRIEF
+                    if response_content == ResponseContent.BRIEF
                     else RecordResponse
                 )
             ),

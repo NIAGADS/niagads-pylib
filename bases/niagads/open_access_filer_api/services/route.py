@@ -82,11 +82,11 @@ class FILERRouteHelper(MetadataRouteHelperService):
         )
 
         # generate cache keys
-        noPageCacheKey = self._managers.cacheKey.no_page()
+        noPageCacheKey = self._managers.cache_key.no_page()
         cursorCacheKey = CacheKeyDataModel.encrypt_key(
             noPageCacheKey + CacheKeyQualifier.CURSOR
         )
-        rsCacheKey = CacheKeyDataModel.encrypt_key(
+        rs_cache_key = CacheKeyDataModel.encrypt_key(
             noPageCacheKey + CacheKeyQualifier.RESULT_SIZE
         )
 
@@ -96,22 +96,24 @@ class FILERRouteHelper(MetadataRouteHelperService):
             namespace=CacheNamespace.QUERY_CACHE,
             timeout=CACHEDB_PARALLEL_TIMEOUT,
         )
-        self._resultSize = await self._managers.cache.get(
-            rsCacheKey,
+        self._result_size = await self._managers.cache.get(
+            rs_cache_key,
             namespace=CacheNamespace.QUERY_CACHE,
             timeout=CACHEDB_PARALLEL_TIMEOUT,
         )
 
         # if either is uncached, the data may be out of sync so recalculate cache size
-        if cursors is None or self._resultSize is None:
+        if cursors is None or self._result_size is None:
             cumulativeSum = cumulative_sum(
                 [t.num_results for t in sortedTrackResultSummary]
             )
-            self._resultSize = cumulativeSum[-1]  # last element is total number of hits
+            self._result_size = cumulativeSum[
+                -1
+            ]  # last element is total number of hits
 
             await self._managers.cache.set(
-                rsCacheKey,
-                self._resultSize,
+                rs_cache_key,
+                self._result_size,
                 namespace=CacheNamespace.QUERY_CACHE,
                 timeout=CACHEDB_PARALLEL_TIMEOUT,
             )
@@ -119,7 +121,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             self.initialize_pagination()  # need total number of pages to find cursors
 
             cursors = ["0:0"]
-            if self._resultSize > self._pageSize:  # figure out page cursors
+            if self._result_size > self._pageSize:  # figure out page cursors
                 residualRecords = 0
                 priorTrackIndex = 0
                 offset = 0
@@ -186,7 +188,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
     async def __validate_tracks(self, tracks: List[str]):
         """by setting validate=True, the service runs .validate_tracks before validating the genome build"""
         assembly = await MetadataQueryService(
-            self._managers.session, dataStore=self._dataStore
+            self._managers.session, data_store=self._data_store
         ).get_genome_build(tracks, validate=True)
         if isinstance(assembly, dict):
             raise ValidationError(
@@ -218,21 +220,21 @@ class FILERRouteHelper(MetadataRouteHelperService):
     async def __get_track_data_task(
         self, tracks: List[str], assembly: str, span: str, countsOnly: bool
     ):
-        cacheKey = CacheKeyDataModel.encrypt_key(
+        cache_key = CacheKeyDataModel.encrypt_key(
             f"/{FILERApiEndpoint.OVERLAPS}?assembly={assembly}&countsOnly={countsOnly}"
             + f"&span={span}&tracks={','.join(tracks)}"
         )
         result = await self._managers.cache.get(
-            cacheKey,
+            cache_key,
             namespace=CacheNamespace.EXTERNAL_API,
             timeout=CACHEDB_PARALLEL_TIMEOUT,
         )
         if result is None:
             result = await ApiWrapperService(
-                self._managers.apiClientSession
+                self._managers.api_client_session
             ).get_track_hits(tracks, span, assembly, countsOnly=countsOnly)
             await self._managers.cache.set(
-                cacheKey,
+                cache_key,
                 result,
                 namespace=CacheNamespace.EXTERNAL_API,
                 timeout=CACHEDB_PARALLEL_TIMEOUT,
@@ -240,20 +242,20 @@ class FILERRouteHelper(MetadataRouteHelperService):
         return result
 
     async def __get_gene_qtl_data_task(self, track: str, gene: str):
-        cacheKey = CacheKeyDataModel.encrypt_key(
+        cache_key = CacheKeyDataModel.encrypt_key(
             f"/{FILERApiEndpoint.GENE_QTLS}?" + f"&gene={gene}&track={track}"
         )
         result = await self._managers.cache.get(
-            cacheKey,
+            cache_key,
             namespace=CacheNamespace.EXTERNAL_API,
             timeout=CACHEDB_PARALLEL_TIMEOUT,
         )
         if result is None:
             result = await ApiWrapperService(
-                self._managers.apiClientSession
+                self._managers.api_client_session
             ).get_gene_qtls(track, gene)
             await self._managers.cache.set(
-                cacheKey,
+                cache_key,
                 result,
                 namespace=CacheNamespace.EXTERNAL_API,
                 timeout=CACHEDB_PARALLEL_TIMEOUT,
@@ -265,11 +267,11 @@ class FILERRouteHelper(MetadataRouteHelperService):
     ):
 
         result = await self._managers.cache.get(
-            self._managers.cacheKey.encrypt(),
-            namespace=self._managers.cacheKey.namespace,
+            self._managers.cache_key.encrypt(),
+            namespace=self._managers.cache_key.namespace,
         )
         if result is not None:
-            return await self.generate_response(result, isCached=True)
+            return await self.generate_response(result, is_cached=True)
 
         cursor: TrackPaginationCursor = await self.__initialize_data_query_pagination(
             trackResultSummary
@@ -285,7 +287,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             cursor.tracks, TRACKS_PER_API_REQUEST_LIMIT, returnIterator=True
         )
         tasks = [
-            self.__get_track_data_task(c, assembly, self._parameters.span, False)
+            self.__get_track_data_task(c, assembly, self._parameters.get("span"), False)
             for c in chunks
         ]
         chunkedResults = await asyncio.gather(*tasks, return_exceptions=False)
@@ -296,7 +298,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
 
         result = self.__page_data_result(cursor, data)
 
-        return await self.generate_response(result, isCached=False)
+        return await self.generate_response(result, is_cached=False)
 
     async def get_track_data(self, validate=True):
         """if AbridgedTrack is set, then fetches from the summary not from a parameter"""
@@ -317,10 +319,10 @@ class FILERRouteHelper(MetadataRouteHelperService):
 
         # get counts - needed for full pagination, counts only, summary
         trackResultSummary = await self.__get_track_data_task(
-            tracks, assembly, self._parameters.span, True
+            tracks, assembly, self._parameters.get("span"), True
         )
 
-        if self._responseConfig.content == ResponseContent.FULL:
+        if self._response_config.content == ResponseContent.FULL:
             return await self.__get_paged_track_data(
                 trackResultSummary, validate=validate
             )
@@ -329,11 +331,11 @@ class FILERRouteHelper(MetadataRouteHelperService):
         sortedTrackResultSummary: List[TrackResultSize] = TrackResultSize.sort(
             trackResultSummary
         )
-        self._resultSize = len(sortedTrackResultSummary)
+        self._result_size = len(sortedTrackResultSummary)
         self.initialize_pagination()
         sliceRange = self.slice_result_by_page()
 
-        match self._responseConfig.content:
+        match self._response_config.content:
             case ResponseContent.IDS:
                 result = [
                     t["track_id"]
@@ -349,14 +351,14 @@ class FILERRouteHelper(MetadataRouteHelperService):
 
             case ResponseContent.BRIEF | ResponseContent.URLS:
                 metadata: List[Track] = await self.get_track_metadata(
-                    rawResponse=ResponseContent.BRIEF
+                    raw_response=ResponseContent.BRIEF
                 )
                 summary = self.__generate_track_overlap_summary(
                     metadata, sortedTrackResultSummary
                 )
                 result = (
                     [t["url"] for t in summary[sliceRange.start : sliceRange.end]]
-                    if self._responseConfig.content == ResponseContent.URLS
+                    if self._response_config.content == ResponseContent.URLS
                     else summary[sliceRange.start : sliceRange.end]
                 )
                 return await self.generate_response(result)
@@ -384,7 +386,8 @@ class FILERRouteHelper(MetadataRouteHelperService):
             return cachedResponse
 
         hasMetadataFilters = (
-            self._parameters.keyword is not None or self._parameters.filter is not None
+            self._parameters.get("keyword") is not None
+            or self._parameters.get("filter") is not None
         )
 
         # note: we test for metadata filters twice so we don't
@@ -393,43 +396,45 @@ class FILERRouteHelper(MetadataRouteHelperService):
         # apply metadata filters, if valid
         if hasMetadataFilters:
             # get list of tracks that match the search filter
-            rawResponse = ResponseContent.IDS
-            if self._responseConfig.content == ResponseContent.BRIEF:
-                rawResponse = ResponseContent.BRIEF
+            raw_response = ResponseContent.IDS
+            if self._response_config.content == ResponseContent.BRIEF:
+                raw_response = ResponseContent.BRIEF
             matchingTracks: List[Track] = await self.search_track_metadata(
-                rawResponse=rawResponse
+                raw_response=raw_response
             )
 
             if len(matchingTracks) == 0:
-                self._managers.requestData.add_message(
+                self._managers.request_data.add_message(
                     "No tracks meet the specified metadata filter criteria."
                 )
-                return await self.generate_response([], isCached=False)
+                return await self.generate_response([], is_cached=False)
 
         # get informative tracks from the FILER API & cache
-        cacheKey = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.assembly}&span={self._parameters.span}"
-        cacheKey = CacheKeyDataModel.encrypt_key(cacheKey.replace(":", "_"))
+        cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.get("assembly")}&span={self._parameters.get("span")}"
+        cache_key = CacheKeyDataModel.encrypt_key(cache_key.replace(":", "_"))
 
         informativeTrackOverlaps: List[TrackResultSize] = (
             await self._managers.cache.get(
-                cacheKey, namespace=CacheNamespace.EXTERNAL_API
+                cache_key, namespace=CacheNamespace.EXTERNAL_API
             )
         )
         if informativeTrackOverlaps is None:
             informativeTrackOverlaps = await ApiWrapperService(
-                self._managers.apiClientSession
-            ).get_informative_tracks(self._parameters.span, self._parameters.assembly)
+                self._managers.api_client_session
+            ).get_informative_tracks(
+                self._parameters.get("span"), self._parameters.get("assembly")
+            )
             await self._managers.cache.set(
-                cacheKey,
+                cache_key,
                 informativeTrackOverlaps,
                 namespace=CacheNamespace.EXTERNAL_API,
             )
 
         if len(informativeTrackOverlaps) == 0:
-            self._managers.requestData.add_message(
+            self._managers.request_data.add_message(
                 "No overlapping features found in the query region."
             )
-            return await self.generate_response([], isCached=False)
+            return await self.generate_response([], is_cached=False)
 
         targetTrackResultSize = informativeTrackOverlaps
 
@@ -437,7 +442,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             # filter for tracks that match the filter
             matchingTrackIds = (
                 [t.track_id for t in matchingTracks]
-                if rawResponse != ResponseContent.IDS
+                if raw_response != ResponseContent.IDS
                 else matchingTracks
             )
             informativeTrackIds = [t.track_id for t in informativeTrackOverlaps]
@@ -448,16 +453,16 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 t for t in informativeTrackOverlaps if t.track_id in targetTrackIds
             ]
 
-        if self._responseConfig.content == ResponseContent.FULL:
+        if self._response_config.content == ResponseContent.FULL:
             return await self.__get_paged_track_data(targetTrackResultSize)
 
         # to ensure pagination order, need to sort by counts
         result: List[TrackResultSize] = TrackResultSize.sort(targetTrackResultSize)
-        self._resultSize = len(result)
+        self._result_size = len(result)
         self.initialize_pagination()
         sliceRange = self.slice_result_by_page()
 
-        match self._responseConfig.content:
+        match self._response_config.content:
             case ResponseContent.IDS:
                 result = [t.track_id for t in result[sliceRange.start : sliceRange.end]]
                 return await self.generate_response(result)
@@ -475,7 +480,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 summary = self.__generate_track_overlap_summary(metadata, result)
                 result = (
                     [t["url"] for t in summary[sliceRange.start : sliceRange.end]]
-                    if self._responseConfig.content == ResponseContent.URLS
+                    if self._response_config.content == ResponseContent.URLS
                     else summary[sliceRange.start : sliceRange.end]
                 )
                 return await self.generate_response(result)
@@ -505,14 +510,14 @@ class FILERRouteHelper(MetadataRouteHelperService):
                     track_id=self._parameters.track, num_results=len(data.features)
                 )
 
-                if self._responseConfig.content == ResponseContent.COUNTS:
+                if self._response_config.content == ResponseContent.COUNTS:
                     return await self.generate_response(counts)
 
                 cursor: TrackPaginationCursor = (
                     await self.__initialize_data_query_pagination([counts])
                 )
                 result = self.__page_data_result(cursor, [data])
-                return await self.generate_response(result, isCached=False)
+                return await self.generate_response(result, is_cached=False)
 
             case GenomicFeatureType.VARIANT:
                 if feature.feature_id.startswith("rs"):

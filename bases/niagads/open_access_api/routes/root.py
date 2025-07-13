@@ -2,7 +2,7 @@ import functools
 
 from fastapi import APIRouter, Request, Response
 from niagads.open_access_api_common.app.factory import AppFactory
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.constants import SharedOpenAPITags
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ router = APIRouter()
     tags=[str(SharedOpenAPITags.DOCUMENTATION)],
 )
 async def about_niagads_open_access_api():
-    """Retrieve a brief overview of the NIAGADS Open Access Resources."""
+    """Retrieve a brief overesponse_view of the NIAGADS Open Access Resources."""
     return {
         "messge": "You've reached the NIAGADS Open Access API; please visit https://api.niagads.org/docs for more information"
     }

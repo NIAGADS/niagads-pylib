@@ -5,7 +5,7 @@ from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
-from niagads.open_access_api_common.config.constants import RESPONSES
+from niagads.open_access_api_common.constants import RESPONSES
 from niagads.open_access_api_common.exception_handlers import (
     add_database_exception_handler,
     add_not_implemented_exception_handler,
@@ -146,7 +146,7 @@ class AppFactory:
         if self.__app.openapi_schema:
             return self.__app.openapi_schema
 
-        openApiSchema = get_openapi(
+        openapi_schema = get_openapi(
             title=self.__app.title,
             version=self.__app.version,
             openapi_version=self.__app.openapi_version,
@@ -165,7 +165,7 @@ class AppFactory:
 
         # flag beta route paths / updated by reference
         # update summary formatting
-        paths: dict = openApiSchema["paths"]
+        paths: dict = openapi_schema["paths"]
         for path in paths.keys():
             for method in paths[path]:
                 summary: str = paths[path][method]["summary"]
@@ -189,16 +189,16 @@ class AppFactory:
                     .replace("bulk", "(Bulk)")
                 )
         # openApiSchema["paths"] = paths
-        openApiSchema["info"]["x-namespace"] = self.__namespace
-        openApiSchema["info"]["x-major-version"] = self.__version
+        openapi_schema["info"]["x-namespace"] = self.__namespace
+        openapi_schema["info"]["x-major-version"] = self.__version
 
         # x-tagGroups
         if self.__metadata.xtag_groups is not None:
-            openApiSchema["x-tagGroups"] = [
+            openapi_schema["x-tagGroups"] = [
                 tg.model_dump() for tg in self.__metadata.xtag_groups
             ]
 
-        self.__app.openapi_schema = openApiSchema
+        self.__app.openapi_schema = openapi_schema
         return self.__app.openapi_schema
 
     @staticmethod
@@ -217,7 +217,7 @@ class AppFactory:
 
         adapted from https://github.com/tiangolo/fastapi/issues/1140#issuecomment-659469034
         """
-        openApiJson = app.openapi()
-        yamlStr = StringIO()
-        yaml.dump(openApiJson, yamlStr, sort_keys=False)
-        return yamlStr.getvalue()
+        openapi_json = app.openapi()
+        yaml_str = StringIO()
+        yaml.dump(openapi_json, yaml_str, sort_keys=False)
+        return yaml_str.getvalue()

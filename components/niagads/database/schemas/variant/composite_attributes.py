@@ -110,7 +110,7 @@ class PredictedConsequence(TransformableModel):
         if self.impacted_gene is not None:
             obj.update(self.impacted_gene._flat_dump())
         else:
-            obj.update({k: None for k in GeneFeature.get_model_fields(asStr=True)})
+            obj.update({k: None for k in GeneFeature.get_model_fields(as_str=True)})
 
         obj["consequence_terms"] = self._list_to_string(
             self.consequence_terms, delimiter=delimiter
@@ -118,7 +118,7 @@ class PredictedConsequence(TransformableModel):
         return obj
 
     @classmethod
-    def get_model_fields(cls, asStr=False):
+    def get_model_fields(cls, as_str=False):
         fields = super().get_model_fields()
 
         del fields["impacted_gene"]
@@ -131,7 +131,7 @@ class PredictedConsequence(TransformableModel):
 
         fields.update(geneFields)
 
-        return list(fields.keys()) if asStr else fields
+        return list(fields.keys()) if as_str else fields
 
 
 class RankedPredictedConsequence(BaseModel):

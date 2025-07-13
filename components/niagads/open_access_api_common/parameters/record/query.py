@@ -10,23 +10,23 @@ from niagads.utils.string import sanitize
 async def track_param(
     track: str = Query(default=None, description="a track identifier")
 ) -> str:
-    sTrack: str = sanitize(track)
-    if sTrack is not None and "," in sTrack:
+    clean_track: str = sanitize(track)
+    if clean_track is not None and "," in clean_track:
         raise ValidationError(
             "Lists of track identifiers not allowed for this query.  Please provide a single `track` identifier."
         )
-    return sTrack
+    return clean_track
 
 
 async def optional_track_param(
     track: Optional[str] = Query(default=None, description="a track identifier")
 ) -> str:
-    sTrack: str = sanitize(track)
-    if sTrack is not None and "," in sTrack:
+    clean_track: str = sanitize(track)
+    if clean_track is not None and "," in clean_track:
         raise ValidationError(
             "Lists of track identifiers not allowed for this query.  Please provide a single `track` identifier."
         )
-    return sTrack
+    return clean_track
 
 
 async def optional_track_list_param(
@@ -36,12 +36,12 @@ async def optional_track_list_param(
     )
 ) -> str:
 
-    sTrack: str = sanitize(track)
-    if any(delim in sTrack for delim in [":", "|", ";", " "]):
+    clean_track: str = sanitize(track)
+    if any(delim in clean_track for delim in [":", "|", ";", " "]):
         raise ValidationError(
             "Invalid delimiter; please separate multiple identifiers with commas (`,`)."
         )
-    return sTrack
+    return clean_track
 
 
 async def track_list_param(
@@ -50,12 +50,12 @@ async def track_list_param(
     )
 ) -> str:
     """required track_list parameter"""
-    sTrack: str = sanitize(track)
-    if any(delim in sTrack for delim in [":", "|", ";", " "]):
+    clean_track: str = sanitize(track)
+    if any(delim in clean_track for delim in [":", "|", ";", " "]):
         raise ValidationError(
             "Invalid delimiter; please separate multiple identifiers with commas (`,`)."
         )
-    return sTrack
+    return clean_track
 
 
 async def optional_collection_param(

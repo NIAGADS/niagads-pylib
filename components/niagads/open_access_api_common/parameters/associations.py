@@ -1,43 +1,28 @@
-from enum import auto
 import math
 from typing import Union
 from fastapi import Query
-from niagads.enums.core import EnumParameter
+from niagads.open_access_api_common.models.annotations.associations import (
+    AssociationSource,
+    AssociationTrait,
+)
 
 
-class GWASTrait(EnumParameter):
-    """enum for genome builds"""
-
-    AD = auto()
-    ADRD = auto()
-    BIOMARKER = auto()
-    ALL_ADRD = auto()
-    ALL = auto()
-    OTHER = auto()
-
-
-class GWASSource(EnumParameter):
-    GWAS = auto()
-    CURATED = auto()
-    ALL = auto()
-
-
-async def gwas_trait_param(
-    trait: GWASTrait = Query(
-        GWASTrait.ALL,
+async def association_trait_param(
+    trait: AssociationTrait = Query(
+        AssociationTrait.ALL,
         description="retrieve genetic associations for AD, AD-related dementias (ADRD), AD biomarkers (BIOMARKER), all AD/ADRD and AD-biomarker (ALL_AD) or all (ALL) curated associations",
     )
 ):
-    return GWASTrait.validate(trait, "GWAS Trait", GWASTrait)
+    return AssociationTrait.validate(trait, "Association Trait", AssociationTrait)
 
 
-async def gwas_source_param(
-    source: GWASSource = Query(
-        GWASSource.ALL,
+async def association_source_param(
+    source: AssociationSource = Query(
+        AssociationSource.ALL,
         description="retrieve genetic associations with p-value <= 1e-3 from NIAGADS-summary statistics datasets (GWAS), curated association catalogs (CURATED), or both (ALL)",
     )
 ):
-    return GWASSource.validate(source, "GWAS Source", GWASSource)
+    return AssociationSource.validate(source, "Association Source", AssociationSource)
 
 
 async def pvalue_filter_param(

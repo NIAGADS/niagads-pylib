@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Union
 
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.features.bed import BEDResponse
 from niagads.open_access_api_common.models.response.core import RecordResponse
 from niagads.open_access_api_common.views.table import TableViewResponse
@@ -57,16 +57,22 @@ async def get_feature_qtl(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[BEDResponse, TableViewResponse, RecordResponse]:
 
-    rContent = ResponseContent.data().validate(content, "content", ResponseContent)
+    response_content = ResponseContent.data().validate(
+        content, "content", ResponseContent
+    )
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
-            content=rContent,
+            content=response_content,
             format=ResponseFormat.functional_genomics().validate(
                 format, "format", ResponseFormat
             ),
             view=ResponseView.validate(view, "view", ResponseView),
-            model=(BEDResponse if rContent == ResponseContent.FULL else RecordResponse),
+            model=(
+                BEDResponse
+                if response_content == ResponseContent.FULL
+                else RecordResponse
+            ),
         ),
         Parameters(track=track, location=loc, page=page),
     )

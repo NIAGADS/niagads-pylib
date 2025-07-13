@@ -2,7 +2,12 @@ from fastapi import Query
 from niagads.exceptions.core import ValidationError
 from niagads.genome.core import Assembly, GenomicFeatureType, Human
 from niagads.open_access_api_common.models.features.genomic import GenomicFeature
+from niagads.open_access_api_common.parameters.enums import EnumParameter
 from niagads.utils.string import sanitize
+
+
+class AssemblyParameter(Assembly, EnumParameter):
+    pass
 
 
 async def assembly_param(
@@ -10,7 +15,7 @@ async def assembly_param(
         Assembly.GRCh38, description="reference genome build (assembly)"
     )
 ):
-    return Assembly.validate(assembly, "Genome Build", Assembly)
+    return AssemblyParameter.validate(assembly, "Genome Build", Assembly)
 
 
 async def chromosome_param(

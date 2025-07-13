@@ -27,7 +27,7 @@ class DatabaseSessionManager:
 
     def __init__(
         self,
-        connectionString: str,
+        connection_string: str,
         connectionPoolSize: int = CONNECTION_POOL_SIZE,
         echo: bool = False,
     ):
@@ -38,7 +38,7 @@ class DatabaseSessionManager:
             connectionPoolSize (int): connection pool size. Defaults to 10
         """
         self.__engine: AsyncEngine = create_async_engine(
-            self.__get_async_uri(connectionString),
+            self.__get_async_uri(connection_string),
             echo=echo,  # Log SQL queries for debugging (set to False in production)
             pool_size=connectionPoolSize,  # Maximum number of permanent connections to maintain in the pool
             max_overflow=10,  # Maximum number of additional connections that can be created if the pool is exhausted

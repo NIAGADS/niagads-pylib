@@ -16,23 +16,23 @@ from niagads.settings.core import get_service_environment
 import uvicorn
 
 # generate the app
-appFactory = AppFactory(
+app_factory = AppFactory(
     metadata=OPEN_API_SPEC, env=get_service_environment(), namespace=APP_NAMESPACE
 )
 
 # add the child routes
-appFactory.add_router(RootRouter)
-appFactory.add_router(RecordRouter)
-appFactory.add_router(MetadataRouter)
-appFactory.add_router(DataRouter)
-# appFactory.add_router(CollectionRouter)
-appFactory.add_router(ServiceRouter)
-appFactory.add_router(DictionaryRouter)
+app_factory.add_router(RootRouter)
+app_factory.add_router(RecordRouter)
+app_factory.add_router(MetadataRouter)
+app_factory.add_router(DataRouter)
+# app_factory.add_router(CollectionRouter)
+app_factory.add_router(ServiceRouter)
+app_factory.add_router(DictionaryRouter)
 
-# appFactory.add_router(QTLRouter)
+# app_factory.add_router(QTLRouter)
 
 # get the application object
-app = appFactory.get_app()
+app = app_factory.get_app()
 
 
 if __name__ == "__main__":

@@ -35,12 +35,12 @@ class Variant(VariantFeature):
         return obj
 
     @classmethod
-    def get_model_fields(cls, asStr=False):
+    def get_model_fields(cls, as_str=False):
         fields = super().get_model_fields()
         del fields["location"]
         fields.update(GenomicRegion.get_model_fields())
 
-        return list(fields.keys()) if asStr else fields
+        return list(fields.keys()) if as_str else fields
 
 
 class VariantDisplayAnnotation(RowModel):
@@ -77,18 +77,18 @@ class VariantDisplayAnnotation(RowModel):
             obj.update(self.most_severe_consequence._flat_dump())
         else:
             obj.update(
-                {k: None for k in PredictedConsequence.get_model_fields(asStr=True)}
+                {k: None for k in PredictedConsequence.get_model_fields(as_str=True)}
             )
         return obj
 
     @classmethod
-    def get_model_fields(cls, asStr=False):
+    def get_model_fields(cls, as_str=False):
         fields = super().get_model_fields()
 
         del fields["most_severe_consequence"]
         fields.update(PredictedConsequence.get_model_fields())
 
-        return list(fields.keys()) if asStr else fields
+        return list(fields.keys()) if as_str else fields
 
 
 class AnnotatedVariant(VariantFeature, VariantDisplayAnnotation):
@@ -228,7 +228,7 @@ class ColocatedVariants(RowModel):
             "Table views not available for lists of co-located variants."
         )
 
-    def as_text(self, fields=None, nullStr="NA", **kwargs):
+    def as_text(self, fields=None, null_str="NA", **kwargs):
         raise NotImplementedError(
             "Plain text response not available for lists of co-located variants."
         )

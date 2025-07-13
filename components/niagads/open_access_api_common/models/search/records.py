@@ -1,8 +1,8 @@
 from typing import List
 
-from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
-from niagads.open_access_api_common.models.records.core import Entity
-from niagads.open_access_api_common.models.core import ORMCompatibleRowModel, RowModel
+from niagads.open_access_api_common.constants import DEFAULT_NULL_STRING
+from niagads.open_access_api_common.models.core import ORMCompatibleRowModel
+from niagads.open_access_api_common.models.records import Entity
 from niagads.open_access_api_common.models.response.core import RecordResponse
 from pydantic import Field
 
@@ -23,7 +23,7 @@ class RecordSearchResult(ORMCompatibleRowModel):
 class RecordSearchResultResponse(RecordResponse):
     data: List[RecordSearchResult]
 
-    def to_text(self, inclHeader=False, nullStr=DEFAULT_NULL_STRING):
+    def to_text(self, incl_header=False, null_str="NA"):
         raise NotImplementedError(
             "TEXT formatted output not available for a search result response."
         )

@@ -1,9 +1,9 @@
-from niagads.open_access_api_common.models.records.core import Entity
+from niagads.open_access_api_common.models.records import Entity
 from niagads.open_access_api_common.models.services.query import QueryDefinition
 from niagads.open_access_genomics_api.queries.associations import (
     GWAS_COMMON_FIELDS,
     GWAS_TRACK_CTE,
-    GWAS_TRAIT_FILTERS,
+    association_trait_FILTERS,
 )
 
 
@@ -58,41 +58,41 @@ VariantFrequencyQuery = QueryDefinition(
         ORDER BY data_source, description NULLS FIRST, abbreviation
     """,
     entity=Entity.VARIANT,
-    bindParameters=["id"],
+    bind_parameters=["id"],
 )
 
 VariantRecordQuery = QueryDefinition(
     query=f"""
     SELECT annotation FROM get_variant_primary_keys_and_annotations_tbl(:id, TRUE)
     """,
-    bindParameters=["id"],
-    fetchOne=True,
-    jsonField="annotation",
+    bind_parameters=["id"],
+    fetch_one=True,
+    json_field="annotation",
     entity=Entity.VARIANT,
 )
 
 
 VariantAssociationsQuery = QueryDefinition(
-    bindParameters=[
-        "gwas_source",
-        "gwas_source",
+    bind_parameters=[
+        "association_source",
+        "association_source",
         "id",
-        "gwas_trait",
-        "gwas_trait",
-        "gwas_trait",
-        "gwas_trait",
+        "association_trait",
+        "association_trait",
+        "association_trait",
+        "association_trait",
     ],
-    allowFilters=True,
+    allow_filters=True,
     query=f"""WITH Tracks AS ({GWAS_TRACK_CTE}),
         Results AS ({GWAS_RESULTS_CTE})
         SELECT * FROM Results
-        {GWAS_TRAIT_FILTERS}
+        {association_trait_FILTERS}
     """,
 )
 
 
 ColocatedVariantQuery = QueryDefinition(
-    bindParameters=["id"],
+    bind_parameters=["id"],
     query="""
         WITH variant AS (
             SELECT annotation->>'variant_id' AS variant_id,

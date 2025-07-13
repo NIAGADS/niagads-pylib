@@ -2,16 +2,16 @@ from fastapi import APIRouter, Depends, Path, Query
 from typing import Union
 
 from niagads.exceptions.core import ValidationError
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,
 )
-from niagads.open_access_api_common.models.records.track.track import (
-    TrackResponse,
-    AbridgedTrackResponse,
-)
 from niagads.open_access_api_common.models.response.core import RecordResponse
+from niagads.open_access_api_common.models.tracks.track import (
+    AbridgedTrackResponse,
+    TrackResponse,
+)
 from niagads.open_access_api_common.views.table import TableViewResponse
 from niagads.open_access_api_common.parameters.pagination import page_param
 from niagads.open_access_api_common.parameters.record.path import track_param
@@ -61,18 +61,20 @@ async def get_track_metadata(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[AbridgedTrackResponse, TrackResponse, RecordResponse]:
 
-    rContent = ResponseContent.descriptive().validate(
+    response_content = ResponseContent.descriptive().validate(
         content, "content", ResponseContent
     )
-    rFormat = ResponseFormat.generic().validate(format, "format", ResponseFormat)
+    response_format = ResponseFormat.generic().validate(
+        format, "format", ResponseFormat
+    )
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
-            content=rContent,
-            format=rFormat,
+            content=response_content,
+            format=response_format,
             model=(
                 TrackResponse
-                if rContent == ResponseContent.FULL
+                if response_content == ResponseContent.FULL
                 else AbridgedTrackResponse
             ),
         ),
@@ -120,26 +122,28 @@ async def get_track_data(
     RecordResponse,
 ]:
 
-    rContent = ResponseContent.data().validate(content, "content", ResponseContent)
+    response_content = ResponseContent.data().validate(
+        content, "content", ResponseContent
+    )
 
     # GWAS, QTL, Table response models will be updated by the helper depending on query result
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
-            content=rContent,
+            content=response_content,
             format=ResponseFormat.variant_score().validate(
                 format, "format", ResponseFormat
             ),
             view=ResponseView.validate(view, "view", ResponseView),
             model=(
                 AbridgedTrackResponse
-                if rContent == ResponseContent.BRIEF
+                if response_content == ResponseContent.BRIEF
                 else RecordResponse
             ),
         ),
         Parameters(track=track, page=page),
         query=TrackMetadataQuery,
-        idParameter="track",
+        id_parameter="track",
     )
 
     return await helper.get_track_data_query_response()
@@ -169,13 +173,15 @@ async def get_track_data_summary(
     if summary_type not in ["counts", "top"]:
         raise ValidationError("Allowable summary types: `counts` or `top`")
 
-    rContent = ResponseContent.data().validate(content, "content", ResponseContent)
+    response_content = ResponseContent.data().validate(
+        content, "content", ResponseContent
+    )
 
     # GWAS, QTL, Table response models will be updated by the helper depending on query result
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
-            content=rContent,
+            content=response_content,
             format=ResponseFormat.variant_score().validate(
                 format, "format", ResponseFormat
             ),
@@ -188,7 +194,7 @@ async def get_track_data_summary(
             if summary_type == "counts"
             else TopAbridgedTrackQuery
         ),
-        idParameter="track",
+        id_parameter="track",
     )
 
     result = await helper.get_query_response()

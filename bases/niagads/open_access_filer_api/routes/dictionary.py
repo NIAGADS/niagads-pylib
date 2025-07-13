@@ -2,7 +2,7 @@ from typing import List, Union
 from fastapi import APIRouter, Depends, Query
 from niagads.exceptions.core import ValidationError
 from niagads.genome.core import Assembly
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.records.track.igvbrowser import (
     IGVBrowserTrackConfig,
     IGVBrowserTrackConfigResponse,
@@ -55,7 +55,7 @@ async def get_allowable_text_filters(
 ) -> RecordResponse:
 
     return RecordResponse(
-        data=TextSearchFilterFields.list(toLower=True), request=internal.requestData
+        data=TextSearchFilterFields.list(toLower=True), request=internal.request_data
     )
 
 

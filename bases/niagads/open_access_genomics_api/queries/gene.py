@@ -1,9 +1,9 @@
-from niagads.open_access_api_common.models.records.core import Entity
+from niagads.open_access_api_common.models.records import Entity
 from niagads.open_access_api_common.models.services.query import QueryDefinition
 from niagads.open_access_genomics_api.queries.associations import (
     GWAS_COMMON_FIELDS,
     GWAS_TRACK_CTE,
-    GWAS_TRAIT_FILTERS,
+    association_trait_FILTERS,
 )
 
 GO_ASSOCIATION_CTE = """
@@ -90,38 +90,38 @@ GWAS_RESULTS_CTE = f"""
 
 
 GeneRecordQuery = QueryDefinition(
-    query=GENE_RECORD_QUERY, bindParameters=["id"], entity=Entity.GENE, fetchOne=True
+    query=GENE_RECORD_QUERY, bind_parameters=["id"], entity=Entity.GENE, fetch_one=True
 )
 
 GeneFunctionQuery = QueryDefinition(
     query=GENE_RECORD_QUERY,
-    bindParameters=["id"],
-    jsonField="go_annotation",
-    fetchOne=True,
+    bind_parameters=["id"],
+    json_field="go_annotation",
+    fetch_one=True,
 )
 
 GenePathwayQuery = QueryDefinition(
     query=GENE_RECORD_QUERY,
-    bindParameters=["id"],
-    jsonField="pathway_membership",
-    fetchOne=True,
+    bind_parameters=["id"],
+    json_field="pathway_membership",
+    fetch_one=True,
 )
 
 
 GeneAssociationsQuery = QueryDefinition(
-    bindParameters=[
-        "gwas_source",
-        "gwas_source",
+    bind_parameters=[
+        "association_source",
+        "association_source",
         "id",
-        "gwas_trait",
-        "gwas_trait",
-        "gwas_trait",
-        "gwas_trait",
+        "association_trait",
+        "association_trait",
+        "association_trait",
+        "association_trait",
     ],
-    allowFilters=True,
+    allow_filters=True,
     query=f"""WITH Tracks AS ({GWAS_TRACK_CTE}),
         Results AS ({GWAS_RESULTS_CTE})
         SELECT * FROM Results
-        {GWAS_TRAIT_FILTERS}
+        {association_trait_FILTERS}
     """,
 )

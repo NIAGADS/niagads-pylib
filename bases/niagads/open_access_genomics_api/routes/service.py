@@ -1,9 +1,9 @@
 from typing import List, Union
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.features.genomic import GenomicRegion
-from niagads.open_access_api_common.models.records.search import RecordSearchResult
+from niagads.open_access_api_common.models.search.records import RecordSearchResult
 from niagads.open_access_api_common.models.response.core import (
     RecordResponse,
     T_RecordResponse,
@@ -46,13 +46,13 @@ async def site_search(
     keyword: str = Query(
         description="feature identifier or keyword (NOTE: searches for gene symbols use exact, case-sensitive, matching)"
     ),
-    searchType: SearchType = Query(
+    search_type: SearchType = Query(
         default=SearchType.GLOBAL, description=SearchType.get_description()
     ),
     internal: InternalRequestParameters = Depends(),
 ) -> Union[List[RecordSearchResult]]:
 
-    query = SiteSearchQuery(searchType=searchType)
+    query = SiteSearchQuery(searchType=search_type)
 
     helper = GenomicsRouteHelper(
         internal,
@@ -66,7 +66,7 @@ async def site_search(
         query=query,
     )
 
-    return await helper.get_query_response(opts=QueryOptions(rawResponse=True))
+    return await helper.get_query_response(opts=QueryOptions(raw_response=True))
 
 
 tags = [str(SharedOpenAPITags.GENOME_BROWSER)]

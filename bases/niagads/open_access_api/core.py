@@ -10,7 +10,7 @@ from niagads.open_access_api_common.app.factory import AppFactory
 from niagads.open_access_filer_api.core import app as FILERApp  # Import the FILER app
 from niagads.open_access_genomics_api.core import app as GenomicsApp
 from niagads.settings.core import get_service_environment
-from niagads.open_access_api_common.config.core import Settings
+from niagads.open_access_api_common.config import Settings
 
 
 def _openapi_update_xtag_groups(xTagGroups: List[dict]):
@@ -130,22 +130,24 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI], version: bool = F
 
 # generate the app
 useVersioning = not Settings.from_env().LTS
-appFactory = AppFactory(
+app_factory = AppFactory(
     metadata=OPEN_API_SPEC, env=get_service_environment(), version=useVersioning
 )
 
-appFactory.add_router(RootRouter, version=useVersioning)
+app_factory.add_router(RootRouter, version=useVersioning)
 
 # get the application object
-app = appFactory.get_app()
+app = app_factory.get_app()
 
 
-app.mount(f"{appFactory.get_version_prefix() if useVersioning else ""}/filer", FILERApp)
 app.mount(
-    f"{appFactory.get_version_prefix() if useVersioning else ""}/genomics", GenomicsApp
+    f"{app_factory.get_version_prefix() if useVersioning else ""}/filer", FILERApp
+)
+app.mount(
+    f"{app_factory.get_version_prefix() if useVersioning else ""}/genomics", GenomicsApp
 )
 
-app.openapi_schema = custom_openapi(appFactory, [GenomicsApp, FILERApp], useVersioning)
+app.openapi_schema = custom_openapi(app_factory, [GenomicsApp, FILERApp], useVersioning)
 
 if __name__ == "__main__":
     uvicorn.run(app="app:app")

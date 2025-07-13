@@ -1,6 +1,6 @@
+from enum import auto
 from typing import List, Optional, Union
 from niagads.common.models.ontology import OntologyTerm
-from niagads.common.models.views.table import TableRow
 from niagads.common.types import T_PubMedID
 from niagads.database.schemas.dataset.composite_attributes import (
     BiosampleCharacteristics,
@@ -12,7 +12,25 @@ from niagads.open_access_api_common.models.features.variant import (
     VariantFeature,
 )
 from niagads.open_access_api_common.models.response.core import RecordResponse
+from niagads.open_access_api_common.parameters.enums import EnumParameter
 from pydantic import Field, model_validator
+
+
+class AssociationTrait(EnumParameter):
+    """enum for genome builds"""
+
+    AD = auto()
+    ADRD = auto()
+    BIOMARKER = auto()
+    ALL_ADRD = auto()
+    ALL = auto()
+    OTHER = auto()
+
+
+class AssociationSource(EnumParameter):
+    GWAS = auto()
+    CURATED = auto()
+    ALL = auto()
 
 
 class AnnotatedVariantFeature(VariantFeature, VariantDisplayAnnotation):
@@ -114,7 +132,7 @@ class VariantAssociation(RowModel):
         return data
 
     @classmethod
-    def get_model_fields(cls, asStr=False):
+    def get_model_fields(cls, as_str=False):
         fields = super().get_model_fields()
 
         del fields["variant"]
@@ -135,10 +153,10 @@ class VariantAssociation(RowModel):
 
         del fields["trait"]
 
-        return list(fields.keys()) if asStr else fields
+        return list(fields.keys()) if as_str else fields
 
-    def table_fields(self, asStr=False, **kwargs):
-        return super().table_fields(asStr, **kwargs)
+    def table_fields(self, as_str=False, **kwargs):
+        return super().table_fields(as_str, **kwargs)
 
 
 class GeneVariantAssociation(VariantAssociation):
@@ -147,6 +165,20 @@ class GeneVariantAssociation(VariantAssociation):
         description="location relative to the gene footprint",
         order=0,
     )
+
+
+class VariantAssociationSummary(RowModel):
+    trait_category: AssociationTrait
+    trait: OntologyTerm
+    num_variants: int
+
+
+class GeneVariantAssociationSummry(VariantAssociationSummary):
+    relative_position: str
+
+
+class GeneticAssociationSummaryResponse(RecordResponse):
+    data: Union[List[VariantAssociationSummary], List[GeneVariantAssociationSummry]]
 
 
 class GeneticAssociationResponse(RecordResponse):

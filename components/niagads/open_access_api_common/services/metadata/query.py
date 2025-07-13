@@ -8,7 +8,7 @@ from niagads.database.schemas.dataset.composite_attributes import (
     Provenance,
 )
 from niagads.database.schemas.dataset.track import Track, TrackDataStore
-from niagads.open_access_api_common.config.constants import SHARD_PATTERN
+from niagads.open_access_api_common.constants import SHARD_PATTERN
 from niagads.open_access_api_common.models.response.request import RequestDataModel
 from niagads.open_access_api_common.parameters.expression_filter import Triple
 from niagads.open_access_api_common.parameters.response import ResponseContent
@@ -24,11 +24,11 @@ class MetadataQueryService:
         self,
         session: AsyncSession,
         request: RequestDataModel = None,
-        dataStore: List[TrackDataStore] = [TrackDataStore.SHARED],
+        data_store: List[TrackDataStore] = [TrackDataStore.SHARED],
     ):
         self.__session = session
         self.__request = request
-        self.__dataStore = dataStore
+        self.__data_store = data_store
 
     async def validate_tracks(self, tracks: List[str]):
         # solution for finding tracks not in the table adapted from
@@ -47,7 +47,7 @@ class MetadataQueryService:
         statement = (
             select(lookups.c.track_id)
             .outerjoin(Track, Track.track_id == lookups.c.track_id)
-            .filter(Track.data_store.in_(self.__dataStore))
+            .filter(Track.data_store.in_(self.__data_store))
             .where(Track.track_id == None)
         )
 
@@ -65,7 +65,7 @@ class MetadataQueryService:
         statement = (
             select(Collection)
             .where(Collection.primary_key.ilike(pk))
-            .filter(Collection.data_store.in_(self.__dataStore))
+            .filter(Collection.data_store.in_(self.__data_store))
         )
         try:
             collection = (await self.__session.execute(statement)).scalar_one()
@@ -75,7 +75,7 @@ class MetadataQueryService:
 
     async def get_track_count(self) -> int:
         statement = select(func.count(Track.track_id)).where(
-            Track.data_store.in_(self.__dataStore)
+            Track.data_store.in_(self.__data_store)
         )
 
         result = (await self.__session.execute(statement)).scalars().first()
@@ -93,7 +93,7 @@ class MetadataQueryService:
                 TrackCollection,
                 TrackCollection.collection_id == Collection.collection_id,
             )
-            .filter(Collection.data_store.in_(self.__dataStore))
+            .filter(Collection.data_store.in_(self.__data_store))
         )
         statement = statement.group_by(Collection).order_by(Collection.collection_id)
         result = (await self.__session.execute(statement)).mappings().all()
@@ -134,7 +134,7 @@ class MetadataQueryService:
         return result
 
     async def get_collection_track_metadata(
-        self, collectionName: str, track: str = None, responseType=ResponseContent.FULL
+        self, collectionName: str, track: str = None, response_type=ResponseContent.FULL
     ) -> List[Track]:
 
         collection: Collection = await self.validate_collection(collectionName)
@@ -142,15 +142,15 @@ class MetadataQueryService:
         # if sharded URLs need to be mapped through IDS to find all shards
         target = (
             self.__set_query_target(ResponseContent.IDS)
-            if responseType == ResponseContent.URLS and collection.tracks_are_sharded
-            else self.__set_query_target(responseType)
+            if response_type == ResponseContent.URLS and collection.tracks_are_sharded
+            else self.__set_query_target(response_type)
         )
 
         statement = (
             select(target)
             .join(TrackCollection, TrackCollection.track_id == Track.track_id)
             .where(TrackCollection.collection_id == collection.collection_id)
-            .filter(Track.data_store.in_(self.__dataStore))
+            .filter(Track.data_store.in_(self.__data_store))
             .order_by(Track.track_id)
         )
 
@@ -158,16 +158,17 @@ class MetadataQueryService:
             statement = statement.where(Track.track_id == track)
 
         result = (await self.__session.execute(statement)).scalars().all()
-        if responseType == ResponseContent.COUNTS:
+        if response_type == ResponseContent.COUNTS:
             return {"num_tracks": result[0]}
         if collection.tracks_are_sharded:
-            if responseType == ResponseContent.IDS:
+            if response_type == ResponseContent.IDS:
+                # FIXME: I think this has changed
                 self.__request.add_message(
                     "Data are split by chromosome into 22 files per track.  For every `track` in the collection, there are 22 track identifiers and metadata are linked to the `track_id` of the first shard (`chr1`)."
                 )
                 result = [await self.get_sharded_track_ids(t) for t in result]
                 return sum(result, [])  # unnest nested list
-            if responseType == ResponseContent.URLS:
+            if response_type == ResponseContent.URLS:
                 self.__request.add_message(
                     "Data are split by chromosome into 22 files per track, differentiated by `_chrN_` in the file name."
                 )
@@ -182,9 +183,9 @@ class MetadataQueryService:
         return result
 
     async def get_track_metadata(
-        self, tracks: List[str], responseType=ResponseContent.FULL, validate=True
+        self, tracks: List[str], response_type=ResponseContent.FULL, validate=True
     ) -> List[Track]:
-        target = self.__set_query_target(responseType)
+        target = self.__set_query_target(response_type)
         statement = (
             select(target).filter(Track.track_id.in_(tracks)).order_by(Track.track_id)
         )
@@ -208,10 +209,10 @@ class MetadataQueryService:
             elif triple.field in ExperimentalDesign.model_fields:
                 column = Track.experimental_design[triple.field].astext
             elif triple.field == "cell":
-                biosampleFilter = Triple(
+                biosample_filter = Triple(
                     field="biosample_type", operator="like", value="cell"
                 )
-                statement = self.__add_statement_filters(statement, [biosampleFilter])
+                statement = self.__add_statement_filters(statement, [biosample_filter])
                 # don't do like matches b/c wildcards are already present
                 if triple.operator == "like":
                     operator = "eq"
@@ -258,8 +259,8 @@ class MetadataQueryService:
         return statement
 
     @staticmethod
-    def __set_query_target(responseType: ResponseContent):
-        match responseType:
+    def __set_query_target(response_type: ResponseContent):
+        match response_type:
             case ResponseContent.IDS:
                 return Track.track_id
             case ResponseContent.COUNTS:
@@ -274,16 +275,16 @@ class MetadataQueryService:
         assembly: str,
         filters: Optional[List[str]],
         keyword: Optional[str],
-        responseType: ResponseContent,
+        response_type: ResponseContent,
         limit: int = None,
         offset: int = None,
     ) -> List[Track]:
 
-        target = self.__set_query_target(responseType)
+        target = self.__set_query_target(response_type)
         statement = (
             select(target)
             .filter(Track.genome_build == assembly)
-            .filter(Track.data_store.in_(self.__dataStore))
+            .filter(Track.data_store.in_(self.__data_store))
         )
 
         if filters is not None:
@@ -293,7 +294,7 @@ class MetadataQueryService:
                 Track.searchable_text.regexp_match(keyword, "i"),
             )
 
-        if responseType != ResponseContent.COUNTS:
+        if response_type != ResponseContent.COUNTS:
             statement = statement.order_by(Track.track_id)
 
         if limit != None:
@@ -304,7 +305,7 @@ class MetadataQueryService:
 
         result = await self.__session.execute(statement)
 
-        if responseType == ResponseContent.COUNTS:
+        if response_type == ResponseContent.COUNTS:
             return {"num_tracks": result.scalars().one()}
         else:
             return result.scalars().all()

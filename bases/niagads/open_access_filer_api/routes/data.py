@@ -2,14 +2,12 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, Query
 from niagads.genome.core import Assembly
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
+from niagads.open_access_api_common.constants import SharedOpenAPITags
 
 from niagads.open_access_api_common.models.features.bed import BEDResponse
-from niagads.open_access_api_common.models.records.track.track import (
-    AbridgedTrackResponse,
-)
 from niagads.open_access_api_common.models.response.core import RecordResponse
 
+from niagads.open_access_api_common.models.tracks.track import AbridgedTrackResponse
 from niagads.open_access_api_common.parameters.location import (
     assembly_param,
     span_param,
@@ -61,21 +59,23 @@ async def get_track_data_bulk(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[BEDResponse, AbridgedTrackResponse, TableViewResponse]:
 
-    rContent = ResponseContent.data().validate(content, "content", ResponseContent)
+    response_content = ResponseContent.data().validate(
+        content, "content", ResponseContent
+    )
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
             format=ResponseFormat.functional_genomics().validate(
                 format, "format", ResponseFormat
             ),
-            content=rContent,
+            content=response_content,
             view=ResponseView.validate(view, "view", ResponseView),
             model=(
                 BEDResponse
-                if rContent == ResponseContent.FULL
+                if response_content == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
-                    if rContent == ResponseContent.BRIEF
+                    if response_content == ResponseContent.BRIEF
                     else RecordResponse
                 )
             ),
@@ -115,21 +115,23 @@ async def get_track_data_by_metadata_search(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[RecordResponse, AbridgedTrackResponse, BEDResponse, TableViewResponse]:
 
-    rContent = ResponseContent.data().validate(content, "content", ResponseContent)
+    response_content = ResponseContent.data().validate(
+        content, "content", ResponseContent
+    )
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
             format=ResponseFormat.functional_genomics().validate(
                 format, "format", ResponseFormat
             ),
-            content=rContent,
+            content=response_content,
             view=ResponseView.validate(view, "view", ResponseView),
             model=(
                 BEDResponse
-                if rContent == ResponseContent.FULL
+                if response_content == ResponseContent.FULL
                 else (
                     AbridgedTrackResponse
-                    if rContent == ResponseContent.BRIEF
+                    if response_content == ResponseContent.BRIEF
                     else RecordResponse
                 )
             ),

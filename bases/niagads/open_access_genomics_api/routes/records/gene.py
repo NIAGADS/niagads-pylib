@@ -1,8 +1,10 @@
 from typing import Union
-from fastapi import APIRouter, Depends, Query
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
 
+from fastapi import APIRouter, Depends, Query
+from niagads.open_access_api_common.constants import SharedOpenAPITags
 from niagads.open_access_api_common.models.annotations.associations import (
+    AssociationSource,
+    AssociationTrait,
     GeneticAssociationResponse,
 )
 from niagads.open_access_api_common.models.features.gene import (
@@ -13,10 +15,8 @@ from niagads.open_access_api_common.models.features.gene import (
 from niagads.open_access_api_common.models.features.genomic import GenomicFeature
 from niagads.open_access_api_common.models.services.query import QueryFilter
 from niagads.open_access_api_common.parameters.associations import (
-    GWASSource,
-    GWASTrait,
-    gwas_source_param,
-    gwas_trait_param,
+    association_source_param,
+    association_trait_param,
     neg_log10_pvalue,
     pvalue_filter_param,
 )
@@ -40,8 +40,10 @@ from niagads.open_access_genomics_api.queries.gene import (
     GenePathwayQuery,
     GeneRecordQuery,
 )
-from niagads.open_access_genomics_api.services.route import GenomicsRouteHelper
-
+from niagads.open_access_genomics_api.services.route import (
+    GenomicsRouteHelper,
+    QueryOptions,
+)
 
 router = APIRouter(
     prefix="/record/gene",
@@ -70,18 +72,20 @@ async def get_gene(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[AbridgedGeneResponse, GeneResponse]:
 
-    rContent = ResponseContent.descriptive().validate(
+    response_content = ResponseContent.descriptive().validate(
         content, "content", ResponseContent
     )
-    rFormat = ResponseFormat.generic().validate(format, "format", ResponseFormat)
+    response_format = ResponseFormat.generic().validate(
+        format, "format", ResponseFormat
+    )
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
-            content=rContent,
-            format=rFormat,
+            content=response_content,
+            format=response_format,
             model=(
                 GeneResponse
-                if rContent == ResponseContent.FULL
+                if response_content == ResponseContent.FULL
                 else AbridgedGeneResponse
             ),
         ),
@@ -112,14 +116,16 @@ async def get_gene_pathways(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[GeneAnnotationResponse, TableViewResponse]:
 
-    rFormat = ResponseFormat.generic().validate(format, "format", ResponseFormat)
-    rView = ResponseView.table().validate(view, "view", ResponseView)
+    response_format = ResponseFormat.generic().validate(
+        format, "format", ResponseFormat
+    )
+    response_view = ResponseView.table().validate(view, "view", ResponseView)
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
             content=ResponseContent.FULL,
-            format=rFormat,
-            view=rView,
+            format=response_format,
+            view=response_view,
             model=GeneAnnotationResponse,
         ),
         Parameters(id=gene.feature_id),
@@ -146,14 +152,16 @@ async def get_gene_function(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[GeneAnnotationResponse, TableViewResponse]:
 
-    rFormat = ResponseFormat.generic().validate(format, "format", ResponseFormat)
-    rView = ResponseView.table().validate(view, "view", ResponseView)
+    response_format = ResponseFormat.generic().validate(
+        format, "format", ResponseFormat
+    )
+    response_view = ResponseView.table().validate(view, "view", ResponseView)
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
             content=ResponseContent.FULL,
-            format=rFormat,
-            view=rView,
+            format=response_format,
+            view=response_view,
             model=GeneAnnotationResponse,
         ),
         Parameters(id=gene.feature_id),
@@ -171,8 +179,8 @@ async def get_gene_function(
 )
 async def get_gene_genetic_associations(
     gene: GenomicFeature = Depends(gene_param),
-    source: GWASSource = Depends(gwas_source_param),
-    trait: GWASTrait = Depends(gwas_trait_param),
+    source: AssociationSource = Depends(association_source_param),
+    trait: AssociationTrait = Depends(association_trait_param),
     page: int = Depends(page_param),
     pvalue: float = Depends(pvalue_filter_param),
     format: str = Query(
@@ -181,24 +189,31 @@ async def get_gene_genetic_associations(
     view: str = Query(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
+    content: str = Query(
+        ResponseContent.FULL, description=ResponseContent.full_data(description=True)
+    ),
     internal: InternalRequestParameters = Depends(),
 ) -> Union[GeneticAssociationResponse, TableViewResponse]:
 
-    rContent = ResponseContent.FULL
-    rFormat = ResponseFormat.generic().validate(format, "format", ResponseFormat)
-    rView = ResponseView.table().validate(view, "view", ResponseView)
+    response_content = ResponseContent.full_data().validate(
+        content, "content", ResponseContent
+    )
+    response_format = ResponseFormat.generic().validate(
+        format, "format", ResponseFormat
+    )
+    response_view = ResponseView.table().validate(view, "view", ResponseView)
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
-            content=rContent,
-            format=rFormat,
-            view=rView,
+            content=response_content,
+            format=response_format,
+            view=response_view,
             model=GeneticAssociationResponse,
         ),
         Parameters(
             id=gene.feature_id,
-            gwas_trait=trait,
-            gwas_source=source,
+            association_trait=trait,
+            association_source=source,
             page=page,
             pvalue=pvalue,
             filter=(
@@ -214,4 +229,6 @@ async def get_gene_genetic_associations(
         query=GeneAssociationsQuery,
     )
 
-    return await helper.get_query_response()
+    return await helper.get_query_response(
+        opts=QueryOptions(counts_only=(response_content == ResponseContent.COUNTS))
+    )

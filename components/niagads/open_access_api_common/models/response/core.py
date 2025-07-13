@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, TypeVar, Union
 
-from niagads.open_access_api_common.config.constants import DEFAULT_NULL_STRING
+from niagads.open_access_api_common.constants import DEFAULT_NULL_STRING
 from niagads.open_access_api_common.models.core import RowModel, T_RowModel
 from niagads.open_access_api_common.models.response.pagination import (
     PaginationDataModel,
@@ -37,7 +37,7 @@ class AbstractResponse(BaseModel, ABC):
             self.message.append(msg)
 
     @abstractmethod
-    def to_text(self, inclHeader: bool = False, nullStr: str = DEFAULT_NULL_STRING):
+    def to_text(self, incl_header: bool = False, null_str: str = DEFAULT_NULL_STRING):
         """return a plain tab-delimited text reseponse"""
         pass
 
@@ -60,7 +60,7 @@ class AbstractResponse(BaseModel, ABC):
 class MessageResponse(AbstractResponse):
     data: dict = None
 
-    def to_text(self, inclHeader=False, nullStr=DEFAULT_NULL_STRING):
+    def to_text(self, incl_header=False, null_str="NA"):
         raise NotImplementedError("Not implemented for messages")
 
     def to_bed(self):
@@ -89,11 +89,11 @@ class ListResponse(AbstractResponse):
             "VCF formatted responses not available for non-tabular data."
         )
 
-    def to_text(self, inclHeader=False, nullStr=DEFAULT_NULL_STRING):
+    def to_text(self, incl_header=False, null_str="NA"):
         if self.is_empty():
             return ""
 
-        return "\n".join([nullStr if v is None else str(v) for v in self.data])
+        return "\n".join([null_str if v is None else str(v) for v in self.data])
 
 
 class RecordResponse(AbstractResponse):
@@ -143,12 +143,12 @@ class RecordResponse(AbstractResponse):
 
     def _get_empty_header(self):
         model: T_RowModel = self.row_model()
-        fields = model.get_model_fields(asStr=True)
+        fields = model.get_model_fields(as_str=True)
         return "\t".join(fields) + "\n"
 
-    def to_text(self, inclHeader=False, nullStr: str = DEFAULT_NULL_STRING):
+    def to_text(self, incl_header=False, null_str: str = DEFAULT_NULL_STRING):
         if self.is_empty():
-            if inclHeader:
+            if incl_header:
                 # no data so have to get model fields from the class
                 return self._get_empty_header()
             else:
@@ -157,22 +157,22 @@ class RecordResponse(AbstractResponse):
         else:
             # not sure if this check will still be necessary
             # if isinstance(self.data, dict):
-            #    if inclHeader:
+            #    if incl_header:
             #       responseStr = "\t".join(list(self.data.keys())) + "\n"
             #    responseStr += (
-            #        "\t".join([xstr(v, nullStr=nullStr) for v in self.data.values()]) + "\n"
+            #        "\t".join([xstr(v, null_str=null_str) for v in self.data.values()]) + "\n"
             #    )
 
-            fields = self.data[0].table_fields(asStr=True)
+            fields = self.data[0].table_fields(as_str=True)
             rows = []
             for r in self.data:
                 if isinstance(r, str):
                     rows.append(r)
                 else:
                     # pass fields to ensure consistent ordering
-                    rows.append(r.as_text(fields=fields, nullStr=nullStr))
+                    rows.append(r.as_text(fields=fields, null_str=null_str))
 
-            responseStr = "\t".join(fields) + "\n" if inclHeader else ""
+            responseStr = "\t".join(fields) + "\n" if incl_header else ""
             responseStr += "\n".join(rows)
 
         return responseStr

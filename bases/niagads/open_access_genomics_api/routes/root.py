@@ -2,19 +2,17 @@ import functools
 from typing import Union
 from fastapi import APIRouter, Depends, Request, Response
 from niagads.open_access_api_common.app.factory import AppFactory
-from niagads.open_access_api_common.config.constants import SharedOpenAPITags
-from niagads.open_access_api_common.config.core import Settings
-from niagads.open_access_api_common.models.records.route import (
-    RecordSummary,
-    RouteDescription,
-)
+from niagads.open_access_api_common.constants import SharedOpenAPITags
+
+
+from niagads.open_access_api_common.models.records import Entity, RecordSummary
 from niagads.open_access_api_common.models.response.core import (
-    AbstractResponse,
     MessageResponse,
     RecordResponse,
 )
+from niagads.open_access_api_common.models.routes import RouteDescription
 from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
-from niagads.open_access_api_common.models.records.core import Entity
+
 from niagads.open_access_genomics_api.dependencies import (
     TRACK_DATA_STORES,
     InternalRequestParameters,
@@ -33,7 +31,7 @@ router = APIRouter(tags=[APP_NAME])
     "/status",
     response_model=Union[MessageResponse, RecordResponse],
     summary="get-api-info",
-    description=f"Retrieve a brief overview of the {APP_NAME}",
+    description=f"Retrieve a brief overesponse_view of the {APP_NAME}",
     tags=[str(SharedOpenAPITags.DOCUMENTATION)],
 )
 async def get_database_description(
@@ -41,8 +39,8 @@ async def get_database_description(
 ) -> Union[MessageResponse, RecordResponse]:
 
     # TODO: genes, variants
-    trackCount = await MetadataQueryService(
-        internal.session, dataStore=TRACK_DATA_STORES
+    track_count = await MetadataQueryService(
+        internal.session, data_store=TRACK_DATA_STORES
     ).get_track_count()
 
     result = RouteDescription(
@@ -50,11 +48,11 @@ async def get_database_description(
         description=OPEN_API_TAGS[1].description,
         url=OPEN_API_TAGS[1].externalDocs.get("url"),
         pubmed_id=PUBMED_IDS,
-        records=[RecordSummary(entity=Entity.TRACK, num_records=trackCount)],
+        records=[RecordSummary(entity=Entity.TRACK, num_records=track_count)],
     )
     return MessageResponse(
         message=["Database Statistics currently being updated; check back soon"],
-        request=internal.requestData,
+        request=internal.request_data,
     )
 
 

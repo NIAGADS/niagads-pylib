@@ -2,7 +2,7 @@ import csv
 import logging
 from enum import auto
 
-from niagads.enums.core import CaseInsensitiveEnum, EnumParameter
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.string import xstr
 
 
@@ -138,7 +138,7 @@ class Strand(CaseInsensitiveEnum):
     ANTISENSE = "-"
 
 
-class Assembly(EnumParameter):
+class Assembly(CaseInsensitiveEnum):
     """enum for genome builds"""
 
     GRCh37 = "GRCh37"

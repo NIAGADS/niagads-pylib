@@ -1,3 +1,12 @@
+from typing import List, Self, Union
+
+from niagads.open_access_api_common.models.annotations.associations import (
+    GeneVariantAssociation,
+    GeneVariantAssociationSummry,
+    VariantAssociation,
+    VariantAssociationSummary,
+)
+
 GWAS_TRACK_CTE = """
     SELECT track_id, name AS track_name,
         provenance->>'data_source' AS data_source,
@@ -12,8 +21,8 @@ GWAS_TRACK_CTE = """
     WHERE 
         feature_type = 'variant'
         AND experimental_design->>'classification' = 'genetic association' 
-        AND ((:gwas_source IN ('GWAS', 'ALL') AND experimental_design->>'data_category' = 'summary statistics')
-        OR (:gwas_source IN ('CURATED', 'ALL') AND experimental_design->>'data_category' = 'curated'))
+        AND ((:association_source IN ('GWAS', 'ALL') AND experimental_design->>'data_category' = 'summary statistics')
+        OR (:association_source IN ('CURATED', 'ALL') AND experimental_design->>'data_category' = 'curated'))
 """
 
 
@@ -55,9 +64,71 @@ GWAS_COMMON_FIELDS = """
     END AS trait
 """
 
-GWAS_TRAIT_FILTERS = """
-    WHERE ((UPPER(:gwas_trait) IN ('AD', 'ALL_ADRD', 'ALL') AND trait_category = 'AD')
-    OR (UPPER(:gwas_trait) IN ('BIOMARKER', 'ALL_ADRD', 'ALL') AND trait_category = 'Biomarker')
-    OR (UPPER(:gwas_trait) IN ('ADRD', 'ALL_ADRD', 'ALL') AND trait_category = 'ADRD')
-    OR (UPPER(:gwas_trait) IN ('OTHER', 'ALL') AND trait_category = 'Other'))            
+association_trait_FILTERS = """
+    WHERE ((UPPER(:association_trait) IN ('AD', 'ALL_ADRD', 'ALL') AND trait_category = 'AD')
+    OR (UPPER(:association_trait) IN ('BIOMARKER', 'ALL_ADRD', 'ALL') AND trait_category = 'Biomarker')
+    OR (UPPER(:association_trait) IN ('ADRD', 'ALL_ADRD', 'ALL') AND trait_category = 'ADRD')
+    OR (UPPER(:association_trait) IN ('OTHER', 'ALL') AND trait_category = 'Other'))            
 """
+
+
+def get_association_counts(
+    result: Union[List[VariantAssociation], List[GeneVariantAssociation]],
+) -> Union[List[VariantAssociationSummary], List[GeneVariantAssociationSummry]]:
+
+    if len(result) == 0:  # FIXME: handle empty
+        return []
+
+    is_gene_association = (
+        True if isinstance(result[0], GeneVariantAssociation) else False
+    )
+    counts = {}
+    ontologyTerms = {}
+    for assoc in result:
+        category = getattr(assoc, "trait_category", None)
+
+        trait = getattr(assoc, "trait", None)
+        if trait == "None":
+            # might happen due to join or unexpected phenotype
+            raise RuntimeError(
+                f"Error getting count summary: NULL value returned for a trait. {assoc}"
+            )
+        traitName = str(trait)
+        ontologyTerms[traitName] = (
+            trait  # need mapping for after counts to generate summaries
+        )
+
+        if is_gene_association:
+            rPosition = getattr(assoc, "relative_position", None)
+            counts.setdefault(category, {}).setdefault(traitName, {})
+            counts[category][traitName][rPosition] = (
+                counts[category][traitName].get(rPosition, 0) + 1
+            )
+        else:
+            counts.setdefault(category, {})
+            counts[category][traitName] = counts[category].get(traitName, 0) + 1
+
+    summaries = []
+    for category, traitDict in counts.items():
+        if is_gene_association:
+            for trait, positionDict in traitDict.items():
+                for rPosition, numVariants in positionDict.items():
+                    summaries.append(
+                        GeneVariantAssociationSummry(
+                            trait_category=category,
+                            trait=ontologyTerms[trait],
+                            relative_position=rPosition,
+                            num_variants=numVariants,
+                        )
+                    )
+        else:
+            for trait, numVariants in traitDict.items():
+                summaries.append(
+                    VariantAssociationSummary(
+                        trait_category=category,
+                        trait=ontologyTerms(trait),
+                        num_variants=numVariants,
+                    )
+                )
+
+    return summaries
