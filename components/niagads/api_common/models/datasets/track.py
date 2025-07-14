@@ -12,6 +12,7 @@ from niagads.api_common.constants import DEFAULT_NULL_STRING
 from niagads.api_common.models.core import (
     ORMCompatibleDynamicRowModel,
     ORMCompatibleRowModel,
+    ResultSize,
 )
 from niagads.api_common.models.response.core import RecordResponse
 from niagads.utils.dict import promote_nested
@@ -150,20 +151,8 @@ class Track(ORMCompatibleRowModel):
         return super().as_table_row(**kwargs)
 
 
-class TrackResultSize(ORMCompatibleRowModel):
+class TrackResultSize(ResultSize):
     track_id: str = Field(title="Track ID", serialization_alias="id")
-    num_results: int = Field(
-        title="Num. Results",
-        description="Number of results (hits or overlaps) on this track within the query region and meeting any filter criteria.",
-    )
-
-    def __str__(self):
-        return self.as_info_string()
-
-    @staticmethod
-    def sort(results: List[Self], reverse=True) -> List[Self]:
-        """sorts a list of track results"""
-        return sorted(results, key=lambda item: item.num_results, reverse=reverse)
 
 
 class AbridgedTrackResponse(RecordResponse):

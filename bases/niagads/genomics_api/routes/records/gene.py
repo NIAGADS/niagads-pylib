@@ -102,7 +102,7 @@ tags = []
 
 @router.get(
     "/{gene}/pathways",
-    response_model=Union[GeneAnnotationResponse, TableViewResponse],
+    response_model=Union[GeneAnnotationResponse, RecordResponse, TableViewResponse],
     name="Get gene pathway membership",
     description="",
 )
@@ -114,31 +114,39 @@ async def get_gene_pathways(
     view: str = Query(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
+    content: str = Query(
+        ResponseContent.FULL, description=ResponseContent.full_data(description=True)
+    ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[GeneAnnotationResponse, TableViewResponse]:
+) -> Union[GeneAnnotationResponse, RecordResponse, TableViewResponse]:
 
     response_format = ResponseFormat.generic().validate(
         format, "format", ResponseFormat
     )
     response_view = ResponseView.table().validate(view, "view", ResponseView)
+    response_content = ResponseContent.full_data().validate(
+        content, "content", ResponseContent
+    )
+    counts_only = response_content == ResponseContent.COUNTS
+
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
-            content=ResponseContent.FULL,
+            content=response_content,
             format=response_format,
             view=response_view,
-            model=GeneAnnotationResponse,
+            model=RecordResponse if counts_only else GeneAnnotationResponse,
         ),
         Parameters(id=gene.feature_id),
         query=GenePathwayQuery,
     )
 
-    return await helper.get_query_response()
+    return await helper.get_query_response(opts=QueryOptions(counts_only=counts_only))
 
 
 @router.get(
     "/{gene}/function",
-    response_model=Union[GeneAnnotationResponse, TableViewResponse],
+    response_model=Union[GeneAnnotationResponse, RecordResponse, TableViewResponse],
     name="Get gene-GO associations",
     description="",
 )
@@ -150,26 +158,34 @@ async def get_gene_function(
     view: str = Query(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
+    content: str = Query(
+        ResponseContent.FULL, description=ResponseContent.full_data(description=True)
+    ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[GeneAnnotationResponse, TableViewResponse]:
+) -> Union[GeneAnnotationResponse, RecordResponse, TableViewResponse]:
 
     response_format = ResponseFormat.generic().validate(
         format, "format", ResponseFormat
     )
     response_view = ResponseView.table().validate(view, "view", ResponseView)
+    response_content = ResponseContent.full_data().validate(
+        content, "content", ResponseContent
+    )
+    counts_only = response_content == ResponseContent.COUNTS
+
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
-            content=ResponseContent.FULL,
+            content=response_content,
             format=response_format,
             view=response_view,
-            model=GeneAnnotationResponse,
+            model=RecordResponse if counts_only else GeneAnnotationResponse,
         ),
         Parameters(id=gene.feature_id),
         query=GeneFunctionQuery,
     )
 
-    return await helper.get_query_response()
+    return await helper.get_query_response(opts=QueryOptions(counts_only=counts_only))
 
 
 @router.get(
@@ -203,17 +219,16 @@ async def get_gene_genetic_associations(
         format, "format", ResponseFormat
     )
     response_view = ResponseView.table().validate(view, "view", ResponseView)
+
+    counts_only = response_content == ResponseContent.COUNTS
+
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
             content=response_content,
             format=response_format,
             view=response_view,
-            model=(
-                RecordResponse
-                if response_content == ResponseContent.COUNTS
-                else GeneticAssociationResponse
-            ),
+            model=RecordResponse if counts_only else GeneticAssociationResponse,
         ),
         Parameters(
             id=gene.feature_id,
@@ -234,6 +249,4 @@ async def get_gene_genetic_associations(
         query=GeneAssociationsQuery,
     )
 
-    return await helper.get_query_response(
-        opts=QueryOptions(counts_only=(response_content == ResponseContent.COUNTS))
-    )
+    return await helper.get_query_response(opts=QueryOptions(counts_only=counts_only))

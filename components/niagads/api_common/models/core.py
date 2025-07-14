@@ -16,7 +16,7 @@ wherein each item in the list is a row in the table.
 A Row Model is the data hash (key-value pairs) defining the table row.
 """
 
-from typing import Any, Dict, List, TypeVar
+from typing import Any, Dict, List, Self, TypeVar
 
 from niagads.common.models.core import TransformableModel
 from niagads.common.models.views.table import TableCellType, TableColumn, TableRow
@@ -116,3 +116,18 @@ class DynamicRowModel(RowModel):
 class ORMCompatibleDynamicRowModel(DynamicRowModel):
     # should allow to fill from SQLAlchemy ORM model
     model_config = ConfigDict(from_attributes=True)
+
+
+class ResultSize(ORMCompatibleDynamicRowModel):
+    num_results: int = Field(
+        title="Num. Results",
+        description="number of search results",
+    )
+
+    def __str__(self):
+        return self.as_info_string()
+
+    @staticmethod
+    def sort(results: List[Self], reverse=True) -> List[Self]:
+        """sorts a list of track results"""
+        return sorted(results, key=lambda item: item.num_results, reverse=reverse)

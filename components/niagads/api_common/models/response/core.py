@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
 from niagads.api_common.constants import DEFAULT_NULL_STRING
-from niagads.api_common.models.core import RowModel, T_RowModel
+from niagads.api_common.models.core import DynamicRowModel, RowModel, T_RowModel
 from niagads.api_common.models.response.pagination import (
     PaginationDataModel,
 )
 from niagads.api_common.models.response.request import RequestDataModel
 from niagads.api_common.views.table import Table
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class AbstractResponse(BaseModel, ABC):
@@ -99,6 +99,20 @@ class ListResponse(AbstractResponse):
 class RecordResponse(AbstractResponse):
 
     data: List[T_RowModel] = Field(description="query result")
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_row_model(cls, data: Any):
+        # wrong serialization
+        if isinstance(data, str):
+            return data
+        if isinstance(data, dict):
+            return data
+
+        if isinstance(data, list):
+            if not isinstance(data[0], dict):
+                return cls(data=data)  # assume T_RowModel
+            return cls(data=[DynamicRowModel(**item) for item in data])
 
     @classmethod
     def row_model(cls, name=False):

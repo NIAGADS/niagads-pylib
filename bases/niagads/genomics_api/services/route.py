@@ -1,6 +1,7 @@
 from typing import Optional
 
 from fastapi import HTTPException
+from niagads.api_common.models.core import ResultSize
 from niagads.common.models.structures import Range
 from niagads.database.schemas.dataset.track import Track, TrackDataStore
 from niagads.exceptions.core import ValidationError
@@ -116,14 +117,25 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
                 if self.__query.json_field:
                     result = result[0][self.__query.json_field]
                     if isinstance(result, list):
-                        return [dict(item) for item in result]
-                    return [result]
-                return [result[0]]
+                        result = [dict(item) for item in result]
+                    else:
+                        result = [result[0]]
+                else:
+                    result = [result[0]]
+                if opts.counts_only:
+                    return [ResultSize(num_results=len(result))]
+                else:
+                    return result
+
             else:
                 return [dict(item) for item in result]
 
     async def __run_query(self, opts: QueryOptions):
-        if opts.counts_only and not self.__query.counts_func:
+        if (
+            opts.counts_only
+            and not self.__query.counts_func  # count by processing full response
+            and not self.__query.json_field  # need to count w/in the json field after getting response
+        ):
             statement = self.__build_counts_statement(opts)
         else:
             statement = self.__build_statement(opts)
