@@ -1,30 +1,30 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-from niagads.open_access_api_common.constants import SharedOpenAPITags
-from niagads.open_access_api_common.models.features.bed import BEDResponse
-from niagads.open_access_api_common.models.records.track.track import (
-    TrackResponse,
-    AbridgedTrackResponse,
-)
-from niagads.open_access_api_common.models.response.core import (
+from niagads.api_common.constants import SharedOpenAPITags
+from niagads.api_common.models.features.bed import BEDResponse
+from niagads.api_common.models.response.core import (
     RecordResponse,
     ListResponse,
 )
-from niagads.open_access_api_common.parameters.location import loc_param
-from niagads.open_access_api_common.parameters.pagination import page_param
-from niagads.open_access_api_common.parameters.record.path import track_param
-from niagads.open_access_api_common.parameters.record.query import track_list_param
-from niagads.open_access_api_common.parameters.response import (
+from niagads.api_common.models.datasets.track import (
+    AbridgedTrackResponse,
+    TrackResponse,
+)
+from niagads.api_common.parameters.location import loc_param
+from niagads.api_common.parameters.pagination import page_param
+from niagads.api_common.parameters.record.path import track_param
+from niagads.api_common.parameters.record.query import track_list_param
+from niagads.api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,
     ResponseView,
 )
-from niagads.open_access_api_common.services.route import (
+from niagads.api_common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
-from niagads.open_access_api_common.views.table import TableViewResponse
+from niagads.api_common.views.table import TableViewResponse
 from niagads.open_access_filer_api.dependencies import (
     InternalRequestParameters,
 )

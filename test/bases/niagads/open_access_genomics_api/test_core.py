@@ -1,4 +1,4 @@
-from niagads.open_access_genomics_api import core
+from niagads.genomics_api import core
 
 
 def test_sample():

@@ -6,11 +6,11 @@ from fastapi import Depends
 from niagads.database.schemas.dataset.track import TrackDataStore
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.open_access_api_common.config import Settings
-from niagads.open_access_api_common.parameters.internal import (
+from niagads.api_common.config import Settings
+from niagads.api_common.parameters.internal import (
     InternalRequestParameters as _InternalRequestParameters,
 )
-from niagads.open_access_api_common.parameters.text_search import (
+from niagads.api_common.parameters.text_search import (
     TextSearchFilterParameter,
 )
 from niagads.requests.core import HttpClientSessionManager

@@ -3,12 +3,12 @@
 from typing import List, Set
 
 from niagads.common.types import T_PubMedID
-from niagads.open_access_api_common.constants import (
+from niagads.api_common.constants import (
     SharedOpenAPITags,
     SharedOpenAPIxTagGroups,
 )
-from niagads.open_access_api_common.config import Settings
-from niagads.open_access_api_common.app.openapi import OpenAPISpec, OpenAPITag
+from niagads.api_common.config import Settings
+from niagads.api_common.app.openapi import OpenAPISpec, OpenAPITag
 
 
 OPEN_API_TAGS: List[OpenAPITag] = [

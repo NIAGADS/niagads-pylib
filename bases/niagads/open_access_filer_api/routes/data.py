@@ -2,29 +2,29 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, Query
 from niagads.genome.core import Assembly
-from niagads.open_access_api_common.constants import SharedOpenAPITags
+from niagads.api_common.constants import SharedOpenAPITags
 
-from niagads.open_access_api_common.models.features.bed import BEDResponse
-from niagads.open_access_api_common.models.response.core import RecordResponse
+from niagads.api_common.models.features.bed import BEDResponse
+from niagads.api_common.models.response.core import RecordResponse
 
-from niagads.open_access_api_common.models.tracks.track import AbridgedTrackResponse
-from niagads.open_access_api_common.parameters.location import (
+from niagads.api_common.models.datasets.track import AbridgedTrackResponse
+from niagads.api_common.parameters.location import (
     assembly_param,
     span_param,
 )
-from niagads.open_access_api_common.parameters.pagination import page_param
-from niagads.open_access_api_common.parameters.record.query import track_list_param
-from niagads.open_access_api_common.parameters.response import (
+from niagads.api_common.parameters.pagination import page_param
+from niagads.api_common.parameters.record.query import track_list_param
+from niagads.api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,
     ResponseView,
 )
-from niagads.open_access_api_common.parameters.text_search import keyword_param
-from niagads.open_access_api_common.services.route import (
+from niagads.api_common.parameters.text_search import keyword_param
+from niagads.api_common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
-from niagads.open_access_api_common.views.table import TableViewResponse
+from niagads.api_common.views.table import TableViewResponse
 from niagads.open_access_filer_api.dependencies import (
     TEXT_FILTER_PARAMETER,
     InternalRequestParameters,

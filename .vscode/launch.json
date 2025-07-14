@@ -48,7 +48,7 @@
 			"request": "launch",
 			"module": "uvicorn",
 			"args": [
-				"niagads.open_access_genomics_api.core:app",
+				"niagads.genomics_api.core:app",
 				"--reload",
 				"--port",
 				"8001",

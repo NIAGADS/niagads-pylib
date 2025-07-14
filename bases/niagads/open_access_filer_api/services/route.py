@@ -8,21 +8,21 @@ from operator import itemgetter
 from niagads.database.schemas.dataset.track import Track, TrackDataStore
 from niagads.database.session import DatabaseSessionManager
 from niagads.genome.core import GenomicFeatureType
-from niagads.open_access_api_common.models.features.bed import BEDFeature
-from niagads.open_access_api_common.models.features.genomic import GenomicFeature
-from niagads.open_access_api_common.models.services.cache import (
+from niagads.api_common.models.features.bed import BEDFeature
+from niagads.api_common.models.features.genomic import GenomicFeature
+from niagads.api_common.models.services.cache import (
     CacheKeyDataModel,
     CacheKeyQualifier,
     CacheNamespace,
 )
-from niagads.open_access_api_common.models.records.track.track import TrackResultSize
-from niagads.open_access_api_common.parameters.internal import InternalRequestParameters
-from niagads.open_access_api_common.parameters.response import ResponseContent
-from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
-from niagads.open_access_api_common.services.metadata.route import (
+from niagads.api_common.models.datasets.track import TrackResultSize
+from niagads.api_common.parameters.internal import InternalRequestParameters
+from niagads.api_common.parameters.response import ResponseContent
+from niagads.api_common.services.metadata.query import MetadataQueryService
+from niagads.api_common.services.metadata.route import (
     MetadataRouteHelperService,
 )
-from niagads.open_access_api_common.services.route import (
+from niagads.api_common.services.route import (
     PaginationCursor as PaginationCursor,
     Parameters,
     ResponseConfiguration,

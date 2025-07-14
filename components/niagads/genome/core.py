@@ -162,6 +162,26 @@ class Assembly(CaseInsensitiveEnum):
     def hg_label(self):
         return "hg19" if self.value == "GRCh37" else "hg38"
 
+    # these class methods are from EnumParameters
+    # no inheritence here b/c of functional programming
+    # and limitations on subclassing Enums
+    @classmethod
+    def get_description(cls):
+        return f"Allowable values are: {','.join(cls.list())}."
+
+    @classmethod
+    def validate(cls, value, label: str, returnCls: CaseInsensitiveEnum):
+        from niagads.exceptions.core import ValidationError
+        from niagads.utils.string import sanitize  # avoid circular import
+
+        try:
+            cls(sanitize(value))
+            return returnCls(value)
+        except Exception as err:
+            raise ValidationError(
+                f"Invalid value provided for `{label}`: {value}.  {cls.get_description()}"
+            )
+
 
 class GenomicFeatureType(CaseInsensitiveEnum):
     GENE = auto()

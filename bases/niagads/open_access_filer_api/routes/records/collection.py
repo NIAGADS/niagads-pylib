@@ -1,34 +1,28 @@
-from fastapi import APIRouter, Depends, Query
 from typing import Union
 
-from niagads.database.schemas.dataset.track import TrackDataStore
-from niagads.open_access_api_common.constants import SharedOpenAPITags
-from niagads.open_access_api_common.models.records.track.collection import (
-    CollectionResponse,
-)
-from niagads.open_access_api_common.models.records.track.track import (
-    TrackResponse,
+from fastapi import APIRouter, Depends, Query
+from niagads.api_common.constants import SharedOpenAPITags
+from niagads.api_common.models.datasets.collection import CollectionResponse
+from niagads.api_common.models.datasets.track import (
     AbridgedTrackResponse,
+    TrackResponse,
 )
-from niagads.open_access_api_common.models.response.core import RecordResponse
-from niagads.open_access_api_common.parameters.pagination import page_param
-from niagads.open_access_api_common.parameters.record.path import collection_param
-from niagads.open_access_api_common.parameters.record.query import track_param
-from niagads.open_access_api_common.parameters.response import (
+from niagads.api_common.models.response.core import RecordResponse
+from niagads.api_common.parameters.pagination import page_param
+from niagads.api_common.parameters.record.path import collection_param
+from niagads.api_common.parameters.record.query import track_param
+from niagads.api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,
     ResponseView,
 )
-from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
-from niagads.open_access_api_common.services.route import (
-    Parameters,
-    ResponseConfiguration,
-)
-from niagads.open_access_api_common.views.table import TableViewResponse
+from niagads.api_common.services.metadata.query import MetadataQueryService
+from niagads.api_common.services.route import Parameters, ResponseConfiguration
+from niagads.api_common.views.table import TableViewResponse
+from niagads.database.schemas.dataset.track import TrackDataStore
 from niagads.open_access_filer_api.dependencies import InternalRequestParameters
 from niagads.open_access_filer_api.documentation import BASE_TAGS
 from niagads.open_access_filer_api.services.route import FILERRouteHelper
-
 
 router = APIRouter(
     prefix="/collection",

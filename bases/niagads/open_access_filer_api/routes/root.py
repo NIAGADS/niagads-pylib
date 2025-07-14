@@ -1,13 +1,13 @@
 import functools
 
 from fastapi import APIRouter, Depends, Request, Response
-from niagads.open_access_api_common.app.factory import AppFactory
-from niagads.open_access_api_common.constants import SharedOpenAPITags
+from niagads.api_common.app.factory import AppFactory
+from niagads.api_common.constants import SharedOpenAPITags
 
-from niagads.open_access_api_common.models.records import Entity, RecordSummary
-from niagads.open_access_api_common.models.response.core import RecordResponse
-from niagads.open_access_api_common.models.routes import RouteDescription
-from niagads.open_access_api_common.services.metadata.query import MetadataQueryService
+from niagads.api_common.models.records import Entity, RecordSummary
+from niagads.api_common.models.response.core import RecordResponse
+from niagads.api_common.models.routes import RouteDescription
+from niagads.api_common.services.metadata.query import MetadataQueryService
 
 from niagads.open_access_filer_api.dependencies import (
     TRACK_DATA_STORES,

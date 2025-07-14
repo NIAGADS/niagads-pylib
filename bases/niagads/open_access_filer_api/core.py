@@ -1,4 +1,4 @@
-from niagads.open_access_api_common.app.factory import AppFactory
+from niagads.api_common.app.factory import AppFactory
 from niagads.open_access_filer_api.documentation import OPEN_API_SPEC, APP_NAMESPACE
 from niagads.open_access_filer_api.routes.root import router as RootRouter
 from niagads.open_access_filer_api.routes.records.track import router as RecordRouter

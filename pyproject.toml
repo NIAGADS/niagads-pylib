@@ -41,7 +41,7 @@ packages = [
     { from = "components", include = "niagads/metadata_parser" },
     { from = "components", include = "niagads/metadata_validator" },
     { from = "components", include = "niagads/objects" },
-    { from = "components", include = "niagads/open_access_api_common" },
+    { from = "components", include = "niagads/api_common" },
     { from = "components", include = "niagads/postgres_dbi" },
     { from = "components", include = "niagads/requests" },
     { from = "components", include = "niagads/s3" },

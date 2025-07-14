@@ -9,10 +9,10 @@ packages = [
     { include = "niagads/exceptions", from = "../../components" },
     { include = "niagads/utils", from = "../../components" },
     { include = "niagads/settings", from = "../../components" },
-    { include = "niagads/open_access_api_common", from = "../../components" },
     { include = "niagads/genome", from = "../../components" },
     { include = "niagads/cache", from = "../../components" },
     { include = "niagads/requests", from = "../../components" },
+    { include = "niagads/api_common", from = "../../components" },
 ]
 
 [project]

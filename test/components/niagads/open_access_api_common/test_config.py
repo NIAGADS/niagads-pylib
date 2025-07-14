@@ -1,5 +1,5 @@
 from niagads.common.constants import external_resources
-from niagads.open_access_api_common import config
+from niagads.open_access import config
 
 
 def test_sample():
