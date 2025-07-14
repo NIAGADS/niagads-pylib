@@ -20,9 +20,9 @@ from niagads.api_common.services.metadata.query import MetadataQueryService
 from niagads.api_common.services.route import Parameters, ResponseConfiguration
 from niagads.api_common.views.table import TableViewResponse
 from niagads.database.schemas.dataset.track import TrackDataStore
-from niagads.open_access_filer_api.dependencies import InternalRequestParameters
-from niagads.open_access_filer_api.documentation import BASE_TAGS
-from niagads.open_access_filer_api.services.route import FILERRouteHelper
+from niagads.filer_api.dependencies import InternalRequestParameters
+from niagads.filer_api.documentation import BASE_TAGS
+from niagads.filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(
     prefix="/collection",

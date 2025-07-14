@@ -3,11 +3,11 @@ from typing import Union
 from fastapi import APIRouter, Depends
 from niagads.api_common.constants import SharedOpenAPITags
 from niagads.api_common.models.response.core import RecordResponse
-from niagads.open_access_filer_api.dependencies import (
+from niagads.filer_api.dependencies import (
     InternalRequestParameters,
     TextSearchFilterFields,
 )
-from niagads.open_access_filer_api.documentation import BASE_TAGS
+from niagads.filer_api.documentation import BASE_TAGS
 
 router = APIRouter(prefix="/dictionary", tags=BASE_TAGS)
 

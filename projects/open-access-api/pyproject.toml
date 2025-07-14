@@ -1,8 +1,7 @@
 [tool.poetry]
 packages = [
     { include = "niagads/open_access_api", from = "../../bases" },
-    { include = "niagads/open_access_filer_api", from = "../../bases" },
-    { include = "niagads/open_access_genomics_api", from = "../../bases" },
+    { include = "niagads/filer_api", from = "../../bases" },
     { include = "niagads/enums", from = "../../components" },
     { include = "niagads/common", from = "../../components" },
     { include = "niagads/database", from = "../../components" },
@@ -13,6 +12,7 @@ packages = [
     { include = "niagads/cache", from = "../../components" },
     { include = "niagads/requests", from = "../../components" },
     { include = "niagads/api_common", from = "../../components" },
+    { include = "niagads/genomics_api", from = "../../bases" },
 ]
 
 [project]

@@ -9,11 +9,11 @@ from niagads.api_common.models.response.core import RecordResponse
 from niagads.api_common.models.routes import RouteDescription
 from niagads.api_common.services.metadata.query import MetadataQueryService
 
-from niagads.open_access_filer_api.dependencies import (
+from niagads.filer_api.dependencies import (
     TRACK_DATA_STORES,
     InternalRequestParameters,
 )
-from niagads.open_access_filer_api.documentation import (
+from niagads.filer_api.documentation import (
     APP_NAME,
     BASE_TAGS,
     OPEN_API_TAGS,

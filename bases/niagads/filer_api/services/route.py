@@ -27,7 +27,7 @@ from niagads.api_common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
-from niagads.open_access_filer_api.services.wrapper import (
+from niagads.filer_api.services.wrapper import (
     ApiWrapperService,
     FILERApiDataResponse,
     FILERApiEndpoint,

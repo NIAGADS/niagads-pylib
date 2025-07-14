@@ -17,9 +17,9 @@ from niagads.api_common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
-from niagads.open_access_filer_api.dependencies import InternalRequestParameters
-from niagads.open_access_filer_api.documentation import BASE_TAGS
-from niagads.open_access_filer_api.services.route import FILERRouteHelper
+from niagads.filer_api.dependencies import InternalRequestParameters
+from niagads.filer_api.documentation import BASE_TAGS
+from niagads.filer_api.services.route import FILERRouteHelper
 
 # TODO: Fix documentation and route nomenclature
 

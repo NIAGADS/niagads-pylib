@@ -26,9 +26,9 @@ from niagads.api_common.services.route import (
     ResponseConfiguration,
 )
 from niagads.api_common.views.table import TableViewResponse
-from niagads.open_access_filer_api.dependencies import InternalRequestParameters
-from niagads.open_access_filer_api.documentation import BASE_TAGS
-from niagads.open_access_filer_api.services.route import FILERRouteHelper
+from niagads.filer_api.dependencies import InternalRequestParameters
+from niagads.filer_api.documentation import BASE_TAGS
+from niagads.filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(prefix="/service", tags=BASE_TAGS)
 

@@ -1,4 +1,4 @@
-from niagads.open_access_filer_api import core
+from niagads.filer_api import core
 
 
 def test_sample():
