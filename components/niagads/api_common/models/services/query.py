@@ -44,6 +44,7 @@ class QueryDefinition(BaseModel):
     fetch_one: bool = False  # always return exactly one result
     json_field: Optional[str] = None  # only return specific field, can be dynamic
     bind_parameters: Optional[List[str]] = None  # bind parameter names
+    allow_empty_response: bool = False
 
     entity: Optional[Entity] = None  # for messaging
 

@@ -2,6 +2,8 @@ from typing import Optional
 
 from fastapi import HTTPException
 from niagads.api_common.models.core import ResultSize
+from niagads.api_common.models.records import Entity
+from niagads.api_common.services.features import FeatureQueryService
 from niagads.common.models.structures import Range
 from niagads.database.schemas.dataset.track import Track, TrackDataStore
 from niagads.exceptions.core import ValidationError
@@ -109,8 +111,6 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
     def __process_query_result(self, result, opts: QueryOptions):
         if opts.counts_only and self.__query.counts_func is not None:
             return self.__query.counts_func(result)
-        elif len(result) == 0:
-            return result
         else:
             fetch_one = opts.fetch_one or self.__query.fetch_one
             if fetch_one or opts.counts_only:
@@ -119,7 +119,7 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
                     if isinstance(result, list):
                         result = [dict(item) for item in result]
                     else:
-                        result = [result[0]]
+                        result = [result]
                 else:
                     result = [result[0]]
                 if opts.counts_only:
@@ -148,20 +148,23 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
                 raise NoResultFound()
 
             if all_values_are_none(result[0]):
-                if self.__query.json_field is not None:
-                    # valid record, no data for field
-                    return self.__process_query_result([], opts.counts_only)
                 raise NoResultFound()
 
             return self.__process_query_result(result, opts)
 
         except NoResultFound as e:
-            if self.__query.entity is not None:
-                raise HTTPException(
-                    status_code=404, detail=f"{str(self.__query.entity)} not found"
-                )
+            if self.__query.allow_empty_response:
+                if opts.raw_response:
+                    return result
+                else:
+                    return []
             else:
-                self.__process_query_result([], opts.counts_only)
+                if self.__query.entity is not None:
+                    raise HTTPException(
+                        status_code=404, detail=f"{str(self.__query.entity)} not found"
+                    )
+                else:
+                    return []
 
     async def __get_paged_query_response(self):
         r_size: int = await self.__run_query(QueryOptions(counts_only=True))
@@ -190,6 +193,21 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
                 result = result[range.start : range.end]
 
         return await self.generate_response(result, False)
+
+    async def get_feature_annotation(
+        self, entity: Entity, opts: QueryOptions = QueryOptions()
+    ):
+        # verify feature; will raise a not found error
+        if entity == Entity.GENE:
+            await FeatureQueryService(
+                session=self._managers.session
+            ).get_gene_primary_key(self._parameters.get("id"))
+        elif entity == Entity.VARIANT:
+            await FeatureQueryService(
+                session=self._managers.session
+            ).get_variant_primary_key(self._parameters.get("id"))
+
+        return await self.get_query_response(opts)
 
     async def __validate_track(self):
         result = await MetadataQueryService(

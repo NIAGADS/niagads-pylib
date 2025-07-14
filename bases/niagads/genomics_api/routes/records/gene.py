@@ -13,6 +13,7 @@ from niagads.api_common.models.features.gene import (
     GeneResponse,
 )
 from niagads.api_common.models.features.genomic import GenomicFeature
+from niagads.api_common.models.records import Entity
 from niagads.api_common.models.response.core import RecordResponse
 from niagads.api_common.models.services.query import QueryFilter
 from niagads.api_common.parameters.associations import (
@@ -141,7 +142,9 @@ async def get_gene_pathways(
         query=GenePathwayQuery,
     )
 
-    return await helper.get_query_response(opts=QueryOptions(counts_only=counts_only))
+    return await helper.get_feature_annotation(
+        entity=Entity.GENE, opts=QueryOptions(counts_only=counts_only)
+    )
 
 
 @router.get(
@@ -185,7 +188,9 @@ async def get_gene_function(
         query=GeneFunctionQuery,
     )
 
-    return await helper.get_query_response(opts=QueryOptions(counts_only=counts_only))
+    return await helper.get_feature_annotation(
+        entity=Entity.GENE, opts=QueryOptions(counts_only=counts_only)
+    )
 
 
 @router.get(
@@ -249,4 +254,6 @@ async def get_gene_genetic_associations(
         query=GeneAssociationsQuery,
     )
 
-    return await helper.get_query_response(opts=QueryOptions(counts_only=counts_only))
+    return await helper.get_feature_annotation(
+        entity=Entity.GENE, opts=QueryOptions(counts_only=counts_only)
+    )

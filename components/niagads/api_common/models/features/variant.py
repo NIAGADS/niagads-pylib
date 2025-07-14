@@ -220,8 +220,8 @@ class VariantFunction(RowModel):
 
 
 class ColocatedVariants(RowModel):
-    alternative: Optional[List[str]] = None
-    colocated: Optional[List[str]] = None
+    alternative_alleles: Optional[List[str]] = None
+    colocated_variants: Optional[List[str]] = None
 
     def as_table_row(self, **kwargs):
         raise NotImplementedError(

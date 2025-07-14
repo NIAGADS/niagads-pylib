@@ -13,11 +13,34 @@ class FeatureQueryService:
     ):
         self.__session = session
 
+    async def get_gene_primary_key(self, id: str):
+        stmt = select(func.gene_lookup(id))
+        try:
+            result = (await self.__session.execute(stmt)).scalar_one()
+            if result is None:
+                raise NoResultFound()
+            return result
+        except NoResultFound as err:
+            raise HTTPException(status_code=404, detail="Gene not found")
+
+    async def get_variant_primary_key(self, id: str):
+        stmt = select(func.find_variant_primary_key(id))
+
+        try:
+            result = (await self.__session.execute(stmt)).scalar_one()
+            if result is None:
+                raise NoResultFound()
+            return result
+        except NoResultFound as err:
+            raise HTTPException(status_code=404, detail="Variant not found")
+
     async def get_gene_location(self, gene: GenomicFeature):
         stmt = select(func.gene_location_lookup(gene.feature_id))
         try:
-            span = self.__session.execute(stmt).scalar_one()
-            return span
+            result = (await self.__session.execute(stmt)).scalar_one()
+            if result is None:
+                raise NoResultFound()
+            return result
         except NoResultFound as err:
             raise HTTPException(status_code=404, detail="Gene not found")
 
@@ -38,8 +61,8 @@ class FeatureQueryService:
                 ).label("span")
             )
             try:
-                span = self.__session.execute(stmt).scalar_one()
-                return span
+                result = await self.__session.execute(stmt)
+                return result.scalar_one()
             except NoResultFound as err:
                 raise HTTPException(status_code=404, detail="refSNP not found")
 

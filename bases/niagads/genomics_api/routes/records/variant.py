@@ -13,6 +13,8 @@ from niagads.api_common.models.features.variant import (
     VariantAnnotationResponse,
     VariantResponse,
 )
+from niagads.api_common.models.records import Entity
+from niagads.api_common.models.response.core import RecordResponse
 from niagads.api_common.models.services.query import QueryFilter
 from niagads.api_common.parameters.associations import (
     association_source_param,
@@ -40,7 +42,7 @@ from niagads.genomics_api.queries.variant import (
     VariantFrequencyQuery,
     VariantRecordQuery,
 )
-from niagads.genomics_api.services.route import GenomicsRouteHelper
+from niagads.genomics_api.services.route import GenomicsRouteHelper, QueryOptions
 
 router = APIRouter(
     prefix="/record/variant",
@@ -132,7 +134,7 @@ async def get_variant_allele_frequencies(
 
 @router.get(
     "/{variant}/associations",
-    response_model=Union[GeneticAssociationResponse, TableViewResponse],
+    response_model=Union[GeneticAssociationResponse, RecordResponse, TableViewResponse],
     name="Get genetic associations",
     description="Retrieve genetic associations (GWAS) for the variant",
 )
@@ -148,21 +150,29 @@ async def get_variant_genetic_associations(
     view: str = Query(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
+    content: str = Query(
+        ResponseContent.FULL, description=ResponseContent.full_data(description=True)
+    ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[GeneticAssociationResponse, TableViewResponse]:
+) -> Union[GeneticAssociationResponse, RecordResponse, TableViewResponse]:
 
-    response_content = ResponseContent.FULL
     response_format = ResponseFormat.generic().validate(
         format, "format", ResponseFormat
     )
     response_view = ResponseView.table().validate(view, "view", ResponseView)
+
+    response_content = ResponseContent.full_data().validate(
+        content, "content", ResponseContent
+    )
+    counts_only = response_content == ResponseContent.COUNTS
+
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
             content=response_content,
             format=response_format,
             view=response_view,
-            model=GeneticAssociationResponse,
+            model=RecordResponse if counts_only else GeneticAssociationResponse,
         ),
         Parameters(
             id=variant.feature_id,
@@ -183,7 +193,9 @@ async def get_variant_genetic_associations(
         query=VariantAssociationsQuery,
     )
 
-    return await helper.get_query_response()
+    return await helper.get_feature_annotation(
+        entity=Entity.VARIANT, opts=QueryOptions(counts_only=counts_only)
+    )
 
 
 @router.get(
@@ -211,4 +223,4 @@ async def get_colocated_variants(
         query=ColocatedVariantQuery,
     )
 
-    return await helper.get_query_response()
+    return await helper.get_feature_annotation(entity=Entity.VARIANT)
