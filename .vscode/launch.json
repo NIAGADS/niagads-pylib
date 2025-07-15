@@ -51,7 +51,7 @@
 				"niagads.genomics_api.core:app",
 				"--reload",
 				"--port",
-				"8001",
+				"8005",
 				"--env-file",
 				"${workspaceFolder}/../genomics.env"
 				//"--no-reload",
