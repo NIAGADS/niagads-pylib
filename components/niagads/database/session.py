@@ -105,7 +105,7 @@ class DatabaseSessionManager:
 
             except Exception as err:
                 # everything else for which we currently have no handler
-                if "Connection refused" in str(err):
+                if "Connection refused" in str(err) or "Connection" in str(type(err)):
                     # don't want to create dependency to redis in this module
                     # so checking message instead of exception type
                     self.logger.error("Database Error", exc_info=err, stack_info=True)
