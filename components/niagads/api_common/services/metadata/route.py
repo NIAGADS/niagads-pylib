@@ -45,7 +45,7 @@ class MetadataRouteHelperService(RouteHelperService):
 
             result = await MetadataQueryService(
                 self._managers.session, data_store=self._data_store
-            ).get_track_metadata(tracks, responseType=self._response_config.content)
+            ).get_track_metadata(tracks, response_type=self._response_config.content)
 
             if not raw_response:
                 self._result_size = len(result)
@@ -86,7 +86,7 @@ class MetadataRouteHelperService(RouteHelperService):
             ).get_collection_track_metadata(
                 self._parameters.get("collection"),
                 self._parameters.get("track"),
-                responseType=self._response_config.content,
+                response_type=self._response_config.content,
             )
 
             if not raw_response:
@@ -182,6 +182,6 @@ class MetadataRouteHelperService(RouteHelperService):
 
         # result = await MetadataQueryService(self._managers.session, self._managers.requestData, self._dataStore) \
         #         .get_shard(self._parameters.track, self._parameters.chr,
-        #            responseType=self._response_config.content)
+        #            response_type=self._response_config.content)
 
         raise NotImplementedError("Query helper not yet implemented")

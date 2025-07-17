@@ -91,7 +91,7 @@ class VariantDisplayAnnotation(RowModel):
         return list(fields.keys()) if as_str else fields
 
 
-class AnnotatedVariant(VariantFeature, VariantDisplayAnnotation):
+class AnnotatedVariant(Variant, VariantDisplayAnnotation):
     allele_string: Optional[str] = None
 
     # FIXME: these queries can take a while; not part of the variant record
@@ -123,10 +123,6 @@ class AnnotatedVariant(VariantFeature, VariantDisplayAnnotation):
         default=None,
         title="VEP Ranked Consequences",
         description="ranked consequences from VEP analysis",
-    )
-    associations: Optional[dict] = Field(
-        default=None,
-        description="Significant assocaitions in NIAGADS GWAS summary statistics datasets",
     )
 
     # TODO: vrs: [VRS] - ga4gh variant representation

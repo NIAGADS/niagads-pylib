@@ -16,7 +16,7 @@ class NullFreeModel(BaseModel):
 
 
 class TransformableModel(BaseModel):
-    model_config = ConfigDict(serialize_by_alias=True, use_enum_values=True)
+    model_config = ConfigDict(serialize_by_alias=True)
 
     def null_free_dump(self):
         return prune(self.model_dump(), removeNulls=True)
