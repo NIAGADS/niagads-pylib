@@ -62,12 +62,6 @@ async def site_search(
         content, "content", ResponseContent
     )
 
-    if limit is not None and response_content == ResponseContent.COUNTS:
-        raise HTTPException(
-            status_code=422,
-            detail="Invalid request: can specify only one of `limit` or `content=counts`",
-        )
-
     query = SiteSearchQuery(search_type=search_type)
     helper = GenomicsRouteHelper(
         internal,
@@ -82,13 +76,18 @@ async def site_search(
     )
 
     result = await helper.get_query_response(opts=QueryOptions(raw_response=True))
+    result_size = len(result)
     if limit:
-        return result[:limit]
-    return (
-        JSONResponse({"num_results": len(result)})
-        if response_content == ResponseContent.COUNTS
-        else result
-    )
+        result = result[:limit]
+
+    if response_content == ResponseContent.COUNTS:
+        if limit:
+            return JSONResponse(
+                {"limited_result_size": len(result), "result_size": result_size}
+            )
+        return JSONResponse({"result_size": result_size})
+
+    return result
 
 
 tags = [str(SharedOpenAPITags.GENOME_BROWSER)]
