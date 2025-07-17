@@ -1,10 +1,11 @@
 import math
 from typing import Union
-from fastapi import Query
+from fastapi import HTTPException, Query
 from niagads.api_common.models.annotations.associations import (
     AssociationSource,
     AssociationTrait,
 )
+from niagads.utils.string import sanitize
 
 
 async def association_trait_param(
@@ -26,13 +27,26 @@ async def association_source_param(
 
 
 async def pvalue_filter_param(
-    pvalue: float = Query(
+    pvalue: str = Query(
         default=None,
         description="retrieve p-values <= specified threshold.  Specify as decimal value or in scientific notatation (e.g., 5e-8 for genome-wide significance)",
-        le=1e-3,
     )
 ) -> float:
-    return pvalue
+    if pvalue is None:
+        return None
+    try:
+        pvalue_float = float(pvalue)
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid `pvalue` format. Must be a float (e.g., 0.00001) or scientific notation (e.g., 5e-8).",
+        )
+    if not (0 < pvalue_float <= 1e-3):
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid `pvalue`; p-values must be in the range (0, 1e-3]",
+        )
+    return pvalue_float
 
 
 def neg_log10_pvalue(pvalue: float) -> Union[float, int]:
