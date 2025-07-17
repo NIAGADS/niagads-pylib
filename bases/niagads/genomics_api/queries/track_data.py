@@ -1,3 +1,4 @@
+from niagads.api_common.models.records import Entity
 from niagads.api_common.models.services.query import QueryDefinition
 
 
@@ -79,15 +80,14 @@ TrackQTLGeneQuery = QueryDefinition(
     query=_TRACK_QTLGENE_QUERY_SQL,
     counts_query=_TRACK_QTLGENE_COUNTS_QUERY_SQL,
     use_id_select_wrapper=True,
-    errorOnNull="xQTL track not found in the NIAGADS Alzheimer's GenomicsDB",
     messageOnResultSize="Found target {0} genes in this analysis.  Displaying {1}.  To retrieve the full set, please run the following `paged` query using the NIAGADS Open Access API: {2}.",
     bind_parameters=["rank_start", "rank_end"],
+    entity=Entity.GENE,
 )
 
 TrackGWASSumStatQuery = QueryDefinition(
     query=_TRACK_GSS_QUERY_SQL,
     use_id_select_wrapper=True,
-    errorOnNull="GWAS summary statistics track not found in the NIAGADS Alzheimer's GenomicsDB",
 )
 
 # TODO: make generic like the data queries

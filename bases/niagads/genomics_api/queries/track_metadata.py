@@ -1,3 +1,4 @@
+from niagads.api_common.models.records import Entity
 from niagads.api_common.models.services.query import QueryDefinition
 
 
@@ -23,15 +24,15 @@ _TRACK_COLLECTION_QUERY = """
 TrackMetadataQuery = QueryDefinition(
     query="SELECT * FROM Metadata.TrackMetadata",
     use_id_select_wrapper=True,
-    errorOnNull="Track not found in the GenomicsDB",
+    entity=Entity.TRACK,
 )
 
 CollectionQuery = QueryDefinition(
-    query=_TRACK_COLLECTION_QUERY,
+    query=_TRACK_COLLECTION_QUERY, entity=Entity.COLLECTION
 )
 
 CollectionTrackMetadataQuery = QueryDefinition(
     query=_TRACK_COLLECTION_METADATA_QUERY,
     bind_parameters=["collection"],
-    errorOnNull="Collection not found in the GenomicsDB",
+    entity=Entity.COLLECTION,
 )
