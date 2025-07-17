@@ -23,36 +23,38 @@ class SearchType(EnumParameter):  # TODO: move to parameters
 
 
 class SiteSearchQuery(QueryDefinition):
-    searchType: SearchType
-    fetchOne: bool = False
+    search_type: SearchType
+    fetch_one: bool = False
     query: str = ""  # gets assigned dynamically by model_post_init
-    bindParameters: List[str] = ["keyword"]
+    bind_parameters: List[str] = ["keyword"]
 
     def __get_CTE(self):
-        geneSql = "SELECT * FROM gene_text_search((SELECT st.keyword FROM st))"
-        variantSql = "SELECT * FROM variant_text_search((SELECT st.keyword FROM st))"
-        trackSql = "SELECT * FROM gwas_dataset_text_search((SELECT st.keyword FROM st))"
+        gene_sql = "SELECT * FROM gene_text_search((SELECT st.keyword FROM st))"
+        variant_sql = "SELECT * FROM variant_text_search((SELECT st.keyword FROM st))"
+        track_sql = (
+            "SELECT * FROM gwas_dataset_text_search((SELECT st.keyword FROM st))"
+        )
 
-        match self.searchType:
+        match self.search_type:
             case SearchType.GENE:
-                return geneSql
+                return gene_sql
             case SearchType.VARIANT:
-                return variantSql
+                return variant_sql
             case SearchType.TRACK:
-                return trackSql
+                return track_sql
             case SearchType.FEATURE:
-                return f"{geneSql} UNION ALL {variantSql}"
+                return f"{gene_sql} UNION ALL {variant_sql}"
             case _:
-                return f"{geneSql} UNION ALL {variantSql} UNION ALL {trackSql}"
+                return f"{gene_sql} UNION ALL {variant_sql} UNION ALL {track_sql}"
 
     def model_post_init(self, __context):
-        match self.searchType:
+        match self.search_type:
             case SearchType.FEATURE:
-                self.bindParameters = ["keyword"] * 2
+                self.bind_parameters = ["keyword"] * 2
             case SearchType.GLOBAL:
-                self.bindParameters = ["keyword"] * 3
+                self.bind_parameters = ["keyword"] * 3
             case _:
-                self.bindParameters = ["keyword"]
+                self.bind_parameters = ["keyword"]
 
         self.query = (
             f"WITH st AS (SELECT trim(:keyword)::text AS keyword)"
