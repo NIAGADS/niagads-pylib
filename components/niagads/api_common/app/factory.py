@@ -205,7 +205,8 @@ class AppFactory:
     def __generate_unique_id(route: APIRoute):
         rName = route.name.lower().replace(" ", "_")
         if len(route.tags) > 1:
-            return f"{route.tags[0].lower().replace(' ', '_').replace("'",'')}-{rName}"
+            rtag = route.tags[0].lower().replace(" ", "_").replace("'", "")
+            return f"{rtag}-{rName}"
         else:
             return rName
 
