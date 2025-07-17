@@ -18,3 +18,13 @@ async def page_param(
             f"Invalid value specified for `page`: {page}."
             f"Pages should be positive integers in the range [1, {MAX_NUM_PAGES}]"
         )
+
+
+async def limit_param(
+    limit: int = Query(
+        default=None,
+        description="return as most `limit` number of records or search results",
+        gt=0,
+    )
+):
+    return limit
