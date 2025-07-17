@@ -100,11 +100,16 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
 
         # Handle filter parameter
         if is_filtered:
-            parameters["filter"] = filter.value
+            parameters[filter.field] = filter.value
 
         # Create the PreparedStatement object and return the SQLAlchemy statement
         statement = PreparedStatement(
-            query=query, bind_parameters=self.__query.bind_parameters
+            query=query,
+            bind_parameters=(
+                self.__query.bind_parameters + [filter.field]
+                if is_filtered
+                else self.__query.bind_parameters
+            ),
         )
         return statement.build(parameters, self.__id_parameter)
 
