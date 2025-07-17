@@ -7,6 +7,7 @@ class Entity(CaseInsensitiveEnum):
     VARIANT = "variant"
     SPAN = "span"
     TRACK = "track"
+    COLLECTION = "collection"
 
     def __str__(self):
         return self.value.title()
