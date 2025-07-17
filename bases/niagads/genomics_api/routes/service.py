@@ -1,5 +1,5 @@
 from typing import List, Union
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from niagads.api_common.constants import SharedOpenAPITags
 from niagads.api_common.models.features.genomic import GenomicRegion
@@ -8,6 +8,7 @@ from niagads.api_common.models.response.core import (
     RecordResponse,
     T_RecordResponse,
 )
+from niagads.api_common.parameters.pagination import limit_param
 from niagads.api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,
@@ -37,7 +38,7 @@ tags = [str(SharedOpenAPITags.RECORD_SEARCH), str(SharedOpenAPITags.LOOKUP_SERVI
 
 @router.get(
     "/search",
-    response_model=Union[List[RecordSearchResult]],
+    response_model=List[RecordSearchResult],
     tags=tags,
     summary="search-feature-and-track-records",
     description="Find Alzheimer's GenomicsDB Records (features, tracks, collections) by identifier or keyword",
@@ -49,11 +50,25 @@ async def site_search(
     search_type: SearchType = Query(
         default=SearchType.GLOBAL, description=SearchType.get_description()
     ),
+    content: str = Query(
+        ResponseContent.FULL,
+        description=ResponseContent.data(description=True),
+    ),
+    limit: int = Depends(limit_param),
     internal: InternalRequestParameters = Depends(),
-) -> Union[List[RecordSearchResult]]:
+) -> List[RecordSearchResult]:
 
-    query = SiteSearchQuery(searchType=search_type)
+    response_content = ResponseContent.data().validate(
+        content, "content", ResponseContent
+    )
 
+    if limit is not None and response_content == ResponseContent.COUNTS:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid request: can specify only one of `limit` or `content=counts`",
+        )
+
+    query = SiteSearchQuery(search_type=search_type)
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
@@ -66,7 +81,14 @@ async def site_search(
         query=query,
     )
 
-    return await helper.get_query_response(opts=QueryOptions(raw_response=True))
+    result = await helper.get_query_response(opts=QueryOptions(raw_response=True))
+    if limit:
+        return result[:limit]
+    return (
+        JSONResponse({"num_results": len(result)})
+        if response_content == ResponseContent.COUNTS
+        else result
+    )
 
 
 tags = [str(SharedOpenAPITags.GENOME_BROWSER)]
