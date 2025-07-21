@@ -16,7 +16,7 @@ from pydantic import Field, field_validator
 
 
 class VariantFeature(RowModel):
-    variant_id: str = Field(title="Variant", order=1)
+    variant_id: str = Field(title="Variant", order=1, serialization_alias="id")
     ref_snp_id: Optional[str] = Field(default=None, title="Ref SNP ID", order=1)
 
 
@@ -44,6 +44,7 @@ class Variant(VariantFeature):
 
 
 class VariantDisplayAnnotation(RowModel):
+    allele_string: Optional[str] = None
     is_adsp_variant: Optional[bool] = Field(
         default=False,
         title="Is ADSP Variant?",
@@ -92,7 +93,6 @@ class VariantDisplayAnnotation(RowModel):
 
 
 class AnnotatedVariant(Variant, VariantDisplayAnnotation):
-    allele_string: Optional[str] = None
 
     # FIXME: these queries can take a while; not part of the variant record
     # alternative_alleles: Optional[List[str]]
@@ -117,13 +117,6 @@ class AnnotatedVariant(Variant, VariantDisplayAnnotation):
     )
 
     adsp_qc: Optional[List[QCStatus]] = None
-
-    allele_frequencies: Optional[dict] = None
-    ranked_consequences: Optional[RankedConsequences] = Field(
-        default=None,
-        title="VEP Ranked Consequences",
-        description="ranked consequences from VEP analysis",
-    )
 
     # TODO: vrs: [VRS] - ga4gh variant representation
     @staticmethod
