@@ -2,15 +2,14 @@ from typing import List, Optional, Union
 
 from niagads.common.models.core import TransformableModel
 from niagads.common.models.views.table import TableRow
+from niagads.api_common.models.features.genomic import GenomicRegion
 from niagads.database.schemas.variant.composite_attributes import (
     CADDScore,
     PredictedConsequence,
     QCStatus,
-    RankedConsequences,
 )
 
 from niagads.api_common.models.core import RowModel
-from niagads.api_common.models.features.genomic import GenomicRegion
 from niagads.api_common.models.response.core import RecordResponse
 from pydantic import Field, field_validator
 
@@ -21,9 +20,10 @@ class VariantFeature(RowModel):
 
 
 class Variant(VariantFeature):
+
     variant_class: str = Field(title="Variant Type")
     location: GenomicRegion
-    ref: str
+    ref: Optional[str] = None
     alt: Optional[str] = None
 
     def _flat_dump(self, nullFree=False, delimiter="|"):
@@ -238,3 +238,15 @@ class AbridgedVariantResponse(RecordResponse):
 
 class VariantResponse(RecordResponse):
     data: List[AnnotatedVariant]
+
+
+class RegionVariant(RowModel):
+    variant: Variant = Field(title="Variant")
+    variant_type: str = Field(
+        title="Variant Type", description="structural or smal variant"
+    )
+    location: GenomicRegion
+    range_relation: str = Field(
+        title="Range Relation",
+        description="indicates location of gene relative to the queries region",
+    )

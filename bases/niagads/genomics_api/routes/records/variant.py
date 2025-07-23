@@ -224,3 +224,31 @@ async def get_colocated_variants(
     )
 
     return await helper.get_feature_annotation(entity=Entity.VARIANT)
+
+
+@router.get(
+    "/{variant}/function",
+    response_model=VariantAnnotationResponse,
+    name="Get co-located (or alt) variants",
+    description="Retrieve variant identifiers for alternative alleles or co-located (overlapping) INDELs and SVs",
+)
+async def get_colocated_variants(
+    variant: GenomicFeature = Depends(variant_param),
+    internal: InternalRequestParameters = Depends(),
+) -> VariantAnnotationResponse:
+
+    helper = GenomicsRouteHelper(
+        internal,
+        ResponseConfiguration(
+            content=ResponseContent.FULL,
+            format=ResponseFormat.JSON,
+            view=ResponseView.DEFAULT,
+            model=VariantAnnotationResponse,
+        ),
+        Parameters(
+            id=variant.feature_id,
+        ),
+        query=ColocatedVariantQuery,
+    )
+
+    return await helper.get_feature_annotation(entity=Entity.VARIANT)

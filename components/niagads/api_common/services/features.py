@@ -80,7 +80,7 @@ class FeatureQueryService:
             case GenomicFeatureType.VARIANT:
                 return self.get_variant_location()
 
-            case GenomicFeatureType.SPAN:
+            case GenomicFeatureType.REGION:
                 return feature.feature_id
 
             case GenomicFeatureType.STRUCTURAL_VARIANT:

@@ -1,8 +1,7 @@
 """record ID path parameters"""
 
-from typing import Optional
-from fastapi import Path, Query
-from niagads.exceptions.core import ValidationError
+from fastapi import Path
+
 from niagads.genome.core import GenomicFeatureType
 from niagads.api_common.models.features.genomic import GenomicFeature
 from niagads.utils.string import sanitize
@@ -38,3 +37,12 @@ async def gene_param(
     return GenomicFeature(
         feature_id=sanitize(gene), feature_type=GenomicFeatureType.GENE
     )
+
+
+async def region_param(
+    region: str = Path(
+        description="genomic region: chrN:start-end or N:start-end, where N is the chromosome number"
+    ),
+):
+    # validate feature
+    return GenomicFeature(feature_id=region, feature_type=GenomicFeatureType.REGION)

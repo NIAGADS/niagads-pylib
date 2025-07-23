@@ -134,7 +134,11 @@ class PredictedConsequence(TransformableModel):
         return list(fields.keys()) if as_str else fields
 
 
-class RankedPredictedConsequence(BaseModel):
+class RankedPredictedConsequence(PredictedConsequence):
+    pass
+
+
+class RannkedTranscriptConsequences(RankedPredictedConsequence):
     pass
 
 

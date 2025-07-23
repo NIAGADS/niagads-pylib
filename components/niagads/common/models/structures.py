@@ -23,3 +23,9 @@ class Range(BaseModel):
 
     def bracket_notation(self, inclusiveEnd: bool = False):
         return f"[{self.start}, {self.end}{']' if inclusiveEnd else ')'}"
+
+    def is_valid_range(self, maxSpan: int):
+        if self.end is None:
+            raise RuntimeError("Range.end is None, cannot validate range size.")
+
+        return self.end - self.start <= maxSpan

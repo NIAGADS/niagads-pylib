@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import List, Optional, Union
 
+from niagads.api_common.models.response.core import RecordResponse
 from niagads.common.models.structures import Range
 from niagads.exceptions.core import ValidationError
 from niagads.genome.core import GenomicFeatureType, Human, Strand
@@ -20,6 +21,13 @@ class GenomicRegion(RowModel, Range):
         None  # TODO -> calc length based on range if not set explicitly
     )
     strand: Optional[Strand] = Strand.SENSE
+    max_range_size: Optional[int] = Field(default=None, exclude=True)
+
+    @classmethod
+    def from_region_id(cls, span):
+        chromosome, range = span.split(":")
+        start, end = range.split("-")
+        return cls(chromosome=Human(chromosome), start=start, end=end)
 
     def as_info_string(self):
         raise NotImplementedError("TODO when required")
@@ -66,13 +74,24 @@ class GenomicFeature(BaseModel):
         if self.feature_type == GenomicFeatureType.VARIANT:
             self.feature_id = self.validate_variant_id(self.feature_id)
 
-        if self.feature_type == GenomicFeatureType.SPAN:
+        if self.feature_type == GenomicFeatureType.REGION:
             self.feature_id = self.validate_span(self.feature_id)
 
         if self.feature_type == GenomicFeatureType.GENE:
             self.validate_gene_id(self.feature_id)
 
         return self
+
+    def is_within_range_limit(self, maxSpan: int):
+        if self.feature_type != GenomicFeatureType.REGION:
+            raise RuntimeError(
+                "Attempting to validate region size for feature of non-REGION type"
+            )
+
+        chrm, span = self.feature_id.split(":")
+        start, end = span.split("-")
+        spanRange = Range(start=start, end=end)
+        return spanRange.is_valid_range(maxSpan)
 
     @staticmethod
     def validate_gene_id(id: str):
@@ -88,6 +107,11 @@ class GenomicFeature(BaseModel):
 
     @staticmethod
     def validate_span(span: str):
+        # Check if the number of dashes in the span is greater than 1
+        # b/c path parameter can possibly be chrN-start-end
+        if span.count("-") > 1:
+            span = span.replace("-", ":", 1)
+
         pattern = r".+:\d+-\d+$"  # chr:start-enddddd
 
         # check against regexp
@@ -142,3 +166,34 @@ class GenomicFeature(BaseModel):
             )
 
         return id
+
+
+class AnnotatedGenomicRegion(GenomicRegion):
+    id: str = Field(title="Region ID")
+    # gc_content: float = Field(
+    #    default=None,
+    #    title="GC Content %",
+    #    description="proportion of guanine (G) and cytosine (C) bases in a DNA sequence, indicating its nucleotide composition and stability",
+    # )
+    num_structural_variants: int = Field(
+        title="Num. Strucutral Variants",
+        description="number of SVs contained within or overlapping the region",
+    )
+    num_genes: int = Field(
+        title="Num. Genes",
+        description="number of genes contained within or overlapping the region",
+    )
+    num_small_variants: Union[int, str] = Field(
+        title="Num. Small Variants",
+        description=f"number of SNVs, MVNs, and short INDELs (<50bp) contained within or overlapping the region; for regions > 50,000bp this number is not calculated",
+    )
+
+    # TODO: need to host and acces the FASTA fle to do this
+    # @field_validator("gc_content", mode="before")
+    # @classmethod
+    # def calculate_gc_content(cls, v):
+    #    gc_fraction()
+
+
+class RegionResponse(RecordResponse):
+    data: List[AnnotatedGenomicRegion]

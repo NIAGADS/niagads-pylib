@@ -5,9 +5,9 @@ from niagads.database.schemas.gene.composite_attributes import (
     PathwayAnnotation,
 )
 from niagads.api_common.models.core import RowModel
-from niagads.api_common.models.features.genomic import GenomicRegion
 from niagads.api_common.models.response.core import RecordResponse
-from pydantic import Field, field_validator
+from pydantic import Field
+from niagads.api_common.models.features.genomic import GenomicRegion
 
 
 class GeneFeature(RowModel):
@@ -117,3 +117,13 @@ class GeneResponse(RecordResponse):
         raise NotImplementedError(
             "Plain text responses not available for `FULL` gene records."
         )
+
+
+class RegionGene(RowModel):
+    gene: GeneFeature = Field(title="Gene")
+    gene_type: str = Field(title="Gene Type")
+    location: GenomicRegion
+    range_relation: str = Field(
+        title="Range Relation",
+        description="indicates location of gene relative to the queries region",
+    )

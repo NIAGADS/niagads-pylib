@@ -46,7 +46,9 @@ async def loc_param(
     location = sanitize(loc)
 
     try:
-        return GenomicFeature(feature_id=location, feature_type=GenomicFeatureType.SPAN)
+        return GenomicFeature(
+            feature_id=location, feature_type=GenomicFeatureType.REGION
+        )
     except ValidationError:
         try:
             return GenomicFeature(

@@ -1,5 +1,6 @@
 from enum import auto
 from typing import Dict, List, Optional, Union
+from niagads.api_common.models.annotations.core import AnnotatedVariantFeature
 from niagads.common.models.ontology import OntologyTerm
 from niagads.common.types import T_PubMedID
 from niagads.database.schemas.dataset.composite_attributes import (
@@ -7,17 +8,13 @@ from niagads.database.schemas.dataset.composite_attributes import (
     Phenotype,
 )
 from niagads.api_common.models.core import RowModel
-from niagads.api_common.models.features.variant import (
-    VariantDisplayAnnotation,
-    VariantFeature,
-)
 from niagads.api_common.models.response.core import RecordResponse
 from niagads.api_common.parameters.enums import EnumParameter
 from pydantic import Field, field_serializer, model_validator
 
 
 class AssociationTrait(EnumParameter):
-    """enum for genome builds"""
+    """enum genetic association trait category"""
 
     AD = auto()
     ADRD = auto()
@@ -45,14 +42,8 @@ class AssociationSource(EnumParameter):
     CURATED = auto()
     ALL = auto()
 
-
-def __str__(self):
-    return self.value.title()
-
-
-class AnnotatedVariantFeature(VariantFeature, VariantDisplayAnnotation):
-    # for association tables
-    pass
+    def __str__(self):
+        return self.value.title()
 
 
 class VariantAssociation(RowModel):

@@ -1,5 +1,5 @@
-from typing import List, Union
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import List
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from niagads.api_common.constants import SharedOpenAPITags
 from niagads.api_common.models.features.genomic import GenomicRegion

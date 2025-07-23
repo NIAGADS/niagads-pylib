@@ -531,7 +531,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 self._parameters.update("span", span)
                 return await self.get_track_data(validate=False)
 
-            case GenomicFeatureType.SPAN:
+            case GenomicFeatureType.REGION:
                 self._parameters.update("assembly", assembly)
                 self._parameters.update("span", feature.feature_id)
                 return await self.get_track_data(validate=False)

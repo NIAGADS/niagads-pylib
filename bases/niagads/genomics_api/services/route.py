@@ -1,7 +1,12 @@
 from typing import Optional
 
 from fastapi import HTTPException
+from niagads.api_common.config import Settings
 from niagads.api_common.models.core import ResultSize
+from niagads.api_common.models.features.genomic import (
+    AnnotatedGenomicRegion,
+    GenomicRegion,
+)
 from niagads.api_common.models.records import Entity
 from niagads.api_common.services.features import FeatureQueryService
 from niagads.common.models.structures import Range
@@ -196,6 +201,54 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
                 self.initialize_pagination()
                 range = self.slice_result_by_page()
                 result = result[range.start : range.end]
+
+        return await self.generate_response(result, False)
+
+    async def get_region_record(self, opts: QueryOptions = QueryOptions()):
+        cached_response = await self._get_cached_response()
+        if cached_response is not None:
+            return cached_response
+
+        region_id = self._parameters.get("id")
+        region = GenomicRegion.from_region_id(region_id)
+        self._parameters.update("chromosome", str(region.chromosome))
+        self._parameters.update("start", region.start)
+        self._parameters.update("end", region.end)
+        result = await self.__run_query(opts)
+
+        # Transform result into feature_type: num_features pairs, summing over all feature subtypes
+        feature_summary = {}
+        for item in result:
+            feature_type = item["feature_type"]  # Access feature_type field
+            num_features = item["num_features"]  # Access num_features field
+            feature_summary[feature_type] = (
+                feature_summary.get(feature_type, 0) + num_features
+            )
+
+        max_span_size = Settings.from_env().MAX_SPAN_SIZE
+        num_small_variants = (
+            feature_summary["small_variant"]
+            if "small_variant" in feature_summary
+            else 0
+        )
+        if num_small_variants == 0 and not region.is_valid_range(max_span_size):
+            num_small_variants = f"number of small variants not calculated for ranges > {max_span_size:,} bp"
+
+        result = [
+            AnnotatedGenomicRegion(
+                id=region_id,
+                chromosome=region.chromosome,
+                start=region.start,
+                end=region.end,
+                num_small_variants=num_small_variants,
+                num_genes=feature_summary["gene"] if "gene" in feature_summary else 0,
+                num_structural_variants=(
+                    feature_summary["structural_variant"]
+                    if "structural_variant" in feature_summary
+                    else 0
+                ),
+            )
+        ]
 
         return await self.generate_response(result, False)
 

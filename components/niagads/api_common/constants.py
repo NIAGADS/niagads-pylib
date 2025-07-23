@@ -68,6 +68,12 @@ class SharedOpenAPITags(Enum):
         x_sort_order=100,
         x_display_name="Variants",
     )
+    REGION_RECORD = OpenAPITag(
+        name="Genomic Region",
+        description="endpoints that retrieve annotations in a genomic span (chrN:start-end)",
+        x_sort_order=400,
+        x_display_name="Variants",
+    )
 
     COLLECTIONS = OpenAPITag(
         name="Collection",

@@ -187,4 +187,4 @@ class GenomicFeatureType(CaseInsensitiveEnum):
     GENE = auto()
     VARIANT = auto()
     STRUCTURAL_VARIANT = auto()
-    SPAN = auto()
+    REGION = auto()

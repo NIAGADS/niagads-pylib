@@ -5,7 +5,7 @@ from pydantic import BaseModel
 class Entity(CaseInsensitiveEnum):
     GENE = "gene"
     VARIANT = "variant"
-    SPAN = "span"
+    REGION = "region"
     TRACK = "track"
     COLLECTION = "collection"
 

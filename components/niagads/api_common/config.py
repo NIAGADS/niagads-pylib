@@ -23,6 +23,8 @@ class Settings(CustomSettings):
     # FIXME: required for correlation middleware; not currently in use
     SESSION_SECRET: Optional[str] = None
 
+    MAX_SPAN_SIZE: int = 50000
+
     API_VERSION: str
 
     LTS: bool = True
