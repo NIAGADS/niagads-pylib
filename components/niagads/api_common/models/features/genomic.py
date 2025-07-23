@@ -16,11 +16,9 @@ from pydantic import (
 
 
 class GenomicRegion(RowModel, Range):
-    chromosome: Human = Field(serialization_alias="chr")
-    length: Optional[int] = (
-        None  # TODO -> calc length based on range if not set explicitly
-    )
-    strand: Optional[Strand] = Strand.SENSE
+    chromosome: Human = Field(title="Chromosome", serialization_alias="chr")
+    length: Optional[int] = Field(default=None, title="Length")
+    strand: Optional[Strand] = Field(default=Strand.SENSE, title="Strand")
     max_range_size: Optional[int] = Field(default=None, exclude=True)
 
     @classmethod
@@ -40,6 +38,7 @@ class GenomicRegion(RowModel, Range):
     def serialize_length(self, length: str, _info):
         if length is None:
             return self.end - self.start
+        return length
 
     def __str__(self):
         span = f"{str(self.chromosome)}:{self.start}-{self.end}"
@@ -168,8 +167,9 @@ class GenomicFeature(BaseModel):
         return id
 
 
-class AnnotatedGenomicRegion(GenomicRegion):
+class AnnotatedGenomicRegion(RowModel):
     id: str = Field(title="Region ID")
+    location: GenomicRegion
     # gc_content: float = Field(
     #    default=None,
     #    title="GC Content %",

@@ -18,7 +18,7 @@ ORDER BY feature_type, num_features DESC
 # STRUCTURAL_VARIANT_QUERY = SELECT * FROM sv_by_range_lookup(:chromosome, :start, :end)
 
 RegionVariantQuery = QueryDefinition(
-    query="SELECT * FROM variants_by_range_lookup(:chromosome, :start, :end)",
+    query="SELECT * FROM variants_by_range_lookup(:chromosome, :start, :end) UNION ALL SELECT * FROM sv_by_range_lookup(:chromosome, :start, :end)",
     bind_parameters=["chromosome", "start", "end"],
     fetch_one=False,
 )

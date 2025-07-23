@@ -238,15 +238,3 @@ class AbridgedVariantResponse(RecordResponse):
 
 class VariantResponse(RecordResponse):
     data: List[AnnotatedVariant]
-
-
-class RegionVariant(RowModel):
-    variant: Variant = Field(title="Variant")
-    variant_type: str = Field(
-        title="Variant Type", description="structural or smal variant"
-    )
-    location: GenomicRegion
-    range_relation: str = Field(
-        title="Range Relation",
-        description="indicates location of gene relative to the queries region",
-    )
