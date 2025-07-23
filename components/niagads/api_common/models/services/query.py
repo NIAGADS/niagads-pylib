@@ -16,7 +16,7 @@ class PreparedStatement(BaseModel):
 
     def build(self, parameters: Dict[str, Any], id_parameter: str):
         statement = text(self.query)
-        parameters = [
+        bind_parameters = [
             bindparam(
                 param,
                 (
@@ -28,7 +28,7 @@ class PreparedStatement(BaseModel):
             for param in self.bind_parameters
         ]
 
-        statement = statement.bindparams(*parameters)
+        statement = statement.bindparams(*bind_parameters)
         return statement
 
 

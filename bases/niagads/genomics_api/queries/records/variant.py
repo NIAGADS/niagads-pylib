@@ -5,7 +5,7 @@ from niagads.api_common.models.annotations.associations import (
 )
 from niagads.api_common.models.records import Entity
 from niagads.api_common.models.services.query import QueryDefinition
-from niagads.genomics_api.queries.associations import (
+from niagads.genomics_api.queries.records.associations import (
     GWAS_COMMON_FIELDS,
     GWAS_TRACK_CTE,
     association_trait_FILTERS,

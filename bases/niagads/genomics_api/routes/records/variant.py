@@ -36,7 +36,7 @@ from niagads.api_common.services.route import (
 from niagads.api_common.views.table import TableViewResponse
 from niagads.genomics_api.dependencies import InternalRequestParameters
 from niagads.genomics_api.documentation import APP_NAME
-from niagads.genomics_api.queries.variant import (
+from niagads.genomics_api.queries.records.variant import (
     ColocatedVariantQuery,
     VariantAssociationsQuery,
     VariantFrequencyQuery,

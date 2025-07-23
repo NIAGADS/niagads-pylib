@@ -20,7 +20,7 @@ from niagads.api_common.services.route import Parameters, ResponseConfiguration
 from niagads.api_common.views.table import TableViewResponse
 from niagads.genomics_api.dependencies import InternalRequestParameters
 from niagads.genomics_api.documentation import APP_NAME
-from niagads.genomics_api.queries.region import (
+from niagads.genomics_api.queries.records.region import (
     RegionGeneQuery,
     RegionRecordQuery,
     RegionStructuralVariantQuery,

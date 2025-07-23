@@ -3,9 +3,9 @@ from niagads.api_common.models.services.query import QueryDefinition
 
 IGVFeatureLookupQuery = QueryDefinition(
     query=""" 
-        SELECT v.mapping->>'chromosome' AS chromosome, 
-        (v.mapping->>'position')::int AS start, 
-        (v.mapping->>'position')::int + (v.mapping->>'length')::int AS end
+        SELECT v.annotation->>'chromosome' AS chromosome, 
+        (v.annotation->>'position')::int AS start, 
+        (v.annotation->>'position')::int + (v.annotation->>'length')::int AS end
         FROM get_variant_primary_keys_and_annotations_tbl(:id) v
         
         UNION ALL
