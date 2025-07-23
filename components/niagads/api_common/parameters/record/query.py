@@ -3,6 +3,7 @@
 from typing import Optional
 
 from fastapi import Query
+from niagads.api_common.parameters.igvbrowser import ADSPRelease, AnnotatedVariantTrack
 from niagads.exceptions.core import ValidationError
 from niagads.utils.string import sanitize
 
@@ -62,3 +63,19 @@ async def optional_collection_param(
     collection: Optional[str] = Query(default=None, description="track collection name")
 ) -> str:
     return sanitize(collection)
+
+
+async def adsp_release_param(
+    release: str = Query(
+        default=None, description=f"ADSP release.  {ADSPRelease.get_description()}"
+    ),
+):
+    return ADSPRelease(release)
+
+
+async def variant_track_param(
+    track: str = Query(
+        description=f"Key for the annotated variant track.  {AnnotatedVariantTrack.get_description()}"
+    ),
+):
+    return AnnotatedVariantTrack(track)
