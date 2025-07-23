@@ -79,6 +79,6 @@ class RegionVariant(RowModel):
         del fields["location"]
         fields.update(GenomicRegion.get_model_fields())
         del fields["variant"]
-        fields.update(AnnotatedVariantFeature.get_model_fields())
+        fields.update(RV.get_model_fields())
 
         return list(fields.keys()) if as_str else fields
