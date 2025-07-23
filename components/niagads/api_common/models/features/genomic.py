@@ -124,7 +124,7 @@ class GenomicFeature(BaseModel):
         # split on :
         [chrm, coords] = span.split(":")
         try:
-            validChrm = Human.validate(chrm)
+            validChrm = Human.validate(chrm, inclPrefix=False)
         except KeyError:
             raise ValidationError(
                 f"Invalid genomic span: `{span}`; invalid chromosome `{chrm}`"

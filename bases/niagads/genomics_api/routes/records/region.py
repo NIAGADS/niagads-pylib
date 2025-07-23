@@ -52,6 +52,7 @@ async def get_region(
     internal: InternalRequestParameters = Depends(),
 ) -> RegionResponse:
 
+    svs_only: bool = not region.is_within_range_limit(max_span)
     response_content = ResponseContent.FULL
     response_format = ResponseFormat.generic().validate(
         format, "format", ResponseFormat
