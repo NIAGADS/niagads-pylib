@@ -237,9 +237,9 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
         result = [
             AnnotatedGenomicRegion(
                 id=region_id,
-                chromosome=region.chromosome,
-                start=region.start,
-                end=region.end,
+                location=GenomicRegion(
+                    chromosome=region.chromosome, start=region.start, end=region.end
+                ),
                 num_small_variants=num_small_variants,
                 num_genes=feature_summary["gene"] if "gene" in feature_summary else 0,
                 num_structural_variants=(

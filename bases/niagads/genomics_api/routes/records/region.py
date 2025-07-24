@@ -2,13 +2,13 @@ from typing import List, Union
 from fastapi import APIRouter, Depends, Query
 from niagads.api_common.config import Settings
 from niagads.api_common.constants import SharedOpenAPITags
+from niagads.api_common.models.annotations.regions import RegionVariant
 from niagads.api_common.models.features.gene import RegionGene
 from niagads.api_common.models.features.genomic import (
     GenomicFeature,
     GenomicRegion,
     RegionResponse,
 )
-from niagads.api_common.models.features.variant import RegionVariant
 from niagads.api_common.models.response.core import RecordResponse
 from niagads.api_common.parameters.record.path import region_param
 from niagads.api_common.parameters.response import (
@@ -93,9 +93,6 @@ async def get_region_variants(
     view: str = Query(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
-    content: str = Query(
-        ResponseContent.FULL, description=ResponseContent.full_data(description=True)
-    ),
     internal: InternalRequestParameters = Depends(),
 ) -> Union[RegionAnnotationResponse, RecordResponse, TableViewResponse]:
 
@@ -105,6 +102,7 @@ async def get_region_variants(
     response_format = ResponseFormat.generic().validate(
         format, "format", ResponseFormat
     )
+    response_view = ResponseView.table().validate(view, "view", ResponseView)
 
     genomic_region = GenomicRegion.from_region_id(region.feature_id)
 
@@ -113,6 +111,7 @@ async def get_region_variants(
         ResponseConfiguration(
             content=response_content,
             format=response_format,
+            view=response_view,
             model=RegionAnnotationResponse,
         ),
         Parameters(
@@ -142,9 +141,6 @@ async def get_region_genes(
     view: str = Query(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
-    content: str = Query(
-        ResponseContent.FULL, description=ResponseContent.full_data(description=True)
-    ),
     internal: InternalRequestParameters = Depends(),
 ) -> Union[RegionAnnotationResponse, RecordResponse, TableViewResponse]:
 
@@ -152,6 +148,7 @@ async def get_region_genes(
     response_format = ResponseFormat.generic().validate(
         format, "format", ResponseFormat
     )
+    response_view = ResponseView.table().validate(view, "view", ResponseView)
 
     genomic_region = GenomicRegion.from_region_id(region.feature_id)
 
@@ -160,6 +157,7 @@ async def get_region_genes(
         ResponseConfiguration(
             content=response_content,
             format=response_format,
+            view=response_view,
             model=RegionAnnotationResponse,
         ),
         Parameters(

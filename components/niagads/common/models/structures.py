@@ -1,10 +1,10 @@
 from typing import Dict, Optional
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class Range(BaseModel):
-    start: int
-    end: Optional[int] = None
+    start: int = Field(title="Start")
+    end: Optional[int] = Field(default=None, title="End")
 
     def model_post_init(self, __context):
         if self.end is None:

@@ -127,3 +127,25 @@ class RegionGene(RowModel):
         title="Range Relation",
         description="indicates location of gene relative to the queries region",
     )
+
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+
+        # promote the location fields
+        del obj["location"]
+        obj.update(self.location._flat_dump())
+
+        del obj["gene"]
+        obj.update(self.gene._flat_dump())
+
+        return obj
+
+    @classmethod
+    def get_model_fields(cls, as_str=False):
+        fields = super().get_model_fields()
+        del fields["location"]
+        fields.update(GenomicRegion.get_model_fields())
+        del fields["gene"]
+        fields.update(GeneFeature.get_model_fields())
+
+        return list(fields.keys()) if as_str else fields

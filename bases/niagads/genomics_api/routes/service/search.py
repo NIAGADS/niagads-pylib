@@ -44,7 +44,7 @@ async def site_search(
     keyword: str = Query(
         description="feature identifier or keyword (NOTE: searches for gene symbols use exact, case-sensitive, matching)"
     ),
-    search_type: SearchType = Query(
+    searchType: SearchType = Query(
         default=SearchType.GLOBAL, description=SearchType.get_description()
     ),
     content: str = Query(
@@ -59,7 +59,7 @@ async def site_search(
         content, "content", ResponseContent
     )
 
-    query = SiteSearchQuery(search_type=search_type)
+    query = SiteSearchQuery(search_type=searchType)
     helper = GenomicsRouteHelper(
         internal,
         ResponseConfiguration(
