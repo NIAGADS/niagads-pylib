@@ -33,7 +33,7 @@ class InternalRequestParameters(
     _InternalRequestParameters, arbitrary_types_allowed=True
 ):
     session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)]
-    apiClientSession: Annotated[ClientSession, Depends(API_CLIENT_SESSION_MANAGER)]
+    api_client_session: Annotated[ClientSession, Depends(API_CLIENT_SESSION_MANAGER)]
 
 
 TRACK_DATA_STORES: List[TrackDataStore] = [TrackDataStore.FILER, TrackDataStore.SHARED]

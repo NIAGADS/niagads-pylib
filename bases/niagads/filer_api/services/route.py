@@ -1,5 +1,6 @@
 import asyncio
 from typing import List, Union
+from fastapi import HTTPException
 from niagads.exceptions.core import ValidationError
 from collections import ChainMap
 from itertools import groupby
@@ -34,6 +35,7 @@ from niagads.filer_api.services.wrapper import (
 )
 from niagads.utils.list import cumulative_sum, chunker
 from pydantic import BaseModel
+from sqlalchemy import bindparam, text
 
 FILER_HTTP_CLIENT_TIMEOUT = 60
 CACHEDB_PARALLEL_TIMEOUT = 30
@@ -263,7 +265,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         return result
 
     async def __get_paged_track_data(
-        self, trackResultSummary: List[TrackResultSize], validate=True
+        self, trackResultSummary: List[TrackResultSize], span=None, validate=True
     ):
 
         result = await self._managers.cache.get(
@@ -287,7 +289,9 @@ class FILERRouteHelper(MetadataRouteHelperService):
             cursor.tracks, TRACKS_PER_API_REQUEST_LIMIT, returnIterator=True
         )
         tasks = [
-            self.__get_track_data_task(c, assembly, self._parameters.get("span"), False)
+            self.__get_track_data_task(
+                c, assembly, span if span else self._parameters.get("span"), False
+            )
             for c in chunks
         ]
         chunkedResults = await asyncio.gather(*tasks, return_exceptions=False)
@@ -299,6 +303,42 @@ class FILERRouteHelper(MetadataRouteHelperService):
         result = self.__page_data_result(cursor, data)
 
         return await self.generate_response(result, is_cached=False)
+
+    async def _lookup_feature_location(self, loc: GenomicFeature):
+        if loc.feature_type == GenomicFeatureType.REGION:
+            return loc.feature_id
+
+        query: str = """ 
+        SELECT v.annotation->>'chromosome' AS chromosome, 
+        (v.annotation->>'position')::int AS start, 
+        (v.annotation->>'position')::int + (v.annotation->>'length')::int AS end
+        FROM get_variant_primary_keys_and_annotations_tbl(:id) v
+        
+        UNION ALL
+        
+        SELECT g.chromosome,
+        g.location_start AS start,
+        g.location_end AS end
+        FROM CBIL.GeneAttributes g
+        WHERE upper(g.gene_symbol) = upper(:id)
+        OR g.source_id = :id
+        OR g.annotation->>'entrez_id' = :id
+        
+        ORDER BY chromosome NULLS LAST LIMIT 1"""
+
+        bind_parameters = [
+            bindparam(
+                "id",
+                (loc.feature_id),
+            )
+        ]
+
+        statement = text(query).bindparams(*bind_parameters)
+        self._managers.session.execute(statement)
+        result = (await self._managers.session.execute(statement)).fetchone()
+        if result[0] is None:
+            raise HTTPException(status_code=404, detail="`loc` feature not found")
+        return f"{result[0]}:{result[1]}-{result[2]}"
 
     async def get_track_data(self, validate=True):
         """if AbridgedTrack is set, then fetches from the summary not from a parameter"""
@@ -317,14 +357,16 @@ class FILERRouteHelper(MetadataRouteHelperService):
         ):  # for internal helper calls, don't always need to validate; already done
             assembly = await self.__validate_tracks(tracks)
 
+        span = await self._lookup_feature_location(self._parameters.get("span"))
+
         # get counts - needed for full pagination, counts only, summary
         trackResultSummary = await self.__get_track_data_task(
-            tracks, assembly, self._parameters.get("span"), True
+            tracks, assembly, span, True
         )
 
         if self._response_config.content == ResponseContent.FULL:
             return await self.__get_paged_track_data(
-                trackResultSummary, validate=validate
+                trackResultSummary, span=span, validate=validate
             )
 
         # to ensure pagination order, need to sort by counts
