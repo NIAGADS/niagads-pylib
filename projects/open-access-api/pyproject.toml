@@ -1,18 +1,18 @@
 [tool.poetry]
 packages = [
     { include = "niagads/open_access_api", from = "../../bases" },
-    { include = "niagads/open_access_filer_api", from = "../../bases" },
-    { include = "niagads/open_access_genomics_api", from = "../../bases" },
+    { include = "niagads/filer_api", from = "../../bases" },
     { include = "niagads/enums", from = "../../components" },
     { include = "niagads/common", from = "../../components" },
     { include = "niagads/database", from = "../../components" },
     { include = "niagads/exceptions", from = "../../components" },
     { include = "niagads/utils", from = "../../components" },
     { include = "niagads/settings", from = "../../components" },
-    { include = "niagads/open_access_api_common", from = "../../components" },
     { include = "niagads/genome", from = "../../components" },
     { include = "niagads/cache", from = "../../components" },
     { include = "niagads/requests", from = "../../components" },
+    { include = "niagads/api_common", from = "../../components" },
+    { include = "niagads/genomics_api", from = "../../bases" },
 ]
 
 [project]
@@ -45,6 +45,7 @@ dependencies = [
     "typing-extensions (>=4.13.2,<5.0.0)",
     "uvicorn (>=0.34.2,<0.35.0)",
     "email-validator (>=2.2.0,<3.0.0)",
+    "sqlalchemy-utils (>=0.41.2,<0.42.0)",
 ]
 
 [build-system]

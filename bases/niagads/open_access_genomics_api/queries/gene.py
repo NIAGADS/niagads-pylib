@@ -1,1 +1,0 @@
-# GeneQuery = QueryDefinition()

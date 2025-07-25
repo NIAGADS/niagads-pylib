@@ -2,7 +2,7 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from niagads.database.session.core import DatabaseSessionManager
+from niagads.database.session import DatabaseSessionManager
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
 
@@ -80,7 +80,7 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
     """
     SessionManager = DatabaseSessionManager(
-        connectionString=Settings.from_env().DATABASE_URI
+        connection_string=Settings.from_env().DATABASE_URI
     )
 
     connectable = SessionManager.get_engine()

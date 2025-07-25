@@ -83,15 +83,15 @@ def eval_null(value: str, naIsNull=False):
 
 def dict_to_info_string(obj):
     """wrapper for dict_to_string (semantics )
-    in string utils to avoid circular imports"""
+    FIXME: in string utils to avoid circular imports"""
     return dict_to_string(obj, ".")
 
 
-def dict_to_string(obj, nullStr, delimiter=";"):
+def dict_to_string(obj, null_str, delimiter=";"):
     """translate dict to attr=value; string list
-    in string utils to avoid circular imports
+    FIXME: in string utils to avoid circular imports
     """
-    pairs = [k + "=" + xstr(v, nullStr=nullStr) for k, v in obj.items()]
+    pairs = [k + "=" + xstr(v, null_str=null_str) for k, v in obj.items()]
     pairs.sort()
     return delimiter.join(pairs)
 
@@ -110,44 +110,46 @@ def truncate(s, length):
     return (s[: (length - 3)] + "...") if len(s) > length else s
 
 
-def xstr(value, nullStr="", falseAsNull=False, dictsAsJson=True):
+def xstr(value, null_str="", falseAsNull=False, dictsAsJson=True):
     """
     wrapper for str() that handles Nones,
     lists, and dict objects
 
     Args:
         value (obj): obj / type to be converted to string
-        nullStr (str, optional): value to used to indicate NULL/None. Defaults to "".
+        null_str (str, optional): value to used to indicate NULL/None. Defaults to "".
         falseAsNull (bool, optional): treat `False` as None. Defaults to False.
         dictsAsJson (bool, optional): convert dicts to JSON, otherwise generates
         an INFO string (semi-colon delimited key=value pairs). Defaults to True.
-        if nullStr is "" and dictAsJson=False, '.' will be used in the info string
+        if null_str is "" and dictAsJson=False, '.' will be used in the info string
         for None values
 
     Returns:
         value in string format
     """
     if value is None:
-        return nullStr
+        return null_str
 
     if isinstance(value, list):
         if len(value) == 0:
-            return nullStr
+            return null_str
         else:
-            return ",".join([xstr(v, nullStr, falseAsNull, dictsAsJson) for v in value])
+            return ",".join(
+                [xstr(v, null_str, falseAsNull, dictsAsJson) for v in value]
+            )
 
     if isinstance(value, dict):
         if bool(value):
             if dictsAsJson:
                 return json.dumps(value)
             else:
-                return dict_to_string(value, nullStr=".")
+                return dict_to_string(value, null_str=".")
         else:
-            return nullStr
+            return null_str
 
     if falseAsNull and isinstance(value, bool):
         if value is False:
-            return nullStr
+            return null_str
         else:
             return str(value)
 

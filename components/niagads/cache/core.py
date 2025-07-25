@@ -44,20 +44,24 @@ class KeyDBCacheManager:
 
     def __init__(
         self,
-        connectionString: str,
+        connection_string: str,
         serializer: CacheSerializer = CacheSerializer.JSON,
         namespace: str = None,
         ttl=CacheTTL.DEFAULT,
     ):
 
         # instantiate the serializer
-        config = self.__parse_uri_path(connectionString)
+        config = self.__parse_uri_path(connection_string)
         self.__cache = RedisCache(serializer=serializer.value(), **config)
 
         if namespace is not None:
             self.__namespace = namespace
 
         self.__ttl = CacheTTL[ttl]
+
+    async def test_connection(self):
+        # will throw redis.exceptions.ConnectionError if can't execute
+        await self.exists("connected", "SUCCESS")
 
     def set_TTL(self, ttl: CacheTTL):
         """Set time to life.
@@ -83,7 +87,7 @@ class KeyDBCacheManager:
 
     async def set(
         self,
-        cacheKey: str,
+        cache_key: str,
         value: any,
         ttl: CacheTTL = None,
         namespace: str = None,
@@ -93,7 +97,7 @@ class KeyDBCacheManager:
         Set a key-value pair in the cache database.
 
         Args:
-            cacheKey (str): _description_
+            cache_key (str): _description_
             value (any): object to be cached
             ttl (CacheTTL, optional): cache pair TTL; for overriding the manager TTL setting. Defaults to None.
             namespace (CacheNamespace, optional): cache pair namespace; for overriding the manager namespace setting. Defaults to None.
@@ -108,12 +112,12 @@ class KeyDBCacheManager:
             raise RuntimeError("In memory cache not initialized")
         ns: str = self.__namespace if namespace is None else namespace
         await self.__cache.set(
-            cacheKey, value, ttl=ttl.value, namespace=str(ns), timeout=timeout
+            cache_key, value, ttl=ttl.value, namespace=str(ns), timeout=timeout
         )
 
     async def get(
         self,
-        cacheKey: str,
+        cache_key: str,
         namespace: str = None,
         timeout: float = CACHEDB_TIMEOUT,
     ) -> any:
@@ -121,7 +125,7 @@ class KeyDBCacheManager:
         Get value assigned to a key and (optional) namespace.
 
         Args:
-            cacheKey (str): the cache key
+            cache_key (str): the cache key
             namespace (CacheNamespace, optional): the namespace. Defaults to None.
             timeout (float, optional): timeout for the caching operation; for overriding the manager timeout. Defaults to CACHEDB_TIMEOUT.
 
@@ -134,11 +138,11 @@ class KeyDBCacheManager:
         if self.__cache is None:
             raise RuntimeError("In memory cache not initialized")
         ns = self.__namespace if namespace is None else namespace
-        return await self.__cache.get(cacheKey, namespace=str(ns), timeout=timeout)
+        return await self.__cache.get(cache_key, namespace=str(ns), timeout=timeout)
 
     async def exists(
         self,
-        cacheKey: str,
+        cache_key: str,
         namespace: str = None,
         timeout: float = CACHEDB_TIMEOUT,
     ) -> bool:
@@ -146,7 +150,7 @@ class KeyDBCacheManager:
         Check to see if a cache key exists in a namespace (optional).
 
         Args:
-            cacheKey (str): the cache key
+            cache_key (str): the cache key
             namespace (CacheNamespace, optional): the namespace. Defaults to None.
             timeout (float, optional): timeout for the caching operation; for overriding the manager timeout. Defaults to CACHEDB_TIMEOUT.
 
@@ -159,7 +163,7 @@ class KeyDBCacheManager:
         if self.__cache is None:
             raise RuntimeError("In memory cache not initialized")
         ns: str = self.__namespace if namespace is None else namespace
-        return await self.__cache.exists(cacheKey, namespace=str(ns), timeout=timeout)
+        return await self.__cache.exists(cache_key, namespace=str(ns), timeout=timeout)
 
     async def get_cache(self) -> RedisCache:
         return self.__cache

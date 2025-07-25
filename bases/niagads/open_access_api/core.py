@@ -6,11 +6,11 @@ import uvicorn
 from fastapi import FastAPI
 from niagads.open_access_api.documentation import OPEN_API_SPEC
 from niagads.open_access_api.routes.root import router as RootRouter
-from niagads.open_access_api_common.app import AppFactory
-from niagads.open_access_filer_api.core import app as FILERApp  # Import the FILER app
-from niagads.open_access_genomics_api.core import app as GenomicsApp
+from niagads.api_common.app.factory import AppFactory
+from niagads.filer_api.core import app as FILERApp  # Import the FILER app
+from niagads.genomics_api.core import app as GenomicsApp
 from niagads.settings.core import get_service_environment
-from niagads.open_access_api_common.config.core import Settings
+from niagads.api_common.config import Settings
 
 
 def _openapi_update_xtag_groups(xTagGroups: List[dict]):
@@ -46,7 +46,9 @@ def _openapi_update_routes(
     updatedRoutes = {}
     for path, route in routes.items():
         updatedPath: str = (
-            f"{version}/{namespace.lower()}{path}" if version is not None else path
+            f"{version}/{namespace.lower()}{path}"
+            if version is not None
+            else f"/{namespace.lower()}{path}"
         )
 
         route: dict
@@ -65,7 +67,6 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI], version: bool = F
 
     # gather tags and tag groups as unqiue sets
     tagSet: Set = set([json.dumps(t) for t in specification["tags"]])
-    tagGroupSet: Set = set([json.dumps(tg) for tg in specification["x-tagGroups"]])
 
     traitOnlyTags = []
 
@@ -100,23 +101,11 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI], version: bool = F
         )
         specification["paths"].update(routes)
 
-        # ditto for tag groups, but do null check
-        if "x-tagGroups" in apiSpec:
-            for tg in apiSpec["x-tagGroups"]:
-                # tg["tags"] = [f"{namespace}-{t}" for t in tg["tags"]]
-                tagGroupSet.add(json.dumps(tg))
-
         # extract and concatenate schemas
         if "components" in apiSpec:
             specification["components"]["schemas"].update(
                 apiSpec["components"]["schemas"]
             )
-
-    # update x-tagGroups
-    uniqueXTagGroups = sorted(
-        [json.loads(tg) for tg in tagGroupSet], key=lambda d: d["x-sortOrder"]
-    )
-    specification["x-tagGroups"] = _openapi_update_xtag_groups(uniqueXTagGroups)
 
     # update tags and sort
     specification["tags"] = sorted(
@@ -128,22 +117,24 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI], version: bool = F
 
 # generate the app
 useVersioning = not Settings.from_env().LTS
-appFactory = AppFactory(
+app_factory = AppFactory(
     metadata=OPEN_API_SPEC, env=get_service_environment(), version=useVersioning
 )
 
-appFactory.add_router(RootRouter, version=useVersioning)
+app_factory.add_router(RootRouter, version=useVersioning)
 
 # get the application object
-app = appFactory.get_app()
+app = app_factory.get_app()
 
 
-app.mount(f"{appFactory.get_version_prefix() if useVersioning else ""}/filer", FILERApp)
 app.mount(
-    f"{appFactory.get_version_prefix() if useVersioning else ""}/genomics", GenomicsApp
+    f"{app_factory.get_version_prefix() if useVersioning else ""}/filer", FILERApp
+)
+app.mount(
+    f"{app_factory.get_version_prefix() if useVersioning else ""}/genomics", GenomicsApp
 )
 
-app.openapi_schema = custom_openapi(appFactory, [GenomicsApp, FILERApp], useVersioning)
+app.openapi_schema = custom_openapi(app_factory, [GenomicsApp, FILERApp], useVersioning)
 
 if __name__ == "__main__":
     uvicorn.run(app="app:app")

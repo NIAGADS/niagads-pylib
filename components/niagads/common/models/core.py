@@ -1,36 +1,66 @@
-from typing import Dict, Optional
-from niagads.common.core import NullFreeModel
-from pydantic import BaseModel, Field, model_validator
+from typing import TypeVar
+
+from niagads.utils.dict import prune
+from niagads.utils.string import dict_to_info_string
+from pydantic import BaseModel, ConfigDict, model_serializer
 
 
-class OntologyTerm(NullFreeModel):
-    term: str = Field(
-        title="Biosample", description="ontology term describing biosample material"
-    )
-    term_id: Optional[str] = Field(
-        default=None, title="Biosample: Term ID", description="mapped ontology term ID"
-    )
-    ontology: Optional[str] = None
-    term_iri: Optional[str] = Field(
-        default=None,
-        title="Biosample: Term IRI",
-        description="mapped ontology term IRI",
-    )
-    definition: Optional[str] = None
+class NullFreeModel(BaseModel):
+    """a pydantic model where attributes with NULL values (e.g., None, 'NULL') are removed during serialization"""
+
+    # note: this ignores the model_config b/c it doesn't run model_dump()
+
+    @model_serializer()
+    def serialize_model(self, values, **kwargs):
+        return prune(dict(self), removeNulls=True)
 
 
-class Range(BaseModel):
-    start: int
-    end: Optional[int] = None
+class TransformableModel(BaseModel):
+    model_config = ConfigDict(serialize_by_alias=True)
 
-    def model_post_init(self, __context):
-        if self.end is None:
-            self.end = self.start
+    def null_free_dump(self):
+        return prune(self.model_dump(), removeNulls=True)
 
-    @model_validator(mode="before")
+    @staticmethod
+    def _list_to_string(arr: list, delimiter="|"):
+        uniqueValues = set([str(a) for a in arr])
+        return delimiter.join(uniqueValues) if arr is not None else None
+
+    def _flat_dump(self, nullFree: bool = False, delimiter="|"):
+        """function for creating a flat dump; i.e., remove nesting"""
+        return self.null_free_dump() if nullFree else self.model_dump()
+
+    # abstract method overrides
+
+    def as_info_string(self):
+        return dict_to_info_string(self._flat_dump(nullFree=True))
+
+    def as_list(self, fields=None):
+        if fields is None:
+            return list(self._flat_dump().values())
+        else:
+            obj = self._flat_dump()
+            return [obj.get(k) for k in fields]
+
     @classmethod
-    def validate(self, range: Dict[str, int]):
-        if "end" in range:
-            if range["start"] > range["end"]:
-                raise RuntimeError(f"Invalid Range: {range['start']} > {range['end']}")
-        return range
+    def get_model_fields(cls, as_str: bool = False):
+        """classmethod for getting model fields either as name: FieldInfo pairs or as a list of names if as_str is True"""
+        return (
+            [
+                (v.serialization_alias if v.serialization_alias is not None else k)
+                for k, v in cls.model_fields.items()
+                if not v.exclude
+            ]
+            if as_str
+            else {
+                v.serialization_alias if v.serialization_alias is not None else k: v
+                for k, v in cls.model_fields.items()
+                if not v.exclude
+            }
+        )
+
+    def __str__(self):
+        return self.as_info_string()
+
+
+T_TransformableModel = TypeVar("T_TransformableModel", bound=TransformableModel)

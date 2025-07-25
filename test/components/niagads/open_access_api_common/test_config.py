@@ -1,9 +1,9 @@
 from niagads.common.constants import external_resources
-from niagads.open_access_api_common.config import core
+from niagads.open_access import config
 
 
 def test_sample():
-    assert core is not None
+    assert config is not None
 
 
 def test_urls():

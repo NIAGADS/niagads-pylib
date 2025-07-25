@@ -1,4 +1,4 @@
-from niagads.open_access_api_common import exception_handlers
+from niagads.open_access import exception_handlers
 
 
 def test_sample():

@@ -1,0 +1,84 @@
+from typing import List
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse
+from niagads.api_common.constants import SharedOpenAPITags
+from niagads.api_common.models.search.records import RecordSearchResult
+from niagads.api_common.models.response.core import (
+    RecordResponse,
+)
+from niagads.api_common.parameters.pagination import limit_param
+from niagads.api_common.parameters.response import (
+    ResponseContent,
+    ResponseFormat,
+    ResponseView,
+)
+from niagads.api_common.services.route import (
+    Parameters,
+    ResponseConfiguration,
+)
+from niagads.genomics_api.dependencies import InternalRequestParameters
+from niagads.genomics_api.documentation import BASE_TAGS
+from niagads.genomics_api.queries.services.search import (
+    SearchType,
+    SiteSearchQuery,
+)
+from niagads.genomics_api.services.route import (
+    GenomicsRouteHelper,
+    QueryOptions,
+)
+
+
+router = APIRouter(prefix="/service", tags=BASE_TAGS + [str(SharedOpenAPITags.SERVICE)])
+
+
+@router.get(
+    "/search",
+    response_model=List[RecordSearchResult],
+    summary="search-feature-and-track-records",
+    description="Find Alzheimer's GenomicsDB Records (features, tracks, collections) by identifier or keyword",
+)
+async def site_search(
+    keyword: str = Query(
+        description="feature identifier or keyword (NOTE: searches for gene symbols use exact, case-sensitive, matching)"
+    ),
+    searchType: SearchType = Query(
+        default=SearchType.GLOBAL, description=SearchType.get_description()
+    ),
+    content: str = Query(
+        ResponseContent.FULL,
+        description=ResponseContent.data(description=True),
+    ),
+    limit: int = Depends(limit_param),
+    internal: InternalRequestParameters = Depends(),
+) -> List[RecordSearchResult]:
+
+    response_content = ResponseContent.data().validate(
+        content, "content", ResponseContent
+    )
+
+    query = SiteSearchQuery(search_type=searchType)
+    helper = GenomicsRouteHelper(
+        internal,
+        ResponseConfiguration(
+            format=ResponseFormat.JSON,
+            content=ResponseContent.FULL,
+            view=ResponseView.DEFAULT,
+            model=RecordResponse,
+        ),
+        Parameters(keyword=keyword),
+        query=query,
+    )
+
+    result = await helper.get_query_response(opts=QueryOptions(raw_response=True))
+    result_size = len(result)
+    if limit:
+        result = result[:limit]
+
+    if response_content == ResponseContent.COUNTS:
+        if limit:
+            return JSONResponse(
+                {"limited_result_size": len(result), "result_size": result_size}
+            )
+        return JSONResponse({"result_size": result_size})
+
+    return result

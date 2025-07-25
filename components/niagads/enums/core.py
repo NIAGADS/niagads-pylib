@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Self
 
 from strenum import StrEnum
 
@@ -37,24 +37,3 @@ class CaseInsensitiveEnum(StrEnum):
         if toLower:
             return [v.lower() for v in cls._value2member_map_]
         return [v for v in cls._value2member_map_]
-
-
-class EnumParameter(CaseInsensitiveEnum):
-    """Enum that includes a validator for use as a parameter"""
-
-    @classmethod
-    def get_description(cls):
-        return f"Allowable values are: {','.join(cls.list())}."
-
-    @classmethod
-    def validate(cls, value, label: str, returnCls: CaseInsensitiveEnum):
-        from niagads.utils.string import sanitize  # avoid circular import
-        from niagads.exceptions.core import ValidationError
-
-        try:
-            cls(sanitize(value))
-            return returnCls(value)
-        except:
-            raise ValidationError(
-                f"Invalid value provided for `{label}`: {value}.  {cls.get_description()}"
-            )

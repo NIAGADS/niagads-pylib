@@ -21,9 +21,9 @@ class ErrorActions(CaseInsensitiveEnum):
 class AbstractMethodNotImplemented(NotImplementedError):
     def __init__(self, methodName):
         self.message = (
-            "`"
+            "Abstract `"
             + methodName
-            + "` method has not been implement for the child of this Abstract parent class"
+            + "` method has not been implemented for this child class"
         )
         super().__init__(self.message)
 

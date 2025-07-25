@@ -161,12 +161,12 @@ def find_in_list(value: str, arr: List[str], ignoreCase=False):
     return False
 
 
-def list_to_string(arr: list, nullStr="NULL", delim=",", quote: bool = False):
+def list_to_string(arr: list, null_str="NULL", delim=",", quote: bool = False):
     """converts a list to string
 
     Args:
         arr (list): the list to be converted
-        nullStr (str, optional): string to use for null/None values. Defaults to "NULL".
+        null_str (str, optional): string to use for null/None values. Defaults to "NULL".
         delim (str, optional): delimiter. Defaults to ",".
         quote (bool, optional): enclose each list element in single quotes. Defaults to False.
 
@@ -175,11 +175,11 @@ def list_to_string(arr: list, nullStr="NULL", delim=",", quote: bool = False):
     """
 
     if arr is None or len(arr) == 0:
-        return nullStr
+        return null_str
 
     if quote:
-        return delim.join(["'" + xstr(v, nullStr=nullStr) + "'" for v in arr])
-    return delim.join([xstr(v, nullStr=nullStr) for v in arr])
+        return delim.join(["'" + xstr(v, null_str=null_str) + "'" for v in arr])
+    return delim.join([xstr(v, null_str=null_str) for v in arr])
 
 
 def drop_nulls(arr):
