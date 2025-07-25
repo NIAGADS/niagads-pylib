@@ -13,12 +13,6 @@ APP_NAMESPACE = "FILER"
 OPEN_API_TAGS: List[OpenAPITag] = [
     OpenAPITag(
         name=APP_NAMESPACE,
-        description="sub-API namespace",
-        x_sort_order=0,
-    ),
-    OpenAPITag(
-        name="FILER Functional Genomics Repository",
-        summary="Query tracks and track data in FILER",
         description=(
             f"Query tracks and track data in FILER, "
             f"a functional genomics database developed by NIAGADS "
@@ -26,27 +20,23 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             f"indexed, searchable human functional genomics data collection "
             f"across >20 data sources."
         ),
-        externalDocs={
-            "description": "FILER",
-            "url": "https://tf.lisanwanglab.org/FILER/",
-        },
-        x_sort_order=3,
+        x_sort_order=0,
     ),
 ] + SharedOpenAPITags.list()
 
 PUBMED_IDS: Set[T_PubMedID] = ["PMID:35047815"]
 
-APP_NAME: str = OPEN_API_TAGS[1].name
+APP_NAME: str = OPEN_API_TAGS[0].name
 
-BASE_TAGS = [APP_NAMESPACE, APP_NAME]
+BASE_TAGS = [APP_NAMESPACE]
 
 
 OPEN_API_SPEC = OpenAPISpec(
-    title=OPEN_API_TAGS[1].name,
-    description=OPEN_API_TAGS[1].summary,
+    title=OPEN_API_TAGS[0].name,
+    description=OPEN_API_TAGS[0].description,
     summary="NIAGADS Open Access API: FILER",
     version=Settings.from_env().API_VERSION,
     admin_email=Settings.from_env().ADMIN_EMAIL,
     service_url=Settings.from_env().API_PUBLIC_URL,
-    openapi_tags=SharedOpenAPITags.list(),  # OPEN_API_TAGS,
+    openapi_tags=OPEN_API_TAGS,
 )

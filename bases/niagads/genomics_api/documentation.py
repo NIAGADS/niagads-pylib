@@ -16,12 +16,6 @@ APP_NAMESPACE = "Genomics"
 OPEN_API_TAGS: List[OpenAPITag] = [
     OpenAPITag(
         name=APP_NAMESPACE,
-        description="sub-API namespace",
-        x_sort_order=0,
-    ),
-    OpenAPITag(
-        name="Alzheimers Genomics Database",
-        summary="Query annotated AD/ADRD-genetic evidence from GWAS summary statistics and ADSP variant annotations",
         description=(
             f"Query annotated AD/ADRD-genetic evidence from GWAS summary statistics "
             f"and ADSP variant annotations from the NIAGADS repository "
@@ -30,24 +24,20 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             f"an interactive knowledgebase for AD genetics that provides a platform for data "
             f"sharing, discovery, and analysis."
         ),
-        externalDocs={
-            "description": "Alzheimer's GenomicsDB",
-            "url": "https://www.niagads.org/genomics",
-        },
-        x_sort_order=2,
+        x_sort_order=0,
     ),
 ] + SharedOpenAPITags.list()
 
 
 PUBMED_IDS: Set[T_PubMedID] = ["PMID:37881831"]
 
-APP_NAME: str = OPEN_API_TAGS[1].name
+APP_NAME: str = OPEN_API_TAGS[0].name
 
-BASE_TAGS = [APP_NAMESPACE, APP_NAME]
+BASE_TAGS = [APP_NAMESPACE]
 
 OPEN_API_SPEC = OpenAPISpec(
-    title=OPEN_API_TAGS[1].name,
-    description=OPEN_API_TAGS[1].summary,
+    title=OPEN_API_TAGS[0].name,
+    description=OPEN_API_TAGS[0].description,
     summary="NIAGADS Open Access API: GenomicsDB",
     version=Settings.from_env().API_VERSION,
     admin_email=Settings.from_env().ADMIN_EMAIL,
