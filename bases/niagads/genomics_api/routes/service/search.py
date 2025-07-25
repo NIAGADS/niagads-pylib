@@ -28,15 +28,12 @@ from niagads.genomics_api.services.route import (
 )
 
 
-router = APIRouter(prefix="/service", tags=BASE_TAGS)
-
-tags = [str(SharedOpenAPITags.RECORD_SEARCH), str(SharedOpenAPITags.LOOKUP_SERVICES)]
+router = APIRouter(prefix="/service", tags=BASE_TAGS + [str(SharedOpenAPITags.SERVICE)])
 
 
 @router.get(
     "/search",
     response_model=List[RecordSearchResult],
-    tags=tags,
     summary="search-feature-and-track-records",
     description="Find Alzheimer's GenomicsDB Records (features, tracks, collections) by identifier or keyword",
 )

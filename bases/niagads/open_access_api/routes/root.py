@@ -10,7 +10,7 @@ router = APIRouter()
 @router.get(
     "/status",
     summary="get-api-info",
-    tags=[str(SharedOpenAPITags.DOCUMENTATION)],
+    tags=[str(SharedOpenAPITags.STATUS)],
 )
 async def about_niagads_open_access_api():
     """Retrieve a brief overesponse_view of the NIAGADS Open Access Resources."""
@@ -21,7 +21,7 @@ async def about_niagads_open_access_api():
 
 @router.get(
     "/openapi.yaml",
-    tags=[str(SharedOpenAPITags.DOCUMENTATION)],
+    tags=[str(SharedOpenAPITags.STATUS)],
     summary="get-specification-yaml",
     description="Retrieve the full NIAGADS Open Access API Specificiation in `YAML` format",
     # include_in_schema=False,

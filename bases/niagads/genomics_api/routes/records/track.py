@@ -38,7 +38,7 @@ router = APIRouter(
     prefix="/record/track",
     tags=[
         APP_NAME,
-        str(SharedOpenAPITags.TRACK_RECORD),
+        str(SharedOpenAPITags.ENTITY_LOOKUP),
     ],
 )
 
@@ -87,7 +87,7 @@ async def get_track_metadata(
     # return await helper.get_query_response()
 
 
-tags = [str(SharedOpenAPITags.TRACK_DATA)]
+tags = [str(SharedOpenAPITags.DATA)]
 
 
 @router.get(

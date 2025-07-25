@@ -32,7 +32,7 @@ from niagads.filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(prefix="/service", tags=BASE_TAGS)
 
-tags = [str(SharedOpenAPITags.GENOME_BROWSER)]
+tags = [str(SharedOpenAPITags.SERVICE)]
 
 
 @router.get(

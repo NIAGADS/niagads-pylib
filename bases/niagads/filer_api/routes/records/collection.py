@@ -26,11 +26,7 @@ from niagads.filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(
     prefix="/collection",
-    tags=BASE_TAGS
-    + [
-        str(SharedOpenAPITags.TRACK_RECORD),
-        str(SharedOpenAPITags.COLLECTIONS),
-    ],
+    tags=BASE_TAGS + [str(SharedOpenAPITags.ENTITY_LOOKUP)],
 )
 
 

@@ -34,7 +34,7 @@ from niagads.filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(
     prefix="/data",
-    tags=BASE_TAGS + [str(SharedOpenAPITags.TRACK_DATA)],
+    tags=BASE_TAGS + [str(SharedOpenAPITags.DATA)],
 )
 
 
@@ -86,15 +86,15 @@ async def get_track_data_bulk(
     return await helper.get_track_data()
 
 
-tags = [str(SharedOpenAPITags.RECORD_SEARCH)]
+tags = [str(SharedOpenAPITags.SEARCH)]
 
 
 @router.get(
     "/search",
-    tags=tags,
     response_model=Union[
         RecordResponse, AbridgedTrackResponse, BEDResponse, TableViewResponse
     ],
+    tags=tags,
     summary="get-track-data-by-metadata-search",
     description="find functional genomics tracks with data in specified region; qualify using category filters or by a keyword search against all text fields in the track metadata",
 )

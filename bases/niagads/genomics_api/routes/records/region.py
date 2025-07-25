@@ -33,7 +33,7 @@ router = APIRouter(
     prefix="/record/region",
     tags=[
         APP_NAME,
-        str(SharedOpenAPITags.REGION_RECORD),
+        str(SharedOpenAPITags.ENTITY_LOOKUP),
     ],
 )
 

@@ -91,7 +91,7 @@ async def get_track_metadata_bulk(
 
 @router.get(
     "/{track}",
-    tags=[str(SharedOpenAPITags.TRACK_RECORD)],
+    tags=[str(SharedOpenAPITags.ENTITY_LOOKUP)],
     response_model=Union[AbridgedTrackResponse, TrackResponse, RecordResponse],
     summary="get-track-metadata",
     description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response",
@@ -131,7 +131,7 @@ async def get_track_metadata(
     return await helper.get_track_metadata()
 
 
-tags = [str(SharedOpenAPITags.TRACK_DATA)]
+tags = [str(SharedOpenAPITags.DATA)]
 
 
 @router.get(

@@ -48,7 +48,7 @@ router = APIRouter(
     prefix="/record/variant",
     tags=[
         APP_NAME,
-        str(SharedOpenAPITags.VARIANT_RECORD),
+        str(SharedOpenAPITags.ENTITY_LOOKUP),
     ],
 )
 
@@ -135,7 +135,7 @@ async def get_variant_allele_frequencies(
 @router.get(
     "/{variant}/associations",
     response_model=Union[GeneticAssociationResponse, RecordResponse, TableViewResponse],
-    name="Get genetic associations",
+    name="Get GWAS genetic associations",
     description="Retrieve genetic associations (GWAS) for the variant",
 )
 async def get_variant_genetic_associations(
@@ -229,10 +229,10 @@ async def get_colocated_variants(
 @router.get(
     "/{variant}/function",
     response_model=VariantAnnotationResponse,
-    name="Get co-located (or alt) variants",
-    description="Retrieve variant identifiers for alternative alleles or co-located (overlapping) INDELs and SVs",
+    name="Get VEP Annotations",
+    description="retrieve predicted variant effects",
 )
-async def get_colocated_variants(
+async def get_variant_function(
     variant: GenomicFeature = Depends(variant_param),
     internal: InternalRequestParameters = Depends(),
 ) -> VariantAnnotationResponse:

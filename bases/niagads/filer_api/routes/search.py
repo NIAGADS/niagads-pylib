@@ -35,15 +35,12 @@ from niagads.filer_api.services.route import FILERRouteHelper
 
 router = APIRouter(
     prefix="/search",
-    tags=BASE_TAGS + [str(SharedOpenAPITags.TRACK_RECORD)],
+    tags=BASE_TAGS + [str(SharedOpenAPITags.SEARCH)],
 )
-
-tags = [str(SharedOpenAPITags.RECORD_SEARCH)]
 
 
 @router.get(
     "/",
-    tags=tags,
     response_model=Union[
         RecordResponse,
         AbridgedTrackResponse,
@@ -101,7 +98,6 @@ async def search_track_metadata(
 
 @router.get(
     "/shard/{track}",
-    tags=tags,
     response_model=Union[TrackResponse, AbridgedTrackResponse, RecordResponse],
     summary="get-shard-metadata-beta",
     description="Some tracks are sharded by chromosome.  Use this query to find a shard-specific track given a chromosome and related track identifier.",

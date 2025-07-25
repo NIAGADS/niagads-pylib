@@ -11,7 +11,7 @@ from niagads.filer_api.documentation import BASE_TAGS
 
 router = APIRouter(prefix="/dictionary", tags=BASE_TAGS)
 
-tags = [str(SharedOpenAPITags.ONTOLOGIES)]
+tags = [str(SharedOpenAPITags.DICTIONARY)]
 
 
 @router.get(

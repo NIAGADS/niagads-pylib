@@ -27,7 +27,7 @@ router = APIRouter(
     prefix="/qtl",
     tags=BASE_TAGS
     + [
-        str(SharedOpenAPITags.TRACK_DATA),
+        str(SharedOpenAPITags.DATA),
         str(SharedOpenAPITags.XQTL_TRACK_RECORD),
     ],
 )

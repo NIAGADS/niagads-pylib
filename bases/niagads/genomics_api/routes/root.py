@@ -32,7 +32,7 @@ router = APIRouter(tags=[APP_NAME])
     response_model=Union[MessageResponse, RecordResponse],
     summary="get-api-info",
     description=f"Retrieve a brief overesponse_view of the {APP_NAME}",
-    tags=[str(SharedOpenAPITags.DOCUMENTATION)],
+    tags=[str(SharedOpenAPITags.STATUS)],
 )
 async def get_database_description(
     internal: InternalRequestParameters = Depends(),
@@ -58,7 +58,7 @@ async def get_database_description(
 
 @router.get(
     "/openapi.yaml",
-    tags=[str(SharedOpenAPITags.DOCUMENTATION)],
+    tags=[str(SharedOpenAPITags.STATUS)],
     name="get-specification-yaml",
     description="Get API Specificiation in `YAML` format",
     include_in_schema=False,

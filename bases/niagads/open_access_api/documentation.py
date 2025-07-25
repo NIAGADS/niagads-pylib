@@ -2,14 +2,10 @@
 
 from typing import List, Set
 
-from niagads.common.types import T_PubMedID
-from niagads.api_common.constants import (
-    SharedOpenAPITags,
-    SharedOpenAPIxTagGroups,
-)
-from niagads.api_common.config import Settings
 from niagads.api_common.app.openapi import OpenAPISpec, OpenAPITag
-
+from niagads.api_common.config import Settings
+from niagads.api_common.constants import SharedOpenAPITags
+from niagads.common.types import T_PubMedID
 
 OPEN_API_TAGS: List[OpenAPITag] = [
     OpenAPITag(
@@ -28,7 +24,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
         },
         x_sort_order=1,
     ),
-    SharedOpenAPITags.DOCUMENTATION.value,
+    SharedOpenAPITags.STATUS.value,
 ]
 
 PUBMED_IDS: Set[T_PubMedID] = ["PMID:35047815"]
@@ -42,6 +38,5 @@ OPEN_API_SPEC = OpenAPISpec(
     version=Settings.from_env().API_VERSION,
     admin_email=Settings.from_env().ADMIN_EMAIL,
     service_url=Settings.from_env().API_PUBLIC_URL,
-    openapi_tags=OPEN_API_TAGS,
-    xtag_groups=SharedOpenAPIxTagGroups.list(),
+    openapi_tags=[SharedOpenAPITags.STATUS.value],
 )

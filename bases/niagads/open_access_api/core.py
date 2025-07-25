@@ -67,7 +67,6 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI], version: bool = F
 
     # gather tags and tag groups as unqiue sets
     tagSet: Set = set([json.dumps(t) for t in specification["tags"]])
-    tagGroupSet: Set = set([json.dumps(tg) for tg in specification["x-tagGroups"]])
 
     traitOnlyTags = []
 
@@ -102,23 +101,11 @@ def custom_openapi(factory: AppFactory, subAPIs=List[FastAPI], version: bool = F
         )
         specification["paths"].update(routes)
 
-        # ditto for tag groups, but do null check
-        if "x-tagGroups" in apiSpec:
-            for tg in apiSpec["x-tagGroups"]:
-                # tg["tags"] = [f"{namespace}-{t}" for t in tg["tags"]]
-                tagGroupSet.add(json.dumps(tg))
-
         # extract and concatenate schemas
         if "components" in apiSpec:
             specification["components"]["schemas"].update(
                 apiSpec["components"]["schemas"]
             )
-
-    # update x-tagGroups
-    uniqueXTagGroups = sorted(
-        [json.loads(tg) for tg in tagGroupSet], key=lambda d: d["x-sortOrder"]
-    )
-    specification["x-tagGroups"] = _openapi_update_xtag_groups(uniqueXTagGroups)
 
     # update tags and sort
     specification["tags"] = sorted(

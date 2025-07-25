@@ -15,15 +15,13 @@ from niagads.genomics_api.queries.igvbrowser.service import IGVFeatureLookupQuer
 from niagads.genomics_api.services.route import GenomicsRouteHelper, QueryOptions
 
 
-router = APIRouter(prefix="/service/igvbrowser", tags=BASE_TAGS)
-
-
-tags = [str(SharedOpenAPITags.GENOME_BROWSER), str(SharedOpenAPITags.LOOKUP_SERVICES)]
+router = APIRouter(
+    prefix="/service/igvbrowser", tags=BASE_TAGS + [str(SharedOpenAPITags.SERVICE)]
+)
 
 
 @router.get(
     "/feature",
-    tags=tags + [str(SharedOpenAPITags.LOOKUP_SERVICES)],
     response_model=GenomicRegion,
     response_model_exclude_none=True,
     summary="genome-browser-feature-lookup",

@@ -31,8 +31,7 @@ router = APIRouter(
     prefix="/record/collection",
     tags=[
         APP_NAME,
-        str(SharedOpenAPITags.TRACK_RECORD),
-        str(SharedOpenAPITags.COLLECTIONS),
+        str(SharedOpenAPITags.ENTITY_LOOKUP),
     ],
 )
 

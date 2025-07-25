@@ -51,7 +51,7 @@ router = APIRouter(
     prefix="/record/gene",
     tags=[
         APP_NAME,
-        str(SharedOpenAPITags.GENE_RECORD),
+        str(SharedOpenAPITags.ENTITY_LOOKUP),
     ],
 )
 
