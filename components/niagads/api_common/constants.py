@@ -27,139 +27,40 @@ DEFAULT_NULL_STRING = "NA"
 
 
 class SharedOpenAPITags(Enum):
-    DOCUMENTATION = OpenAPITag(
-        name="Documentation",
-        description="general information and overesponse_view statistics about the NIAGADS Open Access resources queried by this API.",
+    STATUS = OpenAPITag(
+        name="Status",
+        description="general information and statistics about the NIAGADS Open Access resources queried by this API.",
+        x_display_name="Status",
+        x_sort_order=1,
+    )
+    ENTITY_LOOKUP = OpenAPITag(
+        name="Lookup",
+        description="retrieve entity nomenclature, metadata, or annotations by ID",
         x_sort_order=10,
-        x_display_name="Documentation",
+        x_display_name="Entity Lookup",
     )
-    TRACK_RECORD = OpenAPITag(
-        name="Metadata",
-        description="endpoints that retrieve track record metadata",
-        x_sort_order=300,
-        x_display_name="Track Metadata",
+    SEARCH = OpenAPITag(
+        name="Search",
+        description="find entities matching search criteria",
+        x_sort_order=20,
+        x_display_name="Entity Search",
     )
-    TRACK_DATA = OpenAPITag(
-        name="Track Data Retrieval",
-        description="endpoints that retrieve track data",
-        x_sort_order=330,
+    DATA = OpenAPITag(
+        name="Data",
+        description="Retrieve data or annotations matching search criteria",
+        x_sort_order=30,
+        x_display_name="Search and Data Retrieval",
     )
-    XQTL_TRACK_RECORD = OpenAPITag(
-        name="QTL",
-        description="endpoints that retrieve xQTL track data or metadata",
-        x_sort_order=312,
-        x_display_name="xQTLs",
-    )
-    GWAS_TRACK_RECORD = OpenAPITag(
-        name="SumStats",
-        description="endpoints that retrieve GWAS summary statistics track data or metadata",
-        x_sort_order=310,
+    SERVICE = OpenAPITag(
+        name="Service",
+        description="retrieve data formatted for input to NIAGADS visualization tools or services",
+        x_sort_order=40,
         x_display_name="GWAS Summary Statistics",
     )
-    GENE_RECORD = OpenAPITag(
-        name="Gene",
-        description="endpoints that retrieve gene-specific annotations",
-        x_sort_order=200,
-        x_display_name="Genes",
-    )
-    VARIANT_RECORD = OpenAPITag(
-        name="Variant",
-        description="endpoints that retrieve variant-specific annotations",
-        x_sort_order=100,
-        x_display_name="Variants",
-    )
-    REGION_RECORD = OpenAPITag(
-        name="Genomic Region",
-        description="endpoints that retrieve annotations in a genomic span (chrN:start-end)",
-        x_sort_order=400,
-        x_display_name="Variants",
-    )
-
-    COLLECTIONS = OpenAPITag(
-        name="Collection",
-        description="endpoints that retrieve curated lists of records",
-        x_sort_order=19,
-        x_display_name="Collections",
-    )
-    GENOME_BROWSER = OpenAPITag(
-        name="Browser",
-        description="service endpoints generating configuration files, data adapters, and search services for NIAGADS Genome Browser Tracks",
-        x_sort_order=400,
-        x_display_name="Genome Browser",
-    )
-    LOCUSZOOM = OpenAPITag(
-        name="LocusZoom",
-        description="service endpoints generating for NIAGADS LocusZoom data adapters",
-        x_sort_order=420,
-    )
-    LOOKUP_SERVICES = OpenAPITag(
-        name="Lookups",
-        description="service endpoints that provide quick record lookups based on relational data (e.g., feature location)",
-        x_sort_order=510,
-        x_display_name="Lookup Services",
-    )
-    RECORD_SEARCH = OpenAPITag(
-        name="Search",
-        description="service endpoints that find feature, track, or data records based by metadata or annotation text search",
-        x_sort_order=500,
-        x_display_name="Record Search",
-    )
-    ONTOLOGIES = OpenAPITag(
-        name="Ontologies",
-        description="data descriptors, including allowable values for search filter fields",
-        x_sort_order=530,
-        x_display_name="Data Dictionary",
-    )
-    PAGINATION = OpenAPITag(
-        name="Pagination",
-        description="Pagination of Responses: more information coming soon.",
-        x_sort_order=1000,
-    )
-
-    def __str__(self):
-        return self.value.name
-
-    def serialize(self):
-        return self.value.model_dump()
-
-
-class SharedOpenAPIxTagGroups(Enum):
-    ABOUT = OpenAPIxTagGroup(
-        name="Information and Statistics",
-        tags=[
-            SharedOpenAPITags.DOCUMENTATION.value,
-            SharedOpenAPITags.ONTOLOGIES.value,
-            SharedOpenAPITags.COLLECTIONS.value,
-        ],
-        x_sort_order=20,
-    )
-    SEARCH = OpenAPIxTagGroup(
-        name="Search",
-        tags=[
-            SharedOpenAPITags.RECORD_SEARCH.value,
-            SharedOpenAPITags.LOOKUP_SERVICES.value,
-        ],
-        x_sort_order=85,
-    )
-    SERVICES = OpenAPIxTagGroup(
-        name="Services",
-        tags=[
-            SharedOpenAPITags.GENOME_BROWSER.value,
-            SharedOpenAPITags.LOCUSZOOM.value,
-            SharedOpenAPITags.LOOKUP_SERVICES.value,
-        ],
-        x_sort_order=90,
-    )
-    DATA_TRACKS = OpenAPIxTagGroup(
-        name="Data Tracks",
-        tags=[
-            SharedOpenAPITags.TRACK_RECORD.value,
-            SharedOpenAPITags.TRACK_DATA.value,
-            SharedOpenAPITags.GWAS_TRACK_RECORD.value,
-            SharedOpenAPITags.XQTL_TRACK_RECORD.value,
-            SharedOpenAPITags.COLLECTIONS.value,
-        ],
-        x_sort_order=80,
+    DICTIONARY = OpenAPITag(
+        name="Dictionary",
+        description="search or retrieve controlled vocabularies and ontologies",
+        x_sort_order=50,
     )
 
     def __str__(self):
@@ -169,5 +70,5 @@ class SharedOpenAPIxTagGroups(Enum):
         return self.value.model_dump()
 
     @classmethod
-    def list(cls) -> List[OpenAPIxTagGroup]:
-        return [member.value for member in cls]
+    def list(cls):
+        return [tag.value for tag in cls]
