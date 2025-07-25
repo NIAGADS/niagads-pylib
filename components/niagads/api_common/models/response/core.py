@@ -98,7 +98,7 @@ class ListResponse(AbstractResponse):
 
 class RecordResponse(AbstractResponse):
 
-    data: List[T_RowModel] = Field(description="query result")
+    data: List[T_RowModel] = Field(description="a list of one or more records or data points; format of list entries will vary by the resource and type of record or data being queried by the endpoint")
 
     @model_validator(mode="before")
     @classmethod
