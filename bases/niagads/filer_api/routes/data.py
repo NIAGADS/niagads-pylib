@@ -8,10 +8,7 @@ from niagads.api_common.models.features.bed import BEDResponse
 from niagads.api_common.models.response.core import RecordResponse
 
 from niagads.api_common.models.datasets.track import AbridgedTrackResponse
-from niagads.api_common.parameters.location import (
-    assembly_param,
-    span_param,
-)
+from niagads.api_common.parameters.location import assembly_param, loc_param
 from niagads.api_common.parameters.pagination import page_param
 from niagads.api_common.parameters.record.query import track_list_param
 from niagads.api_common.parameters.response import (
@@ -41,12 +38,14 @@ router = APIRouter(
 @router.get(
     "/",
     summary="get-track-data-bulk",
-    response_model=Union[BEDResponse, AbridgedTrackResponse, TableViewResponse],
+    response_model=Union[
+        RecordResponse, BEDResponse, AbridgedTrackResponse, TableViewResponse
+    ],
     description="Retrieve data from one or more FILER tracks in the specified region.",
 )
 async def get_track_data_bulk(
     track: str = Depends(track_list_param),
-    span: str = Depends(span_param),
+    loc: str = Depends(loc_param),
     page: int = Depends(page_param),
     content: str = Query(
         ResponseContent.FULL, description=ResponseContent.data(description=True)
@@ -57,7 +56,7 @@ async def get_track_data_bulk(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[BEDResponse, AbridgedTrackResponse, TableViewResponse]:
+) -> Union[RecordResponse, BEDResponse, AbridgedTrackResponse, TableViewResponse]:
 
     response_content = ResponseContent.data().validate(
         content, "content", ResponseContent
@@ -80,7 +79,7 @@ async def get_track_data_bulk(
                 )
             ),
         ),
-        Parameters(track=track, span=span, page=page),
+        Parameters(track=track, span=loc, page=page),
     )
 
     return await helper.get_track_data()
@@ -100,7 +99,7 @@ tags = [str(SharedOpenAPITags.SEARCH)]
 )
 async def get_track_data_by_metadata_search(
     assembly: Assembly = Depends(assembly_param),
-    span: str = Depends(span_param),
+    loc: str = Depends(loc_param),
     filter=Depends(TEXT_FILTER_PARAMETER),
     keyword: str = Depends(keyword_param),
     page: int = Depends(page_param),
@@ -137,7 +136,7 @@ async def get_track_data_by_metadata_search(
             ),
         ),
         Parameters(
-            assembly=assembly, filter=filter, keyword=keyword, span=span, page=page
+            assembly=assembly, filter=filter, keyword=keyword, span=loc, page=page
         ),
     )
 

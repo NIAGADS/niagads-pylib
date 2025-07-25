@@ -451,8 +451,10 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 )
                 return await self.generate_response([], is_cached=False)
 
+        span = await self._lookup_feature_location(self._parameters.get("span"))
+
         # get informative tracks from the FILER API & cache
-        cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.get("assembly")}&span={self._parameters.get("span")}"
+        cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.get("assembly")}&span={span}"
         cache_key = CacheKeyDataModel.encrypt_key(cache_key.replace(":", "_"))
 
         informativeTrackOverlaps: List[TrackResultSize] = (
@@ -463,9 +465,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         if informativeTrackOverlaps is None:
             informativeTrackOverlaps = await ApiWrapperService(
                 self._managers.api_client_session
-            ).get_informative_tracks(
-                self._parameters.get("span"), self._parameters.get("assembly")
-            )
+            ).get_informative_tracks(span, self._parameters.get("assembly"))
             await self._managers.cache.set(
                 cache_key,
                 informativeTrackOverlaps,
@@ -496,7 +496,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             ]
 
         if self._response_config.content == ResponseContent.FULL:
-            return await self.__get_paged_track_data(targetTrackResultSize)
+            return await self.__get_paged_track_data(targetTrackResultSize, span=span)
 
         # to ensure pagination order, need to sort by counts
         result: List[TrackResultSize] = TrackResultSize.sort(targetTrackResultSize)
