@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 
+from fastapi import HTTPException
 from niagads.common.models.core import TransformableModel
 from niagads.common.models.views.table import TableRow
 from niagads.api_common.models.features.genomic import GenomicRegion
@@ -228,3 +229,8 @@ class AbridgedVariantResponse(RecordResponse):
 
 class VariantResponse(RecordResponse):
     data: List[AnnotatedVariant]
+
+    def to_text(self, incl_header=False, null_str=""):
+        raise NotImplementedError(
+            "TEXT formatted output not available for a FULL variant response; set `content=brief` to get a plain text table."
+        )
