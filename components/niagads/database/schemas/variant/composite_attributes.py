@@ -67,7 +67,7 @@ class CADDScore(TransformableModel):
     )
 
 
-class PredictedConsequence(TransformableModel):
+class PredictedConsequenceSummary(TransformableModel):
     consequence_terms: List[str] = Field(title="Predicted Consequence(s)")
     impact: ConsequenceImpact = Field(title="Impact")
     is_coding: Optional[bool] = Field(
@@ -134,7 +134,7 @@ class PredictedConsequence(TransformableModel):
         return list(fields.keys()) if as_str else fields
 
 
-class RankedPredictedConsequence(PredictedConsequence):
+class RankedPredictedConsequence(PredictedConsequenceSummary):
     pass
 
 

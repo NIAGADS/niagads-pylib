@@ -5,7 +5,7 @@ from niagads.common.models.views.table import TableRow
 from niagads.api_common.models.features.genomic import GenomicRegion
 from niagads.database.schemas.variant.composite_attributes import (
     CADDScore,
-    PredictedConsequence,
+    PredictedConsequenceSummary,
     QCStatus,
 )
 
@@ -25,6 +25,25 @@ class Variant(VariantFeature):
     location: GenomicRegion
     ref: Optional[str] = None
     alt: Optional[str] = None
+    allele_string: Optional[str] = None
+
+    is_adsp_variant: Optional[bool] = Field(
+        default=False,
+        title="Is ADSP Variant?",
+        description="Variant present in ADSP samples and passed quality control checks; not an indicator of AD-risk.",
+    )
+
+    is_structural_variant: bool = Field(
+        default=False,
+        title="Is SV?",
+        description="flag indicating whether the variant is a structural variant",
+    )
+
+    most_severe_consequence: Optional[PredictedConsequenceSummary] = Field(
+        default=None,
+        title="Predicted Consequence",
+        description="most severe consequence predicted by VEP",
+    )
 
     def _flat_dump(self, nullFree=False, delimiter="|"):
         obj = super()._flat_dump(nullFree, delimiter=delimiter)
@@ -32,29 +51,42 @@ class Variant(VariantFeature):
         # promote the location fields
         del obj["location"]
         obj.update(self.location._flat_dump())
+
+        # promote the location fields
+        del obj["most_severe_consequence"]
+        if self.most_severe_consequence is not None:
+            obj.update(self.most_severe_consequence._flat_dump())
+        else:
+            obj.update(
+                {
+                    k: None
+                    for k in PredictedConsequenceSummary.get_model_fields(as_str=True)
+                }
+            )
+
         return obj
 
     @classmethod
     def get_model_fields(cls, as_str=False):
         fields = super().get_model_fields()
+
         del fields["location"]
         fields.update(GenomicRegion.get_model_fields())
 
+        del fields["most_severe_consequence"]
+        fields.update(PredictedConsequenceSummary.get_model_fields())
+
         return list(fields.keys()) if as_str else fields
 
+    @field_validator("is_structural_variant", mode="before")
+    @classmethod
+    def parse_is_structural_variant(cls, v):
+        return cls.boolean_null_check(v)
 
-class VariantDisplayAnnotation(RowModel):
-    allele_string: Optional[str] = None
-    is_adsp_variant: Optional[bool] = Field(
-        default=False,
-        title="Is ADSP Variant?",
-        description="Variant present in ADSP samples and passed quality control checks; not an indicator of AD-risk.",
-    )
-    most_severe_consequence: Optional[PredictedConsequence] = Field(
-        default=None,
-        title="Predicted Consequence",
-        description="most severe consequence predicted by VEP",
-    )
+    @field_validator("is_adsp_variant", mode="before")
+    @classmethod
+    def parse_is_adsp_variant(cls, v):
+        return cls.boolean_null_check(v)
 
     @field_validator("most_severe_consequence", mode="before")
     @classmethod
@@ -64,35 +96,13 @@ class VariantDisplayAnnotation(RowModel):
         if not isinstance(v, dict):  # ORM response
             v = v.model_dump()
         try:
-            conseq = PredictedConsequence(**v)
+            conseq = PredictedConsequenceSummary(**v)
             return conseq
         except:
-            return PredictedConsequence.from_vep_json(v)
-
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
-
-        # promote the location fields
-        del obj["most_severe_consequence"]
-        if self.most_severe_consequence is not None:
-            obj.update(self.most_severe_consequence._flat_dump())
-        else:
-            obj.update(
-                {k: None for k in PredictedConsequence.get_model_fields(as_str=True)}
-            )
-        return obj
-
-    @classmethod
-    def get_model_fields(cls, as_str=False):
-        fields = super().get_model_fields()
-
-        del fields["most_severe_consequence"]
-        fields.update(PredictedConsequence.get_model_fields())
-
-        return list(fields.keys()) if as_str else fields
+            return PredictedConsequenceSummary.from_vep_json(v)
 
 
-class AnnotatedVariant(Variant, VariantDisplayAnnotation):
+class AnnotatedVariant(Variant):
 
     # FIXME: these queries can take a while; not part of the variant record
     # alternative_alleles: Optional[List[str]]
@@ -102,11 +112,6 @@ class AnnotatedVariant(Variant, VariantDisplayAnnotation):
         default=False,
         title="Is Multi-allelic?",
         description="flag indicating whether the dbSNP refSNP is multi-allelic",
-    )
-    is_structural_variant: bool = Field(
-        default=False,
-        title="Is SV?",
-        description="flag indicating whether the variant is a structural variant",
     )
 
     cadd_scores: Optional[CADDScore] = Field(
@@ -118,36 +123,21 @@ class AnnotatedVariant(Variant, VariantDisplayAnnotation):
 
     adsp_qc: Optional[List[QCStatus]] = None
 
+    allele_frequencies: Optional[dict] = Field(
+        default=None, description="allele frequencies from 1000Genomes, ALFA, ExAC"
+    )
+    ranked_consequences: Optional[dict] = Field(
+        default=None,
+        serialization_alias="predicted_consequences",
+        description="all predicted consequences from VEP annotation",
+    )
+
     # TODO: vrs: [VRS] - ga4gh variant representation
-    @staticmethod
-    def __boolean_null_check(v):
-        if v is None:
-            return False
-        else:
-            return v
 
     @field_validator("is_multi_allelic", mode="before")
     @classmethod
     def parse_is_multi_allelic(cls, v):
-        return cls.__boolean_null_check(v)
-
-    @field_validator("is_structural_variant", mode="before")
-    @classmethod
-    def parse_is_structural_variant(cls, v):
-        return cls.__boolean_null_check(v)
-
-    @field_validator("is_adsp_variant", mode="before")
-    @classmethod
-    def parse_is_adsp_variant(cls, v):
-        return cls.__boolean_null_check(v)
-
-    @field_validator("most_severe_consequence", mode="before")
-    @classmethod
-    def parse_most_severe_consequence(cls, v):
-        if v is None or isinstance(v, PredictedConsequence):
-            return v
-
-        return PredictedConsequence.from_vep_json(v)
+        return cls.boolean_null_check(v)
 
     @field_validator("adsp_qc", mode="before")
     @classmethod

@@ -22,6 +22,13 @@ class TransformableModel(BaseModel):
         return prune(self.model_dump(), removeNulls=True)
 
     @staticmethod
+    def boolean_null_check(v):
+        if v is None:
+            return False
+        else:
+            return v
+
+    @staticmethod
     def _list_to_string(arr: list, delimiter="|"):
         uniqueValues = set([str(a) for a in arr])
         return delimiter.join(uniqueValues) if arr is not None else None

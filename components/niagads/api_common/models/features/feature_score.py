@@ -1,5 +1,7 @@
 from niagads.common.models.views.table import TableColumn
-from niagads.database.schemas.variant.composite_attributes import PredictedConsequence
+from niagads.database.schemas.variant.composite_attributes import (
+    PredictedConsequenceSummary,
+)
 from niagads.genome.core import Human
 from niagads.api_common.models.core import RowModel
 from niagads.api_common.models.features.gene import GeneFeature
@@ -47,7 +49,7 @@ class VariantPValueScore(VariantScore):
         variantFields.remove("variant_id")
         variantFields.remove("most_severe_consequence")
 
-        fields += variantFields + list(PredictedConsequence.model_fields.keys())
+        fields += variantFields + list(PredictedConsequenceSummary.model_fields.keys())
 
         # del fields['most_severe_consequence']
         # TODO: promote variant etc
@@ -87,7 +89,7 @@ class VariantPValueScore(VariantScore):
                     if data["impact"] is not None:
                         data["impact"] = TextTableCell(
                             value=data["impact"],
-                            color=PredictedConsequence.get_impact_color(data["impact"]),
+                            color=PredictedConsequenceSummary.get_impact_color(data["impact"]),
                         )
 
                     if data["is_coding"] is not None:
