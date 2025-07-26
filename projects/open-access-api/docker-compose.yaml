@@ -16,8 +16,7 @@ services:
       - ${KEYDB_DATA_DIR}:/data
 
   open-access-api-server:
-      # container_name: open-access-api
-      image: open-access-api-server:${API_VERSION}
+      image:  oaa-server-full:${API_VERSION}
       container_name: oaa-server-${NAMESPACE}
       build:
         context: .
