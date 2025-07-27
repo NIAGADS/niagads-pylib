@@ -20,24 +20,12 @@ class VariantFeature(RowModel):
     ref_snp_id: Optional[str] = Field(default=None, title="Ref SNP ID", order=1)
 
 
-class Variant(VariantFeature):
-
+class AbridgedVariant(VariantFeature):
     variant_class: str = Field(title="Variant Type")
-    location: GenomicRegion
-    ref: Optional[str] = None
-    alt: Optional[str] = None
-    allele_string: Optional[str] = None
-
     is_adsp_variant: Optional[bool] = Field(
         default=False,
         title="Is ADSP Variant?",
         description="Variant present in ADSP samples and passed quality control checks; not an indicator of AD-risk.",
-    )
-
-    is_structural_variant: bool = Field(
-        default=False,
-        title="Is SV?",
-        description="flag indicating whether the variant is a structural variant",
     )
 
     most_severe_consequence: Optional[PredictedConsequenceSummary] = Field(
@@ -48,10 +36,6 @@ class Variant(VariantFeature):
 
     def _flat_dump(self, nullFree=False, delimiter="|"):
         obj = super()._flat_dump(nullFree, delimiter=delimiter)
-
-        # promote the location fields
-        del obj["location"]
-        obj.update(self.location._flat_dump())
 
         # promote the location fields
         del obj["most_severe_consequence"]
@@ -71,18 +55,10 @@ class Variant(VariantFeature):
     def get_model_fields(cls, as_str=False):
         fields = super().get_model_fields()
 
-        del fields["location"]
-        fields.update(GenomicRegion.get_model_fields())
-
         del fields["most_severe_consequence"]
         fields.update(PredictedConsequenceSummary.get_model_fields())
 
         return list(fields.keys()) if as_str else fields
-
-    @field_validator("is_structural_variant", mode="before")
-    @classmethod
-    def parse_is_structural_variant(cls, v):
-        return cls.boolean_null_check(v)
 
     @field_validator("is_adsp_variant", mode="before")
     @classmethod
@@ -100,6 +76,43 @@ class Variant(VariantFeature):
             return PredictedConsequenceSummary(**v)
         else:
             return PredictedConsequenceSummary.from_vep_json(v)
+
+
+class Variant(AbridgedVariant):
+
+    location: GenomicRegion
+    ref: Optional[str] = Field(default=None, title="Reference Allele")
+    alt: Optional[str] = Field(default=None, title="Alternative Allele")
+    allele_string: Optional[str] = Field(default=None, title="Allele String")
+
+    is_structural_variant: bool = Field(
+        default=False,
+        title="Is SV?",
+        description="flag indicating whether the variant is a structural variant",
+    )
+
+    def _flat_dump(self, nullFree=False, delimiter="|"):
+        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+
+        # promote the location fields
+        del obj["location"]
+        obj.update(self.location._flat_dump())
+
+        return obj
+
+    @classmethod
+    def get_model_fields(cls, as_str=False):
+        fields = super().get_model_fields()
+
+        del fields["location"]
+        fields.update(GenomicRegion.get_model_fields())
+
+        return list(fields.keys()) if as_str else fields
+
+    @field_validator("is_structural_variant", mode="before")
+    @classmethod
+    def parse_is_structural_variant(cls, v):
+        return cls.boolean_null_check(v)
 
 
 class AnnotatedVariant(Variant):

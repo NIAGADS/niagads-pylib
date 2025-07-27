@@ -13,6 +13,27 @@ class FeatureQueryService:
     ):
         self.__session = session
 
+    async def get_gene_primary_key(self, id: str):
+        stmt = select(func.gene_lookup(id))
+        try:
+            result = (await self.__session.execute(stmt)).scalar_one()
+            if result is None:
+                raise NoResultFound()
+            return result
+        except NoResultFound as err:
+            raise HTTPException(status_code=404, detail="Gene not found")
+
+    async def get_variant_primary_key(self, id: str):
+        stmt = select(func.find_variant_primary_key(id))
+
+        try:
+            result = (await self.__session.execute(stmt)).scalar_one()
+            if result is None:
+                raise NoResultFound()
+            return result
+        except NoResultFound as err:
+            raise HTTPException(status_code=404, detail="Variant not found")
+
     async def __get_feature_location(self, query: str, feature: GenomicFeature):
         bind_parameters = [
             bindparam(

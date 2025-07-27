@@ -27,7 +27,7 @@ SVBrowserTrackQuery = QueryDefinition(
         'location_start', location->>'start',
         'location_end', (location->>'start')::int + (location->>'length')::int,
         'display_id', variant->>'variant_id',
-        'metaseq_id', variant->>'variant_id',
+        'variant_id', variant->>'variant_id',
         'ref_snp_id', '.',
         'variant_class', variant->>'variant_class',
         'variant_class_abbrev', variant->>'variant_class_abbrev',

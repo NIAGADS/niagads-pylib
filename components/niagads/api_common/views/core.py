@@ -14,3 +14,4 @@ class ViewResponse(BaseModel):
     pagination: Optional[PaginationDataModel] = Field(
         description="pagination details, if the result is paged"
     )
+    message: Optional[str] = None

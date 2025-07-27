@@ -129,7 +129,7 @@ async def get_region_variants(
     response = await helper.get_query_response()
     if svs_only:
         response.message = f"Length of query region ({str(genomic_region)} > {MAX_SPAN:,}); only returning Structural Variants.  Please choose a smaller window to retrieve small variants."
-    return
+    return response
 
 
 @router.get(

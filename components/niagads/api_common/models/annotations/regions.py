@@ -1,7 +1,7 @@
 from typing import Optional
 from niagads.api_common.models.core import RowModel
 from niagads.api_common.models.features.genomic import GenomicRegion
-from niagads.api_common.models.features.variant import Variant
+from niagads.api_common.models.features.variant import AbridgedVariant
 from niagads.database.schemas.variant.composite_attributes import (
     PredictedConsequenceSummary,
 )
@@ -9,7 +9,7 @@ from pydantic import Field, field_validator
 
 
 class RegionVariant(RowModel):
-    variant: Variant = Field(title="Variant")
+    variant: AbridgedVariant = Field(title="Variant")
     variant_type: str = Field(
         title="Variant Type", description="structural or small variant"
     )
@@ -39,6 +39,6 @@ class RegionVariant(RowModel):
         fields.update(GenomicRegion.get_model_fields())
 
         del fields["variant"]
-        fields.update(Variant.get_model_fields())
+        fields.update(AbridgedVariant.get_model_fields())
 
         return list(fields.keys()) if as_str else fields

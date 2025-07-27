@@ -1,7 +1,7 @@
 from enum import auto
 from typing import Dict, List, Optional, Union
 
-from niagads.api_common.models.features.variant import Variant
+from niagads.api_common.models.features.variant import AbridgedVariant, Variant
 from niagads.common.models.ontology import OntologyTerm
 from niagads.common.types import T_PubMedID
 from niagads.database.schemas.dataset.composite_attributes import (
@@ -48,7 +48,7 @@ class AssociationSource(EnumParameter):
 
 
 class VariantAssociation(RowModel):
-    variant: Variant = Field(title="Variant", order=1)
+    variant: AbridgedVariant = Field(title="Variant", order=1)
     test_allele: str = Field(title="Test Allele", order=2)
     p_value: Union[float, str] = Field(title="p-Value", order=3)
 
