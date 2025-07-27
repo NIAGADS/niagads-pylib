@@ -304,42 +304,6 @@ class FILERRouteHelper(MetadataRouteHelperService):
 
         return await self.generate_response(result, is_cached=False)
 
-    async def _lookup_feature_location(self, loc: GenomicFeature):
-        if loc.feature_type == GenomicFeatureType.REGION:
-            return loc.feature_id
-
-        query: str = """ 
-        SELECT v.annotation->>'chromosome' AS chromosome, 
-        (v.annotation->>'position')::int AS start, 
-        (v.annotation->>'position')::int + (v.annotation->>'length')::int AS end
-        FROM get_variant_primary_keys_and_annotations_tbl(:id) v
-        
-        UNION ALL
-        
-        SELECT g.chromosome,
-        g.location_start AS start,
-        g.location_end AS end
-        FROM CBIL.GeneAttributes g
-        WHERE upper(g.gene_symbol) = upper(:id)
-        OR g.source_id = :id
-        OR g.annotation->>'entrez_id' = :id
-        
-        ORDER BY chromosome NULLS LAST LIMIT 1"""
-
-        bind_parameters = [
-            bindparam(
-                "id",
-                (loc.feature_id),
-            )
-        ]
-
-        statement = text(query).bindparams(*bind_parameters)
-        self._managers.session.execute(statement)
-        result = (await self._managers.session.execute(statement)).fetchone()
-        if result[0] is None:
-            raise HTTPException(status_code=404, detail="`loc` feature not found")
-        return f"{result[0]}:{result[1]}-{result[2]}"
-
     async def get_track_data(self, validate=True):
         """if AbridgedTrack is set, then fetches from the summary not from a parameter"""
 
@@ -357,7 +321,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         ):  # for internal helper calls, don't always need to validate; already done
             assembly = await self.__validate_tracks(tracks)
 
-        span = await self._lookup_feature_location(self._parameters.get("span"))
+        span = await self.get_feature_location(self._parameters.get("span"))
 
         # get counts - needed for full pagination, counts only, summary
         trackResultSummary = await self.__get_track_data_task(
@@ -451,7 +415,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 )
                 return await self.generate_response([], is_cached=False)
 
-        span = await self._lookup_feature_location(self._parameters.get("span"))
+        span = await self.get_feature_location(self._parameters.get("span"))
 
         # get informative tracks from the FILER API & cache
         cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.get("assembly")}&span={span}"

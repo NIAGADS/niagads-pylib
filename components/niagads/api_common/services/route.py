@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional, Type, Union
 
 from fastapi import Response
+from niagads.api_common.models.features.genomic import GenomicFeature
 from niagads.common.models.structures import Range
 from niagads.exceptions.core import ValidationError
 from niagads.api_common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
@@ -342,7 +343,7 @@ class RouteHelperService:
                     f"A response for view of type {str(self._response_config.view)} is coming soon."
                 )
 
-    async def get_feature_location(self):
-        return FeatureQueryService(self._managers.session).get_feature_location(
-            self._parameters.get("location")
+    async def get_feature_location(self, feature: GenomicFeature):
+        return await FeatureQueryService(self._managers.session).get_feature_location(
+            feature
         )

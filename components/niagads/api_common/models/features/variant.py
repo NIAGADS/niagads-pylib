@@ -96,10 +96,9 @@ class Variant(VariantFeature):
             return None
         if not isinstance(v, dict):  # ORM response
             v = v.model_dump()
-        try:
-            conseq = PredictedConsequenceSummary(**v)
-            return conseq
-        except:
+        if "impacted_gene" in v:
+            return PredictedConsequenceSummary(**v)
+        else:
             return PredictedConsequenceSummary.from_vep_json(v)
 
 

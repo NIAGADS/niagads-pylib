@@ -1,10 +1,10 @@
 from typing import Optional
-
 from fastapi import HTTPException
 from niagads.api_common.config import Settings
 from niagads.api_common.models.core import ResultSize
 from niagads.api_common.models.features.genomic import (
     AnnotatedGenomicRegion,
+    GenomicFeature,
     GenomicRegion,
 )
 from niagads.api_common.models.records import Entity
@@ -32,6 +32,7 @@ from niagads.api_common.services.route import (
     ResponseConfiguration,
 )
 
+from niagads.genome.core import GenomicFeatureType
 from niagads.genomics_api.queries.track_data import (
     TrackGWASSumStatQuery,
     TrackQTLGeneQuery,
@@ -203,6 +204,38 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
                 result = result[range.start : range.end]
 
         return await self.generate_response(result, False)
+
+    async def search_variant_records(self, opts: QueryOptions = QueryOptions()):
+
+        gene_filter = self._parameters.get("gene")
+        result = await self.get_query_response(
+            QueryOptions(raw_response=False if gene_filter is None else True)
+        )
+        if gene_filter is None:
+            return result
+
+        filtered_result = [
+            variant
+            for variant in result
+            if gene_filter
+            in {
+                variant.get("most_severe_consequence", {})
+                .get("impacted_gene", {})
+                .get("id"),
+                variant.get("most_severe_consequence", {})
+                .get("impacted_gene", {})
+                .get("symbol"),
+            }
+        ]
+
+        # still need to do pagination
+        self._result_size = len(filtered_result)
+        if self._result_size > 0:  # not empty
+            self.initialize_pagination()
+            range = self.slice_result_by_page()
+            filtered_result = filtered_result[range.start : range.end]
+
+        return await self.generate_response(filtered_result, False)
 
     async def get_region_record(self, opts: QueryOptions = QueryOptions()):
         cached_response = await self._get_cached_response()
