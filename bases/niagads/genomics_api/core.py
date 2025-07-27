@@ -36,7 +36,7 @@ app_factory.add_router(RegionRouter)
 # app_factory.add_router(TrackRouter)
 # app_factory.add_router(CollectionRouter)
 
-app_factory.add_router(SearchRouter)
+# app_factory.add_router(SearchRouter)
 app_factory.add_router(ServiceRouter)
 
 # app_factory.add_router(IGVServiceRouter)
