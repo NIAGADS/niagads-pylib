@@ -28,6 +28,7 @@ from niagads.genomics_api.queries.records.region import (
 )
 from niagads.genomics_api.services.route import GenomicsRouteHelper
 
+MAX_SPAN = Settings.from_env().MAX_SPAN_SIZE
 
 router = APIRouter(
     prefix="/record/region",
@@ -52,7 +53,7 @@ async def get_region(
     internal: InternalRequestParameters = Depends(),
 ) -> RegionResponse:
 
-    svs_only: bool = not region.is_within_range_limit(max_span)
+    svs_only: bool = not region.is_within_range_limit(MAX_SPAN)
     response_content = ResponseContent.FULL
     response_format = ResponseFormat.generic().validate(
         format, "format", ResponseFormat
@@ -68,10 +69,11 @@ async def get_region(
         query=RegionRecordQuery,
     )
 
-    return await helper.get_region_record()
+    response = await helper.get_region_record()
 
-
-max_span = Settings.from_env().MAX_SPAN_SIZE
+    if svs_only:
+        response.message = f"Length of query region ({region.feature_id} > {MAX_SPAN:,}); only summarizing structural variants, please choose a smaller window to count small variants"
+    return response
 
 
 class RegionAnnotationResponse(RecordResponse):
@@ -82,7 +84,7 @@ class RegionAnnotationResponse(RecordResponse):
     "/{region}/variants",
     response_model=Union[RegionAnnotationResponse, RecordResponse, TableViewResponse],
     name="Get co-located variants",
-    description=f"retrieve variants contained within or overlapping this region.  If the regions is > {max_span} bp, only structural variants will be retrieved",
+    description=f"retrieve variants contained within or overlapping this region.  If the regions is > {MAX_SPAN} bp, only structural variants will be retrieved",
 )
 async def get_region_variants(
     region: GenomicFeature = Depends(region_param),
@@ -96,7 +98,7 @@ async def get_region_variants(
     internal: InternalRequestParameters = Depends(),
 ) -> Union[RegionAnnotationResponse, RecordResponse, TableViewResponse]:
 
-    svs_only: bool = svsOnly or not region.is_within_range_limit(max_span)
+    svs_only: bool = svsOnly or not region.is_within_range_limit(MAX_SPAN)
 
     response_content = ResponseContent.FULL
     response_format = ResponseFormat.generic().validate(
@@ -124,7 +126,10 @@ async def get_region_variants(
         query=RegionStructuralVariantQuery if svs_only else RegionVariantQuery,
     )
 
-    return await helper.get_query_response()
+    response = await helper.get_query_response()
+    if svs_only:
+        response.message = f"Length of query region ({str(genomic_region)} > {MAX_SPAN:,}); only returning Structural Variants.  Please choose a smaller window to retrieve small variants."
+    return response
 
 
 @router.get(

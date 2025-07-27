@@ -1,13 +1,14 @@
 from typing import Union
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from niagads.api_common.config import Settings
 from niagads.api_common.constants import SharedOpenAPITags
 from niagads.api_common.models.annotations.associations import (
     AssociationSource,
     AssociationTrait,
     GeneticAssociationResponse,
 )
-from niagads.api_common.models.features.genomic import GenomicFeature
+from niagads.api_common.models.features.genomic import GenomicFeature, GenomicRegion
 from niagads.api_common.models.features.variant import (
     AbridgedVariantResponse,
     VariantAnnotationResponse,
@@ -22,7 +23,13 @@ from niagads.api_common.parameters.associations import (
     neg_log10_pvalue,
     pvalue_filter_param,
 )
+from niagads.api_common.parameters.location import loc_param
 from niagads.api_common.parameters.pagination import page_param
+from niagads.api_common.parameters.record.filters import (
+    VariantType,
+    variant_type_param,
+    vep_impacted_gene_param,
+)
 from niagads.api_common.parameters.record.path import variant_param
 from niagads.api_common.parameters.response import (
     ResponseContent,
@@ -36,6 +43,10 @@ from niagads.api_common.services.route import (
 from niagads.api_common.views.table import TableViewResponse
 from niagads.genomics_api.dependencies import InternalRequestParameters
 from niagads.genomics_api.documentation import APP_NAME
+from niagads.genomics_api.queries.records.region import (
+    RegionVariantQuery,
+    RegionStructuralVariantQuery,
+)
 from niagads.genomics_api.queries.records.variant import (
     ColocatedVariantQuery,
     VariantAssociationsQuery,

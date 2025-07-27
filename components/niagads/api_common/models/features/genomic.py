@@ -42,10 +42,10 @@ class GenomicRegion(RowModel, Range):
 
     def __str__(self):
         span = f"{str(self.chromosome)}:{self.start}-{self.end}"
-        if self.strand is not None:
-            return f"{span:{str(self.strand)}}"
-        else:
-            return span
+        # if self.strand is not None:
+        #    return f"{span}:{str(self.strand)}"
+        # else:
+        return span
 
     @classmethod
     def get_model_fields(cls, as_str=False):

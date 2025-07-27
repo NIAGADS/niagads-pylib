@@ -67,7 +67,7 @@ class CADDScore(TransformableModel):
     )
 
 
-class PredictedConsequence(TransformableModel):
+class PredictedConsequenceSummary(TransformableModel):
     consequence_terms: List[str] = Field(title="Predicted Consequence(s)")
     impact: ConsequenceImpact = Field(title="Impact")
     is_coding: Optional[bool] = Field(
@@ -107,10 +107,17 @@ class PredictedConsequence(TransformableModel):
 
         # promote the gene fields
         del obj["impacted_gene"]
+        geneObj = {}
         if self.impacted_gene is not None:
-            obj.update(self.impacted_gene._flat_dump())
+            geneObj.update(self.impacted_gene._flat_dump())
         else:
-            obj.update({k: None for k in GeneFeature.get_model_fields(as_str=True)})
+            geneObj.update({k: None for k in GeneFeature.get_model_fields(as_str=True)})
+        obj.update(
+            {
+                "impacted_gene_id": geneObj["id"],
+                "impacted_gene_symbol": geneObj["symbol"],
+            }
+        )
 
         obj["consequence_terms"] = self._list_to_string(
             self.consequence_terms, delimiter=delimiter
@@ -125,16 +132,20 @@ class PredictedConsequence(TransformableModel):
         geneFields = deepcopy(GeneFeature.get_model_fields())
 
         for k, info in geneFields.items():
-            geneFields[k] = Field(
-                title=f"Impacted {info.title if k != 'id' else 'Gene'}"
+            fields.update(
+                {
+                    "impacted_gene" if k == "id" else "imaged_gene_symbo": Field(
+                        default=None,
+                        type=str,
+                        title=f"Impacted {info.title if k != 'id' else 'Gene'}",
+                    )
+                }
             )
-
-        fields.update(geneFields)
 
         return list(fields.keys()) if as_str else fields
 
 
-class RankedPredictedConsequence(PredictedConsequence):
+class RankedPredictedConsequence(PredictedConsequenceSummary):
     pass
 
 

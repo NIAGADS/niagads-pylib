@@ -40,7 +40,7 @@ GWAS_COMMON_FIELDS = """
     jsonb_build_object(
         'variant_id', r.metaseq_id, 
         'ref_snp_id', r.ref_snp_id, 
-        'type', r.display_attributes->>'variant_class_abbrev', 
+        'variant_class', r.display_attributes->>'variant_class_abbrev', 
         'is_adsp_variant', r.is_adsp_variant,
         'most_severe_consequence',r.annotation->'adsp_most_severe_consequence'
     ) AS variant,

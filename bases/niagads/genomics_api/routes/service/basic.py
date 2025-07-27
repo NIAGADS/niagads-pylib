@@ -1,7 +1,10 @@
 from typing import List
+
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from niagads.api_common.constants import SharedOpenAPITags
+from niagads.api_common.models.features.genomic import GenomicFeature
+from niagads.api_common.models.records import Entity
 from niagads.api_common.models.search.records import RecordSearchResult
 from niagads.api_common.models.response.core import (
     RecordResponse,
@@ -26,6 +29,8 @@ from niagads.genomics_api.services.route import (
     GenomicsRouteHelper,
     QueryOptions,
 )
+from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import matches
 
 
 router = APIRouter(prefix="/service", tags=BASE_TAGS + [str(SharedOpenAPITags.SERVICE)])
@@ -52,6 +57,11 @@ async def site_search(
     internal: InternalRequestParameters = Depends(),
 ) -> List[RecordSearchResult]:
 
+    # postgres throws a conversion error if it ends w/a symbol,
+    # so drop the symbol and match everything up to it
+    if keyword.endswith(":") or keyword.endswith("-"):
+        keyword = keyword[:-1]
+
     response_content = ResponseContent.data().validate(
         content, "content", ResponseContent
     )
@@ -68,6 +78,23 @@ async def site_search(
         Parameters(keyword=keyword),
         query=query,
     )
+
+    # test to see if genomic location
+    if searchType == SearchType.GLOBAL or SearchType.FEATURE:
+
+        if matches(RegularExpressions.GENOMIC_LOCATION, keyword):
+            if response_content == ResponseContent.COUNTS:
+                return JSONResponse({"result_size": 1})
+            return [
+                RecordSearchResult(
+                    primary_key=keyword,
+                    description="",
+                    display=keyword,
+                    record_type=Entity.REGION,
+                    match_rank=-1,
+                    matched_term=keyword,
+                )
+            ]
 
     result = await helper.get_query_response(opts=QueryOptions(raw_response=True))
     result_size = len(result)

@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from niagads.genome.core import GenomicFeatureType
 from niagads.api_common.models.features.genomic import GenomicFeature
-from sqlalchemy import func, select, text, column
+from sqlalchemy import bindparam, func, select, text, column
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,51 +34,54 @@ class FeatureQueryService:
         except NoResultFound as err:
             raise HTTPException(status_code=404, detail="Variant not found")
 
+    async def __get_feature_location(self, query: str, feature: GenomicFeature):
+        bind_parameters = [
+            bindparam(
+                "id",
+                (feature.feature_id),
+            )
+        ]
+
+        statement = text(query).bindparams(*bind_parameters)
+        result = (await self.__session.execute(statement)).fetchone()
+        if result[0] is None:
+            return None
+        return f"{result[0]}:{result[1]}-{result[2]}"
+
     async def get_gene_location(self, gene: GenomicFeature):
-        stmt = select(func.gene_location_lookup(gene.feature_id))
-        try:
-            result = (await self.__session.execute(stmt)).scalar_one()
-            if result is None:
-                raise NoResultFound()
-            return result
-        except NoResultFound as err:
-            raise HTTPException(status_code=404, detail="Gene not found")
+        query = """SELECT g.chromosome,
+        g.location_start AS start,
+        g.location_end AS end
+        FROM CBIL.GeneAttributes g
+        WHERE upper(g.gene_symbol) = upper(:id)
+        OR g.source_id = :id
+        OR g.annotation->>'entrez_id' = :id"""
+
+        result = await self.__get_feature_location(query, gene)
+        if result is None:
+            raise HTTPException(status_code=404, detail="`loc` feature not found")
+        return result
 
     async def get_variant_location(self, variant: GenomicFeature):
-        # FIXME: structural variants; just query DB
-        if variant.feature_id.startswith("rs"):
-            query = func.find_variant_by_refsnp(variant.feature_id, True).table_valued(
-                column("chromosome"), column("position"), column("length")
-            )
+        query: str = """ 
+        SELECT v.annotation->>'chromosome' AS chromosome, 
+        (v.annotation->>'position')::int AS start, 
+        (v.annotation->>'position')::int + (v.annotation->>'length')::int AS end
+        FROM get_variant_primary_keys_and_annotations_tbl(:id) v
+        """
 
-            stmt = select(
-                (
-                    query.c.chromosome
-                    + ":"
-                    + (query.c.position - 1).cast(text("TEXT"))
-                    + "-"
-                    + (query.c.position + query.c.length).cast(text("TEXT"))
-                ).label("span")
-            )
-            try:
-                result = await self.__session.execute(stmt)
-                return result.scalar_one()
-            except NoResultFound as err:
-                raise HTTPException(status_code=404, detail="refSNP not found")
-
-        else:
-            [chr, pos, ref, alt] = variant.feature_id.split(":")
-            start = int(pos) - 1
-            end = start + len(ref)
-            return f"{chr}:{start}-{end}"
+        result = self.__get_feature_location(query, variant)
+        if result is None:
+            raise HTTPException(status_code=404, detail="`loc` feature not found")
+        return result
 
     async def get_feature_location(self, feature: GenomicFeature):
         match feature.feature_type:
             case GenomicFeatureType.GENE:
-                return self.get_gene_location()
+                return await self.get_gene_location(feature)
 
             case GenomicFeatureType.VARIANT:
-                return self.get_variant_location()
+                return await self.get_variant_location(feature)
 
             case GenomicFeatureType.REGION:
                 return feature.feature_id

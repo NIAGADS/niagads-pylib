@@ -1,4 +1,5 @@
 from typing import Dict, Optional
+from niagads.exceptions.core import ValidationError
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -15,7 +16,9 @@ class Range(BaseModel):
     def validate(self, range: Dict[str, int]):
         if "end" in range:
             if range["start"] > range["end"]:
-                raise RuntimeError(f"Invalid Range: {range['start']} > {range['end']}")
+                raise ValidationError(
+                    f"Invalid Range: {range['start']} > {range['end']}"
+                )
         return range
 
     def __str__(self):
