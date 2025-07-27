@@ -18,7 +18,7 @@ class RegularExpressions(StrEnum):
     STRUCTUAL_VARIANT = (
         r"^(DEL|INS|DUP|INV|CNV|TRA)_CHR(\d{1,2}|[XYM]|MT)_([A-Z]|\d){8}$"
     )
-
+    GENOMIC_LOCATION = r"^(chr)?(1[0-9]|2[0-2]|[1-9]|X|Y|M)[:\-](\d+)[\-:](\d+)$"
     # Mantissa: 1-3 digits, optional . and up to 2 decimals; Exponent: e- and 1-3 digits
     PVALUE_SCIENTIFIC_NOTATION = (
         r"^[1-9]\d{0,2}(\.\d{1,2})?e-\d{1,3}$" r"^[1-9]\d*(\.\d+)?e-\d+$"
