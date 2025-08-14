@@ -92,10 +92,10 @@ black = "^24.4.2"
 flake8 = "^7.0.0"
 ipykernel = "^6.29.5"
 isort = "^5.13.2"
-lazydoc = "^1.0.1"
 mypy = "^1.8.0"
 pydocstyle = "^6.3.0"
 pytest = "^8.2.2"
+lazydocs = "^0.4.8"
 
 [tool.pytest.ini_options]
 addopts = "-vv"
