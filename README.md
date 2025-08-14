@@ -99,17 +99,20 @@ see <https://davidvujic.blogspot.com/2023/07/python-fastapi-microservices-with-p
 
 ### Coding Conventions
 
+Follow [PEP 8](https://peps.python.org/pep-0008/) coding standards.
+
 #### Naming
 
 * `file names` and `directories` should be in [snake_case](https://www.theserverside.com/definition/Snake-case)
-* `function` names should be in `snake_case`
-* `variable` names should be in [lowerCamelCase](https://www.techtarget.com/whatis/definition/CamelCase#:~:text=CamelCase%20is%20a%20way%20to,humps%20on%20a%20camel%27s%20back.)
+* `function` and 'variable' names should be in `snake_case`
 * `class` names should be in [UpperCamelCase](https://www.techtarget.com/whatis/definition/CamelCase#:~:text=CamelCase%20is%20a%20way%20to,humps%20on%20a%20camel%27s%20back.)
 * `constants` should be in `UPPER_SNAKE_CASE`
 
 #### Code Documentation
 
 All functions, classes and packages should have a doc-string.  For non-inuitive or complex functions, please provide a `summary` description, a list of `args`, a description of the `return value`, and any `raised exceptions`.  For simple functions (e.g., member `getters` and `setters`, no documentation is need or a simple `summary` doc string will suffice)
+
+* Use [Google style documentation](https://google.github.io/styleguide/pyguide.html#docstrings)
 
 > NOTE: you **MUST** give credit when pulling code from a third-party (e.g., StackOverflow, GitHub).  Please include the URL or link to the specific response (each StackOverflow response has a _share_ link) in your documentation.
 > for example: [niagads.utils.string.is_balanced](https://niagads.github.io/niagads-pylib/_modules/niagads/utils/string.html#is_balanced), 
@@ -138,7 +141,7 @@ Please use `logging` to log script progress and debug statements. Details coming
 
 * all classes should have a `public` `logger` member variable
   
-* all classes should have a `protected` `_debug` member variable
+* all classes should have a `protected` `_debug` and `_verbose` member variable
 
 * override the `__str__` [dunder method](https://mathspp.com/blog/pydonts/dunder-methods) for the class so that users can debug or write class state as output (i.e., convert class to string)
 
