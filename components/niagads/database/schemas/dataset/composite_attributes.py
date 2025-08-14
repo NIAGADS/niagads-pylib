@@ -1,3 +1,9 @@
+"""Module for dataset composite attributes.
+
+This module defines models for various dataset attributes, including experimental design,
+phenotypes, biosample characteristics, provenance, and file properties.
+"""
+
 import json
 from typing import List, Optional, Set, Union
 
@@ -17,6 +23,8 @@ from pydantic import (
 
 
 class ExperimentalDesign(TransformableModel):
+    """Model for experimental design attributes."""
+
     antibody_target: Optional[str] = Field(default=None, title="Antibody Target")
     assay: Optional[str] = Field(default=None, title="Assay")
     analysis: Optional[str] = Field(default=None, title="Analysis")
@@ -43,6 +51,8 @@ class ExperimentalDesign(TransformableModel):
 
 
 class PhenotypeCount(TransformableModel):
+    """Model for phenotype counts."""
+
     phenotype: Optional[OntologyTerm] = None
     num_cases: int
     num_controls: Optional[int] = None
@@ -56,6 +66,8 @@ class PhenotypeCount(TransformableModel):
 
 
 class Phenotype(TransformableModel):
+    """Model for phenotype attributes."""
+
     disease: Optional[List[OntologyTerm]] = Field(default=None, title="Disease")
     ethnicity: Optional[List[OntologyTerm]] = Field(default=None, title="Ethnicity")
     race: Optional[List[OntologyTerm]] = Field(default=None, title="Race")
@@ -93,6 +105,8 @@ class Phenotype(TransformableModel):
 
 
 class BiosampleCharacteristics(TransformableModel):
+    """Model for biosample characteristics."""
+
     system: Optional[List[str]] = Field(
         default=None, title="Biosample: Anatomical System"
     )
@@ -131,6 +145,8 @@ class BiosampleCharacteristics(TransformableModel):
 
 # TODO: document provenance and file properties
 class Provenance(TransformableModel):
+    """Model for provenance information."""
+
     data_source: str = Field(
         title="Data Source", description="original file data source"
     )
@@ -189,6 +205,8 @@ class Provenance(TransformableModel):
 
 
 class FileProperties(TransformableModel):
+    """Model for file properties."""
+
     file_name: Optional[str] = None
     url: Optional[str] = None
     md5sum: Optional[str] = Field(pattern=RegularExpressions.MD5SUM, default=None)

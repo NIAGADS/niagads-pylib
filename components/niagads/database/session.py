@@ -1,4 +1,7 @@
-"""Database session management"""
+"""Database session management.
+
+This module provides classes and methods for managing database sessions using SQLAlchemy.
+"""
 
 import logging
 import asyncpg
@@ -21,8 +24,10 @@ CONNECTION_POOL_SIZE = 10
 
 
 class DatabaseSessionManager:
-    """Dependency for managing database session target based on endpoint
-    adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
+    """Dependency for managing database session target.
+
+    This class provides methods to manage database sessions asynchronously using SQLAlchemy.
+    Adapted from: https://dev.to/akarshan/asynchronous-database-sessions-in-fastapi-with-sqlalchemy-1o7e
     """
 
     def __init__(
@@ -34,8 +39,9 @@ class DatabaseSessionManager:
         """Initialize DatabaseSessionManager object.
 
         Args:
-            connectionString (str): database URI in postgresql://[user[:password]@][netloc][:port][/dbname][?param1=value1&...] format
-            connectionPoolSize (int): connection pool size. Defaults to 10
+            connection_string (str): Database URI in postgresql://[user[:password]@][netloc][:port][/dbname][?param1=value1&...] format.
+            connectionPoolSize (int): Connection pool size. Defaults to 10.
+            echo (bool): If True, SQLAlchemy will log all statements. Defaults to False.
         """
         self.__engine: AsyncEngine = create_async_engine(
             self.__get_async_uri(connection_string),
