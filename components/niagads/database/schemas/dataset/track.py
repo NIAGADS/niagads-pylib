@@ -1,9 +1,10 @@
 """`Track` (metadata) database model"""
 
 from enum import auto
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from niagads.database.core import ModelDumpMixin
+from niagads.database.schemas.dataset.base import DatasetSchemaBase
 from niagads.database.schemas.dataset.composite_attributes import (
     BiosampleCharacteristics,
     ExperimentalDesign,
@@ -11,14 +12,14 @@ from niagads.database.schemas.dataset.composite_attributes import (
     Phenotype,
     Provenance,
 )
-from niagads.database.schemas.dataset.base import DatasetSchemaBase
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome.core import Assembly, Human
 from niagads.utils.list import list_to_string
 from sqlalchemy import ARRAY, TEXT, Column, Enum, Index, String
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import INT8RANGE, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import CheckConstraint
+from sqlalchemy_utils import LtreeType
 
 
 class TrackDataStore(CaseInsensitiveEnum):
@@ -96,3 +97,26 @@ class Track(ModelDumpMixin, DatasetSchemaBase):
     file_properties: Mapped[Optional[FileProperties]] = mapped_column(
         JSONB(none_as_null=True)
     )
+
+
+class TrackInterval(ModelDumpMixin, DatasetSchemaBase):
+    """indexing table; stores the number of hits per bin index for a track"""
+
+    __tablename__ = "trackinterval"
+    __table_args__ = (
+        Index(
+            "ix_index_trackinterval_track_id",
+            "track_id",
+            postgresql_include=["num_hits", "span"],
+        ),
+        Index("ix_index_trackinterval_bin_index", "bin_index", postgresql_using="gist"),
+        Index(
+            "ix_index_trackinterval_span", "track_id", "span", postgresql_using="gist"
+        ),
+    )
+
+    _id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    bin_index: Mapped[str] = mapped_column(LtreeType)
+    track_id: Mapped[str]  # TODO: mapped_column(ForeignKey("metadata.track.track_id"))
+    num_hits: Mapped[int]
+    span: Mapped[Any] = mapped_column(INT8RANGE)
