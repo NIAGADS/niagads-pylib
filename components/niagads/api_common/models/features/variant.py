@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from niagads.common.models.core import TransformableModel
 from niagads.common.models.views.table import TableRow
 from niagads.api_common.models.features.genomic import GenomicRegion
-from niagads.database.schemas.variant.composite_attributes import (
+from niagads.database.schemas.variation.composite_attributes import (
     CADDScore,
     PredictedConsequenceSummary,
     QCStatus,
