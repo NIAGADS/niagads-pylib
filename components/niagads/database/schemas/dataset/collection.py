@@ -2,14 +2,14 @@
 
 from typing import Optional
 
-from niagads.database.core import enum_constraint, ModelDumpMixin
+from niagads.database.core import HousekeepingMixin, enum_constraint, ModelDumpMixin
 from niagads.database.schemas.dataset.base import DatasetSchemaBase
 from niagads.database.schemas.dataset.track import TrackDataStore
 from sqlalchemy import Column, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class Collection(ModelDumpMixin, DatasetSchemaBase):
+class Collection(ModelDumpMixin, HousekeepingMixin, DatasetSchemaBase):
     __tablename__ = "collection"
     __table_args__ = (
         enum_constraint("data_store", TrackDataStore),
