@@ -15,9 +15,8 @@ from niagads.database.schemas.dataset.composite_attributes import (
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome.core import Assembly, Human
 from sqlalchemy import ARRAY, TEXT, Column, Enum, Index, String
-from sqlalchemy.dialects.postgresql import INT8RANGE, JSONB
+from sqlalchemy.dialects.postgresql import INT4RANGE, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.schema import CheckConstraint
 from sqlalchemy_utils import LtreeType
 
 
@@ -111,4 +110,4 @@ class TrackInterval(ModelDumpMixin, DatasetSchemaBase):
     track_id: Mapped[str]  # TODO: mapped_column(ForeignKey("metadata.track.track_id"))
     chromosome: str = Column(Enum(Human, native_enum=False))
     num_hits: Mapped[int]
-    span: Mapped[Any] = mapped_column(INT8RANGE)
+    span: Mapped[Any] = mapped_column(INT4RANGE)
