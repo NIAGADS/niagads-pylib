@@ -5,7 +5,7 @@ from urllib.parse import unquote
 
 from niagads.common.constants.ontologies import BiosampleType
 from niagads.common.models.ontology import OntologyTerm
-from niagads.database.schemas.dataset.composite_attributes import (
+from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,

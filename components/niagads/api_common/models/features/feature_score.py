@@ -1,5 +1,5 @@
 from niagads.api_common.views.table import TableColumn
-from niagads.database.schemas.variation.composite_attributes import (
+from niagads.common.models.composite_attributes.variant import (
     PredictedConsequenceSummary,
 )
 from niagads.assembly.core import Human

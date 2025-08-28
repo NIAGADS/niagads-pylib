@@ -2,7 +2,7 @@ from typing import Optional
 from niagads.api_common.models.core import RowModel
 from niagads.api_common.models.features.genomic import GenomicRegion
 from niagads.api_common.models.features.variant import AbridgedVariant
-from niagads.database.schemas.variation.composite_attributes import (
+from niagads.common.models.composite_attributes.variant import (
     PredictedConsequenceSummary,
 )
 from pydantic import Field, field_validator

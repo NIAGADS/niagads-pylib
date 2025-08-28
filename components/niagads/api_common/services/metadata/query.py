@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from fastapi import HTTPException
 from niagads.database.schemas.dataset.collection import Collection, TrackCollection
-from niagads.database.schemas.dataset.composite_attributes import (
+from niagads.common.models.composite_attributes.dataset import (
     ExperimentalDesign,
     Phenotype,
     Provenance,

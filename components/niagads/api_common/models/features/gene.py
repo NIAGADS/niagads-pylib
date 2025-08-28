@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Union
 
-from niagads.database.schemas.feature.composite_attributes import (
+from niagads.common.models.composite_attributes.gene import (
     GOAnnotation,
     PathwayAnnotation,
 )

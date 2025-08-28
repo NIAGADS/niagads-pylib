@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Union
 from niagads.api_common.models.features.variant import AbridgedVariant, Variant
 from niagads.common.models.ontology import OntologyTerm
 from niagads.common.types import T_PubMedID
-from niagads.database.schemas.dataset.composite_attributes import (
+from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     Phenotype,
 )
@@ -164,8 +164,8 @@ class VariantAssociation(RowModel):
 
         return list(fields.keys()) if as_str else fields
 
-    def table_fields(self, as_str=False, **kwargs):
-        return super().table_fields(as_str, **kwargs)
+    def get_table_fields(self, as_str=False, **kwargs):
+        return super().get_table_fields(as_str, **kwargs)
 
 
 class GeneVariantAssociation(VariantAssociation):

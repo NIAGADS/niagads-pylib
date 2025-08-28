@@ -98,7 +98,9 @@ class ListResponse(AbstractResponse):
 
 class RecordResponse(AbstractResponse):
 
-    data: List[T_RowModel] = Field(description="a list of one or more records or data points; format of list entries will vary by the resource and type of record or data being queried by the endpoint")
+    data: List[T_RowModel] = Field(
+        description="a list of one or more records or data points; format of list entries will vary by the resource and type of record or data being queried by the endpoint"
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -135,7 +137,7 @@ class RecordResponse(AbstractResponse):
             return {}
 
         else:
-            columns = self.data[0].table_columns()
+            columns = self.data[0].generate_table_columns()
             data = [r.as_table_row() for r in self.data]
             table = {"columns": columns, "data": data}
 
@@ -177,7 +179,7 @@ class RecordResponse(AbstractResponse):
             #        "\t".join([xstr(v, null_str=null_str) for v in self.data.values()]) + "\n"
             #    )
 
-            fields = self.data[0].table_fields(as_str=True)
+            fields = self.data[0].get_table_fields(as_str=True)
             rows = []
             for r in self.data:
                 if isinstance(r, str):

@@ -5,7 +5,7 @@ from typing import Any, List, Optional
 
 from niagads.database.core import ModelDumpMixin, enum_constraint
 from niagads.database.schemas.feature.base import FeatureSchemaBase
-from niagads.database.schemas.feature.composite_attributes import (
+from niagads.common.models.composite_attributes.gene import (
     GOAnnotation,
     PathwayAnnotation,
 )
