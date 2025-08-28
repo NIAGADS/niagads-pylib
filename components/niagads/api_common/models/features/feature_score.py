@@ -2,7 +2,7 @@ from niagads.common.models.views.table import TableColumn
 from niagads.database.schemas.variation.composite_attributes import (
     PredictedConsequenceSummary,
 )
-from niagads.genome.core import Human
+from niagads.assembly.core import Human
 from niagads.api_common.models.core import RowModel
 from niagads.api_common.models.features.gene import GeneFeature
 from niagads.api_common.models.features.variant import (

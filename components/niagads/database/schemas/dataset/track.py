@@ -13,7 +13,7 @@ from niagads.database.schemas.dataset.composite_attributes import (
     Provenance,
 )
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.genome.core import Assembly, Human
+from niagads.assembly.core import Assembly, Human
 from sqlalchemy import ARRAY, TEXT, Column, Enum, Index, String
 from sqlalchemy.dialects.postgresql import INT4RANGE, JSONB
 from sqlalchemy.orm import Mapped, mapped_column

@@ -20,7 +20,7 @@ from niagads.api_common.parameters.response import (
     ResponseView,
 )
 from niagads.api_common.services.route import Parameters, ResponseConfiguration
-from niagads.genome.core import GenomicFeatureType
+from niagads.assembly.core import GenomicFeatureType
 from niagads.genomics_api.dependencies import InternalRequestParameters
 from niagads.genomics_api.documentation import APP_NAME
 from niagads.genomics_api.queries.records.region import (

@@ -6,7 +6,7 @@ from niagads.api_common.models.datasets.igvbrowser import (
     IGVBrowserTrackSelectorResponse,
 )
 from niagads.exceptions.core import ValidationError
-from niagads.genome.core import Assembly
+from niagads.assembly.core import Assembly
 from niagads.api_common.constants import SharedOpenAPITags
 
 from niagads.api_common.parameters.location import (

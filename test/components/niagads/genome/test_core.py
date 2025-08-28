@@ -1,4 +1,4 @@
-from niagads.genome import core
+from niagads.assembly import core
 
 
 def test_sample():

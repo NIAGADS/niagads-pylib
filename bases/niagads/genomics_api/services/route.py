@@ -32,7 +32,7 @@ from niagads.api_common.services.route import (
     ResponseConfiguration,
 )
 
-from niagads.genome.core import GenomicFeatureType
+from niagads.assembly.core import GenomicFeatureType
 from niagads.genomics_api.queries.track_data import (
     TrackGWASSumStatQuery,
     TrackQTLGeneQuery,

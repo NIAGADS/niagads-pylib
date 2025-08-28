@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from niagads.api_common.models.response.core import RecordResponse
 from niagads.common.models.structures import Range
 from niagads.exceptions.core import ValidationError
-from niagads.genome.core import GenomicFeatureType, Human, Strand
+from niagads.assembly.core import GenomicFeatureType, Human, Strand
 from niagads.api_common.models.core import RowModel
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches

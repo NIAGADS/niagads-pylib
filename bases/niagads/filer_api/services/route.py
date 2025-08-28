@@ -8,7 +8,7 @@ from operator import itemgetter
 
 from niagads.database.schemas.dataset.track import Track, TrackDataStore
 from niagads.database.session import DatabaseSessionManager
-from niagads.genome.core import GenomicFeatureType
+from niagads.assembly.core import GenomicFeatureType
 from niagads.api_common.models.features.bed import BEDFeature
 from niagads.api_common.models.features.genomic import GenomicFeature
 from niagads.api_common.models.services.cache import (
@@ -418,7 +418,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         span = await self.get_feature_location(self._parameters.get("span"))
 
         # get informative tracks from the FILER API & cache
-        cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.get("assembly")}&span={span}"
+        cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.get('assembly')}&span={span}"
         cache_key = CacheKeyDataModel.encrypt_key(cache_key.replace(":", "_"))
 
         informativeTrackOverlaps: List[TrackResultSize] = (

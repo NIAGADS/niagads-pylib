@@ -13,6 +13,7 @@ packages = [
     { include = "niagads/requests", from = "../../components" },
     { include = "niagads/api_common", from = "../../components" },
     { include = "niagads/genomics_api", from = "../../bases" },
+    {include = "niagads/assembly",from = "../../components"},
 ]
 
 [project]

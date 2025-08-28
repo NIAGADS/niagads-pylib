@@ -50,6 +50,7 @@ packages = [
     { from = "components", include = "niagads/variant_annotator" },
     { from = "components", include = "niagads/vcf" },
     { from = "components", include = "niagads/vep_json_parser" },
+    {include = "niagads/assembly",from = "components"},
 ]
 
 [tool.poetry.dependencies]

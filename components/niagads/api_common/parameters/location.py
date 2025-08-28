@@ -1,6 +1,6 @@
 from fastapi import Query
 from niagads.exceptions.core import ValidationError
-from niagads.genome.core import Assembly, GenomicFeatureType, Human
+from niagads.assembly.core import Assembly, GenomicFeatureType, Human
 from niagads.api_common.models.features.genomic import GenomicFeature
 from niagads.utils.string import sanitize
 

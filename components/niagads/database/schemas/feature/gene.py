@@ -9,7 +9,7 @@ from niagads.database.schemas.feature.composite_attributes import (
     GOAnnotation,
     PathwayAnnotation,
 )
-from niagads.genome.core import Human
+from niagads.assembly.core import Human
 from niagads.utils.regular_expressions import RegularExpressions
 from sqlalchemy import Column, Enum, Index
 from sqlalchemy.orm import Mapped, mapped_column

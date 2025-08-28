@@ -3,7 +3,7 @@
 from fastapi import Path
 
 from niagads.api_common.parameters.igvbrowser import AnnotatedVariantTrack
-from niagads.genome.core import GenomicFeatureType
+from niagads.assembly.core import GenomicFeatureType
 from niagads.api_common.models.features.genomic import GenomicFeature
 from niagads.utils.string import sanitize
 
