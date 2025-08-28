@@ -128,10 +128,10 @@ app = app_factory.get_app()
 
 
 app.mount(
-    f"{app_factory.get_version_prefix() if useVersioning else ""}/filer", FILERApp
+    f"{app_factory.get_version_prefix() if useVersioning else ''}/filer", FILERApp
 )
 app.mount(
-    f"{app_factory.get_version_prefix() if useVersioning else ""}/genomics", GenomicsApp
+    f"{app_factory.get_version_prefix() if useVersioning else ''}/genomics", GenomicsApp
 )
 
 app.openapi_schema = custom_openapi(app_factory, [GenomicsApp, FILERApp], useVersioning)
