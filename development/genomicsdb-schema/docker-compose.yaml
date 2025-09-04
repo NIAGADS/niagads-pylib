@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:17.5
+    image: postgres:17
     container_name: genomicsdb-dev
     env_file:
         - db.env
