@@ -157,7 +157,8 @@ class Assembly(CaseInsensitiveEnum):
     @classmethod
     def list(cls):
         """return a list of the enum values"""
-        return super(Assembly, cls).list() + ["hg19", "hg38"]
+        # FIXME: need hg19, 18 for the enumparameter; check api code
+        return super(Assembly, cls).list()  #  + ["hg19", "hg38"]
 
     def hg_label(self):
         return "hg19" if self.value == "GRCh37" else "hg38"
