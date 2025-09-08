@@ -17,7 +17,7 @@ class HousekeepingMixin(object):
     """
 
     job_id: Mapped[int] = mapped_column(
-        ForeignKey("core.job.job_id"), nullable=True, index=True, nullable=False
+        ForeignKey("core.job.job_id"), nullable=True, index=True
     )
     modification_date: Mapped[datetime] = mapped_column(
         DATETIME,
