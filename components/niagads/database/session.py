@@ -8,6 +8,7 @@ import asyncpg
 # the database session manager
 from fastapi import HTTPException
 from niagads.exceptions.core import AbstractMethodNotImplemented, ValidationError
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     async_scoped_session,
@@ -28,7 +29,7 @@ class DatabaseSessionManager:
     def __init__(
         self,
         connection_string: str,
-        connectionPoolSize: int = CONNECTION_POOL_SIZE,
+        pool_size: int = CONNECTION_POOL_SIZE,
         echo: bool = False,
     ):
         """Initialize DatabaseSessionManager object.
@@ -40,7 +41,7 @@ class DatabaseSessionManager:
         self.__engine: AsyncEngine = create_async_engine(
             self.__get_async_uri(connection_string),
             echo=echo,  # Log SQL queries for debugging (set to False in production)
-            pool_size=connectionPoolSize,  # Maximum number of permanent connections to maintain in the pool
+            pool_size=pool_size,  # Maximum number of permanent connections to maintain in the pool
             max_overflow=10,  # Maximum number of additional connections that can be created if the pool is exhausted
             pool_timeout=30,  # Number of seconds to wait for a connection if the pool is exhausted
             pool_recycle=1800,  # Maximum age (in seconds) of connections that can be reused
@@ -61,6 +62,21 @@ class DatabaseSessionManager:
 
     def get_engine(self):
         return self.__engine
+
+    async def test_connection(self):
+        """
+        Test the database connection by executing a simple SELECT 1 query.
+        Returns True if successful, raises an exception otherwise.
+        """
+        try:
+            async with self.__engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
+            return True
+        except Exception as err:
+            self.logger.error(
+                "Database connection test failed", exc_info=err, stack_info=True
+            )
+            raise OSError(f"Database connection test failed: {str(err)}")
 
     async def close(self):
         """
