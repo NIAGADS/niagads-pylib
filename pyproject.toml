@@ -86,6 +86,11 @@ typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
 sqlalchemy-utils = "^0.41.2"
+transformers = "^4.56.1"
+torch = "^2.8.0"
+spacy = "^3.8.7"
+plotly = "^6.3.0"
+wordcloud = "^1.9.4"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"

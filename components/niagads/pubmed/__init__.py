@@ -1,3 +1,15 @@
-from niagads.pubmed import core
+from niagads.pubmed.services import (
+    PubMedQueryService,
+    PubMedQueryFilters,
+    PubMedArticleMetadata,
+    PubMedAuthor,
+)
+from niagads.pubmed.parsers import PMCFullTextParser
 
-__all__ = ["core"]
+__all__ = [
+    "PubMedQueryService",
+    "PubMedQueryFilters",
+    "PubMedArticleMetadata",
+    "PubMedAuthor",
+    "PMCFullTextParser",
+]
