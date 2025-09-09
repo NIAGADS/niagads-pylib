@@ -32,19 +32,40 @@ class HttpClientSessionManager:
     """Create Http connection pool and request a session"""
 
     def __init__(
-        self, baseUrl: str, timeout: int = _HTTP_CLIENT_TIMEOUT, debug: bool = False
+        self, base_url: str, timeout: int = _HTTP_CLIENT_TIMEOUT, debug: bool = False
     ):
         self._debug = debug
         self.logger = logging.getLogger(__name__)
-        self.__baseUrl = baseUrl
-        self.__connector: TCPConnector = TCPConnector(limit=50)
-        self.__session: ClientSession = ClientSession(
-            self.__baseUrl,
+        self.__base_url = base_url
+        self.__session_timeout: int = timeout
+        self.__connector: TCPConnector = None
+        self.__session: ClientSession = None
+
+    # this will allow us to construct statements like:
+    # async with HttpClientSessionManager to automatically
+    # handle open and closing the session and connection
+    # outside of API applications where it needs to be
+    # persistant
+    async def __aenter__(self):
+        await self.ensure_session()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.close()
+
+    async def create(self):
+        self.__connector = TCPConnector(limit=50)
+        self.__session = ClientSession(
+            base_url=self.__base_url,
             connector=self.__connector,
-            timeout=ClientTimeout(total=timeout),
+            timeout=ClientTimeout(total=self.__session_timeout),
             raise_for_status=True,
             trace_configs=self.__initialize_trace_config(),
         )
+
+    async def ensure_session(self):
+        if self.__session is None or self.__session.closed:
+            await self.create()
 
     async def __on_request_start(
         self, session, context, params: TraceRequestStartParams
@@ -71,16 +92,16 @@ class HttpClientSessionManager:
             config.on_request_exception.append(self.__on_request_exception)
         return [config]
 
-    async def send_request(self, params: HttpRequest, returnJson: bool = False):
+    async def handle_request(self, params: HttpRequest, toJson=False):
+        await self.ensure_session()
         try:
             async with self.__session.request(
                 params.method, params.endpoint, params=params.params
             ) as response:
-                if returnJson:
-                    result = await response.json()
+                if toJson:
+                    return await response.json()
                 else:
-                    result = await response
-                return result
+                    return await response.text()
         except Exception as e:
             self.logger.exception(f"Request failed: {e}")
             raise
@@ -88,9 +109,15 @@ class HttpClientSessionManager:
     async def fetch_json(self, endpoint: str, params: dict):
         """wrapper for send_request that does a fetch (get) and retrieves JSON response
         errors are handled in send_request"""
-        requestParams = HttpRequest(params=params, endpoint=endpoint)
-        result = await self.send_request(requestParams, returnJson=True)
-        return result
+        request_params = HttpRequest(params=params, endpoint=endpoint)
+        response = await self.handle_request(request_params, toJson=True)
+        return response
+
+    async def fetch_text(self, endpoint: str, params: dict) -> str:
+        """Wrapper for send_request that fetches raw text response (for XML, etc)."""
+        request_params = HttpRequest(params=params, endpoint=endpoint)
+        response = await self.handle_request(request_params)
+        return response
 
     async def close(self):
         if self.__session is not None:
@@ -99,8 +126,5 @@ class HttpClientSessionManager:
             await self.__connector.close()
 
     async def __call__(self) -> ClientSession:
-        if self.__session is None:
-            raise Exception(
-                f"HTTP client session manager for {self.__baseUrl} not initialized"
-            )
+        await self.ensure_session()
         return self.__session
