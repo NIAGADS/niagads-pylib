@@ -1,4 +1,4 @@
-from niagads.nlp_utils import core
+from niagads.nlp import core
 
 
 def test_sample():
