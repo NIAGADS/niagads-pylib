@@ -23,3 +23,4 @@ class RegularExpressions(StrEnum):
     PVALUE_SCIENTIFIC_NOTATION = (
         r"^[1-9]\d{0,2}(\.\d{1,2})?e-\d{1,3}$" r"^[1-9]\d*(\.\d+)?e-\d+$"
     )
+    PVALUE = r"p[- ]?value\s*[:=]?\s*[<=>]?\s*[\d\.eE\-×^]+|p\s*[<=>]\s*[\d\.eE\-×^]+"
