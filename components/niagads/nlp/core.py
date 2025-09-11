@@ -1,7 +1,7 @@
 import re
 import warnings
 from enum import auto
-from typing import List
+from typing import List, Tuple
 
 import spacy
 from niagads.enums.core import CaseInsensitiveEnum
@@ -17,30 +17,36 @@ class NLPModelType(CaseInsensitiveEnum):
         EMBEDDING: Models used for generating embeddings.
         NER: Models used for Named Entity Recognition.
         SYNONYM: Models used for synonym generation or paraphrasing.
+        LLM: Models used for general or prompt-based large language model tasks (biomedical chat, reasoning, etc.)
     """
 
     SUMMARIZATION = auto()
     EMBEDDING = auto()
     NER = auto()
     SYNONYM = auto()
+    LLM = auto()
 
 
 class NLPModel(CaseInsensitiveEnum):
     """
-    Enum for selecting NLP models (summarization, embedding, NER, synonym generation), case-insensitive.
+    Enum for selecting NLP models (summarization, embedding, NER, synonym generation, LLM), case-insensitive.
 
     Members:
-        PEGASUS_PUBMED: Biomedical summarization (google/pegasus-pubmed)
-        BART_LARGE_CNN: General summarization (facebook/bart-large-cnn)
-        LED_ARXIV: Long document summarization (allenai/led-base-16384-arxiv)
-        ALL_MINILM_L6_V2: General-purpose sentence embedding (sentence-transformers/all-MiniLM-L6-v2)
-        BIOBERT_MNLI_SNLI: Biomedical/scientific sentence embedding (pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb)
-        SPECTER: Scientific/biomedical paper embedding (sentence-transformers/allenai-specter)
-        D4DATA: Biomedical NER (d4data/biomedical-ner-all)
-        SAPBERT: Biomedical NER (cambridgeltl/SapBERT-from-PubMedBERT-fulltext-ner)
-        BENT_PUBMEDBERT_VARIANT: Biomedical NER (pruas/BENT-PubMedBERT-NER-Variant)
-        T5: T5 paraphrase model (Vamsi/T5_Paraphrase_Paws)
-        BART_PARAPHRASE: BART paraphrase model (eugenesiow/bart-paraphrase)
+        PEGASUS_PUBMED: Biomedical summarization (google/pegasus-pubmed). Excellent for summarizing PubMed abstracts and biomedical literature.
+        BART_LARGE_CNN: General summarization (facebook/bart-large-cnn). Strong for news and general domain summarization.
+        LED_ARXIV: Long document summarization (allenai/led-base-16384-arxiv). Designed for summarizing long scientific documents, especially arXiv papers.
+        ALL_MINILM_L6_V2: General-purpose sentence embedding (sentence-transformers/all-MiniLM-L6-v2). Fast, lightweight, and effective for semantic similarity and clustering.
+        BIOBERT_MNLI_SNLI: Biomedical/scientific sentence embedding (pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb). Specialized for biomedical and scientific text embeddings.
+        SPECTER: Scientific/biomedical paper embedding (sentence-transformers/allenai-specter). State-of-the-art for scientific document similarity and citation prediction.
+        D4DATA: Biomedical NER (d4data/biomedical-ner-all). Robust for extracting biomedical entities (genes, diseases, chemicals, etc.) from text.
+        SAPBERT: Biomedical NER (cambridgeltl/SapBERT-from-PubMedBERT-fulltext-ner). Strong for biomedical entity normalization and NER.
+        BENT_PUBMEDBERT_VARIANT: Biomedical NER (pruas/BENT-PubMedBERT-NER-Variant). Focused on variant and mutation extraction in biomedical literature.
+        T5: T5 paraphrase model (Vamsi/T5_Paraphrase_Paws). General-purpose paraphrasing, good for data augmentation.
+        BART_PARAPHRASE: BART paraphrase model (eugenesiow/bart-paraphrase). General-purpose paraphrasing, strong for diverse rewording.
+        BIOGPT_LARGE: Biomedical LLM (microsoft/BioGPT-Large). Prompt-based biomedical reasoning, generation, and Q&A; excels at biomedical knowledge tasks.
+        BIOMEDLM: Biomedical LLM (stanford-crfm/BioMedLM). GPT-3 style, strong for biomedical text generation, reasoning, and Q&A.
+        PUBMEDGPT: Biomedical LLM (stanford-crfm/pubmedgpt). GPT-2 style, trained on PubMed abstracts; good for biomedical text generation and completion.
+        MEDALPACA: Biomedical LLM (medalpaca/medalpaca-7b). Instruction-tuned for medical Q&A and reasoning, excels at following prompts in clinical/biomedical contexts.
     """
 
     PEGASUS_PUBMED = auto()
@@ -54,6 +60,10 @@ class NLPModel(CaseInsensitiveEnum):
     BENT_PUBMEDBERT_VARIANT = auto()
     T5 = auto()
     BART_PARAPHRASE = auto()
+    BIOGPT_LARGE = auto()
+    BIOMEDLM = auto()
+    PUBMEDGPT = auto()
+    MEDALPACA = auto()
 
     _MODEL_TYPE_MAP = {
         PEGASUS_PUBMED: NLPModelType.SUMMARIZATION,
@@ -67,6 +77,10 @@ class NLPModel(CaseInsensitiveEnum):
         BENT_PUBMEDBERT_VARIANT: NLPModelType.NER,
         T5: NLPModelType.SYNONYM,
         BART_PARAPHRASE: NLPModelType.SYNONYM,
+        BIOGPT_LARGE: NLPModelType.LLM,
+        BIOMEDLM: NLPModelType.LLM,
+        PUBMEDGPT: NLPModelType.LLM,
+        MEDALPACA: NLPModelType.LLM,
     }
 
     def __str__(self):
@@ -92,6 +106,14 @@ class NLPModel(CaseInsensitiveEnum):
             return "Vamsi/T5_Paraphrase_Paws"
         elif self == NLPModel.BART_PARAPHRASE:
             return "eugenesiow/bart-paraphrase"
+        elif self == NLPModel.BIOGPT_LARGE:
+            return "microsoft/BioGPT-Large"
+        elif self == NLPModel.BIOMEDLM:
+            return "stanford-crfm/BioMedLM"
+        elif self == NLPModel.PUBMEDGPT:
+            return "stanford-crfm/pubmedgpt"
+        elif self == NLPModel.MEDALPACA:
+            return "medalpaca/medalpaca-7b"
         else:
             return self._missing_()
 
@@ -127,6 +149,30 @@ class NLPModel(CaseInsensitiveEnum):
             f"Model '{value}' is not registered in this library, but is a valid Hugging Face model. Please ensure it is suitable for your intended use."
         )
         return value
+
+    @classmethod
+    def list(cls, model_type: "NLPModelType" = None) -> List[Tuple[str, str, str]]:
+        """
+        List all NLPModel members, or only those matching the specified NLPModelType.
+
+        Args:
+            model_type (NLPModelType, optional): If provided, only models of this type are listed.
+
+        Returns:
+            List[Tuple[str, str, str]]: List of (member name, Hugging Face model string, documentation string)
+        """
+        results = []
+        for member in cls:
+            if model_type is None or member.model_type == model_type:
+                doc = cls.__doc__ or ""
+                doc_lines = [
+                    l.strip()
+                    for l in doc.splitlines()
+                    if l.strip().startswith(f"{member.name}:")
+                ]
+                doc_str = doc_lines[0] if doc_lines else ""
+                results.append((member.name, str(member), doc_str))
+        return results
 
 
 def validate_llm_type(model: NLPModel, model_type: NLPModelType) -> str:
