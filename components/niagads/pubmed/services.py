@@ -20,6 +20,7 @@ class PubMedArticleMetadata(BaseModel):
     authors: List[PubMedAuthor] = []
     journal: Optional[str]
     year: Optional[str]
+    mesh_terms: Optional[List[str]] = None
 
 
 class PubMedQueryFilters(BaseModel):
@@ -217,6 +218,13 @@ class PubMedQueryService:
                     else None
                 )
                 year = year_elem.text if year_elem is not None else None
+                mesh_terms = []
+                if medline is not None:
+                    for mesh_heading in medline.findall(
+                        "MeshHeadingList/MeshHeading/DescriptorName"
+                    ):
+                        if mesh_heading.text:
+                            mesh_terms.append(mesh_heading.text)
                 all_articles.append(
                     PubMedArticleMetadata(
                         pmid=pmid,
@@ -225,6 +233,7 @@ class PubMedQueryService:
                         authors=authors,
                         journal=journal,
                         year=year,
+                        mesh_terms=mesh_terms if mesh_terms else None,
                     )
                 )
         return all_articles
