@@ -91,6 +91,9 @@ torch = "^2.8.0"
 spacy = "^3.8.7"
 plotly = "^6.3.0"
 wordcloud = "^1.9.4"
+sentence-transformers = "^5.1.0"
+tiktoken = "^0.11.0"
+protobuf = "^6.32.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
@@ -101,6 +104,8 @@ lazydoc = "^1.0.1"
 mypy = "^1.8.0"
 pydocstyle = "^6.3.0"
 pytest = "^8.2.2"
+nbformat = "^5.10.4"
+ipywidgets = "^8.1.7"
 
 [tool.pytest.ini_options]
 addopts = "-vv"
