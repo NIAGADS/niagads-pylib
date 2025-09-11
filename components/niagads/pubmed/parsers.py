@@ -1,5 +1,9 @@
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 from xml.etree import ElementTree
+
+import plotly.graph_objects as go
+from niagads.pubmed.services import PubMedArticleMetadata
+from pydantic import BaseModel, Field
 
 
 class PMCFullTextParser:
@@ -131,3 +135,128 @@ class PMCFullTextParser:
             for s in self.__sections
             if s["title"] and s["title"].lower() in titles_lower
         ]
+
+
+class PubMedArticleSummary(BaseModel):
+    years: Dict[str, int] = Field(default_factory=dict)
+    journals: Dict[str, int] = Field(default_factory=dict)
+    mesh_terms: Dict[str, int] = Field(default_factory=dict)
+
+
+class PubMedAnalyzer:
+    """
+    Analyzes a list of PubMedArticleMetadata for distributions of publication years, MeSH terms, and journals.
+    """
+
+    def __init__(self, articles: List[PubMedArticleMetadata]):
+        self.__articles = articles
+        self.__summary: PubMedArticleSummary = None
+
+    def summarize(self) -> PubMedArticleSummary:
+        years = {}
+        journals = {}
+        mesh_terms = {}
+        for article in self.__articles:
+            year = article.year
+            if year:
+                years[year] = years.get(year, 0) + 1
+            journal = article.journal
+            if journal:
+                journals[journal] = journals.get(journal, 0) + 1
+            mesh_list = getattr(article, "mesh_terms", None)
+            if mesh_list:
+                for mesh in mesh_list:
+                    mesh_terms[mesh] = mesh_terms.get(mesh, 0) + 1
+        self.__summary = PubMedArticleSummary(
+            years=years,
+            journals=journals,
+            mesh_terms=mesh_terms,
+        )
+
+    @property
+    def summary(self) -> Optional[PubMedArticleSummary]:
+        """Return the cached PubMedSummary"""
+        if not self.__summary:
+            self.run()
+        return self.__summary
+
+    def plot_summary(self, top_n: Optional[int] = None):
+        """
+        Plot interactive bar charts for year, journal, and MeSH term distributions using Plotly.
+        top_n: Number of top journals and MeSH terms to display. If None, show all.
+        """
+        if not self.__summary:
+            self.summarize()
+
+        # Year distribution (vertical bar chart)
+        years = list(self.__summary.years.keys())
+        year_counts = list(self.__summary.years.values())
+        year_fig = go.Figure(
+            data=[go.Bar(x=years, y=year_counts)],
+        )
+        year_fig.update_layout(
+            title="Publication Year Distribution",
+            xaxis_title="Year",
+            yaxis_title="Count",
+            xaxis_tickangle=-45,
+            width=1000,
+            height=400,
+        )
+        year_fig.show()
+
+        # Journal distribution (horizontal bar chart)
+        journal_dist = self.__summary.journals
+        items = sorted(journal_dist.items(), key=lambda x: x[1], reverse=True)
+        if top_n is not None:
+            items = items[:top_n]
+        journals, journal_counts = zip(*items) if items else ([], [])
+        journal_fig = go.Figure(
+            data=[go.Bar(y=list(journals), x=list(journal_counts), orientation="h")],
+        )
+        journal_fig.update_layout(
+            title=f"{'Top ' + str(top_n) if top_n else 'All'} Journals",
+            yaxis_title="Journal",
+            xaxis_title="Count",
+            width=1000,
+            height=400,
+        )
+        journal_fig.update_yaxes(autorange="reversed")
+        journal_fig.show()
+
+        # MeSH term distribution (horizontal bar chart)
+        mesh_dist = self.__summary.mesh_terms
+        items = sorted(mesh_dist.items(), key=lambda x: x[1], reverse=True)
+        if top_n is not None:
+            items = items[:top_n]
+        mesh_terms, mesh_counts = zip(*items) if items else ([], [])
+        mesh_fig = go.Figure(
+            data=[
+                go.Bar(
+                    y=list(mesh_terms),
+                    x=list(mesh_counts),
+                    orientation="h",
+                    marker=dict(
+                        line=dict(width=1, color="black"),
+                        color="rgba(31, 119, 180, 0.7)",
+                    ),
+                    width=0.7,  # Thicker bars
+                )
+            ],
+        )
+        mesh_fig.update_layout(
+            title=f"{'Top ' + str(top_n) if top_n else 'All'} MeSH Terms",
+            yaxis_title="MeSH Term",
+            xaxis_title="Count",
+            width=1200,
+            height=max(400, 30 * len(mesh_terms)),  # Dynamic height for all labels
+            margin=dict(l=300, r=40, t=60, b=60),  # More left margin for long labels
+            yaxis=dict(
+                automargin=True,
+                tickfont=dict(size=16),
+            ),
+            xaxis=dict(
+                tickfont=dict(size=14),
+            ),
+        )
+        mesh_fig.update_yaxes(autorange="reversed")
+        mesh_fig.show()
