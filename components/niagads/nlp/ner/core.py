@@ -10,6 +10,8 @@ from niagads.nlp.core import (
 )
 from transformers import pipeline
 
+# TODO: chunking?
+
 
 class EntityNER(ComponentBaseMixin):
     """
@@ -52,7 +54,7 @@ class EntityNER(ComponentBaseMixin):
         ]
         return list(sorted(set(entities)))
 
-    def context(
+    def contexts(
         self,
         text: str,
         summarize: bool = False,

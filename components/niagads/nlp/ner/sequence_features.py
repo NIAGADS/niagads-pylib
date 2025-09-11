@@ -36,6 +36,10 @@ class GeneNER(EntityNER):
 
 # XXX: no good NER model currently exists for variants and certainly not SV
 # research gap worth exploring
+
+# TODO: chunking for association extraction
+
+
 class VariantNER(EntityNER):
     """
     Identifies variant references and their contexts in text using an LLM-based NER model.
@@ -70,7 +74,7 @@ class VariantNER(EntityNER):
         super().__init__(model=model, debug=debug, verbose=verbose)
 
     # TODO: broaden the context and capture the disease-risk association
-    def variant_pvalue_association(
+    def associations(
         self,
         text: str,
         use_llm: bool = True,
@@ -78,7 +82,11 @@ class VariantNER(EntityNER):
     ) -> dict:
         """
         Hybrid approach: For each variant mention in the text, extract p-value/statistical references associated with it.
-        If use_ner is True, use NER-based sentence co-occurrence. If False, use LLM prompt-based association.
+        If use_ner is True, use NER-based context extraction; if False, use LLM prompt-based association.
+
+        Use the NER approach for fast, structured extraction when the text is well-formed and entity boundaries are clear.
+        Use the prompt-based LLM approach for more complex, ambiguous, or context-dependent associations where
+        deeper reasoning or flexible language understanding is required.
 
         Args:
             text (str): Input text to analyze for variant-pvalue associations.
@@ -89,33 +97,33 @@ class VariantNER(EntityNER):
             dict: Mapping from variant mention (str) to list of p-value/statistical reference strings associated with it.
         """
         if use_llm:
-            return self._variant_pvalue_map_llm(text, llm_model)
+            return self._associations_llm(text, llm_model)
         else:
-            return self._variant_pvalue_map_ner(text)
+            return self._associations_ner(text)
 
-    def _variant_pvalue_map_ner(self, text: str) -> dict:
+    def _associations_ner(self, text: str) -> dict:
         """
         NER-based: For each variant mention in the text, extract p-value/statistical references that are contextually linked to it.
         Uses parent class methods for reference and context extraction.
         """
         pval_pattern = re.compile(RegularExpressions.PVALUE, re.IGNORECASE)
         variant_to_pvals = {}
+
         # Use parent method to get all variant references and their contexts (sentences)
-        variant_contexts = self.reference_contexts(
-            text
-        )  # returns List[Tuple[str, str]]
+        variant_contexts = self.contexts(text)  # returns List[Tuple[str, str]]
         for variant, context in variant_contexts:
             pvals = [m.strip() for m in pval_pattern.findall(context)]
             if pvals:
                 if variant not in variant_to_pvals:
                     variant_to_pvals[variant] = []
                 variant_to_pvals[variant].extend(pvals)
+
         # Remove duplicates and sort
         for variant in variant_to_pvals:
             variant_to_pvals[variant] = list(sorted(set(variant_to_pvals[variant])))
         return variant_to_pvals
 
-    def _variant_pvalue_map_llm(self, text: str, llm_model: NLPModel) -> dict:
+    def _associations_llm(self, text: str, llm_model: NLPModel) -> dict:
         """
         LLM prompt-based: For each variant mention, use an LLM to extract the associated p-value/statistical reference from the text.
         """
