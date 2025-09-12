@@ -5,6 +5,12 @@ Pydantic models for composite attributes related to gene features
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+GO_EVIDENCE_CODE_FIELD = Field(
+    default=None,
+    title="Evidence Code",
+    description="GO Evidence Code. See https://geneontology.org/docs/guide-go-evidence-codes/.",
+)  # code
+
 
 class GOEvidence(BaseModel):
     """
@@ -37,11 +43,7 @@ class GOEvidence(BaseModel):
         description="term id in the Evidence and Conclusion Ontology.  See https://www.evidenceontology.org/.",
         examples=["ECO:0000250"],
     )  # ontology_term_id
-    go_evidence_code: Optional[str] = Field(
-        default=None,
-        title="Evidence Code",
-        description="GO Evidence Code. See https://geneontology.org/docs/guide-go-evidence-codes/.",
-    )  # code
+    go_evidence_code: Optional[str] = GO_EVIDENCE_CODE_FIELD
     annotation_source: Optional[str] = Field(
         default=None, title="Annotation Source", description="annotator"
     )
@@ -91,7 +93,7 @@ class PathwayAnnotation(BaseModel):
     pathway_source: str = Field(
         title="Source", description="data source for the pathway annotation"
     )
-    evidence_code: Optional[str] = Field(default=None, title="GO Evidence Code")
+    evidence_code: Optional[str] = GO_EVIDENCE_CODE_FIELD
 
     def __str__(self):
         """Return the pathway name as string representation."""
