@@ -91,6 +91,7 @@ class PathwayAnnotation(BaseModel):
     pathway_source: str = Field(
         title="Source", description="data source for the pathway annotation"
     )
+    evidence_code: Optional[str] = Field(default=None, title="GO Evidence Code")
 
     def __str__(self):
         """Return the pathway name as string representation."""
