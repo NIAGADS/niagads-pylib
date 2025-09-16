@@ -1,10 +1,10 @@
-# GenomicsDB Databaset Local Dev Environment
+# GenomicsDB Database Local Dev Environment
 
 ## PostgreSQL 17 Docker Setup
 
 ### 1. Configure Environment Variables
 
-Copy** `sample.db.env` to `db.env` and `sample.env` to `.env` and set the following values:
+**Copy** `sample.db.env` to `db.env` and `sample.env` to `.env` and set the following values:
 
 * `POSTGRES_USER`: Set your desired PostgreSQL admin username.
 * `POSTGRES_PASSWORD`: Set a password for the admin user.

@@ -1,25 +1,24 @@
-"""`Gene` (metadata) database model"""
+"""`Gene` database model"""
 
-from enum import auto
-from typing import Any, List, Optional
+from typing import Any, Optional
 
-from niagads.database.core import ModelDumpMixin, enum_constraint
-from niagads.database.schemas.feature.base import FeatureSchemaBase
+from niagads.assembly.core import Human
 from niagads.common.models.composite_attributes.gene import (
     GOAnnotation,
     PathwayAnnotation,
 )
-from niagads.assembly.core import Human
+from niagads.database.core import ModelDumpMixin, enum_constraint
+from niagads.database.genomicsdb.schemas.gene.base import GeneSchemaBase
 from niagads.utils.regular_expressions import RegularExpressions
 from sqlalchemy import Column, Enum, Index
+from sqlalchemy.dialects.postgresql import INT4RANGE, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy_utils import LtreeType
-from sqlalchemy.dialects.postgresql import INT4RANGE, JSONB
 
 
-class Gene(ModelDumpMixin, FeatureSchemaBase):
-    __tablename__ = "gene_docs"
+class Documents(ModelDumpMixin, GeneSchemaBase):
+    __tablename__ = "documents"
     __table_args__ = (
         enum_constraint("shard_chromosome", Human),
         CheckConstraint(

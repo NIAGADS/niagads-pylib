@@ -21,7 +21,7 @@ requires-python = ">=3.11,<4.0"
 version = "0.1.0"
 
 [project.scripts]
-filer-metadata-loader = "niagads.loaders.genomicsdb.schemas.metadata.filer:run_main"
+filer-metadata-loader = "niagads.loaders.genomicsdbgenomicsdb.schemas.metadata.filer:run_main"
 
 [tool.poetry]
 packages = [

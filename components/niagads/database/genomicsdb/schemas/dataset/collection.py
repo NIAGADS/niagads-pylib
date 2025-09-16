@@ -3,8 +3,8 @@
 from typing import Optional
 
 from niagads.database.core import HousekeepingMixin, enum_constraint, ModelDumpMixin
-from niagads.database.schemas.dataset.base import DatasetSchemaBase
-from niagads.database.schemas.dataset.track import TrackDataStore
+from niagads.database.genomicsdb.schemas.dataset.base import DatasetSchemaBase
+from niagads.database.genomicsdb.schemas.dataset.track import TrackDataStore
 from sqlalchemy import Column, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 

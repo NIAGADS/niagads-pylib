@@ -6,7 +6,7 @@ from collections import ChainMap
 from itertools import groupby
 from operator import itemgetter
 
-from niagads.database.schemas.dataset.track import Track, TrackDataStore
+from niagads.database.genomicsdb.schemas.dataset.track import Track, TrackDataStore
 from niagads.database.session import DatabaseSessionManager
 from niagads.assembly.core import GenomicFeatureType
 from niagads.api_common.models.features.bed import BEDFeature

@@ -10,7 +10,7 @@ from niagads.api_common.models.features.genomic import (
 from niagads.api_common.models.records import Entity
 from niagads.api_common.services.features import FeatureQueryService
 from niagads.common.models.structures import Range
-from niagads.database.schemas.dataset.track import Track, TrackDataStore
+from niagads.database.genomicsdb.schemas.dataset.track import Track, TrackDataStore
 from niagads.exceptions.core import ValidationError
 from niagads.api_common.models.features.feature_score import (
     GWASSumStatResponse,

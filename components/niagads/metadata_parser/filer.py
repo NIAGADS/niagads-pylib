@@ -11,7 +11,7 @@ from niagads.common.models.composite_attributes.dataset import (
     FileProperties,
     Provenance,
 )
-from niagads.database.schemas.dataset.track import Track
+from niagads.database.genomicsdb.schemas.dataset.track import Track
 from niagads.utils.dict import print_dict
 from niagads.utils.list import array_in_string, remove_duplicates, remove_from_list
 from niagads.utils.logging import FunctionContextAdapter

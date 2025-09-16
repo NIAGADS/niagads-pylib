@@ -2,10 +2,10 @@ from datetime import datetime
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.list import list_to_string
-from sqlalchemy import CheckConstraint, Index, func, DATETIME
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DATETIME, CheckConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy.sql.schema import ForeignKey
-from sqlalchemy.types import String
+from sqlalchemy import MetaData
 
 
 class HousekeepingMixin(object):
@@ -54,3 +54,34 @@ def enum_constraint(field_name: str, enum: CaseInsensitiveEnum):
         f"{field_name} in ({list_to_string(enum.list(), quote=True, delim=', ')})",
         name=f"check_{field_name}",
     )
+
+
+class DeclarativeModelBaseFactory:
+    """
+    Factory for creating SQLAlchemy DeclarativeBase classes with optional schema and mixins.
+    """
+
+    @staticmethod
+    def create(schema: str = None, housekeeping: bool = True):
+        """
+        Create a DeclarativeBase class with optional schema and mixins.
+
+        Args:
+            schema (str, optional): The database schema to use.
+            housekeeping (bool): Whether to include HousekeepingMixin.
+
+        Returns:
+            DeclarativeBase: A new DeclarativeBase subclass.
+        """
+        bases = (ModelDumpMixin,)
+        if housekeeping:
+            bases = (HousekeepingMixin,) + bases
+        bases = bases + (DeclarativeBase,)
+
+        class Base(*bases):
+            if schema:
+                metadata = MetaData(schema=schema)
+            else:
+                metadata = MetaData()
+
+        return Base

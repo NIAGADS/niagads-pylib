@@ -1,13 +1,15 @@
 from enum import Enum
 
 # note the schema base is imported from core, not base so that all tables are generated
-from niagads.database.schemas.dataset.core import DatasetSchemaBase
-from niagads.database.schemas.core.core import CoreSchemaBase
+from niagads.database.genomicsdb.schemas.dataset.core import DatasetSchemaBase
+from niagads.database.genomicsdb.schemas.core.core import CoreSchemaBase
+from niagads.database.schemas.gene.base import GeneSchemaBase
 
 
 class Schema(Enum):
     DATABASE = DatasetSchemaBase
     CORE = CoreSchemaBase
+    GENE = GeneSchemaBase
 
     @classmethod
     def _missing_(cls, value: str):
