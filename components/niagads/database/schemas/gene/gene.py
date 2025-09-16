@@ -19,7 +19,7 @@ from sqlalchemy.dialects.postgresql import INT4RANGE, JSONB
 
 
 class Gene(ModelDumpMixin, FeatureSchemaBase):
-    __tablename__ = "gene"
+    __tablename__ = "gene_docs"
     __table_args__ = (
         enum_constraint("shard_chromosome", Human),
         CheckConstraint(
