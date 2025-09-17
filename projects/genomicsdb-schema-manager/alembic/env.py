@@ -2,11 +2,11 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from niagads.database.session import DatabaseSessionManager
+from niagads.database import DatabaseSessionManager
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
 
-from database.genomicsdb.schemas import Schema
+from database.schemas import Schema
 from database.config import Settings
 
 # get config options from the .ini file
