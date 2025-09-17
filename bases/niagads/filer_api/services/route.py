@@ -1,13 +1,11 @@
 import asyncio
 from typing import List, Union
-from fastapi import HTTPException
 from niagads.exceptions.core import ValidationError
 from collections import ChainMap
 from itertools import groupby
 from operator import itemgetter
 
 from niagads.database.genomicsdb.schemas.dataset.track import Track, TrackDataStore
-from niagads.database.session import DatabaseSessionManager
 from niagads.assembly.core import GenomicFeatureType
 from niagads.api_common.models.features.bed import BEDFeature
 from niagads.api_common.models.features.genomic import GenomicFeature
