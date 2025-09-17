@@ -17,8 +17,8 @@ from sqlalchemy.schema import CheckConstraint
 from sqlalchemy_utils import LtreeType
 
 
-class Documents(ModelDumpMixin, GeneSchemaBase):
-    __tablename__ = "documents"
+class Gene(ModelDumpMixin, GeneSchemaBase):
+    __tablename__ = "models"
     __table_args__ = (
         enum_constraint("shard_chromosome", Human),
         CheckConstraint(
@@ -34,7 +34,5 @@ class Documents(ModelDumpMixin, GeneSchemaBase):
     chromosome: str = Column(Enum(Human, native_enum=False))
     bin_index: Mapped[str] = mapped_column(LtreeType)
     location: Mapped[Any] = mapped_column(INT4RANGE)
-    go_annotation: Mapped[Optional[GOAnnotation]] = mapped_column(
-        JSONB(none_as_null=True)
-    )
-    pathway_membership: Mapped[Optional[PathwayAnnotation]]
+    cytogenic_loca
+    id_mappings: Mapped[dict] = mapped_column(JSONB, nullable=True)

@@ -17,7 +17,7 @@ from sqlalchemy.schema import CheckConstraint
 from sqlalchemy_utils import LtreeType
 
 
-class Documents(ModelDumpMixin, GeneSchemaBase):
+class GeneDocuments(ModelDumpMixin, GeneSchemaBase):
     __tablename__ = "documents"
     __table_args__ = (
         enum_constraint("shard_chromosome", Human),
