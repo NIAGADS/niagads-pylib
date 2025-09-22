@@ -1,8 +1,10 @@
-from sqlalchemy import MetaData
-from sqlalchemy.orm import DeclarativeBase
+"""
+Base class for the `Core` schema models in the genomicsdb database.
+Uses DeclarativeModelBaseFactory to create a SQLAlchemy DeclarativeBase with housekeeping fields.
+"""
 
+from niagads.database.common.base import DeclarativeModelBaseFactory
 
-class CoreSchemaBase(DeclarativeBase):
-    """base class for the `Index` database models"""
-
-    metadata = MetaData(schema="core")
+CoreSchemaBase = DeclarativeModelBaseFactory.create(
+    schema="core", incl_housekeeping=True
+)

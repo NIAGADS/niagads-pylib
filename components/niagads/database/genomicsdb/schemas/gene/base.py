@@ -1,3 +1,10 @@
-from niagads.database.core import DeclarativeModelBaseFactory
+"""
+Base class for the `Gene` schema models in the genomicsdb database.
+Uses DeclarativeModelBaseFactory to create a SQLAlchemy DeclarativeBase with housekeeping fields.
+"""
 
-GeneSchemaBase = DeclarativeModelBaseFactory.create(schema="gene", housekeeping=True)
+from niagads.database.common.base import DeclarativeModelBaseFactory
+
+GeneSchemaBase = DeclarativeModelBaseFactory.create(
+    schema="gene", incl_housekeeping=True
+)

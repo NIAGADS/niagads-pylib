@@ -3,7 +3,8 @@
 from enum import auto
 from typing import Any, List, Optional
 
-from niagads.database.core import ModelDumpMixin, enum_constraint
+from niagads.database.common.base import ModelDumpMixin
+from niagads.database.common.utils import enum_column, enum_constraint
 from niagads.database.genomicsdb.schemas.dataset.base import DatasetSchemaBase
 from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
@@ -52,15 +53,12 @@ class Track(ModelDumpMixin, DatasetSchemaBase):
     )
 
     track_id: Mapped[str] = mapped_column(unique=True, index=True)
-    data_store: str = Column(
-        Enum(TrackDataStore, native_enum=False), nullable=False, index=True
-    )
+    data_store: str = enum_column(TrackDataStore)
+
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
 
-    genome_build: str = Column(
-        Enum(Assembly, native_enum=False), nullable=False, index=True
-    )
+    genome_build: str = enum_column(Assembly)
 
     feature_type: Mapped[str] = mapped_column(String(50), index=True)
     is_download_only: Mapped[bool] = mapped_column(default=False, index=True)
@@ -68,7 +66,7 @@ class Track(ModelDumpMixin, DatasetSchemaBase):
     searchable_text: Mapped[str] = mapped_column(TEXT)
 
     is_shard: Mapped[Optional[bool]]
-    shard_chromosome: str = Column(Enum(Human, native_enum=False))
+    shard_chromosome: str = enum_column(Human, index=False, nullable=True)
     shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
     cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))
@@ -108,6 +106,6 @@ class TrackInterval(ModelDumpMixin, DatasetSchemaBase):
     track_interval_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     bin_index: Mapped[str] = mapped_column(LtreeType)
     track_id: Mapped[str]  # TODO: mapped_column(ForeignKey("metadata.track.track_id"))
-    chromosome: str = Column(Enum(Human, native_enum=False))
+    chromosome: str = enum_column(Human)
     num_hits: Mapped[int]
     span: Mapped[Any] = mapped_column(INT4RANGE)

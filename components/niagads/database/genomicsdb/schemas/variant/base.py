@@ -1,8 +1,10 @@
-from sqlalchemy import MetaData
-from sqlalchemy.orm import DeclarativeBase
+"""
+Base class for the `Variant` schema models in the genomicsdb database.
+Uses DeclarativeModelBaseFactory to create a SQLAlchemy DeclarativeBase with housekeeping fields.
+"""
 
+from niagads.database.common.base import DeclarativeModelBaseFactory
 
-class VariantSchemaBase(DeclarativeBase):
-    """base class for the `Index` database models"""
-
-    metadata = MetaData(schema="variant")
+VariantSchemaBase = DeclarativeModelBaseFactory.create(
+    schema="variant", incl_housekeeping=True
+)

@@ -7,7 +7,7 @@ from niagads.common.models.composite_attributes.gene import (
     GOAnnotation,
     PathwayAnnotation,
 )
-from niagads.database.core import ModelDumpMixin, enum_constraint
+from niagads.database.common.base import ModelDumpMixin, enum_constraint
 from niagads.database.genomicsdb.schemas.gene.base import GeneSchemaBase
 from niagads.utils.regular_expressions import RegularExpressions
 from sqlalchemy import Column, Enum, Index
@@ -17,8 +17,8 @@ from sqlalchemy.schema import CheckConstraint
 from sqlalchemy_utils import LtreeType
 
 
-class Gene(ModelDumpMixin, GeneSchemaBase):
-    __tablename__ = "models"
+class RAGDocument(ModelDumpMixin, GeneSchemaBase):
+    __tablename__ = "document"
     __table_args__ = (
         enum_constraint("shard_chromosome", Human),
         CheckConstraint(
@@ -34,5 +34,7 @@ class Gene(ModelDumpMixin, GeneSchemaBase):
     chromosome: str = Column(Enum(Human, native_enum=False))
     bin_index: Mapped[str] = mapped_column(LtreeType)
     location: Mapped[Any] = mapped_column(INT4RANGE)
-    cytogenic_loca
-    id_mappings: Mapped[dict] = mapped_column(JSONB, nullable=True)
+    go_annotation: Mapped[Optional[GOAnnotation]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    pathway_membership: Mapped[Optional[PathwayAnnotation]]

@@ -1,13 +1,9 @@
 """`Gene` database model"""
 
-from typing import Any, Optional
+from typing import Any
 
 from niagads.assembly.core import Human
-from niagads.common.models.composite_attributes.gene import (
-    GOAnnotation,
-    PathwayAnnotation,
-)
-from niagads.database.core import ModelDumpMixin, enum_constraint
+from niagads.database.common.utils import enum_constraint
 from niagads.database.genomicsdb.schemas.gene.base import GeneSchemaBase
 from niagads.utils.regular_expressions import RegularExpressions
 from sqlalchemy import Column, Enum, Index
@@ -17,8 +13,8 @@ from sqlalchemy.schema import CheckConstraint
 from sqlalchemy_utils import LtreeType
 
 
-class GeneDocuments(ModelDumpMixin, GeneSchemaBase):
-    __tablename__ = "documents"
+class Gene(GeneSchemaBase):
+    __tablename__ = "models"
     __table_args__ = (
         enum_constraint("shard_chromosome", Human),
         CheckConstraint(
@@ -34,7 +30,5 @@ class GeneDocuments(ModelDumpMixin, GeneSchemaBase):
     chromosome: str = Column(Enum(Human, native_enum=False))
     bin_index: Mapped[str] = mapped_column(LtreeType)
     location: Mapped[Any] = mapped_column(INT4RANGE)
-    go_annotation: Mapped[Optional[GOAnnotation]] = mapped_column(
-        JSONB(none_as_null=True)
-    )
-    pathway_membership: Mapped[Optional[PathwayAnnotation]]
+    cytogenic_location: str
+    id_mappings: Mapped[dict] = mapped_column(JSONB, nullable=True)
