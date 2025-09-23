@@ -2,4 +2,4 @@
 # see https://stackoverflow.com/a/77767002
 #  FIXME: can I just use __init__.py?
 
-from niagads.database.genomicsdb.schemas.gene.base import GeneSchemaBase
+from niagads.genomicsdb.models.gene.base import GeneSchemaBase

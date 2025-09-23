@@ -2,7 +2,7 @@ from fastapi import Depends, Query, APIRouter
 from fastapi.responses import JSONResponse
 from niagads.api_common.constants import SharedOpenAPITags
 from niagads.api_common.models.features.genomic import GenomicRegion
-from niagads.api_common.models.response.core import RecordResponse, T_RecordResponse
+from niagads.api_common.models.response.core import RecordResponse
 from niagads.api_common.parameters.response import (
     ResponseContent,
     ResponseFormat,

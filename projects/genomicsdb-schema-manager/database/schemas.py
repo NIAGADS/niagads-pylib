@@ -1,9 +1,9 @@
 from enum import Enum
 
 # note the schema base is imported from core, not base so that all tables are generated
-from niagads.database.genomicsdb.schemas.dataset.core import DatasetSchemaBase
-from niagads.database.genomicsdb.schemas.core.core import CoreSchemaBase
-from niagads.database.genomicsdb.schemas.gene.base import GeneSchemaBase
+from niagads.genomicsdb.models.dataset.core import DatasetSchemaBase
+from niagads.genomicsdb.models.core.core import CoreSchemaBase
+from niagads.genomicsdb.models.gene.base import GeneSchemaBase
 
 
 class Schema(Enum):

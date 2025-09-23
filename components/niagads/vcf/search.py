@@ -1,4 +1,3 @@
-import os
 from typing import List, Union
 from cyvcf2 import VCF
 import pysam

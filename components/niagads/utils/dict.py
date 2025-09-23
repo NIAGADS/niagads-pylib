@@ -5,7 +5,7 @@ from typing import Union
 import warnings
 from collections import abc
 from types import SimpleNamespace
-from copy import deepcopy, copy
+from copy import deepcopy
 
 from niagads.utils.string import is_bool, is_null, to_bool, to_json, to_number
 from niagads.utils.list import all_elements_are_none as __list_is_none

@@ -20,7 +20,6 @@ from niagads.api_common.parameters.record.query import (
 )
 from niagads.api_common.parameters.response import ResponseContent
 
-from niagads.api_common.services.metadata.query import MetadataQueryService
 from niagads.api_common.services.route import (
     Parameters,
     ResponseConfiguration,
@@ -40,7 +39,10 @@ tags = [str(SharedOpenAPITags.SERVICE)]
     tags=tags,
     response_model=List[IGVBrowserTrackConfig],
     summary="get-track-genome-browser-configuration-bulk",
-    description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) by ID or collection",
+    description=(
+        "retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) "
+        "by ID or collection"
+    ),
 )
 # , or keyword search")
 async def get_track_browser_config_bulk(
@@ -54,10 +56,13 @@ async def get_track_browser_config_bulk(
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
-            content=ResponseContent.FULL, model=IGVBrowserTrackConfigResponse
+            content=ResponseContent.FULL,
+            model=IGVBrowserTrackConfigResponse,
         ),
         Parameters(
-            track=track, assembly=assembly, collection=collection
+            track=track,
+            assembly=assembly,
+            collection=collection,
         ),  # , keyword=keyword)
     )
 
@@ -85,9 +90,11 @@ async def get_track_browser_config_bulk(
     tags=tags,
     response_model=TableViewResponse,
     summary="get-genome-browser-track-selector-table-definition",
-    description="retrieve NIAGADS Genome Browser track selector table for one or more FILER `track`(s) by ID or collection",
-)
-# , or keyword")
+    description=(
+        "retrieve NIAGADS Genome Browser track selector table for one or more FILER `track`(s) "
+        "by ID or collection"
+    ),
+)  # , or keyword")
 async def get_track_selector(
     track=Depends(optional_track_list_param),
     assembly: Assembly = Depends(assembly_param),

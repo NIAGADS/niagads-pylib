@@ -1,4 +1,4 @@
-from niagads.database.genomicsdb.schemas.dataset.track import Track
+from niagads.genomicsdb.models.dataset.track import Track
 
 
 __all__ = [

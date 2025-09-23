@@ -49,7 +49,8 @@ router = APIRouter(
     ],
     summary="search-track-records",
     description="find functional genomics tracks by a keyword search against all text fields in the track metadata",
-    # description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata",
+    # description="find functional genomics tracks using category filters
+    # or by a keyword search against all text fields in the track metadata",
 )
 async def search_track_metadata(
     filter=Depends(TEXT_FILTER_PARAMETER),
@@ -100,7 +101,10 @@ async def search_track_metadata(
     "/shard/{track}",
     response_model=Union[TrackResponse, AbridgedTrackResponse, RecordResponse],
     summary="get-shard-metadata-beta",
-    description="Some tracks are sharded by chromosome.  Use this query to find a shard-specific track given a chromosome and related track identifier.",
+    description=(
+        "Some tracks are sharded by chromosome. "
+        "Use this query to find a shard-specific track given a chromosome and related track identifier."
+    ),
     include_in_schema=False,
 )
 async def get_shard(

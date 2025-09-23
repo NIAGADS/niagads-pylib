@@ -1,7 +1,7 @@
 # Settings for Open Access API microservices
 from typing import Optional
 
-from niagads.database.genomicsdb.schemas.dataset.track import TrackDataStore
+from niagads.genomicsdb.models.dataset.track import TrackDataStore
 from niagads.settings.core import CustomSettings
 
 

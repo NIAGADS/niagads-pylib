@@ -1,6 +1,6 @@
 from typing import Optional
 
-from niagads.database.genomicsdb.schemas.dataset.track import TrackDataStore
+from niagads.genomicsdb.models.dataset.track import TrackDataStore
 from niagads.api_common.models.services.cache import CacheKeyQualifier
 from niagads.api_common.parameters.internal import InternalRequestParameters
 from niagads.api_common.parameters.response import ResponseContent

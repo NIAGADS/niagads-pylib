@@ -6,14 +6,17 @@ GWAS_TRACK_CTE = """
         biosample_characteristics,
         CASE WHEN (subject_phenotypes->'disease')::text LIKE '%Alzh%' THEN 'AD'
         WHEN biosample_characteristics IS NOT NULL THEN 'Biomarker'
-        WHEN (subject_phenotypes->'disease')::text NOT LIKE '%Alzh%' OR subject_phenotypes->'neuropathology' IS NOT NULL THEN 'ADRD'
+        WHEN (subject_phenotypes->'disease')::text 
+        NOT LIKE '%Alzh%' OR subject_phenotypes->'neuropathology' IS NOT NULL THEN 'ADRD'
         ELSE NULL END AS category
     FROM Dataset.Track
     WHERE 
         feature_type = 'variant'
         AND experimental_design->>'classification' = 'genetic association' 
-        AND ((:association_source IN ('GWAS', 'ALL') AND experimental_design->>'data_category' = 'summary statistics')
-        OR (:association_source IN ('CURATED', 'ALL') AND experimental_design->>'data_category' = 'curated'))
+        AND ((:association_source IN ('GWAS', 'ALL') 
+            AND experimental_design->>'data_category' = 'summary statistics')
+        OR (:association_source IN ('CURATED', 'ALL') 
+            AND experimental_design->>'data_category' = 'curated'))
 """
 
 

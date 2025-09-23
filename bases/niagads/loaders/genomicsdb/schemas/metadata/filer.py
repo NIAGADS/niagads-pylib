@@ -5,7 +5,7 @@ from typing import List
 
 from niagads.arg_parser.core import case_insensitive_enum_type
 from niagads.common.constants.external_resources import NIAGADSResources
-from niagads.database.genomicsdb.schemas.dataset.track import Track, TrackDataStore
+from niagads.genomicsdb.models.dataset.track import Track, TrackDataStore
 from niagads.assembly.core import Assembly
 from niagads.loaders.core import AbstractDataLoader
 from niagads.metadata_parser.filer import MetadataTemplateParser

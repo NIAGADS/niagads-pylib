@@ -1,6 +1,5 @@
 from typing import List, Optional, Union
 
-from fastapi import HTTPException
 from niagads.common.models.core import TransformableModel
 from niagads.api_common.views.table import TableRow
 from niagads.api_common.models.features.genomic import GenomicRegion

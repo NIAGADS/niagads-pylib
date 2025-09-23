@@ -4,13 +4,12 @@ from niagads.api_common.config import Settings
 from niagads.api_common.models.core import ResultSize
 from niagads.api_common.models.features.genomic import (
     AnnotatedGenomicRegion,
-    GenomicFeature,
     GenomicRegion,
 )
 from niagads.api_common.models.records import Entity
 from niagads.api_common.services.features import FeatureQueryService
 from niagads.common.models.structures import Range
-from niagads.database.genomicsdb.schemas.dataset.track import Track, TrackDataStore
+from niagads.genomicsdb.models.dataset.track import Track, TrackDataStore
 from niagads.exceptions.core import ValidationError
 from niagads.api_common.models.features.feature_score import (
     GWASSumStatResponse,
@@ -32,14 +31,13 @@ from niagads.api_common.services.route import (
     ResponseConfiguration,
 )
 
-from niagads.assembly.core import GenomicFeatureType
 from niagads.genomics_api.queries.track_data import (
     TrackGWASSumStatQuery,
     TrackQTLGeneQuery,
 )
 from niagads.utils.dict import all_values_are_none
 from pydantic import BaseModel
-from sqlalchemy import bindparam, text
+
 from sqlalchemy.exc import NoResultFound
 
 

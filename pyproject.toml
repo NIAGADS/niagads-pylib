@@ -49,7 +49,9 @@ packages = [
     {from = "components", include = "niagads/utils"},
     {from = "components", include = "niagads/variant_annotator"},
     {from = "components", include = "niagads/vcf"},
-    {from = "components", include = "niagads/vep_json_parser"}
+    {from = "components", include = "niagads/vep_json_parser"},
+    {include = "niagads/genome",from = "components"},
+    {include = "niagads/genomicsdb",from = "components"},
 ]
 
 [tool.poetry.dependencies]

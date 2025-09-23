@@ -36,7 +36,7 @@ import logging
 from collections import OrderedDict
 from datetime import date
 
-from niagads.utils.sys import warning, die, verify_path
+from niagads.utils.sys import warning, verify_path
 from niagads.utils.string import to_numeric, int_to_alpha, xstr
 from niagads.utils.dict import print_dict
 from niagads.utils.list import (

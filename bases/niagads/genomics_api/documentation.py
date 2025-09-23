@@ -8,7 +8,6 @@ from niagads.api_common.config import Settings
 from niagads.api_common.app.openapi import (
     OpenAPISpec,
     OpenAPITag,
-    OpenAPIxTagGroup,
 )
 
 APP_NAMESPACE = "Genomics"
@@ -17,12 +16,12 @@ OPEN_API_TAGS: List[OpenAPITag] = [
     OpenAPITag(
         name=APP_NAMESPACE,
         description=(
-            f"Query annotated AD/ADRD-genetic evidence from GWAS summary statistics "
-            f"and ADSP variant annotations from the NIAGADS repository "
-            f"that have compiled in the context of summary gene, variants, and genomic regions "
-            f"in support of the NIAGADS Alzheimer's GenomicsDB, "
-            f"an interactive knowledgebase for AD genetics that provides a platform for data "
-            f"sharing, discovery, and analysis."
+            "Query annotated AD/ADRD-genetic evidence from GWAS summary statistics "
+            "and ADSP variant annotations from the NIAGADS repository "
+            "that have compiled in the context of summary gene, variants, and genomic regions "
+            "in support of the NIAGADS Alzheimer's GenomicsDB, "
+            "an interactive knowledgebase for AD genetics that provides a platform for data "
+            "sharing, discovery, and analysis."
         ),
         x_sort_order=0,
     ),

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gzip
 import io
-from typing import Dict, Any, Generator, Optional
+from typing import Dict, Any, Optional
 
 
 def open_text_file(path: str) -> io.TextIOBase:

@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from fastapi import HTTPException
-from niagads.database.genomicsdb.schemas.dataset.collection import (
+from niagads.genomicsdb.models.dataset.collection import (
     Collection,
     TrackCollection,
 )
@@ -10,7 +10,7 @@ from niagads.common.models.composite_attributes.dataset import (
     Phenotype,
     Provenance,
 )
-from niagads.database.genomicsdb.schemas.dataset.track import Track, TrackDataStore
+from niagads.genomicsdb.models.dataset.track import Track, TrackDataStore
 from niagads.api_common.constants import SHARD_PATTERN
 from niagads.api_common.models.response.request import RequestDataModel
 from niagads.api_common.parameters.expression_filter import Triple

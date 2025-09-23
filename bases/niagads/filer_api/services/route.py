@@ -5,7 +5,7 @@ from collections import ChainMap
 from itertools import groupby
 from operator import itemgetter
 
-from niagads.database.genomicsdb.schemas.dataset.track import Track, TrackDataStore
+from niagads.genomicsdb.models.dataset.track import Track, TrackDataStore
 from niagads.assembly.core import GenomicFeatureType
 from niagads.api_common.models.features.bed import BEDFeature
 from niagads.api_common.models.features.genomic import GenomicFeature
@@ -33,7 +33,6 @@ from niagads.filer_api.services.wrapper import (
 )
 from niagads.utils.list import cumulative_sum, chunker
 from pydantic import BaseModel
-from sqlalchemy import bindparam, text
 
 FILER_HTTP_CLIENT_TIMEOUT = 60
 CACHEDB_PARALLEL_TIMEOUT = 30
@@ -192,7 +191,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         ).get_genome_build(tracks, validate=True)
         if isinstance(assembly, dict):
             raise ValidationError(
-                f"Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently"
+                "Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently"
             )
         return assembly
 
@@ -505,7 +504,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             case GenomicFeatureType.GENE:
                 if feature.feature_id.startswith("ENSG"):
                     raise NotImplementedError(
-                        f"Mapping through Ensembl IDS not yet implemented"
+                        "Mapping through Ensembl IDS not yet implemented"
                     )
                 data: FILERApiDataResponse = await self.__get_gene_qtl_data_task(
                     self._parameters.track, feature.feature_id
@@ -526,7 +525,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             case GenomicFeatureType.VARIANT:
                 if feature.feature_id.startswith("rs"):
                     raise NotImplementedError(
-                        f"Mapping through refSNP IDS not yet implemented"
+                        "Mapping through refSNP IDS not yet implemented"
                     )
                 # chr:pos:ref-alt -> chr:pos-1:pos
                 [chr, pos, ref, alt] = feature.feature_id.split(":")

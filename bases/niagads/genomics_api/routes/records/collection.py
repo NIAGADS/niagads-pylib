@@ -1,7 +1,7 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-from niagads.database.genomicsdb.schemas.dataset.track import TrackDataStore
+from niagads.genomicsdb.models.dataset.track import TrackDataStore
 from niagads.api_common.constants import SharedOpenAPITags
 from niagads.api_common.models.response.core import RecordResponse
 from niagads.api_common.models.datasets.collection import CollectionResponse

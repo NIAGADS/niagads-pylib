@@ -5,7 +5,6 @@ from niagads.api_common.models.annotations.associations import (
     AssociationSource,
     AssociationTrait,
 )
-from niagads.utils.string import sanitize
 
 
 async def association_trait_param(

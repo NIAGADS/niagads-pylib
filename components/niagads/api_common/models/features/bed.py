@@ -1,7 +1,6 @@
 from typing import Any, List, Optional, Union
 
 from niagads.api_common.views.table import TableRow
-from niagads.api_common.constants import DEFAULT_NULL_STRING
 from niagads.api_common.models.core import DynamicRowModel
 from niagads.api_common.models.response.core import RecordResponse
 from niagads.api_common.views.table import Table

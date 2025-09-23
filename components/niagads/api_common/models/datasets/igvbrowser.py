@@ -16,7 +16,7 @@ from niagads.api_common.parameters.response import (
 )
 from niagads.api_common.views.table import Table
 from niagads.utils.dict import promote_nested
-from pydantic import ConfigDict, Field, computed_field, field_validator, model_validator
+from pydantic import ConfigDict, Field, computed_field, model_validator
 
 EXCLUDE_FROM_METADATA = [
     "ontology",

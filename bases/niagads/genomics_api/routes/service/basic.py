@@ -3,7 +3,6 @@ from typing import List
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from niagads.api_common.constants import SharedOpenAPITags
-from niagads.api_common.models.features.genomic import GenomicFeature
 from niagads.api_common.models.records import Entity
 from niagads.api_common.models.search.records import RecordSearchResult
 from niagads.api_common.models.response.core import (

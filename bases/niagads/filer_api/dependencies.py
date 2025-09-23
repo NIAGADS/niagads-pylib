@@ -3,7 +3,7 @@ from typing import Annotated, List
 
 from aiohttp import ClientSession
 from fastapi import Depends
-from niagads.database.genomicsdb.schemas.dataset.track import TrackDataStore
+from niagads.genomicsdb.models.dataset.track import TrackDataStore
 from niagads.database import DatabaseSessionManager
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.api_common.config import Settings

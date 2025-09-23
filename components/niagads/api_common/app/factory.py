@@ -5,7 +5,6 @@ from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
-from niagads.api_common.constants import RESPONSES
 from niagads.api_common.exception_handlers import (
     add_database_exception_handler,
     add_not_implemented_exception_handler,

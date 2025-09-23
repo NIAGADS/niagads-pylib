@@ -1,6 +1,6 @@
 # this set up is necessary for Alembic to import all the models associated with the metadata schema
 # see https://stackoverflow.com/a/77767002
 
-from niagads.database.genomicsdb.schemas.core.base import CoreSchemaBase
+from niagads.genomicsdb.models.core.base import CoreSchemaBase
 
-from niagads.database.genomicsdb.schemas.core.tables import ETLLog, IntervalBin
+from niagads.genomicsdb.models.core.tables import ETLLog, IntervalBin

@@ -67,9 +67,7 @@ VariantFrequencyQuery = QueryDefinition(
 )
 
 VariantRecordQuery = QueryDefinition(
-    query=f"""
-    SELECT annotation FROM get_variant_primary_keys_and_annotations_tbl(:id, TRUE)
-    """,
+    query="SELECT annotation FROM get_variant_primary_keys_and_annotations_tbl(:id, TRUE)",
     bind_parameters=["id"],
     fetch_one=True,
     json_field="annotation",

@@ -19,7 +19,7 @@ from niagads.api_common.parameters.response import (
 from niagads.api_common.services.metadata.query import MetadataQueryService
 from niagads.api_common.services.route import Parameters, ResponseConfiguration
 from niagads.api_common.views.table import TableViewResponse
-from niagads.database.genomicsdb.schemas.dataset.track import TrackDataStore
+from niagads.genomicsdb.models.dataset.track import TrackDataStore
 from niagads.filer_api.dependencies import InternalRequestParameters
 from niagads.filer_api.documentation import BASE_TAGS
 from niagads.filer_api.services.route import FILERRouteHelper
@@ -34,7 +34,12 @@ router = APIRouter(
     "/",
     response_model=CollectionResponse,
     summary="get-collections",
-    description="Retrieve a full listing of FILER track collections.  Collections are curated lists of related data tracks.  Collections may associate tracks from a single study or experiment, by shared cohort or consortium or by application.",
+    description=(
+        "Retrieve a full listing of FILER track collections. "
+        "Collections are curated lists of related data tracks. "
+        "Collections may associate tracks from a single study or experiment, "
+        "by shared cohort or consortium or by application."
+    ),
 )
 async def get_collections(
     format: str = Query(

@@ -1,10 +1,9 @@
 from typing import Optional
-from fastapi import Depends, Query, APIRouter
-from fastapi.responses import JSONResponse
+from fastapi import Depends, APIRouter
 from niagads.api_common.constants import SharedOpenAPITags
 from niagads.api_common.models.features.genomic import GenomicFeature, GenomicRegion
 from niagads.api_common.models.response.core import RecordResponse
-from niagads.api_common.parameters.igvbrowser import ADSPRelease, AnnotatedVariantTrack
+from niagads.api_common.parameters.igvbrowser import AnnotatedVariantTrack
 from niagads.api_common.parameters.location import loc_param
 from niagads.api_common.parameters.record.query import (
     adsp_release_param,
@@ -18,7 +17,6 @@ from niagads.api_common.parameters.response import (
 from niagads.api_common.services.route import Parameters, ResponseConfiguration
 from niagads.genomics_api.dependencies import InternalRequestParameters
 from niagads.genomics_api.documentation import BASE_TAGS
-from niagads.genomics_api.queries.igvbrowser.service import IGVFeatureLookupQuery
 
 from niagads.genomics_api.queries.igvbrowser.tracks.variant import select_track_query
 from niagads.genomics_api.services.route import GenomicsRouteHelper, QueryOptions

@@ -1,8 +1,7 @@
 # http client
 from enum import Enum
-from typing import List
 
-from niagads.api_common.app.openapi import OpenAPITag, OpenAPIxTagGroup
+from niagads.api_common.app.openapi import OpenAPITag
 
 HTTP_CLIENT_TIMEOUT = 30  # timeout in seconds
 

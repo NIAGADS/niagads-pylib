@@ -197,7 +197,10 @@ async def get_gene_function(
     "/{gene}/associations",
     response_model=Union[GeneticAssociationResponse, RecordResponse, TableViewResponse],
     name="Get genetic associations",
-    description="Retrieve genetic associations (GWAS) for variants proximal to (+/- 1000kb) or contained within a gene footprint",
+    description=(
+        "Retrieve genetic associations (GWAS) for variants proximal to (+/- 1000kb) "
+        "or contained within a gene footprint"
+    ),
 )
 async def get_gene_genetic_associations(
     gene: GenomicFeature = Depends(gene_param),

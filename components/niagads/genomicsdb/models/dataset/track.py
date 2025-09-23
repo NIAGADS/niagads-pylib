@@ -14,7 +14,7 @@ from niagads.common.models.composite_attributes.dataset import (
 )
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.assembly.core import Assembly, Human
-from sqlalchemy import ARRAY, TEXT, Column, Enum, Index, String
+from sqlalchemy import ARRAY, TEXT, Column, Index, String
 from sqlalchemy.dialects.postgresql import INT4RANGE, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy_utils import LtreeType
