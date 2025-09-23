@@ -2,13 +2,13 @@
 
 from typing import Optional
 
-from niagads.database import (
+from niagads.database.sa_enum_utils import enum_constraint
+from niagads.genomicsdb.models.base import (
     HousekeepingMixin,
-    enum_constraint,
     ModelDumpMixin,
 )
-from niagads.genomicsdb.schemas.dataset.base import DatasetSchemaBase
-from niagads.genomicsdb.schemas.dataset.track import TrackDataStore
+from niagads.genomicsdb.models.dataset.base import DatasetSchemaBase
+from niagads.genomicsdb.models.dataset.track import TrackDataStore
 from sqlalchemy import Column, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 

@@ -3,8 +3,8 @@
 from enum import auto
 from typing import Any, List, Optional
 
-from niagads.database import ModelDumpMixin, enum_column, enum_constraint
-from niagads.genomicsdb.schemas.dataset.base import DatasetSchemaBase
+from niagads.database import enum_column, enum_constraint
+from niagads.genomicsdb.models.dataset.base import DatasetSchemaBase
 from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     ExperimentalDesign,
@@ -26,7 +26,7 @@ class TrackDataStore(CaseInsensitiveEnum):
     SHARED = auto()
 
 
-class Track(ModelDumpMixin, DatasetSchemaBase):
+class Track(DatasetSchemaBase):
     __tablename__ = "track"
     __table_args__ = (
         enum_constraint("genome_build", Assembly),

@@ -1,4 +1,4 @@
-from niagads.database.mixins import HousekeepingMixin, ModelDumpMixin
+from niagads.genomicsdb.models.mixins import HousekeepingMixin, ModelDumpMixin
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
