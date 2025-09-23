@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import auto
 
 from niagads.database import enum_column, enum_constraint
-from niagads.genomicsdb.models.core.base import CoreSchemaBase
+from niagads.genomicsdb.models.admin.base import CoreSchemaBase
 from niagads.enums.common import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from sqlalchemy import DateTime, String, Text, func
