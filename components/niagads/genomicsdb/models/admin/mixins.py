@@ -13,8 +13,10 @@ class HousekeepingMixin(object):
     - is_private: Boolean flag for privacy
     """
 
-    etl_log_id: Mapped[int] = mapped_column(
-        ForeignKey("core.etllog.etl_log_id"), nullable=False, index=True
+    etl_operation_id: Mapped[int] = mapped_column(
+        ForeignKey("admin.etloperationslog.etl_operation_log_id"),
+        nullable=False,
+        index=True,
     )
     modification_date: Mapped[datetime] = mapped_column(
         DATETIME,

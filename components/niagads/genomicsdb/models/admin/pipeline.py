@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import auto
 
 from niagads.database import enum_column, enum_constraint
-from niagads.genomicsdb.models.admin.base import CoreSchemaBase
+from niagads.genomicsdb.models.admin.base import AdminSchemaBase
 from niagads.enums.common import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from sqlalchemy import DateTime, String, Text, func
@@ -20,16 +20,19 @@ class ETLOperation(CaseInsensitiveEnum):
     INSERT = auto()
 
 
-class ETLLog(CoreSchemaBase):
-    __tablename__ = "etllog"
+class ETLOperationLog(AdminSchemaBase):
+    __tablename__ = "etloperationlog"
     __table_args__ = (
         enum_constraint("status", ProcessStatus),
         enum_constraint("operation", ETLOperation),
     )
-    etl_log_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    etl_operation_log_id: Mapped[int] = mapped_column(
+        primary_key=True, autoincrement=True
+    )
 
     # Provenance / context
     plugin_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    code_version: Mapped[str] = mapped_column(String(50), nullable=True)
     params: Mapped[dict] = mapped_column(JSONB)  # structured config/args
     message: Mapped[str] = mapped_column(Text)  # free-text errors/info
 
@@ -39,8 +42,6 @@ class ETLLog(CoreSchemaBase):
 
     # Run + version info
     run_id: Mapped[str] = mapped_column(String(64), nullable=True, index=True)
-    code_version: Mapped[str] = mapped_column(String(50), nullable=True)
-    repo: Mapped[str] = mapped_column(String(150), nullable=True)
 
     # Timing + metrics
     start_time: Mapped[datetime] = mapped_column(DateTime, default=func.now())
