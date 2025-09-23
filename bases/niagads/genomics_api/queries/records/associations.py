@@ -1,4 +1,4 @@
-GWAS_TRACK_CTE = """
+GWAS_TRACK_CTE = """--sql
     SELECT track_id, name AS track_name,
         provenance->>'data_source' AS data_source,
         provenance->'pubmed_id' AS pubmed_id,
@@ -20,7 +20,7 @@ GWAS_TRACK_CTE = """
 """
 
 
-GWAS_COMMON_FIELDS = """
+GWAS_COMMON_FIELDS = """--sql
     t.track_id, 
     CASE WHEN r.restricted_stats->'trait' is NOT NULL 
         THEN r.restricted_stats->>'study'
@@ -58,7 +58,7 @@ GWAS_COMMON_FIELDS = """
     END AS trait
 """
 
-association_trait_FILTERS = """
+association_trait_FILTERS = """--sql
     WHERE ((UPPER(:association_trait) IN ('AD', 'ALL_AD', 'ALL') AND trait_category = 'AD')
     OR (UPPER(:association_trait) IN ('BIOMARKER', 'ALL_AD', 'ALL') AND trait_category = 'Biomarker')
     OR (UPPER(:association_trait) IN ('ADRD', 'ALL_AD', 'ALL') AND trait_category = 'ADRD')
