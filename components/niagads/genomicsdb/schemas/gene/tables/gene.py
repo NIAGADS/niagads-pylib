@@ -3,8 +3,8 @@
 from typing import Any
 
 from niagads.assembly.core import Human
-from niagads.database.common.utils import enum_constraint
-from niagads.database.genomicsdb.schemas.gene.base import GeneSchemaBase
+from niagads.database import enum_constraint
+from niagads.genomicsdb.schemas.gene.base import GeneSchemaBase
 from niagads.utils.regular_expressions import RegularExpressions
 from sqlalchemy import Column, Enum, Index
 from sqlalchemy.dialects.postgresql import INT4RANGE, JSONB

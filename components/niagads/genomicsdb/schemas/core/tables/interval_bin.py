@@ -1,6 +1,6 @@
 """`IntervalBin` database model"""
 
-from niagads.database.common.mixins import GenomicRegionMixin
+from niagads.database.mixins import GenomicRegionMixin
 from niagads.database.genomicsdb.schemas.core.base import CoreSchemaBase
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column

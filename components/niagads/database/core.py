@@ -1,6 +1,4 @@
-from enum import auto
-from niagads.database.common.mixins import HousekeepingMixin, ModelDumpMixin
-from niagads.enums.core import CaseInsensitiveEnum
+from niagads.database.mixins import HousekeepingMixin, ModelDumpMixin
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 

@@ -3,8 +3,8 @@
 from datetime import datetime
 from enum import auto
 
-from niagads.database.common.utils import enum_column, enum_constraint
-from niagads.database.genomicsdb.schemas.core.base import CoreSchemaBase
+from niagads.database import enum_column, enum_constraint
+from niagads.genomicsdb.schemas.core.base import CoreSchemaBase
 from niagads.enums.common import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from sqlalchemy import DateTime, String, Text, func

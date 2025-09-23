@@ -7,8 +7,8 @@ from niagads.common.models.composite_attributes.gene import (
     GOAnnotation,
     PathwayAnnotation,
 )
-from niagads.database.common.base import ModelDumpMixin, enum_constraint
-from niagads.database.genomicsdb.schemas.gene.base import GeneSchemaBase
+from niagads.database import ModelDumpMixin, enum_constraint
+from niagads.genomicsdb.schemas.gene.base import GeneSchemaBase
 from niagads.utils.regular_expressions import RegularExpressions
 from sqlalchemy import Column, Enum, Index
 from sqlalchemy.dialects.postgresql import INT4RANGE, JSONB

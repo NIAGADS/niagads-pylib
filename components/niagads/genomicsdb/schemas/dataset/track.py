@@ -3,9 +3,8 @@
 from enum import auto
 from typing import Any, List, Optional
 
-from niagads.database.common.base import ModelDumpMixin
-from niagads.database.common.utils import enum_column, enum_constraint
-from niagads.database.genomicsdb.schemas.dataset.base import DatasetSchemaBase
+from niagads.database import ModelDumpMixin, enum_column, enum_constraint
+from niagads.genomicsdb.schemas.dataset.base import DatasetSchemaBase
 from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     ExperimentalDesign,
