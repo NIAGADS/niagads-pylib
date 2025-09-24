@@ -2,4 +2,4 @@
 # see https://stackoverflow.com/a/77767002
 
 from niagads.genomicsdb.models.admin.base import AdminSchemaBase
-from niagads.genomicsdb.models.admin.pipeline import ETLOperationsLog
+from niagads.genomicsdb.models.admin.pipeline import ETLOperationLog

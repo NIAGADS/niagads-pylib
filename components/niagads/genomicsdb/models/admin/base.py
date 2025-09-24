@@ -6,5 +6,5 @@ Uses DeclarativeModelBaseFactory to create a SQLAlchemy DeclarativeBase with hou
 from niagads.genomicsdb.models.base import DeclarativeModelBaseFactory
 
 AdminSchemaBase = DeclarativeModelBaseFactory.create(
-    schema="admin", incl_housekeeping=True
+    schema="admin", incl_housekeeping=False
 )
