@@ -39,6 +39,7 @@ packages = [
     { include = "niagads/database", from = "../../components" },
     { include = "niagads/api_common", from = "../../components" },
     {include = "niagads/assembly",from = "../../components"},
+    {include = "niagads/genomicsdb",from = "../../components"},
 ]
 
 [tool.tomlsort]
