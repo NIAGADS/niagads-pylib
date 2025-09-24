@@ -10,6 +10,9 @@ from pydantic import Field
 from niagads.api_common.models.features.genomic import GenomicRegion
 
 
+# FIXME: this needs to be a common.model without the RowModel b/c it is used in
+# components/niagads/common/models/composite_attributes/variant.py
+# which creates an api dependency in alembic builds
 class GeneFeature(RowModel):
     id: str = Field(title="Ensembl ID", description="Ensembl gene identifier")
     gene_symbol: Optional[str] = Field(
