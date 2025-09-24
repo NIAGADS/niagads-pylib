@@ -2,12 +2,15 @@
 
 from niagads.database.mixins import GenomicRegionMixin, TrackMixin
 from niagads.genomicsdb.models.dataset.base import DatasetSchemaBase
-from niagads.genomicsdb.models.reference.mixins import ExternalDBMixin, TypeMixin
+from niagads.genomicsdb.models.reference.mixins import (
+    ExternalDBMixin,
+    OntologyTermMixin,
+)
 from sqlalchemy import Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class Track(TypeMixin, TrackMixin, ExternalDBMixin, DatasetSchemaBase): ...
+class Track(OntologyTermMixin, TrackMixin, ExternalDBMixin, DatasetSchemaBase): ...
 
 
 class TrackInterval(GenomicRegionMixin, DatasetSchemaBase):
