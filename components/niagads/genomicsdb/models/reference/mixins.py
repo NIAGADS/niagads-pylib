@@ -29,5 +29,5 @@ class ExternalDBMixin(object):
     )
 
 
-class TypeMixin(object):
+class OntologyTermMixin(object):
     ontology_term_id: Mapped[int] = mapped_column()

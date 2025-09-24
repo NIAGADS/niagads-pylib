@@ -3,19 +3,19 @@ BEGIN
     CREATE GRAPH IF NOT EXISTS ontology;
 
     CREATE VERTEX TYPE IF NOT EXISTS term (
-        term_id TEXT PRIMARY KEY,
-        label TEXT,
-        namespace TEXT,
-        definition TEXT,
-        synonyms TEXT[],
+        term_id VARCHAR(32) PRIMARY KEY,       -- e.g. GO:0006915
+        term VARCHAR(512),                     -- the term
+        label VARCHAR(512),                    -- a display term for applicatoins
+        definition TEXT,                       -- definitions can be long
+        synonyms TEXT[],                       -- synonyms can be many / long
         is_obsolete BOOLEAN DEFAULT FALSE,
-        replaced_by TEXT,
-        term_kind TEXT NOT NULL
+        replaced_by VARCHAR(32),
+        term_kind VARCHAR(16) NOT NULL
             CHECK (term_kind IN ('class','property','individual'))
     );
 
     CREATE EDGE TYPE IF NOT EXISTS triple (
-        predicate TEXT NOT NULL
+        predicate VARCHAR(32) NOT NULL         -- must point to a term_id
     ) SOURCE term DESTINATION term;
 
     CREATE VERTEX TYPE IF NOT EXISTS externaldatabase_ref (
@@ -25,4 +25,4 @@ BEGIN
     CREATE EDGE TYPE IF NOT EXISTS defined_in ()
     SOURCE term DESTINATION externaldatabase_ref;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql;
