@@ -2,12 +2,13 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
+
 from niagads.database import DatabaseSessionManager
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
+from sqlalchemy import MetaData
 
-from database.schemas import Schema
-from database.config import Settings
+from helpers.config import Schema, Settings
 
 # get config options from the .ini file
 # including logging config
@@ -17,20 +18,20 @@ if config.config_file_name is not None:
 
 
 def get_target_metadata():
-    xArgs = context.get_x_argument(as_dictionary=True)
-    schema = xArgs.get("schema", None)
-    return Schema.base(schema).metadata
+    xArgs: dict = context.get_x_argument(as_dictionary=True)
+    schema: str = xArgs.get("schema", "")
+    return Schema.metadata(schema)  # handles lists
 
 
 # has to be a global so that include_* hooks can access
 # see alembic docs:
 # https://alembic.sqlalchemy.org/en/latest/autogenerate.html#omitting-table-names-from-the-autogenerate-process
-TARGET_METADATA = get_target_metadata()
+TARGET_METADATA: MetaData = get_target_metadata()
 
 
 def include_name(name, type_, parent_names):
     if type_ == "schema":
-        return name == TARGET_METADATA.schema
+        return name in TARGET_METADATA.schema
     else:
         return True
 
