@@ -37,3 +37,30 @@ Located in [open_access_api_handlers](../components/niagads/open_access_api_exce
 > TODO: move to correct README
 
 * ltrees & sqlalchemy: <https://github.com/kvesteri/sqlalchemy-utils/blob/master/sqlalchemy_utils/types/ltree.py>
+
+#### HOW TO: Sync ontology_term_id in relational table to ontology graph
+
+```sql
+-- Relational table in schema reference
+CREATE TABLE reference.dataset (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    ontology_term_id VARCHAR(32) REFERENCES reference.ontology.term(term_id)
+);
+
+-- Declare table as vertex in the ontology graph
+CREATE VERTEX TYPE reference.ontology.dataset (
+    id INT PRIMARY KEY
+);
+
+-- Edge type for classification
+CREATE EDGE TYPE IF NOT EXISTS reference.ontology.classified_as ()
+SOURCE reference.ontology.dataset DESTINATION reference.ontology.term;
+
+-- Attach trigger using sync_classification
+CREATE TRIGGER trg_reference_dataset_classified_as
+AFTER INSERT OR UPDATE OR DELETE ON reference.dataset
+FOR EACH ROW
+EXECUTE FUNCTION reference.ontology_sync_classification('reference.ontology.classified_as');
+
+```
