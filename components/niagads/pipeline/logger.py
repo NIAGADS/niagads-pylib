@@ -69,14 +69,27 @@ class ETLLogger:
             run_id (str): Unique run identifier.
             plugin (str): Plugin name.
         """
-        self.logger = logging.getLogger(name)
-        self.logger.setLevel(logging.INFO)
+        self.__logger = logging.getLogger(name)
+        self.__logger.setLevel(logging.INFO)
         handler = logging.FileHandler(log_file)
         handler.setFormatter(ETLJSONFormatter())
-        self.logger.handlers.clear()
-        self.logger.addHandler(handler)
-        self.run_id = run_id
-        self.plugin = plugin
+        self.__logger.handlers.clear()
+        self.__logger.addHandler(handler)
+        self.__run_id = run_id
+        self.__plugin = plugin
+
+    def flush(self):
+        """
+        Flush all handlers for this logger.
+
+        Ensures that all log records are written to disk immediately by calling
+        flush() on each handler. Useful for forcing log persistence after critical events.
+        """
+        for h in self.__logger.handlers:
+            try:
+                h.flush()
+            except Exception:
+                pass
 
     def info(self, message: str, **kwargs):
         """
@@ -86,8 +99,8 @@ class ETLLogger:
             message (str): The log message.
             **kwargs: Additional context fields to include in the log.
         """
-        self.logger.info(
-            message, extra={"run_id": self.run_id, "plugin": self.plugin, **kwargs}
+        self.__logger.info(
+            message, extra={"run_id": self.__run_id, "plugin": self.__plugin, **kwargs}
         )
 
     def error(self, message: str, **kwargs):
@@ -98,9 +111,10 @@ class ETLLogger:
             message (str): The log message.
             **kwargs: Additional context fields to include in the log.
         """
-        self.logger.error(
-            message, extra={"run_id": self.run_id, "plugin": self.plugin, **kwargs}
+        self.__logger.error(
+            message, extra={"run_id": self.__run_id, "plugin": self.__plugin, **kwargs}
         )
+        self.flush()
 
     def exception(self, message: str, **kwargs):
         """
@@ -110,9 +124,10 @@ class ETLLogger:
             message (str): The log message.
             **kwargs: Additional context fields to include in the log.
         """
-        self.logger.exception(
-            message, extra={"run_id": self.run_id, "plugin": self.plugin, **kwargs}
+        self.__logger.exception(
+            message, extra={"run_id": self.__run_id, "plugin": self.__plugin, **kwargs}
         )
+        self.flush()
 
     def status(self, status: str, rows: int, runtime: float, memory_mb: float):
         """
@@ -124,17 +139,18 @@ class ETLLogger:
             runtime (float): Runtime in seconds.
             memory_mb (float): Memory usage in megabytes.
         """
-        self.logger.info(
+        self.__logger.info(
             status,
             extra={
-                "run_id": self.run_id,
-                "plugin": self.plugin,
+                "run_id": self.__run_id,
+                "plugin": self.__plugin,
                 "status": status,
                 "rows": rows,
                 "runtime": f"{runtime:.2f}s",
                 "memory": f"{memory_mb:.2f}MB",
             },
         )
+        self.flush()
 
     def checkpoint(self, line: int, record: Any, error: Exception | None = None):
         """
@@ -148,13 +164,14 @@ class ETLLogger:
         Example:
             jq 'select(.message=="CHECKPOINT")' etl.log
         """
-        self.logger.error(
+        self.__logger.error(
             "CHECKPOINT",
             extra={
-                "run_id": self.run_id,
-                "plugin": self.plugin,
+                "run_id": self.__run_id,
+                "plugin": self.__plugin,
                 "line": line,
                 "record": record,
                 "error": str(error) if error else None,
             },
         )
+        self.flush()
