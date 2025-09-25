@@ -24,6 +24,7 @@ packages = [
     { from = "bases", include = "niagads/loaders" },
     { from = "bases", include = "niagads/metadata_validator_tool" },
     { from = "bases", include = "niagads/open_access_api" },
+    { from = "bases", include = "niagads/pipeline_runner" },
     { from = "components", include = "niagads/adsp_annotation" },
     { from = "components", include = "niagads/api_common" },
     { from = "components", include = "niagads/arg_parser" },
@@ -38,10 +39,13 @@ packages = [
     { from = "components", include = "niagads/enums" },
     { from = "components", include = "niagads/excel_parser" },
     { from = "components", include = "niagads/exceptions" },
+    { from = "components", include = "niagads/genome" },
+    { from = "components", include = "niagads/genomicsdb" },
     { from = "components", include = "niagads/json_validator" },
     { from = "components", include = "niagads/metadata_parser" },
     { from = "components", include = "niagads/metadata_validator" },
     { from = "components", include = "niagads/objects" },
+    { from = "components", include = "niagads/pipeline" },
     { from = "components", include = "niagads/postgres_dbi" },
     { from = "components", include = "niagads/requests" },
     { from = "components", include = "niagads/s3" },
@@ -50,10 +54,7 @@ packages = [
     { from = "components", include = "niagads/variant_annotator" },
     { from = "components", include = "niagads/vcf" },
     { from = "components", include = "niagads/vep_json_parser" },
-    { include = "niagads/genome", from = "components" },
-    { include = "niagads/genomicsdb", from = "components" },
 ]
-
 include = [
     { path = "components/niagads/genomicsdb/models/reference/sql/ontology/*.sql" },
 ]
