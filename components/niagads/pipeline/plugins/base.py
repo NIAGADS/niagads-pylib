@@ -1,15 +1,15 @@
-import uuid
 import time
-import psutil
+import uuid
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Type, List, Optional
+from enum import Enum
+from typing import Any, Dict, List, Optional, Type
 
-from pydantic import BaseModel, Field
-from etl_logging import ETLLogger
-from models import BasePluginParams
-from enums import ETLOperation  # your existing enum
-from errors import ETLPluginError  # your existing error type
-from niagads.database.session import DatabaseSessionManager  # async scoped session
+import psutil
+from niagads.database.session import DatabaseSessionManager
+from niagads.enums.common import ProcessStatus
+from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLMode
+from niagads.pipeline.logger import ETLLogger
+from pydantic import BaseModel, Field, model_validator
 
 
 class ResumeFrom(BaseModel):
@@ -24,30 +24,46 @@ class ResumeFrom(BaseModel):
     )
     id: Optional[str] = Field(None, description="Natural identifier to resume from")
 
-    @root_validator
-    def require_line_or_id(cls, values):
-        if not values.get("line") and not values.get("id"):
+    @model_validator(mode="after")
+    def require_line_or_id(self):
+        if not self.line and not self.id:
             raise ValueError("resume_from must define either 'line' or 'id'")
-        return values
+        return self
 
 
 class BasePluginParams(BaseModel):
     """
-    Base parameter model shared by all plugins.
-    - commit_after controls streaming flush size (load called every N items).
-    - log_file is the JSON log path for this plugin invocation.
-    - resume_from hints are *interpreted by plugins* (extract/transform).
-    Commit behavior is controlled by the pipeline/CLI via --commit.
+    Base parameter model for all ETL plugins.
+
+    Attributes:
+        commit_after (int): Number of records to buffer before each load/commit in streaming mode.
+        log_file (str): Path to the JSON log file for this plugin invocation.
+        resume_from (Optional[ResumeFrom]): Resume checkpoint hints, interpreted by plugins (extract/transform).
+        run_id (Optional[str]): Pipeline run identifier, provided by the pipeline.
+        connection_string (Optional[str]): Database connection string, if needed.
+
+    Note:
+        Commit behavior is controlled by the pipeline/CLI via --commit. Plugins should not auto-commit unless instructed.
     """
 
-    commit_after: int = Field(
-        10000, ge=1, description="Rows to buffer per load in streaming mode"
+    commit_after: Optional[int] = Field(
+        10000, ge=1, description="records to buffer per commit"
     )
-    log_file: str = Field("etl.log", description="Path to JSON log file for the plugin")
+    log_file: Optional[str] = Field(description="Path to JSON log file for the plugin")
     resume_from: Optional[ResumeFrom] = Field(None, description="Resume checkpoint")
+    run_id: Optional[str] = Field(
+        None, description="pipeline run identifier, provided by pipeline"
+    )
+    connection_string: Optional[str] = Field(
+        None, description="database connection string"
+    )
 
-    class Config:
-        extra = "forbid"
+    # this shouldn't happen BTW b/c ge validator already set
+    @model_validator(mode="after")
+    def set_commit_after_none_if_zero(self):
+        if self.commit_after == 0:
+            self.commit_after = None
+        return self
 
 
 class AbstractBasePlugin(ABC):
@@ -60,48 +76,54 @@ class AbstractBasePlugin(ABC):
     - Resume:
         * extract() should honor resume_from.line (skip lines before that).
         * transform() may honor resume_from.id (skip until matching ID).
-      These come from self.params['resume_from'] if provided.
     - Streaming vs Bulk is a class property (`streaming`).
-      * streaming=True: records processed one-by-one and buffered; load() receives lists of size commit_after.
-      * streaming=False: extract->transform over entire dataset; load() called once with bulk data.
+        * streaming=True: records processed one-by-one and buffered; load() receives lists of size commit_after.
+        * streaming=False: extract->transform over entire dataset; load() called once with bulk data.
+
+    Note:
+        The `run` method supports runtime parameter overrides, which are applied only for the duration of the run and do not mutate the instance's original parameters.
 
     Plugins must implement `load()` using self.session_manager.session() (async).
     Plugins decide when to commit inside load() (per buffer/batch) — pipeline does NOT auto-commit.
     """
 
-    def __init__(
-        self,
-        name: Optional[str] = None,
-        params: Optional[Dict[str, Any]] = None,
-        log_file: str = "etl.log",
-        run_id: Optional[str] = None,
-        settings: Any = None,
-    ):
+    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
+        """
+        Initialize the ETL plugin base class.
+
+        Args:
+            params (BasePluginParams): Validated parameters for the plugin instance.
+            name (Optional[str]): Optional name for the plugin instance (used for logging and identification).
+        """
         self._name = name or self.__class__.__name__
-        self._params: Dict[str, Any] = params or {}
-        self._run_id = run_id or uuid.uuid4().hex[:12]  # short12 OK via hex slice
         self._row_count = 0
         self._start_time: Optional[float] = None
 
         # parameter model enforcement
         # allow subclasses to add fields via their own model; we validate here
         model: Type[BasePluginParams] = self.parameter_model()
-        # accept provided params; forbid extras if model forbids
-        self._params = model(**self._params).dict()
+        self._params = model(**params)
 
         # commit_after is read from validated params
-        self._commit_after: int = self._params.get("commit_after", 10000)
+        self._commit_after: int = self._params.commit_after
+
+        # run_id as well
+        self._run_id = self._params.run_id or uuid.uuid4().hex[:12]
+
+        # set log_file, if not set to {name}.log
+        if not self._params.log_file:
+            self._params.log_file = f"{self._name}.log"
 
         # logger (always JSON)
-        self._logger = ETLLogger(
+        self.logger = ETLLogger(
             name=self._name,
-            log_file=self._params.get("log_file", "etl.log"),
+            log_file=self._params.log_file,
             run_id=self._run_id,
             plugin=self._name,
         )
 
         # async DB session manager (scoped)
-        self._session_manager = DatabaseSessionManager(settings=settings)
+        self._session_manager = DatabaseSessionManager()
 
     # -------------------------
     # Abstract contract
@@ -110,7 +132,10 @@ class AbstractBasePlugin(ABC):
     @abstractmethod
     def parameter_model(cls) -> Type[BasePluginParams]:
         """
-        Return the Pydantic parameter model for this plugin (must subclass BasePluginParams).
+        Return the Pydantic parameter model for this plugin.
+
+        Returns:
+            Type[BasePluginParams]: The Pydantic model class (must subclass BasePluginParams).
         """
         ...
 
@@ -118,7 +143,10 @@ class AbstractBasePlugin(ABC):
     @abstractmethod
     def operation(self) -> ETLOperation:
         """
-        Return the ETLOperation type used for rows created by this plugin run.
+        Get the ETLOperation type used for rows created by this plugin run.
+
+        Returns:
+            ETLOperation: The operation type for this plugin's output rows.
         """
         ...
 
@@ -126,7 +154,10 @@ class AbstractBasePlugin(ABC):
     @abstractmethod
     def affected_tables(self) -> List[str]:
         """
-        Return list of database tables this plugin writes to.
+        Get the list of database tables this plugin writes to.
+
+        Returns:
+            List[str]: List of affected table names.
         """
         ...
 
@@ -134,22 +165,26 @@ class AbstractBasePlugin(ABC):
     @abstractmethod
     def streaming(self) -> bool:
         """
-        True if the plugin processes records line-by-line (streaming), False if bulk.
+        Whether the plugin processes records line-by-line (streaming) or in bulk.
+
+        Returns:
+            bool: True if streaming, False if bulk.
         """
         ...
 
     @abstractmethod
     def extract(self):
         """
-        Extract parsed records.
+        Extract parsed records from the data source.
 
-        Resume behavior:
-        - If self.params.get('resume_from', {}).get('line') is set, fast-forward
-          the source to that line before yielding (plugins implement the logic).
+        Resume Behavior:
+            If self.params.get('resume_from', {}).get('line') is set, fast-forward
+            the source to that line before yielding (plugins implement the logic).
 
-        Return:
-        - streaming=True: an iterator/generator yielding records
-        - streaming=False: a dataset (list/iterable/dataframe) for bulk processing
+        Returns:
+            Iterator or iterable:
+                - If streaming=True: An iterator/generator yielding records.
+                - If streaming=False: A dataset (list/iterable/dataframe) for bulk processing.
         """
         ...
 
@@ -158,111 +193,178 @@ class AbstractBasePlugin(ABC):
         """
         Transform extracted data.
 
-        Resume behavior:
-        - If self.params.get('resume_from', {}).get('id') is set, you may return
-          None for records until the matching ID is encountered; then return a
-          transformed record thereafter.
+        Resume Behavior:
+            If self.params.get('resume_from', {}).get('id') is set, you may return
+            None for records until the matching ID is encountered; then return a
+            transformed record thereafter.
 
-        Return:
-        - streaming=True: transformed single record or None (to skip)
-        - streaming=False: transformed dataset (iterable/collection)
+        Args:
+            data: The extracted data to transform.
+
+        Returns:
+            - If streaming=True: Transformed single record or None (to skip).
+            - If streaming=False: Transformed dataset (iterable/collection).
         """
         ...
 
     @abstractmethod
-    async def load(self, transformed) -> int:
+    async def load(self, transformed, mode: ETLMode) -> int:
         """
-        Persist transformed data using async SQLAlchemy session from:
-            session = self.session_manager.session()
-        Plugins must explicitly `await session.commit()` at safe points.
+        Persist transformed data using an async SQLAlchemy session.
 
         Args:
-            transformed: streaming - List[records] (buffer size <= commit_after)
-                         bulk      - entire dataset
+            transformed: The data to persist. For streaming, a list of records (buffer size <= commit_after). For bulk, the entire dataset.
+            mode (ETLMode): The ETL mode (COMMIT, NON_COMMIT, DRY_RUN).
 
         Returns:
-            int: number of rows persisted (or counted as would-be persisted in dry-run emulation)
+            int: Number of rows persisted (or counted as would-be persisted in dry-run emulation).
         """
         ...
 
     # -------------------------
     # Run orchestration
     # -------------------------
-    async def run(
-        self, extra_params: Optional[Dict[str, Any]] = None, commit: bool = False
-    ) -> bool:
-        """
-        Execute ETL.
-        - commit=False (default): dry-run (no DB writes), count only.
-        - commit=True: call load() with buffers/dataset, plugin commits internally.
+    async def _flush_streaming_buffer(self, buffer, last_line_no, mode: ETLMode):
+        self.logger.info(
+            f"Loading buffer of size {len(buffer)} at line {last_line_no} [mode={mode.value}]"
+        )
+        if mode != ETLMode.DRY_RUN:
+            loaded = await self.load(buffer, mode)
+            self._row_count += loaded
+        else:
+            self._row_count += len(buffer)
+        buffer.clear()
 
-        extra_params are merged atop validated self.params for this run only.
-        """
-        # merge runtime overrides (e.g., CLI resume_from)
-        if extra_params:
-            merged = self._params.copy()
-            merged.update(extra_params)
-            # re-validate merged params
-            self._params = self.parameter_model()(**merged).dict()
-            self._commit_after = self._params.get("commit_after", self._commit_after)
+    async def _flush_bulk_batch(self, batch, last_line_no, mode: ETLMode):
+        self.logger.info(
+            f"Bulk loading batch of size {len(batch)} at record {last_line_no} [mode={mode.value}]"
+        )
+        if mode != ETLMode.DRY_RUN:
+            loaded = await self.load(batch, mode)
+            self._row_count += loaded
+        else:
+            self._row_count += len(batch)
+        batch.clear()
 
-        self._row_count = 0
+    async def _process_streaming_load(self, mode: ETLMode):
+        if self._commit_after is None:
+            raise RuntimeError(
+                "Streaming load requires commit_after to be set to a value >= 1."
+            )
+
         buffer: list = []
         last_record = None
         last_line_no = 0
-        ok = False
 
+        for last_line_no, record in enumerate(self.extract(), start=1):
+            last_record = record
+            processed_record = self.transform(record)
+            buffer.append(processed_record)
+            if len(buffer) >= self._commit_after:
+                await self._flush_streaming_buffer(buffer, last_line_no, mode)
+
+        # load residuals
+        if buffer:
+            await self._flush_streaming_buffer(buffer, last_line_no, mode)
+
+        return last_line_no, last_record
+
+    async def _process_bulk_load(self, mode: ETLMode):
+        records = self.extract()
+        processed_records = self.transform(records)
+        last_record = None
+        last_line_no = -1
+
+        # If no batching, just load the whole dataset at once
+        if not self._commit_after:
+            if mode != ETLMode.DRY_RUN:
+                await self.load(processed_records, mode)
+
+            if hasattr(processed_records, "__len__"):
+                self._row_count = len(processed_records)
+                last_record = processed_records[-1] if self._row_count > 0 else None
+            else:  # get last record and row count from iterator
+                count = 0
+                last = None
+                for last in processed_records:
+                    count += 1
+                self._row_count = count
+                last_record = last
+
+                last_line_no = self._row_count
+
+        else:
+            batch = []
+            for last_line_no, last_record in enumerate(processed_records, start=1):
+                batch.append(last_record)
+                if len(batch) >= self._commit_after:
+                    await self._flush_bulk_batch(batch, last_line_no, mode)
+
+            # load residuals
+            if batch:
+                await self._flush_bulk_batch(batch, last_line_no, mode)
+
+        return last_line_no, last_record
+
+    async def run(
+        self,
+        runtime_params: Optional[Dict[str, Any]] = None,
+        mode: ETLMode = ETLMode.DRY_RUN,
+    ) -> ProcessStatus:
+        """
+        Execute ETL.
+        - mode=DRY_RUN (default): dry-run (no DB writes), count only.
+        - mode=COMMIT: call load() with buffers/dataset, plugin commits internally.
+        - mode=NON_COMMIT: call load() but plugin should roll back at the end.
+
+        extra_params are merged atop validated self.params for this run only. The instance's original parameters are restored after the run.
+
+        Returns:
+            ProcessStatus: SUCCESS if ETL completed, FAIL otherwise.
+        """
+        orig_params = self._params
+        orig_commit_after = self._commit_after
+        merged_params = None
         try:
+            if runtime_params:
+                merged = self._params.model_dump().copy()
+                merged.update(runtime_params)
+                merged_params = self.parameter_model()(**merged)
+                self.logger.info(
+                    f"Runtime parameter overrides applied: {runtime_params}"
+                )
+                self._params = merged_params
+                self._commit_after = self._params.commit_after
+            self.logger.info(
+                f"Starting ETL run: mode={mode.value}, plugin={self._name}"
+            )
+            self._row_count = 0
+            status = ProcessStatus.FAIL
             self._start_time = time.time()
+            last_line_no = 0
+            last_record = None
 
             if self.streaming:
-                for last_line_no, rec in enumerate(self.extract(), start=1):
-                    last_record = rec
-                    transformed = self.transform(rec)
-                    if transformed is None:
-                        continue
-                    buffer.append(transformed)
-                    if len(buffer) >= self._commit_after:
-                        if commit:
-                            loaded = await self.load(buffer)
-                            self._row_count += loaded
-                        else:
-                            self._row_count += len(buffer)
-                        buffer.clear()
-                # flush tail
-                if buffer:
-                    if commit:
-                        loaded = await self.load(buffer)
-                        self._row_count += loaded
-                    else:
-                        self._row_count += len(buffer)
-                    buffer.clear()
+                last_line_no, last_record = await self._process_streaming_load(mode)
             else:
-                extracted = self.extract()
-                transformed_bulk = self.transform(extracted)
-                if commit:
-                    loaded = await self.load(transformed_bulk)
-                    self._row_count += loaded
-                else:
-                    if hasattr(transformed_bulk, "__len__"):
-                        self._row_count = len(transformed_bulk)
-                    else:
-                        self._row_count = sum(1 for _ in transformed_bulk)
+                last_line_no, last_record = await self._process_bulk_load(mode)
 
             # success log
             runtime = time.time() - self._start_time
             mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
-            self._logger.status(
-                "COMMIT" if commit else "DRY_RUN", self._row_count, runtime, mem_mb
-            )
-            ok = True
+            self.logger.status(mode.value.upper(), self._row_count, runtime, mem_mb)
+            self.logger.flush()
+            status = ProcessStatus.SUCCESS
 
         except Exception as e:
             # checkpoint for resume (line + record snapshot)
-            self._logger.checkpoint(
+            self.logger.checkpoint(
                 line=last_line_no if self.streaming else -1, record=last_record, error=e
             )
-            self._logger.exception(f"Plugin failed: {e}")
-            ok = False
-
-        return ok
+            self.logger.exception(f"Plugin failed: {e}")
+            status = ProcessStatus.FAIL
+        finally:
+            # Restore original params and commit_after
+            self._params = orig_params
+            self._commit_after = orig_commit_after
+            return status

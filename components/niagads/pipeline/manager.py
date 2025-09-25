@@ -193,7 +193,7 @@ class PipelineManager:
         plugin = plugin_cls(name=task.name, params=params)
 
         async def _one_run() -> bool:
-            return await plugin.run(extra_params=None, commit=commit)
+            return await plugin.run(runtime_params=None, commit=commit)
 
         attempt = 0
         last_exc = None

@@ -12,7 +12,29 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
 
 
+class ETLMode(CaseInsensitiveEnum):
+    """
+    ETL execution mode:
+    - COMMIT: Perform ETL and commit all changes to the database.
+    - NON_COMMIT: Perform ETL but roll back all changes at the end (no commit).
+    - DRY_RUN: Simulate ETL, do not write or commit any changes to the database.
+    """
+
+    COMMIT = auto()
+    NON_COMMIT = auto()
+    DRY_RUN = auto()
+
+
 class ETLOperation(CaseInsensitiveEnum):
+    """
+    Type of ETL operation:
+    - BULK_LOAD: Bulk data load operation.
+    - UPDATE: Update existing records.
+    - DELETE: Delete records.
+    - PATCH: Partially update records.
+    - INSERT: Insert new records.
+    """
+
     BULK_LOAD = auto()
     UPDATE = auto()
     DELETE = auto()
