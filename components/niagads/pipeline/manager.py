@@ -9,6 +9,9 @@ from niagads.enums.core import CaseInsensitiveEnum
 from niagads.pipeline.config import PipelineConfig, StageConfig, TaskConfig
 from niagads.pipeline.plugins.registry import PluginRegistry
 from niagads.utils.dict import deep_merge
+from pydantic import BaseModel
+
+# TODO: resolve, skip, only, from config vs from parameters
 
 
 class ETLMode(CaseInsensitiveEnum):
@@ -24,6 +27,59 @@ class ETLMode(CaseInsensitiveEnum):
     DRY_RUN = auto()
 
 
+class StageTaskSelector(BaseModel):
+    stage: str
+    task: Optional[str] = None
+
+    @classmethod
+    def from_str(cls, value: str):
+        """
+        Convert a string like 'stage' or 'stage.task' to a ResumeStep instance.
+        """
+        if "." in value:
+            stage, task = value.split(".", 1)
+            return cls(stage=stage, task=task)
+        return cls(stage=value)
+
+    @classmethod
+    def from_any(cls, value: Any):
+        if value is None:
+            return None
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            return cls.from_str(value)
+        if isinstance(value, dict):
+            return cls(**value)
+        raise ValueError(f"Cannot convert {value!r} to StageTaskSelector")
+
+    @classmethod
+    def normalize_list(
+        cls, items: Optional[List[Any]]
+    ) -> Optional[List["StageTaskSelector"]]:
+        """
+        Normalize a list of stage/task selectors to StageTaskSelector objects.
+
+        This method ensures that all elements in the list are converted to StageTaskSelector,
+        regardless of whether they are provided as strings ("stage" or "stage.task"), dicts,
+        or already as StageTaskSelector instances. This allows the pipeline to accept flexible
+        input formats from CLI, config, or code, and always work with a uniform type internally.
+
+        Example usage:
+            selectors = ["stage1", {"stage": "stage2", "task": "taskA"}, StageTaskSelector(stage="stage3")]
+            normalized = StageTaskSelector.normalize_list(selectors)
+            # normalized is now a list of StageTaskSelector objects
+
+        Args:
+            items (Optional[List[Any]]): List of selectors as strings, dicts, or StageTaskSelector.
+        Returns:
+            Optional[List[StageTaskSelector]]: List of normalized StageTaskSelector objects, or None if input is None.
+        """
+        if items is None:
+            return None
+        return [cls.from_any(i) for i in items]
+
+
 class PipelineManager:
     """
     Pipeline executor with:
@@ -34,130 +90,96 @@ class PipelineManager:
         - Dry-run by default; --commit enables writes
     """
 
-    def __init__(self, config_path: str):
+    def __init__(self, config_file: str):
         """
         Initialize the PipelineManager with a pipeline configuration file.
 
         Args:
             config_path (str): Path to the pipeline configuration JSON file.
         """
-        with open(config_path, "r") as f:
-            cfg = json.load(f)
-        self.__config = PipelineConfig(**cfg)
+        with open(config_file, "r") as f:
+            config = json.load(f)
+        self.__config = PipelineConfig(**config)
+
+        # Filters and plan
+        self.__only: Optional[List[StageTaskSelector]] = None
+        self.__skip: Optional[List[StageTaskSelector]] = []
+        self.__resume_step: Optional[StageTaskSelector] = None
+        self.__plan: Optional[List[Tuple[StageConfig, List[TaskConfig]]]] = None
 
     # ---- planning & filtering ----
-    def _select_stages_tasks(
-        self,
-        only: Optional[List[str]] = None,
-        skip: Optional[List[str]] = None,
-        resume_step: Optional[str] = None,
-    ) -> List[Tuple[StageConfig, List[TaskConfig]]]:
+    def _compute_plan(self) -> List[Tuple[StageConfig, List[TaskConfig]]]:
         """
-        Filter and select stages and tasks to execute based on filters.
-
-        Args:
-            only (Optional[List[str]]): List of "Stage.Task" or "Stage" to include.
-            skip (Optional[List[str]]): List of "Stage.Task" or "Stage" to exclude.
-            resume_step (Optional[str]): "Stage" or "Stage.Task" to start from (earlier ones skipped).
-
-        Returns:
-            List[Tuple[StageConfig, List[TaskConfig]]]: List of (stage, tasks) tuples to execute.
+        Internal: Compute the execution plan (stages and tasks) based on filters.
         """
 
-        # normalize filters to sets of tuples (stage, task|None)
-        def normalize(items: Optional[List[str]]) -> set[Tuple[str, Optional[str]]]:
-            s: set[Tuple[str, Optional[str]]] = set()
-            if not items:
-                return s
-            for it in items:
-                parts = it.split(".", 1)
-                if len(parts) == 1:
-                    s.add((parts[0], None))
-                else:
-                    s.add((parts[0], parts[1]))
-            return s
+        def match_stage_task(filters, stage_name, task_name=None):
+            if not filters:
+                return False
+            for f in filters:
+                if f.stage == stage_name:
+                    if f.task is None or f.task == task_name:
+                        return True
+            return False
 
-        only_set = normalize(only)
-        skip_set = normalize(skip)
-
-        # figure resume cutoff
-        resume_stage = None
-        resume_task = None
-        if resume_step:
-            p = resume_step.split(".", 1)
-            resume_stage = p[0]
-            resume_task = p[1] if len(p) > 1 else None
-
-        plan: List[Tuple[StageConfig, List[TaskConfig]]] = []
+        resume = StageTaskSelector.from_any(self.__resume_step)
+        skipping = bool(resume)
+        resume_stage = resume.stage if resume else None
+        resume_task = resume.task if resume else None
+        plan = []
+        found_resume = not skipping
         for stage in self.__config.stages:
             if stage.skip or stage.deprecated:
                 continue
-
-            # skip until resume stage
-            if resume_stage:
-                if stage.name != resume_stage:
+            if skipping and not found_resume:
+                if stage.name == resume_stage:
+                    if resume_task is None:
+                        found_resume = True
+                else:
                     continue
-
-            # pick tasks
-            stage_tasks: List[TaskConfig] = []
+            stage_tasks = []
+            found_task_resume = resume_task is None or not skipping or found_resume
             for task in stage.tasks:
                 if task.skip or task.deprecated:
                     continue
-
-                # apply only filter
-                if only_set:
-                    if (stage.name, None) not in only_set and (
-                        stage.name,
-                        task.name,
-                    ) not in only_set:
-                        continue
-                # apply skip filter
-                if (stage.name, None) in skip_set or (
-                    stage.name,
-                    task.name,
-                ) in skip_set:
+                if skipping and not found_resume and stage.name == resume_stage:
+                    if not found_task_resume:
+                        if task.name == resume_task:
+                            found_task_resume = True
+                        else:
+                            continue
+                else:
+                    found_resume = True
+                # Only filter
+                if (
+                    self.__only
+                    and not match_stage_task(self.__only, stage.name, task.name)
+                    and not match_stage_task(self.__only, stage.name, None)
+                ):
                     continue
-
-                # if resuming from a specific task, skip earlier tasks in this stage
-                if (
-                    resume_stage == stage.name
-                    and resume_task
-                    and task.name != resume_task
+                # Skip filter
+                if self.__skip and (
+                    match_stage_task(self.__skip, stage.name, None)
+                    or match_stage_task(self.__skip, stage.name, task.name)
                 ):
-                    # skip until we hit the named task
-                    # once we add the named task below -> clear resume_stage/task to include rest of this stage
-                    pass
+                    continue
                 stage_tasks.append(task)
-                if (
-                    resume_stage == stage.name
-                    and resume_task
-                    and task.name == resume_task
-                ):
-                    # include this task and from now on process rest normally:
-                    resume_stage = None
-                    resume_task = None
-
             if stage_tasks:
                 plan.append((stage, stage_tasks))
-            # if resuming at a stage (no task), after first match, clear the flag:
-            if resume_stage == stage.name and resume_task is None:
-                resume_stage = None
-
+        self.__plan = plan
         return plan
 
-    def print_plan(self, only=None, skip=None, resume_step=None):
+    def plan(self) -> List[Tuple[StageConfig, List[TaskConfig]]]:
+        """
+        Compute and return the execution plan for the current filters.
+        """
+        return self._compute_plan()
+
+    def print_plan(self):
         """
         Print a human-readable plan of the pipeline stages and tasks to be executed.
-
-        Args:
-            only (Optional[List[str]]): List of "Stage.Task" or "Stage" to include.
-            skip (Optional[List[str]]): List of "Stage.Task" or "Stage" to exclude.
-            resume_step (Optional[str]): "Stage" or "Stage.Task" to start from.
-
-        Returns:
-            str: The formatted plan as a string.
         """
-        plan = self._select_stages_tasks(only=only, skip=skip, resume_step=resume_step)
+        plan = self.plan()
         out = []
         for stage, tasks in plan:
             out.append(
@@ -383,9 +405,9 @@ class PipelineManager:
         self,
         *,
         mode: ETLMode = ETLMode.DRY_RUN,
-        only: Optional[List[str]] = None,
-        skip: Optional[List[str]] = None,
-        resume_step: Optional[str] = None,
+        only: Optional[List[Any]] = None,
+        skip: Optional[List[Any]] = None,
+        resume_step: Optional[Any] = None,
         resume_param: Optional[Dict[str, Any]] = None,  # {"line":N} or {"id":"X"}
         log_file_override: Optional[str] = None,
         overrides: Optional[Dict[str, Any]] = None,  # pipeline param overrides
@@ -396,9 +418,9 @@ class PipelineManager:
 
         Args:
             mode (ETLMode): ETL execution mode (COMMIT, NON_COMMIT, DRY_RUN).
-            only (Optional[List[str]]): List of "Stage.Task" or "Stage" to include.
-            skip (Optional[List[str]]): List of "Stage.Task" or "Stage" to exclude.
-            resume_step (Optional[str]): "Stage" or "Stage.Task" to start from.
+            only (Optional[List[Any]]): List of "Stage.Task", "Stage", dict, or StageTaskSelector to include.
+            skip (Optional[List[Any]]): List of "Stage.Task", "Stage", dict, or StageTaskSelector to exclude.
+            resume_step (Optional[Any]): StageTaskSelector, dict, or string convertible to StageTaskSelector.
             resume_param (Optional[Dict[str, Any]]): Resume information for plugins.
             log_file_override (Optional[str]): Override for log file path.
             overrides (Optional[Dict[str, Any]]): Pipeline parameter overrides.
@@ -407,6 +429,12 @@ class PipelineManager:
         Returns:
             bool: True if the pipeline completes successfully, False otherwise.
         """
+        # Set filters as class members
+        self.__only = StageTaskSelector.normalize_list(only)
+        self.__skip = StageTaskSelector.normalize_list(skip)
+        self.__resume_step = StageTaskSelector.from_any(resume_step)
+        self.__plan = None  # Invalidate cached plan
+
         # apply overrides to pipeline params
         if overrides:
             self.__config = PipelineConfig(
@@ -416,9 +444,9 @@ class PipelineManager:
                 }
             )
 
-        plan = self._select_stages_tasks(only=only, skip=skip, resume_step=resume_step)
+        plan = self.plan()
         if print_only:
-            print(self.print_plan(only=only, skip=skip, resume_step=resume_step))
+            print(self.print_plan())
             return True
 
         scope = self.__config.params.copy()
