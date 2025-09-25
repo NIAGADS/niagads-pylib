@@ -1,12 +1,27 @@
 import asyncio
+from enum import auto
 import json
 import os
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.pipeline.config import PipelineConfig, StageConfig, TaskConfig
 from niagads.pipeline.plugins.registry import PluginRegistry
 from niagads.utils.dict import deep_merge
+
+
+class ETLMode(CaseInsensitiveEnum):
+    """
+    ETL execution mode:
+    - COMMIT: Perform ETL and commit all changes to the database.
+    - NON_COMMIT: Perform ETL but roll back all changes at the end (no commit).
+    - DRY_RUN: Simulate ETL, do not write or commit any changes to the database.
+    """
+
+    COMMIT = auto()
+    NON_COMMIT = auto()
+    DRY_RUN = auto()
 
 
 class PipelineManager:
@@ -159,7 +174,7 @@ class PipelineManager:
         self,
         stage: StageConfig,
         task: TaskConfig,
-        commit: bool,
+        mode: ETLMode,
         pipeline_scope: Dict[str, Any],
         resume_param: Optional[Dict[str, Any]],
         log_file_override: Optional[str],
@@ -170,7 +185,7 @@ class PipelineManager:
         Args:
             stage (StageConfig): The stage configuration.
             task (TaskConfig): The task configuration.
-            commit (bool): If True, perform writes; otherwise, dry-run.
+            mode (ETLMode): ETL execution mode (COMMIT, NON_COMMIT, DRY_RUN).
             pipeline_scope (Dict[str, Any]): Pipeline-wide parameters for interpolation.
             resume_param (Optional[Dict[str, Any]]): Resume information for plugins.
             log_file_override (Optional[str]): Override for log file path.
@@ -193,7 +208,8 @@ class PipelineManager:
         plugin = plugin_cls(name=task.name, params=params)
 
         async def _one_run() -> bool:
-            return await plugin.run(runtime_params=None, commit=commit)
+            # Pass ETLMode to plugin.run
+            return await plugin.run(runtime_params=None, mode=mode)
 
         attempt = 0
         last_exc = None
@@ -291,7 +307,7 @@ class PipelineManager:
         self,
         stage: StageConfig,
         tasks: List[TaskConfig],
-        commit: bool,
+        mode: ETLMode,
         pipeline_scope: Dict[str, Any],
         resume_param: Optional[Dict[str, Any]],
         log_file_override: Optional[str],
@@ -302,7 +318,7 @@ class PipelineManager:
         Args:
             stage (StageConfig): The stage configuration.
             tasks (List[TaskConfig]): List of tasks to execute in the stage.
-            commit (bool): If True, perform writes; otherwise, dry-run.
+            mode (ETLMode): ETL execution mode (COMMIT, NON_COMMIT, DRY_RUN).
             pipeline_scope (Dict[str, Any]): Pipeline-wide parameters for interpolation.
             resume_param (Optional[Dict[str, Any]]): Resume information for plugins.
             log_file_override (Optional[str]): Override for log file path.
@@ -319,7 +335,7 @@ class PipelineManager:
                         return await self._run_plugin_task(
                             stage,
                             task,
-                            commit,
+                            mode,
                             pipeline_scope,
                             resume_param,
                             log_file_override,
@@ -347,7 +363,7 @@ class PipelineManager:
             ok = False
             if t.type == "plugin":
                 ok = await self._run_plugin_task(
-                    stage, t, commit, pipeline_scope, resume_param, log_file_override
+                    stage, t, mode, pipeline_scope, resume_param, log_file_override
                 )
             elif t.type == "shell":
                 ok = await self._run_shell_task(t)
@@ -366,7 +382,7 @@ class PipelineManager:
     async def run(
         self,
         *,
-        commit: bool = False,
+        mode: ETLMode = ETLMode.DRY_RUN,
         only: Optional[List[str]] = None,
         skip: Optional[List[str]] = None,
         resume_step: Optional[str] = None,
@@ -379,7 +395,7 @@ class PipelineManager:
         Execute the pipeline.
 
         Args:
-            commit (bool): If True, perform writes; otherwise, dry-run.
+            mode (ETLMode): ETL execution mode (COMMIT, NON_COMMIT, DRY_RUN).
             only (Optional[List[str]]): List of "Stage.Task" or "Stage" to include.
             skip (Optional[List[str]]): List of "Stage.Task" or "Stage" to exclude.
             resume_step (Optional[str]): "Stage" or "Stage.Task" to start from.
@@ -410,7 +426,7 @@ class PipelineManager:
             ok = await self._run_stage(
                 stage=stage,
                 tasks=tasks,
-                commit=commit,
+                mode=mode,
                 pipeline_scope=scope,
                 resume_param=resume_param,
                 log_file_override=log_file_override,

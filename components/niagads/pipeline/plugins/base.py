@@ -1,13 +1,13 @@
 import time
 import uuid
 from abc import ABC, abstractmethod
-from enum import Enum
 from typing import Any, Dict, List, Optional, Type
 
+from niagads.pipeline.manager import ETLMode
 import psutil
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.common import ProcessStatus
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLMode
+from niagads.genomicsdb.models.admin.pipeline import ETLOperation
 from niagads.pipeline.logger import ETLLogger
 from pydantic import BaseModel, Field, model_validator
 
