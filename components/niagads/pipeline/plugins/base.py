@@ -3,6 +3,7 @@ import uuid
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Type
 
+from niagads.common.core import ComponentBaseMixin
 from niagads.pipeline.manager import ETLMode
 import psutil
 from niagads.database.session import DatabaseSessionManager
@@ -12,7 +13,7 @@ from niagads.pipeline.logger import ETLLogger
 from pydantic import BaseModel, Field, model_validator
 
 
-class ResumeFrom(BaseModel):
+class Checkpoint(BaseModel):
     """
     Resume checkpoint.
     - Use 'line' for source-relative resume (handled in extract()).
@@ -27,7 +28,7 @@ class ResumeFrom(BaseModel):
     @model_validator(mode="after")
     def require_line_or_id(self):
         if not self.line and not self.id:
-            raise ValueError("resume_from must define either 'line' or 'id'")
+            raise ValueError("checkpoint must define either 'line' or 'id'")
         return self
 
 
@@ -38,7 +39,7 @@ class BasePluginParams(BaseModel):
     Attributes:
         commit_after (int): Number of records to buffer before each load/commit in streaming mode.
         log_file (str): Path to the JSON log file for this plugin invocation.
-        resume_from (Optional[ResumeFrom]): Resume checkpoint hints, interpreted by plugins (extract/transform).
+        checkpoint (Optional[ResumeFrom]): Resume checkpoint hints, interpreted by plugins (extract/transform).
         run_id (Optional[str]): Pipeline run identifier, provided by the pipeline.
         connection_string (Optional[str]): Database connection string, if needed.
 
@@ -50,13 +51,15 @@ class BasePluginParams(BaseModel):
         10000, ge=1, description="records to buffer per commit"
     )
     log_file: Optional[str] = Field(description="Path to JSON log file for the plugin")
-    resume_from: Optional[ResumeFrom] = Field(None, description="Resume checkpoint")
+    checkpoint: Optional[Checkpoint] = Field(None, description="Resume checkpoint")
     run_id: Optional[str] = Field(
         None, description="pipeline run identifier, provided by pipeline"
     )
     connection_string: Optional[str] = Field(
         None, description="database connection string"
     )
+    verbose: Optional[bool] = Field(False, description="run in verbose mode")
+    debug: Optional[bool] = Field(False, description="run in debug mode")
 
     # this shouldn't happen BTW b/c ge validator already set
     @model_validator(mode="after")
@@ -66,7 +69,7 @@ class BasePluginParams(BaseModel):
         return self
 
 
-class AbstractBasePlugin(ABC):
+class AbstractBasePlugin(ABC, ComponentBaseMixin):
     """
     Abstract base class for ETL plugins (async).
 
@@ -95,14 +98,16 @@ class AbstractBasePlugin(ABC):
             params (BasePluginParams): Validated parameters for the plugin instance.
             name (Optional[str]): Optional name for the plugin instance (used for logging and identification).
         """
-        self._name = name or self.__class__.__name__
-        self._row_count = 0
-        self._start_time: Optional[float] = None
-
         # parameter model enforcement
         # allow subclasses to add fields via their own model; we validate here
         model: Type[BasePluginParams] = self.parameter_model()
         self._params = model(**params)
+
+        super().__init__(debug=self._params.debug, verbose=self._params.verbose)
+
+        self._name = name or self.__class__.__name__
+        self._row_count = 0
+        self._start_time: Optional[float] = None
 
         # commit_after is read from validated params
         self._commit_after: int = self._params.commit_after
@@ -115,7 +120,7 @@ class AbstractBasePlugin(ABC):
             self._params.log_file = f"{self._name}.log"
 
         # logger (always JSON)
-        self.logger = ETLLogger(
+        self.logger: ETLLogger = ETLLogger(
             name=self._name,
             log_file=self._params.log_file,
             run_id=self._run_id,
@@ -194,7 +199,7 @@ class AbstractBasePlugin(ABC):
         Transform extracted data.
 
         Resume Behavior:
-            If self.params.get('resume_from', {}).get('id') is set, you may return
+            If self.params.get('checkpoint', {}).get('id') is set, you may return
             None for records until the matching ID is encountered; then return a
             transformed record thereafter.
 
@@ -218,6 +223,18 @@ class AbstractBasePlugin(ABC):
 
         Returns:
             int: Number of rows persisted (or counted as would-be persisted in dry-run emulation).
+        """
+        ...
+
+    @abstractmethod
+    def get_record_id(self, record: Any) -> str:
+        """
+        Return the unique identifier for a record, used for checkpointing.
+
+        Args:
+            record: The record to extract the ID from.
+        Returns:
+            str: The unique identifier for the record.
         """
         ...
 
@@ -358,9 +375,18 @@ class AbstractBasePlugin(ABC):
 
         except Exception as e:
             # checkpoint for resume (line + record snapshot)
-            self.logger.checkpoint(
-                line=last_line_no if self.streaming else -1, record=last_record, error=e
-            )
+
+            checkpoint_kwargs = {
+                "line": last_line_no if self.streaming else -1,
+                "error": e,
+            }
+            if last_record is not None:
+                if self._verbose or self._debug:
+                    checkpoint_kwargs["record"] = last_record
+                record_id = self.get_record_id(last_record)
+                if record_id is not None:
+                    checkpoint_kwargs["record_id"] = record_id
+            self.logger.checkpoint(**checkpoint_kwargs)
             self.logger.exception(f"Plugin failed: {e}")
             status = ProcessStatus.FAIL
         finally:
