@@ -5,6 +5,8 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from niagads.common.core import ComponentBaseMixin
+from niagads.enums.common import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.pipeline.config import PipelineConfig, StageConfig, TaskConfig
 from niagads.pipeline.plugins.registry import PluginRegistry
@@ -34,7 +36,7 @@ class StageTaskSelector(BaseModel):
     @classmethod
     def from_str(cls, value: str):
         """
-        Convert a string like 'stage' or 'stage.task' to a ResumeStep instance.
+        Convert a string like 'stage' or 'stage.task' to a StageTaskSelector instance.
         """
         if "." in value:
             stage, task = value.split(".", 1)
@@ -80,7 +82,7 @@ class StageTaskSelector(BaseModel):
         return [cls.from_any(i) for i in items]
 
 
-class PipelineManager:
+class PipelineManager(ComponentBaseMixin):
     """
     Pipeline executor with:
         - Stage barrier semantics (stages run in order, next waits for previous)
@@ -90,13 +92,15 @@ class PipelineManager:
         - Dry-run by default; --commit enables writes
     """
 
-    def __init__(self, config_file: str):
+    def __init__(self, config_file: str, debug: bool = False, verbose: bool = False):
         """
         Initialize the PipelineManager with a pipeline configuration file.
 
         Args:
             config_path (str): Path to the pipeline configuration JSON file.
         """
+        super().__init__(debug=debug, verbose=verbose)
+
         with open(config_file, "r") as f:
             config = json.load(f)
         self.__config = PipelineConfig(**config)
@@ -167,21 +171,21 @@ class PipelineManager:
             if stage_tasks:
                 plan.append((stage, stage_tasks))
         self.__plan = plan
-        return plan
 
     def plan(self) -> List[Tuple[StageConfig, List[TaskConfig]]]:
         """
-        Compute and return the execution plan for the current filters.
+        Compute the execution plan for the current filters.
         """
-        return self._compute_plan()
+        if not self.__plan:
+            self._compute_plan()
 
     def print_plan(self):
         """
         Print a human-readable plan of the pipeline stages and tasks to be executed.
         """
-        plan = self.plan()
+        self.plan()
         out = []
-        for stage, tasks in plan:
+        for stage, tasks in self.__plan:
             out.append(
                 f"[Stage] {stage.name}  mode={stage.parallel_mode}  max={stage.max_concurrency or '-'}"
             )
@@ -351,63 +355,48 @@ class PipelineManager:
         if stage.parallel_mode == "async":
             sem = asyncio.Semaphore(stage.max_concurrency or len(tasks))
 
-            async def run_task(task: TaskConfig):
-                async with sem:
-                    if task.type == "plugin":
-                        return await self._run_plugin_task(
-                            stage,
-                            task,
-                            mode,
-                            pipeline_scope,
-                            resume_param,
-                            log_file_override,
-                        )
-                    if task.type == "shell":
-                        return await self._run_shell_task(task)
-                    if task.type == "file":
-                        return await self._run_file_task(task)
-                    if task.type == "validation":
-                        return await self._run_validation_task(task)
-                    if task.type == "notify":
-                        return await self._run_notify_task(task)
-                    return False
+            task_coroutines = [
+                self._run_stage_task(
+                    stage, t, mode, pipeline_scope, resume_param, log_file_override, sem
+                )
+                for t in tasks
+            ]
+            results = await asyncio.gather(*task_coroutines, return_exceptions=True)
 
-            coros = [run_task(t) for t in tasks]
-            results = await asyncio.gather(*coros, return_exceptions=True)
             # Fail-fast barrier: any failure aborts pipeline
             for r in results:
                 if r is not True:
-                    return False
-            return True
+                    return ProcessStatus.FAIL
+            return ProcessStatus.SUCCESS
 
-        # sequential
-        for t in tasks:
-            ok = False
-            if t.type == "plugin":
-                ok = await self._run_plugin_task(
-                    stage, t, mode, pipeline_scope, resume_param, log_file_override
+    async def _run_stage_task(
+        self, stage, task, mode, pipeline_scope, resume_param, log_file_override, sem
+    ):
+        async with sem:
+            if task.type == "plugin":
+                return await self._run_plugin_task(
+                    stage,
+                    task,
+                    mode,
+                    pipeline_scope,
+                    resume_param,
+                    log_file_override,
                 )
-            elif t.type == "shell":
-                ok = await self._run_shell_task(t)
-            elif t.type == "file":
-                ok = await self._run_file_task(t)
-            elif t.type == "validation":
-                ok = await self._run_validation_task(t)
-            elif t.type == "notify":
-                ok = await self._run_notify_task(t)
-
-            if not ok:
-                return False
-        return True
+            if task.type == "shell":
+                return await self._run_shell_task(task)
+            if task.type == "file":
+                return await self._run_file_task(task)
+            if task.type == "validation":
+                return await self._run_validation_task(task)
+            if task.type == "notify":
+                return await self._run_notify_task(task)
+            return False
 
     # ---- public API ----
     async def run(
         self,
         *,
         mode: ETLMode = ETLMode.DRY_RUN,
-        only: Optional[List[Any]] = None,
-        skip: Optional[List[Any]] = None,
-        resume_step: Optional[Any] = None,
         resume_param: Optional[Dict[str, Any]] = None,  # {"line":N} or {"id":"X"}
         log_file_override: Optional[str] = None,
         overrides: Optional[Dict[str, Any]] = None,  # pipeline param overrides
@@ -418,9 +407,6 @@ class PipelineManager:
 
         Args:
             mode (ETLMode): ETL execution mode (COMMIT, NON_COMMIT, DRY_RUN).
-            only (Optional[List[Any]]): List of "Stage.Task", "Stage", dict, or StageTaskSelector to include.
-            skip (Optional[List[Any]]): List of "Stage.Task", "Stage", dict, or StageTaskSelector to exclude.
-            resume_step (Optional[Any]): StageTaskSelector, dict, or string convertible to StageTaskSelector.
             resume_param (Optional[Dict[str, Any]]): Resume information for plugins.
             log_file_override (Optional[str]): Override for log file path.
             overrides (Optional[Dict[str, Any]]): Pipeline parameter overrides.
@@ -430,9 +416,6 @@ class PipelineManager:
             bool: True if the pipeline completes successfully, False otherwise.
         """
         # Set filters as class members
-        self.__only = StageTaskSelector.normalize_list(only)
-        self.__skip = StageTaskSelector.normalize_list(skip)
-        self.__resume_step = StageTaskSelector.from_any(resume_step)
         self.__plan = None  # Invalidate cached plan
 
         # apply overrides to pipeline params
@@ -444,14 +427,14 @@ class PipelineManager:
                 }
             )
 
-        plan = self.plan()
+        self.plan()
         if print_only:
-            print(self.print_plan())
-            return True
+            self.logger.info(self.print_plan())
+            return ProcessStatus.SUCCESS
 
         scope = self.__config.params.copy()
-        for stage, tasks in plan:
-            ok = await self._run_stage(
+        for stage, tasks in self.__plan:
+            status = await self._run_stage(
                 stage=stage,
                 tasks=tasks,
                 mode=mode,
@@ -459,9 +442,36 @@ class PipelineManager:
                 resume_param=resume_param,
                 log_file_override=log_file_override,
             )
-            if not ok:
-                return False
-        return True
+            return status
+        return ProcessStatus.SUCCESS
+
+    # ---- setters for filters ----
+    def set_only(self, only: Optional[List[Any]]):
+        """
+        Set the 'only' filter for pipeline execution.
+        Args:
+            only (Optional[List[Any]]): List of stage/task selectors (string, dict, or StageTaskSelector).
+        """
+        self.__only = StageTaskSelector.normalize_list(only)
+        self.__plan = None  # Invalidate cached plan
+
+    def set_skip(self, skip: Optional[List[Any]]):
+        """
+        Set the 'skip' filter for pipeline execution.
+        Args:
+            skip (Optional[List[Any]]): List of stage/task selectors (string, dict, or StageTaskSelector).
+        """
+        self.__skip = StageTaskSelector.normalize_list(skip)
+        self.__plan = None  # Invalidate cached plan
+
+    def set_resume_step(self, resume_step: Optional[Any]):
+        """
+        Set the 'resume_step' filter for pipeline execution.
+        Args:
+            resume_step (Optional[Any]): StageTaskSelector, dict, or string convertible to StageTaskSelector.
+        """
+        self.__resume_step = StageTaskSelector.from_any(resume_step)
+        self.__plan = None  # Invalidate cached plan
 
     # ---- utils ----
     @staticmethod
