@@ -1,3 +1,4 @@
+from niagads.database.mixins.query import QueryMixin
 from niagads.database.mixins.serialization import ModelDumpMixin
 from niagads.genomicsdb.models.admin.mixins import HousekeepingMixin
 from sqlalchemy import MetaData
@@ -13,6 +14,7 @@ class DeclarativeModelBaseFactory:
     def create(
         schema: str = None,
         incl_housekeeping: bool = True,
+        enable_query_mixin: bool = True,
     ):
         """
         Create a DeclarativeBase class with optional schema and mixins.
@@ -27,6 +29,8 @@ class DeclarativeModelBaseFactory:
         bases = (ModelDumpMixin,)
         if incl_housekeeping:
             bases = (HousekeepingMixin,) + bases
+        if enable_query_mixin:
+            bases = (QueryMixin,) + bases
         bases = bases + (DeclarativeBase,)
 
         class Base(*bases):

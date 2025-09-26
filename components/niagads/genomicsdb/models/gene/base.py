@@ -10,5 +10,5 @@ GeneSchemaBase = DeclarativeModelBaseFactory.create(
 )
 
 GeneMaterializedViewBase = DeclarativeModelBaseFactory.create(
-    schema="gene", incl_housekeeping=False
+    schema="gene", incl_housekeeping=False, enable_query_mixin=False
 )
