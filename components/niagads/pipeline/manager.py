@@ -13,8 +13,6 @@ from niagads.pipeline.plugins.registry import PluginRegistry
 from niagads.utils.dict import deep_merge
 from pydantic import BaseModel
 
-# TODO: resolve, skip, only, from config vs from parameters
-
 
 class ETLMode(CaseInsensitiveEnum):
     """
@@ -108,84 +106,87 @@ class PipelineManager(ComponentBaseMixin):
         # Filters and plan
         self.__only: Optional[List[StageTaskSelector]] = None
         self.__skip: Optional[List[StageTaskSelector]] = []
-        self.__resume_step: Optional[StageTaskSelector] = None
-        self.__plan: Optional[List[Tuple[StageConfig, List[TaskConfig]]]] = None
+        self.__resume_point: Optional[StageTaskSelector] = None
+        self.__checkpoint: Optional[Dict[str, Any]] = None
 
     # ---- planning & filtering ----
-    def _compute_plan(self) -> List[Tuple[StageConfig, List[TaskConfig]]]:
+    def _plan(self) -> List[Tuple[StageConfig, List[TaskConfig]]]:
         """
-        Internal: Compute the execution plan (stages and tasks) based on filters.
+        Compute the execution plan (stages and tasks) based on filters and resume_point.
         """
-
-        def match_stage_task(filters, stage_name, task_name=None):
-            if not filters:
-                return False
-            for f in filters:
-                if f.stage == stage_name:
-                    if f.task is None or f.task == task_name:
-                        return True
-            return False
-
-        resume = StageTaskSelector.from_any(self.__resume_step)
-        skipping = bool(resume)
-        resume_stage = resume.stage if resume else None
-        resume_task = resume.task if resume else None
         plan = []
-        found_resume = not skipping
+        resume = StageTaskSelector.from_any(self.__resume_point)
+        resuming = resume is not None
+        found_resume_stage = not resuming
+        found_resume_task = not resuming
+
         for stage in self.__config.stages:
             if stage.skip or stage.deprecated:
                 continue
-            if skipping and not found_resume:
-                if stage.name == resume_stage:
-                    if resume_task is None:
-                        found_resume = True
+
+            # If resuming, skip stages before the resume stage
+            if resuming and not found_resume_stage:
+                if stage.name == resume.stage:
+                    found_resume_stage = True
                 else:
                     continue
+
             stage_tasks = []
-            found_task_resume = resume_task is None or not skipping or found_resume
             for task in stage.tasks:
                 if task.skip or task.deprecated:
                     continue
-                if skipping and not found_resume and stage.name == resume_stage:
-                    if not found_task_resume:
-                        if task.name == resume_task:
-                            found_task_resume = True
+
+                # If resuming at a specific task, skip tasks before the resume task in the resume stage
+                if resuming and stage.name == resume.stage and resume.task:
+                    if not found_resume_task:
+                        if task.name == resume.task:
+                            found_resume_task = True
                         else:
                             continue
-                else:
-                    found_resume = True
-                # Only filter
-                if (
-                    self.__only
-                    and not match_stage_task(self.__only, stage.name, task.name)
-                    and not match_stage_task(self.__only, stage.name, None)
+
+                # Apply 'only' and 'skip' filters
+                if self.__only and not (
+                    self._match_stage_task(self.__only, stage.name, task.name)
+                    or self._match_stage_task(self.__only, stage.name, None)
                 ):
                     continue
-                # Skip filter
                 if self.__skip and (
-                    match_stage_task(self.__skip, stage.name, None)
-                    or match_stage_task(self.__skip, stage.name, task.name)
+                    self._match_stage_task(self.__skip, stage.name, None)
+                    or self._match_stage_task(self.__skip, stage.name, task.name)
                 ):
                     continue
+
                 stage_tasks.append(task)
+
             if stage_tasks:
                 plan.append((stage, stage_tasks))
-        self.__plan = plan
 
-    def plan(self) -> List[Tuple[StageConfig, List[TaskConfig]]]:
-        """
-        Compute the execution plan for the current filters.
-        """
-        if not self.__plan:
-            self._compute_plan()
+            # If resuming at a stage (not a task), after the first matching stage, treat as normal
+            if resuming and found_resume_stage and not resume.task:
+                found_resume_stage = True  # remains True for all subsequent stages
+
+        return plan
+
+    def _match_stage_task(self, filters, stage_name, task_name=None):
+        if not filters:
+            return False
+        for f in filters:
+            if f.stage == stage_name:
+                if f.task is None or f.task == task_name:
+                    return True
+        return False
+
+    def _has_resume_point(self):
+        resume = StageTaskSelector.from_any(self.__resume_point)
+        return bool(resume)
 
     def print_plan(self):
         """
         Print a human-readable plan of the pipeline stages and tasks to be executed.
         """
-        self.plan()
+        plan = self._plan()
         out = []
-        for stage, tasks in self.__plan:
+        for stage, tasks in plan:
             out.append(
                 f"[Stage] {stage.name}  mode={stage.parallel_mode}  max={stage.max_concurrency or '-'}"
             )
@@ -202,64 +203,40 @@ class PipelineManager(ComponentBaseMixin):
         task: TaskConfig,
         mode: ETLMode,
         pipeline_scope: Dict[str, Any],
-        resume_param: Optional[Dict[str, Any]],
-        log_file_override: Optional[str],
     ) -> bool:
-        """
-        Run a plugin task with retries and timeout, applying parameter interpolation and overrides.
-
-        Args:
-            stage (StageConfig): The stage configuration.
-            task (TaskConfig): The task configuration.
-            mode (ETLMode): ETL execution mode (COMMIT, NON_COMMIT, DRY_RUN).
-            pipeline_scope (Dict[str, Any]): Pipeline-wide parameters for interpolation.
-            resume_param (Optional[Dict[str, Any]]): Resume information for plugins.
-            log_file_override (Optional[str]): Override for log file path.
-
-        Returns:
-            bool: True if the task succeeds, False otherwise.
-        """
         plugin_cls = PluginRegistry.get(task.plugin)
-        # scoped params: pipeline.params -> task.params -> CLI resume/log overrides
         params = self.interpolate_params(
             deep_merge(self.__config.params, task.params), scope=pipeline_scope
         )
-
-        if log_file_override:
-            params["log_file"] = log_file_override
-        if resume_param:
-            params["resume_from"] = resume_param
-
-        # validate via plugin's parameter_model inside BasePlugin.__init__
+        if self.__checkpoint:
+            params["resume_from"] = self.__checkpoint
         plugin = plugin_cls(name=task.name, params=params)
+        return await self._plugin_one_run(plugin, mode, task)
 
-        async def _one_run() -> bool:
-            # Pass ETLMode to plugin.run
-            return await plugin.run(runtime_params=None, mode=mode)
-
+    async def _plugin_one_run(self, plugin, mode, task):
         attempt = 0
         last_exc = None
         while attempt <= task.retries:
             try:
                 if task.timeout_seconds:
-                    return await asyncio.wait_for(
-                        _one_run(), timeout=task.timeout_seconds
+                    await asyncio.wait_for(
+                        plugin.run(runtime_params=None, mode=mode),
+                        timeout=task.timeout_seconds,
                     )
                 else:
-                    return await _one_run()
+                    await plugin.run(runtime_params=None, mode=mode)
+                return ProcessStatus.SUCCESS
             except Exception as e:
                 last_exc = e
                 attempt += 1
                 if attempt > task.retries:
-                    # BasePlugin already logs exceptions; nothing more to add here.
-                    return False
-                await asyncio.sleep(min(2 * attempt, 10))  # simple backoff
-        # should not get here
+                    return ProcessStatus.FAIL
+                await asyncio.sleep(min(2 * attempt, 10))
         if last_exc:
             raise last_exc
-        return False
+        return ProcessStatus.FAIL
 
-    async def _run_shell_task(self, task: TaskConfig) -> bool:
+    async def _run_shell_task(self, task: TaskConfig) -> ProcessStatus:
         """
         Run a shell command as a pipeline task.
 
@@ -278,11 +255,11 @@ class PipelineManager(ComponentBaseMixin):
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await proc.communicate()
-            return proc.returncode == 0
+            return ProcessStatus.SUCCESS if proc.returncode == 0 else ProcessStatus.FAIL
         except Exception:
-            return False
+            return ProcessStatus.FAIL
 
-    async def _run_file_task(self, task: TaskConfig) -> bool:
+    async def _run_file_task(self, task: TaskConfig) -> ProcessStatus:
         """
         Run a file operation task (e.g., check existence, copy, move).
 
@@ -298,10 +275,14 @@ class PipelineManager(ComponentBaseMixin):
             raise ValueError(f"File task '{task.name}' missing 'path'")
         # Example "exists" action:
         if task.action == "exists":
-            return os.path.exists(task.path)
-        return True
+            return (
+                ProcessStatus.SUCCESS
+                if os.path.exists(task.path)
+                else ProcessStatus.FAIL
+            )
+        return ProcessStatus.SUCCESS
 
-    async def _run_validation_task(self, task: TaskConfig) -> bool:
+    async def _run_validation_task(self, task: TaskConfig) -> ProcessStatus:
         """
         Run a validation task (custom validator).
 
@@ -312,9 +293,9 @@ class PipelineManager(ComponentBaseMixin):
             bool: True if the validation succeeds, False otherwise.
         """
         # Placeholder for custom validators (e.g., import and run a callable by dotted path)
-        return True
+        return ProcessStatus.SUCCESS
 
-    async def _run_notify_task(self, task: TaskConfig) -> bool:
+    async def _run_notify_task(self, task: TaskConfig) -> ProcessStatus:
         """
         Run a notification task (e.g., Slack/email/webhook).
 
@@ -326,7 +307,7 @@ class PipelineManager(ComponentBaseMixin):
         """
         # Placeholder for Slack/email/webhook; callers can implement an adapter.
         # We do NOT do DB work here per earlier constraints.
-        return True
+        return ProcessStatus.SUCCESS
 
     # ---- stage execution ----
     async def _run_stage(
@@ -335,8 +316,6 @@ class PipelineManager(ComponentBaseMixin):
         tasks: List[TaskConfig],
         mode: ETLMode,
         pipeline_scope: Dict[str, Any],
-        resume_param: Optional[Dict[str, Any]],
-        log_file_override: Optional[str],
     ) -> bool:
         """
         Execute all tasks in a stage, either in parallel (async) or sequentially.
@@ -346,8 +325,6 @@ class PipelineManager(ComponentBaseMixin):
             tasks (List[TaskConfig]): List of tasks to execute in the stage.
             mode (ETLMode): ETL execution mode (COMMIT, NON_COMMIT, DRY_RUN).
             pipeline_scope (Dict[str, Any]): Pipeline-wide parameters for interpolation.
-            resume_param (Optional[Dict[str, Any]]): Resume information for plugins.
-            log_file_override (Optional[str]): Override for log file path.
 
         Returns:
             bool: True if all tasks succeed, False if any task fails.
@@ -356,10 +333,7 @@ class PipelineManager(ComponentBaseMixin):
             sem = asyncio.Semaphore(stage.max_concurrency or len(tasks))
 
             task_coroutines = [
-                self._run_stage_task(
-                    stage, t, mode, pipeline_scope, resume_param, log_file_override, sem
-                )
-                for t in tasks
+                self._run_stage_task(stage, t, mode, pipeline_scope, sem) for t in tasks
             ]
             results = await asyncio.gather(*task_coroutines, return_exceptions=True)
 
@@ -369,9 +343,7 @@ class PipelineManager(ComponentBaseMixin):
                     return ProcessStatus.FAIL
             return ProcessStatus.SUCCESS
 
-    async def _run_stage_task(
-        self, stage, task, mode, pipeline_scope, resume_param, log_file_override, sem
-    ):
+    async def _run_stage_task(self, stage, task, mode, pipeline_scope, sem):
         async with sem:
             if task.type == "plugin":
                 return await self._run_plugin_task(
@@ -379,8 +351,6 @@ class PipelineManager(ComponentBaseMixin):
                     task,
                     mode,
                     pipeline_scope,
-                    resume_param,
-                    log_file_override,
                 )
             if task.type == "shell":
                 return await self._run_shell_task(task)
@@ -397,81 +367,108 @@ class PipelineManager(ComponentBaseMixin):
         self,
         *,
         mode: ETLMode = ETLMode.DRY_RUN,
-        resume_param: Optional[Dict[str, Any]] = None,  # {"line":N} or {"id":"X"}
-        log_file_override: Optional[str] = None,
-        overrides: Optional[Dict[str, Any]] = None,  # pipeline param overrides
-        print_only: bool = False,
+        parameter_overrides: Optional[
+            Dict[str, Any]
+        ] = None,  # pipeline param overrides
     ) -> bool:
         """
         Execute the pipeline.
 
         Args:
             mode (ETLMode): ETL execution mode (COMMIT, NON_COMMIT, DRY_RUN).
-            resume_param (Optional[Dict[str, Any]]): Resume information for plugins.
-            log_file_override (Optional[str]): Override for log file path.
-            overrides (Optional[Dict[str, Any]]): Pipeline parameter overrides.
-            print_only (bool): If True, print the plan and return without executing.
+            parameter_overrides (Optional[Dict[str, Any]]): Pipeline parameter overrides.
 
         Returns:
             bool: True if the pipeline completes successfully, False otherwise.
         """
-        # Set filters as class members
-        self.__plan = None  # Invalidate cached plan
-
         # apply overrides to pipeline params
-        if overrides:
+        if parameter_overrides:
             self.__config = PipelineConfig(
                 **{
                     **self.__config.dict(),
-                    "params": deep_merge(self.__config.params, overrides),
+                    "params": deep_merge(self.__config.params, parameter_overrides),
                 }
             )
 
-        self.plan()
-        if print_only:
-            self.logger.info(self.print_plan())
-            return ProcessStatus.SUCCESS
-
+        plan = self._plan()
         scope = self.__config.params.copy()
-        for stage, tasks in self.__plan:
+        for stage, tasks in plan:
             status = await self._run_stage(
                 stage=stage,
                 tasks=tasks,
                 mode=mode,
                 pipeline_scope=scope,
-                resume_param=resume_param,
-                log_file_override=log_file_override,
             )
             return status
         return ProcessStatus.SUCCESS
 
-    # ---- setters for filters ----
-    def set_only(self, only: Optional[List[Any]]):
-        """
-        Set the 'only' filter for pipeline execution.
-        Args:
-            only (Optional[List[Any]]): List of stage/task selectors (string, dict, or StageTaskSelector).
-        """
-        self.__only = StageTaskSelector.normalize_list(only)
-        self.__plan = None  # Invalidate cached plan
+    # ---- filter properties ----
+    @property
+    def only(self) -> Optional[List[StageTaskSelector]]:
+        return self.__only
 
-    def set_skip(self, skip: Optional[List[Any]]):
-        """
-        Set the 'skip' filter for pipeline execution.
-        Args:
-            skip (Optional[List[Any]]): List of stage/task selectors (string, dict, or StageTaskSelector).
-        """
-        self.__skip = StageTaskSelector.normalize_list(skip)
-        self.__plan = None  # Invalidate cached plan
+    @only.setter
+    def only(self, value: Optional[List[Any]]):
+        if value is not None and self.__skip:
+            raise ValueError(
+                "Cannot set both 'only' and 'skip' filters; they are mutually exclusive."
+            )
+        self.__only = StageTaskSelector.normalize_list(value)
 
-    def set_resume_step(self, resume_step: Optional[Any]):
-        """
-        Set the 'resume_step' filter for pipeline execution.
-        Args:
-            resume_step (Optional[Any]): StageTaskSelector, dict, or string convertible to StageTaskSelector.
-        """
-        self.__resume_step = StageTaskSelector.from_any(resume_step)
-        self.__plan = None  # Invalidate cached plan
+    @property
+    def skip(self) -> Optional[List[StageTaskSelector]]:
+        return self.__skip
+
+    @skip.setter
+    def skip(self, value: Optional[List[Any]]):
+        if value is not None and self.__only:
+            raise ValueError(
+                "Cannot set both 'only' and 'skip' filters; they are mutually exclusive."
+            )
+        self.__skip = StageTaskSelector.normalize_list(value)
+
+    @property
+    def resume_point(self) -> Optional[StageTaskSelector]:
+        return self.__resume_point
+
+    @resume_point.setter
+    def resume_point(self, value: Optional[Any]):
+        selector = StageTaskSelector.from_any(value)
+        if selector is not None:
+            # Validate immediately: must not be skipped or deprecated
+            for stage in self.__config.stages:
+                if stage.name == selector.stage:
+                    if stage.skip or stage.deprecated:
+                        msg = f"Cannot resume at skipped or deprecated stage: {selector.stage}"
+                        self.logger.error(msg)
+                        raise ValueError(msg)
+                    if selector.task:
+                        found = False
+                        for task in stage.tasks:
+                            if task.name == selector.task:
+                                found = True
+                                if task.skip or task.deprecated:
+                                    msg = f"Cannot resume at skipped or deprecated task: {selector.stage}.{selector.task}"
+                                    self.logger.error(msg)
+                                    raise ValueError(msg)
+                        if not found:
+                            msg = f"Task not found for resume_point: {selector.stage}.{selector.task}"
+                            self.logger.error(msg)
+                            raise ValueError(msg)
+                    break
+            else:
+                msg = f"Stage not found for resume_point: {selector.stage}"
+                self.logger.error(msg)
+                raise ValueError(msg)
+        self.__resume_point = selector
+
+    @property
+    def checkpoint(self) -> Optional[Dict[str, Any]]:
+        return self.__checkpoint
+
+    @checkpoint.setter
+    def checkpoint(self, value: Optional[Dict[str, Any]]):
+        self.__checkpoint = value
 
     # ---- utils ----
     @staticmethod
