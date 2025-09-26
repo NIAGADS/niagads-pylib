@@ -1,14 +1,37 @@
+from enum import auto
 from typing import Optional, Dict, Any, List, Literal, Type
 from pydantic import BaseModel, Field, field_validator
 from components.niagads.enums.core import CaseInsensitiveEnum
 
 
 class TaskType(CaseInsensitiveEnum):
-    PLUGIN = "plugin"
-    SHELL = "shell"
-    FILE = "file"
-    VALIDATION = "validation"
-    NOTIFY = "notify"
+    """
+    Task type for pipeline tasks:
+    - PLUGIN:     Run a registered plugin (default)
+    - SHELL:      Run a shell command
+    - FILE:       Perform a file operation (exists, copy, move, etc.)
+    - VALIDATION: Run a custom validation callable
+    - NOTIFY:     Send a notification (e.g., Slack, email, webhook)
+    """
+
+    PLUGIN = auto()
+    SHELL = auto()
+    FILE = auto()
+    VALIDATION = auto()
+    NOTIFY = auto()
+
+
+class ParallelMode(CaseInsensitiveEnum):
+    """
+    Task execution strategy:
+    - NONE:    sequential execution
+    - THREAD:  thread pool concurrency (I/O-bound workloads)
+    - PROCESS: process pool concurrency (CPU-bound workloads)
+    """
+
+    NONE = auto()
+    THREAD = auto()
+    PROCESS = auto()
 
 
 class TaskConfig(BaseModel):
@@ -51,8 +74,8 @@ class StageConfig(BaseModel):
     """
 
     name: str = Field(..., description="Stage name")
-    parallel_mode: Literal["none", "async"] = Field(
-        "none", description="Execution mode for tasks"
+    parallel_mode: ParallelMode = Field(
+        ParallelMode.NONE, description="Execution mode for tasks"
     )
     max_concurrency: Optional[int] = Field(
         None, ge=1, description="Max concurrency when parallel_mode='async'"
