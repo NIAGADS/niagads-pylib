@@ -1,14 +1,24 @@
+# TODO: review error handling; make sure errors are propogated and then caught
+# and logged in a try block
+
 import asyncio
-from enum import auto
 import json
 import os
 import re
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from enum import auto
 from typing import Any, Dict, List, Optional, Tuple
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.enums.common import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.pipeline.config import PipelineConfig, StageConfig, TaskConfig
+from niagads.pipeline.config import (
+    ParallelMode,
+    PipelineConfig,
+    StageConfig,
+    TaskConfig,
+    TaskType,
+)
 from niagads.pipeline.plugins.registry import PluginRegistry
 from niagads.utils.dict import deep_merge
 from pydantic import BaseModel
@@ -79,6 +89,16 @@ class StageTaskSelector(BaseModel):
             return None
         return [cls.from_any(i) for i in items]
 
+    @staticmethod
+    def match_stage_task(filters, stage_name, task_name=None):
+        if not filters:
+            return False
+        for f in filters:
+            if f.stage == stage_name:
+                if f.task is None or f.task == task_name:
+                    return True
+        return False
+
 
 class PipelineManager(ComponentBaseMixin):
     """
@@ -146,13 +166,17 @@ class PipelineManager(ComponentBaseMixin):
 
                 # Apply 'only' and 'skip' filters
                 if self.__only and not (
-                    self._match_stage_task(self.__only, stage.name, task.name)
-                    or self._match_stage_task(self.__only, stage.name, None)
+                    StageTaskSelector.match_stage_task(
+                        self.__only, stage.name, task.name
+                    )
+                    or StageTaskSelector.match_stage_task(self.__only, stage.name, None)
                 ):
                     continue
                 if self.__skip and (
-                    self._match_stage_task(self.__skip, stage.name, None)
-                    or self._match_stage_task(self.__skip, stage.name, task.name)
+                    StageTaskSelector.match_stage_task(self.__skip, stage.name, None)
+                    or StageTaskSelector.match_stage_task(
+                        self.__skip, stage.name, task.name
+                    )
                 ):
                     continue
 
@@ -167,34 +191,25 @@ class PipelineManager(ComponentBaseMixin):
 
         return plan
 
-    def _match_stage_task(self, filters, stage_name, task_name=None):
-        if not filters:
-            return False
-        for f in filters:
-            if f.stage == stage_name:
-                if f.task is None or f.task == task_name:
-                    return True
-        return False
-
     def _has_resume_point(self):
         resume = StageTaskSelector.from_any(self.__resume_point)
         return bool(resume)
 
-    def print_plan(self):
+    def log_plan(self):
         """
-        Print a human-readable plan of the pipeline stages and tasks to be executed.
+        Log a human-readable plan of the pipeline stages and tasks to be executed.
         """
         plan = self._plan()
-        out = []
+        lines = ["Pipeline Plan:"]
         for stage, tasks in plan:
-            out.append(
+            lines.append(
                 f"[Stage] {stage.name}  mode={stage.parallel_mode}  max={stage.max_concurrency or '-'}"
             )
             for t in tasks:
-                out.append(
-                    f"  - {t.name}  type={t.type}  plugin={t.plugin or '-'}  timeout={t.timeout_seconds or '-'}  retries={t.retries}"
+                lines.append(
+                    f"    - {t.name:<12} type={t.type:<10} plugin={t.plugin or '-':<16} timeout={str(t.timeout_seconds) if getattr(t, 'timeout_seconds', None) else '-':<6} retries={getattr(t, 'retries', '-') if hasattr(t, 'retries') else '-'}"
                 )
-        return "\n".join(out)
+        self.logger.info("\n" + "\n".join(lines))
 
     # ---- task executors ----
     async def _run_plugin_task(
@@ -203,7 +218,7 @@ class PipelineManager(ComponentBaseMixin):
         task: TaskConfig,
         mode: ETLMode,
         pipeline_scope: Dict[str, Any],
-    ) -> bool:
+    ) -> ProcessStatus:
         plugin_cls = PluginRegistry.get(task.plugin)
         params = self.interpolate_params(
             deep_merge(self.__config.params, task.params), scope=pipeline_scope
@@ -213,7 +228,7 @@ class PipelineManager(ComponentBaseMixin):
         plugin = plugin_cls(name=task.name, params=params)
         return await self._plugin_one_run(plugin, mode, task)
 
-    async def _plugin_one_run(self, plugin, mode, task):
+    async def _plugin_one_run(self, plugin, mode, task) -> ProcessStatus:
         attempt = 0
         last_exc = None
         while attempt <= task.retries:
@@ -316,9 +331,9 @@ class PipelineManager(ComponentBaseMixin):
         tasks: List[TaskConfig],
         mode: ETLMode,
         pipeline_scope: Dict[str, Any],
-    ) -> bool:
+    ) -> ProcessStatus:
         """
-        Execute all tasks in a stage, either in parallel (async) or sequentially.
+        Execute all tasks in a stage, either in parallel (async/thread/process) or sequentially.
 
         Args:
             stage (StageConfig): The stage configuration.
@@ -329,38 +344,63 @@ class PipelineManager(ComponentBaseMixin):
         Returns:
             bool: True if all tasks succeed, False if any task fails.
         """
-        if stage.parallel_mode == "async":
-            sem = asyncio.Semaphore(stage.max_concurrency or len(tasks))
+        if stage.parallel_mode == ParallelMode.NONE:
+            return await self._run_stage_sequential(stage, tasks, mode, pipeline_scope)
+        else:
+            return await self._run_stage_parallel(stage, tasks, mode, pipeline_scope)
 
-            task_coroutines = [
-                self._run_stage_task(stage, t, mode, pipeline_scope, sem) for t in tasks
+    async def _run_stage_sequential(
+        self, stage, tasks, mode, pipeline_scope
+    ) -> ProcessStatus:
+        for t in tasks:
+            result = await self._run_stage_task(stage, t, mode, pipeline_scope)
+            if result is not ProcessStatus.SUCCESS:
+                return ProcessStatus.FAIL
+        return ProcessStatus.SUCCESS
+
+    async def _run_stage_parallel(
+        self, stage, tasks, mode, pipeline_scope
+    ) -> ProcessStatus:
+        Executor = (
+            ThreadPoolExecutor
+            if stage.parallel_mode == ParallelMode.THREAD
+            else ProcessPoolExecutor
+        )
+        max_workers = stage.max_concurrency or len(tasks)
+        loop = asyncio.get_running_loop()
+        with Executor(max_workers=max_workers) as executor:
+            futures = [
+                loop.run_in_executor(
+                    executor,
+                    lambda t=t: asyncio.run(
+                        self._run_stage_task(stage, t, mode, pipeline_scope)
+                    ),
+                )
+                for t in tasks
             ]
-            results = await asyncio.gather(*task_coroutines, return_exceptions=True)
-
-            # Fail-fast barrier: any failure aborts pipeline
+            results = await asyncio.gather(*futures, return_exceptions=True)
             for r in results:
-                if r is not True:
+                if isinstance(r, Exception) or r is not ProcessStatus.SUCCESS:
+                    self.logger.error(f"Stage task failed or raised exception: {r}")
                     return ProcessStatus.FAIL
             return ProcessStatus.SUCCESS
 
-    async def _run_stage_task(self, stage, task, mode, pipeline_scope, sem):
-        async with sem:
-            if task.type == "plugin":
-                return await self._run_plugin_task(
-                    stage,
-                    task,
-                    mode,
-                    pipeline_scope,
-                )
-            if task.type == "shell":
+    async def _run_stage_task(self, stage, task, mode, pipeline_scope) -> ProcessStatus:
+        match task.type:
+            case TaskType.PLUGIN:
+                return await self._run_plugin_task(stage, task, mode, pipeline_scope)
+            case TaskType.SHELL:
                 return await self._run_shell_task(task)
-            if task.type == "file":
+            case TaskType.FILE:
                 return await self._run_file_task(task)
-            if task.type == "validation":
+            case TaskType.VALIDATION:
                 return await self._run_validation_task(task)
-            if task.type == "notify":
+            case TaskType.NOTIFY:
                 return await self._run_notify_task(task)
-            return False
+            case _:
+                raise ValueError(
+                    f"Unknown task type: {task.type!r} in stage '{stage.name}' task '{task.name}'"
+                )
 
     # ---- public API ----
     async def run(
@@ -392,15 +432,39 @@ class PipelineManager(ComponentBaseMixin):
 
         plan = self._plan()
         scope = self.__config.params.copy()
+
+        self.logger.info(f"Pipeline started. Mode: {mode.name}")
+        if self.only:
+            self.logger.info(f"Filter: only = {[str(sel) for sel in self.only]}")
+        if self.skip:
+            self.logger.info(f"Filter: skip = {[str(sel) for sel in self.skip]}")
+        if self.resume_point:
+            self.logger.info(f"Resuming from: {self.resume_point}")
+        self.log_plan()
+
+        all_success = True
         for stage, tasks in plan:
+            self.logger.info(
+                f"[Stage] {stage.name} started. Tasks: {[t.name for t in tasks]}"
+            )
             status = await self._run_stage(
                 stage=stage,
                 tasks=tasks,
                 mode=mode,
                 pipeline_scope=scope,
             )
-            return status
-        return ProcessStatus.SUCCESS
+            if status is not ProcessStatus.SUCCESS:
+                self.logger.error(f"[Stage] {stage.name} failed.")
+                all_success = False
+                break
+            self.logger.info(f"[Stage] {stage.name} completed successfully.")
+
+        if all_success:
+            self.logger.info("Pipeline completed successfully.")
+            return ProcessStatus.SUCCESS
+        else:
+            self.logger.error("Pipeline failed.")
+            return ProcessStatus.FAIL
 
     # ---- filter properties ----
     @property
@@ -471,6 +535,8 @@ class PipelineManager(ComponentBaseMixin):
         self.__checkpoint = value
 
     # ---- utils ----
+
+    # FIXME: look into string.Template
     @staticmethod
     def interpolate_params(
         params: Dict[str, Any], scope: Dict[str, Any]
@@ -492,6 +558,10 @@ class PipelineManager(ComponentBaseMixin):
                     key = m.group(1)
                     if key in scope:
                         val = val.replace(m.group(0), str(scope[key]))
+                    else:
+                        raise KeyError(
+                            f"Parameter interpolation failed: missing key '{key}' in scope."
+                        )
             elif isinstance(val, dict):
                 return {k: repl(v) for k, v in val.items()}
             elif isinstance(val, list):
