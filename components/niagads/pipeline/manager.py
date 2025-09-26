@@ -195,9 +195,9 @@ class PipelineManager(ComponentBaseMixin):
         resume = StageTaskSelector.from_any(self.__resume_point)
         return bool(resume)
 
-    def log_plan(self):
+    def print_plan(self, log: bool = False):
         """
-        Log a human-readable plan of the pipeline stages and tasks to be executed.
+        Print or log a human-readable plan of the pipeline stages and tasks to be executed.
         """
         plan = self._plan()
         lines = ["Pipeline Plan:"]
@@ -209,7 +209,11 @@ class PipelineManager(ComponentBaseMixin):
                 lines.append(
                     f"    - {t.name:<12} type={t.type:<10} plugin={t.plugin or '-':<16} timeout={str(t.timeout_seconds) if getattr(t, 'timeout_seconds', None) else '-':<6} retries={getattr(t, 'retries', '-') if hasattr(t, 'retries') else '-'}"
                 )
-        self.logger.info("\n" + "\n".join(lines))
+        output = "\n" + "\n".join(lines)
+        if log:
+            self.logger.info(output)
+        else:
+            print(output)
 
     # ---- task executors ----
     async def _run_plugin_task(
@@ -226,30 +230,11 @@ class PipelineManager(ComponentBaseMixin):
         if self.__checkpoint:
             params["resume_from"] = self.__checkpoint
         plugin = plugin_cls(name=task.name, params=params)
-        return await self._plugin_one_run(plugin, mode, task)
-
-    async def _plugin_one_run(self, plugin, mode, task) -> ProcessStatus:
-        attempt = 0
-        last_exc = None
-        while attempt <= task.retries:
-            try:
-                if task.timeout_seconds:
-                    await asyncio.wait_for(
-                        plugin.run(runtime_params=None, mode=mode),
-                        timeout=task.timeout_seconds,
-                    )
-                else:
-                    await plugin.run(runtime_params=None, mode=mode)
-                return ProcessStatus.SUCCESS
-            except Exception as e:
-                last_exc = e
-                attempt += 1
-                if attempt > task.retries:
-                    return ProcessStatus.FAIL
-                await asyncio.sleep(min(2 * attempt, 10))
-        if last_exc:
-            raise last_exc
-        return ProcessStatus.FAIL
+        try:
+            await plugin.run(runtime_params=None, mode=mode)
+            return ProcessStatus.SUCCESS
+        except Exception:
+            return ProcessStatus.FAIL
 
     async def _run_shell_task(self, task: TaskConfig) -> ProcessStatus:
         """
@@ -440,7 +425,7 @@ class PipelineManager(ComponentBaseMixin):
             self.logger.info(f"Filter: skip = {[str(sel) for sel in self.skip]}")
         if self.resume_point:
             self.logger.info(f"Resuming from: {self.resume_point}")
-        self.log_plan()
+        self.print_plan()
 
         all_success = True
         for stage, tasks in plan:
