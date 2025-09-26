@@ -1,79 +1,122 @@
-import argparse
-import asyncio
+import json
 from typing import Dict
 
-from pipeline_manager import PipelineManager
-from plugin_registry import PluginRegistry
+from niagads.arg_parser.core import (
+    case_insensitive_enum_type,
+    comma_separated_list,
+    json_type,
+)
+from niagads.pipeline.plugins.registry import PluginRegistry
+from niagads.pipeline.manager import PipelineManager, ETLMode
+from niagads.enums.common import ProcessStatus
 
 
-def parse_overrides(items: list[str] | None) -> Dict[str, str]:
+class PipelineRunner:
     """
-    Parse KEY=VALUE pairs from CLI into dict.
+    Encapsulates the ETL Pipeline Manager runner logic for script execution.
     """
-    out: Dict[str, str] = {}
-    if not items:
-        return out
-    for it in items:
-        if "=" not in it:
-            raise ValueError(f"Invalid override '{it}', expected KEY=VALUE")
-        k, v = it.split("=", 1)
-        out[k] = v
-    return out
+
+    def __init__(self, args):
+        self.args = args
+
+    async def run(self):
+        """
+        Execute the pipeline runner with parsed arguments (async).
+
+        Returns:
+            None
+        """
+        args = self.args
+
+        if args.list_plugins:
+            for name in PluginRegistry.list_plugins():
+                print(name)
+            return
+
+        if args.describe_plugin:
+            meta = PluginRegistry.describe(args.describe_plugin)
+            print(json.dumps(meta, indent=2))
+            return
+
+        # resume_checkpoint = self.parse_resume_param(args.resume_param)
+        manager = PipelineManager(args.config)
+
+        # Set filters from CLI args
+        if args.only:
+            manager.only = args.only
+        if args.skip:
+            manager.skip = args.skip
+        if args.resume_at:
+            manager.resume_point = args.resume_at
+        if args.resume_checkpoint:
+            manager.checkpoint = args.resume_checkpoint
+
+        if args.plan_only:
+            manager.print_plan()
+            return
+
+        status = await manager.run(
+            mode=args.mode,
+            parameter_overrides=args.parameter_overrides,
+        )
+
+        if status != ProcessStatus.SUCCESS:
+            raise SystemExit(1)
 
 
-def parse_resume_param(s: str | None):
+async def main():
     """
-    Parse resume parameter: "line=12345" or "id=ABC".
+    Entry point for running the PipelineRunner as a script.
+
+    Returns:
+        None
     """
-    if not s:
-        return None
-    if "=" not in s:
-        raise ValueError("--resume-param must be 'line=N' or 'id=VALUE'")
-    k, v = s.split("=", 1)
-    if k == "line":
-        return {"line": int(v)}
-    if k == "id":
-        return {"id": v}
-    raise ValueError("--resume-param must be 'line=N' or 'id=VALUE'")
+    import argparse
 
-
-def main():
     p = argparse.ArgumentParser(description="ETL Pipeline Manager (dry-run by default)")
     p.add_argument("config", help="Path to pipeline config JSON")
     p.add_argument(
-        "--commit",
-        action="store_true",
-        help="Actually commit changes (default: dry-run)",
+        "--mode",
+        type=case_insensitive_enum_type(ETLMode),
+        default=ETLMode.DRY_RUN,
+        help="ETL execution mode: COMMIT (commit changes), NON_COMMIT (rollback at end), DRY_RUN (simulate only)",
     )
     p.add_argument(
         "--only",
-        nargs="*",
-        help="Run only specified Stage or Stage.Task (space-separated)",
+        type=comma_separated_list,
+        help="Run only specified Stage or Stage.Task (comma-separated)",
     )
     p.add_argument(
-        "--skip", nargs="*", help="Skip specified Stage or Stage.Task (space-separated)"
+        "--skip",
+        type=comma_separated_list,
+        help="Skip specified Stage or Stage.Task (comma-separated)",
     )
     p.add_argument(
-        "--resume-step",
+        "--resume-at",
         type=str,
         help="Resume from Stage or Stage.Task (does NOT imply --only)",
     )
     p.add_argument(
-        "--resume-param", type=str, help="Resume parameter: 'line=N' or 'id=VALUE'"
+        "--resume-checkpoint",
+        type=str,
+        help="Resume checkpoint for the resume-at task: 'line=N' or 'id=VALUE'",
     )
-    p.add_argument("--log-file", type=str, help="Override plugin log_file for this run")
+    p.add_argument("--log-file", type=str, help="pipeline log file name")
     p.add_argument(
         "--param",
-        dest="overrides",
-        nargs="*",
-        help="Pipeline param overrides: KEY=VALUE",
+        dest="parameter_overrides",
+        type=json_type,
+        help="Pipeline param overrides as JSON string",
     )
     p.add_argument(
-        "--plan-only", action="store_true", help="Print plan and exit (no execution)"
+        "--plan-only",
+        action="store_true",
+        help="print plan and exit (no execution)",
     )
-    # Registry introspection
     p.add_argument(
-        "--list-plugins", action="store_true", help="List registered plugins and exit"
+        "--list-plugins",
+        action="store_true",
+        help="List registered plugins and exit",
     )
     p.add_argument(
         "--describe-plugin",
@@ -82,38 +125,17 @@ def main():
     )
 
     args = p.parse_args()
+    runner = PipelineRunner(args)
 
-    if args.list_plugins:
-        for name in PluginRegistry.list_plugins():
-            print(name)
-        return
+    await runner.run()
 
-    if args.describe_plugin:
-        meta = PluginRegistry.describe(args.describe_plugin)
-        import json
 
-        print(json.dumps(meta, indent=2))
-        return
+def run_main():
+    """wrapper necessary so that the main coroutine gets correctly awaited"""
+    import asyncio
 
-    overrides = parse_overrides(args.overrides)
-    resume_param = parse_resume_param(args.resume_param)
-
-    mgr = PipelineManager(args.config)
-    ok = asyncio.run(
-        mgr.run(
-            commit=args.commit,
-            only=args.only,
-            skip=args.skip,
-            resume_step=args.resume_step,
-            resume_param=resume_param,
-            log_file_override=args.log_file,
-            overrides=overrides,
-            print_only=args.plan_only,
-        )
-    )
-    if not ok:
-        raise SystemExit(1)
+    asyncio.run(main())
 
 
 if __name__ == "__main__":
-    main()
+    run_main()
