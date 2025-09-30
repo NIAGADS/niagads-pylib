@@ -2,13 +2,14 @@ import time
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Type
+from datetime import datetime
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.pipeline.manager import ETLMode
 import psutil
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.common import ProcessStatus
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation
+from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLOperationLog
 from niagads.pipeline.logger import ETLLogger
 from pydantic import BaseModel, Field, model_validator
 
@@ -323,6 +324,50 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         return last_line_no, last_record
 
+    async def _start_plugin_run_log(self, mode: ETLMode) -> Optional[int]:
+        """
+        Log the start of a plugin run (except DRY_RUN). Returns the log row's ID, or None if not logged.
+        """
+        if mode == ETLMode.DRY_RUN:
+            return None
+
+        async with self._session_manager() as session:
+            etl_log = ETLOperationLog(
+                plugin_name=self._name,
+                code_version=getattr(self, "code_version", None),
+                params=self._params.model_dump(),
+                message=f"Started ETL run: mode={mode.value}",
+                status=ProcessStatus.RUNNING.value,
+                operation=self.operation.value,
+                run_id=self._run_id,
+                start_time=datetime.now(),
+                end_time=None,
+                rows_processed=0,
+            )
+            session.add(etl_log)
+            await session.flush()
+            etl_log_id = etl_log.etl_operation_log_id
+            await session.commit()
+        return etl_log_id
+
+    async def _finalize_plugin_run_log(
+        self,
+        log_id: int,
+        status: ProcessStatus,
+        message: str,
+        rows_processed: int,
+    ):
+        """
+        Finalize the plugin run log with status, end time, and message.
+        """
+        async with self._session_manager() as session:
+            etl_log = await session.get(ETLOperationLog, log_id)
+            etl_log.status = status.value
+            etl_log.end_time = datetime.now()
+            etl_log.rows_processed = rows_processed
+            etl_log.message = message
+            await session.commit()
+
     async def run(
         self,
         runtime_params: Optional[Dict[str, Any]] = None,
@@ -342,6 +387,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         orig_params = self._params
         orig_commit_after = self._commit_after
         merged_params = None
+        task_id = None
         try:
             if runtime_params:
                 merged = self._params.model_dump().copy()
@@ -361,6 +407,17 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             last_line_no = 0
             last_record = None
 
+            # --- Log start of plugin run (except DRY_RUN) ---
+            task_id = await self._start_plugin_run_log(mode)
+
+            # --- Log initialization status to file ---
+            self.logger.init_status(
+                plugin_name=self._name,
+                params=self._params.model_dump(),
+                run_id=self._run_id,
+                task_id=task_id,
+            )
+
             if self.streaming:
                 last_line_no, last_record = await self._process_streaming_load(mode)
             else:
@@ -372,6 +429,15 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.status(mode.value.upper(), self._row_count, runtime, mem_mb)
             self.logger.flush()
             status = ProcessStatus.SUCCESS
+
+            # --- Finalize plugin run log on success (except DRY_RUN) ---
+            if mode != ETLMode.DRY_RUN and task_id:
+                await self._finalize_plugin_run_log(
+                    task_id,
+                    status,
+                    "ETL run completed successfully.",
+                    self._row_count,
+                )
 
         except Exception as e:
             # checkpoint for resume (line + record snapshot)
@@ -389,6 +455,15 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.checkpoint(**checkpoint_kwargs)
             self.logger.exception(f"Plugin failed: {e}")
             status = ProcessStatus.FAIL
+
+            # --- Finalize plugin run log on error (except DRY_RUN) ---
+            if mode != ETLMode.DRY_RUN and task_id:
+                await self._finalize_plugin_run_log(
+                    task_id,
+                    status,
+                    f"ETL run failed: {e}",
+                    self._row_count,
+                )
         finally:
             # Restore original params and commit_after
             self._params = orig_params

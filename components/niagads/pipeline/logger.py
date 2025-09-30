@@ -175,3 +175,26 @@ class ETLLogger:
             },
         )
         self.flush()
+
+    def init_status(
+        self, plugin_name: str, params: dict, run_id: str, task_id: Any = None
+    ):
+        """
+        Log the initialization status for a plugin run.
+
+        Args:
+            plugin_name (str): Name of the plugin.
+            params (dict): Parameter name/value pairs.
+            run_id (str): Unique run identifier.
+            task_id (Any): Task/log id from the database, if available.
+        """
+        self.__logger.info(
+            "INIT",
+            extra={
+                "plugin": plugin_name,
+                "params": params,
+                "run_id": run_id,
+                "task_id": task_id,
+            },
+        )
+        self.flush()
