@@ -22,7 +22,6 @@ class Gene(GeneSchemaBase, GenomicRegionMixin):
             name="ensembl_id_format_check",
         ),
         Index("ix_gene_location", "location", postgresql_using="gist"),
-        Index("ix_gene_bin_index", "bin_index", postgresql_using="gist"),
     )
 
     gene_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

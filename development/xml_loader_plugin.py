@@ -70,7 +70,7 @@ class XMLLoaderPlugin(AbstractBasePlugin):
             raise RuntimeError("Schema/table not set. Did you call extract()?")
         async with self._session_manager() as session:
             if not transformed:
-                return 0
+                return 0  # FIXME: this should throw an error
             columns = list(transformed[0].keys())
             col_names = ", ".join(columns)
             placeholders = ", ".join(f":{col}" for col in columns)
