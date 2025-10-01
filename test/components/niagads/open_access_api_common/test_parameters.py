@@ -1,4 +1,4 @@
-from niagads.api_common.parameters import core, response
+from niagads.api.common.parameters import core, response
 
 
 def test_sample():

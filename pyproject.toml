@@ -18,13 +18,14 @@ profile = "black"
 homepage = "https://github.com/NIAGADS/niagads-pylib"
 repository = "https://github.com/NIAGADS/niagads-pylib"
 packages = [
+    { from = "bases", include = "niagads/advp" },
+    { from = "bases", include = "niagads/filer" },
+    { from = "bases", include = "niagads/genomicsdb" },
     { from = "bases", include = "niagads/loaders" },
     { from = "bases", include = "niagads/metadata_validator_tool" },
-    { from = "bases", include = "niagads/advp_api" },
-    { from = "bases", include = "niagads/open_access_api" },
-    { from = "bases", include = "niagads/filer_api" },
-    { from = "bases", include = "niagads/genomics_api" },
+    { from = "bases", include = "niagads/open_access" },
     { from = "components", include = "niagads/adsp_annotation" },
+    { from = "components", include = "niagads/api" },
     { from = "components", include = "niagads/arg_parser" },
     { from = "components", include = "niagads/cache" },
     { from = "components", include = "niagads/common" },
@@ -41,7 +42,6 @@ packages = [
     { from = "components", include = "niagads/metadata_parser" },
     { from = "components", include = "niagads/metadata_validator" },
     { from = "components", include = "niagads/objects" },
-    { from = "components", include = "niagads/api_common" },
     { from = "components", include = "niagads/postgres_dbi" },
     { from = "components", include = "niagads/requests" },
     { from = "components", include = "niagads/s3" },
@@ -81,11 +81,11 @@ pyyaml = "^6.0.2"
 rdflib = "^7.1.4"
 requests = "^2.32.3"
 sqlalchemy = "^2.0.40"
+sqlalchemy-utils = "^0.41.2"
 strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
-sqlalchemy-utils = "^0.41.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
