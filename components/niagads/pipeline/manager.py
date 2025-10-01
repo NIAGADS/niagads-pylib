@@ -5,6 +5,7 @@ import asyncio
 import json
 import os
 import re
+import traceback
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from enum import auto
 from typing import Any, Dict, List, Optional, Tuple
@@ -329,10 +330,66 @@ class PipelineManager(ComponentBaseMixin):
         Returns:
             bool: True if all tasks succeed, False if any task fails.
         """
-        if stage.parallel_mode == ParallelMode.NONE:
-            return await self._run_stage_sequential(stage, tasks, mode, pipeline_scope)
-        else:
-            return await self._run_stage_parallel(stage, tasks, mode, pipeline_scope)
+        match stage.parallel_mode:
+            case ParallelMode.NONE:
+                return await self._run_stage_sequential(
+                    stage, tasks, mode, pipeline_scope
+                )
+            case ParallelMode.THREAD:
+                return await self._run_stage_parallel_thread(
+                    stage, tasks, mode, pipeline_scope
+                )
+            case ParallelMode.PROCESS:
+                return await self._run_stage_parallel_process(
+                    stage, tasks, mode, pipeline_scope
+                )
+            case _:
+                raise ValueError(
+                    f"Unknown parallel mode: {stage.parallel_mode!r} for stage '{stage.name}'"
+                )
+
+    async def _run_stage_parallel_thread(
+        self, stage, tasks, mode, pipeline_scope
+    ) -> ProcessStatus:
+        results = await asyncio.gather(
+            *(self._run_stage_task(stage, t, mode, pipeline_scope) for t in tasks),
+            return_exceptions=True,
+        )
+        for r in results:
+            if isinstance(r, Exception) or r is not ProcessStatus.SUCCESS:
+                self.logger.error(f"Stage task failed or raised exception: {r}")
+                return ProcessStatus.FAIL
+        return ProcessStatus.SUCCESS
+
+    # FIXME: potentially being handled incorrectly; something to do w/pickling
+    async def _run_stage_parallel_process(
+        self,
+        stage: StageConfig,
+        tasks: list[TaskConfig],
+        mode: ETLMode,
+        pipeline_scope: dict,
+    ) -> ProcessStatus:
+
+        max_workers = stage.max_concurrency or len(tasks)
+        loop = asyncio.get_running_loop()
+
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                loop.run_in_executor(
+                    executor,
+                    lambda t=t: asyncio.run(
+                        self._run_stage_task(stage, t, mode, pipeline_scope)
+                    ),
+                    t,
+                )
+                for t in tasks
+            ]
+            results = await asyncio.gather(*futures, return_exceptions=True)
+            for i, r in enumerate(results):
+                if isinstance(r, Exception) or r is not ProcessStatus.SUCCESS:
+                    self.logger.error(f"Stage task failed or raised exception: {r}")
+                    return ProcessStatus.FAIL
+            return ProcessStatus.SUCCESS
 
     async def _run_stage_sequential(
         self, stage, tasks, mode, pipeline_scope
@@ -343,49 +400,36 @@ class PipelineManager(ComponentBaseMixin):
                 return ProcessStatus.FAIL
         return ProcessStatus.SUCCESS
 
-    async def _run_stage_parallel(
-        self, stage, tasks, mode, pipeline_scope
-    ) -> ProcessStatus:
-        Executor = (
-            ThreadPoolExecutor
-            if stage.parallel_mode == ParallelMode.THREAD
-            else ProcessPoolExecutor
-        )
-        max_workers = stage.max_concurrency or len(tasks)
-        loop = asyncio.get_running_loop()
-        with Executor(max_workers=max_workers) as executor:
-            futures = [
-                loop.run_in_executor(
-                    executor,
-                    lambda t=t: asyncio.run(
-                        self._run_stage_task(stage, t, mode, pipeline_scope)
-                    ),
-                )
-                for t in tasks
-            ]
-            results = await asyncio.gather(*futures, return_exceptions=True)
-            for r in results:
-                if isinstance(r, Exception) or r is not ProcessStatus.SUCCESS:
-                    self.logger.error(f"Stage task failed or raised exception: {r}")
-                    return ProcessStatus.FAIL
-            return ProcessStatus.SUCCESS
-
     async def _run_stage_task(self, stage, task, mode, pipeline_scope) -> ProcessStatus:
-        match task.type:
-            case TaskType.PLUGIN:
-                return await self._run_plugin_task(stage, task, mode, pipeline_scope)
-            case TaskType.SHELL:
-                return await self._run_shell_task(task)
-            case TaskType.FILE:
-                return await self._run_file_task(task)
-            case TaskType.VALIDATION:
-                return await self._run_validation_task(task)
-            case TaskType.NOTIFY:
-                return await self._run_notify_task(task)
-            case _:
-                raise ValueError(
-                    f"Unknown task type: {task.type!r} in stage '{stage.name}' task '{task.name}'"
-                )
+        self.logger.info(f"[Task] {task.name} started (type={task.type})")
+        try:
+            match task.type:
+                case TaskType.PLUGIN:
+                    result = await self._run_plugin_task(
+                        stage, task, mode, pipeline_scope
+                    )
+                case TaskType.SHELL:
+                    result = await self._run_shell_task(task)
+                case TaskType.FILE:
+                    result = await self._run_file_task(task)
+                case TaskType.VALIDATION:
+                    result = await self._run_validation_task(task)
+                case TaskType.NOTIFY:
+                    result = await self._run_notify_task(task)
+                case _:
+                    raise ValueError(
+                        f"Unknown task type: {task.type!r} in stage '{stage.name}' task '{task.name}'"
+                    )
+        except Exception as e:
+            self.logger.error(
+                f"[Task] {task.name} raised exception: {e}\n{traceback.format_exc()}"
+            )
+            return ProcessStatus.FAIL
+        if result is not ProcessStatus.SUCCESS:
+            self.logger.error(f"[Task] {task.name} failed: {result}")
+        else:
+            self.logger.info(f"[Task] {task.name} completed successfully.")
+        return result
 
     # ---- public API ----
     async def run(
