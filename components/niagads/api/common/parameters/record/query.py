@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import Query
 from niagads.api.common.parameters.igvbrowser import ADSPRelease, AnnotatedVariantTrack
 from niagads.exceptions.core import ValidationError
-from niagads.utils.string import sanitize
+from niagads.api.common.utils import sanitize
 
 
 async def track_param(

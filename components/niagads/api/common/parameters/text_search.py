@@ -2,7 +2,7 @@ from fastapi import Query
 from niagads.enums.core import CaseInsensitiveEnum
 
 from niagads.api.common.parameters.expression_filter import FilterParameter
-from niagads.utils.string import sanitize
+from niagads.api.common.utils import sanitize
 from pyparsing import (
     Group,
     Keyword,

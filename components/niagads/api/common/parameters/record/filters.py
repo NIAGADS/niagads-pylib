@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import Query
 from niagads.api.common.parameters.enums import EnumParameter
-from niagads.utils.string import sanitize
+from niagads.api.common.utils import sanitize
 
 
 async def vep_impacted_gene_param(
