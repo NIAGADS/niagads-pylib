@@ -19,7 +19,7 @@ A Row Model is the data hash (key-value pairs) defining the table row.
 from typing import Any, Dict, List, Self, TypeVar
 
 from niagads.common.models.core import TransformableModel
-from niagads.api_common.views.table import TableCellType, TableColumn, TableRow
+from niagads.api.common.views.table import TableCellType, TableColumn, TableRow
 from pydantic import ConfigDict, Field
 
 
