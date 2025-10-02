@@ -16,8 +16,9 @@ services:
       - ${KEYDB_DATA_DIR}:/data
 
   open-access-api-server:
-      image:  oaa-server-full:${API_VERSION}
+      image:  oaa-server-${NAMESPACE}:${API_VERSION}
       container_name: oaa-server-${NAMESPACE}
+      restart: always
       build:
         context: .
         dockerfile: ./Dockerfile

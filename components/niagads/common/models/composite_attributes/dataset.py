@@ -1,7 +1,10 @@
 import json
 from typing import List, Optional, Set, Union
 
-from niagads.common.constants.external_resources import ThirdPartyResources
+from niagads.common.constants.external_resources import (
+    NIAGADSResources,
+    ThirdPartyResources,
+)
 from niagads.common.constants.ontologies import BiosampleType
 from niagads.common.models.core import TransformableModel
 from niagads.common.models.ontology import OntologyTerm
@@ -175,7 +178,7 @@ class Provenance(TransformableModel):
     @computed_field
     @property
     def data_source_url(self) -> str:
-        dsKey = (
+        dsKey: str = (
             f"{self.data_source}|{self.release_version}"
             if self.release_version is not None
             else self.data_source
@@ -183,6 +186,9 @@ class Provenance(TransformableModel):
         try:
             return ThirdPartyResources[dsKey].value
         except:
+            # FIXME: This needs to be fixed in data load
+            if dsKey.startswith("NG00102"):
+                return NIAGADSResources.NIAGADS_DSS
             raise ValueError(
                 f"Data source URL not found for {dsKey}. Please add to external_resources.ThirdParty."
             )

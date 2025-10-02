@@ -33,7 +33,7 @@
 			"request": "launch",
 			"module": "uvicorn",
 			"args": [
-				"niagads.filer_api.core:app",
+				"niagads.filer.api.core:app",
 				"--reload",
 				"--env-file",
 				"${workspaceFolder}/../dev.env"
@@ -48,7 +48,7 @@
 			"request": "launch",
 			"module": "uvicorn",
 			"args": [
-				"niagads.genomics_api.core:app",
+				"niagads.genomicsdb.api.core:app",
 				"--reload",
 				"--port",
 				"8005",
@@ -65,7 +65,7 @@
 			"request": "launch",
 			"module": "uvicorn",
 			"args": [
-				"niagads.open_access_api.core:app",
+				"niagads.open_access.api.core:app",
 				"--reload",
 				//"--port", "8001",
 				"--env-file",

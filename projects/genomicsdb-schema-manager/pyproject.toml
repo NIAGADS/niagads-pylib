@@ -1,7 +1,7 @@
 [project]
 name = "genomicsdb-schema-manager"
 authors = [
-    { name = "fossilfriend", email = "egreenfest@gmail.com" },
+    {name = "fossilfriend", email = "egreenfest@gmail.com"}
 ]
 dependencies = [
     "alembic (>=1.15.2,<2.0.0)",
@@ -14,23 +14,22 @@ dependencies = [
     "pydantic-settings (>=2.9.1,<3.0.0)",
     "python-dateutil (>=2.9.0.post0,<3.0.0)",
     "sqlalchemy-utils (>=0.41.2,<0.42.0)",
-    "strenum (>=0.4.15,<0.5.0)",
+    "strenum (>=0.4.15,<0.5.0)"
 ]
 requires-python = ">=3.11,<4.0"
 version = "0.1.0"
 
 [tool.poetry]
 packages = [
-    { from = "../../components", include = "niagads/assembly" },
-    { from = "../../components", include = "niagads/common" },
-    { from = "../../components", include = "niagads/database" },
-    { from = "../../components", include = "niagads/enums" },
-    { from = "../../components", include = "niagads/exceptions" },
-    { from = "../../components", include = "niagads/genomicsdb" },
-    { from = "../../components", include = "niagads/settings" },
-    { from = "../../components", include = "niagads/utils" },
-    { include = "niagads/api_common", from = "../../components" },
-    { include = "niagads/cache", from = "../../components" },
+    {from = "../../components", include = "niagads/assembly"},
+    {from = "../../components", include = "niagads/common"},
+    {from = "../../components", include = "niagads/database"},
+    {from = "../../components", include = "niagads/enums"},
+    {from = "../../components", include = "niagads/exceptions"},
+    {from = "../../components", include = "niagads/genomicsdb"},
+    {from = "../../components", include = "niagads/requests"},
+    {from = "../../components", include = "niagads/settings"},
+    {from = "../../components", include = "niagads/utils"}
 ]
 
 [tool.tomlsort]
@@ -41,5 +40,5 @@ spaces_indent_inline_array = 4
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = [
-    "poetry-core>=1.0.0",
+    "poetry-core>=1.0.0"
 ]

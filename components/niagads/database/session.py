@@ -5,10 +5,6 @@ from asyncio import current_task
 
 import asyncpg
 
-# FIXME: write custom error so that we don't need to import fastapi
-# just for this in everything that uses
-# the database session manager
-from fastapi import HTTPException
 from niagads.exceptions.core import AbstractMethodNotImplemented, ValidationError
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -132,7 +128,6 @@ class DatabaseSessionManager:
                 AbstractMethodNotImplemented,
                 ValidationError,
                 RuntimeError,
-                HTTPException,
             ) as err:
                 if isinstance(err, AbstractMethodNotImplemented):
                     raise NotImplementedError(str(err))
@@ -148,6 +143,10 @@ class DatabaseSessionManager:
                 raise OSError(f"Database Error: {str(err)}")
 
             except Exception as err:
+                if "HTTPException" in type(err).__name__ or getattr(
+                    err, "status_code", False
+                ):
+                    raise err  # will be handled by API
                 # everything else for which we currently have no handler
                 if "Connection refused" in str(err) or "Connection" in str(type(err)):
                     # don't want to create dependency to redis in this module
