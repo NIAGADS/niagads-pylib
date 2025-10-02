@@ -161,5 +161,5 @@ class DatabaseSessionManager:
                 # Only rollback if transaction is active and session is not closed
                 if hasattr(session, "in_transaction") and session.in_transaction():
                     await session.rollback()
-                if not session.closed:
+                if session.is_active:
                     await session.close()
