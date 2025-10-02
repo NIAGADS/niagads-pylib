@@ -3,7 +3,7 @@ from enum import auto
 from typing import List, Optional
 from niagads.common.models.core import TransformableModel
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.api_common.models.features.gene import GeneFeature
+from niagads.api.common.models.features.gene import GeneFeature
 from pydantic import BaseModel, Field
 
 

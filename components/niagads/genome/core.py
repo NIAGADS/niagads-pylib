@@ -172,7 +172,7 @@ class Assembly(CaseInsensitiveEnum):
     @classmethod
     def validate(cls, value, label: str, returnCls: CaseInsensitiveEnum):
         from niagads.exceptions.core import ValidationError
-        from niagads.utils.string import sanitize  # avoid circular import
+        from niagads.api.common.utils import sanitize  # avoid circular import
 
         try:
             cls(sanitize(value))

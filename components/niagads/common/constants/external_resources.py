@@ -4,11 +4,12 @@ from niagads.enums.core import CaseInsensitiveEnum
 
 class NIAGADSResources(CaseInsensitiveEnum):
     NIAGADS = "https://www.niagads.org"
+    NIAGADS_DSS = "https://dss.niagads.org"
     ADVP = "https://advp.niagads.org"
     FILER = "https://tf.lisanwanglab.org/FILER"
     FILER_API = "https://tf.lisanwanglab.org/FILER2/"
     FILER_DOWNLOADS = "https://tf.lisanwanglab.org/GADB"
-    GENOMICS = "https://www.niagads.org/genomics"
+    GENOMICSDB = "https://www.niagads.org/genomics"
 
 
 class ThirdPartyResources(StrEnum):
@@ -34,6 +35,7 @@ class ThirdPartyResources(StrEnum):
     TARGETSCAN_V7P2 = "http://www.targetscan.org/vert_72/"
     TARGETSCAN_V7P2_LIFTED = "http://www.targetscan.org/vert_72/"
     ENSEMBL_GENE_MODEL = "https://useast.ensembl.org/info/genome/genebuild/index.html"
+    CEEHRC = "http://epigenomesportal.ca/ihec/"
 
     @classmethod
     def __missing__(cls, value: str):
