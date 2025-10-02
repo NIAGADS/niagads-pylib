@@ -2,7 +2,8 @@ from enum import auto
 from typing import Annotated, List
 
 from fastapi import Depends
-from niagads.genomicsdb.models.dataset.track import TrackDataStore
+
+from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.api.common.config import Settings
