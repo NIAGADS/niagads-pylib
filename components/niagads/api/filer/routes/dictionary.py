@@ -2,7 +2,7 @@ from typing import Union
 
 from fastapi import APIRouter, Depends
 from niagads.api.common.constants import SharedOpenAPITags
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.core import ListResponse, RecordResponse
 from niagads.api.filer.dependencies import (
     InternalRequestParameters,
     TextSearchFilterFields,
@@ -17,15 +17,15 @@ tags = [str(SharedOpenAPITags.DICTIONARY)]
 @router.get(
     "/filters",
     tags=tags,
-    response_model=Union[RecordResponse],
+    response_model=ListResponse,
     summary="get-text-search-filter-fields",
     description="List allowable fields for text search filter expressions.",
 )
 async def get_allowable_text_filters(
     internal: InternalRequestParameters = Depends(),
-) -> RecordResponse:
+) -> ListResponse:
 
-    return RecordResponse(
+    return ListResponse(
         data=TextSearchFilterFields.list(toLower=True), request=internal.request_data
     )
 
