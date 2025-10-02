@@ -2,10 +2,11 @@
 
 from typing import List, Set
 
-from niagads.api.common.app.openapi import OpenAPISpec, OpenAPITag, OpenAPIxTagGroup
+from niagads.api.common.app.openapi import OpenAPISpec, OpenAPITag
 from niagads.api.common.config import Settings
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.common.types import T_PubMedID
+from niagads.common.constants.external_resources import NIAGADSResources
 
 APP_NAMESPACE = "FILER"
 
@@ -21,6 +22,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             f"across >20 data sources."
         ),
         x_sort_order=0,
+        externalDocs={"url": NIAGADSResources.FILER},
     ),
 ] + SharedOpenAPITags.list()
 

@@ -5,11 +5,8 @@ from typing import List, Set
 from niagads.common.types import T_PubMedID
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.config import Settings
-from niagads.api.common.app.openapi import (
-    OpenAPISpec,
-    OpenAPITag,
-    OpenAPIxTagGroup,
-)
+from niagads.api.common.app.openapi import OpenAPISpec, OpenAPITag
+from niagads.common.constants.external_resources import NIAGADSResources
 
 APP_NAMESPACE = "Genomics"
 
@@ -25,6 +22,7 @@ OPEN_API_TAGS: List[OpenAPITag] = [
             f"sharing, discovery, and analysis."
         ),
         x_sort_order=0,
+        externalDocs={"url": NIAGADSResources.GENOMICSDB},
     ),
 ] + SharedOpenAPITags.list()
 

@@ -45,8 +45,8 @@ async def get_database_description(
 
     result = RouteDescription(
         name=APP_NAME,
-        description=OPEN_API_TAGS[1].description,
-        url=OPEN_API_TAGS[1].externalDocs.get("url"),
+        description=OPEN_API_TAGS[0].description,
+        url=OPEN_API_TAGS[0].externalDocs.get("url"),
         pubmed_id=PUBMED_IDS,
         records=[RecordSummary(entity=Entity.TRACK, num_records=track_count)],
     )
