@@ -21,7 +21,7 @@ class GenomicRegionMixin(object):
 
     # native_enum set to True here, so postgres will sort the columns by the enum
     # ordering; may potentially throw a "type already exists error" during migration
-    chromosome: str = enum_column(Human, native_enum=True)
+    chromosome: Mapped[str] = enum_column(Human, native_enum=True)
     genomic_region: Mapped[Range] = mapped_column(RangeType, nullable=False)
     genomic_region_bin: Mapped[str] = mapped_column(LtreeType)
 

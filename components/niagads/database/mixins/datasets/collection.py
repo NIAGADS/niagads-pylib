@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from niagads.database.sa_enum_utils import enum_constraint
+from niagads.database.sa_enum_utils import enum_column, enum_constraint
 from niagads.database.mixins.datasets.track import TrackDataStore
 from sqlalchemy import Column, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -29,7 +29,7 @@ class CollectionMixin:
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
     tracks_are_sharded: Mapped[Optional[bool]] = mapped_column(default=False)
-    data_store: str = Column(Enum(TrackDataStore, native_enum=False), nullable=False)
+    data_store: Mapped[str] = enum_column(TrackDataStore)
 
 
 class TrackCollectionMixin:

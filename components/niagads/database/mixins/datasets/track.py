@@ -50,12 +50,12 @@ class TrackMixin:
     )
 
     track_id: Mapped[str] = mapped_column(unique=True, index=True)
-    data_store: str = enum_column(TrackDataStore)
+    data_store: Mapped[str] = enum_column(TrackDataStore)
 
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
 
-    genome_build: str = enum_column(Assembly)
+    genome_build: Mapped[str] = enum_column(Assembly)
 
     feature_type: Mapped[str] = mapped_column(String(50), index=True)
     is_download_only: Mapped[bool] = mapped_column(default=False, index=True)
@@ -63,7 +63,7 @@ class TrackMixin:
     searchable_text: Mapped[str] = mapped_column(TEXT)
 
     is_shard: Mapped[Optional[bool]]
-    shard_chromosome: str = enum_column(Human, index=False, nullable=True)
+    shard_chromosome: Mapped[str] = enum_column(Human, index=False, nullable=True)
     shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
     cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))

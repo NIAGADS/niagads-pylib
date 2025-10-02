@@ -46,8 +46,12 @@ class ETLOperationLog(AdminSchemaBase):
     message: Mapped[str] = mapped_column(Text)  # free-text errors/info
 
     # Status + operation
-    status: str = enum_column(ProcessStatus, nullable=False)  # indexed by enum_column
-    operation: str = enum_column(ETLOperation, nullable=False)  # indexed by enum_column
+    status: Mapped[str] = enum_column(
+        ProcessStatus, nullable=False
+    )  # indexed by enum_column
+    operation: Mapped[str] = enum_column(
+        ETLOperation, nullable=False
+    )  # indexed by enum_column
 
     # Run + version info
     run_id: Mapped[str] = mapped_column(String(64), nullable=True, index=True)

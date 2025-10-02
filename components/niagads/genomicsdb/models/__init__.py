@@ -1,1 +1,1 @@
-from niagads.genomicsdb.models.base import DeclarativeModelBaseFactory
+from niagads.genomicsdb.models.base.factory import DeclarativeModelBaseFactory
