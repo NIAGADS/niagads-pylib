@@ -29,7 +29,9 @@ packages = [
     {from = "../../components", include = "niagads/genomicsdb"},
     {from = "../../components", include = "niagads/requests"},
     {from = "../../components", include = "niagads/settings"},
-    {from = "../../components", include = "niagads/utils"}
+    {from = "../../components", include = "niagads/utils"},
+    {include = "niagads/api",from = "../../components"},
+    {include = "niagads/cache",from = "../../components"},
 ]
 
 [tool.tomlsort]
