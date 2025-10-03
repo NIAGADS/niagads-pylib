@@ -18,7 +18,7 @@ from niagads.pipeline.config import (
     TaskConfig,
     TaskType,
 )
-from niagads.pipeline.plugins.registry import PluginRegistry
+
 from niagads.utils.dict import deep_merge
 
 from niagads.pipeline.filters import PipelineFilters
@@ -153,6 +153,8 @@ class PipelineManager(ComponentBaseMixin):
         mode: ETLMode,
         pipeline_scope: Dict[str, Any],
     ) -> ProcessStatus:
+        from niagads.pipeline.plugins.registry import PluginRegistry
+
         plugin_cls = PluginRegistry.get(task.plugin)
         params = interpolate_params(
             deep_merge(self.__config.params, task.params), scope=pipeline_scope
