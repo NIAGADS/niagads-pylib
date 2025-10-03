@@ -1,18 +1,17 @@
 import asyncio
 import sys
+from typing import Union, get_args, get_origin
 
 from niagads.arg_parser.core import (
-    json_type,
     case_insensitive_enum_type,
     comma_separated_list,
+    json_type,
 )
-from niagads.enums.core import CaseInsensitiveEnum
-from niagads.etl.pipeline.config import PipelineSettings
-from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.config import ETLMode
 from niagads.enums.common import ProcessStatus
-from niagads.etl.utils import register_plugins
+from niagads.enums.core import CaseInsensitiveEnum
+from niagads.etl.config import ETLMode
+from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.registry import PluginRegistry
 
 
 class PluginRunner:
@@ -22,101 +21,149 @@ class PluginRunner:
     """
 
     def __init__(self, plugin_name, parser, mode):
-        self.__plugin_cls = self._validate_plugin(plugin_name)
-        self.__param_fields = self.__plugin_cls.parameter_model().model_fields
-        self.__mode = mode
-        self.__params = {}
-        self.__register_plugin_args(parser)
+        try:
+            self._plugin_cls = PluginRegistry.get(plugin_name)
+        except KeyError:
+            print(
+                f"Error: Plugin '{plugin_name}' not found in registry.\n"
+                f"Available plugins:\n {'\n'.join(PluginRegistry.list_plugins())}"
+            )
+            sys.exit(1)
+        try:
+            self._param_fields = self._plugin_cls.parameter_model().model_fields
+        except Exception as e:
+            print(f"Error accessing parameter model for plugin '{plugin_name}': {e}")
+            sys.exit(1)
+        self._mode = mode
+        self._params = {}
+        self._parser = parser  # store parser for usage printing
+        self._register_plugin_args()
 
-    def print_usage(self):
-        print(f"\nPLUGIN: '{self.__plugin_cls.__name__}'")
-        print(f"\nDESCRIPTION:\n {self.__plugin_cls.description}\n")
-        print(f"\nUSAGE:\n")
-        for field_name, field in self.__param_fields.items():
-            arg_name = (f"--{field_name.replace('_', '-')}",)
-            arg_type = field.annotation
-            desc = str(getattr(field, "description", ""))
-            default = field.default
-            print(f"  {arg_name} ({arg_type.__name__})  Default: {default}  {desc}")
-        sys.exit(0)
-
-    def _validate_plugin(self, plugin_name):
-        # TODO: add command line arguments to override the project or packages
-        register_plugins(
-            project=PipelineSettings.from_env().PROJECT,
-            packages=PipelineSettings.from_env().PLUGIN_PACKAGES,
-        )
-        plugin_cls = PluginRegistry.get(plugin_name)
-        if not plugin_cls:
-            print(f"Plugin '{plugin_name}' not found.")
-            raise SystemExit(1)
-        return plugin_cls
+    def print_plugin_help(self):
+        print(f"\nPLUGIN: '{self._plugin_cls.__name__}'")
+        print(f"\nDESCRIPTION:\n {self._plugin_cls.description}\n")
+        self._parser.print_help()
 
     @staticmethod
-    def add_plugin_arg(parser, arg_name, arg_type, default, desc):
-        desc_lower = desc.lower() if desc else ""
+    def _resolve_arg_type(arg_type):
+        """
+        Resolves the concrete type and required status for an argument type.
+
+        Handles typing.Optional and Union types, returning the base type and
+        whether the argument is required (True if not Optional, False otherwise).
+        """
+
+        origin = get_origin(arg_type)
+        required = True
+        resolved_type = arg_type
+        if origin is Union:
+            args = get_args(arg_type)
+            if type(None) in args:
+                required = False
+            # Remove NoneType from Union (i.e., Optional)
+            non_none_args = [a for a in args if a is not type(None)]
+            if non_none_args:
+                resolved_type = non_none_args[0]
+            else:
+                resolved_type = str  # fallback
+        return resolved_type, required
+
+    def _add_plugin_arg(self, **arg_info):
+        """
+        Adds an argument to the parser using a dictionary of argument info.
+
+        Args:
+            parser: The argparse.ArgumentParser instance.
+            **arg_info: Dictionary containing keys 'arg_name', 'arg_type', 'default', 'desc', 'required'.
+        """
+        arg_name = arg_info["arg_name"]
+        arg_type = arg_info["arg_type"]
+        default = arg_info["default"]
+        help: str = arg_info["desc"]
+        required = arg_info["required"]
+
         # Use description to select custom types for
         # parameters that expect to do conversions from strings
-        if "comma-separated" in desc_lower:
-            parser.add_argument(
+        if "comma-separated" in help.lower():
+            self._parser.add_argument(
                 arg_name,
                 type=comma_separated_list,
                 default=default,
-                required=False,
-                help=desc,
+                required=required,
+                help=help,
             )
-        elif "json" in desc_lower:
-            parser.add_argument(
+        elif "json" in help.lower():
+            self._parser.add_argument(
                 arg_name,
                 type=json_type,
                 default=default,
-                required=False,
-                help=desc,
+                required=required,
+                help=help,
             )
         elif issubclass(arg_type, CaseInsensitiveEnum):
-            parser.add_argument(
+            self._parser.add_argument(
                 arg_name,
                 type=case_insensitive_enum_type(arg_type),
                 default=default,
-                required=False,
-                help=desc,
+                required=required,
+                help=help,
             )
         elif arg_type is bool:
             if default is True:
-                parser.add_argument(arg_name, action="store_false", help=desc)
+                self._parser.add_argument(arg_name, action="store_false", help=help)
             else:
-                parser.add_argument(arg_name, action="store_true", help=desc)
+                self._parser.add_argument(arg_name, action="store_true", help=help)
         else:
-            parser.add_argument(
+            self._parser.add_argument(
                 arg_name,
                 type=arg_type,
                 default=default,
-                required=False,
-                help=desc,
+                required=required,
+                help=help,
             )
 
-    def __register_plugin_args(self, parser):
-        for field_name, field in self.__param_fields.items():
-            arg_name = f"--{field_name.replace('_', '-')}"
-            arg_type = field.annotation
-            default = field.default
-            desc = str(getattr(field, "description", ""))
-            self.add_plugin_arg(parser, arg_name, arg_type, default, desc)
+    def _register_plugin_args(self):
+        for field_name, field in self._param_fields.items():
+            arg_type, required = self._resolve_arg_type(field.annotation)
+            arg_info = {
+                "arg_name": f"--{field_name.replace('_', '-')}",
+                "arg_type": arg_type,
+                "default": field.default,
+                "help": str(getattr(field, "description", "")),
+                "required": required,
+            }
+            self._add_plugin_arg(**arg_info)
 
-    def resolve_params(self, args):
-        for field_name in self.__param_fields:
+    def _set_runtime_parameters(self):
+        """
+        Parses command-line arguments and sets plugin runtime parameters.
+
+        Iterates over all parameter fields, extracting their values from the parsed
+        arguments and storing them in the internal params dictionary for plugin execution.
+        """
+        args = self._parser.parse_args()
+        for field_name in self._param_fields:
             value = getattr(args, field_name, None)
             if value is not None:
-                self.__params[field_name] = value
+                self._params[field_name] = value
 
     async def run(self):
-        plugin: AbstractBasePlugin = self.__plugin_cls(params=self.__params)
-        status = await plugin.run(mode=self.__mode)
+        self._set_runtime_parameters()
+        try:
+            plugin: AbstractBasePlugin = self._plugin_cls(params=self._params)
+        except Exception as e:
+            print(f"Error instantiating plugin '{self._plugin_cls.__name__}': {e}")
+            sys.exit(1)
+        try:
+            status = await plugin.run(mode=self._mode)
+        except Exception as e:
+            print(f"Error running plugin '{self._plugin_cls.__name__}': {e}")
+            sys.exit(1)
         if status == ProcessStatus.SUCCESS:
-            print(f"Plugin '{self.__plugin_cls.__name__}' completed successfully.")
+            print(f"Plugin '{self._plugin_cls.__name__}' completed successfully.")
         else:
-            print(f"Plugin '{self.__plugin_cls.__name__}' failed.")
-            raise SystemExit(1)
+            print(f"Plugin '{self._plugin_cls.__name__}' failed.")
+            sys.exit(1)
 
 
 async def main():
@@ -147,12 +194,10 @@ async def main():
     # Instantiate runner and dynamically add plugin params
     runner = PluginRunner(known_args.plugin, parser, known_args.mode)
     if known_args.help:  # print plugin help
-        parser.print_help()
-        runner.print_usage()
+        # parser.print_help()
+        runner.print_plugin_help()
+        sys.exit(0)
 
-    # Parse all args (now with plugin params)
-    args = parser.parse_args()
-    runner.resolve_params(args)
     await runner.run()
 
 
