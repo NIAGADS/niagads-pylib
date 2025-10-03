@@ -1,7 +1,7 @@
 from enum import auto
 from typing import Optional, Dict, Any, List, Literal, Type
 from pydantic import BaseModel, Field, field_validator
-from components.niagads.enums.core import CaseInsensitiveEnum
+from niagads.enums.core import CaseInsensitiveEnum
 
 
 class TaskType(CaseInsensitiveEnum):

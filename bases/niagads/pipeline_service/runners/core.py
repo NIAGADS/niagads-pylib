@@ -1,5 +1,4 @@
 import json
-from typing import Dict
 
 from niagads.arg_parser.core import (
     case_insensitive_enum_type,

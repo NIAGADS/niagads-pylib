@@ -53,6 +53,11 @@ packages = [
     { from = "components", include = "niagads/variant_annotator" },
     { from = "components", include = "niagads/vcf" },
     { from = "components", include = "niagads/vep_json_parser" },
+    {include = "niagads/genomicsdb_service",from = "bases"},
+    {include = "niagads/open_access_service",from = "bases"},
+    {include = "niagads/filer_service",from = "bases"},
+    {include = "niagads/pipeline_service",from = "bases"},
+    {include = "niagads/advp_service",from = "bases"},
 ]
 include = [
     { path = "components/niagads/genomicsdb/models/reference/sql/ontology/*.sql" },
@@ -92,6 +97,7 @@ strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
+psutil = "^7.1.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
