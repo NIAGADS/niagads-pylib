@@ -95,6 +95,10 @@ class XMLLoaderPlugin(AbstractBasePlugin):
 
     def transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         # Optionally clean/convert data here
+        if data is None or len(data) == 0:
+            raise RuntimeError(
+                "No records provided to transform(). At least one record is required."
+            )
         return data
 
     def _construct_filter_clause(self, columns: List[str]) -> str:
@@ -141,14 +145,16 @@ class XMLLoaderPlugin(AbstractBasePlugin):
         Returns:
             int: Number of records inserted (not updated).
         """
+
+        if not transformed or len(transformed) == 0:
+            raise RuntimeError(
+                "No records provided to load(). At least one record is required."
+            )
+
         if not hasattr(self, "_schema") or not hasattr(self, "_table"):
             raise RuntimeError("Schema/table not set. Did you call extract()?")
 
         async with self._session_manager() as session:
-            if not transformed:
-                raise RuntimeError(
-                    "No records provided to load(). At least one record is required."
-                )
             columns = list(transformed[0].keys())
             inserted = 0
             for row in transformed:
