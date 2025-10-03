@@ -12,6 +12,8 @@ from niagads.pipeline.plugins.base import AbstractBasePlugin, BasePluginParams
 from niagads.pipeline.manager import ETLMode
 from niagads.enums.common import ProcessStatus
 
+# TODO - register plugin before getting; see pipeline manager
+
 
 class PluginRunner:
     """
