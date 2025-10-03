@@ -37,3 +37,35 @@ def interpolate_params(params: Dict[str, Any], scope: Dict[str, Any]) -> Dict[st
         return val
 
     return {k: repl(v) for k, v in params.items()}
+
+
+def import_registered_plugins(directories: list[str]):
+    """
+    Dynamically import all plugins from a list of directories.
+
+    Args:
+        directories (list[str]): List of directory paths to search for plugin modules.
+            Each directory will be scanned for .py files (excluding dunder files),
+            and each file will be imported as a module. This ensures that any plugin
+            classes decorated with @PluginRegistry.register are registered.
+
+    Returns:
+        None
+
+    Raises:
+        None. Invalid directories are skipped silently.
+    """
+    import importlib.util
+    import os
+    
+    for directory in directories:
+        if not os.path.isdir(directory):
+            continue
+        for filename in os.listdir(directory):
+            if filename.endswith(".py") and not filename.startswith("__"):
+                module_name = filename[:-3]
+                module_path = os.path.join(directory, filename)
+                spec = importlib.util.spec_from_file_location(module_name, module_path)
+                if spec and spec.loader:
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)

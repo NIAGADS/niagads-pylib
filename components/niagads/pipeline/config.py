@@ -7,7 +7,15 @@ from niagads.enums.core import CaseInsensitiveEnum
 
 class PipelineSettings(CustomSettings):
     DATABASE_URI: str = "postgresql://<user>:<pwd>@<host>:<port>/<database>"
-
+    PLUGIN_DIRECTORY: list[str] 
+    
+    @field_validator("PLUGIN_DIRECTORY", mode="before")
+    @classmethod
+    def split_plugin_directories(cls, v):
+        if isinstance(v, str):
+            # Split on comma and strip whitespace
+            return [d.strip() for d in v.split(",") if d.strip()]
+        return v
 
 class TaskType(CaseInsensitiveEnum):
     """

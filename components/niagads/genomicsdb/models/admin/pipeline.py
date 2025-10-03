@@ -15,18 +15,18 @@ from sqlalchemy.dialects.postgresql import JSONB
 class ETLOperation(CaseInsensitiveEnum):
     """
     Type of ETL operation:
-    - BULK_LOAD: Bulk data load operation.
+    - LOAD: Insert new or Update existing records.
     - UPDATE: Update existing records.
     - DELETE: Delete records.
     - PATCH: Partially update records.
     - INSERT: Insert new records.
     """
 
-    BULK_LOAD = auto()
     UPDATE = auto()
     DELETE = auto()
     PATCH = auto()
     INSERT = auto()
+    LOAD = auto()
 
 
 class ETLOperationLog(AdminSchemaBase):

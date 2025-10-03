@@ -120,7 +120,7 @@ async def main():
         add_help=False,
         allow_abbrev=False,
     )
-    parser.add_argument("plugin", type=str, help="Plugin name to run")
+    parser.add_argument("--plugin", type=str, help="Plugin name to run")
     parser.add_argument(
         "--help", action="store_true", help="Show help message and exit"
     )
@@ -128,7 +128,7 @@ async def main():
         "--mode",
         type=case_insensitive_enum_type(ETLMode),
         default=ETLMode.DRY_RUN,
-        help="ETL execution mode: COMMIT (commit changes), NON_COMMIT (rollback at end), DRY_RUN (simulate only)",
+        help="ETL execution mode: COMMIT (commit changes), NON_COMMIT (rollback at end), DRY_RUN (simulate only). Default: %(default)s",
     )
 
     # Parse known args to get plugin name and help
@@ -140,6 +140,7 @@ async def main():
     # Instantiate runner and dynamically add plugin params
     runner = PluginRunner(known_args.plugin, parser, known_args.mode)
     if known_args.help:  # print plugin help
+        parser.print_help()
         runner.print_usage()
 
     # Parse all args (now with plugin params)

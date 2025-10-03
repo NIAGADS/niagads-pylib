@@ -14,6 +14,7 @@ from niagads.enums.core import CaseInsensitiveEnum
 from niagads.pipeline.config import (
     ParallelMode,
     PipelineConfig,
+    PipelineSettings,
     StageConfig,
     TaskConfig,
     TaskType,
@@ -23,7 +24,7 @@ from niagads.utils.dict import deep_merge
 
 from niagads.pipeline.filters import PipelineFilters
 from niagads.pipeline.selectors import StageTaskSelector
-from niagads.pipeline.utils import interpolate_params
+from niagads.pipeline.utils import import_registered_plugins, interpolate_params
 
 
 class ETLMode(CaseInsensitiveEnum):
@@ -64,6 +65,8 @@ class PipelineManager(ComponentBaseMixin):
 
         # Filters and plan
         self.__filters = PipelineFilters()
+
+        import_registered_plugins(PipelineSettings.from_env().PLUGIN_DIRECTORY)
 
     # ---- planning & filtering ----
     def _plan(self) -> List[Tuple[StageConfig, List[TaskConfig]]]:

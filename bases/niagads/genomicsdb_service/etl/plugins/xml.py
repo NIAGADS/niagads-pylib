@@ -24,7 +24,7 @@ class XMLLoaderParams(BasePluginParams):
 
 
 @PluginRegistry.register(metadata={"version": 1.0})
-class XMLLoaderPlugin(AbstractBasePlugin):
+class XMLRecordLoader(AbstractBasePlugin):
     _params: XMLLoaderParams  # type annotation
 
     @classmethod
