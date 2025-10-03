@@ -37,7 +37,7 @@ packages = [
     { from = "../../components", include = "niagads/exceptions" },
     { from = "../../components", include = "niagads/genomicsdb" },
     { from = "../../components", include = "niagads/metadata_parser" },
-    { from = "../../components", include = "niagads/pipeline" },
+    { from = "../../components", include = "niagads/etl" },
     { from = "../../components", include = "niagads/requests" },
     { from = "../../components", include = "niagads/settings" },
     { from = "../../components", include = "niagads/utils" },

@@ -9,9 +9,9 @@ from niagads.common.core import ComponentBaseMixin
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.common import ProcessStatus
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLOperationLog
-from niagads.pipeline.config import PipelineSettings
-from niagads.pipeline.manager import ETLMode
-from niagads.pipeline.plugins.logger import ETLLogger
+from niagads.etl.pipeline.config import PipelineSettings
+from niagads.etl.config import ETLMode
+from niagads.etl.plugins.logger import ETLLogger
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -258,7 +258,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     @property
     def version(self):
         # Local import to avoid circular import
-        from niagads.pipeline.plugins.registry import PluginRegistry
+        from niagads.etl.plugins.registry import PluginRegistry
 
         return PluginRegistry.describe(self.__class__.__name__).get("version")
 

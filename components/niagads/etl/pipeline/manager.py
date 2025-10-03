@@ -5,13 +5,11 @@ import asyncio
 import json
 import traceback
 from concurrent.futures import ProcessPoolExecutor
-from enum import auto
 from typing import Any, Dict, List, Optional, Tuple
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.enums.common import ProcessStatus
-from niagads.enums.core import CaseInsensitiveEnum
-from niagads.pipeline.config import (
+from niagads.etl.pipeline.config import (
     ParallelMode,
     PipelineConfig,
     PipelineSettings,
@@ -19,25 +17,10 @@ from niagads.pipeline.config import (
     TaskConfig,
     TaskType,
 )
-
+from niagads.etl.pipeline.filters import PipelineFilters
+from niagads.etl.pipeline.selectors import StageTaskSelector
+from niagads.etl.utils import import_registered_plugins, interpolate_params
 from niagads.utils.dict import deep_merge
-
-from niagads.pipeline.filters import PipelineFilters
-from niagads.pipeline.selectors import StageTaskSelector
-from niagads.pipeline.utils import import_registered_plugins, interpolate_params
-
-
-class ETLMode(CaseInsensitiveEnum):
-    """
-    ETL execution mode:
-    - COMMIT: Perform ETL and commit all changes to the database.
-    - NON_COMMIT: Perform ETL but roll back all changes at the end (no commit).
-    - DRY_RUN: Simulate ETL, do not write or commit any changes to the database.
-    """
-
-    COMMIT = auto()
-    NON_COMMIT = auto()
-    DRY_RUN = auto()
 
 
 class PipelineManager(ComponentBaseMixin):
@@ -156,7 +139,7 @@ class PipelineManager(ComponentBaseMixin):
         mode: ETLMode,
         pipeline_scope: Dict[str, Any],
     ) -> ProcessStatus:
-        from niagads.pipeline.plugins.registry import PluginRegistry
+        from niagads.etl.plugins.registry import PluginRegistry
 
         plugin_cls = PluginRegistry.get(task.plugin)
         params = interpolate_params(

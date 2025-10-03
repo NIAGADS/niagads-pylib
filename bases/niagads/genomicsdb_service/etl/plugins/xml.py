@@ -9,8 +9,8 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 import xml.etree.ElementTree as ET
 import re
 from typing import Any, Dict, Iterator, List, Optional, Type
-from niagads.pipeline.plugins.base import AbstractBasePlugin, BasePluginParams, ETLMode
-from niagads.pipeline.plugins.registry import PluginRegistry
+from niagads.etl.plugins.base import AbstractBasePlugin, BasePluginParams, ETLMode
+from niagads.etl.plugins.registry import PluginRegistry
 from pydantic import Field
 from sqlalchemy import text
 

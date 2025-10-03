@@ -1,6 +1,6 @@
 from typing import Callable, Dict, Type, List, Optional, Union
 
-from niagads.pipeline.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.base import AbstractBasePlugin
 
 
 class PluginRegistry:

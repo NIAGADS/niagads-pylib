@@ -5,8 +5,8 @@ from niagads.arg_parser.core import (
     comma_separated_list,
     json_type,
 )
-from niagads.pipeline.plugins.registry import PluginRegistry
-from niagads.pipeline.manager import PipelineManager, ETLMode
+from niagads.etl.plugins.registry import PluginRegistry
+from niagads.etl.pipeline.manager import PipelineManager, ETLMode
 from niagads.enums.common import ProcessStatus
 
 

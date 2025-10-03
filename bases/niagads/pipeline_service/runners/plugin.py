@@ -7,12 +7,10 @@ from niagads.arg_parser.core import (
     comma_separated_list,
 )
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.pipeline.plugins.registry import PluginRegistry
-from niagads.pipeline.plugins.base import AbstractBasePlugin, BasePluginParams
-from niagads.pipeline.manager import ETLMode
+from niagads.etl.plugins.registry import PluginRegistry
+from niagads.etl.plugins.base import AbstractBasePlugin, BasePluginParams
+from niagads.etl.config import ETLMode
 from niagads.enums.common import ProcessStatus
-
-# TODO - register plugin before getting; see pipeline manager
 
 
 class PluginRunner:

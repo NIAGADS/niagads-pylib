@@ -9,7 +9,7 @@ A plugin is a Python class that inherits from `AbstractBasePlugin`. It must impl
 - `description`: Returns a string describing the plugin.
 - `parameter_model`: Returns a Pydantic model class for plugin parameters (subclass of `BasePluginParams`).
 - `operation`: Returns the `ETLOperation` type for the plugin.
-- `affected_tables`: Returns a list of database tables (`schema.table` or SQLAlchemy models) affected by the plugin.
+- `affected_tables`: Returns a list of database tables (`schema.table`) affected by the plugin.
 - `streaming`: Boolean indicating if the plugin processes records one-by-one (streaming) or in bulk.
 - `extract`: Extracts records from the data source.
 - `transform`: Transforms extracted data.
