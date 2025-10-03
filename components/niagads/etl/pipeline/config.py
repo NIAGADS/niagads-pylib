@@ -7,11 +7,9 @@ from niagads.enums.core import CaseInsensitiveEnum
 
 
 class PipelineSettings(CustomSettings):
-    from niagads.etl.plugins.registry import RegisteredETLProject
-
     DATABASE_URI: str = "postgresql://<user>:<pwd>@<host>:<port>/<database>"
-    PROJECT: RegisteredETLProject = RegisteredETLProject.GENOMICSDB
-    PLUGIN_PACKAGES: list[str] = None
+    PROJECT: str = "GENOMICSDB"
+    PLUGIN_PACKAGES: Optional[list[str]] = None
 
     @field_validator("PLUGIN_PACKAGES", mode="before")
     @classmethod

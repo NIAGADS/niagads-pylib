@@ -1,20 +1,6 @@
-from enum import Enum
 from typing import Callable, Dict, List, Optional, Type, Union
 
 from niagads.etl.plugins.base import AbstractBasePlugin
-
-
-class RegisteredETLProject(Enum):
-    GENOMICSDB = "niagads.genomicsdb_service.etl.plugins"
-    # Add more mappings as needed
-
-    # after from https://stackoverflow.com/a/76131490
-    @classmethod
-    def _missing_(cls, value: str):  # allow to be case insensitive
-        for member in cls:
-            if member.name.lower() == value.lower():
-                return member
-        raise ValueError(f"{value!r} is not a valid {cls.__name__}")
 
 
 class PluginRegistry:

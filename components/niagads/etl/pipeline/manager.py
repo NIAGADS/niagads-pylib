@@ -21,7 +21,6 @@ from niagads.etl.pipeline.config import (
 from niagads.etl.pipeline.filters import PipelineFilters
 from niagads.etl.pipeline.selectors import StageTaskSelector
 from niagads.etl.utils import (
-    register_plugin_directory,
     interpolate_params,
     register_plugins,
 )

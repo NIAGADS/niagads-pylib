@@ -3,7 +3,7 @@ import pkgutil
 import re
 from typing import Any, Dict, Optional, Union
 
-from niagads.etl.plugins.registry import RegisteredETLProject
+from niagads.etl.plugins.projects import RegisteredETLProject
 
 
 def interpolate_params(params: Dict[str, Any], scope: Dict[str, Any]) -> Dict[str, Any]:
