@@ -15,7 +15,7 @@ from pydantic import Field
 from sqlalchemy import text
 
 
-class XMLLoaderParams(BasePluginParams):
+class XMLRecordLoaderParams(BasePluginParams):
     file: str = Field(description="full path to the XML file")
     update: Optional[bool] = Field(
         default=False,
@@ -25,11 +25,11 @@ class XMLLoaderParams(BasePluginParams):
 
 @PluginRegistry.register(metadata={"version": 1.0})
 class XMLRecordLoader(AbstractBasePlugin):
-    _params: XMLLoaderParams  # type annotation
+    _params: XMLRecordLoaderParams  # type annotation
 
     @classmethod
     def parameter_model(cls) -> Type[BasePluginParams]:
-        return XMLLoaderParams
+        return XMLRecordLoaderParams
 
     @property
     def description(self):

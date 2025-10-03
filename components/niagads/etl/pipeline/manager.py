@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.enums.common import ProcessStatus
+from niagads.etl.config import ETLMode
 from niagads.etl.pipeline.config import (
     ParallelMode,
     PipelineConfig,
@@ -19,7 +20,11 @@ from niagads.etl.pipeline.config import (
 )
 from niagads.etl.pipeline.filters import PipelineFilters
 from niagads.etl.pipeline.selectors import StageTaskSelector
-from niagads.etl.utils import import_registered_plugins, interpolate_params
+from niagads.etl.utils import (
+    register_plugin_directory,
+    interpolate_params,
+    register_plugins,
+)
 from niagads.utils.dict import deep_merge
 
 
@@ -49,7 +54,10 @@ class PipelineManager(ComponentBaseMixin):
         # Filters and plan
         self.__filters = PipelineFilters()
 
-        import_registered_plugins(PipelineSettings.from_env().PLUGIN_DIRECTORY)
+        register_plugins(
+            project=PipelineSettings.from_env().PROJECT,
+            packages=PipelineSettings.from_env().PLUGIN_PACKAGES,
+        )
 
     # ---- planning & filtering ----
     def _plan(self) -> List[Tuple[StageConfig, List[TaskConfig]]]:

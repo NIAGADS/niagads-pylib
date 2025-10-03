@@ -7,10 +7,12 @@ from niagads.arg_parser.core import (
     comma_separated_list,
 )
 from niagads.enums.core import CaseInsensitiveEnum
+from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.base import AbstractBasePlugin, BasePluginParams
+from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.config import ETLMode
 from niagads.enums.common import ProcessStatus
+from niagads.etl.utils import register_plugins
 
 
 class PluginRunner:
@@ -39,6 +41,11 @@ class PluginRunner:
         sys.exit(0)
 
     def _validate_plugin(self, plugin_name):
+        # TODO: add command line arguments to override the project or packages
+        register_plugins(
+            project=PipelineSettings.from_env().PROJECT,
+            packages=PipelineSettings.from_env().PLUGIN_PACKAGES,
+        )
         plugin_cls = PluginRegistry.get(plugin_name)
         if not plugin_cls:
             print(f"Plugin '{plugin_name}' not found.")

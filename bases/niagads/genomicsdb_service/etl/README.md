@@ -21,7 +21,7 @@ A plugin is a Python class that inherits from `AbstractBasePlugin`. It must impl
 Below is a simplified example of how to implement a plugin that loads and processes a plain text file, illustrating the required structure and methods.
 
 ```python
-from niagads.pipeline.plugins.base import AbstractBasePlugin, BasePluginParams
+from niagads.etl.plugins.base import AbstractBasePlugin, BasePluginParams
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation
 from pydantic import Field
 

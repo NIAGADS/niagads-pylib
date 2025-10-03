@@ -1,5 +1,9 @@
+import importlib
+import pkgutil
 import re
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Union
+
+from niagads.etl.plugins.registry import RegisteredETLProject
 
 
 def interpolate_params(params: Dict[str, Any], scope: Dict[str, Any]) -> Dict[str, Any]:
@@ -39,33 +43,55 @@ def interpolate_params(params: Dict[str, Any], scope: Dict[str, Any]) -> Dict[st
     return {k: repl(v) for k, v in params.items()}
 
 
-def import_registered_plugins(directories: list[str]):
+def register_package_plugins(package_name: str):
+
+    package = importlib.import_module(package_name)
+    for _, modname, ispkg in pkgutil.iter_modules(package.__path__):
+        if not ispkg:
+            importlib.import_module(f"{package_name}.{modname}")
+
+
+def register_project_plugins(project):
+    try:
+        package_name = RegisteredETLProject(project).value
+    except ValueError as err:
+        raise ValueError(
+            f"No plugin-package mapping found for project: {project}.  Check `niagads.etl"
+        )
+    register_package_plugins(package_name)
+
+
+def register_plugins(
+    project: RegisteredETLProject = None,
+    packages: Optional[Union[list[str], str]] = None,
+):
     """
-    Dynamically import all plugins from a list of directories.
+    Dynamically import all plugins for a list of projects (RegisteredETLProject) and/or a list of package strings to build the registry.
 
     Args:
-        directories (list[str]): List of directory paths to search for plugin modules.
-            Each directory will be scanned for .py files (excluding dunder files),
-            and each file will be imported as a module. This ensures that any plugin
-            classes decorated with @PluginRegistry.register are registered.
-
-    Returns:
-        None
+        project (RegisteredETLProject, optional):
+            Single RegisteredETLProject enum member. If None, no registered project plugins are loaded.
+        packages (Union[list[str], str], optional):
+            Single package name as string, or a list of package names. If None, no package plugins are loaded.
 
     Raises:
-        None. Invalid directories are skipped silently.
+        RuntimeError: If both arguments are None or empty.
+        ValueError: If a project key is not a valid RegisteredETLProject member.
     """
-    import importlib.util
-    import os
-    
-    for directory in directories:
-        if not os.path.isdir(directory):
-            continue
-        for filename in os.listdir(directory):
-            if filename.endswith(".py") and not filename.startswith("__"):
-                module_name = filename[:-3]
-                module_path = os.path.join(directory, filename)
-                spec = importlib.util.spec_from_file_location(module_name, module_path)
-                if spec and spec.loader:
-                    module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
+
+    packages_list = (
+        packages
+        if isinstance(packages, list)
+        else [packages] if packages is not None else []
+    )
+
+    if not project and not packages_list:
+        raise RuntimeError(
+            "At least one of 'project' or 'packages' must be provided and be non-empty."
+        )
+
+    if project:
+        register_project_plugins(project)
+
+    for package_name in packages_list:
+        register_package_plugins(package_name)

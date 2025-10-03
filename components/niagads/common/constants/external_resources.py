@@ -38,6 +38,6 @@ class ThirdPartyResources(StrEnum):
     CEEHRC = "http://epigenomesportal.ca/ihec/"
 
     @classmethod
-    def __missing__(cls, value: str):
+    def _missing_(cls, value: str):
         """handle versions; e.g., DASHR2|small_RNA_Genes" -> DASHR2_SMALL_RNA_GENES"""
         return cls(value.replace("|", "_").replace("-", "_").upper())

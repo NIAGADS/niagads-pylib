@@ -1,17 +1,21 @@
 from enum import auto
-from typing import Optional, Dict, Any, List, Literal, Type
+from typing import Optional, Dict, Any, List
+
 from niagads.settings.core import CustomSettings
 from pydantic import BaseModel, Field, field_validator
 from niagads.enums.core import CaseInsensitiveEnum
 
 
 class PipelineSettings(CustomSettings):
-    DATABASE_URI: str = "postgresql://<user>:<pwd>@<host>:<port>/<database>"
-    PLUGIN_DIRECTORY: list[str]
+    from niagads.etl.plugins.registry import RegisteredETLProject
 
-    @field_validator("PLUGIN_DIRECTORY", mode="before")
+    DATABASE_URI: str = "postgresql://<user>:<pwd>@<host>:<port>/<database>"
+    PROJECT: RegisteredETLProject = RegisteredETLProject.GENOMICSDB
+    PLUGIN_PACKAGES: list[str] = None
+
+    @field_validator("PLUGIN_PACKAGES", mode="before")
     @classmethod
-    def split_plugin_directories(cls, v):
+    def split_projects(cls, v):
         if isinstance(v, str):
             # Split on comma and strip whitespace
             return [d.strip() for d in v.split(",") if d.strip()]
