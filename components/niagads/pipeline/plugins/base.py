@@ -1,16 +1,16 @@
 import time
 import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Type
+from datetime import datetime
 
-import psutil
 from niagads.common.core import ComponentBaseMixin
+from niagads.pipeline.manager import ETLMode
+import psutil
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.common import ProcessStatus
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLOperationLog
-from niagads.pipeline.manager import ETLMode
-from niagads.pipeline.plugins.logger import ETLLogger
+from niagads.pipeline.logger import ETLLogger
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -136,6 +136,17 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # -------------------------
     @classmethod
     @abstractmethod
+    def description(cls) -> str:
+        """
+        Detail description and usage caveats forthe plugin.
+
+        Returns:
+            str: The description
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
     def parameter_model(cls) -> Type[BasePluginParams]:
         """
         Return the Pydantic parameter model for this plugin.
@@ -239,6 +250,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         ...
 
+    @property
+    def version(self):
+        # Local import to avoid circular import
+        from niagads.pipeline.plugins.registry import PluginRegistry
+
+        return PluginRegistry.describe(self.__class__.__name__).get("version")
+
     # -------------------------
     # Run orchestration
     # -------------------------
@@ -334,7 +352,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         async with self._session_manager() as session:
             etl_log = ETLOperationLog(
                 plugin_name=self._name,
-                code_version=getattr(self, "code_version", None),
+                code_version=self.version,
                 params=self._params.model_dump(),
                 message=f"Started ETL run: mode={mode.value}",
                 status=ProcessStatus.RUNNING.value,

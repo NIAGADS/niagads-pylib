@@ -27,7 +27,9 @@ class PluginRunner:
         self.__register_plugin_args(parser)
 
     def print_usage(self):
-        print(f"\nPlugin '{self.__plugin_cls.__name__}' usage:")
+        print(f"\nPLUGIN: '{self.__plugin_cls.__name__}'")
+        print(f"\nDESCRIPTION:\n {self.__plugin_cls.description}\n")
+        print(f"\nUSAGE:\n")
         for field_name, field in self.__param_fields.items():
             arg_name = (f"--{field_name.replace('_', '-')}",)
             arg_type = field.annotation

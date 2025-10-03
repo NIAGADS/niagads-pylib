@@ -3,13 +3,14 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 
 - Expects an XML file with repeated blocks, each block corresponding to a row.
 - The outermost XML tag (e.g., <NIAGADS::AlleleFreqPopulation>) determines the schema.table to load into.
-- Assumes a SQLAlchemy model exists for the table.
+
 """
 
 import xml.etree.ElementTree as ET
 import re
 from typing import Any, Dict, Iterator, List, Optional, Type
 from niagads.pipeline.plugins.base import AbstractBasePlugin, BasePluginParams, ETLMode
+from niagads.pipeline.plugins.registry import PluginRegistry
 from sqlalchemy import text
 
 
@@ -17,10 +18,33 @@ class XMLLoaderParams(BasePluginParams):
     xml_file: str
 
 
+@PluginRegistry.register(metadata={"version": 1.0})
 class XMLLoaderPlugin(AbstractBasePlugin):
     @classmethod
     def parameter_model(cls) -> Type[BasePluginParams]:
         return XMLLoaderParams
+
+    @property
+    def description(self):
+        description = """
+        XML Loader modeled after the VEuPathDB LoadGusXml Plugin
+        see: https://github.com/VEuPathDB/GusAppFramework/blob/cf9a99dba00bea3875f9eb5128294ed4a7a25377/Supported/plugin/perl/LoadGusXml.pm
+        
+        Inserts or updates data into any table using a simple XML format.  
+        The format is as follows:
+        
+        The XML format is:
+            <Schema::Table>
+                <column>value</column>
+                ...
+            </Schema::Table>
+            ...
+            Each major tag represents a table and nested within it are elements for 
+            column values. 
+            
+            If the row already exists in the table, the plugin do an update.
+        """
+        return description
 
     @property
     def operation(self):

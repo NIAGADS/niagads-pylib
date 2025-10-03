@@ -1,4 +1,4 @@
-from typing import Dict, Type, List, Optional
+from typing import Callable, Dict, Type, List, Optional, Union
 
 from niagads.pipeline.plugins.base import AbstractBasePlugin
 
@@ -14,22 +14,30 @@ class PluginRegistry:
 
     @classmethod
     def register(
-        cls, plugin_cls: Type[AbstractBasePlugin], metadata: Optional[dict] = None
-    ):
+        cls,
+        plugin_cls: Union[Type[AbstractBasePlugin], None] = None,
+        *,
+        metadata: Optional[dict] = None,
+    ) -> Callable:
         """
-        Register a plugin class with optional metadata.
+        Can be used as:
+            @PluginRegistry.register
+            class MyPlugin(AbstractBasePlugin): ...
 
-        Args:
-            plugin_cls (Type[AbstractBasePlugin]): The plugin class to register.
-            metadata (Optional[dict]): Optional metadata dictionary for the plugin.
-
-        Returns:
-            Type[AbstractBasePlugin]: The registered plugin class.
+        Or with metadata:
+            @PluginRegistry.register(metadata={"version": "1.0"})
+            class MyPlugin(AbstractBasePlugin): ...
         """
-        key = plugin_cls.__name__
-        cls._registry[key] = plugin_cls
-        cls._meta[key] = metadata or {}
-        return plugin_cls
+
+        def decorator(inner_cls: Type[AbstractBasePlugin]) -> Type[AbstractBasePlugin]:
+            key = inner_cls.__name__
+            cls._registry[key] = inner_cls
+            cls._meta[key] = metadata or {}
+            return inner_cls
+
+        if plugin_cls is None:
+            return decorator  # used with parentheses
+        return decorator(plugin_cls)  # used directly
 
     @classmethod
     def get(cls, name: str) -> Type[AbstractBasePlugin]:
@@ -81,17 +89,19 @@ class PluginRegistry:
         meta.setdefault("class", name)
         try:
             params_model = plugin_cls.parameter_model()
-            meta["parameter_model"] = params_model.schema()
+            meta["parameter_model"] = params_model.model_json_schema()
         except Exception as e:
             raise RuntimeError(
                 f"Failed to get parameter_model for plugin '{name}': {e}"
             )
         try:
-            meta["affected_tables"] = (
-                plugin_cls().affected_tables
-            )  # may require no-arg init
+            meta["affected_tables"] = plugin_cls().affected_tables
         except Exception as e:
             raise RuntimeError(
                 f"Failed to get affected_tables for plugin '{name}': {e}"
             )
+        try:
+            meta["description"] = plugin_cls().description
+        except Exception as e:
+            raise RuntimeError(f"Failed to get description for plugin '{name}': {e}")
         return meta
