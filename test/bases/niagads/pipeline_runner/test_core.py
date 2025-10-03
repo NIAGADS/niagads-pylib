@@ -1,4 +1,4 @@
-from niagads.pipeline_runner import core
+from niagads.pipeline.runners import core
 
 
 def test_sample():

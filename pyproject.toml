@@ -20,7 +20,7 @@ repository = "https://github.com/NIAGADS/niagads-pylib"
 packages = [
     { from = "bases", include = "niagads/loaders" },
     { from = "bases", include = "niagads/metadata_validator_tool" },
-    { from = "bases", include = "niagads/pipeline_runner" },
+    { from = "bases", include = "niagads/pipeline" },
     { from = "bases", include = "niagads/advp" },
     { from = "bases", include = "niagads/filer" },
     { from = "bases", include = "niagads/genomicsdb" },

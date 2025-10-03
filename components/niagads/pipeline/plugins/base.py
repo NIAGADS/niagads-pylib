@@ -1,16 +1,16 @@
 import time
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Type
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Type
 
-from niagads.common.core import ComponentBaseMixin
-from niagads.pipeline.manager import ETLMode
 import psutil
+from niagads.common.core import ComponentBaseMixin
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.common import ProcessStatus
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLOperationLog
-from niagads.pipeline.logger import ETLLogger
+from niagads.pipeline.manager import ETLMode
+from niagads.pipeline.plugins.logger import ETLLogger
 from pydantic import BaseModel, Field, model_validator
 
 
