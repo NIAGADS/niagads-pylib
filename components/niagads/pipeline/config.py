@@ -1,7 +1,12 @@
 from enum import auto
 from typing import Optional, Dict, Any, List, Literal, Type
+from niagads.settings.core import CustomSettings
 from pydantic import BaseModel, Field, field_validator
 from niagads.enums.core import CaseInsensitiveEnum
+
+
+class PipelineSettings(CustomSettings):
+    DATABASE_URI: str = "postgresql://<user>:<pwd>@<host>:<port>/<database>"
 
 
 class TaskType(CaseInsensitiveEnum):

@@ -1,16 +1,17 @@
 import time
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Type
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Type
 
-from niagads.common.core import ComponentBaseMixin
-from niagads.pipeline.manager import ETLMode
 import psutil
+from niagads.common.core import ComponentBaseMixin
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.common import ProcessStatus
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLOperationLog
-from niagads.pipeline.logger import ETLLogger
+from niagads.pipeline.config import PipelineSettings
+from niagads.pipeline.manager import ETLMode
+from niagads.pipeline.plugins.logger import ETLLogger
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -57,7 +58,8 @@ class BasePluginParams(BaseModel):
         None, description="pipeline run identifier, provided by pipeline"
     )
     connection_string: Optional[str] = Field(
-        None, description="database connection string"
+        None,
+        description="database connection string; if not provided, the plugin will try to assign from `DATABASE_URI` property in an `.env` file",
     )
     verbose: Optional[bool] = Field(False, description="run in verbose mode")
     debug: Optional[bool] = Field(False, description="run in debug mode")
@@ -110,11 +112,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self._row_count = 0
         self._start_time: Optional[float] = None
 
-        # commit_after is read from validated params
+        # members initialized from validated params
         self._commit_after: int = self._params.commit_after
-
-        # run_id as well
         self._run_id = self._params.run_id or uuid.uuid4().hex[:12]
+        self._connection_string = (
+            self._params.connection_string or PipelineSettings.from_env().DATABASE_URI
+        )
 
         # set log_file, if not set to {name}.log
         if not self._params.log_file:
@@ -129,7 +132,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         )
 
         # async DB session manager (scoped)
-        self._session_manager = DatabaseSessionManager()
+        self._session_manager = DatabaseSessionManager(
+            connection_string=self._connection_string, echo=self._debug
+        )
 
     # -------------------------
     # Abstract contract
