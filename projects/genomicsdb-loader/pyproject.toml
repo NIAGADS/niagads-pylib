@@ -1,7 +1,7 @@
 [project]
 name = "genomicsdb-loader"
 authors = [
-    {name = "fossilfriend", email = "egreenfest@gmail.com"}
+    { name = "fossilfriend", email = "egreenfest@gmail.com" },
 ]
 dependencies = [
     "aiohttp (>=3.11.18,<4.0.0)",
@@ -15,7 +15,7 @@ dependencies = [
     "sqlalchemy (>=2.0.40,<3.0.0)",
     "sqlalchemy-utils (>=0.42.0,<0.43.0)",
     "strenum (>=0.4.15,<0.5.0)",
-    "typing-extensions (>=4.13.2,<5.0.0)"
+    "typing-extensions (>=4.13.2,<5.0.0)",
 ]
 requires-python = ">=3.11,<4.0"
 version = "0.1.0"
@@ -26,22 +26,26 @@ gdbpexec-plugin = "niagads.pipeline_service.runners.plugin:run_main"
 
 [tool.poetry]
 packages = [
-    {from = "../../bases", include = "niagads/genomicsdb_service/etl"},
-    {from = "../../bases", include = "niagads/pipeline_service/runners"},
-    {from = "../../components", include = "niagads/arg_parser"},
-    {from = "../../components", include = "niagads/assembly"},
-    {from = "../../components", include = "niagads/cache"},
-    {from = "../../components", include = "niagads/common"},
-    {from = "../../components", include = "niagads/database"},
-    {from = "../../components", include = "niagads/enums"},
-    {from = "../../components", include = "niagads/exceptions"},
-    {from = "../../components", include = "niagads/genomicsdb"},
-    {from = "../../components", include = "niagads/metadata_parser"},
-    {from = "../../components", include = "niagads/pipeline"},
-    {from = "../../components", include = "niagads/requests"},
-    {from = "../../components", include = "niagads/settings"},
-    {from = "../../components", include = "niagads/utils"}
+    { from = "../../bases", include = "niagads/genomicsdb_service/etl" },
+    { from = "../../bases", include = "niagads/pipeline_service/runners" },
+    { from = "../../components", include = "niagads/arg_parser" },
+    { from = "../../components", include = "niagads/assembly" },
+    { from = "../../components", include = "niagads/cache" },
+    { from = "../../components", include = "niagads/common" },
+    { from = "../../components", include = "niagads/database" },
+    { from = "../../components", include = "niagads/enums" },
+    { from = "../../components", include = "niagads/exceptions" },
+    { from = "../../components", include = "niagads/genomicsdb" },
+    { from = "../../components", include = "niagads/metadata_parser" },
+    { from = "../../components", include = "niagads/pipeline" },
+    { from = "../../components", include = "niagads/requests" },
+    { from = "../../components", include = "niagads/settings" },
+    { from = "../../components", include = "niagads/utils" },
 ]
+
+# [tool.poetry.virtualenvs]
+# path = ".venv"
+# in-project = true
 
 [tool.tomlsort]
 all = true
@@ -51,5 +55,5 @@ spaces_indent_inline_array = 4
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = [
-    "poetry-core>=1.0.0"
+    "poetry-core>=1.0.0",
 ]
