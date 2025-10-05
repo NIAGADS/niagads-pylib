@@ -1,6 +1,6 @@
 import asyncio
 import sys
-from typing import Union, get_args, get_origin
+from typing import Any, Optional, Union, get_args, get_origin
 
 from niagads.arg_parser.core import (
     case_insensitive_enum_type,
@@ -16,13 +16,17 @@ from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.utils import register_plugins
 from pydantic import BaseModel
 
+# FIXME: plugin usage not indicating required arguments.  May have something do with default=None
+# may need to leave off default altogether when generating arguments if they are required
+# to get usage to print correctly
+
 
 class PluginArgDef(BaseModel):
     arg_name: str
-    arg_type: type
-    default: any
+    arg_type: Any
+    default: Any
     help: str
-    required: bool
+    required: Optional[bool]
 
 
 class PluginRunner:
@@ -56,7 +60,7 @@ class PluginRunner:
 
     def print_plugin_help(self):
         print(f"\nPLUGIN: '{self._plugin_cls.__name__}'")
-        print(f"\nDESCRIPTION:\n {self._plugin_cls.description}\n")
+        print(f"\nDESCRIPTION:\n {self._plugin_cls.description()}\n")
         self._parser.print_help()
 
     @staticmethod

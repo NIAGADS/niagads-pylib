@@ -1,3 +1,4 @@
+import os
 import time
 import uuid
 from abc import ABC, abstractmethod
@@ -15,7 +16,7 @@ from niagads.etl.plugins.logger import ETLLogger
 from pydantic import BaseModel, Field, model_validator
 
 
-class Checkpoint(BaseModel):
+class ResumeCheckpoint(BaseModel):
     """
     Resume checkpoint.
     - Use 'line' for source-relative resume (handled in extract()).
@@ -50,19 +51,26 @@ class BasePluginParams(BaseModel):
     """
 
     commit_after: Optional[int] = Field(
-        10000, ge=1, description="records to buffer per commit"
+        default=10000, ge=1, description="records to buffer per commit"
     )
-    log_file: Optional[str] = Field(description="Path to JSON log file for the plugin")
-    checkpoint: Optional[Checkpoint] = Field(None, description="Resume checkpoint")
+    log_path: Optional[str] = Field(
+        default=None,
+        description="Path to JSON log file for the plugin.  If does not end in `.log`, assumes `log-path` is a directory and will write to `{log-path}/{plugin-name}.log",
+    )
+    resume_checkpoint: Optional[ResumeCheckpoint] = Field(
+        default=None,
+        description="resume checkpoint, a line number or record ID.  Indicate as line=<N> or id=<record ID>",
+    )
     run_id: Optional[str] = Field(
-        None, description="pipeline run identifier, provided by pipeline"
+        default=None,
+        description="optional run identifier, provided by pipeline manager when run in pipeline",
     )
     connection_string: Optional[str] = Field(
-        None,
+        default=None,
         description="database connection string; if not provided, the plugin will try to assign from `DATABASE_URI` property in an `.env` file",
     )
-    verbose: Optional[bool] = Field(False, description="run in verbose mode")
-    debug: Optional[bool] = Field(False, description="run in debug mode")
+    verbose: Optional[bool] = Field(default=False, description="run in verbose mode")
+    debug: Optional[bool] = Field(default=False, description="run in debug mode")
 
     # this shouldn't happen BTW b/c ge validator already set
     @model_validator(mode="after")
@@ -93,6 +101,21 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     Plugins decide when to commit inside load() (per buffer/batch) — pipeline does NOT auto-commit.
     """
 
+    def _get_log_file_path(self):
+        # if no path specified, just return
+        # standardized log file name
+        # will write to cwd
+        if not self._params.log_path:
+            return f"{self._name}.log"
+
+        # otherwise if a .log file specified, write to that file
+        if ".log" in self._params.log_path:
+            return self._params.log_path
+
+        # otherwise assume log_path is a directory
+        # and write to standardize log file name in that path
+        return os.path.join(self._params.log_path, f"{self._name}.log")
+
     def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
         """
         Initialize the ETL plugin base class.
@@ -119,14 +142,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self._params.connection_string or PipelineSettings.from_env().DATABASE_URI
         )
 
-        # set log_file, if not set to {name}.log
-        if not self._params.log_file:
-            self._params.log_file = f"{self._name}.log"
-
         # logger (always JSON)
         self.logger: ETLLogger = ETLLogger(
             name=self._name,
-            log_file=self._params.log_file,
+            log_file=self._get_log_file_path(),
             run_id=self._run_id,
             plugin=self._name,
         )

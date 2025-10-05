@@ -31,7 +31,7 @@ class XMLRecordLoader(AbstractBasePlugin):
     def parameter_model(cls) -> Type[BasePluginParams]:
         return XMLRecordLoaderParams
 
-    @property
+    @classmethod
     def description(self):
         description = """
         XML Loader modeled after the VEuPathDB LoadGusXml Plugin
