@@ -10,8 +10,19 @@ from niagads.arg_parser.core import (
 from niagads.enums.common import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.config import ETLMode
+from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.registry import PluginRegistry
+from niagads.etl.utils import register_plugins
+from pydantic import BaseModel
+
+
+class PluginArgDef(BaseModel):
+    arg_name: str
+    arg_type: type
+    default: any
+    help: str
+    required: bool
 
 
 class PluginRunner:
@@ -22,6 +33,10 @@ class PluginRunner:
 
     def __init__(self, plugin_name, parser, mode):
         try:
+            register_plugins(
+                project=PipelineSettings.from_env().PROJECT,
+                packages=PipelineSettings.from_env().PLUGIN_PACKAGES,
+            )
             self._plugin_cls = PluginRegistry.get(plugin_name)
         except KeyError:
             print(
@@ -68,71 +83,68 @@ class PluginRunner:
                 resolved_type = str  # fallback
         return resolved_type, required
 
-    def _add_plugin_arg(self, **arg_info):
+    def _add_plugin_arg(self, arg: PluginArgDef):
         """
-        Adds an argument to the parser using a dictionary of argument info.
+        Adds an argument to the parser using a PluginArgInfo object.
 
         Args:
-            parser: The argparse.ArgumentParser instance.
-            **arg_info: Dictionary containing keys 'arg_name', 'arg_type', 'default', 'desc', 'required'.
+            arg_info: PluginArgInfo instance containing argument details.
         """
-        arg_name = arg_info["arg_name"]
-        arg_type = arg_info["arg_type"]
-        default = arg_info["default"]
-        help: str = arg_info["desc"]
-        required = arg_info["required"]
-
         # Use description to select custom types for
         # parameters that expect to do conversions from strings
-        if "comma-separated" in help.lower():
+        if "comma-separated" in arg.help.lower():
             self._parser.add_argument(
-                arg_name,
+                arg.arg_name,
                 type=comma_separated_list,
-                default=default,
-                required=required,
-                help=help,
+                default=arg.default,
+                required=arg.required,
+                help=arg.help,
             )
-        elif "json" in help.lower():
+        elif "json" in arg.help.lower():
             self._parser.add_argument(
-                arg_name,
+                arg.arg_name,
                 type=json_type,
-                default=default,
-                required=required,
-                help=help,
+                default=arg.default,
+                required=arg.required,
+                help=arg.help,
             )
-        elif issubclass(arg_type, CaseInsensitiveEnum):
+        elif issubclass(arg.arg_type, CaseInsensitiveEnum):
             self._parser.add_argument(
-                arg_name,
-                type=case_insensitive_enum_type(arg_type),
-                default=default,
-                required=required,
-                help=help,
+                arg.arg_name,
+                type=case_insensitive_enum_type(arg.arg_type),
+                default=arg.default,
+                required=arg.required,
+                help=arg.help,
             )
-        elif arg_type is bool:
-            if default is True:
-                self._parser.add_argument(arg_name, action="store_false", help=help)
+        elif arg.arg_type is bool:
+            if arg.default is True:
+                self._parser.add_argument(
+                    arg.arg_name, action="store_false", help=arg.help
+                )
             else:
-                self._parser.add_argument(arg_name, action="store_true", help=help)
+                self._parser.add_argument(
+                    arg.arg_name, action="store_true", help=arg.help
+                )
         else:
             self._parser.add_argument(
-                arg_name,
-                type=arg_type,
-                default=default,
-                required=required,
-                help=help,
+                arg.arg_name,
+                type=arg.arg_type,
+                default=arg.default,
+                required=arg.required,
+                help=arg.help,
             )
 
     def _register_plugin_args(self):
         for field_name, field in self._param_fields.items():
             arg_type, required = self._resolve_arg_type(field.annotation)
-            arg_info = {
-                "arg_name": f"--{field_name.replace('_', '-')}",
-                "arg_type": arg_type,
-                "default": field.default,
-                "help": str(getattr(field, "description", "")),
-                "required": required,
-            }
-            self._add_plugin_arg(**arg_info)
+            arg_info = PluginArgDef(
+                arg_name=f"--{field_name.replace('_', '-')}",
+                arg_type=arg_type,
+                default=field.default,
+                help=str(getattr(field, "description", "")),
+                required=required,
+            )
+            self._add_plugin_arg(arg_info)
 
     def _set_runtime_parameters(self):
         """
