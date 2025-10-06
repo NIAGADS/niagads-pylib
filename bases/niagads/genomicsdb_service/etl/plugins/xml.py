@@ -49,12 +49,12 @@ class XMLRecordLoader(AbstractBasePlugin):
         The format is as follows:
         
         The XML format is:
-            <Schema::Table>
+            <Record schema="schema" table="table">
                 <column>value</column>
                 ...
-            </Schema::Table>
+            </Record>
             ...
-            Each major tag represents a table and nested within it are elements for 
+            Each major tag represents a row in a table and nested within it are elements for 
             column values. 
             
             If the row already exists in the table, the plugin will throw an error unless
@@ -98,18 +98,29 @@ class XMLRecordLoader(AbstractBasePlugin):
             self.logger.debug(
                 f"XMLRecordLoader.extract: Parsing file {self._params.file}"
             )
-        tree = ET.parse(self._params.file)
-        root = tree.getroot()
-        self._schema, self._table = self._parse_schema_table(root.tag)
-        if self._debug:
-            self.logger.debug(
-                f"XMLRecordLoader.extract: Parsed schema={self._schema}, table={self._table}"
-            )
-        for elem in root.iter(root.tag):
-            row = {child.tag: child.text for child in elem}
+
+        try:
+            tree = ET.parse(self._params.file)
+            root = tree.getroot()
+            # Extract schema and table from attributes
+            self._schema = root.attrib.get("schema", "").lower()
+            self._table = root.attrib.get("table", "").lower()
+            if not self._schema or not self._table:
+                raise ValueError(
+                    "Missing 'schema' or 'table' attribute in <Record> tag."
+                )
             if self._debug:
-                self.logger.debug(f"XMLRecordLoader.extract: Yielding row {row}")
-            yield row
+                self.logger.debug(
+                    f"XMLRecordLoader.extract: Parsed schema={self._schema}, table={self._table}"
+                )
+            for elem in root.iter(root.tag):
+                row = {child.tag: child.text for child in elem}
+                if self._debug:
+                    self.logger.debug(f"XMLRecordLoader.extract: Yielding row {row}")
+                yield row
+        except Exception as e:
+            self.logger.error(f"XMLRecordLoader.extract: Error - {e}")
+            raise
 
     def transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         if self._debug:
