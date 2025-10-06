@@ -9,26 +9,21 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 import xml.etree.ElementTree as ET
 import re
 from typing import Any, Dict, Iterator, List, Optional, Type
-from niagads.etl.plugins.base import AbstractBasePlugin, BasePluginParams, ETLMode
+from niagads.etl.plugins.base import AbstractBasePlugin, ETLMode
+from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from pydantic import Field, field_validator
 from sqlalchemy import text
 
 
-class XMLRecordLoaderParams(BasePluginParams):
+class XMLRecordLoaderParams(BasePluginParams, PathValidatorMixin):
     file: str = Field(description="full path to the XML file")
     update: Optional[bool] = Field(
         default=False,
         description="plugin will updating existing records; otherwise will throw and error",
     )
 
-    @field_validator("file")
-    def validate_file_exists(cls, value):
-        from niagads.utils.sys import verify_path
-
-        if not verify_path(value):
-            raise ValueError(f"File does not exist: {value}")
-        return value
+    validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
 
 @PluginRegistry.register(metadata={"version": 1.0})

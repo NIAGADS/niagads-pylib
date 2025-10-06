@@ -9,78 +9,11 @@ import psutil
 from niagads.common.core import ComponentBaseMixin
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.common import ProcessStatus
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLOperationLog
-from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.config import ETLMode
+from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger
-from pydantic import BaseModel, Field, model_validator
-
-
-class ResumeCheckpoint(BaseModel):
-    """
-    Resume checkpoint.
-    - Use 'line' for source-relative resume (handled in extract()).
-    - Use 'id'   for domain resume (handled in transform()).
-    """
-
-    line: Optional[int] = Field(
-        None, description="Line number (1-based) to resume from"
-    )
-    id: Optional[str] = Field(None, description="Natural identifier to resume from")
-
-    @model_validator(mode="after")
-    def require_line_or_id(self):
-        if not self.line and not self.id:
-            raise ValueError("checkpoint must define either 'line' or 'id'")
-        return self
-
-
-class BasePluginParams(BaseModel):
-    """
-    Base parameter model for all ETL plugins.
-
-    Attributes:
-        commit_after (int): Number of records to buffer before each load/commit in streaming mode.
-        log_file (str): Path to the JSON log file for this plugin invocation.
-        checkpoint (Optional[ResumeFrom]): Resume checkpoint hints, interpreted by plugins (extract/transform).
-        run_id (Optional[str]): Pipeline run identifier, provided by the pipeline.
-        connection_string (Optional[str]): Database connection string, if needed.
-
-    Note:
-        Commit behavior is controlled by the pipeline/CLI via --commit. Plugins should not auto-commit unless instructed.
-    """
-
-    mode: ETLMode = Field(
-        default=ETLMode.DRY_RUN, description=f"The ETL mode; one of {ETLMode.list()}"
-    )
-    commit_after: Optional[int] = Field(
-        default=10000, ge=1, description="records to buffer per commit"
-    )
-    log_path: Optional[str] = Field(
-        default=None,
-        description="Path to JSON log file for the plugin.  If does not end in `.log`, assumes `log-path` is a directory and will write to `{log-path}/{plugin-name}.log",
-    )
-    resume_checkpoint: Optional[ResumeCheckpoint] = Field(
-        default=None,
-        description="resume checkpoint, a line number or record ID.  Indicate as line=<N> or id=<record ID>",
-    )
-    run_id: Optional[str] = Field(
-        default=None,
-        description="optional run identifier, provided by pipeline manager when run in pipeline",
-    )
-    connection_string: Optional[str] = Field(
-        default=None,
-        description="database connection string; if not provided, the plugin will try to assign from `DATABASE_URI` property in an `.env` file",
-    )
-    verbose: Optional[bool] = Field(default=False, description="run in verbose mode")
-    debug: Optional[bool] = Field(default=False, description="run in debug mode")
-
-    # this shouldn't happen BTW b/c ge validator already set
-    @model_validator(mode="after")
-    def set_commit_after_none_if_zero(self):
-        if self.commit_after == 0:
-            self.commit_after = None
-        return self
+from niagads.etl.plugins.parameters import BasePluginParams
+from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLOperationLog
 
 
 class AbstractBasePlugin(ABC, ComponentBaseMixin):
