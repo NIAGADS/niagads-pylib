@@ -145,7 +145,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         # members initialized from validated params
         self._commit_after: int = self._params.commit_after
-        self._run_id = self._params.run_id or uuid.uuid4().hex[:12]
+        self._run_id = self._params.run_id or uuid.uuid4().hex[:8].upper()
 
         # logger (always JSON)
         self.logger: ETLLogger = ETLLogger(
