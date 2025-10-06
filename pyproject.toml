@@ -119,5 +119,5 @@ requires = [
 ]
 
 [tool.poetry.scripts]
-gdbpexec = "niagads.pipeline_service.runners.core:run_main"
-gdbpexec-plugin = "niagads.pipeline_service.runners.plugin:run_main"
+runpipe = "niagads.pipeline_service.runners.core:run_main"
+runpipe-plugin = "niagads.pipeline_service.runners.plugin:run_main"
