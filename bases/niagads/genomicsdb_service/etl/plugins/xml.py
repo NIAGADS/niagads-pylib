@@ -11,7 +11,7 @@ import re
 from typing import Any, Dict, Iterator, List, Optional, Type
 from niagads.etl.plugins.base import AbstractBasePlugin, BasePluginParams, ETLMode
 from niagads.etl.plugins.registry import PluginRegistry
-from pydantic import Field
+from pydantic import Field, field_validator
 from sqlalchemy import text
 
 
@@ -21,6 +21,14 @@ class XMLRecordLoaderParams(BasePluginParams):
         default=False,
         description="plugin will updating existing records; otherwise will throw and error",
     )
+
+    @field_validator("file")
+    def validate_file_exists(cls, value):
+        from niagads.utils.sys import verify_path
+
+        if not verify_path(value):
+            raise ValueError(f"File does not exist: {value}")
+        return value
 
 
 @PluginRegistry.register(metadata={"version": 1.0})
@@ -86,15 +94,26 @@ class XMLRecordLoader(AbstractBasePlugin):
         return schema, table
 
     def extract(self) -> Iterator[Dict[str, Any]]:
+        if self._debug:
+            self.logger.debug(
+                f"XMLRecordLoader.extract: Parsing file {self._params.file}"
+            )
         tree = ET.parse(self._params.file)
         root = tree.getroot()
         self._schema, self._table = self._parse_schema_table(root.tag)
+        if self._debug:
+            self.logger.debug(
+                f"XMLRecordLoader.extract: Parsed schema={self._schema}, table={self._table}"
+            )
         for elem in root.iter(root.tag):
             row = {child.tag: child.text for child in elem}
+            if self._debug:
+                self.logger.debug(f"XMLRecordLoader.extract: Yielding row {row}")
             yield row
 
     def transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        # Optionally clean/convert data here
+        if self._debug:
+            self.logger.debug(f"XMLRecordLoader.transform: Transforming data {data}")
         if data is None or len(data) == 0:
             raise RuntimeError(
                 "No records provided to transform(). At least one record is required."
@@ -146,6 +165,10 @@ class XMLRecordLoader(AbstractBasePlugin):
             int: Number of records inserted (not updated).
         """
 
+        if self._debug:
+            self.logger.debug(
+                f"XMLRecordLoader.load: Loading {len(transformed)} records into {self._schema}.{self._table}"
+            )
         if not transformed or len(transformed) == 0:
             raise RuntimeError(
                 "No records provided to load(). At least one record is required."
@@ -158,21 +181,37 @@ class XMLRecordLoader(AbstractBasePlugin):
             columns = list(transformed[0].keys())
             inserted = 0
             for row in transformed:
+                if self._debug:
+                    self.logger.debug(f"XMLRecordLoader.load: Processing row {row}")
                 exists = await self._record_exists(session, row, columns)
                 if not exists:
                     await self._insert_record(session, row, columns)
                     inserted += 1
+                    if self._debug:
+                        self.logger.debug(f"XMLRecordLoader.load: Inserted row {row}")
                 else:
                     if self._params.update:
                         await self._update_record(session, row, columns)
+                        if self._debug:
+                            self.logger.debug(
+                                f"XMLRecordLoader.load: Updated row {row}"
+                            )
                     else:
+                        if self._debug:
+                            self.logger.warning(
+                                f"XMLRecordLoader.load: Row exists and update not enabled: {row}"
+                            )
                         raise RuntimeError(
                             f"Row already exists and update is not enabled: {row}"
                         )
             if mode == ETLMode.COMMIT:
                 await session.commit()
+                if self._debug:
+                    self.logger.debug(f"XMLRecordLoader.load: Committed transaction.")
             elif mode == ETLMode.NON_COMMIT:
                 await session.rollback()
+                if self._debug:
+                    self.logger.debug(f"XMLRecordLoader.load: Rolled back transaction.")
             return inserted
 
     def get_record_id(self, record: Dict[str, Any]) -> Optional[str]:

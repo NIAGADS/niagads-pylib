@@ -50,6 +50,9 @@ class BasePluginParams(BaseModel):
         Commit behavior is controlled by the pipeline/CLI via --commit. Plugins should not auto-commit unless instructed.
     """
 
+    mode: ETLMode = Field(
+        default=ETLMode.DRY_RUN, description=f"The ETL mode; one of {ETLMode.list()}"
+    )
     commit_after: Optional[int] = Field(
         default=10000, ge=1, description="records to buffer per commit"
     )
@@ -116,7 +119,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         # and write to standardize log file name in that path
         return os.path.join(self._params.log_path, f"{self._name}.log")
 
-    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
+    def __init__(
+        self,
+        params: Dict[str, Any],
+        name: Optional[str] = None,
+    ):
         """
         Initialize the ETL plugin base class.
 
@@ -134,13 +141,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self._name = name or self.__class__.__name__
         self._row_count = 0
         self._start_time: Optional[float] = None
+        self._mode = self._params.mode
 
         # members initialized from validated params
         self._commit_after: int = self._params.commit_after
         self._run_id = self._params.run_id or uuid.uuid4().hex[:12]
-        self._connection_string = (
-            self._params.connection_string or PipelineSettings.from_env().DATABASE_URI
-        )
 
         # logger (always JSON)
         self.logger: ETLLogger = ETLLogger(
@@ -149,11 +154,26 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             run_id=self._run_id,
             plugin=self._name,
         )
+        if self._debug:
+            self.logger.level = "DEBUG"
 
-        # async DB session manager (scoped)
-        self._session_manager = DatabaseSessionManager(
-            connection_string=self._connection_string, echo=self._debug
+        self._connection_string = (
+            self._params.connection_string or PipelineSettings.from_env().DATABASE_URI
         )
+
+        if self._connection_string is None and self._mode is not ETLMode.DRY_RUN:
+            self.logger.warning(
+                f"No DB connection string provided. Setting ETLMode to `DRY_RUN`"
+            )
+            self._mode = ETLMode.DRY_RUN
+
+        if self._mode != ETLMode.DRY_RUN:
+            # don't attempt to connect to DB on dry runs
+            self._session_manager = DatabaseSessionManager(
+                connection_string=self._connection_string, echo=self._debug
+            )
+        else:
+            self._session_manager = None
 
     # -------------------------
     # Abstract contract
@@ -249,13 +269,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         ...
 
     @abstractmethod
-    async def load(self, transformed, mode: ETLMode) -> int:
+    async def load(self, transformed) -> int:
         """
         Persist transformed data using an async SQLAlchemy session.
 
         Args:
             transformed: The data to persist. For streaming, a list of records (buffer size <= commit_after). For bulk, the entire dataset.
-            mode (ETLMode): The ETL mode (COMMIT, NON_COMMIT, DRY_RUN).
 
         Returns:
             int: Number of rows persisted (or counted as would-be persisted in dry-run emulation).
@@ -284,29 +303,35 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # -------------------------
     # Run orchestration
     # -------------------------
-    async def _flush_streaming_buffer(self, buffer, last_line_no, mode: ETLMode):
+    async def _flush_streaming_buffer(self, buffer, last_line_no):
         self.logger.info(
-            f"Loading buffer of size {len(buffer)} at line {last_line_no} [mode={mode.value}]"
+            f"Loading buffer of size {len(buffer)} at line {last_line_no} [mode={self._mode.value}]"
         )
-        if mode != ETLMode.DRY_RUN:
-            loaded = await self.load(buffer, mode)
+        if self._mode != ETLMode.DRY_RUN:
+            loaded = await self.load(buffer)
             self._row_count += loaded
         else:
             self._row_count += len(buffer)
         buffer.clear()
 
-    async def _flush_bulk_batch(self, batch, last_line_no, mode: ETLMode):
+    async def _flush_bulk_batch(self, batch, last_line_no):
+        if self._debug:
+            self.logger.debug(
+                f"Entering _flush_bulk_batch: batch size={len(batch)}, last_line_no={last_line_no}"
+            )
         self.logger.info(
-            f"Bulk loading batch of size {len(batch)} at record {last_line_no} [mode={mode.value}]"
+            f"Bulk loading batch of size {len(batch)} at record {last_line_no} [mode={self._mode.value}]"
         )
-        if mode != ETLMode.DRY_RUN:
-            loaded = await self.load(batch, mode)
+        if self._mode != ETLMode.DRY_RUN:
+            loaded = await self.load(batch)
             self._row_count += loaded
         else:
             self._row_count += len(batch)
         batch.clear()
 
-    async def _process_streaming_load(self, mode: ETLMode):
+    async def _process_streaming_load(self):
+        if self._debug:
+            self.logger.debug("Entering _process_streaming_load")
         if self._commit_after is None:
             raise RuntimeError(
                 "Streaming load requires commit_after to be set to a value >= 1."
@@ -317,19 +342,37 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         last_line_no = 0
 
         for last_line_no, record in enumerate(self.extract(), start=1):
+            if self._debug and self._verbose:
+                self.logger.debug(
+                    f"_process_streaming_load: Extracted record at line {last_line_no}: {record}"
+                )
             last_record = record
             processed_record = self.transform(record)
+            if self._debug and self._verbose:
+                self.logger.debug(
+                    f"_process_streaming_load: Transformed record at line {last_line_no}: {processed_record}"
+                )
             buffer.append(processed_record)
             if len(buffer) >= self._commit_after:
-                await self._flush_streaming_buffer(buffer, last_line_no, mode)
+                if self._debug and self._verbose:
+                    self.logger.debug(
+                        f"_process_streaming_load: Flushing buffer at line {last_line_no}, buffer size={len(buffer)}"
+                    )
+                await self._flush_streaming_buffer(buffer, last_line_no)
 
         # load residuals
         if buffer:
-            await self._flush_streaming_buffer(buffer, last_line_no, mode)
+            if self._debug:
+                self.logger.debug(
+                    f"_process_streaming_load: Flushing final buffer at line {last_line_no}, buffer size={len(buffer)}"
+                )
+            await self._flush_streaming_buffer(buffer, last_line_no)
 
         return last_line_no, last_record
 
-    async def _process_bulk_load(self, mode: ETLMode):
+    async def _process_bulk_load(self):
+        if self._debug:
+            self.logger.debug("Entering _process_bulk_load")
         records = self.extract()
         processed_records = self.transform(records)
         last_record = None
@@ -337,8 +380,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         # If no batching, just load the whole dataset at once
         if not self._commit_after:
-            if mode != ETLMode.DRY_RUN:
-                await self.load(processed_records, mode)
+            if self._mode != ETLMode.DRY_RUN:
+                await self.load(processed_records)
 
             if hasattr(processed_records, "__len__"):
                 self._row_count = len(processed_records)
@@ -358,19 +401,19 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             for last_line_no, last_record in enumerate(processed_records, start=1):
                 batch.append(last_record)
                 if len(batch) >= self._commit_after:
-                    await self._flush_bulk_batch(batch, last_line_no, mode)
+                    await self._flush_bulk_batch(batch, last_line_no)
 
             # load residuals
             if batch:
-                await self._flush_bulk_batch(batch, last_line_no, mode)
+                await self._flush_bulk_batch(batch, last_line_no)
 
         return last_line_no, last_record
 
-    async def _start_plugin_run_log(self, mode: ETLMode) -> Optional[int]:
+    async def _start_plugin_run_log(self) -> Optional[int]:
         """
         Log the start of a plugin run (except DRY_RUN). Returns the log row's ID, or None if not logged.
         """
-        if mode == ETLMode.DRY_RUN:
+        if self._mode == ETLMode.DRY_RUN:
             return None
 
         async with self._session_manager() as session:
@@ -378,7 +421,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 plugin_name=self._name,
                 code_version=self.version,
                 params=self._params.model_dump(),
-                message=f"Started ETL run: mode={mode.value}",
+                message=f"Started ETL run: mode={self._mode.value}",
                 status=ProcessStatus.RUNNING.value,
                 operation=self.operation.value,
                 run_id=self._run_id,
@@ -413,7 +456,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     async def run(
         self,
         runtime_params: Optional[Dict[str, Any]] = None,
-        mode: ETLMode = ETLMode.DRY_RUN,
     ) -> ProcessStatus:
         """
         Execute ETL.
@@ -441,7 +483,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 self._params = merged_params
                 self._commit_after = self._params.commit_after
             self.logger.info(
-                f"Starting ETL run: mode={mode.value}, plugin={self._name}"
+                f"Starting ETL run: mode={self._mode.value}, plugin={self._name}"
             )
             self._row_count = 0
             status = ProcessStatus.FAIL
@@ -450,7 +492,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             last_record = None
 
             # --- Log start of plugin run (except DRY_RUN) ---
-            task_id = await self._start_plugin_run_log(mode)
+            task_id = await self._start_plugin_run_log()
 
             # --- Log initialization status to file ---
             self.logger.init_status(
@@ -461,19 +503,20 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             )
 
             if self.streaming:
-                last_line_no, last_record = await self._process_streaming_load(mode)
+                last_line_no, last_record = await self._process_streaming_load()
             else:
-                last_line_no, last_record = await self._process_bulk_load(mode)
-
+                last_line_no, last_record = await self._process_bulk_load()
             # success log
             runtime = time.time() - self._start_time
             mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
-            self.logger.status(mode.value.upper(), self._row_count, runtime, mem_mb)
+            self.logger.status(
+                self._mode.value.upper(), self._row_count, runtime, mem_mb
+            )
             self.logger.flush()
             status = ProcessStatus.SUCCESS
 
             # --- Finalize plugin run log on success (except DRY_RUN) ---
-            if mode != ETLMode.DRY_RUN and task_id:
+            if self._mode != ETLMode.DRY_RUN and task_id:
                 await self._finalize_plugin_run_log(
                     task_id,
                     status,
@@ -499,7 +542,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             status = ProcessStatus.FAIL
 
             # --- Finalize plugin run log on error (except DRY_RUN) ---
-            if mode != ETLMode.DRY_RUN and task_id:
+            if self._mode != ETLMode.DRY_RUN and task_id:
                 await self._finalize_plugin_run_log(
                     task_id,
                     status,

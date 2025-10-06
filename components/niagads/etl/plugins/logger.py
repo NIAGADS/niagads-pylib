@@ -26,28 +26,26 @@ class ETLJSONFormatter(logging.Formatter):
             "message": record.getMessage(),
         }
         # Standard ETL context
-        if hasattr(record, "plugin"):
-            base["plugin"] = record.plugin
-        if hasattr(record, "run_id"):
-            base["run_id"] = record.run_id
-        if hasattr(record, "status"):
-            base["status"] = record.status
-        if hasattr(record, "rows"):
-            base["rows"] = record.rows
-        if hasattr(record, "runtime"):
-            base["runtime"] = record.runtime
-        if hasattr(record, "memory"):
-            base["memory"] = record.memory
-        # Checkpoint fields
-        if hasattr(record, "line"):
-            base["line"] = record.line
-        if hasattr(record, "record"):
-            base["record"] = record.record
-        if hasattr(record, "error"):
-            base["error"] = record.error
-        # Extra passthrough (optional)
-        if hasattr(record, "extra"):
-            base["extra"] = record.extra
+        for attr in [
+            "plugin",
+            "run_id",
+            "status",
+            "rows",
+            "runtime",
+            "memory",
+            "line",
+            "record",
+            "error",
+            "params",
+            "task_id",
+        ]:
+            if hasattr(record, attr):
+                base[attr] = getattr(record, attr)
+        # Include all fields from extra if present and not already in base
+        if hasattr(record, "extra") and isinstance(record.extra, dict):
+            for k, v in record.extra.items():
+                if k not in base:
+                    base[k] = v
         return json.dumps(base, ensure_ascii=False)
 
 
@@ -71,7 +69,7 @@ class ETLLogger:
         """
         self.__logger = logging.getLogger(name)
         self.__logger.setLevel(logging.INFO)
-        handler = logging.FileHandler(log_file)
+        handler = logging.FileHandler(log_file, mode="w")  # Overwrite log file each run
         handler.setFormatter(ETLJSONFormatter())
         self.__logger.handlers.clear()
         self.__logger.addHandler(handler)
@@ -198,3 +196,41 @@ class ETLLogger:
             },
         )
         self.flush()
+
+    def warning(self, message: str, **kwargs):
+        """
+        Log a warning-level message.
+
+        Args:
+            message (str): The log message.
+            **kwargs: Additional context fields to include in the log.
+        """
+        self.__logger.warning(
+            message, extra={"run_id": self.__run_id, "plugin": self.__plugin, **kwargs}
+        )
+        self.flush()
+
+    def debug(self, message: str, **kwargs):
+        """
+        Log a debug-level message.
+
+        Args:
+            message (str): The log message.
+            **kwargs: Additional context fields to include in the log.
+        """
+        self.__logger.debug(
+            message, extra={"run_id": self.__run_id, "plugin": self.__plugin, **kwargs}
+        )
+        self.flush()
+
+    @property
+    def level(self):
+        return self.__logger.level
+
+    @level.setter
+    def level(self, value):
+        # Accept either int or str
+        if isinstance(value, str):
+            value = value.upper()
+            value = logging._nameToLevel.get(value, logging.INFO)
+        self.__logger.setLevel(value)

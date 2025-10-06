@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import traceback
 from typing import Any, Optional, Union, get_args, get_origin
 
 from niagads.arg_parser.core import (
@@ -14,7 +15,7 @@ from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.utils import register_plugins
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 # FIXME: plugin usage not indicating required arguments.  May have something do with default=None
 # may need to leave off default altogether when generating arguments if they are required
@@ -35,13 +36,16 @@ class PluginRunner:
     Dynamically adds plugin params to the argument parser.
     """
 
-    def __init__(self, plugin_name, parser, mode):
+    def __init__(self, plugin_name, parser):
         try:
             register_plugins(
                 project=PipelineSettings.from_env().PROJECT,
                 packages=PipelineSettings.from_env().PLUGIN_PACKAGES,
             )
             self._plugin_cls = PluginRegistry.get(plugin_name)
+        except ValidationError as err:
+            print(err)
+            sys.exit(1)
         except KeyError:
             print(
                 f"Error: Plugin '{plugin_name}' not found in registry.\n"
@@ -53,7 +57,7 @@ class PluginRunner:
         except Exception as e:
             print(f"Error accessing parameter model for plugin '{plugin_name}': {e}")
             sys.exit(1)
-        self._mode = mode
+
         self._params = {}
         self._parser = parser  # store parser for usage printing
         self._register_plugin_args()
@@ -165,20 +169,27 @@ class PluginRunner:
 
     async def run(self):
         self._set_runtime_parameters()
+        debug = self._params.get("debug", False)
         try:
             plugin: AbstractBasePlugin = self._plugin_cls(params=self._params)
         except Exception as e:
             print(f"Error instantiating plugin '{self._plugin_cls.__name__}': {e}")
+            if debug:
+                traceback.print_exc()
             sys.exit(1)
         try:
-            status = await plugin.run(mode=self._mode)
+            status = await plugin.run()
         except Exception as e:
             print(f"Error running plugin '{self._plugin_cls.__name__}': {e}")
+            if debug:
+                traceback.print_exc()
             sys.exit(1)
         if status == ProcessStatus.SUCCESS:
             print(f"Plugin '{self._plugin_cls.__name__}' completed successfully.")
         else:
             print(f"Plugin '{self._plugin_cls.__name__}' failed.")
+            if debug:
+                traceback.print_exc()
             sys.exit(1)
 
 
@@ -194,12 +205,6 @@ async def main():
     parser.add_argument(
         "--help", action="store_true", help="Show help message and exit"
     )
-    parser.add_argument(
-        "--mode",
-        type=case_insensitive_enum_type(ETLMode),
-        default=ETLMode.DRY_RUN,
-        help="ETL execution mode: COMMIT (commit changes), NON_COMMIT (rollback at end), DRY_RUN (simulate only). Default: %(default)s",
-    )
 
     # Parse known args to get plugin name and help
     known_args, remaining = parser.parse_known_args()
@@ -208,7 +213,7 @@ async def main():
         sys.exit(0)
 
     # Instantiate runner and dynamically add plugin params
-    runner = PluginRunner(known_args.plugin, parser, known_args.mode)
+    runner = PluginRunner(known_args.plugin, parser)
     if known_args.help:  # print plugin help
         # parser.print_help()
         runner.print_plugin_help()

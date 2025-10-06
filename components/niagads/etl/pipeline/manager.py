@@ -154,8 +154,10 @@ class PipelineManager(ComponentBaseMixin):
         )
         if self.__checkpoint:
             params["resume_from"] = self.__checkpoint
+        # add mode into the plugin parameters
+        params["mode"] = mode
         plugin = plugin_cls(name=task.name, params=params)
-        await plugin.run(runtime_params=None, mode=mode)
+        await plugin.run()
         return ProcessStatus.SUCCESS
 
     async def _run_shell_task(self, task: TaskConfig) -> ProcessStatus:

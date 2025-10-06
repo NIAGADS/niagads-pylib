@@ -2,12 +2,13 @@ from enum import auto
 from typing import Optional, Dict, Any, List
 
 from niagads.settings.core import CustomSettings
+from niagads.utils.regular_expressions import RegularExpressions
 from pydantic import BaseModel, Field, field_validator
 from niagads.enums.core import CaseInsensitiveEnum
 
 
 class PipelineSettings(CustomSettings):
-    DATABASE_URI: str = "postgresql://<user>:<pwd>@<host>:<port>/<database>"
+    DATABASE_URI: Optional[str] = Field(None, pattern=RegularExpressions.POSTGRES_URI)
     PROJECT: str = "GENOMICSDB"
     PLUGIN_PACKAGES: Optional[list[str]] = None
 
