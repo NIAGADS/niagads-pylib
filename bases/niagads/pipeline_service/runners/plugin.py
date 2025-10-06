@@ -1,4 +1,5 @@
 import asyncio
+import os
 import sys
 import traceback
 from typing import Any, Optional, Union, get_args, get_origin
@@ -20,6 +21,8 @@ from pydantic import BaseModel, ValidationError
 # FIXME: plugin usage not indicating required arguments.  May have something do with default=None
 # may need to leave off default altogether when generating arguments if they are required
 # to get usage to print correctly
+
+os.environ["PYDANTIC_ERRORS_OMIT_URL"] = "1"
 
 
 class PluginArgDef(BaseModel):

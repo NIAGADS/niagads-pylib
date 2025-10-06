@@ -1,8 +1,8 @@
 # TODO: review error handling; make sure errors are propogated and then caught
 # and logged in a try block
-
 import asyncio
 import json
+import os
 import traceback
 from concurrent.futures import ProcessPoolExecutor
 from typing import Any, Dict, List, Optional, Tuple
@@ -20,11 +20,10 @@ from niagads.etl.pipeline.config import (
 )
 from niagads.etl.pipeline.filters import PipelineFilters
 from niagads.etl.pipeline.selectors import StageTaskSelector
-from niagads.etl.utils import (
-    interpolate_params,
-    register_plugins,
-)
+from niagads.etl.utils import interpolate_params, register_plugins
 from niagads.utils.dict import deep_merge
+
+os.environ["PYDANTIC_ERRORS_OMIT_URL"] = "1"
 
 
 class PipelineManager(ComponentBaseMixin):
