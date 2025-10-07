@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Self, Union
 
-from niagads.common.models.core import T_TransformableModel, TransformableModel
-from niagads.database.schemas.dataset.composite_attributes import (
+from niagads.common.models.core import T_TransformableModel
+from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,

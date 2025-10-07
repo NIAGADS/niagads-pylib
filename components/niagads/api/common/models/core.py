@@ -19,7 +19,7 @@ A Row Model is the data hash (key-value pairs) defining the table row.
 from typing import Any, Dict, List, Self, TypeVar
 
 from niagads.common.models.core import TransformableModel
-from niagads.common.models.views.table import TableCellType, TableColumn, TableRow
+from niagads.api.common.views.table import TableCellType, TableColumn, TableRow
 from pydantic import ConfigDict, Field
 
 
@@ -30,10 +30,34 @@ class RowModel(TransformableModel):
     and adds member functions for generating table responses
     """
 
+    def as_text(self, fields=None, null_str="NA", **kwargs):
+        """return row as tab-delimited plain text"""
+        if fields is None:
+            fields = self.get_table_fields(as_str="true")
+        values = self.as_list(fields=fields)
+        return "\t".join([null_str if v is None else str(v) for v in values])
+
     def as_table_row(self, **kwargs):
         obj = self._flat_dump(delimiter=" // ")
-        row = {k: obj.get(k, "NA") for k in self.table_fields(as_str=True)}
+        row = {k: obj.get(k, "NA") for k in self.get_table_fields(as_str=True)}
         return TableRow(**row)
+
+    def get_table_fields(self, as_str: bool = False, **kwargs):
+        return self._sort_fields(self.get_model_fields(), as_str=as_str)
+
+    def generate_table_columns(self, **kwargs):
+        fields = self.get_table_fields(**kwargs)
+        columns: List[TableColumn] = [
+            TableColumn(
+                id=k,
+                header=info.title if info.title is not None else k,
+                description=info.description,
+                type=TableCellType.from_field(info),
+            )
+            for k, info in fields.items()
+        ]
+
+        return columns
 
     def _sort_fields(self, fields: Dict[str, Any], as_str: bool = False):
         sorted_fields = dict(
@@ -48,32 +72,6 @@ class RowModel(TransformableModel):
             )
         )
         return [k for k in sorted_fields.keys()] if as_str else sorted_fields
-
-    def table_fields(self, as_str: bool = False, **kwargs):
-        return self._sort_fields(self.get_model_fields(), as_str=as_str)
-
-    # END abstract methods from TransformableModel
-
-    def table_columns(self, **kwargs):
-        fields = self.table_fields(**kwargs)
-        columns: List[TableColumn] = [
-            TableColumn(
-                id=k,
-                header=info.title if info.title is not None else k,
-                description=info.description,
-                type=TableCellType.from_field(info),
-            )
-            for k, info in fields.items()
-        ]
-
-        return columns
-
-    def as_text(self, fields=None, null_str="NA", **kwargs):
-        """return row as tab-delimited plain text"""
-        if fields is None:
-            fields = self.table_fields(as_str="true")
-        values = self.as_list(fields=fields)
-        return "\t".join([null_str if v is None else str(v) for v in values])
 
 
 # allows you to set a type hint to a class and all its subclasses
@@ -100,8 +98,8 @@ class DynamicRowModel(RowModel):
 
         return False
 
-    def table_fields(self, as_str: bool = False, **kwargs):
-        fields = super().table_fields(as_str, **kwargs)
+    def get_table_fields(self, as_str: bool = False, **kwargs):
+        fields = super().get_table_fields(as_str, **kwargs)
 
         if self.has_extras():
             extras = {k: Field() for k in self.model_extra.keys()}
@@ -118,6 +116,7 @@ class ORMCompatibleDynamicRowModel(DynamicRowModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# FIXME: move this - but where?
 class ResultSize(ORMCompatibleDynamicRowModel):
     num_results: int = Field(
         title="Num. Results",

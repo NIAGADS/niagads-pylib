@@ -1,11 +1,7 @@
-from typing import Optional
 from niagads.api.common.models.core import RowModel
 from niagads.api.common.models.features.genomic import GenomicRegion
 from niagads.api.common.models.features.variant import AbridgedVariant
-from niagads.database.schemas.variant.composite_attributes import (
-    PredictedConsequenceSummary,
-)
-from pydantic import Field, field_validator
+from pydantic import Field
 
 
 class RegionVariant(RowModel):

@@ -1,6 +1,5 @@
 from typing import Optional
 
-from niagads.database.schemas.dataset.track import TrackDataStore
 from niagads.api.common.models.services.cache import CacheKeyQualifier
 from niagads.api.common.parameters.internal import InternalRequestParameters
 from niagads.api.common.parameters.response import ResponseContent
@@ -10,6 +9,7 @@ from niagads.api.common.services.route import (
     ResponseConfiguration,
     RouteHelperService,
 )
+from niagads.database.mixins.datasets.track import TrackDataStore
 
 
 class MetadataRouteHelperService(RouteHelperService):

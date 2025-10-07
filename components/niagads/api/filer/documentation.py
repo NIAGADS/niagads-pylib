@@ -15,11 +15,11 @@ OPEN_API_TAGS: List[OpenAPITag] = [
     OpenAPITag(
         name=APP_NAMESPACE,
         description=(
-            f"Query tracks and track data in FILER, "
-            f"a functional genomics database developed by NIAGADS "
-            f"built on a comprehensive harmonized, extensible, "
-            f"indexed, searchable human functional genomics data collection "
-            f"across >20 data sources."
+            "Query tracks and track data in FILER, "
+            "a functional genomics database developed by NIAGADS "
+            "built on a comprehensive harmonized, extensible, "
+            "indexed, searchable human functional genomics data collection "
+            "across >20 data sources."
         ),
         x_sort_order=0,
         externalDocs={"url": NIAGADSResources.FILER},

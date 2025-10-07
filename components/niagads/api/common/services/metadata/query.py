@@ -1,17 +1,18 @@
 from typing import List, Optional
 
 from fastapi import HTTPException
-from niagads.database.schemas.dataset.collection import Collection, TrackCollection
-from niagads.database.schemas.dataset.composite_attributes import (
-    ExperimentalDesign,
-    Phenotype,
-    Provenance,
-)
-from niagads.database.schemas.dataset.track import Track, TrackDataStore
 from niagads.api.common.constants import SHARD_PATTERN
 from niagads.api.common.models.response.request import RequestDataModel
 from niagads.api.common.parameters.expression_filter import Triple
 from niagads.api.common.parameters.response import ResponseContent
+from niagads.common.models.composite_attributes.dataset import (
+    ExperimentalDesign,
+    Phenotype,
+    Provenance,
+)
+from niagads.database.mixins.datasets.track import TrackDataStore
+from niagads.genomicsdb.models.dataset.collection import Collection, TrackCollection
+from niagads.genomicsdb.models.dataset.track import Track
 from niagads.utils.list import list_to_string
 from niagads.utils.string import regex_replace
 from sqlalchemy import Column, String, Values, column, distinct, func, select

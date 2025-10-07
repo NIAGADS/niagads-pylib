@@ -18,15 +18,17 @@ profile = "black"
 homepage = "https://github.com/NIAGADS/niagads-pylib"
 repository = "https://github.com/NIAGADS/niagads-pylib"
 packages = [
-    { from = "bases", include = "niagads/advp" },
-    { from = "bases", include = "niagads/filer" },
-    { from = "bases", include = "niagads/genomicsdb" },
+    { from = "bases", include = "niagads/advp_service" },
+    { from = "bases", include = "niagads/filer_service" },
+    { from = "bases", include = "niagads/genomicsdb_service" },
     { from = "bases", include = "niagads/loaders" },
     { from = "bases", include = "niagads/metadata_validator_tool" },
-    { from = "bases", include = "niagads/open_access" },
+    { from = "bases", include = "niagads/open_access_service" },
+    { from = "bases", include = "niagads/pipeline_service" },
     { from = "components", include = "niagads/adsp_annotation" },
     { from = "components", include = "niagads/api" },
     { from = "components", include = "niagads/arg_parser" },
+    { from = "components", include = "niagads/assembly" },
     { from = "components", include = "niagads/cache" },
     { from = "components", include = "niagads/common" },
     { from = "components", include = "niagads/csv_parser" },
@@ -37,11 +39,12 @@ packages = [
     { from = "components", include = "niagads/enums" },
     { from = "components", include = "niagads/excel_parser" },
     { from = "components", include = "niagads/exceptions" },
-    { from = "components", include = "niagads/genome" },
+    { from = "components", include = "niagads/genomicsdb" },
     { from = "components", include = "niagads/json_validator" },
     { from = "components", include = "niagads/metadata_parser" },
     { from = "components", include = "niagads/metadata_validator" },
     { from = "components", include = "niagads/objects" },
+    { from = "components", include = "niagads/etl" },
     { from = "components", include = "niagads/postgres_dbi" },
     { from = "components", include = "niagads/requests" },
     { from = "components", include = "niagads/s3" },
@@ -50,6 +53,9 @@ packages = [
     { from = "components", include = "niagads/variant_annotator" },
     { from = "components", include = "niagads/vcf" },
     { from = "components", include = "niagads/vep_json_parser" },
+]
+include = [
+    { path = "components/niagads/genomicsdb/models/reference/sql/ontology/*.sql" },
 ]
 
 [tool.poetry.dependencies]
@@ -71,6 +77,7 @@ jsonschema = "^4.23.0"
 nh3 = "^0.2.21"
 openpyxl = "^3.1.5"
 pandas = "^2.2.3"
+psutil = "^7.1.0"
 psycopg2-binary = "^2.9.10"
 pydantic = "^2.11.1"
 pydantic-settings = "^2.8.1"
@@ -110,3 +117,7 @@ build-backend = "poetry.core.masonry.api"
 requires = [
     "poetry-core>=2.0.0,<3.0.0",
 ]
+
+[tool.poetry.scripts]
+runpipe = "niagads.pipeline_service.runners.core:run_main"
+runpipe-plugin = "niagads.pipeline_service.runners.plugin:run_main"

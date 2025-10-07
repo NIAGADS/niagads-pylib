@@ -1,4 +1,4 @@
-GWAS_TRACK_CTE = """
+GWAS_TRACK_CTE = """--sql
     SELECT track_id, name AS track_name,
         provenance->>'data_source' AS data_source,
         provenance->'pubmed_id' AS pubmed_id,
@@ -6,18 +6,21 @@ GWAS_TRACK_CTE = """
         biosample_characteristics,
         CASE WHEN (subject_phenotypes->'disease')::text LIKE '%Alzh%' THEN 'AD'
         WHEN biosample_characteristics IS NOT NULL THEN 'Biomarker'
-        WHEN (subject_phenotypes->'disease')::text NOT LIKE '%Alzh%' OR subject_phenotypes->'neuropathology' IS NOT NULL THEN 'ADRD'
+        WHEN (subject_phenotypes->'disease')::text 
+        NOT LIKE '%Alzh%' OR subject_phenotypes->'neuropathology' IS NOT NULL THEN 'ADRD'
         ELSE NULL END AS category
     FROM Dataset.Track
     WHERE 
         feature_type = 'variant'
         AND experimental_design->>'classification' = 'genetic association' 
-        AND ((:association_source IN ('GWAS', 'ALL') AND experimental_design->>'data_category' = 'summary statistics')
-        OR (:association_source IN ('CURATED', 'ALL') AND experimental_design->>'data_category' = 'curated'))
+        AND ((:association_source IN ('GWAS', 'ALL') 
+            AND experimental_design->>'data_category' = 'summary statistics')
+        OR (:association_source IN ('CURATED', 'ALL') 
+            AND experimental_design->>'data_category' = 'curated'))
 """
 
 
-GWAS_COMMON_FIELDS = """
+GWAS_COMMON_FIELDS = """--sql
     t.track_id, 
     CASE WHEN r.restricted_stats->'trait' is NOT NULL 
         THEN r.restricted_stats->>'study'
@@ -55,7 +58,7 @@ GWAS_COMMON_FIELDS = """
     END AS trait
 """
 
-association_trait_FILTERS = """
+association_trait_FILTERS = """--sql
     WHERE ((UPPER(:association_trait) IN ('AD', 'ALL_AD', 'ALL') AND trait_category = 'AD')
     OR (UPPER(:association_trait) IN ('BIOMARKER', 'ALL_AD', 'ALL') AND trait_category = 'Biomarker')
     OR (UPPER(:association_trait) IN ('ADRD', 'ALL_AD', 'ALL') AND trait_category = 'ADRD')

@@ -1,6 +1,6 @@
 """Models defining custom types for Response Model class attributes"""
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 from fastapi import Request
 from niagads.utils.dict import prune

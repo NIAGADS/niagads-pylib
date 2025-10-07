@@ -37,8 +37,6 @@ class TransformableModel(BaseModel):
         """function for creating a flat dump; i.e., remove nesting"""
         return self.null_free_dump() if nullFree else self.model_dump()
 
-    # abstract method overrides
-
     def as_info_string(self):
         return dict_to_info_string(self._flat_dump(nullFree=True))
 

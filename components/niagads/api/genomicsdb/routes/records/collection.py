@@ -1,7 +1,6 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-from niagads.database.schemas.dataset.track import TrackDataStore
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.response.core import RecordResponse
 from niagads.api.common.models.datasets.collection import CollectionResponse
@@ -26,6 +25,7 @@ from niagads.api.common.views.table import TableViewResponse
 from niagads.api.genomicsdb.dependencies import InternalRequestParameters
 from niagads.api.genomicsdb.documentation import APP_NAME
 from niagads.api.genomicsdb.services.route import GenomicsRouteHelper
+from niagads.database.mixins.datasets.track import TrackDataStore
 
 router = APIRouter(
     prefix="/record/collection",

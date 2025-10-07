@@ -1,8 +1,8 @@
-from niagads.common.models.views.table import TableColumn
-from niagads.database.schemas.variant.composite_attributes import (
+from niagads.api.common.views.table import TableColumn
+from niagads.common.models.composite_attributes.variant import (
     PredictedConsequenceSummary,
 )
-from niagads.genome.core import Human
+from niagads.assembly.core import Human
 from niagads.api.common.models.core import RowModel
 from niagads.api.common.models.features.gene import GeneFeature
 from niagads.api.common.models.features.variant import (

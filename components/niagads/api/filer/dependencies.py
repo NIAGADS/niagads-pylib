@@ -3,8 +3,8 @@ from typing import Annotated, List
 
 from aiohttp import ClientSession
 from fastapi import Depends
-from niagads.database.schemas.dataset.track import TrackDataStore
-from niagads.database.session import DatabaseSessionManager
+from niagads.database import DatabaseSessionManager
+from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.api.common.config import Settings
 from niagads.api.common.parameters.internal import (

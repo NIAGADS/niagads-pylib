@@ -95,7 +95,10 @@ async def get_track_metadata_bulk(
     "/{track}",
     response_model=Union[AbridgedTrackResponse, TrackResponse, RecordResponse],
     summary="get-track-metadata",
-    description="retrieve track metadata for the FILER record identified by the `track` specified in the path; use `content=summary` for a brief response",
+    description=(
+        "retrieve track metadata for the FILER record identified by the `track` specified in the path; "
+        "use `content=summary` for a brief response"
+    ),
 )
 async def get_track_metadata(
     track=Depends(track_param),
@@ -142,7 +145,10 @@ tags = [str(SharedOpenAPITags.DATA)]
     response_model=Union[
         BEDResponse, AbridgedTrackResponse, TableViewResponse, RecordResponse
     ],
-    description="retrieve functional genomics track data from FILER in the specified region; specify `content=counts` to just retrieve a count of the number of hits in the specified region",
+    description=(
+        "retrieve functional genomics track data from FILER in the specified region; "
+        "specify `content=counts` to just retrieve a count of the number of hits in the specified region"
+    ),
 )
 async def get_track_data(
     track=Depends(track_param),

@@ -1,14 +1,10 @@
 import asyncio
-from typing import List, Union
-from fastapi import HTTPException
-from niagads.exceptions.core import ValidationError
 from collections import ChainMap
 from itertools import groupby
 from operator import itemgetter
+from typing import List, Union
 
-from niagads.database.schemas.dataset.track import Track, TrackDataStore
-from niagads.database.session import DatabaseSessionManager
-from niagads.genome.core import GenomicFeatureType
+from niagads.api.common.models.datasets.track import TrackResultSize
 from niagads.api.common.models.features.bed import BEDFeature
 from niagads.api.common.models.features.genomic import GenomicFeature
 from niagads.api.common.models.services.cache import (
@@ -16,26 +12,23 @@ from niagads.api.common.models.services.cache import (
     CacheKeyQualifier,
     CacheNamespace,
 )
-from niagads.api.common.models.datasets.track import TrackResultSize
 from niagads.api.common.parameters.internal import InternalRequestParameters
 from niagads.api.common.parameters.response import ResponseContent
 from niagads.api.common.services.metadata.query import MetadataQueryService
-from niagads.api.common.services.metadata.route import (
-    MetadataRouteHelperService,
-)
-from niagads.api.common.services.route import (
-    PaginationCursor as PaginationCursor,
-    Parameters,
-    ResponseConfiguration,
-)
+from niagads.api.common.services.metadata.route import MetadataRouteHelperService
+from niagads.api.common.services.route import PaginationCursor as PaginationCursor
+from niagads.api.common.services.route import Parameters, ResponseConfiguration
 from niagads.api.filer.services.wrapper import (
     ApiWrapperService,
     FILERApiDataResponse,
     FILERApiEndpoint,
 )
-from niagads.utils.list import cumulative_sum, chunker
+from niagads.assembly.core import GenomicFeatureType
+from niagads.database.mixins.datasets.track import TrackDataStore
+from niagads.exceptions.core import ValidationError
+from niagads.genomicsdb.models.dataset.track import Track
+from niagads.utils.list import chunker, cumulative_sum
 from pydantic import BaseModel
-from sqlalchemy import bindparam, text
 
 FILER_HTTP_CLIENT_TIMEOUT = 60
 CACHEDB_PARALLEL_TIMEOUT = 30
@@ -194,7 +187,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         ).get_genome_build(tracks, validate=True)
         if isinstance(assembly, dict):
             raise ValidationError(
-                f"Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently"
+                "Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently"
             )
         return assembly
 
@@ -418,7 +411,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         span = await self.get_feature_location(self._parameters.get("span"))
 
         # get informative tracks from the FILER API & cache
-        cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.get("assembly")}&span={span}"
+        cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.get('assembly')}&span={span}"
         cache_key = CacheKeyDataModel.encrypt_key(cache_key.replace(":", "_"))
 
         informativeTrackOverlaps: List[TrackResultSize] = (
@@ -507,7 +500,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             case GenomicFeatureType.GENE:
                 if feature.feature_id.startswith("ENSG"):
                     raise NotImplementedError(
-                        f"Mapping through Ensembl IDS not yet implemented"
+                        "Mapping through Ensembl IDS not yet implemented"
                     )
                 data: FILERApiDataResponse = await self.__get_gene_qtl_data_task(
                     self._parameters.track, feature.feature_id
@@ -528,7 +521,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             case GenomicFeatureType.VARIANT:
                 if feature.feature_id.startswith("rs"):
                     raise NotImplementedError(
-                        f"Mapping through refSNP IDS not yet implemented"
+                        "Mapping through refSNP IDS not yet implemented"
                     )
                 # chr:pos:ref-alt -> chr:pos-1:pos
                 [chr, pos, ref, alt] = feature.feature_id.split(":")

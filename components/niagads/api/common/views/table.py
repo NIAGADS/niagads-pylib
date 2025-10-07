@@ -1,12 +1,81 @@
-from typing import Optional, Union
+"""Table View Data and Response Models
 
-from niagads.common.models.views.table import BaseTable
+FIXME: remove front end rendering and place in configuration JSON
+"""
+
+from enum import StrEnum, auto
+from typing import Any, Dict, List, Optional, Union
+
 from niagads.api.common.views.core import ViewResponse
+from pydantic import BaseModel, ConfigDict, model_serializer
 
 
-class Table(BaseTable):
+class TableCellType(StrEnum):
+    BOOLEAN = auto()
+    ABSTRACT = auto()
+    FLOAT = auto()
+    INTEGER = auto()
+    TEXT = auto()
+
+    def __str__(self):
+        return self.value.lower()
+
+    @staticmethod
+    def from_field(fieldInfo: Any):
+        """infer cell type from from field info"""
+        match str(fieldInfo.annotation):
+            case s if "str" in s:
+                return TableCellType.TEXT
+            case s if "bool" in s:
+                return TableCellType.BOOLEAN
+            case s if "int" in s:
+                return TableCellType.INTEGER
+            case s if "float" in s:
+                return TableCellType.FLOAT
+            case _:
+                return TableCellType.ABSTRACT
+
+
+class TableCell(BaseModel):
+    value: Optional[Union[str, int, float, bool]] = None
+    url: Optional[str] = None
+    info: Optional[str] = None
+    # items: Optional[List[str]] = None
+
+    @model_serializer()
+    def serialize_model(self):
+        obj = {"value": self.value}
+        if self.url is not None:
+            obj.update({"url": self.url})
+        if self.info is not None:
+            obj.update({"info": self.info})
+        # if self.items is not None:
+        #     obj.update({"items", self.items})
+
+        return obj
+
+
+class TableRow(BaseModel):
+    __pydantic_extra__: Dict[str, Optional[Union[TableCell, str, int, float, bool]]]
+    model_config = ConfigDict(extra="allow")
+
+    def update(self, attribute: str, value: Any):
+        self.model_extra[attribute] = value
+
+
+# FIXME: get columns and options from config files
+class TableColumn(BaseModel):
+    header: Optional[str] = None
+    id: str
+    description: Optional[str] = None
+    type: Optional[TableCellType] = TableCellType.ABSTRACT
+
+
+class Table(BaseModel):
     id: str
     title: Optional[str] = None
+    data: List[TableRow]
+    columns: List[TableColumn]
 
 
 class TableViewResponse(ViewResponse):

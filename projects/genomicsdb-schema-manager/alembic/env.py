@@ -2,12 +2,15 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from niagads.database.session import DatabaseSessionManager
-from sqlalchemy import text
-from sqlalchemy.engine import Connection
+from helpers.config import Settings
+from helpers.schemas import register_schema_creation
+from helpers.migration_context import MigrationContext
+from niagads.database import DatabaseSessionManager
+from sqlalchemy import Connection
+from sqlalchemy.ext.asyncio import AsyncEngine
 
-from database.schemas import Schema
-from database.config import Settings
+# register hooks
+register_schema_creation()
 
 # get config options from the .ini file
 # including logging config
@@ -15,24 +18,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-
-def get_target_metadata():
-    xArgs = context.get_x_argument(as_dictionary=True)
-    schema = xArgs.get("schema", None)
-    return Schema.base(schema).metadata
-
-
-# has to be a global so that include_* hooks can access
-# see alembic docs:
-# https://alembic.sqlalchemy.org/en/latest/autogenerate.html#omitting-table-names-from-the-autogenerate-process
-TARGET_METADATA = get_target_metadata()
-
-
-def include_name(name, type_, parent_names):
-    if type_ == "schema":
-        return name == TARGET_METADATA.schema
-    else:
-        return True
+migration_ctx: MigrationContext = MigrationContext()
 
 
 def run_migrations_offline() -> None:
@@ -47,43 +33,22 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-
-    context.configure(
-        url=Settings.from_env().DATABASE_URI,
-        target_metadata=TARGET_METADATA,
-        include_schemas=True,
-        include_name=include_name,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-    )
-
-    with context.begin_transaction():
-        context.run_migrations()
+    migration_ctx.run_migrations_offline()
 
 
 def do_run_migrations(connection: Connection) -> None:
-
-    context.configure(
-        connection=connection,
-        target_metadata=TARGET_METADATA,
-        include_schemas=True,
-        include_name=include_name,
-    )
-
-    with context.begin_transaction():
-        # context.execute(text(f"SET search_path TO {TARGET_METADATA.schema}"))
-        context.run_migrations()
+    migration_ctx.do_run_migrations(connection)
 
 
 async def run_async_migrations() -> None:
     """In this scenario we need to create an Engine
     and associate a connection with the context.
     """
-    SessionManager = DatabaseSessionManager(
+    SessionManager: DatabaseSessionManager = DatabaseSessionManager(
         connection_string=Settings.from_env().DATABASE_URI
     )
 
-    connectable = SessionManager.get_engine()
+    connectable: AsyncEngine = SessionManager.get_engine()
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

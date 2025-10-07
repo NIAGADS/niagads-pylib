@@ -1,14 +1,14 @@
 """i/o and other system (e.g., subprocess) utils"""
 
-from enum import auto
-import os
-import gzip
 import datetime
+import gzip
+import io
 import logging
-
+import os
+from enum import auto
+from subprocess import CalledProcessError, check_output
+from sys import exit, stderr
 from typing import IO
-from sys import stderr, exit
-from subprocess import check_output, CalledProcessError
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.dict import print_dict
@@ -191,15 +191,22 @@ def print_args(args, pretty=True):
     return print_dict(vars(args), pretty)
 
 
-def get_opener(fileName=None, compressed=False, binary=False):
-    """check if compressed files are expected and return
-    appropriate opener for a file"""
+def open_file(path: str, binary: bool = False) -> io.IOBase:
+    """
+    Open a file with support for compressed (.gz) files.
 
-    if compressed or (fileName is not None and fileName.endswith("gz")):
-        if binary or (fileName is not None and is_binary_file(fileName)):
-            return gzip.GzipFile
-        return gzip.open
-    return open
+    Args:
+        path (str): Path to the file.
+        binary (bool): Whether to open the file in binary mode.
+
+    Returns:
+        io.IOBase: File object.
+    """
+    if path.endswith(".gz"):
+        mode = "rb" if binary else "rt"
+        return gzip.open(path, mode, encoding=None if binary else "utf-8")
+    mode = "rb" if binary else "r"
+    return open(path, mode, encoding=None if binary else "utf-8")
 
 
 def is_binary_file(fileName):

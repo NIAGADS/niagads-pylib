@@ -1,5 +1,6 @@
 from typing import Optional
-from fastapi import Depends, Query, APIRouter
+
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.features.genomic import GenomicFeature, GenomicRegion
@@ -19,10 +20,8 @@ from niagads.api.common.services.route import Parameters, ResponseConfiguration
 from niagads.api.genomicsdb.dependencies import InternalRequestParameters
 from niagads.api.genomicsdb.documentation import BASE_TAGS
 from niagads.api.genomicsdb.queries.igvbrowser.service import IGVFeatureLookupQuery
-
 from niagads.api.genomicsdb.queries.igvbrowser.tracks.variant import select_track_query
 from niagads.api.genomicsdb.services.route import GenomicsRouteHelper, QueryOptions
-
 
 router = APIRouter(
     prefix="/service/igvbrowser/track",

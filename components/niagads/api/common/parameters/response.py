@@ -1,6 +1,5 @@
 from enum import auto
 
-from niagads.enums.core import CaseInsensitiveEnum
 from niagads.api.common.parameters.enums import EnumParameter
 
 

@@ -2,7 +2,6 @@ from fastapi import Query
 from niagads.exceptions.core import ValidationError
 from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.utils.string import is_integer
-from pyparsing import Optional
 
 
 async def page_param(

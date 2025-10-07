@@ -110,7 +110,7 @@ class BiosampleType(Enum):
         ),
     )
 
-    # after from https://stackoverflow.com/a/76131490
+    # adapted from https://stackoverflow.com/a/76131490
     @classmethod
     def _missing_(cls, value: str):  # allow to be case insensitive
         try:

@@ -1,34 +1,25 @@
 from typing import List
+
 from fastapi import APIRouter, Depends
+from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.datasets.igvbrowser import (
     IGVBrowserTrackConfig,
     IGVBrowserTrackConfigResponse,
     IGVBrowserTrackSelectorResponse,
 )
-from niagads.exceptions.core import ValidationError
-from niagads.genome.core import Assembly
-from niagads.api.common.constants import SharedOpenAPITags
-
-from niagads.api.common.parameters.location import (
-    assembly_param,
-)
+from niagads.api.common.parameters.location import assembly_param
 from niagads.api.common.parameters.record.query import (
     optional_collection_param,
-)
-from niagads.api.common.parameters.record.query import (
     optional_track_list_param,
 )
 from niagads.api.common.parameters.response import ResponseContent
-
-from niagads.api.common.services.metadata.query import MetadataQueryService
-from niagads.api.common.services.route import (
-    Parameters,
-    ResponseConfiguration,
-)
+from niagads.api.common.services.route import Parameters, ResponseConfiguration
 from niagads.api.common.views.table import TableViewResponse
 from niagads.api.filer.dependencies import InternalRequestParameters
 from niagads.api.filer.documentation import BASE_TAGS
 from niagads.api.filer.services.route import FILERRouteHelper
+from niagads.assembly.core import Assembly
+from niagads.exceptions.core import ValidationError
 
 router = APIRouter(prefix="/service", tags=BASE_TAGS)
 
@@ -40,7 +31,10 @@ tags = [str(SharedOpenAPITags.SERVICE)]
     tags=tags,
     response_model=List[IGVBrowserTrackConfig],
     summary="get-track-genome-browser-configuration-bulk",
-    description="retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) by ID or collection",
+    description=(
+        "retrieve NIAGADS Genome Browser track configuration for one or more FILER `track`(s) "
+        "by ID or collection"
+    ),
 )
 # , or keyword search")
 async def get_track_browser_config_bulk(
@@ -54,10 +48,13 @@ async def get_track_browser_config_bulk(
     helper = FILERRouteHelper(
         internal,
         ResponseConfiguration(
-            content=ResponseContent.FULL, model=IGVBrowserTrackConfigResponse
+            content=ResponseContent.FULL,
+            model=IGVBrowserTrackConfigResponse,
         ),
         Parameters(
-            track=track, assembly=assembly, collection=collection
+            track=track,
+            assembly=assembly,
+            collection=collection,
         ),  # , keyword=keyword)
     )
 
@@ -85,9 +82,11 @@ async def get_track_browser_config_bulk(
     tags=tags,
     response_model=TableViewResponse,
     summary="get-genome-browser-track-selector-table-definition",
-    description="retrieve NIAGADS Genome Browser track selector table for one or more FILER `track`(s) by ID or collection",
-)
-# , or keyword")
+    description=(
+        "retrieve NIAGADS Genome Browser track selector table for one or more FILER `track`(s) "
+        "by ID or collection"
+    ),
+)  # , or keyword")
 async def get_track_selector(
     track=Depends(optional_track_list_param),
     assembly: Assembly = Depends(assembly_param),

@@ -1,6 +1,6 @@
 from typing import Any, List, Optional, Union
 
-from niagads.common.models.views.table import TableRow
+from niagads.api.common.views.table import TableRow
 from niagads.api.common.constants import DEFAULT_NULL_STRING
 from niagads.api.common.models.core import DynamicRowModel
 from niagads.api.common.models.response.core import RecordResponse
@@ -34,7 +34,7 @@ class BEDFeature(DynamicRowModel):
     def add_track(self, trackId: Any):
         self.model_extra["track_id"] = trackId
 
-    def table_fields(self, as_str=False, **kwargs):
+    def get_table_fields(self, as_str=False, **kwargs):
         fields = self.get_model_fields(as_str)
         # FIXME: add _sort_fields?
         if self.has_extras():
@@ -90,13 +90,13 @@ class BEDFeature(DynamicRowModel):
 
     def as_text(self, fields=None, null_str=".", **kwargs):
         if fields is None:
-            fields = self.table_fields(as_str="true", **kwargs)
+            fields = self.get_table_fields(as_str="true", **kwargs)
         values = self.as_list(fields=fields)
         return "\t".join([null_str if v is None else str(v) for v in values])
 
     def as_table_row(self, **kwargs):
         # do this way in case kwargs includes `extrasAsInfoStr`
-        fields = self.table_fields(as_str=True, **kwargs)
+        fields = self.get_table_fields(as_str=True, **kwargs)
         values = self.as_list(fields=fields)
         row = dict(zip(fields, values))
         return TableRow(**row)
@@ -125,7 +125,9 @@ class BEDResponse(RecordResponse):
 
         else:
             hasDynamicExtras = self.__has_dynamic_extras()
-            columns = self.data[0].table_columns(extrasAsInfoStr=hasDynamicExtras)
+            columns = self.data[0].generate_table_columns(
+                extrasAsInfoStr=hasDynamicExtras
+            )
             data = [
                 r.as_table_row(hasDynamicExtras=hasDynamicExtras) for r in self.data
             ]
@@ -152,7 +154,7 @@ class BEDResponse(RecordResponse):
             return ""
 
         else:
-            fields = self.data[0].table_fields(
+            fields = self.data[0].get_table_fields(
                 as_str=True, extrasAsInfoStr=hasDynamicExtras
             )
             rows = []

@@ -1,21 +1,17 @@
 from typing import Optional
+
 from fastapi import HTTPException
 from niagads.api.common.config import Settings
 from niagads.api.common.models.core import ResultSize
-from niagads.api.common.models.features.genomic import (
-    AnnotatedGenomicRegion,
-    GenomicFeature,
-    GenomicRegion,
-)
-from niagads.api.common.models.records import Entity
-from niagads.api.common.services.features import FeatureQueryService
-from niagads.common.models.structures import Range
-from niagads.database.schemas.dataset.track import Track, TrackDataStore
-from niagads.exceptions.core import ValidationError
 from niagads.api.common.models.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,
 )
+from niagads.api.common.models.features.genomic import (
+    AnnotatedGenomicRegion,
+    GenomicRegion,
+)
+from niagads.api.common.models.records import Entity
 from niagads.api.common.models.services.query import (
     PreparedStatement,
     QueryDefinition,
@@ -23,23 +19,20 @@ from niagads.api.common.models.services.query import (
 )
 from niagads.api.common.parameters.internal import InternalRequestParameters
 from niagads.api.common.parameters.response import ResponseContent
+from niagads.api.common.services.features import FeatureQueryService
 from niagads.api.common.services.metadata.query import MetadataQueryService
-from niagads.api.common.services.metadata.route import (
-    MetadataRouteHelperService,
-)
-from niagads.api.common.services.route import (
-    Parameters,
-    ResponseConfiguration,
-)
-
-from niagads.genome.core import GenomicFeatureType
+from niagads.api.common.services.metadata.route import MetadataRouteHelperService
+from niagads.api.common.services.route import Parameters, ResponseConfiguration
 from niagads.api.genomicsdb.queries.track_data import (
     TrackGWASSumStatQuery,
     TrackQTLGeneQuery,
 )
+from niagads.common.models.structures import Range
+from niagads.database.mixins.datasets.track import TrackDataStore
+from niagads.exceptions.core import ValidationError
+from niagads.genomicsdb.models.dataset.track import Track
 from niagads.utils.dict import all_values_are_none
 from pydantic import BaseModel
-from sqlalchemy import bindparam, text
 from sqlalchemy.exc import NoResultFound
 
 

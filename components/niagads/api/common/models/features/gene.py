@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Union
 
-from niagads.database.schemas.gene.composite_attributes import (
+from niagads.common.models.composite_attributes.gene import (
     GOAnnotation,
     PathwayAnnotation,
 )
@@ -10,6 +10,9 @@ from pydantic import Field
 from niagads.api.common.models.features.genomic import GenomicRegion
 
 
+# FIXME: this needs to be a common.model without the RowModel b/c it is used in
+# components/niagads/common/models/composite_attributes/variant.py
+# which creates an api dependency in alembic builds
 class GeneFeature(RowModel):
     id: str = Field(title="Ensembl ID", description="Ensembl gene identifier")
     gene_symbol: Optional[str] = Field(

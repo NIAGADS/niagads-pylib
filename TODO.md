@@ -1,5 +1,11 @@
 # TODOs
 
+## Top Priority
+
+The `GeneFeature` model needs to be moved to common.models and out of the API common:
+
+* <https://vscode.dev/github/NIAGADS/niagads-pylib/blob/develop/gene/components/niagads/api_common/models/features/gene.py#L13>
+
 ## Better VSCode
 
 * Code Actions (e.g., for abstract classes)

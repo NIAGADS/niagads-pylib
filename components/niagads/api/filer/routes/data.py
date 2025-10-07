@@ -1,7 +1,7 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-from niagads.genome.core import Assembly
+from niagads.assembly.core import Assembly
 from niagads.api.common.constants import SharedOpenAPITags
 
 from niagads.api.common.models.features.bed import BEDResponse
@@ -95,7 +95,10 @@ tags = [str(SharedOpenAPITags.SEARCH)]
     ],
     tags=tags,
     summary="get-track-data-by-metadata-search",
-    description="find functional genomics tracks with data in specified region; qualify using category filters or by a keyword search against all text fields in the track metadata",
+    description=(
+        "find functional genomics tracks with data in specified region; qualify using category filters "
+        "or by a keyword search against all text fields in the track metadata"
+    ),
 )
 async def get_track_data_by_metadata_search(
     assembly: Assembly = Depends(assembly_param),

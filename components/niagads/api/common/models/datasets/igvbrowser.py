@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Self, Union
 
 from niagads.common.models.ontology import OntologyTerm
-from niagads.database.schemas.dataset.composite_attributes import (
+from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     Phenotype,
@@ -16,7 +16,7 @@ from niagads.api.common.parameters.response import (
 )
 from niagads.api.common.views.table import Table
 from niagads.utils.dict import promote_nested
-from pydantic import ConfigDict, Field, computed_field, field_validator, model_validator
+from pydantic import ConfigDict, Field, computed_field, model_validator
 
 EXCLUDE_FROM_METADATA = [
     "ontology",

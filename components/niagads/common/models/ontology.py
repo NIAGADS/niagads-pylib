@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Self, Union
+from typing import Any, Dict, Optional, Union
 
 from niagads.common.models.core import TransformableModel
 from pydantic import Field, model_validator

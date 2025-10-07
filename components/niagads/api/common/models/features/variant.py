@@ -1,14 +1,13 @@
 from typing import List, Optional, Union
 
-from fastapi import HTTPException
-from niagads.common.models.core import TransformableModel
-from niagads.common.models.views.table import TableRow
-from niagads.api.common.models.features.genomic import GenomicRegion
-from niagads.database.schemas.variant.composite_attributes import (
+from niagads.common.models.composite_attributes.variant import (
     CADDScore,
     PredictedConsequenceSummary,
     QCStatus,
 )
+from niagads.common.models.core import TransformableModel
+from niagads.api.common.views.table import TableRow
+from niagads.api.common.models.features.genomic import GenomicRegion
 
 from niagads.api.common.models.core import RowModel
 from niagads.api.common.models.response.core import RecordResponse

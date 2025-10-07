@@ -1,6 +1,5 @@
 from typing import List
 
-from niagads.api.common.constants import DEFAULT_NULL_STRING
 from niagads.api.common.models.core import ORMCompatibleRowModel
 from niagads.api.common.models.records import Entity
 from niagads.api.common.models.response.core import RecordResponse

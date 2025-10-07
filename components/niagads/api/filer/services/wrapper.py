@@ -1,10 +1,11 @@
-from niagads.api.common.models.datasets.track import TrackResultSize
-from niagads.enums.core import CaseInsensitiveEnum
-from niagads.genome.core import Assembly
-from niagads.api.common.models.features.bed import BEDFeature
-from pydantic import BaseModel
-from aiohttp import ClientSession
 from typing import List, Union
+
+from aiohttp import ClientSession
+from niagads.api.common.models.datasets.track import TrackResultSize
+from niagads.api.common.models.features.bed import BEDFeature
+from niagads.assembly.core import Assembly
+from niagads.enums.core import CaseInsensitiveEnum
+from pydantic import BaseModel
 
 
 class FILERApiEndpoint(CaseInsensitiveEnum):
@@ -59,7 +60,7 @@ class ApiWrapperService:
             ) as response:
                 result = await response.json()
             return result
-        except Exception as e:
+        except Exception:
             raise LookupError(
                 f"Unable to get FILER response `{response.content}` for the following request: {str(response.url)}"
             )
@@ -113,7 +114,7 @@ class ApiWrapperService:
 
         try:
             return [FILERApiDataResponse(**r) for r in result]
-        except:
+        except Exception:
             raise LookupError(
                 f"Unable to process FILER response for track(s) `{tracks}` in the span: {span} ({assembly})"
             )
@@ -129,7 +130,7 @@ class ApiWrapperService:
             item = {"Identifier": track, "features": result}
             return FILERApiDataResponse(**item)
 
-        except:
+        except Exception:
             raise LookupError(
                 f"Unable to process FILER response for QTL track `{track}` for the gene `{gene}`"
             )

@@ -8,7 +8,7 @@ from niagads.exceptions.core import ValidationError, extract_exception_message
 from niagads.utils.string import is_number
 from pydantic import BaseModel
 from pyparsing import ParseResults, Union
-from sqlalchemy import Column, func
+from sqlalchemy import Column
 
 
 class Triple(BaseModel):

@@ -1,18 +1,13 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-from niagads.exceptions.core import ValidationError
-from niagads.genome.core import Assembly
 from niagads.api.common.constants import SharedOpenAPITags
-from niagads.api.common.models.response.core import RecordResponse
 from niagads.api.common.models.datasets.track import (
     AbridgedTrackResponse,
     TrackResponse,
 )
-from niagads.api.common.parameters.location import (
-    assembly_param,
-    chromosome_param,
-)
+from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.parameters.location import assembly_param, chromosome_param
 from niagads.api.common.parameters.pagination import page_param
 from niagads.api.common.parameters.record.path import track_param
 from niagads.api.common.parameters.response import (
@@ -21,10 +16,7 @@ from niagads.api.common.parameters.response import (
     ResponseView,
 )
 from niagads.api.common.parameters.text_search import keyword_param
-from niagads.api.common.services.route import (
-    Parameters,
-    ResponseConfiguration,
-)
+from niagads.api.common.services.route import Parameters, ResponseConfiguration
 from niagads.api.common.views.table import TableViewResponse
 from niagads.api.filer.dependencies import (
     TEXT_FILTER_PARAMETER,
@@ -32,6 +24,8 @@ from niagads.api.filer.dependencies import (
 )
 from niagads.api.filer.documentation import BASE_TAGS
 from niagads.api.filer.services.route import FILERRouteHelper
+from niagads.assembly.core import Assembly
+from niagads.exceptions.core import ValidationError
 
 router = APIRouter(
     prefix="/search",
@@ -49,7 +43,8 @@ router = APIRouter(
     ],
     summary="search-track-records",
     description="find functional genomics tracks by a keyword search against all text fields in the track metadata",
-    # description="find functional genomics tracks using category filters or by a keyword search against all text fields in the track metadata",
+    # description="find functional genomics tracks using category filters
+    # or by a keyword search against all text fields in the track metadata",
 )
 async def search_track_metadata(
     filter=Depends(TEXT_FILTER_PARAMETER),
@@ -100,7 +95,10 @@ async def search_track_metadata(
     "/shard/{track}",
     response_model=Union[TrackResponse, AbridgedTrackResponse, RecordResponse],
     summary="get-shard-metadata-beta",
-    description="Some tracks are sharded by chromosome.  Use this query to find a shard-specific track given a chromosome and related track identifier.",
+    description=(
+        "Some tracks are sharded by chromosome. "
+        "Use this query to find a shard-specific track given a chromosome and related track identifier."
+    ),
     include_in_schema=False,
 )
 async def get_shard(
