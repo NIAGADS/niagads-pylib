@@ -114,9 +114,9 @@ All functions, classes and packages should have a doc-string.  For non-inuitive 
 
 * Use [Google style documentation](https://google.github.io/styleguide/pyguide.html#docstrings)
 
-> NOTE: you **MUST** give credit when pulling code from a third-party (e.g., StackOverflow, GitHub).  Please include the URL or link to the specific response (each StackOverflow response has a _share_ link) in your documentation.
-> for example: [niagads.utils.string.is_balanced](https://niagads.github.io/niagads-pylib/_modules/niagads/utils/string.html#is_balanced), 
-> or [niagads.utils.list.chunker](https://niagads.github.io/niagads-pylib/_modules/niagads/utils/list.html#chunker)
+> NOTE: you **MUST** give credit when pulling code from a third-party (e.g., StackOverflow, GitHub) or when generated using a chatbot (e.g., ChatGPT/Claude).  Please include the URL or link to the specific response (each StackOverflow response has a _share_ link) in your documentation.
+> for example: [niagads.utils.string.is_balanced](https://github.com/NIAGADS/niagads-pylib/blob/34f505b49332e95b14bdd9074ad4e5534d70bd3f/components/niagads/utils/string.py#L329C1-L351C28), 
+> or [niagads.utils.list.chunker](https://github.com/NIAGADS/niagads-pylib/blob/34f505b49332e95b14bdd9074ad4e5534d70bd3f/components/niagads/utils/list.py#L66C1-L81C28)
 
 #### Logging
 
@@ -134,13 +134,12 @@ Please use `logging` to log script progress and debug statements. Details coming
   * `protected`: variable accesesible within class and any child classes
     * naming: starts with `_` (underscore; e.g., `_size`)
 
-* `getters` and `setters` methods should be defined to set and access (get) member variables that the user may need to access directly
-  * to access the member variable `__size`, there should be a function `set_size(self, size)` and `get_size(self)` or `size(self)`
+  * to access the member variable `__size`, there should be a function `set_size(self, size)` and `get_size(self)` or `size(self)`.  Python `@property` decorators are also acceptable.
   
 * when creating `class methods` consider usage of functions and make functions `private` or `protected` if they should not be directly accessed by the user (i.e., only used internally by the class) by prefixing with `__` or `_` as needed
 
 * all classes should have a `public` `logger` member variable
-  
+* 
 * all classes should have a `protected` `_debug` and `_verbose` member variable
 
 * override the `__str__` [dunder method](https://mathspp.com/blog/pydonts/dunder-methods) for the class so that users can debug or write class state as output (i.e., convert class to string)
