@@ -140,16 +140,16 @@ class XMLRecordLoader(AbstractBasePlugin):
         except etree.XMLSyntaxError as e:
             msg = f"XML syntax error: {e.msg} (line {e.lineno}, column {e.position[1]})\n" \
                 f"Check that your XML file is well-formed and starts with the <Records> root element."
-            self.logger.error(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
+            self.logger.exception(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
             raise RuntimeError(msg)
         except etree.DocumentInvalid as e:
             msg = f"XML validation error: {e.error_log.last_error}\n" \
                 f"Ensure your XML matches the expected schema. The root element should be <Records> containing <Table> and <Record> elements."
-            self.logger.error(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
+            self.logger.exception(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
             raise RuntimeError(msg)
         except Exception as e:
             msg = f"Unexpected error parsing XML: {str(e)}"
-            self.logger.error(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
+            self.logger.exception(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
             raise RuntimeError(msg)
 
     @property

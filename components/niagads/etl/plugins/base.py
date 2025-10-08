@@ -11,7 +11,7 @@ from niagads.database.session import DatabaseSessionManager
 from niagads.enums.common import ProcessStatus
 from niagads.etl.config import ETLMode
 from niagads.etl.pipeline.config import PipelineSettings
-from niagads.etl.plugins.logger import ETLLogger
+from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport
 from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLOperationLog
 
@@ -80,12 +80,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self._commit_after: int = self._params.commit_after
         self._run_id = self._params.run_id or uuid.uuid4().hex[:8].upper()
 
-        # logger (always JSON)
         self.logger: ETLLogger = ETLLogger(
             name=self._name,
             log_file=self._get_log_file_path(),
             run_id=self._run_id,
             plugin=self._name,
+            debug=self._debug,
         )
         if self._debug:
             self.logger.level = "DEBUG"
@@ -427,13 +427,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             # --- Log start of plugin run (except DRY_RUN) ---
             task_id = await self._start_plugin_run_log()
 
-            # --- Log initialization status to file ---
-            self.logger.init_status(
-                plugin_name=self._name,
-                params=self._params.model_dump(),
-                run_id=self._run_id,
-                task_id=task_id,
-            )
+            # --- Log configuration to file ---
+            self.logger.report_config(self._params)
 
             if self.streaming:
                 last_line_no, last_record = await self._process_streaming_load()
@@ -443,7 +438,16 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             runtime = time.time() - self._start_time
             mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
             self.logger.status(
-                self._mode.value.upper(), self._row_count, runtime, mem_mb
+                ETLStatusReport(
+                    updates=None,
+                    inserts=None,
+                    skips=0,
+                    status=ProcessStatus.SUCCESS,
+                    mode=self._mode,
+                    test=(self._mode == ETLMode.DRY_RUN),
+                    runtime=runtime,
+                    memory=mem_mb,
+                )
             )
             self.logger.flush()
             status = ProcessStatus.SUCCESS

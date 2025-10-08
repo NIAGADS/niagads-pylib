@@ -1,236 +1,186 @@
 import logging
-import json
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from niagads.enums.common import ProcessStatus
+from niagads.etl.config import ETLMode
+from niagads.etl.plugins.parameters import BasePluginParams
+from niagads.utils.logging import LOG_FORMAT_STR, FunctionContextAdapter, timed
+from pydantic import BaseModel, Field, field_validator
 
 
-class ETLJSONFormatter(logging.Formatter):
+class ETLContextAdapter(FunctionContextAdapter):
     """
-    Formats log records as single-line JSON for ETL runs.
-
-    All records are output as JSON with consistent keys where available.
-    Checkpoints are easily discoverable with: {"message": "CHECKPOINT", ...}
+    Logger adapter that injects run_id, plugin, and task_id into every log record.
     """
 
-    def format(self, record: logging.LogRecord) -> str:
-        """
-        Format a log record as a JSON string.
+    def __init__(self, logger, run_id, plugin, task_id=None):
+        super().__init__(logger, {})
+        self.run_id = run_id
+        self.plugin = plugin
+        self.task_id = task_id
 
-        Args:
-            record (logging.LogRecord): The log record to format.
+    def process(self, msg, kwargs):
+        # Add context fields to the record
+        if "extra" not in kwargs:
+            kwargs["extra"] = {}
+        kwargs["extra"]["run_id"] = self.run_id
+        kwargs["extra"]["plugin"] = self.plugin
+        if self.task_id is not None:
+            kwargs["extra"]["task_id"] = self.task_id
+        return super().process(msg, kwargs)
 
-        Returns:
-            str: The formatted JSON string.
-        """
-        base: Dict[str, Any] = {
-            "level": record.levelname,
-            "message": record.getMessage(),
-        }
-        # Standard ETL context
-        for attr in [
-            "plugin",
-            "run_id",
-            "status",
-            "rows",
-            "runtime",
-            "memory",
-            "line",
-            "record",
-            "error",
-            "params",
-            "task_id",
-        ]:
-            if hasattr(record, attr):
-                base[attr] = getattr(record, attr)
-        # Include all fields from extra if present and not already in base
-        if hasattr(record, "extra") and isinstance(record.extra, dict):
-            for k, v in record.extra.items():
-                if k not in base:
-                    base[k] = v
-        return json.dumps(base, ensure_ascii=False)
+
+class ETLStatusReport(BaseModel):
+    """
+    Status report for ETL operations.
+    All fields are optional and default to None, but updates/inserts are set to {} if None.
+    - updates: dict of {schema.table: count}
+    - inserts: dict of {schema.table: count}
+    - skips: number of skipped records
+    - status: ProcessStatus (SUCCESS or FAIL)
+    - mode: ETLMode
+    - test: True if test mode
+    - runtime: float, elapsed time in seconds
+    - memory: float, memory usage in MB
+    """
+
+    updates: Optional[Dict[str, int]] = None
+    inserts: Optional[Dict[str, int]] = None
+    skips: Optional[int] = 0
+    status: ProcessStatus
+    mode: ETLMode
+    test: Optional[bool] = None
+    runtime: Optional[float] = None
+    memory: Optional[float] = None
+
+    @field_validator("updates", "inserts", mode="after")
+    def set_dict_if_none(cls, v):
+        return v if v is not None else {}
 
 
 class ETLLogger:
     """
-    ETL-specific JSON logger.
-
-    Always logs in JSON format and includes run_id and plugin in all logs.
-    Checkpoints are logged at ERROR level with message="CHECKPOINT".
+    ETL-specific text logger using ETLContextAdapter.
+    Always logs in human-readable text format and includes run_id, plugin, and task_id in all logs automatically.
     """
 
-    def __init__(self, name: str, log_file: str, run_id: str, plugin: str):
-        """
-        Initialize the ETLLogger.
+    def __init__(self, name: str, log_file: str, run_id: str, plugin: str, task_id: Any = None, debug: bool = False):
+        self.__logger = ETLContextAdapter(logging.getLogger(name), run_id, plugin, task_id)
+        self.__logger.logger.setLevel(logging.INFO)
+        handler = logging.FileHandler(log_file, mode="w")
+        handler.setFormatter(logging.Formatter(LOG_FORMAT_STR))
+        self.__logger.logger.handlers.clear()
+        self.__logger.logger.addHandler(handler)
+        self._debug = debug
 
-        Args:
-            name (str): Logger name.
-            log_file (str): Path to the log file.
-            run_id (str): Unique run identifier.
-            plugin (str): Plugin name.
-        """
-        self.__logger = logging.getLogger(name)
-        self.__logger.setLevel(logging.INFO)
-        handler = logging.FileHandler(log_file, mode="w")  # Overwrite log file each run
-        handler.setFormatter(ETLJSONFormatter())
-        self.__logger.handlers.clear()
-        self.__logger.addHandler(handler)
-        self.__run_id = run_id
-        self.__plugin = plugin
+    @property
+    def debug(self):
+        return self._debug
+
+    @debug.setter
+    def debug(self, value: bool):
+        self._debug = bool(value)
 
     def flush(self):
-        """
-        Flush all handlers for this logger.
-
-        Ensures that all log records are written to disk immediately by calling
-        flush() on each handler. Useful for forcing log persistence after critical events.
-        """
-        for h in self.__logger.handlers:
+        for h in self.__logger.logger.handlers:
             try:
                 h.flush()
             except Exception:
                 pass
 
-    def info(self, message: str, **kwargs):
-        """
-        Log an info-level message.
+    def info(self, message: str):
+        self.__logger.info(message)
 
-        Args:
-            message (str): The log message.
-            **kwargs: Additional context fields to include in the log.
-        """
-        self.__logger.info(
-            message, extra={"run_id": self.__run_id, "plugin": self.__plugin, **kwargs}
-        )
+    def error(self, message: str):
+        self.__logger.error(message)
 
-    def error(self, message: str, **kwargs):
-        """
-        Log an error-level message.
+    def exception(self, message: str):
+        if self._debug:
+            self.__logger.exception(message)
+        else:
+            self.__logger.error(message)
 
-        Args:
-            message (str): The log message.
-            **kwargs: Additional context fields to include in the log.
-        """
-        self.__logger.error(
-            message, extra={"run_id": self.__run_id, "plugin": self.__plugin, **kwargs}
-        )
+    def checkpoint(self, line: Optional[int] = None, record: Optional[Any] = None, error: Optional[Exception]= None):
+        checkpoint = []
+        if line is not None:
+            checkpoint.append(f"line={line}")
+        if record is not None:
+            checkpoint.append(f"record={record}")
+        self.info("RESUME CHECKPONT: " + ";".join(checkpoint))
+        if error is not None:
+            self.error(f"RESUME CHECKPOINT ERROR: {error}")
         self.flush()
 
-    def exception(self, message: str, **kwargs):
-        """
-        Log an exception with traceback at error level.
+    def warning(self, message: str):
+        self.__logger.warning(message)
 
-        Args:
-            message (str): The log message.
-            **kwargs: Additional context fields to include in the log.
-        """
-        self.__logger.exception(
-            message, extra={"run_id": self.__run_id, "plugin": self.__plugin, **kwargs}
-        )
-        self.flush()
+    def debug(self, message: str):
+        self.__logger.debug(message)
 
-    def status(self, status: str, rows: int, runtime: float, memory_mb: float):
+    def report_section(self, section: str):
         """
-        Log a status update for the ETL run.
-
-        Args:
-            status (str): Status message.
-            rows (int): Number of rows processed.
-            runtime (float): Runtime in seconds.
-            memory_mb (float): Memory usage in megabytes.
+        Log a section header for reporting.
         """
-        self.__logger.info(
-            status,
-            extra={
-                "run_id": self.__run_id,
-                "plugin": self.__plugin,
-                "status": status,
-                "rows": rows,
-                "runtime": f"{runtime:.2f}s",
-                "memory": f"{memory_mb:.2f}MB",
-            },
-        )
-        self.flush()
+        self.info(f"==== {section} ====")
 
-    def checkpoint(self, line: int, record: Any, error: Exception | None = None):
+    def report(self, section: str, **fields):
         """
-        Log a resume checkpoint for ETL recovery.
-
-        Args:
-            line (int): Line number of the checkpoint.
-            record (Any): The record at the checkpoint.
-            error (Exception | None): The error encountered, if any.
-
-        Example:
-            jq 'select(.message=="CHECKPOINT")' etl.log
+        Generic reporting method: logs a section header and key/value pairs.
+        Usage: logger.report('Status', parsed=100, skipped=5, loaded=95)
         """
-        self.__logger.error(
-            "CHECKPOINT",
-            extra={
-                "run_id": self.__run_id,
-                "plugin": self.__plugin,
-                "line": line,
-                "record": record,
-                "error": str(error) if error else None,
-            },
-        )
-        self.flush()
+        self.report_section(section)
+        for key, value in fields.items():
+            self.info(f"{key}: {value}")
 
-    def init_status(
-        self, plugin_name: str, params: dict, run_id: str, task_id: Any = None
-    ):
+    def report_config(self, params: BasePluginParams):
         """
-        Log the initialization status for a plugin run.
+        Log the configuration for the plugin run from a Pydantic parameter object.
+        Usage: logger.report_config(params)
+        """
+        # Log plugin name from logger name
+        self.info(f"Running ETL Plugin: {self.__logger.logger.name}")
+        self.report_section("ETL Plugin Config")
+        config = params.model_dump()
+        for key, value in config.items():
+            self.info(f"{key.upper()}: {value}")
 
-        Args:
-            plugin_name (str): Name of the plugin.
-            params (dict): Parameter name/value pairs.
-            run_id (str): Unique run identifier.
-            task_id (Any): Task/log id from the database, if available.
+    def status(self, status: ETLStatusReport):
         """
-        self.__logger.info(
-            "INIT",
-            extra={
-                "plugin": plugin_name,
-                "params": params,
-                "run_id": run_id,
-                "task_id": task_id,
-            },
-        )
-        self.flush()
+        Log ETL status from an ETLStatusReport model.
+        Logs zero if inserts/updates are empty.
+        """
+        section = "DONE WITH TEST" if status.test else "DONE"
+        self.report_section(section)
+        self.info(f"Transaction Mode: {status.mode}")
+        if status.runtime is not None:
+            self.info(f"RUNTIME: {status.runtime:.2f}s")
+        if status.memory is not None:
+            self.info(f"MEMORY: {status.memory:.2f}MB")
+            
+        # Log inserts
+        if status.inserts:
+            for table, count in status.inserts.items():
+                self.info(f"INSERTED {count} records into {table}")
+        else:
+            self.info("INSERTED 0 records.")
+            
+        # Log updates
+        if status.updates:
+            for table, count in status.updates.items():
+                self.info(f"UPDATED {count} records in {table}")
+        else:
+            self.info("UPDATED 0 records.")
+            
+        self.info(f"SKIPPED {status.skips} records.")
 
-    def warning(self, message: str, **kwargs):
-        """
-        Log a warning-level message.
-
-        Args:
-            message (str): The log message.
-            **kwargs: Additional context fields to include in the log.
-        """
-        self.__logger.warning(
-            message, extra={"run_id": self.__run_id, "plugin": self.__plugin, **kwargs}
-        )
-        self.flush()
-
-    def debug(self, message: str, **kwargs):
-        """
-        Log a debug-level message.
-
-        Args:
-            message (str): The log message.
-            **kwargs: Additional context fields to include in the log.
-        """
-        self.__logger.debug(
-            message, extra={"run_id": self.__run_id, "plugin": self.__plugin, **kwargs}
-        )
-        self.flush()
+        self.info(str(status.status))
 
     @property
     def level(self):
-        return self.__logger.level
+        return self.__logger.logger.level
 
     @level.setter
     def level(self, value):
-        # Accept either int or str
         if isinstance(value, str):
             value = value.upper()
             value = logging._nameToLevel.get(value, logging.INFO)
-        self.__logger.setLevel(value)
+        self.__logger.logger.setLevel(value)
