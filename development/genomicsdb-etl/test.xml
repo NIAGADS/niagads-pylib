@@ -5,6 +5,7 @@
         </Record>
         <Record>
             <name>GTEX</name>
+            <person>me</person>
         </Record>
     </Table>
     <Table schema="admin" name="tracker">

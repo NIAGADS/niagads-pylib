@@ -45,7 +45,7 @@ class BasePluginParams(BaseModel):
     )
     log_path: Optional[str] = Field(
         default=None,
-        description="Path to JSON log file for the plugin.  If does not end in `.log`, assumes `log-path` is a directory and will write to `{log-path}/{plugin-name}.log",
+        description="Path to log file for the plugin.  If does not end in `.log`, assumes `log-path` is a directory and will write to `{log-path}/{plugin-name}.log",
     )
     resume_checkpoint: Optional[ResumeCheckpoint] = Field(
         default=None,

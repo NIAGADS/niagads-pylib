@@ -56,6 +56,8 @@ packages = [
 ]
 include = [
     { path = "components/niagads/genomicsdb/models/reference/sql/ontology/*.sql" },
+    { path = "bases/niagads/genomicsdb_service/etl/plugins/validators/*.xsd" },
+    { path = "bases/niagads/genomicsdb_service/etl/plugins/validators/*.json" },
 ]
 
 [tool.poetry.dependencies]
@@ -93,6 +95,7 @@ strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
+lxml = "^6.0.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
