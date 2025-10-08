@@ -1,10 +1,10 @@
 import os
-import time
 import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Type
+from datetime import datetime
 
+from niagads.utils.logging import FunctionContextAdapter
 import psutil
 from niagads.common.core import ComponentBaseMixin
 from niagads.database.session import DatabaseSessionManager
@@ -13,8 +13,9 @@ from niagads.etl.config import ETLMode
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport
 from niagads.etl.plugins.parameters import BasePluginParams
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLOperationLog
+from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLTask
 
+# TODO - fix handling of ETLStatus
 
 class AbstractBasePlugin(ABC, ComponentBaseMixin):
     """
@@ -80,13 +81,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self._commit_after: int = self._params.commit_after
         self._run_id = self._params.run_id or uuid.uuid4().hex[:8].upper()
 
-        self.logger: ETLLogger = ETLLogger(
+        self.logger: ETLLogger = FunctionContextAdapter(ETLLogger(
             name=self._name,
             log_file=self._get_log_file_path(),
             run_id=self._run_id,
             plugin=self._name,
             debug=self._debug,
-        )
+        ))
         if self._debug:
             self.logger.level = "DEBUG"
 
@@ -342,7 +343,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         return last_line_no, last_record
 
-    async def _start_plugin_run_log(self) -> Optional[int]:
+    async def _db_log_plugin_run(self) -> Optional[int]:
         """
         Log the start of a plugin run (except DRY_RUN). Returns the log row's ID, or None if not logged.
         """
@@ -350,40 +351,34 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             return None
 
         async with self._session_manager() as session:
-            etl_log = ETLOperationLog(
+            task = ETLTask(
                 plugin_name=self._name,
                 code_version=self.version,
                 params=self._params.model_dump(),
-                message=f"Started ETL run: mode={self._mode.value}",
-                status=ProcessStatus.RUNNING.value,
+                message="plugin run initiated",
+                status=ProcessStatus.RUNNING,
                 operation=self.operation.value,
                 run_id=self._run_id,
-                start_time=datetime.now(),
-                end_time=None,
+                start_time=self._start_time,
                 rows_processed=0,
             )
-            session.add(etl_log)
-            await session.flush()
-            etl_log_id = etl_log.etl_operation_log_id
+            session.add(task)
             await session.commit()
-        return etl_log_id
+        return task.task_id
 
-    async def _finalize_plugin_run_log(
-        self,
-        log_id: int,
-        status: ProcessStatus,
-        message: str,
-        rows_processed: int,
-    ):
+    async def _db_update_plugin_task(self, task_id: int, rows_processed: int, end_time, status: ProcessStatus, message: str = None):
         """
-        Finalize the plugin run log with status, end time, and message.
+        Update the plugin task in the database at plugin completion.
+        Sets rows_processed, end_time, status, and message.
         """
+        if self._mode == ETLMode.DRY_RUN:
+            return
         async with self._session_manager() as session:
-            etl_log = await session.get(ETLOperationLog, log_id)
-            etl_log.status = status.value
-            etl_log.end_time = datetime.now()
-            etl_log.rows_processed = rows_processed
-            etl_log.message = message
+            task: ETLTask = await session.get(ETLTask, task_id)
+            task.rows_processed = rows_processed
+            task.end_time = end_time
+            task.status = status
+            task.message = message
             await session.commit()
 
     async def run(
@@ -401,65 +396,42 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Returns:
             ProcessStatus: SUCCESS if ETL completed, FAIL otherwise.
         """
-        orig_params = self._params
-        orig_commit_after = self._commit_after
         merged_params = None
         task_id = None
-        try:
-            if runtime_params:
-                merged = self._params.model_dump().copy()
-                merged.update(runtime_params)
-                merged_params = self.parameter_model()(**merged)
-                self.logger.info(
-                    f"Runtime parameter overrides applied: {runtime_params}"
-                )
-                self._params = merged_params
-                self._commit_after = self._params.commit_after
+        
+        if runtime_params:
+            merged = self._params.model_dump().copy()
+            merged.update(runtime_params)
+            merged_params = self.parameter_model()(**merged)
             self.logger.info(
-                f"Starting ETL run: mode={self._mode.value}, plugin={self._name}"
+                f"Runtime parameter overrides applied: {runtime_params}"
             )
-            self._row_count = 0
-            status = ProcessStatus.FAIL
-            self._start_time = time.time()
-            last_line_no = 0
-            last_record = None
+            self._params = merged_params
+            self._commit_after = self._params.commit_after
 
-            # --- Log start of plugin run (except DRY_RUN) ---
-            task_id = await self._start_plugin_run_log()
-
-            # --- Log configuration to file ---
-            self.logger.report_config(self._params)
+        self._row_count = 0
+        self._start_time = datetime.now()
+        last_line_no = 0
+        last_record = None
+        
+        try:
+            task_id = await self._db_log_plugin_run()
+            status = ETLStatusReport(
+                skips=0,
+                status=ProcessStatus.FAIL,
+                mode=self._mode,
+                test=(self._mode == ETLMode.DRY_RUN)
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize plugin: {e}")
+    
+        try:
+            self.logger.log_plugin_configuration(self._params)
 
             if self.streaming:
                 last_line_no, last_record = await self._process_streaming_load()
             else:
                 last_line_no, last_record = await self._process_bulk_load()
-            # success log
-            runtime = time.time() - self._start_time
-            mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
-            self.logger.status(
-                ETLStatusReport(
-                    updates=None,
-                    inserts=None,
-                    skips=0,
-                    status=ProcessStatus.SUCCESS,
-                    mode=self._mode,
-                    test=(self._mode == ETLMode.DRY_RUN),
-                    runtime=runtime,
-                    memory=mem_mb,
-                )
-            )
-            self.logger.flush()
-            status = ProcessStatus.SUCCESS
-
-            # --- Finalize plugin run log on success (except DRY_RUN) ---
-            if self._mode != ETLMode.DRY_RUN and task_id:
-                await self._finalize_plugin_run_log(
-                    task_id,
-                    status,
-                    "ETL run completed successfully.",
-                    self._row_count,
-                )
 
         except Exception as e:
             # checkpoint for resume (line + record snapshot)
@@ -487,7 +459,30 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     self._row_count,
                 )
         finally:
-            # Restore original params and commit_after
-            self._params = orig_params
-            self._commit_after = orig_commit_after
-            return status
+            # log status
+            end_time = datetime.now()
+            runtime = (end_time - self._start_time).total_seconds()
+            mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
+            self.logger.status(
+                ETLStatusReport(
+                    task_id=task_id,
+                    updates=None,
+                    inserts=None,
+                    skips=0,
+                    status=status.status if hasattr(status, 'status') else status,
+                    mode=self._mode,
+                    test=(self._mode == ETLMode.DRY_RUN),
+                    runtime=runtime,
+                    memory=mem_mb,
+                )
+            )
+            
+            try:
+                if task_id is not None: await self._db_update_plugin_task(task_id, self._row_count, end_time)
+            except Exception as db_error:
+                self.logger.exception(f"Failed to update plugin task in DB: {db_error}")
+
+        return status
+
+
+

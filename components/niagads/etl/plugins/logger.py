@@ -3,58 +3,52 @@ from typing import Any, Dict, Optional
 from niagads.enums.common import ProcessStatus
 from niagads.etl.config import ETLMode
 from niagads.etl.plugins.parameters import BasePluginParams
-from niagads.utils.logging import LOG_FORMAT_STR, FunctionContextAdapter, timed
-from pydantic import BaseModel, Field, field_validator
+from niagads.utils.logging import LOG_FORMAT_STR
+from pydantic import BaseModel, field_validator
 
-
-class ETLContextAdapter(FunctionContextAdapter):
-    """
-    Logger adapter that injects run_id, plugin, and task_id into every log record.
-    """
-
-    def __init__(self, logger, run_id, plugin, task_id=None):
-        super().__init__(logger, {})
-        self.run_id = run_id
-        self.plugin = plugin
-        self.task_id = task_id
-
-    def process(self, msg, kwargs):
-        # Add context fields to the record
-        if "extra" not in kwargs:
-            kwargs["extra"] = {}
-        kwargs["extra"]["run_id"] = self.run_id
-        kwargs["extra"]["plugin"] = self.plugin
-        if self.task_id is not None:
-            kwargs["extra"]["task_id"] = self.task_id
-        return super().process(msg, kwargs)
 
 
 class ETLStatusReport(BaseModel):
     """
     Status report for ETL operations.
-    All fields are optional and default to None, but updates/inserts are set to {} if None.
-    - updates: dict of {schema.table: count}
-    - inserts: dict of {schema.table: count}
-    - skips: number of skipped records
-    - status: ProcessStatus (SUCCESS or FAIL)
-    - mode: ETLMode
-    - test: True if test mode
-    - runtime: float, elapsed time in seconds
-    - memory: float, memory usage in MB
     """
 
-    updates: Optional[Dict[str, int]] = None
-    inserts: Optional[Dict[str, int]] = None
+    updates: Optional[Dict[str, int]] = {}
+    inserts: Optional[Dict[str, int]] = {}
     skips: Optional[int] = 0
     status: ProcessStatus
     mode: ETLMode
     test: Optional[bool] = None
     runtime: Optional[float] = None
     memory: Optional[float] = None
+    task_id: int 
 
-    @field_validator("updates", "inserts", mode="after")
-    def set_dict_if_none(cls, v):
-        return v if v is not None else {}
+    def _validate_key_format(self, key: str):
+        """
+        Ensure key is in 'schema.table' format.
+        """
+        if not isinstance(key, str) or '.' not in key or key.count('.') != 1:
+            raise ValueError("Table must be qualified by a schema (e.g., 'myschema.mytable').")
+
+    def _increment_dict(self, d: Optional[Dict[str, int]], key: str, count: int = 1) -> Dict[str, int]:
+        self._validate_key_format(key)
+        if d is None:
+            d = {}
+        d[key] = d.get(key, 0) + count
+        return d
+
+    def increment_inserts(self, key: str, count: int = 1):
+        """
+        Increment the count for a key in 'inserts'. Adds the key if it does not exist.
+        """
+        self.inserts = self._increment_dict(self.inserts, key, count)
+
+    def increment_updates(self, key: str, count: int = 1):
+        """
+        Increment the count for a key in 'updates'. Adds the key if it does not exist.
+        """
+        self.updates = self._increment_dict(self.updates, key, count)
+
 
 
 class ETLLogger:
@@ -64,12 +58,12 @@ class ETLLogger:
     """
 
     def __init__(self, name: str, log_file: str, run_id: str, plugin: str, task_id: Any = None, debug: bool = False):
-        self.__logger = ETLContextAdapter(logging.getLogger(name), run_id, plugin, task_id)
-        self.__logger.logger.setLevel(logging.INFO)
+        self.__logger = logging.getLogger(name)# , run_id=run_id)# , plugin, task_id)
+        self.__logger.setLevel(logging.INFO)
         handler = logging.FileHandler(log_file, mode="w")
         handler.setFormatter(logging.Formatter(LOG_FORMAT_STR))
-        self.__logger.logger.handlers.clear()
-        self.__logger.logger.addHandler(handler)
+        self.__logger.handlers.clear()
+        self.__logger.addHandler(handler)
         self._debug = debug
 
     @property
@@ -81,7 +75,7 @@ class ETLLogger:
         self._debug = bool(value)
 
     def flush(self):
-        for h in self.__logger.logger.handlers:
+        for h in self.__logger.handlers:
             try:
                 h.flush()
             except Exception:
@@ -105,7 +99,7 @@ class ETLLogger:
             checkpoint.append(f"line={line}")
         if record is not None:
             checkpoint.append(f"record={record}")
-        self.info("RESUME CHECKPONT: " + ";".join(checkpoint))
+        self.info("RESUME CHECKCOVERT: " + ";".join(checkpoint))
         if error is not None:
             self.error(f"RESUME CHECKPOINT ERROR: {error}")
         self.flush()
@@ -131,13 +125,13 @@ class ETLLogger:
         for key, value in fields.items():
             self.info(f"{key}: {value}")
 
-    def report_config(self, params: BasePluginParams):
+    def log_plugin_configuration(self, params: BasePluginParams):
         """
         Log the configuration for the plugin run from a Pydantic parameter object.
         Usage: logger.report_config(params)
         """
         # Log plugin name from logger name
-        self.info(f"Running ETL Plugin: {self.__logger.logger.name}")
+        self.info(f"Running ETL Plugin: {self.__logger.name}")
         self.report_section("ETL Plugin Config")
         config = params.model_dump()
         for key, value in config.items():
@@ -151,6 +145,7 @@ class ETLLogger:
         section = "DONE WITH TEST" if status.test else "DONE"
         self.report_section(section)
         self.info(f"Transaction Mode: {status.mode}")
+        self.info(f"TASK ID: {status.task_id}")
         if status.runtime is not None:
             self.info(f"RUNTIME: {status.runtime:.2f}s")
         if status.memory is not None:
@@ -176,11 +171,11 @@ class ETLLogger:
 
     @property
     def level(self):
-        return self.__logger.logger.level
+        return self.__logger.level
 
     @level.setter
     def level(self, value):
         if isinstance(value, str):
             value = value.upper()
             value = logging._nameToLevel.get(value, logging.INFO)
-        self.__logger.logger.setLevel(value)
+        self.__logger.setLevel(value)
