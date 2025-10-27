@@ -25,22 +25,25 @@ class SQLClauses(BaseModel):
 
 
 class XMLRecord(BaseModel):
-    _table: str
-    _schema: str
+    data_table: str
+    data_schema: str
 
     model_config = ConfigDict(extra='allow')
+    
+    def __str__(self):
+        return str(self.model_dump(include_table_schema=True))
 
     def model_dump(self, *args, include_table_schema: bool = False, **kwargs) -> Dict[str, Any]:
         """
         Override model_dump to return only the extra fields (not schema/table/sql_clauses) for this XMLRecord.
         Uses __pydantic_extra__ for Pydantic v2.
-        If include_table_schema is True, include _schema and _table in the output.
+        If include_table_schema is True, include data_schema and data_table in the output.
         """
         result = dict(self.__pydantic_extra__) if hasattr(self, '__pydantic_extra__') and self.__pydantic_extra__ else None
         if result is not None:
             if include_table_schema:
-                result['_schema'] = self._schema
-                result['_table'] = self._table
+                result['schema'] = self.data_schema
+                result['table'] = self.data_table
             return result
         raise RuntimeError("XMLRecord: No extra fields found. This likely indicates an issue parsing the XML record.")
 
@@ -100,7 +103,7 @@ class XMLRecordLoader(AbstractBasePlugin):
             <Records>
                 <Table schema="schema" name="table">
                     <Record>
-                        <column>value</column>
+                        <Field name="column">value</Field>
                         ...
                     </Record>
                     ...
@@ -177,7 +180,7 @@ class XMLRecordLoader(AbstractBasePlugin):
     def extract(self) -> Iterator[XMLRecord]:
         if self._debug:
             self.logger.debug(
-                f"XMLRecordLoader.extract: Parsing file {self._params.file}"
+                f"Parsing file {self._params.file}"
             )
     
         try:
@@ -190,19 +193,29 @@ class XMLRecordLoader(AbstractBasePlugin):
                     raise ValueError("Missing 'schema' or 'name' attribute in <Table> tag.")
                 
                 for record_elem in table_elem.findall("Record"):
-                    data = {child.tag: child.text for child in record_elem}
-                    record = XMLRecord(_schema=schema, _table=table, **data)
+                    data: Dict[str, Any] = {}
+                    for child in record_elem:
+                        # Use the 'name' attribute as the column name when present; fall back to the element tag
+                        col_name = child.attrib.get("name") or child.tag
+                        if col_name in data:
+                            # duplicate column names in a single record are ambiguous
+                            raise ValueError(f"Duplicate field name '{col_name}' in record for table {schema}.{table}")
+                        # normalize whitespace; preserve empty/null semantics
+                        value = child.text.strip() if child.text is not None else None
+                        data[col_name] = value
+                        
+                    record = XMLRecord(data_schema=schema, data_table=table, **data)
                     if self._debug:
-                        self.logger.debug(f"XMLRecordLoader.extract: Yielding row {record.model_dump(include_table_schema=True)}")
+                        self.logger.debug(f"Yielding row {record.model_dump(include_table_schema=True)}")
                     yield record
                     
         except Exception as e:
-            self.logger.error(f"XMLRecordLoader.extract: Error - {e}")
+            self.logger.error(f"Error - {e}")
             raise
 
     def transform(self, data: XMLRecord) -> XMLRecord:
         if self._debug:
-            self.logger.debug(f"XMLRecordLoader.transform: Transforming data {data}")
+            self.logger.debug("Transforming data", data)
         if data is None:
             raise RuntimeError(
                 "No records provided to transform(). At least one record is required."
@@ -214,18 +227,18 @@ class XMLRecordLoader(AbstractBasePlugin):
         self, session, record: XMLRecord
     ) -> bool:
         select_sql = (
-            f"SELECT 1 FROM {record._schema}.{record._table} WHERE {record.sql_clauses.where_clause} LIMIT 1"
+            f"SELECT 1 FROM {record.data_schema}.{record.data_table} WHERE {record.sql_clauses.where_clause} LIMIT 1"
         )
         result = await session.execute(text(select_sql), record.model_dump())
         return result.scalar() is not None
 
     async def _insert_record(self, session, record: XMLRecord):
-        sql = f"INSERT INTO {record._schema}.{record._table} ({record.sql_clauses.col_names}) VALUES ({record.sql_clauses.placeholders})"
+        sql = f"INSERT INTO {record.data_schema}.{record.data_table} ({record.sql_clauses.col_names}) VALUES ({record.sql_clauses.placeholders})"
         await session.execute(text(sql), record.model_dump())
 
     async def _update_record(self, session, record: XMLRecord):
         update_sql = (
-            f"UPDATE {record._schema}.{record._table} SET {record.sql_clauses.set_clause} WHERE {record.sql_clauses.where_clause}"
+            f"UPDATE {record.data_schema}.{record.data_table} SET {record.sql_clauses.set_clause} WHERE {record.sql_clauses.where_clause}"
         )
         await session.execute(text(update_sql), record.model_dump())
 
@@ -246,7 +259,7 @@ class XMLRecordLoader(AbstractBasePlugin):
         """
         if self._debug:
             self.logger.debug(
-                f"XMLRecordLoader.load: Loading {len(transformed)} records"
+                f"Loading {len(transformed)} records"
             )
         if not transformed or len(transformed) == 0:
             raise RuntimeError(
@@ -258,12 +271,12 @@ class XMLRecordLoader(AbstractBasePlugin):
 
         async with self._session_manager() as session:
             for record in transformed:
-                table_key = f"{record._schema}.{record._table}"
+                table_key = f"{record.data_schema}.{record.data_table}"
                 if table_key not in table_counts:
                     table_counts[table_key] = 0
 
                 if self._debug:
-                    self.logger.debug(f"XMLRecordLoader.load: Processing record {record} for {table_key}")
+                    self.logger.debug(f"Processing record {record} for {table_key}")
 
                 exists = await self._record_exists(session, record)
 
@@ -272,24 +285,24 @@ class XMLRecordLoader(AbstractBasePlugin):
                     inserted += 1
                     table_counts[table_key] += 1
                     if self._debug:
-                        self.logger.debug(f"XMLRecordLoader.load: Inserted record {record}")
+                        self.logger.debug(f"Inserted record {record}")
                         
                 else:
                     if self._params.update:
                         await self._update_record(session, record)
                         if self._debug:
                             self.logger.debug(
-                                f"XMLRecordLoader.load: Updated record {record}"
+                                f"Updated record {record}"
                             )
                             
                     elif self._params.skip_existing:
-                        self.logger.info(f"XMLRecordLoader.load: Skipped existing record in {table_key}: {record}")
+                        self.logger.info(f"Skipped existing record in {table_key}: {record}")
                         continue
                     
                     else:
                         if self._debug:
                             self.logger.warning(
-                                f"XMLRecordLoader.load: Record exists and update/skip_existing not enabled: {record}"
+                                f"Record exists and update/skip_existing not enabled: {record}"
                             )
                         raise RuntimeError(
                             f"Record already exists and update/skip_existing is not enabled: {record}"
@@ -298,16 +311,16 @@ class XMLRecordLoader(AbstractBasePlugin):
             if mode == ETLMode.COMMIT:
                 await session.commit()
                 if self._debug:
-                    self.logger.debug(f"XMLRecordLoader.load: Committed transaction.")
+                    self.logger.debug(f"Committed transaction.")
                     
             elif mode == ETLMode.NON_COMMIT:
                 await session.rollback()
                 if self._debug:
-                    self.logger.debug(f"XMLRecordLoader.load: Rolled back transaction.")
+                    self.logger.debug(f"Rolled back transaction.")
 
         # Log the number of records loaded per table
         for table_key, count in table_counts.items():
-            self.logger.info(f"XMLRecordLoader.load: Loaded {count} records into {table_key}")
+            self.logger.info(f"Loaded {count} records into {table_key}")
 
         return inserted
 

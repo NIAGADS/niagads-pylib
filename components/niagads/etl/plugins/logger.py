@@ -1,10 +1,12 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 from niagads.enums.common import ProcessStatus
 from niagads.etl.config import ETLMode
 from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.utils.logging import LOG_FORMAT_STR
 from pydantic import BaseModel, field_validator
+import pprint
+import json
 
 
 
@@ -21,7 +23,7 @@ class ETLStatusReport(BaseModel):
     test: Optional[bool] = None
     runtime: Optional[float] = None
     memory: Optional[float] = None
-    task_id: int 
+    task_id: Union[ETLMode, int]
 
     def _validate_key_format(self, key: str):
         """
@@ -53,7 +55,7 @@ class ETLStatusReport(BaseModel):
 
 class ETLLogger:
     """
-    ETL-specific text logger using ETLContextAdapter.
+    ETL-specific text logger
     Always logs in human-readable text format and includes run_id, plugin, and task_id in all logs automatically.
     """
 
@@ -81,40 +83,48 @@ class ETLLogger:
             except Exception:
                 pass
 
-    def info(self, message: str):
-        self.__logger.info(message)
+    def _format_message(self, *args):
+        """
+        Simple string formatting for all arguments. No pretty-printing of complex objects.
+        """
+        return ' '.join(str(arg) for arg in args)
 
-    def error(self, message: str):
-        self.__logger.error(message)
+    def info(self, *args):
+        self.__logger.info(self._format_message(*args))
 
-    def exception(self, message: str):
+    def error(self, *args):
+        self.__logger.error(self._format_message(*args))
+
+    def exception(self, *args):
         if self._debug:
-            self.__logger.exception(message)
+            self.__logger.exception(self._format_message(*args))
         else:
-            self.__logger.error(message)
+            self.__logger.error(self._format_message(*args))
 
-    def checkpoint(self, line: Optional[int] = None, record: Optional[Any] = None, error: Optional[Exception]= None):
-        checkpoint = []
-        if line is not None:
-            checkpoint.append(f"line={line}")
-        if record is not None:
-            checkpoint.append(f"record={record}")
-        self.info("RESUME CHECKCOVERT: " + ";".join(checkpoint))
-        if error is not None:
-            self.error(f"RESUME CHECKPOINT ERROR: {error}")
-        self.flush()
+    def warning(self, *args):
+        self.__logger.warning(self._format_message(*args))
 
-    def warning(self, message: str):
-        self.__logger.warning(message)
+    def debug(self, *args):
+        self.__logger.debug(self._format_message(*args))
 
-    def debug(self, message: str):
-        self.__logger.debug(message)
-
-    def report_section(self, section: str):
+    def report_section(self, section: str, width: int = 60, char: str = '-', returnStr: bool=False):
         """
-        Log a section header for reporting.
+        Log a visually distinct, centered section header for reporting.
         """
-        self.info(f"==== {section} ====")
+        title = f" {section} "
+        pad = (width - len(title))
+        left = char * (pad // 2)
+        right = char * (pad - len(left))
+        header = f"{left}{title}{right}"
+        if returnStr:
+            return header
+        self.info("")
+        self.info(f"{header}")
+        
+    def report_section_end(self, section: str, width:int = 60, char:str = '-'):
+        sectionText = self.report_section(section, width, char, returnStr=True)
+        self.info(f"{char * len(sectionText)}")
+        self.info("")
 
     def report(self, section: str, **fields):
         """
@@ -132,42 +142,52 @@ class ETLLogger:
         """
         # Log plugin name from logger name
         self.info(f"Running ETL Plugin: {self.__logger.name}")
+        self.info("")
         self.report_section("ETL Plugin Config")
         config = params.model_dump()
+        max_key_len = max(len(str(k)) for k in config.keys()) if config else 12
         for key, value in config.items():
-            self.info(f"{key.upper()}: {value}")
+            self.info(f"{key.upper():<{max_key_len}} : {value}")
+        self.report_section_end("ETL Plugin Config")
+        
+    def log_plugin_run(self):
+        self.report_section("ETL Plugin Run")
+
 
     def status(self, status: ETLStatusReport):
         """
         Log ETL status from an ETLStatusReport model.
         Logs zero if inserts/updates are empty.
         """
-        section = "DONE WITH TEST" if status.test else "DONE"
-        self.report_section(section)
-        self.info(f"Transaction Mode: {status.mode}")
-        self.info(f"TASK ID: {status.task_id}")
+        
+        prefix = "TEST" if status.test else "RUN"
+        self.report_section(f"{prefix} Transaction Summary")
+        keyw = 16
+        self.info(f"{'MODE':<{keyw}} : {status.mode}")
+        self.info(f"{'TASK ID':<{keyw}} : {status.task_id}")
+        
         if status.runtime is not None:
-            self.info(f"RUNTIME: {status.runtime:.2f}s")
-        if status.memory is not None:
-            self.info(f"MEMORY: {status.memory:.2f}MB")
+            self.info(f"{'RUNTIME':<{keyw}} : {status.runtime:.2f}s")
             
+        if status.memory is not None:
+            self.info(f"{'MEMORY':<{keyw}} : {status.memory:.2f}MB")
         # Log inserts
         if status.inserts:
             for table, count in status.inserts.items():
-                self.info(f"INSERTED {count} records into {table}")
+                self.info(f"{'INSERTED':<{keyw}} : {count} records into {table}")
         else:
-            self.info("INSERTED 0 records.")
+            self.info(f"{'INSERTED':<{keyw}} : 0 records.")
             
         # Log updates
         if status.updates:
             for table, count in status.updates.items():
-                self.info(f"UPDATED {count} records in {table}")
+                self.info(f"{'UPDATED':<{keyw}} : {count} records in {table}")
         else:
-            self.info("UPDATED 0 records.")
+            self.info(f"{'UPDATED':<{keyw}} : 0 records.")
             
-        self.info(f"SKIPPED {status.skips} records.")
-
-        self.info(str(status.status))
+        self.info(f"{'SKIPPED':<{keyw}} : {status.skips} records.")
+        self.info(f"{'STATUS':<{keyw}} : {str(status.status)}")
+        self.report_section_end("Transaction Summary")
 
     @property
     def level(self):

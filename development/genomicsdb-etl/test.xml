@@ -1,16 +1,16 @@
 <Records>
     <Table schema="admin" name="externaldatabase">
         <Record>
-            <name>ENCODE</name>
+            <Field name="name">ENCODE</Field>
         </Record>
         <Record>
-            <name>GTEX</name>
-            <person>me</person>
+            <Field name="name">GTEX</Field>
+            <Field name="person">me</Field>
         </Record>
     </Table>
     <Table schema="admin" name="tracker">
         <Record>
-            <value>True</value>
+            <Field name="value">True</Field>
         </Record>
     </Table>
 </Records>

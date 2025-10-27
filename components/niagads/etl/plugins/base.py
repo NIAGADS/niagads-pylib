@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Type
 from datetime import datetime
 
-from niagads.utils.logging import FunctionContextAdapter
 import psutil
 from niagads.common.core import ComponentBaseMixin
 from niagads.database.session import DatabaseSessionManager
@@ -14,8 +13,7 @@ from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport
 from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLTask
-
-# TODO - fix handling of ETLStatus
+from niagads.utils.logging import FunctionContextLoggerWrapper
 
 class AbstractBasePlugin(ABC, ComponentBaseMixin):
     """
@@ -81,13 +79,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self._commit_after: int = self._params.commit_after
         self._run_id = self._params.run_id or uuid.uuid4().hex[:8].upper()
 
-        self.logger: ETLLogger = FunctionContextAdapter(ETLLogger(
+        self.logger: ETLLogger = FunctionContextLoggerWrapper(ETLLogger(
             name=self._name,
             log_file=self._get_log_file_path(),
             run_id=self._run_id,
             plugin=self._name,
             debug=self._debug,
         ))
+
         if self._debug:
             self.logger.level = "DEBUG"
 
@@ -278,19 +277,19 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         for last_line_no, record in enumerate(self.extract(), start=1):
             if self._debug and self._verbose:
                 self.logger.debug(
-                    f"_process_streaming_load: Extracted record at line {last_line_no}: {record}"
+                    f"Extracted record at line {last_line_no}: {record}"
                 )
             last_record = record
             processed_record = self.transform(record)
             if self._debug and self._verbose:
                 self.logger.debug(
-                    f"_process_streaming_load: Transformed record at line {last_line_no}: {processed_record}"
+                    f"Transformed record at line {last_line_no}: {processed_record}"
                 )
             buffer.append(processed_record)
             if len(buffer) >= self._commit_after:
                 if self._debug and self._verbose:
                     self.logger.debug(
-                        f"_process_streaming_load: Flushing buffer at line {last_line_no}, buffer size={len(buffer)}"
+                        f"Flushing buffer at line {last_line_no}, buffer size={len(buffer)}"
                     )
                 await self._flush_streaming_buffer(buffer, last_line_no)
 
@@ -298,7 +297,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         if buffer:
             if self._debug:
                 self.logger.debug(
-                    f"_process_streaming_load: Flushing final buffer at line {last_line_no}, buffer size={len(buffer)}"
+                    f"Flushing final buffer at line {last_line_no}, buffer size={len(buffer)}"
                 )
             await self._flush_streaming_buffer(buffer, last_line_no)
 
@@ -348,8 +347,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Log the start of a plugin run (except DRY_RUN). Returns the log row's ID, or None if not logged.
         """
         if self._mode == ETLMode.DRY_RUN:
-            return None
-
+            return ETLMode.DRY_RUN
+        
         async with self._session_manager() as session:
             task = ETLTask(
                 plugin_name=self._name,
@@ -365,8 +364,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             session.add(task)
             await session.commit()
         return task.task_id
+    
+    
 
-    async def _db_update_plugin_task(self, task_id: int, rows_processed: int, end_time, status: ProcessStatus, message: str = None):
+    async def _db_update_plugin_task(self, task_id: int, end_time, status: ProcessStatus, rows_processed: int = None, message: str = None):
         """
         Update the plugin task in the database at plugin completion.
         Sets rows_processed, end_time, status, and message.
@@ -398,6 +399,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         merged_params = None
         task_id = None
+        execution_status = None
         
         if runtime_params:
             merged = self._params.model_dump().copy()
@@ -416,26 +418,28 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         
         try:
             task_id = await self._db_log_plugin_run()
-            status = ETLStatusReport(
-                skips=0,
-                status=ProcessStatus.FAIL,
-                mode=self._mode,
-                test=(self._mode == ETLMode.DRY_RUN)
-            )
+            execution_status = ProcessStatus.RUNNING
+
         except Exception as e:
             raise RuntimeError(f"Failed to initialize plugin: {e}")
     
         try:
             self.logger.log_plugin_configuration(self._params)
+            self.logger.log_plugin_run()
 
             if self.streaming:
                 last_line_no, last_record = await self._process_streaming_load()
             else:
                 last_line_no, last_record = await self._process_bulk_load()
 
-        except Exception as e:
-            # checkpoint for resume (line + record snapshot)
+            # If we reach here, ETL completed successfully
+            execution_status = ProcessStatus.SUCCESS
 
+        except Exception as e:
+            # ETL failed
+            execution_status = ProcessStatus.FAIL
+            
+            # checkpoint for resume (line + record snapshot)
             checkpoint_kwargs = {
                 "line": last_line_no if self.streaming else -1,
                 "error": e,
@@ -448,15 +452,16 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     checkpoint_kwargs["record_id"] = record_id
             self.logger.checkpoint(**checkpoint_kwargs)
             self.logger.exception(f"Plugin failed: {e}")
-            status = ProcessStatus.FAIL
 
             # --- Finalize plugin run log on error (except DRY_RUN) ---
             if self._mode != ETLMode.DRY_RUN and task_id:
-                await self._finalize_plugin_run_log(
+                # FIXME: DOES NOT EXIST
+                await self._db_update_plugin_task(
                     task_id,
-                    status,
-                    f"ETL run failed: {e}",
-                    self._row_count,
+                    datetime.now(), # end time 
+                    execution_status,
+                    message=f"ETL run failed: {e}",
+                    rows_processed=self._row_count,
                 )
         finally:
             # log status
@@ -469,7 +474,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     updates=None,
                     inserts=None,
                     skips=0,
-                    status=status.status if hasattr(status, 'status') else status,
+                    status=execution_status,
                     mode=self._mode,
                     test=(self._mode == ETLMode.DRY_RUN),
                     runtime=runtime,
@@ -478,11 +483,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             )
             
             try:
-                if task_id is not None: await self._db_update_plugin_task(task_id, self._row_count, end_time)
+                if self._mode != ETLMode.DRY_RUN: 
+                    await self._db_update_plugin_task(task_id, end_time, execution_status, rows_processed=self._row_count)
             except Exception as db_error:
                 self.logger.exception(f"Failed to update plugin task in DB: {db_error}")
 
-        return status
+        return execution_status
 
 
 
