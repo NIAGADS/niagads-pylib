@@ -2,10 +2,69 @@ import inspect
 import logging
 from functools import wraps
 from time import perf_counter
+from typing import Any
+from typing_extensions import deprecated
 
 LOG_FORMAT_STR: str = "%(asctime)s %(levelname)-8s %(message)s"
 
+class FunctionContextLoggerWrapper:
+    """
+    Wrap any logger-like object and prefix log messages with calling class.function:lineno.
+    Delegates all other attributes/methods to the wrapped logger (including custom methods).
+    Intercepts all callable methods and prefixes the first argument (if string) with context.
+    """
 
+    def __init__(self, logger: Any):
+        object.__setattr__(self, "_logger", logger)
+
+    def _get_calling_context(self) -> str:
+        stack = inspect.stack()
+        try:
+            for frame_info in stack[1:]:
+                mod = frame_info.frame.f_globals.get("__name__")
+                if mod is None:
+                    continue
+                if mod == __name__ or mod.startswith("logging"):
+                    continue
+                frame = frame_info.frame
+                func = frame.f_code.co_name
+                lineno = frame.f_lineno
+                cls = None
+                if frame.f_locals and "self" in frame.f_locals:
+                    try:
+                        cls = frame.f_locals["self"].__class__.__name__
+                    except Exception:
+                        cls = None
+                prefix = f"{cls + '.' if cls else ''}{func}:{lineno}\t"
+                return prefix
+        finally:
+            for f in stack:
+                del f
+        return "<unknown>:0 "
+
+    def __getattr__(self, name: str):
+        attr = getattr(self._logger, name)
+        if callable(attr):
+            def wrapper(*args, **kwargs):
+                if args and isinstance(args[0], str):
+                    prefix = self._get_calling_context()
+                    args = (prefix + args[0],) + args[1:]
+                return attr(*args, **kwargs)
+            wrapper.__name__ = name
+            wrapper.__doc__ = attr.__doc__
+            return wrapper
+        return attr
+
+    def __setattr__(self, name: str, value: Any):
+        if name == "_logger":
+            return object.__setattr__(self, name, value)
+        if hasattr(self._logger, name):
+            setattr(self._logger, name, value)
+            return
+        object.__setattr__(self, name, value)
+
+
+@deprecated("use the FunctionContextLoggerWrapper instead")
 class FunctionContextAdapter(logging.LoggerAdapter):
     """
     A logging adapter that adds the wrapper class name
@@ -152,3 +211,4 @@ def timed(fn):
         return result
 
     return wrapper
+

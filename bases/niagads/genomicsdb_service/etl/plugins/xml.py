@@ -6,21 +6,81 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 
 """
 
-import xml.etree.ElementTree as ET
-import re
+from lxml import etree
 from typing import Any, Dict, Iterator, List, Optional, Type
 from niagads.etl.plugins.base import AbstractBasePlugin, ETLMode
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
-from pydantic import Field, field_validator
+from pydantic import Field, ConfigDict, BaseModel, computed_field
 from sqlalchemy import text
+import importlib.resources
+
+
+class SQLClauses(BaseModel):
+    columns: List[str]
+    col_names: str
+    placeholders: str
+    set_clause: str
+    where_clause: str
+
+
+class XMLRecord(BaseModel):
+    data_table: str
+    data_schema: str
+
+    model_config = ConfigDict(extra="allow")
+
+    def __str__(self):
+        return str(self.model_dump(include_table_schema=True))
+
+    def model_dump(
+        self, *args, include_table_schema: bool = False, **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Override model_dump to return only the extra fields (not schema/table/sql_clauses) for this XMLRecord.
+        Uses __pydantic_extra__ for Pydantic v2.
+        If include_table_schema is True, include data_schema and data_table in the output.
+        """
+        result = (
+            dict(self.__pydantic_extra__)
+            if hasattr(self, "__pydantic_extra__") and self.__pydantic_extra__
+            else None
+        )
+        if result is not None:
+            if include_table_schema:
+                result["schema"] = self.data_schema
+                result["table"] = self.data_table
+            return result
+        raise RuntimeError(
+            "XMLRecord: No extra fields found. This likely indicates an issue parsing the XML record."
+        )
+
+    @computed_field
+    @property
+    def sql_clauses(self) -> SQLClauses:
+        """
+        Computed property to extract SQL clauses from a record as a Pydantic model.
+        """
+
+        columns = list(self.model_dump().keys())
+        return SQLClauses(
+            columns=columns,
+            col_names=", ".join(columns),
+            placeholders=", ".join(f":{col}" for col in columns),
+            set_clause=", ".join([f"{col} = :{col}" for col in columns]),
+            where_clause=" AND ".join([f"{col} = :{col}" for col in columns]),
+        )
 
 
 class XMLRecordLoaderParams(BasePluginParams, PathValidatorMixin):
-    file: str = Field(description="full path to the XML file")
+    file: str = Field(description="Full path to the XML file to load.")
     update: Optional[bool] = Field(
         default=False,
-        description="plugin will updating existing records; otherwise will throw and error",
+        description="If True, plugin will update existing records; otherwise will handle duplicates according to value of `--skip-existing` option",
+    )
+    skip_existing: Optional[bool] = Field(
+        default=False,
+        description="If True, will log and skip records already existing in the database, otherwise the plugin will throw an error when duplicate records are detected (ignored if `--update` is True).",
     )
 
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
@@ -37,23 +97,33 @@ class XMLRecordLoader(AbstractBasePlugin):
     @classmethod
     def description(self):
         description = """
-        XML Loader modeled after the VEuPathDB LoadGusXml Plugin
-        see: https://github.com/VEuPathDB/GusAppFramework/blob/cf9a99dba00bea3875f9eb5128294ed4a7a25377/Supported/plugin/perl/LoadGusXml.pm
+        XML Record Loader 
+        
+        Used to load or update small datasets or single records into any existing 
+        table without having to write a task-specific plugin. 
+        
+        TODO: Can be used in conjuction with planned CSV -> XML converter
         
         Inserts or updates data into any table using a simple XML format.  
         The format is as follows:
         
         The XML format is:
-            <Record schema="schema" table="table">
-                <column>value</column>
+            <Records>
+                <Table schema="schema" name="table">
+                    <Record>
+                        <Field name="column">value</Field>
+                        ...
+                    </Record>
+                    ...
+                </Table>
                 ...
-            </Record>
-            ...
-            Each major tag represents a row in a table and nested within it are elements for 
-            column values. 
+            </Records>
             
-            If the row already exists in the table, the plugin will throw an error unless
-            the --update flag is specified.
+        Each <Table> tag represents a table, and each <Record> tag within it is a row. 
+        Nested elements within <Record> are columns and their values.
+        
+        If the row already exists in the table, the plugin will throw an error unless
+        the --update flag is specified.
         """
         return description
 
@@ -64,161 +134,201 @@ class XMLRecordLoader(AbstractBasePlugin):
 
         return ETLOperation.INSERT
 
+    def _parse_and_validate_xml(self) -> "etree._Element":
+        """
+        Helper to load and validate XML file against XSD, returning the root element.
+        Uses package-relative path for XSD.
+        """
+        try:
+            with open(self._params.file, "rb") as xml_file:
+                xml_content = xml_file.read()
+            # Use importlib.resources to load records.xsd from the package
+            with importlib.resources.open_binary(
+                "niagads.genomicsdb_service.etl.plugins.validators", "records.xsd"
+            ) as xsd_file:
+                schema_root = etree.XML(xsd_file.read())
+            schema = etree.XMLSchema(schema_root)
+            parser = etree.XMLParser(schema=schema)
+            return etree.fromstring(xml_content, parser)
+        except etree.XMLSyntaxError as e:
+            msg = (
+                f"XML syntax error: {e.msg} (line {e.lineno}, column {e.position[1]})\n"
+                f"Check that your XML file is well-formed and starts with the <Records> root element."
+            )
+            self.logger.exception(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
+            raise RuntimeError(msg)
+        except etree.DocumentInvalid as e:
+            msg = (
+                f"XML validation error: {e.error_log.last_error}\n"
+                f"Ensure your XML matches the expected schema. The root element should be <Records> containing <Table> and <Record> elements."
+            )
+            self.logger.exception(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
+            raise RuntimeError(msg)
+        except Exception as e:
+            msg = f"Unexpected error parsing XML: {str(e)}"
+            self.logger.exception(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
+            raise RuntimeError(msg)
+
     @property
     def affected_tables(self) -> List[str]:
-        # Return the inferred table if available, else empty list
-        if hasattr(self, "_schema") and hasattr(self, "_table"):
-            return [f"{self._schema}.{self._table}"]
-        return []
+        """
+        Parse the XML file and return all unique schema.table combinations from <Table> tags.
+        This is robust and independent of extract().
+        """
+        tables = set()
+        try:
+            root = self._parse_and_validate_xml()
+            for table_elem in root.findall("Table"):
+                schema_attr = table_elem.attrib.get("schema", "").lower()
+                table_attr = table_elem.attrib.get("name", "").lower()
+                if schema_attr and table_attr:
+                    tables.add(f"{schema_attr}.{table_attr}")
+        except Exception as e:
+            self.logger.warning(
+                f"XMLRecordLoader.affected_tables: Could not parse tables - {e}"
+            )
+        return sorted(tables)
 
     @property
     def streaming(self) -> bool:
         return True
 
-    def _parse_schema_table(self, tag: str):
-        """
-        Parse schema and table from tag like 'NIAGADS::AlleleFreqPopulation'.
-        Returns (schema, table) as lowercase, underscores.
-        """
-        m = re.match(r"([A-Za-z0-9_]+)::([A-Za-z0-9_]+)", tag)
-        if not m:
-            raise ValueError(f"Cannot parse schema and table from tag: {tag}")
-        schema = m.group(1).lower()
-        # Convert CamelCase to snake_case
-        table = re.sub(r"(?<!^)(?=[A-Z])", "_", m.group(2)).lower()
-        return schema, table
-
-    def extract(self) -> Iterator[Dict[str, Any]]:
+    def extract(self) -> Iterator[XMLRecord]:
         if self._debug:
-            self.logger.debug(
-                f"XMLRecordLoader.extract: Parsing file {self._params.file}"
-            )
+            self.logger.debug(f"Parsing file {self._params.file}")
 
         try:
-            tree = ET.parse(self._params.file)
-            root = tree.getroot()
-            # Extract schema and table from attributes
-            self._schema = root.attrib.get("schema", "").lower()
-            self._table = root.attrib.get("table", "").lower()
-            if not self._schema or not self._table:
-                raise ValueError(
-                    "Missing 'schema' or 'table' attribute in <Record> tag."
-                )
-            if self._debug:
-                self.logger.debug(
-                    f"XMLRecordLoader.extract: Parsed schema={self._schema}, table={self._table}"
-                )
-            for elem in root.iter(root.tag):
-                row = {child.tag: child.text for child in elem}
-                if self._debug:
-                    self.logger.debug(f"XMLRecordLoader.extract: Yielding row {row}")
-                yield row
+            root = self._parse_and_validate_xml()
+            for table_elem in root.findall("Table"):
+                schema = table_elem.attrib.get("schema", "").lower()
+                table = table_elem.attrib.get("name", "").lower()
+
+                if not schema or not table:
+                    raise ValueError(
+                        "Missing 'schema' or 'name' attribute in <Table> tag."
+                    )
+
+                for record_elem in table_elem.findall("Record"):
+                    data: Dict[str, Any] = {}
+                    for child in record_elem:
+                        # Use the 'name' attribute as the column name when present; fall back to the element tag
+                        col_name = child.attrib.get("name") or child.tag
+                        if col_name in data:
+                            # duplicate column names in a single record are ambiguous
+                            raise ValueError(
+                                f"Duplicate field name '{col_name}' in record for table {schema}.{table}"
+                            )
+                        # normalize whitespace; preserve empty/null semantics
+                        value = child.text.strip() if child.text is not None else None
+                        data[col_name] = value
+
+                    record = XMLRecord(data_schema=schema, data_table=table, **data)
+                    if self._debug:
+                        self.logger.debug(
+                            f"Yielding row {record.model_dump(include_table_schema=True)}"
+                        )
+                    yield record
+
         except Exception as e:
-            self.logger.error(f"XMLRecordLoader.extract: Error - {e}")
+            self.logger.error(f"Error - {e}")
             raise
 
-    def transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def transform(self, data: XMLRecord) -> XMLRecord:
         if self._debug:
-            self.logger.debug(f"XMLRecordLoader.transform: Transforming data {data}")
-        if data is None or len(data) == 0:
+            self.logger.debug("Transforming data", data)
+        if data is None:
             raise RuntimeError(
                 "No records provided to transform(). At least one record is required."
             )
         return data
 
-    def _construct_filter_clause(self, columns: List[str]) -> str:
-        return " AND ".join([f"{col} = :{col}" for col in columns])
-
-    async def _record_exists(
-        self, session, row: Dict[str, Any], columns: List[str]
-    ) -> bool:
-        where_clause = self._construct_filter_clause(columns)
-        select_sql = (
-            f"SELECT 1 FROM {self._schema}.{self._table} WHERE {where_clause} LIMIT 1"
-        )
-        result = await session.execute(text(select_sql), row)
+    async def _record_exists(self, session, record: XMLRecord) -> bool:
+        select_sql = f"SELECT 1 FROM {record.data_schema}.{record.data_table} WHERE {record.sql_clauses.where_clause} LIMIT 1"
+        result = await session.execute(text(select_sql), record.model_dump())
         return result.scalar() is not None
 
-    async def _insert_record(self, session, row: Dict[str, Any], columns: List[str]):
-        col_names = ", ".join(columns)
-        placeholders = ", ".join(f":{col}" for col in columns)
-        sql = f"INSERT INTO {self._schema}.{self._table} ({col_names}) VALUES ({placeholders})"
-        await session.execute(text(sql), row)
+    async def _insert_record(self, session, record: XMLRecord):
+        sql = f"INSERT INTO {record.data_schema}.{record.data_table} ({record.sql_clauses.col_names}) VALUES ({record.sql_clauses.placeholders})"
+        await session.execute(text(sql), record.model_dump())
 
-    async def _update_record(self, session, row: Dict[str, Any], columns: List[str]):
-        set_clause = ", ".join([f"{col} = :{col}" for col in columns])
-        where_clause = self._construct_filter_clause(columns)
-        update_sql = (
-            f"UPDATE {self._schema}.{self._table} SET {set_clause} WHERE {where_clause}"
-        )
-        await session.execute(text(update_sql), row)
+    async def _update_record(self, session, record: XMLRecord):
+        update_sql = f"UPDATE {record.data_schema}.{record.data_table} SET {record.sql_clauses.set_clause} WHERE {record.sql_clauses.where_clause}"
+        await session.execute(text(update_sql), record.model_dump())
 
-    async def load(self, transformed: List[Dict[str, Any]], mode: ETLMode) -> int:
+    async def load(self, transformed: List[XMLRecord], mode: ETLMode) -> int:
         """
         Insert or update records in the target table based on XML input.
-
         For each row:
         - Checks if the record already exists in the table (using all columns as a composite key).
         - If not, inserts the record.
         - If it exists and --update is True, updates the record.
-        - If it exists and --update is False, raises an error.
-
+        - If it exists and --skip-existing is True, logs and skips the record.
+        - If it exists and neither --update nor --skip-existing is True, raises an error.
         Args:
-            transformed (List[Dict[str, Any]]): List of parsed and transformed records.
+            transformed (List[XMLRecord]): List of parsed and transformed XMLRecord objects.
             mode (ETLMode): ETL execution mode (COMMIT, NON_COMMIT, DRY_RUN).
-
         Returns:
             int: Number of records inserted (not updated).
         """
-
         if self._debug:
-            self.logger.debug(
-                f"XMLRecordLoader.load: Loading {len(transformed)} records into {self._schema}.{self._table}"
-            )
+            self.logger.debug(f"Loading {len(transformed)} records")
         if not transformed or len(transformed) == 0:
             raise RuntimeError(
                 "No records provided to load(). At least one record is required."
             )
 
-        if not hasattr(self, "_schema") or not hasattr(self, "_table"):
-            raise RuntimeError("Schema/table not set. Did you call extract()?")
-
+        transaction_count = 0
         async with self._session_manager() as session:
-            columns = list(transformed[0].keys())
-            inserted = 0
-            for row in transformed:
+            for record in transformed:
+                table_key = f"{record.data_schema}.{record.data_table}"
+
                 if self._debug:
-                    self.logger.debug(f"XMLRecordLoader.load: Processing row {row}")
-                exists = await self._record_exists(session, row, columns)
+                    self.logger.debug(f"Processing record {record} for {table_key}")
+
+                exists = await self._record_exists(session, record)
+
                 if not exists:
-                    await self._insert_record(session, row, columns)
-                    inserted += 1
+                    await self._insert_record(session, record)
+                    self.update_transaction_count("inserts", table_key)
+                    transaction_count += 1
                     if self._debug:
-                        self.logger.debug(f"XMLRecordLoader.load: Inserted row {row}")
+                        self.logger.debug(f"Inserted record {record}")
+
                 else:
                     if self._params.update:
-                        await self._update_record(session, row, columns)
+                        await self._update_record(session, record)
+                        self.update_transaction_count("updates", table_key)
+                        transaction_count += 1
                         if self._debug:
-                            self.logger.debug(
-                                f"XMLRecordLoader.load: Updated row {row}"
-                            )
+                            self.logger.debug(f"Updated record {record}")
+
+                    elif self._params.skip_existing:
+                        self.logger.info(
+                            f"Skipped existing record in {table_key}: {record}"
+                        )
+                        self.update_transaction_count("skips", table_key)
+                        continue
+
                     else:
                         if self._debug:
                             self.logger.warning(
-                                f"XMLRecordLoader.load: Row exists and update not enabled: {row}"
+                                f"Record exists and update/skip_existing not enabled: {record}"
                             )
                         raise RuntimeError(
-                            f"Row already exists and update is not enabled: {row}"
+                            f"Record already exists and update/skip_existing is not enabled: {record}"
                         )
+
             if mode == ETLMode.COMMIT:
                 await session.commit()
                 if self._debug:
-                    self.logger.debug(f"XMLRecordLoader.load: Committed transaction.")
+                    self.logger.debug(f"Committed transaction.")
+
             elif mode == ETLMode.NON_COMMIT:
                 await session.rollback()
                 if self._debug:
-                    self.logger.debug(f"XMLRecordLoader.load: Rolled back transaction.")
-            return inserted
+                    self.logger.debug(f"Rolled back transaction.")
+
+        return transaction_count
 
     def get_record_id(self, record: Dict[str, Any]) -> Optional[str]:
         # no way to know

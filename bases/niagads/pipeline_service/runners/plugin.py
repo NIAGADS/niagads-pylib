@@ -11,7 +11,6 @@ from niagads.arg_parser.core import (
 )
 from niagads.enums.common import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.etl.config import ETLMode
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.registry import PluginRegistry
