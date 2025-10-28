@@ -98,7 +98,7 @@ vcfpy = "^0.13.8"
 lxml = "^6.0.2"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.4.2"
+black = "^25.1.0"
 flake8 = "^7.0.0"
 ipykernel = "^6.29.5"
 isort = "^5.13.2"

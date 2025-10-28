@@ -1,8 +1,9 @@
+from collections import deque
 import os
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Type
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Type
 
 import psutil
 from niagads.common.core import ComponentBaseMixin
@@ -10,10 +11,11 @@ from niagads.database.session import DatabaseSessionManager
 from niagads.enums.common import ProcessStatus
 from niagads.etl.config import ETLMode
 from niagads.etl.pipeline.config import PipelineSettings
-from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport
+from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport, ETLTransactionCounter
 from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLTask
 from niagads.utils.logging import FunctionContextLoggerWrapper
+
 
 class AbstractBasePlugin(ABC, ComponentBaseMixin):
     """
@@ -71,21 +73,24 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         super().__init__(debug=self._params.debug, verbose=self._params.verbose)
 
         self._name = name or self.__class__.__name__
-        self._row_count = 0
+        self._written_record_count = 0
         self._start_time: Optional[float] = None
         self._mode = self._params.mode
+        self._status_report: ETLStatusReport = None
 
         # members initialized from validated params
         self._commit_after: int = self._params.commit_after
         self._run_id = self._params.run_id or uuid.uuid4().hex[:8].upper()
 
-        self.logger: ETLLogger = FunctionContextLoggerWrapper(ETLLogger(
-            name=self._name,
-            log_file=self._get_log_file_path(),
-            run_id=self._run_id,
-            plugin=self._name,
-            debug=self._debug,
-        ))
+        self.logger: ETLLogger = FunctionContextLoggerWrapper(
+            ETLLogger(
+                name=self._name,
+                log_file=self._get_log_file_path(),
+                run_id=self._run_id,
+                plugin=self._name,
+                debug=self._debug,
+            )
+        )
 
         if self._debug:
             self.logger.level = "DEBUG"
@@ -107,6 +112,30 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             )
         else:
             self._session_manager = None
+
+    @property
+    def status_report(self):
+        return self._status_report
+
+    def update_transaction_count(
+        self, transaction_type: ETLTransactionCounter, table: str, count: int = 1
+    ):
+        """
+        Increment an ETL transaction type (insert, update, skip) by 1.
+
+        Args:
+            transaction_type (ETLTransactionCounter): Transaction type ('inserts', 'updates', 'skips').
+            table (str): Fully-qualified table name ('schema.table').
+            count (int): number of transactions to add to the total count. Default = 1.
+
+        Raises:
+            RuntimeError: If ETLStatusReport is missing the expected increment method.
+        """
+        method = f"increment_{ETLTransactionCounter(transaction_type).value.lower()}s"
+        incrementer = getattr(self._status_report, method, None)
+        if not callable(incrementer):
+            raise RuntimeError(f"ETLStatusReport missing expected method {method}")
+        incrementer(table, count)
 
     # -------------------------
     # Abstract contract
@@ -206,6 +235,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         Persist transformed data using an async SQLAlchemy session.
 
+        IMPLEMENTER WARNING:
+        You MUST tally all updates and inserts using self.update_transaction_count
+        for every record processed in your load() implementation. This is required
+        for accurate ETL status reporting.
+
         Args:
             transformed: The data to persist. For streaming, a list of records (buffer size <= commit_after). For bulk, the entire dataset.
 
@@ -237,29 +271,35 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # Run orchestration
     # -------------------------
     async def _flush_streaming_buffer(self, buffer, last_line_no):
-        self.logger.info(
-            f"Loading buffer of size {len(buffer)} at line {last_line_no} [mode={self._mode.value}]"
-        )
-        if self._mode != ETLMode.DRY_RUN:
-            loaded = await self.load(buffer)
-            self._row_count += loaded
+        if self._debug:
+            self.logger.debug(
+                f"Loading buffer of size {len(buffer)} at line {last_line_no} [mode={self._mode.value}]"
+            )
+        if self._mode == ETLMode.DRY_RUN:
+            table = (
+                self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
+            )
+            self.update_transaction_count(
+                ETLTransactionCounter.INSERT, table, len(buffer)
+            )
         else:
-            self._row_count += len(buffer)
+            await self.load(buffer)
         buffer.clear()
 
     async def _flush_bulk_batch(self, batch, last_line_no):
         if self._debug:
-            self.logger.debug(
-                f"Entering _flush_bulk_batch: batch size={len(batch)}, last_line_no={last_line_no}"
+            self.logger.info(
+                f"Bulk loading batch of size {len(batch)} at record {last_line_no} [mode={self._mode.value}]"
             )
-        self.logger.info(
-            f"Bulk loading batch of size {len(batch)} at record {last_line_no} [mode={self._mode.value}]"
-        )
-        if self._mode != ETLMode.DRY_RUN:
-            loaded = await self.load(batch)
-            self._row_count += loaded
+        if self._mode == ETLMode.DRY_RUN:
+            table = (
+                self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
+            )
+            self.update_transaction_count(
+                ETLTransactionCounter.INSERT, table, len(batch)
+            )
         else:
-            self._row_count += len(batch)
+            await self.load(batch)
         batch.clear()
 
     async def _process_streaming_load(self):
@@ -276,9 +316,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         for last_line_no, record in enumerate(self.extract(), start=1):
             if self._debug and self._verbose:
-                self.logger.debug(
-                    f"Extracted record at line {last_line_no}: {record}"
-                )
+                self.logger.debug(f"Extracted record at line {last_line_no}: {record}")
             last_record = record
             processed_record = self.transform(record)
             if self._debug and self._verbose:
@@ -313,21 +351,25 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         # If no batching, just load the whole dataset at once
         if not self._commit_after:
-            if self._mode != ETLMode.DRY_RUN:
+            if self._mode == ETLMode.DRY_RUN:
+                # FIXME: this is not correct for iterators which have no length,
+                # see next FIXME
+                self.update_transaction_count(
+                    ETLTransactionCounter.INSERT, len(processed_records)
+                )
+            else:
                 await self.load(processed_records)
 
+            # FIXME: how to handle last record, iteration, and counts for iterators
+            # this is not correct
             if hasattr(processed_records, "__len__"):
-                self._row_count = len(processed_records)
-                last_record = processed_records[-1] if self._row_count > 0 else None
-            else:  # get last record and row count from iterator
-                count = 0
-                last = None
-                for last in processed_records:
-                    count += 1
-                self._row_count = count
-                last_record = last
-
-                last_line_no = self._row_count
+                last_record = processed_records[-1]
+            else:
+                last_record = None
+                try:
+                    last_record = deque(processed_records, maxlen=1)[0]
+                except IndexError:
+                    last_record = None
 
         else:
             batch = []
@@ -348,7 +390,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         if self._mode == ETLMode.DRY_RUN:
             return ETLMode.DRY_RUN
-        
+
         async with self._session_manager() as session:
             task = ETLTask(
                 plugin_name=self._name,
@@ -364,10 +406,15 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             session.add(task)
             await session.commit()
         return task.task_id
-    
-    
 
-    async def _db_update_plugin_task(self, task_id: int, end_time, status: ProcessStatus, rows_processed: int = None, message: str = None):
+    async def _db_update_plugin_task(
+        self,
+        task_id: int,
+        end_time,
+        status: ProcessStatus,
+        rows_processed: int = None,
+        message: str = None,
+    ):
         """
         Update the plugin task in the database at plugin completion.
         Sets rows_processed, end_time, status, and message.
@@ -400,29 +447,33 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         merged_params = None
         task_id = None
         execution_status = None
-        
+
         if runtime_params:
             merged = self._params.model_dump().copy()
             merged.update(runtime_params)
             merged_params = self.parameter_model()(**merged)
-            self.logger.info(
-                f"Runtime parameter overrides applied: {runtime_params}"
-            )
+            self.logger.info(f"Runtime parameter overrides applied: {runtime_params}")
             self._params = merged_params
             self._commit_after = self._params.commit_after
 
-        self._row_count = 0
+        self._written_record_count = 0
         self._start_time = datetime.now()
         last_line_no = 0
         last_record = None
-        
+
         try:
             task_id = await self._db_log_plugin_run()
             execution_status = ProcessStatus.RUNNING
+            self._status_report = ETLStatusReport(
+                status=execution_status,
+                mode=self._mode,
+                test=self._mode == ETLMode.DRY_RUN,
+                task_id=task_id,
+            )
 
         except Exception as e:
             raise RuntimeError(f"Failed to initialize plugin: {e}")
-    
+
         try:
             self.logger.log_plugin_configuration(self._params)
             self.logger.log_plugin_run()
@@ -438,7 +489,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         except Exception as e:
             # ETL failed
             execution_status = ProcessStatus.FAIL
-            
+
             # checkpoint for resume (line + record snapshot)
             checkpoint_kwargs = {
                 "line": last_line_no if self.streaming else -1,
@@ -455,40 +506,39 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
             # --- Finalize plugin run log on error (except DRY_RUN) ---
             if self._mode != ETLMode.DRY_RUN and task_id:
-                # FIXME: DOES NOT EXIST
                 await self._db_update_plugin_task(
                     task_id,
-                    datetime.now(), # end time 
+                    datetime.now(),  # end time
                     execution_status,
                     message=f"ETL run failed: {e}",
-                    rows_processed=self._row_count,
+                    rows_processed=self._status_report.total_writes(),
                 )
         finally:
             # log status
             end_time = datetime.now()
             runtime = (end_time - self._start_time).total_seconds()
             mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
-            self.logger.status(
-                ETLStatusReport(
-                    task_id=task_id,
-                    updates=None,
-                    inserts=None,
-                    skips=0,
-                    status=execution_status,
-                    mode=self._mode,
-                    test=(self._mode == ETLMode.DRY_RUN),
-                    runtime=runtime,
-                    memory=mem_mb,
+            self._status_report.runtime = runtime
+            self._status_report.memory = mem_mb
+            self._status_report.status = execution_status
+            self.logger.status(self._status_report)
+            total_writes = self._status_report.total_writes()
+
+            if self._mode != ETLMode.DRY_RUN and total_writes == 0:
+                self.logger.warning(
+                    "WARNING: No transaction counts were updated in load(). "
+                    "Implementers must call update_transaction_count for inserts/updates to ensure proper status reporting."
                 )
-            )
-            
+
             try:
-                if self._mode != ETLMode.DRY_RUN: 
-                    await self._db_update_plugin_task(task_id, end_time, execution_status, rows_processed=self._row_count)
+                if self._mode != ETLMode.DRY_RUN:
+                    await self._db_update_plugin_task(
+                        task_id,
+                        end_time,
+                        execution_status,
+                        rows_processed=self._status_report.total_writes(),
+                    )
             except Exception as db_error:
                 self.logger.exception(f"Failed to update plugin task in DB: {db_error}")
 
         return execution_status
-
-
-
