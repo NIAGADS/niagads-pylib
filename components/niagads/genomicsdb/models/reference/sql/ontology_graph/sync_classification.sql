@@ -7,6 +7,7 @@
 --   MATCH (d:dataset)-[:classified_as]->(t:term {term_id:'GO:0006915'})
 --   RETURN d.id, d.name;
 
+-- for use case see `gene/sql/ontology_term_triggers`
 
 -- Note: edge_types must be passed in fully qualified, on inserts: 
 -- INSERT INTO reference.ontology.classified_as (from_vertex, to_vertex) VALUES ('GO:0008150', 'GO:0009987');
