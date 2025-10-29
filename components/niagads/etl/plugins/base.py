@@ -1,10 +1,12 @@
 from collections import deque
+from enum import auto
 import os
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type
 
+from niagads.enums.core import CaseInsensitiveEnum
 import psutil
 from niagads.common.core import ComponentBaseMixin
 from niagads.database.session import DatabaseSessionManager
@@ -15,6 +17,12 @@ from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport, ETLTransactio
 from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLTask
 from niagads.utils.logging import FunctionContextLoggerWrapper
+
+
+class LoadStrategy(CaseInsensitiveEnum):
+    STREAMING = auto()
+    BULK = auto()
+    BATCH = auto()
 
 
 class AbstractBasePlugin(ABC, ComponentBaseMixin):
@@ -37,21 +45,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     Plugins must implement `load()` using self.session_manager.session() (async).
     Plugins decide when to commit inside load() (per buffer/batch) — pipeline does NOT auto-commit.
     """
-
-    def _get_log_file_path(self):
-        # if no path specified, just return
-        # standardized log file name
-        # will write to cwd
-        if not self._params.log_path:
-            return f"{self._name}.log"
-
-        # otherwise if a .log file specified, write to that file
-        if ".log" in self._params.log_path:
-            return self._params.log_path
-
-        # otherwise assume log_path is a directory
-        # and write to standardize log file name in that path
-        return os.path.join(self._params.log_path, f"{self._name}.log")
 
     def __init__(
         self,
@@ -116,6 +109,21 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     @property
     def status_report(self):
         return self._status_report
+
+    def _get_log_file_path(self):
+        # if no path specified, just return
+        # standardized log file name
+        # will write to cwd
+        if not self._params.log_path:
+            return f"{self._name}.log"
+
+        # otherwise if a .log file specified, write to that file
+        if ".log" in self._params.log_path:
+            return self._params.log_path
+
+        # otherwise assume log_path is a directory
+        # and write to standardize log file name in that path
+        return os.path.join(self._params.log_path, f"{self._name}.log")
 
     def update_transaction_count(
         self, transaction_type: ETLTransactionCounter, table: str, count: int = 1
@@ -186,12 +194,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
     @property
     @abstractmethod
-    def streaming(self) -> bool:
+    def load_strategy(self) -> LoadStrategy:
         """
-        Whether the plugin processes records line-by-line (streaming) or in bulk.
+        Whether the plugin processes records line-by-line (streaming),  in bulk, or in batch.
 
         Returns:
-            bool: True if streaming, False if bulk.
+            LoadStrategy
         """
         ...
 
