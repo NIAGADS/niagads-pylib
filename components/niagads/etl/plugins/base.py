@@ -357,38 +357,50 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         last_record = None
         last_line_no = -1
 
-        # If no batching, just load the whole dataset at once
-        if not self._commit_after:
-            if self._mode == ETLMode.DRY_RUN:
-                # FIXME: this is not correct for iterators which have no length,
-                # see next FIXME
-                self.update_transaction_count(
-                    ETLTransactionCounter.INSERT, len(processed_records)
-                )
-            else:
-                await self.load(processed_records)
-
-            # FIXME: how to handle last record, iteration, and counts for iterators
-            # this is not correct
-            if hasattr(processed_records, "__len__"):
-                last_record = processed_records[-1]
-            else:
-                last_record = None
-                try:
-                    last_record = deque(processed_records, maxlen=1)[0]
-                except IndexError:
-                    last_record = None
-
+        # Bulk: load all at once, ignore commit_after
+        if self._mode == ETLMode.DRY_RUN:
+            table = (
+                self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
+            )
+            try:
+                count = len(processed_records)
+            except TypeError:
+                count = sum(1 for _ in processed_records)
+            self.update_transaction_count(ETLTransactionCounter.INSERT, table, count)
         else:
-            batch = []
-            for last_line_no, last_record in enumerate(processed_records, start=1):
-                batch.append(last_record)
-                if len(batch) >= self._commit_after:
-                    await self._flush_bulk_batch(batch, last_line_no)
+            await self.load(processed_records)
 
-            # load residuals
-            if batch:
+        # FIXME: we are not handling identifying the last processed record/line
+        # correctly for iterators which may no longer exist by this point.
+        # question -> will we allow iterators for bulk/batch loads?
+        if hasattr(processed_records, "__len__") and processed_records:
+            last_record = processed_records[-1]
+            last_line_no = len(processed_records)
+        else:
+            try:
+                last_record = deque(processed_records, maxlen=1)[0]
+            except Exception:
+                last_record = None
+            last_line_no = -1
+
+        return last_line_no, last_record
+
+    async def _process_bulk_in_batch_load(self):
+        if self._debug:
+            self.logger.debug("Entering _process_bulk_in_batch_load")
+        records = self.extract()
+        processed_records = self.transform(records)
+        batch = []
+        last_record = None
+        last_line_no = 0
+
+        for last_line_no, record in enumerate(processed_records, start=1):
+            batch.append(record)
+            last_record = record
+            if len(batch) >= self._commit_after:
                 await self._flush_bulk_batch(batch, last_line_no)
+        if batch:
+            await self._flush_bulk_batch(batch, last_line_no)
 
         return last_line_no, last_record
 
@@ -486,10 +498,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.log_plugin_configuration(self._params)
             self.logger.log_plugin_run()
 
-            if self.streaming:
+            if self.load_strategy == LoadStrategy.STREAMING:
                 last_line_no, last_record = await self._process_streaming_load()
-            else:
+            elif self.load_strategy == LoadStrategy.BULK:
                 last_line_no, last_record = await self._process_bulk_load()
+            elif self.load_strategy == LoadStrategy.BATCH:
+                last_line_no, last_record = await self._process_bulk_in_batch_load()
+            else:
+                raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
 
             # If we reach here, ETL completed successfully
             execution_status = ProcessStatus.SUCCESS
