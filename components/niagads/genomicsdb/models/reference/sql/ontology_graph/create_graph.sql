@@ -10,8 +10,8 @@ BEGIN
         synonyms TEXT[],                       -- synonyms can be many / long
         is_obsolete BOOLEAN DEFAULT FALSE,
         replaced_by VARCHAR(32),
-        term_kind VARCHAR(16) NOT NULL
-            CHECK (term_kind IN ('class','property','individual'))
+        term_category VARCHAR(16) NOT NULL
+            CHECK (term_category IN ('class','property','individual'))
     );
 
     CREATE EDGE TYPE IF NOT EXISTS Reference.Ontology.triple (
