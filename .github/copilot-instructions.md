@@ -13,6 +13,7 @@
 -   Place imports, constants, and docstrings in logical order.
 -   Avoid duplicate imports and code blocks.
 -   Use idiomatic Python and PEP8 formatting.
+-   Only use Pydantic 2+
 -   Add extra blank spaces between large code blocks for readability.
 -   Only alter comments if necessary or requested.
 -   Never take credit for user changes.
