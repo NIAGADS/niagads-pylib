@@ -8,7 +8,7 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 
 from lxml import etree
 from typing import Any, Dict, Iterator, List, Optional, Type
-from niagads.etl.plugins.base import AbstractBasePlugin, ETLMode
+from niagads.etl.plugins.base import AbstractBasePlugin, ETLMode, LoadStrategy
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from pydantic import Field, ConfigDict, BaseModel, computed_field
@@ -170,6 +170,10 @@ class XMLRecordLoader(AbstractBasePlugin):
             raise RuntimeError(msg)
 
     @property
+    def load_strategy(self) -> LoadStrategy:
+        return LoadStrategy.STREAMING
+
+    @property
     def affected_tables(self) -> List[str]:
         """
         Parse the XML file and return all unique schema.table combinations from <Table> tags.
@@ -188,10 +192,6 @@ class XMLRecordLoader(AbstractBasePlugin):
                 f"XMLRecordLoader.affected_tables: Could not parse tables - {e}"
             )
         return sorted(tables)
-
-    @property
-    def streaming(self) -> bool:
-        return True
 
     def extract(self) -> Iterator[XMLRecord]:
         if self._debug:
@@ -255,80 +255,58 @@ class XMLRecordLoader(AbstractBasePlugin):
         update_sql = f"UPDATE {record.data_schema}.{record.data_table} SET {record.sql_clauses.set_clause} WHERE {record.sql_clauses.where_clause}"
         await session.execute(text(update_sql), record.model_dump())
 
-    async def load(self, transformed: List[XMLRecord], mode: ETLMode) -> int:
+    async def load(self, transformed: XMLRecord) -> int:
         """
-        Insert or update records in the target table based on XML input.
-        For each row:
-        - Checks if the record already exists in the table (using all columns as a composite key).
-        - If not, inserts the record.
-        - If it exists and --update is True, updates the record.
-        - If it exists and --skip-existing is True, logs and skips the record.
-        - If it exists and neither --update nor --skip-existing is True, raises an error.
+        Insert or update a single record in the target table based on XML input.
+        Checks if the record already exists in the table (using all columns as a composite key).
+        If not, inserts the record.
+        If it exists and --update is True, updates the record.
+        If it exists and --skip-existing is True, logs and skips the record.
+        If it exists and neither --update nor --skip-existing is True, raises an error.
         Args:
-            transformed (List[XMLRecord]): List of parsed and transformed XMLRecord objects.
-            mode (ETLMode): ETL execution mode (COMMIT, NON_COMMIT, DRY_RUN).
+            transformed (XMLRecord): parsed and transformed XMLRecord.
         Returns:
             int: Number of records inserted (not updated).
         """
-        if self._debug:
-            self.logger.debug(f"Loading {len(transformed)} records")
-        if not transformed or len(transformed) == 0:
+        if not transformed:
             raise RuntimeError(
-                "No records provided to load(). At least one record is required."
+                "No record provided to load(). At least one record is required."
             )
 
-        transaction_count = 0
+        table_key = f"{transformed.data_schema}.{transformed.data_table}"
+        if self._debug:
+            self.logger.debug(f"Processing record {transformed} for {table_key}")
         async with self._session_manager() as session:
-            for record in transformed:
-                table_key = f"{record.data_schema}.{record.data_table}"
 
+            exists = await self._record_exists(session, transformed)
+
+            if not exists:
+                await self._insert_record(session, transformed)
+                self.update_transaction_count("inserts", table_key)
                 if self._debug:
-                    self.logger.debug(f"Processing record {record} for {table_key}")
-
-                exists = await self._record_exists(session, record)
-
-                if not exists:
-                    await self._insert_record(session, record)
-                    self.update_transaction_count("inserts", table_key)
-                    transaction_count += 1
+                    self.logger.debug(f"Inserted record {transformed}")
+                return 1
+            else:
+                if self._params.update:
+                    await self._update_record(session, transformed)
+                    self.update_transaction_count("updates", table_key)
                     if self._debug:
-                        self.logger.debug(f"Inserted record {record}")
-
+                        self.logger.debug(f"Updated record {transformed}")
+                    return 1
+                elif self._params.skip_existing:
+                    self.logger.info(
+                        f"Skipped existing record in {table_key}: {transformed}"
+                    )
+                    self.update_transaction_count("skips", table_key)
+                    return 0
                 else:
-                    if self._params.update:
-                        await self._update_record(session, record)
-                        self.update_transaction_count("updates", table_key)
-                        transaction_count += 1
-                        if self._debug:
-                            self.logger.debug(f"Updated record {record}")
-
-                    elif self._params.skip_existing:
-                        self.logger.info(
-                            f"Skipped existing record in {table_key}: {record}"
+                    if self._debug:
+                        self.logger.warning(
+                            f"Record exists and update/skip_existing not enabled: {transformed}"
                         )
-                        self.update_transaction_count("skips", table_key)
-                        continue
-
-                    else:
-                        if self._debug:
-                            self.logger.warning(
-                                f"Record exists and update/skip_existing not enabled: {record}"
-                            )
-                        raise RuntimeError(
-                            f"Record already exists and update/skip_existing is not enabled: {record}"
-                        )
-
-            if mode == ETLMode.COMMIT:
-                await session.commit()
-                if self._debug:
-                    self.logger.debug(f"Committed transaction.")
-
-            elif mode == ETLMode.NON_COMMIT:
-                await session.rollback()
-                if self._debug:
-                    self.logger.debug(f"Rolled back transaction.")
-
-        return transaction_count
+                    raise RuntimeError(
+                        f"Record already exists and update/skip_existing is not enabled: {transformed}"
+                    )
 
     def get_record_id(self, record: Dict[str, Any]) -> Optional[str]:
         # no way to know
