@@ -560,9 +560,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
             # checkpoint for resume (line + record snapshot)
             checkpoint_kwargs = {
-                "line": last_line_no if self.streaming else -1,
                 "error": e,
             }
+            if self.load_strategy == LoadStrategy.STREAMING:
+                checkpoint_kwargs["line"] = last_line_no
             if last_record is not None:
                 if self._verbose or self._debug:
                     checkpoint_kwargs["record"] = last_record
