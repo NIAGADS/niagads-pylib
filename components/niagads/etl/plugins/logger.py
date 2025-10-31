@@ -76,6 +76,12 @@ class ETLStatusReport(BaseModel):
         updates_total = sum(self.updates.values()) if self.updates else 0
         return inserts_total + updates_total
 
+    def total_skips(self) -> int:
+        """
+        Return the total number of skipped records
+        """
+        return sum(self.skips.values()) if self.skips else 0
+
 
 class ETLLogger:
     """
