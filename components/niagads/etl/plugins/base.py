@@ -145,6 +145,19 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             raise RuntimeError(f"ETLStatusReport missing expected method {method}")
         incrementer(table, count)
 
+    async def _handle_transaction(self, session, residuals: bool = False) -> None:
+        """
+        Commit or rollback the session based on ETLMode and commit_after logic.
+        """
+        total_transactions = self._status_report.total_writes()
+        if residuals or (
+            self._commit_after and total_transactions >= self._commit_after
+        ):
+            if self._mode == ETLMode.COMMIT:
+                await session.commit()
+            elif self._mode == ETLMode.NON_COMMIT:
+                await session.rollback()
+
     # -------------------------
     # Abstract contract
     # -------------------------
@@ -278,38 +291,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # -------------------------
     # Run orchestration
     # -------------------------
-    async def _flush_streaming_buffer(self, buffer, last_line_no):
-        if self._debug:
-            self.logger.debug(
-                f"Loading buffer of size {len(buffer)} at line {last_line_no} [mode={self._mode.value}]"
-            )
-        if self._mode == ETLMode.DRY_RUN:
-            table = (
-                self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
-            )
-            self.update_transaction_count(
-                ETLTransactionCounter.INSERT, table, len(buffer)
-            )
-        else:
-            await self.load(buffer)
-        buffer.clear()
-
-    async def _flush_bulk_batch(self, batch, last_line_no):
-        if self._debug:
-            self.logger.info(
-                f"Bulk loading batch of size {len(batch)} at record {last_line_no} [mode={self._mode.value}]"
-            )
-        if self._mode == ETLMode.DRY_RUN:
-            table = (
-                self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
-            )
-            self.update_transaction_count(
-                ETLTransactionCounter.INSERT, table, len(batch)
-            )
-        else:
-            await self.load(batch)
-        batch.clear()
-
     async def _process_streaming_load(self):
         if self._debug:
             self.logger.debug("Entering _process_streaming_load")
@@ -322,32 +303,70 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         last_record = None
         last_line_no = 0
 
-        for last_line_no, record in enumerate(self.extract(), start=1):
-            if self._debug and self._verbose:
-                self.logger.debug(f"Extracted record at line {last_line_no}: {record}")
-            last_record = record
-            processed_record = self.transform(record)
-            if self._debug and self._verbose:
-                self.logger.debug(
-                    f"Transformed record at line {last_line_no}: {processed_record}"
-                )
-            buffer.append(processed_record)
-            if len(buffer) >= self._commit_after:
+        async with self._session_manager() as session:
+            for last_line_no, record in enumerate(self.extract(), start=1):
                 if self._debug and self._verbose:
                     self.logger.debug(
-                        f"Flushing buffer at line {last_line_no}, buffer size={len(buffer)}"
+                        f"Extracted record at line {last_line_no}: {record}"
                     )
-                await self._flush_streaming_buffer(buffer, last_line_no)
+                last_record = record
+                processed_record = self.transform(record)
+                if self._debug and self._verbose:
+                    self.logger.debug(
+                        f"Transformed record at line {last_line_no}: {processed_record}"
+                    )
+                buffer.append(processed_record)
+                if len(buffer) >= self._commit_after:
+                    if self._debug and self._verbose:
+                        self.logger.debug(
+                            f"Flushing buffer at line {last_line_no}, buffer size={len(buffer)}"
+                        )
+                    await self._flush_streaming_buffer(buffer, last_line_no, session)
+                    await self._handle_transaction(session, residuals=False)
 
-        # load residuals
-        if buffer:
-            if self._debug:
-                self.logger.debug(
-                    f"Flushing final buffer at line {last_line_no}, buffer size={len(buffer)}"
-                )
-            await self._flush_streaming_buffer(buffer, last_line_no)
+            # load residuals
+            if buffer:
+                if self._debug:
+                    self.logger.debug(
+                        f"Flushing final buffer at line {last_line_no}, buffer size={len(buffer)}"
+                    )
+                await self._flush_streaming_buffer(buffer, last_line_no, session)
+                await self._handle_transaction(session, residuals=True)
 
         return last_line_no, last_record
+
+    async def _load(self, data, session):
+        """
+        Loads data and checks if transaction counts (writes + skips) increased.
+        Raises RuntimeError if no change is detected after load().
+        """
+        pre_count = (
+            self._status_report.total_writes() + self._status_report.total_skips()
+        )
+        await self.load(data, session)
+        post_count = (
+            self._status_report.total_writes() + self._status_report.total_skips()
+        )
+        if post_count == pre_count:
+            msg = f"No transaction counts were updated in load(). "
+            msg += "Implementers must call update_transaction_count for inserts/updates/skips."
+            raise RuntimeError(msg)
+
+    async def _flush_streaming_buffer(self, buffer, last_line_no, session):
+        if self._debug:
+            self.logger.debug(
+                f"Loading buffer of size {len(buffer)} at line {last_line_no} [mode={self._mode.value}]"
+            )
+        if self._mode == ETLMode.DRY_RUN:
+            table = (
+                self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
+            )
+            self.update_transaction_count(
+                ETLTransactionCounter.INSERT, table, len(buffer)
+            )
+        else:
+            await self._load(buffer, session)
+        buffer.clear()
 
     async def _process_bulk_load(self):
         if self._debug:
@@ -357,18 +376,24 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         last_record = None
         last_line_no = -1
 
-        # Bulk: load all at once, ignore commit_after
-        if self._mode == ETLMode.DRY_RUN:
-            table = (
-                self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
-            )
-            try:
-                count = len(processed_records)
-            except TypeError:
-                count = sum(1 for _ in processed_records)
-            self.update_transaction_count(ETLTransactionCounter.INSERT, table, count)
-        else:
-            await self.load(processed_records)
+        async with self._session_manager() as session:
+            # Bulk: load all at once, ignore commit_after
+            if self._mode == ETLMode.DRY_RUN:
+                table = (
+                    self.affected_tables[0]
+                    if len(self.affected_tables) == 1
+                    else "DRY.RUN"
+                )
+                try:
+                    count = len(processed_records)
+                except TypeError:
+                    count = sum(1 for _ in processed_records)
+                self.update_transaction_count(
+                    ETLTransactionCounter.INSERT, table, count
+                )
+            else:
+                await self._load(processed_records, session)
+                await self._handle_transaction(session, residuals=True)
 
         # FIXME: we are not handling identifying the last processed record/line
         # correctly for iterators which may no longer exist by this point.
@@ -394,15 +419,34 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         last_record = None
         last_line_no = 0
 
-        for last_line_no, record in enumerate(processed_records, start=1):
-            batch.append(record)
-            last_record = record
-            if len(batch) >= self._commit_after:
-                await self._flush_bulk_batch(batch, last_line_no)
-        if batch:
-            await self._flush_bulk_batch(batch, last_line_no)
+        async with self._session_manager() as session:
+            for last_line_no, record in enumerate(processed_records, start=1):
+                batch.append(record)
+                last_record = record
+                if len(batch) >= self._commit_after:
+                    await self._flush_bulk_batch(batch, last_line_no, session)
+                    await self._handle_transaction(session, residuals=False)
+            if batch:  # residuals
+                await self._flush_bulk_batch(batch, last_line_no, session)
+                await self._handle_transaction(session, residuals=True)
 
         return last_line_no, last_record
+
+    async def _flush_bulk_batch(self, batch, last_line_no, session):
+        if self._debug:
+            self.logger.info(
+                f"Bulk loading batch of size {len(batch)} at record {last_line_no} [mode={self._mode.value}]"
+            )
+        if self._mode == ETLMode.DRY_RUN:
+            table = (
+                self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
+            )
+            self.update_transaction_count(
+                ETLTransactionCounter.INSERT, table, len(batch)
+            )
+        else:
+            await self._load(batch, session)
+        batch.clear()
 
     async def _db_log_plugin_run(self) -> Optional[int]:
         """
