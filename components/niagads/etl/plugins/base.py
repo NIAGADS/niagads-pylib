@@ -107,6 +107,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self._session_manager = None
 
     @property
+    def has_preprocess_mode(self) -> bool:
+        """
+        Indicates whether the plugin supports preprocessing mode.
+        Subclasses may override to enable/disable preprocessing.
+        """
+        return False
+
+    @property
     def status_report(self):
         return self.__status_report
 
@@ -483,6 +491,24 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         self.__start_time = datetime.now()
 
+        # Preprocess mode - transformers write intermediary data to file
+        if self._mode == ETLMode.PREPROCESS:
+            try:
+                if not self.has_preprocess_mode:
+                    raise RuntimeError(
+                        "No preprocess method implemented; cannot run in `PREPROCESS` mode."
+                    )
+                self.logger.log_plugin_configuration(self._params)
+                raw_data = self.extract()
+                self.transform(raw_data)
+                execution_status = ProcessStatus.SUCCESS
+            except Exception as e:
+                execution_status = ProcessStatus.FAIL
+                self.logger.exception(f"Preprocess failed: {e}")
+
+            return execution_status
+
+        # Regular ETL modes
         try:
             task_id = await self._db_log_plugin_run()
             execution_status = ProcessStatus.RUNNING
