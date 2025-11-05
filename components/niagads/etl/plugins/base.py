@@ -1,26 +1,26 @@
-from collections import deque
-from enum import auto
 import os
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
+from enum import auto
 from typing import Any, Dict, List, Optional, Type
 
-from niagads.enums.core import CaseInsensitiveEnum
+from niagads.utils.list import chunker
 import psutil
 from niagads.common.core import ComponentBaseMixin
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.common import ProcessStatus
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.config import ETLMode
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport, ETLTransactionCounter
-from niagads.etl.plugins.parameters import BasePluginParams
+from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLTask
 from niagads.utils.logging import FunctionContextLoggerWrapper
 
 
 class LoadStrategy(CaseInsensitiveEnum):
-    STREAMING = auto()
+    CHUNKED = auto()
     BULK = auto()
     BATCH = auto()
 
@@ -35,9 +35,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     - Resume:
         * extract() should honor resume_from.line (skip lines before that).
         * transform() may honor resume_from.id (skip until matching ID).
-    - Streaming vs Bulk is a class property (`streaming`).
-        * streaming=True: records processed one-by-one and buffered; load() receives lists of size commit_after.
-        * streaming=False: extract->transform over entire dataset; load() called once with bulk data.
+    - Chunked loading is a class property (`chunked`).
+        * chunked: records processed in chunks of size commit_after; load() receives lists of size commit_after.
+        * bulk: extract->transform over entire dataset; load() called once with bulk data.
 
     Note:
         The `run` method supports runtime parameter overrides, which are applied only for the duration of the run and do not mutate the instance's original parameters.
@@ -66,10 +66,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         super().__init__(debug=self._params.debug, verbose=self._params.verbose)
 
         self._name = name or self.__class__.__name__
-        self._written_record_count = 0
-        self._start_time: Optional[float] = None
+        self.__start_time: Optional[datetime] = None
         self._mode = self._params.mode
-        self._status_report: ETLStatusReport = None
+        self.__status_report: ETLStatusReport = None
+        self.__checkpoint: ResumeCheckpoint = None
 
         # members initialized from validated params
         self._commit_after: int = self._params.commit_after
@@ -78,7 +78,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.logger: ETLLogger = FunctionContextLoggerWrapper(
             ETLLogger(
                 name=self._name,
-                log_file=self._get_log_file_path(),
+                log_file=self.__generate_log_file_path(),
                 run_id=self._run_id,
                 plugin=self._name,
                 debug=self._debug,
@@ -108,55 +108,22 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
     @property
     def status_report(self):
-        return self._status_report
+        return self.__status_report
 
-    def _get_log_file_path(self):
-        # if no path specified, just return
-        # standardized log file name
-        # will write to cwd
+    def _resolve_log_file_path(self):
+        """
+        Resolve the log file path for the plugin.
+
+        If no path is specified, returns a standardized log file name in the
+        current working directory.
+        """
         if not self._params.log_path:
             return f"{self._name}.log"
 
-        # otherwise if a .log file specified, write to that file
         if ".log" in self._params.log_path:
             return self._params.log_path
 
-        # otherwise assume log_path is a directory
-        # and write to standardize log file name in that path
         return os.path.join(self._params.log_path, f"{self._name}.log")
-
-    def update_transaction_count(
-        self, transaction_type: ETLTransactionCounter, table: str, count: int = 1
-    ):
-        """
-        Increment an ETL transaction type (insert, update, skip) by 1.
-
-        Args:
-            transaction_type (ETLTransactionCounter): Transaction type ('inserts', 'updates', 'skips').
-            table (str): Fully-qualified table name ('schema.table').
-            count (int): number of transactions to add to the total count. Default = 1.
-
-        Raises:
-            RuntimeError: If ETLStatusReport is missing the expected increment method.
-        """
-        method = f"increment_{ETLTransactionCounter(transaction_type).value.lower()}s"
-        incrementer = getattr(self._status_report, method, None)
-        if not callable(incrementer):
-            raise RuntimeError(f"ETLStatusReport missing expected method {method}")
-        incrementer(table, count)
-
-    async def _handle_transaction(self, session, residuals: bool = False) -> None:
-        """
-        Commit or rollback the session based on ETLMode and commit_after logic.
-        """
-        total_transactions = self._status_report.total_writes()
-        if residuals or (
-            self._commit_after and total_transactions >= self._commit_after
-        ):
-            if self._mode == ETLMode.COMMIT:
-                await session.commit()
-            elif self._mode == ETLMode.NON_COMMIT:
-                await session.rollback()
 
     # -------------------------
     # Abstract contract
@@ -209,7 +176,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     @abstractmethod
     def load_strategy(self) -> LoadStrategy:
         """
-        Whether the plugin processes records line-by-line (streaming),  in bulk, or in batch.
+        Whether the plugin processes records in chunks, in bulk, or in batch.
 
         Returns:
             LoadStrategy
@@ -252,7 +219,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         ...
 
     @abstractmethod
-    async def load(self, transformed) -> int:
+    async def load(self, transformed, session) -> ResumeCheckpoint:
         """
         Persist transformed data using an async SQLAlchemy session.
 
@@ -263,9 +230,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         Args:
             transformed: The data to persist. For streaming, a list of records (buffer size <= commit_after). For bulk, the entire dataset.
+            session: Async SQLAlchemy session.
 
         Returns:
-            int: Number of rows persisted (or counted as would-be persisted in dry-run emulation).
+            ResumeCheckpoint: Contains count of rows persisted and checkpoint info (line/id).
         """
         ...
 
@@ -289,92 +257,107 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         return PluginRegistry.describe(self.__class__.__name__).get("version")
 
     # -------------------------
-    # Run orchestration
+    # Transaction Management
     # -------------------------
-    async def _process_streaming_load(self):
-        if self._debug:
-            self.logger.debug("Entering _process_streaming_load")
-        if self._commit_after is None:
+
+    async def _handle_transaction(self, session, checkpoint: ResumeCheckpoint) -> None:
+        """
+        Commit or rollback the session based on ETLMode and commit_after logic.
+        """
+        total_transactions = self.__status_report.total_writes()
+        msg = f"{total_transactions} records"
+        if self._mode == ETLMode.COMMIT:
+            await session.commit()
+            self.logger.info("COMMITED", msg)
+        elif self._mode == ETLMode.NON_COMMIT:
+            await session.rollback()
+            self.logger.info("ROLLED BACK", msg)
+
+        # if transaction is successful, can update the checkpoint
+        self.__checkpoint = checkpoint
+
+    async def _load(self, buffer, session) -> ResumeCheckpoint:
+        """
+        Loads data and performs validations.
+
+        Args:
+            buffer: The records to load.
+            session: Async SQLAlchemy session.
+
+        Returns:
+            ResumeCheckpoint or None: Checkpoint object returned by load(), or None if not implemented.
+
+        Raises:
+            TypeError: If load() does not return a valid response.
+            RuntimeError: If no transaction counts were updated during a non-empty transaction.
+        """
+
+        checkpoint = await self.load(buffer, session)
+
+        # a plugin may not have checkpoint handling so
+        # returning None is okay
+        if checkpoint and not isinstance(checkpoint, ResumeCheckpoint):
+            raise TypeError(
+                "Implementation Error: your plugin's load() must return None or a `ResumeCheckpoint`; "
+                "see `components.niagads.etl.plugins.base.ResumeCheckpoint`."
+            )
+
+        # basically not checking previous count b/c only care if this
+        # fails the first time; if the implemeter forgot to count transactions
+        # it should fail with first "batch"
+        transaction_count = (
+            self.__status_report.total_writes() + self.__status_report.total_skips()
+        )
+
+        if transaction_count == 0:
             raise RuntimeError(
-                "Streaming load requires commit_after to be set to a value >= 1."
+                "Implementation Error: No transaction counts were updated in load(); "
+                "please call self.update_transaction_count to update counts of INSERTS/UPDATES/SKIPS."
             )
 
-        buffer: list = []
-        last_record = None
-        last_line_no = 0
+        return checkpoint
 
-        async with self._session_manager() as session:
-            for last_line_no, record in enumerate(self.extract(), start=1):
-                if self._debug and self._verbose:
-                    self.logger.debug(
-                        f"Extracted record at line {last_line_no}: {record}"
-                    )
-                last_record = record
-                processed_record = self.transform(record)
-                if self._debug and self._verbose:
-                    self.logger.debug(
-                        f"Transformed record at line {last_line_no}: {processed_record}"
-                    )
-                buffer.append(processed_record)
-                if len(buffer) >= self._commit_after:
-                    if self._debug and self._verbose:
-                        self.logger.debug(
-                            f"Flushing buffer at line {last_line_no}, buffer size={len(buffer)}"
-                        )
-                    await self._flush_streaming_buffer(buffer, last_line_no, session)
-                    await self._handle_transaction(session, residuals=False)
-
-            # load residuals
-            if buffer:
-                if self._debug:
-                    self.logger.debug(
-                        f"Flushing final buffer at line {last_line_no}, buffer size={len(buffer)}"
-                    )
-                await self._flush_streaming_buffer(buffer, last_line_no, session)
-                await self._handle_transaction(session, residuals=True)
-
-        return last_line_no, last_record
-
-    async def _load(self, data, session):
-        """
-        Loads data and checks if transaction counts (writes + skips) increased.
-        Raises RuntimeError if no change is detected after load().
-        """
-        pre_count = (
-            self._status_report.total_writes() + self._status_report.total_skips()
-        )
-        await self.load(data, session)
-        post_count = (
-            self._status_report.total_writes() + self._status_report.total_skips()
-        )
-        if post_count == pre_count:
-            msg = f"No transaction counts were updated in load(). "
-            msg += "Implementers must call update_transaction_count for inserts/updates/skips."
-            raise RuntimeError(msg)
-
-    async def _flush_streaming_buffer(self, buffer, last_line_no, session):
-        if self._debug:
-            self.logger.debug(
-                f"Loading buffer of size {len(buffer)} at line {last_line_no} [mode={self._mode.value}]"
-            )
+    async def _flush_chunked_buffer(self, buffer, session) -> ResumeCheckpoint:
         if self._mode == ETLMode.DRY_RUN:
             table = (
                 self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
             )
-            self.update_transaction_count(
-                ETLTransactionCounter.INSERT, table, len(buffer)
-            )
+            self.update_transaction_count(self.operation, table, len(buffer))
         else:
-            await self._load(buffer, session)
+            checkpoint = await self._load(buffer, session)
         buffer.clear()
+        return checkpoint
+
+    async def _process_chunked_load(self):
+        """
+        Process records in chunks and load them into the database.
+
+        Chunks are processed with size defined by `commit_after`. Each chunk
+        is loaded and committed (or rolled back) according to ETL mode.
+
+        Raises:
+            RuntimeError: If `commit_after` is not set.
+        """
+        if self._commit_after is None:
+            raise ValueError("Running CHUNKED load, `commit_after` cannot be `None`")
+
+        buffer: list = []
+        async with self._session_manager() as session:
+            for records in self.extract():
+                processed_records = self.transform(records)
+                buffer.append(processed_records)
+                if len(buffer) == self._commit_after:
+                    checkpoint = await self._flush_chunked_buffer(buffer, session)
+                    await self._handle_transaction(session, checkpoint)
+
+            # residuals
+            if buffer:
+                checkpoint = await self._flush_chunked_buffer(buffer, session)
+                await self._handle_transaction(session, checkpoint)
 
     async def _process_bulk_load(self):
-        if self._debug:
-            self.logger.debug("Entering _process_bulk_load")
         records = self.extract()
         processed_records = self.transform(records)
-        last_record = None
-        last_line_no = -1
 
         async with self._session_manager() as session:
             # Bulk: load all at once, ignore commit_after
@@ -386,67 +369,21 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 )
                 try:
                     count = len(processed_records)
-                except TypeError:
+                except TypeError:  # handle iterators/generators
                     count = sum(1 for _ in processed_records)
-                self.update_transaction_count(
-                    ETLTransactionCounter.INSERT, table, count
-                )
+                self.update_transaction_count(self.operation, table, count)
             else:
-                await self._load(processed_records, session)
-                await self._handle_transaction(session, residuals=True)
-
-        # FIXME: we are not handling identifying the last processed record/line
-        # correctly for iterators which may no longer exist by this point.
-        # question -> will we allow iterators for bulk/batch loads?
-        if hasattr(processed_records, "__len__") and processed_records:
-            last_record = processed_records[-1]
-            last_line_no = len(processed_records)
-        else:
-            try:
-                last_record = deque(processed_records, maxlen=1)[0]
-            except Exception:
-                last_record = None
-            last_line_no = -1
-
-        return last_line_no, last_record
+                checkpoint = await self._load(processed_records, session)
+                await self._handle_transaction(session, checkpoint)
 
     async def _process_bulk_in_batch_load(self):
-        if self._debug:
-            self.logger.debug("Entering _process_bulk_in_batch_load")
         records = self.extract()
         processed_records = self.transform(records)
-        batch = []
-        last_record = None
-        last_line_no = 0
-
+        batches = chunker(processed_records, self._commit_after, returnIterator=True)
         async with self._session_manager() as session:
-            for last_line_no, record in enumerate(processed_records, start=1):
-                batch.append(record)
-                last_record = record
-                if len(batch) >= self._commit_after:
-                    await self._flush_bulk_batch(batch, last_line_no, session)
-                    await self._handle_transaction(session, residuals=False)
-            if batch:  # residuals
-                await self._flush_bulk_batch(batch, last_line_no, session)
-                await self._handle_transaction(session, residuals=True)
-
-        return last_line_no, last_record
-
-    async def _flush_bulk_batch(self, batch, last_line_no, session):
-        if self._debug:
-            self.logger.info(
-                f"Bulk loading batch of size {len(batch)} at record {last_line_no} [mode={self._mode.value}]"
-            )
-        if self._mode == ETLMode.DRY_RUN:
-            table = (
-                self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
-            )
-            self.update_transaction_count(
-                ETLTransactionCounter.INSERT, table, len(batch)
-            )
-        else:
-            await self._load(batch, session)
-        batch.clear()
+            for batch in batches:
+                checkpoint = await self._flush_chunked_buffer(batch, session)
+                await self._handle_transaction(session, checkpoint)
 
     async def _db_log_plugin_run(self) -> Optional[int]:
         """
@@ -464,7 +401,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 status=ProcessStatus.RUNNING,
                 operation=self.operation.value,
                 run_id=self._run_id,
-                start_time=self._start_time,
+                start_time=self.__start_time,
                 rows_processed=0,
             )
             session.add(task)
@@ -493,6 +430,30 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             task.message = message
             await session.commit()
 
+    def update_transaction_count(
+        self, transaction_type: ETLTransactionCounter, table: str, count: int = 1
+    ):
+        """
+        Increment an ETL transaction type (insert, update, skip) by 1.
+
+        Args:
+            transaction_type (ETLTransactionCounter): Transaction type ('inserts', 'updates', 'skips').
+            table (str): Fully-qualified table name ('schema.table').
+            count (int): number of transactions to add to the total count. Default = 1.
+
+        Raises:
+            RuntimeError: If ETLStatusReport is missing the expected increment method.
+        """
+        method = f"increment_{ETLTransactionCounter(transaction_type).value.lower()}s"
+        incrementer = getattr(self.__status_report, method, None)
+        if not callable(incrementer):
+            raise RuntimeError(f"ETLStatusReport missing expected method {method}")
+        incrementer(table, count)
+
+    # -------------------------
+    # Run orchestration
+    # -------------------------
+
     async def run(
         self,
         runtime_params: Optional[Dict[str, Any]] = None,
@@ -520,15 +481,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self._params = merged_params
             self._commit_after = self._params.commit_after
 
-        self._written_record_count = 0
-        self._start_time = datetime.now()
-        last_line_no = 0
-        last_record = None
+        self.__start_time = datetime.now()
 
         try:
             task_id = await self._db_log_plugin_run()
             execution_status = ProcessStatus.RUNNING
-            self._status_report = ETLStatusReport(
+            self.__status_report = ETLStatusReport(
                 status=execution_status,
                 mode=self._mode,
                 test=self._mode == ETLMode.DRY_RUN,
@@ -542,12 +500,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.log_plugin_configuration(self._params)
             self.logger.log_plugin_run()
 
-            if self.load_strategy == LoadStrategy.STREAMING:
-                last_line_no, last_record = await self._process_streaming_load()
+            if self.load_strategy == LoadStrategy.CHUNKED:
+                await self._process_chunked_load()
             elif self.load_strategy == LoadStrategy.BULK:
-                last_line_no, last_record = await self._process_bulk_load()
+                await self._process_bulk_load()
             elif self.load_strategy == LoadStrategy.BATCH:
-                last_line_no, last_record = await self._process_bulk_in_batch_load()
+                await self._process_bulk_in_batch_load()
             else:
                 raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
 
@@ -562,14 +520,19 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             checkpoint_kwargs = {
                 "error": e,
             }
+
             if self.load_strategy == LoadStrategy.STREAMING:
-                checkpoint_kwargs["line"] = last_line_no
-            if last_record is not None:
+                checkpoint_kwargs["line"] = self.__checkpoint.line
+            if self.__checkpoint.full_record is not None:
                 if self._verbose or self._debug:
-                    checkpoint_kwargs["record"] = last_record
-                record_id = self.get_record_id(last_record)
-                if record_id is not None:
-                    checkpoint_kwargs["record_id"] = record_id
+                    checkpoint_kwargs["record"] = self.__checkpoint.record
+            if self.__checkpoint.record is not None:
+                checkpoint_kwargs["record_id"] = self.__checkpoint.record
+            elif self.__checkpoint.full_record is not None:
+                checkpoint_kwargs["record_id"] = self.get_record_id(
+                    self.__checkpoint.full_record
+                )
+
             self.logger.checkpoint(**checkpoint_kwargs)
             self.logger.exception(f"Plugin failed: {e}")
 
@@ -580,18 +543,18 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     datetime.now(),  # end time
                     execution_status,
                     message=f"ETL run failed: {e}",
-                    rows_processed=self._status_report.total_writes(),
+                    rows_processed=self.__status_report.total_writes(),
                 )
         finally:
             # log status
             end_time = datetime.now()
-            runtime = (end_time - self._start_time).total_seconds()
+            runtime = (end_time - self.__start_time).total_seconds()
             mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
-            self._status_report.runtime = runtime
-            self._status_report.memory = mem_mb
-            self._status_report.status = execution_status
-            self.logger.status(self._status_report)
-            total_writes = self._status_report.total_writes()
+            self.__status_report.runtime = runtime
+            self.__status_report.memory = mem_mb
+            self.__status_report.status = execution_status
+            self.logger.status(self.__status_report)
+            total_writes = self.__status_report.total_writes()
 
             if self._mode != ETLMode.DRY_RUN and total_writes == 0:
                 self.logger.warning(
@@ -605,7 +568,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                         task_id,
                         end_time,
                         execution_status,
-                        rows_processed=self._status_report.total_writes(),
+                        rows_processed=self.__status_report.total_writes(),
                     )
             except Exception as db_error:
                 self.logger.exception(f"Failed to update plugin task in DB: {db_error}")
