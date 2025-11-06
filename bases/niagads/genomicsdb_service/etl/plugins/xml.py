@@ -9,8 +9,13 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 from lxml import etree
 from typing import Any, Dict, Iterator, List, Optional, Type
 from niagads.etl.plugins.base import AbstractBasePlugin, ETLMode, LoadStrategy
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.parameters import (
+    BasePluginParams,
+    PathValidatorMixin,
+    ResumeCheckpoint,
+)
 from niagads.etl.plugins.registry import PluginRegistry
+from niagads.genomicsdb.models.admin.pipeline import ETLOperation
 from pydantic import Field, ConfigDict, BaseModel, computed_field
 from sqlalchemy import text
 import importlib.resources
@@ -74,6 +79,12 @@ class XMLRecord(BaseModel):
 
 class XMLRecordLoaderParams(BasePluginParams, PathValidatorMixin):
     file: str = Field(description="Full path to the XML file to load.")
+    commit_after: int = Field(
+        default=100,
+        ge=1,
+        description="records to buffer per commit",
+        exclude=True,  # line-by-line streaming loader
+    )
     update: Optional[bool] = Field(
         default=False,
         description="If True, plugin will update existing records; otherwise will handle duplicates according to value of `--skip-existing` option",
@@ -132,7 +143,7 @@ class XMLRecordLoader(AbstractBasePlugin):
         # Use the appropriate ETLOperation for your use case
         from niagads.genomicsdb.models.admin.pipeline import ETLOperation
 
-        return ETLOperation.INSERT
+        return ETLOperation.LOAD  # insert or update
 
     def _parse_and_validate_xml(self) -> "etree._Element":
         """
@@ -171,7 +182,7 @@ class XMLRecordLoader(AbstractBasePlugin):
 
     @property
     def load_strategy(self) -> LoadStrategy:
-        return LoadStrategy.STREAMING
+        return LoadStrategy.CHUNKED
 
     @property
     def affected_tables(self) -> List[str]:
@@ -194,8 +205,9 @@ class XMLRecordLoader(AbstractBasePlugin):
         return sorted(tables)
 
     def extract(self) -> Iterator[XMLRecord]:
-        if self._debug:
-            self.logger.debug(f"Parsing file {self._params.file}")
+
+        if self._verbose:
+            self.logger.info(f"Parsing file {self._params.file}")
 
         try:
             root = self._parse_and_validate_xml()
@@ -223,10 +235,9 @@ class XMLRecordLoader(AbstractBasePlugin):
                         data[col_name] = value
 
                     record = XMLRecord(data_schema=schema, data_table=table, **data)
-                    if self._debug:
-                        self.logger.debug(
-                            f"Yielding row {record.model_dump(include_table_schema=True)}"
-                        )
+                    self.logger.debug(
+                        f"Yielding row {record.model_dump(include_table_schema=True)}"
+                    )
                     yield record
 
         except Exception as e:
@@ -234,8 +245,7 @@ class XMLRecordLoader(AbstractBasePlugin):
             raise
 
     def transform(self, data: XMLRecord) -> XMLRecord:
-        if self._debug:
-            self.logger.debug("Transforming data", data)
+        self.logger.debug("Transforming data", data)
         if data is None:
             raise RuntimeError(
                 "No records provided to transform(). At least one record is required."
@@ -255,7 +265,7 @@ class XMLRecordLoader(AbstractBasePlugin):
         update_sql = f"UPDATE {record.data_schema}.{record.data_table} SET {record.sql_clauses.set_clause} WHERE {record.sql_clauses.where_clause}"
         await session.execute(text(update_sql), record.model_dump())
 
-    async def load(self, transformed: XMLRecord) -> int:
+    async def load(self, transformed: XMLRecord, session) -> ResumeCheckpoint:
         """
         Insert or update a single record in the target table based on XML input.
         Checks if the record already exists in the table (using all columns as a composite key).
@@ -266,47 +276,34 @@ class XMLRecordLoader(AbstractBasePlugin):
         Args:
             transformed (XMLRecord): parsed and transformed XMLRecord.
         Returns:
-            int: Number of records inserted (not updated).
+            ResumeCheckpoint: resume checkpoint -> here None
         """
-        if not transformed:
-            raise RuntimeError(
-                "No record provided to load(). At least one record is required."
-            )
 
         table_key = f"{transformed.data_schema}.{transformed.data_table}"
-        if self._debug:
-            self.logger.debug(f"Processing record {transformed} for {table_key}")
-        async with self._session_manager() as session:
+        self.logger.debug(f"Processing record {transformed} for {table_key}")
 
-            exists = await self._record_exists(session, transformed)
+        exists = await self._record_exists(session, transformed)
 
-            if not exists:
-                await self._insert_record(session, transformed)
-                self.update_transaction_count("inserts", table_key)
-                if self._debug:
-                    self.logger.debug(f"Inserted record {transformed}")
-                return 1
+        if exists:
+            if self._params.update:
+                await self._update_record(session, transformed)
+                self.update_transaction_count(ETLOperation.UPDATE, table_key)
+                self.logger.debug(f"Updated record {transformed}")
+            elif self._params.skip_existing:
+                self.logger.info(
+                    f"Skipped existing record in {table_key}: {transformed}"
+                )
+                self.update_transaction_count(ETLOperation.SKIP, table_key)
             else:
-                if self._params.update:
-                    await self._update_record(session, transformed)
-                    self.update_transaction_count("updates", table_key)
-                    if self._debug:
-                        self.logger.debug(f"Updated record {transformed}")
-                    return 1
-                elif self._params.skip_existing:
-                    self.logger.info(
-                        f"Skipped existing record in {table_key}: {transformed}"
-                    )
-                    self.update_transaction_count("skips", table_key)
-                    return 0
-                else:
-                    if self._debug:
-                        self.logger.warning(
-                            f"Record exists and update/skip_existing not enabled: {transformed}"
-                        )
-                    raise RuntimeError(
-                        f"Record already exists and update/skip_existing is not enabled: {transformed}"
-                    )
+                raise RuntimeError(
+                    f"Record already exists and update/skip_existing is not enabled: {transformed}"
+                )
+        else:
+            await self._insert_record(session, transformed)
+            self.update_transaction_count(ETLOperation.INSERT, table_key)
+            self.logger.debug(f"Inserted record {transformed}")
+
+        return self.generate_checkpoint(transformed)
 
     def get_record_id(self, record: Dict[str, Any]) -> Optional[str]:
         # no way to know

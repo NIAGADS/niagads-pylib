@@ -12,7 +12,7 @@ from typing import Any, Dict, Iterator, List, Optional, Type, Union
 from niagads.enums.common import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
-from niagads.etl.plugins.logger import ETLTransactionCounter
+from niagads.etl.plugins.logger import ETLOperation
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation
 from niagads.etl.plugins.registry import PluginRegistry
@@ -188,15 +188,13 @@ class OntologyOWLLoaderPlugin(AbstractBasePlugin):
                 term.model_dump(),
             )
             self.update_transaction_count(
-                ETLTransactionCounter.INSERT, "Reference.Ontology.term"
+                ETLOperation.INSERT, "Reference.Ontology.term"
             )
             return 1
 
         except IntegrityError:
             self.logger.warning(f"Duplicate term_id '{term.term_id}' skipped.")
-            self.update_transaction_count(
-                ETLTransactionCounter.SKIP, "Reference.Ontology.term"
-            )
+            self.update_transaction_count(ETLOperation.SKIP, "Reference.Ontology.term")
             return 0
 
     async def _triple_exists(self, session, triple: OntologyTriple) -> bool:
@@ -232,13 +230,11 @@ class OntologyOWLLoaderPlugin(AbstractBasePlugin):
                 f"Duplicate triple ({triple.subject}, {triple.predicate}, {triple.object}) skipped."
             )
             self.update_transaction_count(
-                ETLTransactionCounter.SKIP, "Reference.Ontology.triple"
+                ETLOperation.SKIP, "Reference.Ontology.triple"
             )
             return 0
         await self._insert_triple(session, triple)
-        self.update_transaction_count(
-            ETLTransactionCounter.INSERT, "Reference.Ontology.triple"
-        )
+        self.update_transaction_count(ETLOperation.INSERT, "Reference.Ontology.triple")
         return 1
 
     async def load(self, transformed: Any) -> int:

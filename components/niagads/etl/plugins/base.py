@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 import os
 import uuid
 from abc import ABC, abstractmethod
@@ -13,7 +14,7 @@ from niagads.enums.common import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.config import ETLMode
 from niagads.etl.pipeline.config import PipelineSettings
-from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport, ETLTransactionCounter
+from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport
 from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLTask
 from niagads.utils.logging import FunctionContextLoggerWrapper
@@ -78,7 +79,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.logger: ETLLogger = FunctionContextLoggerWrapper(
             ETLLogger(
                 name=self._name,
-                log_file=self.__generate_log_file_path(),
+                log_file=self._resolve_log_file_path(),
                 run_id=self._run_id,
                 plugin=self._name,
                 debug=self._debug,
@@ -105,6 +106,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             )
         else:
             self._session_manager = None
+
+    @property
+    def is_dry_run(self) -> bool:
+        """
+        Indicates whether the plugin is running in DRY_RUN mode.
+        """
+        return self._mode == ETLMode.DRY_RUN
 
     @property
     def has_preprocess_mode(self) -> bool:
@@ -284,6 +292,15 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         # if transaction is successful, can update the checkpoint
         self.__checkpoint = checkpoint
 
+    def _handle_dry_run(self, count: int):
+        """
+        Helper for DRY_RUN mode: update transaction count for the correct table.
+        Args:
+            count (int): Number of records to count as processed.
+        """
+        table = self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
+        self.update_transaction_count(self.operation, table, count)
+
     async def _load(self, buffer, session) -> ResumeCheckpoint:
         """
         Loads data and performs validations.
@@ -299,6 +316,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             TypeError: If load() does not return a valid response.
             RuntimeError: If no transaction counts were updated during a non-empty transaction.
         """
+
+        if not buffer or len(buffer) == 0:
+            raise ValueError("Empty buffer (transformed) passed to load.")
 
         checkpoint = await self.load(buffer, session)
 
@@ -326,14 +346,22 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         return checkpoint
 
     async def _flush_chunked_buffer(self, buffer, session) -> ResumeCheckpoint:
-        if self._mode == ETLMode.DRY_RUN:
-            table = (
-                self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
-            )
-            self.update_transaction_count(self.operation, table, len(buffer))
+        checkpoint = None
+
+        if self.is_dry_run:
+            try:
+                count = len(buffer)
+            except TypeError:  # handle iterators/generators
+                count = sum(1 for _ in buffer)
+            self._handle_dry_run(count)
         else:
             checkpoint = await self._load(buffer, session)
-        buffer.clear()
+
+        # Clear buffer if it's a list, else set to None to release reference
+        if isinstance(buffer, list):
+            buffer.clear()
+        else:
+            buffer = None
         return checkpoint
 
     async def _process_chunked_load(self):
@@ -350,7 +378,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             raise ValueError("Running CHUNKED load, `commit_after` cannot be `None`")
 
         buffer: list = []
-        async with self._session_manager() as session:
+        session_ctx = self._session_manager() if not self.is_dry_run else nullcontext()
+        async with session_ctx as session:
             for records in self.extract():
                 processed_records = self.transform(records)
                 buffer.append(processed_records)
@@ -363,32 +392,30 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 checkpoint = await self._flush_chunked_buffer(buffer, session)
                 await self._handle_transaction(session, checkpoint)
 
-    async def _process_bulk_load(self):
+    async def _process_bulk_load(self) -> ResumeCheckpoint:
         records = self.extract()
         processed_records = self.transform(records)
 
         async with self._session_manager() as session:
             # Bulk: load all at once, ignore commit_after
             if self._mode == ETLMode.DRY_RUN:
-                table = (
-                    self.affected_tables[0]
-                    if len(self.affected_tables) == 1
-                    else "DRY.RUN"
-                )
                 try:
                     count = len(processed_records)
                 except TypeError:  # handle iterators/generators
                     count = sum(1 for _ in processed_records)
-                self.update_transaction_count(self.operation, table, count)
+                self._handle_dry_run(count)
+                return None
             else:
                 checkpoint = await self._load(processed_records, session)
                 await self._handle_transaction(session, checkpoint)
+                return checkpoint
 
     async def _process_bulk_in_batch_load(self):
         records = self.extract()
         processed_records = self.transform(records)
         batches = chunker(processed_records, self._commit_after, returnIterator=True)
-        async with self._session_manager() as session:
+        session_ctx = self._session_manager() if not self.is_dry_run else nullcontext()
+        async with session_ctx as session:
             for batch in batches:
                 checkpoint = await self._flush_chunked_buffer(batch, session)
                 await self._handle_transaction(session, checkpoint)
@@ -439,24 +466,20 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             await session.commit()
 
     def update_transaction_count(
-        self, transaction_type: ETLTransactionCounter, table: str, count: int = 1
+        self, transaction_type: ETLOperation, table: str, count: int = 1
     ):
         """
-        Increment an ETL transaction type (insert, update, skip) by 1.
+        Increment the count for a given ETLOperation and table in the ETL status report.
 
         Args:
-            transaction_type (ETLTransactionCounter): Transaction type ('inserts', 'updates', 'skips').
+            transaction_type (ETLOperation): The ETL operation type (e.g., ETLOperation.INSERT, ETLOperation.UPDATE, ETLOperation.SKIP, ETLOperation.DELETE).
             table (str): Fully-qualified table name ('schema.table').
-            count (int): number of transactions to add to the total count. Default = 1.
+            count (int): Number of transactions to add to the total count. Default = 1.
 
         Raises:
-            RuntimeError: If ETLStatusReport is missing the expected increment method.
+            RuntimeError: If ETLStatusReport is not initialized.
         """
-        method = f"increment_{ETLTransactionCounter(transaction_type).value.lower()}s"
-        incrementer = getattr(self.__status_report, method, None)
-        if not callable(incrementer):
-            raise RuntimeError(f"ETLStatusReport missing expected method {method}")
-        incrementer(table, count)
+        self.__status_report.increment_transaction(transaction_type, table, count)
 
     def generate_checkpoint(self, line=None, record=None) -> ResumeCheckpoint:
         """
@@ -539,6 +562,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             )
 
         except Exception as e:
+            self.logger.exception(f"Failed to initialize plugin: {e}")
             raise RuntimeError(f"Failed to initialize plugin: {e}")
 
         try:
@@ -566,17 +590,18 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 "error": e,
             }
 
-            if self.load_strategy == LoadStrategy.STREAMING:
-                checkpoint_kwargs["line"] = self.__checkpoint.line
-            if self.__checkpoint.full_record is not None:
-                if self._verbose or self._debug:
-                    checkpoint_kwargs["record"] = self.__checkpoint.record
-            if self.__checkpoint.record is not None:
-                checkpoint_kwargs["record_id"] = self.__checkpoint.record
-            elif self.__checkpoint.full_record is not None:
-                checkpoint_kwargs["record_id"] = self.get_record_id(
-                    self.__checkpoint.full_record
-                )
+            if self.__checkpoint is not None:
+                if self.__checkpoint.line is not None:
+                    checkpoint_kwargs["line"] = self.__checkpoint.line
+                if self.__checkpoint.full_record is not None:
+                    if self._verbose or self._debug:
+                        checkpoint_kwargs["record"] = self.__checkpoint.record
+                if self.__checkpoint.record is not None:
+                    checkpoint_kwargs["record_id"] = self.__checkpoint.record
+                elif self.__checkpoint.full_record is not None:
+                    checkpoint_kwargs["record_id"] = self.get_record_id(
+                        self.__checkpoint.full_record
+                    )
 
             self.logger.checkpoint(**checkpoint_kwargs)
             self.logger.exception(f"Plugin failed: {e}")

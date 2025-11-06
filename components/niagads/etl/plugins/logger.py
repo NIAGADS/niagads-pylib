@@ -1,20 +1,12 @@
 import logging
 from typing import Any, Dict, Optional, Union
-from enum import auto
-from niagads.enums.core import CaseInsensitiveEnum
+
 from niagads.enums.common import ProcessStatus
 from niagads.etl.config import ETLMode
 from niagads.etl.plugins.parameters import BasePluginParams
+from niagads.genomicsdb.models.admin.pipeline import ETLOperation
 from niagads.utils.logging import LOG_FORMAT_STR
 from pydantic import BaseModel
-
-
-class ETLTransactionCounter(CaseInsensitiveEnum):
-    """Enum of supported ETL transaction types for status reporting."""
-
-    INSERT = auto()
-    UPDATE = auto()
-    SKIP = auto()
 
 
 class ETLStatusReport(BaseModel):
@@ -22,9 +14,7 @@ class ETLStatusReport(BaseModel):
     Status report for ETL operations.
     """
 
-    updates: Optional[Dict[str, int]] = {}
-    inserts: Optional[Dict[str, int]] = {}
-    skips: Optional[Dict[str, int]] = {}
+    transactions: Dict[ETLOperation, Dict[str, int]] = {}
     status: ProcessStatus
     mode: ETLMode
     test: bool = False
@@ -41,46 +31,43 @@ class ETLStatusReport(BaseModel):
                 "Table must be qualified by a schema (e.g., 'myschema.mytable')."
             )
 
-    def _increment_dict(
-        self, d: Optional[Dict[str, int]], key: str, count: int = 1
-    ) -> Dict[str, int]:
-        self._validate_key_format(key)
-        if d is None:
-            d = {}
-        d[key] = d.get(key, 0) + count
-        return d
+    def increment_transaction(self, operation, table: str, count: int = 1):
+        """
+        Increment the count for a given ETLOperation and table.
+        """
+        self._validate_key_format(table)
 
-    def increment_inserts(self, key: str, count: int = 1):
-        """
-        Increment the count for a key in 'inserts'. Adds the key if it does not exist.
-        """
-        self.inserts = self._increment_dict(self.inserts, key, count)
-
-    def increment_updates(self, key: str, count: int = 1):
-        """
-        Increment the count for a key in 'updates'. Adds the key if it does not exist.
-        """
-        self.updates = self._increment_dict(self.updates, key, count)
-
-    def increment_skips(self, key: str, count: int = 1):
-        """
-        Increment the count for a key in 'updates'. Adds the key if it does not exist.
-        """
-        self.skips = self._increment_dict(self.skips, key, count)
+        if ETLOperation(operation) not in self.transactions:
+            self.transactions[operation] = {}
+        self.transactions[operation][table] = (
+            self.transactions[operation].get(table, 0) + count
+        )
 
     def total_writes(self) -> int:
         """
-        Return the total number of records written (inserts + updates).
+        Return the total number of records written.
         """
-        inserts_total = sum(self.inserts.values()) if self.inserts else 0
-        updates_total = sum(self.updates.values()) if self.updates else 0
-        return inserts_total + updates_total
+        total = 0
+        for operation, table_counts in self.transactions.items():
+            if operation not in [ETLOperation.SKIP, ETLOperation.DELETE]:
+                total += sum(table_counts.values())
+        return total
 
     def total_skips(self) -> int:
         """
         Return the total number of skipped records
         """
-        return sum(self.skips.values()) if self.skips else 0
+        if ETLOperation.SKIP in self.transactions:
+            return sum(self.transactions[ETLOperation.SKIP].values())
+        return 0
+
+    def total_deletes(self) -> int:
+        """
+        Return the total number of deleted records.
+        """
+        if ETLOperation.DELETE in self.transactions:
+            return sum(self.transactions[ETLOperation.DELETE].values())
+        return 0
 
 
 class ETLLogger:
@@ -228,22 +215,17 @@ class ETLLogger:
 
         else:
             self.info(f"{'WROTE':<{keyw}} : {count} records.")
-            # Log inserts
-            if status.inserts:
-                for table, count in status.inserts.items():
-                    self.info(f"{'INSERTED':<{keyw}} : {count} records into {table}")
+
+            # log transaction types, iterating over reference
+            # to ensure order is consistent when logging
+
+            for operation in [ETLOperation.list()]:
+                for table, record_count in status.transactions[str(operation)].items():
+                    self.info(
+                        f"{str(operation):<{keyw}} : {record_count} records into {table}"
+                    )
             else:
-                self.info(f"{'INSERTED':<{keyw}} : 0 records")
-
-            # Log updates
-            if status.updates:
-                for table, count in status.updates.items():
-                    self.info(f"{'UPDATED':<{keyw}} : {count} records in {table}")
-
-            # log skips
-            if status.skips:
-                for table, count in status.skips.items():
-                    self.info(f"{'SKIPPED':<{keyw}} : {count} records in {table}")
+                self.info(f"{str(operation):<{keyw}} : 0 records")
 
         self.info(f"{'STATUS':<{keyw}} : {str(status.status)}")
         self.report_section_end("Transaction Summary")
