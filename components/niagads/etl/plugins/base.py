@@ -458,6 +458,25 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             raise RuntimeError(f"ETLStatusReport missing expected method {method}")
         incrementer(table, count)
 
+    def generate_checkpoint(self, line=None, record=None) -> ResumeCheckpoint:
+        """
+        Generate a checkpoint for the current ETL state.
+
+        Args:
+            line (int): The line number or position in the input data.
+            record (Any): The current record to checkpoint.
+
+        Returns:
+            ResumeCheckpoint: Checkpoint object for resuming ETL from this state.
+        """
+        if line is None and record is None:
+            raise ValueError("Must set either line or record to non-None")
+        return ResumeCheckpoint(
+            line=line,
+            full_record=record,
+            record=self.get_record_id(record) if record is not None else None,
+        )
+
     # -------------------------
     # Run orchestration
     # -------------------------
