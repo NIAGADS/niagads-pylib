@@ -47,17 +47,13 @@
 
 ## Developer Workflows
 
--   **Setup:**
-    -   Use Python 3.12+ and Poetry.
-    -   Install with `poetry install` in repo root.
--   **Linting:**
-    -   VSCode task: `flake8-whole-project` only to look for things like malformed f-strings; don't do normally as it conflicts with black formatter.
--   **Testing:**
-    -   Run `pytest` (configured for verbose output via `pyproject.toml`). Obsolete. Ignore for now.
--   **TOML Sorting:**
-    -   Use `toml-sort` to keep `pyproject.toml` organized: `toml-sort --sort-first "project,tool,name,homepage,repository,packages" pyproject.toml`. Ignore this; should be done by developers as needed manually for now. Will later add to github as automated task on PR
--   **ETL Plugins:**
-    -   see `bases/niagads/genomicsdb_service/etl/plugins/README.md` for general plugin implementation guidelines
+### Linting
+
+-   AI should never prompt to run flake tasks.
+
+#### ETL Plugins
+
+-   see `bases/niagads/genomicsdb_service/etl/plugins/README.md` for general plugin implementation guidelines
 
 ## Coding Conventions
 
