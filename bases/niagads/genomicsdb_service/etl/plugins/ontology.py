@@ -1,241 +1,262 @@
 """
-Generic ETL plugin for loading ontology data from OWL files into the NIAGADS ontology graph schema.
+OntologyOWLLoader Plugin
 
-- Parses OWL files (RDF/XML format) and extracts ontology terms, relationships, and metadata.
-- Loads terms and relationships into the Reference.Ontology tables using SQLAlchemy.
-- Not specific to any ontology; works with any OWL file conforming to standard structure.
+Loads an ontology from an OWL file into the reference ontology graph schema.
+
+Follows niagads-pylib ETL plugin conventions and Polylith architecture.
 """
 
 from enum import auto
-from typing import Any, Dict, Optional, Type, List
+from typing import Any, Dict, Iterator, List, Optional, Type, Union
+
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
-from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation
-from pydantic import Field, BaseModel, field_validator
-from rdflib import Graph, URIRef, RDFS, OWL
-from rdflib.namespace import RDF
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-
-# Ontology OWL constants
-IAO_DEFINITION_URI = "http://purl.obolibrary.org/obo/IAO_0000115"
-OBOINOWL_EXACT_SYNONYM_URI = (
-    "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym"
+from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
+from niagads.etl.plugins.logger import ETLOperation
+from niagads.etl.plugins.parameters import (
+    BasePluginParams,
+    ExternalDatabaseMixin,
+    PathValidatorMixin,
 )
-OBOINOWL_IS_OBSOLETE_URI = "http://www.geneontology.org/formats/oboInOwl#is_obsolete"
-OBOINOWL_REPLACED_BY_URI = "http://www.geneontology.org/formats/oboInOwl#replaced_by"
+from niagads.genomicsdb.models.admin.pipeline import ETLOperation
+from niagads.etl.plugins.registry import PluginRegistry
+from pydantic import BaseModel, Field, model_validator
+from rdflib import Graph, URIRef
+from rdflib.namespace import OWL, RDF, RDFS
+from sqlalchemy.sql import text
+from sqlalchemy.exc import IntegrityError
+
+OBOINOWL = URIRef("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym")
+IAO = URIRef("http://purl.obolibrary.org/obo/IAO_0100001")
 
 
-class OntologyTermRecord(BaseModel):
-    term_id: str
-    label: str = ""
-    definition: str = ""
-    synonyms: List[str] = []
-    is_obsolete: bool = False
-    replaced_by: str = ""
-    term_kind: str
-
-    @field_validator("synonyms", mode="before")
-    @classmethod
-    def ensure_list(cls, v):
-        return v if isinstance(v, list) else [v] if v else []
-
-
-class OntologyTermKind(CaseInsensitiveEnum):
+class RDFTermCategory(CaseInsensitiveEnum):
     CLASS = auto()
     PROPERTY = auto()
     INDIVIDUAL = auto()
 
-    @classmethod
-    def from_rdf_type(cls, rdf_type):
-        if rdf_type == OWL.Class:
-            return str(cls.CLASS)
-        elif rdf_type == OWL.Property:
-            return str(cls.PROPERTY)
-        elif rdf_type == OWL.NamedIndividual:
-            return str(cls.INDIVIDUAL)
-        else:
-            raise ValueError(
-                f"Unrecognized term type: {rdf_type}.  Expected one of {cls.list()}"
-            )
-
     def __str__(self):
         return self.value.lower()
 
+    @classmethod
+    def from_term(cls, term_types):
+        """
+        Returns the RDFTermCategory for a set of RDF type URIs, or raises ValueError if not recognized.
+        """
 
-class OntologyLoaderParams(BasePluginParams, PathValidatorMixin):
-    file: str = Field(description="Full path to the OWL file to load.")
+        if str(OWL.Class) in term_types:
+            return cls.CLASS
+        elif str(OWL.ObjectProperty) in term_types:
+            return cls.PROPERTY
+        elif str(OWL.NamedIndividual) in term_types:
+            return cls.INDIVIDUAL
+        raise ValueError(f"Unrecognized ontology term type(s): {term_types}")
 
+
+class OntologyTerm(BaseModel):
+    term_id: str
+    term_category: str
+    label: str | None = None
+    definition: str | None = None
+    synonyms: list[str] = Field(default_factory=list)
+    is_obsolete: bool = False
+    replaced_by: str | None = None
+
+    @model_validator(mode="before")
+    def convert_fields(cls, values):
+        for field, v in values.items():
+            if v is not None and not isinstance(v, bool):
+                values[field] = str(v)
+        return values
+
+
+class OntologyTriple(BaseModel):
+    subject: str
+    predicate: str
+    object: str
+
+
+class OntologyGraphLoaderParams(
+    BasePluginParams, PathValidatorMixin, ExternalDatabaseMixin
+):
+    file: str
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
 
 @PluginRegistry.register(metadata={"version": 1.0})
-class OntologyLoader(AbstractBasePlugin):
-    _params: OntologyLoaderParams
+class OntologyGraphLoader(AbstractBasePlugin):
+    """
+    ETL plugin for loading an ontology from an OWL file into the reference ontology graph schema.
 
-    @property
-    def streaming(self) -> bool:
-        """
-        Whether the plugin processes records line-by-line (streaming) or in bulk.
-        """
-        return True  # Set to True if plugin should stream records
+    Args:
+        params (OntologyOWLLoaderParams): Plugin parameters.
+        name (Optional[str]): Plugin name.
+    """
 
-    @property
-    def affected_tables(self) -> List[str]:
-        """
-        List of database tables this plugin writes to.
-        """
-        return ["reference.ontology.term", "reference.ontology.triple"]
+    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
+        super().__init__(params, name)
+        self._owl_path = self._params.owl_path
+        self._graph = None
 
-    @property
-    def operation(self):
-        """
-        Get the ETLOperation type used for rows created by this plugin run.
-        """
-        # Import locally to avoid circular import
-        from niagads.genomicsdb.models.admin.pipeline import ETLOperation
-
-        return ETLOperation.INSERT
+    @classmethod
+    def description(cls) -> str:
+        return "Loads an ontology (terms and relationships) from an OWL file into the Reference.Ontology graph schema. "
 
     @classmethod
     def parameter_model(cls) -> Type[BasePluginParams]:
-        return OntologyLoaderParams
+        return OntologyGraphLoaderParams
 
-    @classmethod
-    def description(cls):
-        return """
-        Generic OWL Ontology Loader
-        Loads ontology terms and relationships from OWL files into the NIAGADS ontology graph schema.
+    @property
+    def operation(self) -> ETLOperation:
+        return ETLOperation.INSERT
+
+    @property
+    def affected_tables(self) -> List[str]:
+        return [
+            "Reference.Ontology",
+        ]
+
+    @property
+    def load_strategy(self) -> LoadStrategy:
+        return LoadStrategy.STREAMING
+
+    def extract(self) -> Iterator[Any]:
+        """
+        Parses the OWL file and yields ontology terms and triples.
+        For each subject in the RDF graph, if it is a recognized ontology type
+        (class, property, or individual), yield an OntologyTermModel instance.
+        Then, yield all RDF triples as OntologyTripleModel instances.
+        This supports downstream graph construction.
         """
 
-    def _extract_terms(self, g: Graph) -> List[OntologyTermRecord]:
-        """
-        Helper to extract ontology terms from graph.
-        """
-        terms = []
-        for s in g.subjects():
-            rdf_type = g.value(s, RDF.type)
+        self._graph = Graph()
+        self._graph.parse(self._owl_path, format="xml")
 
-            term = OntologyTermRecord(
-                term_id=str(s),
-                label=str(g.value(s, RDFS.label) or ""),
-                definition=str(g.value(s, URIRef(IAO_DEFINITION_URI)) or ""),
-                synonyms=[
-                    str(o) for o in g.objects(s, URIRef(OBOINOWL_EXACT_SYNONYM_URI))
-                ],
-                is_obsolete=bool(g.value(s, URIRef(OBOINOWL_IS_OBSOLETE_URI)) or False),
-                replaced_by=str(g.value(s, URIRef(OBOINOWL_REPLACED_BY_URI)) or ""),
-                term_kind=OntologyTermKind.from_rdf_type(rdf_type),
+        # Extract ontology terms
+        for term in self._graph.subjects():
+
+            term_types = set(str(o) for o in self._graph.objects(term, RDF.type))
+            term_category = RDFTermCategory.from_term(term_types)
+
+            label = self._graph.value(term, RDFS.label)
+            definition = self._graph.value(term, RDFS.comment)
+            synonyms = [str(s) for s in self._graph.objects(term, OBOINOWL)]
+            is_obsolete = bool(self._graph.value(term, OWL.deprecated))
+            replaced_by = self._graph.value(term, IAO)
+
+            yield OntologyTerm(
+                term_id=str(term),
+                term_category=term_category,
+                label=label,
+                definition=definition,
+                synonyms=synonyms,
+                is_obsolete=is_obsolete,
+                replaced_by=replaced_by,
             )
-            terms.append(term)
-        return terms
 
-    def _extract_relationships(self, g: Graph) -> list:
-        """
-        Helper to extract ontology relationships from graph.
-        """
-        relationships = []
-        for s, p, o in g.triples((None, None, None)):
-            if g.value(s, RDF.type) == OWL.Class and g.value(o, RDF.type) == OWL.Class:
-                relationships.append(
-                    {
-                        "source": str(s),
-                        "predicate": str(p),
-                        "destination": str(o),
-                    }
-                )
-        return relationships
+        # Extract ontology triples
+        for s, p, o in self._graph:
+            yield OntologyTriple(
+                subject=str(s),
+                predicate=str(p),
+                object=str(o),
+            )
 
-    def extract(self) -> Dict[str, list]:
-        """
-        Extract ontology terms and relationships from the OWL file.
-        Returns a dict with 'terms' and 'relationships' lists.
-        """
-        g = Graph()
-        g.parse(self._params.file)
-        self.logger.info(f"Loaded OWL file: {self._params.file}")
-        terms = self._extract_terms(g)
-        relationships = self._extract_relationships(g)
-        return {"terms": terms, "relationships": relationships}
-
-    def transform(self, data: Dict[str, list]) -> Dict[str, list]:
-        """
-        Transform extracted ontology terms and relationships. (No-op for now)
-        """
-        # Add normalization/validation here if needed
+    def transform(
+        self, data: Union[OntologyTerm, OntologyTriple]
+    ) -> Union[OntologyTerm, OntologyTriple]:
+        if self._debug:
+            self.logger.debug("Transforming data", data)
+        if data is None:
+            raise RuntimeError(
+                "No records provided to transform(). At least one record is required."
+            )
         return data
 
-    async def load(self, transformed: Dict[str, list]) -> int:
+    def get_record_id(self, record: Any) -> str:
         """
-        Persist transformed data using an async SQLAlchemy session.
-        Tally all inserts using self.update_transaction_count for accurate ETL status reporting.
-        Returns the number of rows persisted.
+        Returns a unique identifier for a record (subject URI).
         """
-        transaction_count = 0
-        async with self._session_manager() as session:
-            for record in transformed["terms"]:
-                if self._insert_term(session, record.dict()):
-                    transaction_count += 1
-                    self.update_transaction_count(
-                        ETLOperation.INSERT, "reference.ontology.term"
-                    )
-            for rel in transformed["relationships"]:
-                if self._insert_triple(session, rel):
-                    transaction_count += 1
-                    self.update_transaction_count(
-                        ETLOperation.INSERT, "reference.ontology.triple"
-                    )
-            # Commit logic is handled by the pipeline, not the plugin
-        return transaction_count
+        return record.get("subject", "")
 
-    def get_record_id(self, record: OntologyTermRecord) -> str:
-        """
-        Return the unique identifier for a record (term_id).
-        """
-        return record.term_id
-
-    def _insert_term(self, session: Session, args: Dict[str, Any]) -> bool:
-        """
-        Insert a term record. Returns True if inserted, False if conflict.
-        """
-        term_insert_sql = """
-            INSERT INTO reference.ontology.term (
-                term_id, label, definition, synonyms, is_obsolete, replaced_by, term_kind
-            ) VALUES (
-                :term_id, :label, :definition, :synonyms, :is_obsolete, :replaced_by, :term_kind
-            );
-        """
+    async def _load_term(self, session, term: OntologyTerm) -> int:
         try:
-            session.execute(text(term_insert_sql), args)
-            self.update_transaction_count(
-                ETLOperation.INSERT, "reference.ontology.term"
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO Reference.Ontology.term (
+                        term_id, term, label, definition, synonyms, is_obsolete, replaced_by, term_category
+                    ) VALUES (
+                        :term_id, :term, :label, :definition, :synonyms, :is_obsolete, :replaced_by, :term_category
+                    )
+                    """
+                ),
+                term.model_dump(),
             )
-            return True
-        except Exception as e:
-            self.logger.warning(f"Conflict inserting term_id {args['term_id']}: {e}")
-            return False
+            self.update_transaction_count(
+                ETLOperation.INSERT, "Reference.Ontology.term"
+            )
+            return 1
 
-    def _insert_triple(self, session: Session, args: Dict[str, Any]) -> bool:
-        """
-        Insert a triple record. Returns True if inserted, False if conflict.
-        """
-        triple_insert_sql = """
-            INSERT INTO reference.ontology.triple (
-                source, predicate, destination
-            ) VALUES (
-                :source, :predicate, :destination
-            );
-        """
-        try:
-            session.execute(text(triple_insert_sql), args)
-            self.update_transaction_count(
-                ETLOperation.INSERT, "reference.ontology.triple"
-            )
-            return True
-        except Exception as e:
+        except IntegrityError:
+            self.logger.warning(f"Duplicate term_id '{term.term_id}' skipped.")
+            self.update_transaction_count(ETLOperation.SKIP, "Reference.Ontology.term")
+            return 0
+
+    async def _triple_exists(self, session, triple: OntologyTriple) -> bool:
+        result = await session.execute(
+            text(
+                """
+                SELECT 1 FROM Reference.Ontology.triple
+                WHERE subject = :subject AND predicate = :predicate AND object = :object
+                LIMIT 1
+                """
+            ),
+            triple.model_dump(),
+        )
+        return bool(result.scalar())
+
+    async def _insert_triple(self, session, triple: OntologyTriple) -> None:
+        await session.execute(
+            text(
+                """
+                INSERT INTO Reference.Ontology.triple (
+                    subject, predicate, object
+                ) VALUES (
+                    :subject, :predicate, :object
+                )
+                """
+            ),
+            triple.model_dump(),
+        )
+
+    async def _load_ontology_triple(self, session, triple: OntologyTriple) -> int:
+        if await self._triple_exists(session, triple):
             self.logger.warning(
-                f"Conflict inserting triple ({args['source']}, {args['predicate']}, {args['destination']}): {e}"
+                f"Duplicate triple ({triple.subject}, {triple.predicate}, {triple.object}) skipped."
             )
-            return False
+            self.update_transaction_count(
+                ETLOperation.SKIP, "Reference.Ontology.triple"
+            )
+            return 0
+        await self._insert_triple(session, triple)
+        self.update_transaction_count(ETLOperation.INSERT, "Reference.Ontology.triple")
+        return 1
+
+    async def load(self, transformed: Any) -> int:
+        """
+        Insert a single ontology term or triple record into the database using SQLAlchemy text queries.
+        Args:
+            transformed: OntologyTerm or OntologyTriple record to insert.
+        Returns:
+            int: Number of records inserted (always 1 if successful).
+        """
+        if transformed is None:
+            raise RuntimeError("No record provided to load(). A record is required.")
+
+        async with self._session_manager() as session:
+            if isinstance(transformed, OntologyTerm):
+                return await self._insert_ontology_term(session, transformed)
+            elif isinstance(transformed, OntologyTriple):
+                return await self._load_ontology_triple(session, transformed)
+            else:
+                raise TypeError(f"Unknown record type: {type(transformed)}")

@@ -47,3 +47,5 @@ class RegularExpressions(StrEnum):
 
     # postgresql://<user>:<password>@<host>:<port>/<database>
     POSTGRES_URI = r"^postgresql:\/\/[^:]+:[^@]+@[^:]+:\d+\/[^\/\s]+$"
+
+    EXTERNAL_DATABASE_REF = r"^(.+?)\|([^\s|]+)$"  # name|version

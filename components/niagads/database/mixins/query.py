@@ -19,9 +19,10 @@ class QueryMixin:
     @classmethod
     async def get_primary_key(
         cls, session: AsyncSession, fields: Dict[str, Any]
-    ) -> List[Union[int, str]]:
+    ) -> Union[int, str, None]:
         """
         Async return the primary key value for records matching given field values.
+        Returns the PK value if exactly one match is found, None if no match, and raises an error if multiple matches are found.
         Raises an error if the primary key is not a single column.
         Example: await Model.get_primary_key(session, {"field1": value1})
         """
@@ -37,4 +38,8 @@ class QueryMixin:
         )
         result = await session.execute(stmt)
         rows = result.all()
-        return [row[0] for row in rows]  # list of PK values
+        if not rows:
+            raise ValueError(f"No record found for {fields} in {cls.__name__}")
+        if len(rows) > 1:
+            raise ValueError(f"Multiple records found for {fields} in {cls.__name__}")
+        return rows[0][0]
