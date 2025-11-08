@@ -44,11 +44,15 @@ def interpolate_params(params: Dict[str, Any], scope: Dict[str, Any]) -> Dict[st
 
 
 def register_package_plugins(package_name: str):
-
     package = importlib.import_module(package_name)
-    for _, modname, ispkg in pkgutil.iter_modules(package.__path__):
+    for finder, modname, ispkg in pkgutil.walk_packages(
+        package.__path__, package.__name__ + "."
+    ):
         if not ispkg:
-            importlib.import_module(f"{package_name}.{modname}")
+            importlib.import_module(modname)
+    # for _, modname, ispkg in pkgutil.iter_modules(package.__path__):
+    #    if not ispkg:
+    #        importlib.import_module(f"{package_name}.{modname}")
 
 
 def register_project_plugins(project):
