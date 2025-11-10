@@ -4,8 +4,9 @@ BEGIN
 
     CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.term (
         term_id VARCHAR(32) PRIMARY KEY,       -- e.g. GO:0006915
+        uri VARCHAR(150),                      -- full uri
         term VARCHAR(512),                     -- the term
-        label VARCHAR(512),                    -- a display term for applicatoins
+        label VARCHAR(512),                    -- a display term for applications
         definition TEXT,                       -- definitions can be long
         synonyms TEXT[],                       -- synonyms can be many / long
         is_obsolete BOOLEAN DEFAULT FALSE,
