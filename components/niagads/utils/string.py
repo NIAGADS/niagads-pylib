@@ -15,6 +15,31 @@ from dateutil.parser import parse as parse_date
 from typing_extensions import deprecated
 
 
+def jaccard_word_similarity(a: str, b: str) -> float:
+    """
+    Computes Jaccard similarity between two strings by comparing sets of unique
+    words. (see https://en.wikipedia.org/wiki/Jaccard_index)
+
+    The function splits each string into words, converts them to lowercase, and
+    forms sets of unique words. It then calculates the Jaccard similarity as the
+    ratio of the size of the intersection to the size of the union of these sets.
+    Word order, duplicates, and semantic meaning are ignored.
+
+    Args:
+        a (str): First string to compare.
+        b (str): Second string to compare.
+
+    Returns:
+        float: Jaccard similarity score between 0.0 and 1.0, representing the
+            overlap of unique words.
+    """
+    set_a = set(a.lower().split())
+    set_b = set(b.lower().split())
+    intersection = set_a & set_b
+    union = set_a | set_b
+    return len(intersection) / len(union) if union else 0.0
+
+
 def generate_uuid(value: str):
     """Generates a unique ID (UUID) from a string using SHA-256 hashing.
 

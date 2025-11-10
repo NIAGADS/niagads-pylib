@@ -9,10 +9,13 @@ While it can be adapted for another application, it relies on the existence of a
 each term to its source ontology, which is recorded as a row in the table.
 """
 
-from enum import auto
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
-from niagads.enums.core import CaseInsensitiveEnum
+from niagads.common.models.ontology import (
+    OntologyRelationship,
+    OntologyTerm,
+    RDFTermCategory,
+)
 from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
 from niagads.etl.plugins.logger import ETLOperation
 from niagads.etl.plugins.parameters import (
@@ -20,20 +23,22 @@ from niagads.etl.plugins.parameters import (
     PathValidatorMixin,
     ResumeCheckpoint,
 )
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation
 from niagads.etl.plugins.registry import PluginRegistry
+from niagads.genomicsdb.models.admin.pipeline import ETLOperation
 from niagads.genomicsdb_service.etl.plugins.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
-from pydantic import BaseModel, Field, computed_field, model_validator
+from niagads.utils.string import jaccard_word_similarity
+from pydantic import Field
 from rdflib import Graph, URIRef
 from rdflib.namespace import OWL, RDF, RDFS
-from sqlalchemy.sql import text
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.sql import text
 
-OBOINOWL = URIRef("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym")
-IAO = URIRef("http://purl.obolibrary.org/obo/IAO_0100001")
-
+OBOINOWL_HAS_EXACT_SYNONYM = (
+    "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym"
+)
+IAO_REPLACED_BY = "http://purl.obolibrary.org/obo/IAO_0100001"
 OBO_IS_A = "http://www.geneontology.org/formats/oboInOwl#is_a"
 RO_DERVICES_FROM = "http://purl.obolibrary.org/obo/RO_0001000"
 RO_PART_OF = "http://purl.obolibrary.org/obo/BFO_0000050"
@@ -49,103 +54,8 @@ RELATIONSHIP_PREDICATES = [
     RO_HAS_PART,
     RO_DEVELOPS_FROM,
     RO_LOCATED_IN,
+    IAO_REPLACED_BY,
 ]
-
-
-class RDFTermCategory(CaseInsensitiveEnum):
-    """
-    Enum for RDF/OWL ontology term categories.
-
-    Values:
-        CLASS: OWL class
-        PROPERTY: OWL property
-        INDIVIDUAL: OWL named individual
-    """
-
-    CLASS = auto()
-    PROPERTY = auto()
-    INDIVIDUAL = auto()
-
-    def __str__(self):
-        return self.value.lower()
-
-    @classmethod
-    def from_term(cls, term_types):
-        """
-        Returns the RDFTermCategory for a set of RDF type URIs, or raises ValueError if not recognized.
-        """
-
-        if str(OWL.Class) in term_types:
-            return cls.CLASS
-        elif str(OWL.ObjectProperty) in term_types:
-            return cls.PROPERTY
-        elif str(OWL.NamedIndividual) in term_types:
-            return cls.INDIVIDUAL
-        raise ValueError(f"Unrecognized ontology term type(s): {term_types}")
-
-
-class OntologyTerm(BaseModel):
-    """
-    Pydantic model representing a term in an ontology graph.
-
-    Used for storing ontology term metadata, including category, label,
-    definition, synonyms, and obsolescence information.
-    """
-
-    uri: str = Field(..., description="Unique identifier for the ontology term (URI)")
-    term_category: str = Field(
-        ..., description="Term category: class, property, or individual"
-    )
-    label: str | None = Field(
-        default=None, description="Human-readable label for the term"
-    )
-    definition: str | None = Field(
-        default=None, description="Textual definition of the term"
-    )
-    synonyms: list[str] = Field(
-        default_factory=list, description="List of synonyms for the term"
-    )
-    is_obsolete: bool = Field(default=False, description="True if the term is obsolete")
-    replaced_by: str | None = Field(
-        default=None, description="URI of the term that replaces this one, if obsolete"
-    )
-
-    @computed_field
-    @property
-    def term_id(self) -> str:
-        """
-        Returns the short ID for the ontology term, computed from the URI.
-        """
-        base = self.uri.rsplit("/", 1)[-1]
-        return base.replace("_", ":") if "_" in base and base.count("_") == 1 else base
-
-    @model_validator(mode="before")
-    def convert_fields(cls, values):
-        """
-        Converts all non-boolean field values to strings before model validation.
-
-        Args:
-            values (dict): Dictionary of field values.
-
-        Returns:
-            dict: Updated field values with non-boolean values converted to strings.
-        """
-        for field, v in values.items():
-            if v is not None and not isinstance(v, bool):
-                values[field] = str(v)
-        return values
-
-
-class OntologyTriple(BaseModel):
-    """
-    Pydantic model representing an RDF triple in the ontology graph.
-
-    Each triple consists of a subject, predicate, and object URI or value.
-    """
-
-    subject: str
-    predicate: str
-    object: str
 
 
 class OntologyGraphLoaderParams(
@@ -159,6 +69,9 @@ class OntologyGraphLoaderParams(
             "(RO_0002233), has_output (RO_0002234), preceded_by (RO_0002001)."
         ),
     )
+    # XXX: asking for this here b/c it seems too needlessly complex to pull
+    # it out of the file
+    namespace: str = Field(..., description="ontology base URI")
 
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
@@ -224,7 +137,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
             for predicate, obj in self._graph.predicate_objects(subject):
                 pred_str = str(predicate)
                 if pred_str in self._relationship_predicates:
-                    yield OntologyTriple(
+                    yield OntologyRelationship(
                         subject=str(subject),
                         predicate=pred_str,
                         object=str(obj),
@@ -233,72 +146,89 @@ class OntologyGraphLoader(AbstractBasePlugin):
                     props.setdefault(pred_str, []).append(str(obj))
             yield {"subject": str(subject), "properties": props}
 
+    @staticmethod
+    def _resolve_term_category(term_types: list) -> RDFTermCategory:
+        """
+        Returns the RDFTermCategory for a set of RDF type URIs, or raises ValueError if not recognized.
+        """
+
+        if str(OWL.Class) in term_types:
+            return RDFTermCategory.CLASS
+        elif str(OWL.ObjectProperty) in term_types:
+            return RDFTermCategory.PROPERTY
+        elif str(OWL.NamedIndividual) in term_types:
+            return RDFTermCategory.INDIVIDUAL
+        raise ValueError(f"Unrecognized ontology term type(s): {term_types}")
+
     def transform(
-        self, record: Union[OntologyTerm, OntologyTriple]
-    ) -> Union[OntologyTerm, OntologyTriple]:
+        self, record: Union[OntologyTerm, OntologyRelationship]
+    ) -> Union[OntologyTerm, OntologyRelationship]:
 
         if record is None:
             raise RuntimeError(
                 "No records provided to transform(). At least one record is required."
             )
-        if isinstance(record, OntologyTriple):
+        if isinstance(record, OntologyRelationship):
             return record
 
         # otherwise assemble term
         props: dict = record["properties"]
 
         term_types = set(props.get(str(RDF.type), []))
-        term_category = RDFTermCategory.from_term(term_types)
+        term_category = self._resolve_term_category(term_types)
         label = props.get(str(RDFS.label), [None])[0]
         definition = props.get(str(RDFS.comment), [None])[0]
-        synonyms = props.get(str(OBOINOWL), [])
+        synonyms = props.get(OBOINOWL_HAS_EXACT_SYNONYM, [])
         is_obsolete = bool(props.get(str(OWL.deprecated), [False])[0])
-        replaced_by = props.get(str(IAO), [None])[0]
 
         return OntologyTerm(
-            uri=record["subject"],
+            term_iri=record["subject"],
             term_category=term_category,
-            label=label,
+            term=label,
             definition=definition,
             synonyms=synonyms,
             is_obsolete=is_obsolete,
-            replaced_by=replaced_by,
         )
 
-    def get_record_id(self, record: Union[OntologyTerm, OntologyTriple]) -> str:
+    def get_record_id(self, record: Union[OntologyTerm, OntologyRelationship]) -> str:
         """
         Returns a unique identifier for a record (subject URI).
         """
-        if isinstance(record, OntologyTriple):
+        if isinstance(record, OntologyRelationship):
             return None
         else:
             return record.term_id
 
+    # TODO: with ontology terms sometimes you may see a term first in the non-source
+    # ontology and may want to update the properties, when you load the source
+    # need to create an update behavior to load better or missing property values
+    # TODO: add xdbref vectors on duplicates (i.e., this term in multiple ontologies)
     async def _load_term(self, session, term: OntologyTerm) -> ResumeCheckpoint:
         try:
             await session.execute(
                 text(
                     """
                     INSERT INTO Reference.Ontology.term (
-                        term_id, uri, term, label, definition, synonyms, is_obsolete, replaced_by, term_category
+                        term_id, uri, term, definition, synonyms, is_obsolete, replaced_by, term_category
                     ) VALUES (
-                        :term_id, :uri, :term, :label, :definition, :synonyms, :is_obsolete, :replaced_by, :term_category
+                        :term_id, :uri, :term, :definition, :synonyms, :is_obsolete, :replaced_by, :term_category
                     )
                     """
                 ),
                 term.model_dump(),
             )
             self.update_transaction_count(
-                ETLOperation.INSERT, "Reference.Ontology.term"
+                ETLOperation.INSERT, "Reference.Ontology_term"
             )
             return ResumeCheckpoint(full_record=term)
 
+        # TODO: update logic?
         except IntegrityError:
             self.logger.warning(f"Duplicate term_id '{term.term_id}' skipped.")
-            self.update_transaction_count(ETLOperation.SKIP, "Reference.Ontology.term")
+            self.update_transaction_count(ETLOperation.SKIP, "Reference.Ontology_term")
             return 0
 
-    async def _triple_exists(self, session, triple: OntologyTriple) -> bool:
+    async def _triple_exists(self, session, triple: OntologyRelationship) -> bool:
         result = await session.execute(
             text(
                 """
@@ -311,7 +241,9 @@ class OntologyGraphLoader(AbstractBasePlugin):
         )
         return bool(result.scalar())
 
-    async def _insert_triple(self, session, triple: OntologyTriple) -> ResumeCheckpoint:
+    async def _insert_triple(
+        self, session, triple: OntologyRelationship
+    ) -> ResumeCheckpoint:
         await session.execute(
             text(
                 """
@@ -324,36 +256,34 @@ class OntologyGraphLoader(AbstractBasePlugin):
             ),
             triple.model_dump(),
         )
-        return ResumeCheckpoint(full_record=triple)
 
-    async def _load_ontology_triple(self, session, triple: OntologyTriple) -> int:
+    async def _load_ontology_triple(self, session, triple: OntologyRelationship) -> int:
         if await self._triple_exists(session, triple):
             self.logger.warning(
                 f"Duplicate triple ({triple.subject}, {triple.predicate}, {triple.object}) skipped."
             )
             self.update_transaction_count(
-                ETLOperation.SKIP, "Reference.Ontology.triple"
+                ETLOperation.SKIP, "Reference.Ontology_triple"
             )
-            return 0
-        await self._insert_triple(session, triple)
-        self.update_transaction_count(ETLOperation.INSERT, "Reference.Ontology.triple")
-        return 1
 
-    async def load(self, transformed: Any) -> int:
+        await self._insert_triple(session, triple)
+        self.update_transaction_count(ETLOperation.INSERT, "Reference.Ontology_triple")
+
+        return ResumeCheckpoint(full_record=triple)
+
+    async def load(self, transformed: Any) -> ResumeCheckpoint:
         """
         Insert a single ontology term or triple record into the database using SQLAlchemy text queries.
         Args:
             transformed: OntologyTerm or OntologyTriple record to insert.
         Returns:
-            int: Number of records inserted (always 1 if successful).
+            ResumeCheckpoint
         """
-        if transformed is None:
-            raise RuntimeError("No record provided to load(). A record is required.")
 
         async with self._session_manager() as session:
             if isinstance(transformed, OntologyTerm):
-                return await self._insert_ontology_term(session, transformed)
-            elif isinstance(transformed, OntologyTriple):
+                return await self._load_term(session, transformed)
+            elif isinstance(transformed, OntologyRelationship):
                 return await self._load_ontology_triple(session, transformed)
             else:
                 raise TypeError(f"Unknown record type: {type(transformed)}")
