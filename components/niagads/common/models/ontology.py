@@ -7,7 +7,7 @@ validation, and graph construction in ontology loader plugins.
 """
 
 from enum import auto
-from typing import Any, Dict, Optional, Union
+from typing import Optional, Union
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.common.models.core import TransformableModel
 from niagads.utils.regular_expressions import RegularExpressions
@@ -62,7 +62,10 @@ class OntologyTerm(TransformableModel):
     synonyms: list[str] = Field(
         default_factory=list, description="List of synonyms for the term"
     )
-    is_obsolete: bool = Field(default=False, description="True if the term is obsolete")
+    is_deprecated: bool = Field(
+        default=False, description="True if the term is deprecated"
+    )
+    is_placeholder: bool = Field(default=False, description="True if palceholder term")
 
     @field_validator("term_id", mode="before")
     def extract_term_id(cls, v, data: dict):

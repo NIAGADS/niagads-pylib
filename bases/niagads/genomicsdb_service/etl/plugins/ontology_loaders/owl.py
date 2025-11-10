@@ -11,11 +11,7 @@ each term to its source ontology, which is recorded as a row in the table.
 
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
-from niagads.common.models.ontology import (
-    OntologyRelationship,
-    OntologyTerm,
-    RDFTermCategory,
-)
+from niagads.common.models.ontology import RDFTermCategory
 from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
 from niagads.etl.plugins.logger import ETLOperation
 from niagads.etl.plugins.parameters import (
@@ -25,50 +21,26 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation
+from niagads.genomicsdb_service.etl.plugins.db_helpers.ontologies import (
+    OntologyPropertyIRI,
+    OntologyRelationship,
+    OntologyTerm,
+)
 from niagads.genomicsdb_service.etl.plugins.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
-from niagads.utils.string import jaccard_word_similarity
 from pydantic import Field
-from rdflib import Graph, URIRef
-from rdflib.namespace import OWL, RDF, RDFS
+from rdflib import Graph
+from rdflib.namespace import OWL
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import text
-
-OBOINOWL_HAS_EXACT_SYNONYM = (
-    "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym"
-)
-IAO_REPLACED_BY = "http://purl.obolibrary.org/obo/IAO_0100001"
-OBO_IS_A = "http://www.geneontology.org/formats/oboInOwl#is_a"
-RO_DERVICES_FROM = "http://purl.obolibrary.org/obo/RO_0001000"
-RO_PART_OF = "http://purl.obolibrary.org/obo/BFO_0000050"
-RO_HAS_PART = "http://purl.obolibrary.org/obo/BFO_0000051"
-RO_DEVELOPS_FROM = "http://purl.obolibrary.org/obo/RO_0002202"
-RO_LOCATED_IN = "http://purl.obolibrary.org/obo/RO_0001025"
-
-RELATIONSHIP_PREDICATES = [
-    str(RDFS.subClassOf),
-    OBO_IS_A,
-    RO_DERVICES_FROM,
-    RO_PART_OF,
-    RO_HAS_PART,
-    RO_DEVELOPS_FROM,
-    RO_LOCATED_IN,
-    IAO_REPLACED_BY,
-]
 
 
 class OntologyGraphLoaderParams(
     BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin
 ):
     file: str
-    relationships: list = Field(
-        default_factory=list,
-        description=(
-            "List of RO relationship terms to extract. Example terms: has_target (RO_0002434), has_input "
-            "(RO_0002233), has_output (RO_0002234), preceded_by (RO_0002001)."
-        ),
-    )
+
     # XXX: asking for this here b/c it seems too needlessly complex to pull
     # it out of the file
     namespace: str = Field(..., description="ontology base URI")
@@ -87,9 +59,6 @@ class OntologyGraphLoader(AbstractBasePlugin):
     def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
         super().__init__(params, name)
         self._xdbref_id = self._params.resolve_xdbref()
-        self._relationship_predicates = (
-            RELATIONSHIP_PREDICATES + self._params.relationships
-        )
         self._graph = None
 
     @classmethod
@@ -132,11 +101,12 @@ class OntologyGraphLoader(AbstractBasePlugin):
         self._graph = Graph()
         self._graph.parse(self._params.file, format="xml")
 
+        property_predicates = OntologyPropertyIRI.list()
         for subject in self._graph.subjects():
             props = {}
             for predicate, obj in self._graph.predicate_objects(subject):
                 pred_str = str(predicate)
-                if pred_str in self._relationship_predicates:
+                if pred_str not in property_predicates:
                     yield OntologyRelationship(
                         subject=str(subject),
                         predicate=pred_str,
@@ -174,20 +144,24 @@ class OntologyGraphLoader(AbstractBasePlugin):
         # otherwise assemble term
         props: dict = record["properties"]
 
-        term_types = set(props.get(str(RDF.type), []))
+        term_types = set(props.get(OntologyTerm.get_property_iri("term_category"), []))
         term_category = self._resolve_term_category(term_types)
-        label = props.get(str(RDFS.label), [None])[0]
-        definition = props.get(str(RDFS.comment), [None])[0]
-        synonyms = props.get(OBOINOWL_HAS_EXACT_SYNONYM, [])
-        is_obsolete = bool(props.get(str(OWL.deprecated), [False])[0])
+        label = props.get(OntologyTerm.get_property_iri("label"), [None])[0]
+        term_id = props.get(OntologyTerm.get_property_iri("term_id"), [None])[0]
+        definition = props.get(OntologyTerm.get_property_iri("definition"), [None])[0]
+        synonyms = props.get(OntologyTerm.get_property_iri("synonyms"), [])
+        is_deprecated = bool(
+            props.get(OntologyTerm.get_property_iri("is_deprecated"), [False])[0]
+        )
 
         return OntologyTerm(
             term_iri=record["subject"],
+            term_id=term_id,
             term_category=term_category,
             term=label,
             definition=definition,
             synonyms=synonyms,
-            is_obsolete=is_obsolete,
+            is_deprecated=is_deprecated,
         )
 
     def get_record_id(self, record: Union[OntologyTerm, OntologyRelationship]) -> str:
@@ -205,18 +179,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
     # TODO: add xdbref vectors on duplicates (i.e., this term in multiple ontologies)
     async def _load_term(self, session, term: OntologyTerm) -> ResumeCheckpoint:
         try:
-            await session.execute(
-                text(
-                    """
-                    INSERT INTO Reference.Ontology.term (
-                        term_id, uri, term, definition, synonyms, is_obsolete, replaced_by, term_category
-                    ) VALUES (
-                        :term_id, :uri, :term, :definition, :synonyms, :is_obsolete, :replaced_by, :term_category
-                    )
-                    """
-                ),
-                term.model_dump(),
-            )
+            await term.insert(session)
             self.update_transaction_count(
                 ETLOperation.INSERT, "Reference.Ontology_term"
             )

@@ -1,12 +1,60 @@
-from niagads.common.models.ontology import OntologyTerm, RDFTermCategory
+from niagads.common.models.ontology import (
+    OntologyRelationship as __OntologyRelationship,
+)
+from niagads.common.models.ontology import OntologyTerm as __OntologyTerm
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.string import jaccard_word_similarity
 from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
 
 
-class OntologyTermDatabaseMixin(OntologyTerm):
+class OntologyPropertyIRI(CaseInsensitiveEnum):
+    HAS_RELATED_SYNONYM = (
+        "http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym"
+    )
+    HAS_BROAD_SYNONYM = "http://www.geneontology.org/formats/oboInOwl#hasBroadSynonym"
+    HAS_NARROW_SYNONYM = "http://www.geneontology.org/formats/oboInOwl#hasNarrowSynonym"
+    HAS_DB_XREF = "http://www.geneontology.org/formats/oboInOwl#hasDbXref"
+    IN_SUBSET = "http://www.geneontology.org/formats/oboInOwl#inSubset"
+    HAS_OBO_NAMESPACE = "http://www.geneontology.org/formats/oboInOwl#hasOBONamespace"
+    SEE_ALSO = "http://www.w3.org/2000/01/rdf-schema#seeAlso"
+    COMMENT = "http://www.w3.org/2000/01/rdf-schema#comment"
+    CREATED_BY = "http://www.geneontology.org/formats/oboInOwl#created_by"
+    CREATION_DATE = "http://www.geneontology.org/formats/oboInOwl#creation_date"
+    SHORTHAND = "http://www.geneontology.org/formats/oboInOwl#shorthand"
+    CONSIDER = "http://www.geneontology.org/formats/oboInOwl#consider"
+    REPLACED_BY = "http://www.geneontology.org/formats/oboInOwl#replaced_by"
+    HAS_ALTERNATIVE_ID = "http://www.geneontology.org/formats/oboInOwl#hasAlternativeId"
+    HAS_DEFINITION_SOURCE = (
+        "http://www.geneontology.org/formats/oboInOwl#hasDefinitionSource"
+    )
+    HAS_EXACT_SYNONYM_TYPE = (
+        "http://www.geneontology.org/formats/oboInOwl#hasExactSynonymType"
+    )
+    HAS_SYNONYM_TYPE = "http://www.geneontology.org/formats/oboInOwl#hasSynonymType"
+    HAS_SUBSET = "http://www.geneontology.org/formats/oboInOwl#hasSubset"
+    HAS_OBSOLETE_SYNONYM = (
+        "http://www.geneontology.org/formats/oboInOwl#hasObsoleteSynonym"
+    )
+    HAS_OBSOLETE_PARENT = (
+        "http://www.geneontology.org/formats/oboInOwl#hasObsoleteParent"
+    )
+    TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
+    DEFINITION = "http://purl.obolibrary.org/obo/IAO_0000115"
+    ID = "http://www.geneontology.org/formats/oboInOwl#id"
+    HAS_EXACT_SYNONYM = "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym"
+    HAS_OBSOLETE_CHILD = "http://www.geneontology.org/formats/oboInOwl#hasObsoleteChild"
+    HAS_OBSOLETE_XREF = "http://www.geneontology.org/formats/oboInOwl#hasObsoleteXref"
+    HAS_OBSOLETE_DEFINITION = (
+        "http://www.geneontology.org/formats/oboInOwl#hasObsoleteDefinition"
+    )
+    DEPRECATED = "http://www.w3.org/2002/07/owl#deprecated"
+
+
+class OntologyTerm(__OntologyTerm):
     """
-    Mixin for OntologyTerm providing async database operations
+    Extension to OntologyTerm providing async database operations
     """
 
     async def exists(self, session) -> bool:
@@ -23,6 +71,30 @@ class OntologyTermDatabaseMixin(OntologyTerm):
         result = await session.execute(stmt, {"term_id": self.term_id})
         # Cast to bool to catch None (not found)
         return bool(await result.scalar())
+
+    @classmethod
+    def get_property_iri(cls, field: str) -> str:
+        """
+        Returns a list of ontology property IRIs used to retrieve values of an OntologyTerm object
+        """
+        if field not in cls.get_model_fields():
+            raise ValueError(f"Invalid field '{field}' for OntologyTerm.")
+
+        match field:
+            case "term_category":
+                return OntologyPropertyIRI.TYPE
+            case "term":
+                return OntologyPropertyIRI.LABEL
+            case "definition":
+                return OntologyPropertyIRI.DEFINITION
+            case "term_id":
+                return OntologyPropertyIRI.ID
+            case "synonym":
+                return OntologyPropertyIRI.HAS_EXACT_SYNONYM
+            case "is_deprecated":
+                return OntologyPropertyIRI.DEPRECATED
+            case _:
+                raise ValueError(f"No property IRI mapping required for '{field}'.")
 
     async def fetch_term_id(self, session):
         """
@@ -109,6 +181,7 @@ class OntologyTermDatabaseMixin(OntologyTerm):
                 "term_id": self.term_id,
                 "term_iri": self.term_iri,
                 "term_category": str(self.term_category),
+                "is_placeholder": True,
             },
         )
 
@@ -144,27 +217,30 @@ class OntologyTermDatabaseMixin(OntologyTerm):
 
     def in_namespace(self, namespace) -> bool:
         """
-        Returns True if the current ontology is the source of the
-        the term.  Used to assess whether a duplicate term
-        might need to be updated in the database.
+        Check if this term's IRI starts with the given namespace.
+
+        Args:
+            namespace (str): The namespace URI to check.
+
+        Returns:
+            bool: True if term_iri starts with namespace, else False.
         """
         return self.term_iri.startswith(namespace)
 
     def _resolve_definition(self, stored_term_definition: str, namespace: str) -> str:
         """
-        Returns the preferred definition for a duplicated ontology term.
+        Select the preferred definition for a duplicate ontology term.
 
-        Prefers the definition from the source ontology if available.
-        Otherwise, selects the definition with lower Jaccard similarity
-        and longer character length. If neither definition is present,
-        returns the available one.
+        Prefers the definition from the source ontology if available. Otherwise,
+        selects the definition with lower Jaccard similarity and longer length.
+        If only one definition is present, returns it.
 
         Args:
-            term: OntologyTerm.
-            stored_term_definition: Existing definition string.
+            stored_term_definition (str): Existing definition string.
+            namespace (str): Source ontology namespace.
 
         Returns:
-            str: The chosen definition string.
+            str: Preferred definition string.
         """
         if not stored_term_definition:
             return self.definition
@@ -172,7 +248,7 @@ class OntologyTermDatabaseMixin(OntologyTerm):
             return stored_term_definition
 
         # Prefer new if it comes from the source ontology
-        if self.in_namespace(self, namespace):
+        if self.in_namespace(namespace):
             return self.definition
 
         similarity = jaccard_word_similarity(stored_term_definition, self.definition)
@@ -182,3 +258,7 @@ class OntologyTermDatabaseMixin(OntologyTerm):
 
         # Otherwise, keep existing
         return stored_term_definition
+
+
+class OntologyRelationship(__OntologyRelationship):
+    pass

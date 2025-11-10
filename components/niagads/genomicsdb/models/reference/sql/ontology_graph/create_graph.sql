@@ -9,7 +9,8 @@ BEGIN
         label VARCHAR(512),                    -- a display term for applications
         definition TEXT,                       -- definitions can be long
         synonyms TEXT[],                       -- synonyms can be many / long
-        is_obsolete BOOLEAN DEFAULT FALSE,
+        is_deprecated BOOLEAN DEFAULT FALSE,
+        is_placeholder BOOLEAN DEFAULT FALSE,  -- placeholder vertex
         term_category VARCHAR(16) NOT NULL
             CHECK (term_category IN ('CLASS','PROPERTY','INDIVIDUAL'))
     );
