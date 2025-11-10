@@ -6,25 +6,6 @@ from sqlalchemy import String, Text, DateTime, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class ExternalDatabaseRef(BaseModel):
-    name: str
-    version: str
-
-    @classmethod
-    def from_xdbref(cls, xdbref: str):
-        """
-        Create an ExternalDatabaseRef from a validated 'name|version' string.
-
-        Args:
-            xdbref (str): The external database reference string in the format 'name|version'.
-
-        Returns:
-            ExternalDatabaseRef: Instance with name and version populated.
-        """
-        name, version = xdbref.rsplit("|", 1)
-        return cls(name=name, version=version)
-
-
 class ExternalDatabase(ReferenceSchemaBase):
     __tablename__ = "externaldatabase"
     __table_args__ = (
