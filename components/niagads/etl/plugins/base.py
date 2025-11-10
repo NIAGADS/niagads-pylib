@@ -594,8 +594,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 if self.__checkpoint.line is not None:
                     checkpoint_kwargs["line"] = self.__checkpoint.line
                 if self.__checkpoint.full_record is not None:
-                    if self._verbose or self._debug:
-                        checkpoint_kwargs["record"] = self.__checkpoint.record
+                    record_obj = self.__checkpoint.full_record
+                    # Use model_dump if record is a Pydantic model
+                    if hasattr(record_obj, "model_dump") and callable(
+                        record_obj.model_dump
+                    ):
+                        checkpoint_kwargs["record"] = record_obj.model_dump()
+                    else:
+                        checkpoint_kwargs["record"] = record_obj
                 if self.__checkpoint.record is not None:
                     checkpoint_kwargs["record_id"] = self.__checkpoint.record
                 elif self.__checkpoint.full_record is not None:
