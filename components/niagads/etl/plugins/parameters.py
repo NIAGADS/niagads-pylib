@@ -1,10 +1,6 @@
 from typing import Optional
 
 from niagads.etl.config import ETLMode
-from niagads.genomicsdb.models.reference.externaldb import (
-    ExternalDatabase,
-    ExternalDatabaseRef,
-)
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -79,34 +75,6 @@ class BasePluginParams(BaseModel):
         if self.commit_after == 0:
             self.commit_after = None
         return self
-
-
-class ExternalDatabaseMixin:
-    xdbref: str
-
-    @field_validator("xdbref")
-    def validate_xdbref_format(cls, value):
-        if not matches(RegularExpressions.EXTERNAL_DATABASE_REF, value):
-            raise ValueError(
-                "`xdbref` must be in the format <name>|<version> (name can have spaces, version cannot)"
-            )
-        return value
-
-    # FIXME: now with the ExternalDatabaseRef.from_xdbref function this
-    # wrapper is probably unnecessary
-    def parse_xdbref(self) -> ExternalDatabaseRef:
-        """
-        Split the xdbref string into name and version components.
-
-        Returns:
-            ExternalDatabseRef
-        """
-        return ExternalDatabaseRef.from_xdbref(self.xdbref)
-
-    def get_xdbref_id(self, session):
-        return ExternalDatabase.get_primary_key(
-            session, ExternalDatabaseRef.from_xdbref(self.xdbref).model_dump()
-        )
 
 
 class PathValidatorMixin:
