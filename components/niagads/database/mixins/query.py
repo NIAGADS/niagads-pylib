@@ -1,6 +1,8 @@
-from sqlalchemy import inspect, select, exists
+from typing import Any, Dict, Union
+
+from sqlalchemy import exists, inspect, select
+from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any, Dict, List, Union
 
 
 class QueryMixin:
@@ -39,7 +41,9 @@ class QueryMixin:
         result = await session.execute(stmt)
         rows = result.all()
         if not rows:
-            raise ValueError(f"No record found for {fields} in {cls.__name__}")
+            raise NoResultFound(f"No record found for {fields} in {cls.__name__}")
         if len(rows) > 1:
-            raise ValueError(f"Multiple records found for {fields} in {cls.__name__}")
+            raise MultipleResultsFound(
+                f"Multiple records found for {fields} in {cls.__name__}"
+            )
         return rows[0][0]
