@@ -1,3 +1,4 @@
+from typing import Union
 from niagads.common.models.ontology import (
     OntologyRelationship as __OntologyRelationship,
 )
@@ -8,47 +9,13 @@ from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
 
 
-class OntologyPropertyIRI(CaseInsensitiveEnum):
-    HAS_RELATED_SYNONYM = (
-        "http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym"
-    )
-    HAS_BROAD_SYNONYM = "http://www.geneontology.org/formats/oboInOwl#hasBroadSynonym"
-    HAS_NARROW_SYNONYM = "http://www.geneontology.org/formats/oboInOwl#hasNarrowSynonym"
-    HAS_DB_XREF = "http://www.geneontology.org/formats/oboInOwl#hasDbXref"
-    IN_SUBSET = "http://www.geneontology.org/formats/oboInOwl#inSubset"
-    HAS_OBO_NAMESPACE = "http://www.geneontology.org/formats/oboInOwl#hasOBONamespace"
-    SEE_ALSO = "http://www.w3.org/2000/01/rdf-schema#seeAlso"
-    COMMENT = "http://www.w3.org/2000/01/rdf-schema#comment"
-    CREATED_BY = "http://www.geneontology.org/formats/oboInOwl#created_by"
-    CREATION_DATE = "http://www.geneontology.org/formats/oboInOwl#creation_date"
-    SHORTHAND = "http://www.geneontology.org/formats/oboInOwl#shorthand"
-    CONSIDER = "http://www.geneontology.org/formats/oboInOwl#consider"
-    REPLACED_BY = "http://www.geneontology.org/formats/oboInOwl#replaced_by"
-    HAS_ALTERNATIVE_ID = "http://www.geneontology.org/formats/oboInOwl#hasAlternativeId"
-    HAS_DEFINITION_SOURCE = (
-        "http://www.geneontology.org/formats/oboInOwl#hasDefinitionSource"
-    )
-    HAS_EXACT_SYNONYM_TYPE = (
-        "http://www.geneontology.org/formats/oboInOwl#hasExactSynonymType"
-    )
-    HAS_SYNONYM_TYPE = "http://www.geneontology.org/formats/oboInOwl#hasSynonymType"
-    HAS_SUBSET = "http://www.geneontology.org/formats/oboInOwl#hasSubset"
-    HAS_OBSOLETE_SYNONYM = (
-        "http://www.geneontology.org/formats/oboInOwl#hasObsoleteSynonym"
-    )
-    HAS_OBSOLETE_PARENT = (
-        "http://www.geneontology.org/formats/oboInOwl#hasObsoleteParent"
-    )
+class AnnotationPropertyIRI(CaseInsensitiveEnum):
+    EDITOR_PREFERRED_LABEL = "http://purl.obolibrary.org/obo/IAO_0000111"
     TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
     DEFINITION = "http://purl.obolibrary.org/obo/IAO_0000115"
     ID = "http://www.geneontology.org/formats/oboInOwl#id"
     HAS_EXACT_SYNONYM = "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym"
-    HAS_OBSOLETE_CHILD = "http://www.geneontology.org/formats/oboInOwl#hasObsoleteChild"
-    HAS_OBSOLETE_XREF = "http://www.geneontology.org/formats/oboInOwl#hasObsoleteXref"
-    HAS_OBSOLETE_DEFINITION = (
-        "http://www.geneontology.org/formats/oboInOwl#hasObsoleteDefinition"
-    )
     DEPRECATED = "http://www.w3.org/2002/07/owl#deprecated"
 
 
@@ -73,26 +40,29 @@ class OntologyTerm(__OntologyTerm):
         return bool(await result.scalar())
 
     @classmethod
-    def get_property_iri(cls, field: str) -> str:
+    def get_property_iri(cls, field: str, preferred=True) -> str:
         """
-        Returns a list of ontology property IRIs used to retrieve values of an OntologyTerm object
+        Returns (list) of property IRIs used to retrieve values of an OntologyTerm object
         """
         if field not in cls.get_model_fields():
             raise ValueError(f"Invalid field '{field}' for OntologyTerm.")
 
         match field:
             case "term_category":
-                return OntologyPropertyIRI.TYPE
+                return AnnotationPropertyIRI.TYPE
             case "term":
-                return OntologyPropertyIRI.LABEL
+                if preferred:
+                    return AnnotationPropertyIRI.EDITOR_PREFERRED_LABEL
+                else:
+                    AnnotationPropertyIRI.LABEL
             case "definition":
-                return OntologyPropertyIRI.DEFINITION
+                return AnnotationPropertyIRI.DEFINITION
             case "term_id":
-                return OntologyPropertyIRI.ID
+                return AnnotationPropertyIRI.ID
             case "synonym":
-                return OntologyPropertyIRI.HAS_EXACT_SYNONYM
+                return AnnotationPropertyIRI.HAS_EXACT_SYNONYM
             case "is_deprecated":
-                return OntologyPropertyIRI.DEPRECATED
+                return AnnotationPropertyIRI.DEPRECATED
             case _:
                 raise ValueError(f"No property IRI mapping required for '{field}'.")
 
