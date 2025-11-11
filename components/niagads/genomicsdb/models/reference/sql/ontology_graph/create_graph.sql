@@ -13,7 +13,29 @@ BEGIN
         is_placeholder BOOLEAN DEFAULT FALSE,  -- placeholder vertex
         term_category VARCHAR(16) NOT NULL
             CHECK (term_category IN ('CLASS','PROPERTY','INDIVIDUAL'))
+
     );
+    
+    -- Generic restriction node
+    CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.restriction (
+        restriction_id SERIAL PRIMARY KEY
+    );
+
+    -- Example usage:
+    /*
+    <owl:Class rdf:about="http://purl.obolibrary.org/obo/SO_0000016">
+        <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/SO_0001660"/>
+        <rdfs:subClassOf>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://purl.obolibrary.org/obo/so#part_of"/>
+                <owl:someValuesFrom rdf:resource="http://purl.obolibrary.org/obo/SO_0001669"/>
+            </owl:Restriction>
+        </rdfs:subClassOf>
+    </owl:Class>
+    */
+    -- (SO_0000016, subClassOf, restriction_node)
+    -- (restriction_node, onProperty, part_of)
+    -- (restriction_node, someValuesFrom, SO_0001669)
 
     CREATE EDGE TYPE IF NOT EXISTS Reference.Ontology.triple (
         predicate VARCHAR(32) NOT NULL         -- must point to a term_id
@@ -22,6 +44,10 @@ BEGIN
     CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.externaldatabase_ref (
         externaldatabase_id INT PRIMARY KEY
     );
+
+    -- Edge type for classification relationships (e.g. dataset classified as ontology term)
+    CREATE EDGE TYPE IF NOT EXISTS Reference.Ontology.classified_as ()
+    SOURCE dataset DESTINATION term;
 
     CREATE EDGE TYPE IF NOT EXISTS Reference.Ontology.defined_in ()
     SOURCE term DESTINATION externaldatabase_ref;
