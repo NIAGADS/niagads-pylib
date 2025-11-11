@@ -22,7 +22,7 @@ from niagads.etl.plugins.parameters import (
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation
 from niagads.genomicsdb_service.etl.plugins.db_helpers.ontologies import (
-    OntologyPropertyIRI,
+    AnnotationPropertyIRI,
     OntologyRelationship,
     OntologyTerm,
 )
@@ -101,7 +101,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
         self._graph = Graph()
         self._graph.parse(self._params.file, format="xml")
 
-        property_predicates = OntologyPropertyIRI.list()
+        property_predicates = AnnotationPropertyIRI.list()
         for subject in self._graph.subjects():
             props = {}
             for predicate, obj in self._graph.predicate_objects(subject):
@@ -130,6 +130,15 @@ class OntologyGraphLoader(AbstractBasePlugin):
             return RDFTermCategory.INDIVIDUAL
         raise ValueError(f"Unrecognized ontology term type(s): {term_types}")
 
+    @staticmethod
+    def _resolve_label(props: dict):
+        label = props.get(OntologyTerm.get_property_iri("term", preferred=True)[None])
+        if label is not None:
+            return label[0]
+
+        label = props.get(OntologyTerm.get_property_iri("term", preferred=False)[None])
+        return label[0]
+
     def transform(
         self, record: Union[OntologyTerm, OntologyRelationship]
     ) -> Union[OntologyTerm, OntologyRelationship]:
@@ -146,7 +155,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
 
         term_types = set(props.get(OntologyTerm.get_property_iri("term_category"), []))
         term_category = self._resolve_term_category(term_types)
-        label = props.get(OntologyTerm.get_property_iri("label"), [None])[0]
+        label = self._resolve_label(props)
         term_id = props.get(OntologyTerm.get_property_iri("term_id"), [None])[0]
         definition = props.get(OntologyTerm.get_property_iri("definition"), [None])[0]
         synonyms = props.get(OntologyTerm.get_property_iri("synonyms"), [])
