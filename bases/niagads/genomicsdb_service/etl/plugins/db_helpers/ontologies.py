@@ -1,28 +1,92 @@
-from typing import Union
 from niagads.common.models.ontology import (
-    OntologyRelationship as __OntologyRelationship,
+    OntologyTriple as __OntologyTriple,
 )
 from niagads.common.models.ontology import OntologyTerm as __OntologyTerm
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.utils.string import jaccard_word_similarity
+from niagads.utils.string import jaccard_word_similarity, to_snake_case
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
 
 
+class RDFPropertyIRI(CaseInsensitiveEnum):
+    """
+    Enum for core RDF/OWL object property IRIs.
+    """
+
+    ENTITY_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+
+
+class EntityIRI(CaseInsensitiveEnum):
+    """
+    Enum for RDF/OWL ontology entity types
+
+    """
+
+    CLASS = "http://www.w3.org/2002/07/owl#Class"
+    OBJECT_PROPERTY = "http://www.w3.org/2002/07/owl#ObjectProperty"
+    NAMED_INDIVIDUAL = "http://www.w3.org/2002/07/owl#NamedIndividual"
+    ANNOTATION_PROPERTY = "http://www.w3.org/2002/07/owl#AnnotationProperty"
+
+    @classmethod
+    def resolve_entity_type(cls, assigned_types: list[str]):
+        """
+        Resolves the entity type for a vertex.
+
+        Args:
+            assigned_types (list): list of assigned entity types for a vertex
+
+        Returns:
+            EntityIRI: The first matching EntityIRI for the assigned RDF type URIs.
+
+        Raises:
+            ValueError: If no RDF types are assigned to the entity, or if none match known entity types.
+        """
+
+        if not assigned_types:
+            raise ValueError("No RDF type(s) assigned to entity.")
+        for member in cls:
+            if member.value in assigned_types:
+                return member
+        raise ValueError(f"Unrecognized ontology entity type(s): {assigned_types}")
+
+
 class AnnotationPropertyIRI(CaseInsensitiveEnum):
+    """
+    Enum for annotation property IRIs used in ontology term metadata extraction.
+    """
+
     EDITOR_PREFERRED_LABEL = "http://purl.obolibrary.org/obo/IAO_0000111"
-    TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
     DEFINITION = "http://purl.obolibrary.org/obo/IAO_0000115"
     ID = "http://www.geneontology.org/formats/oboInOwl#id"
     HAS_EXACT_SYNONYM = "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym"
     DEPRECATED = "http://www.w3.org/2002/07/owl#deprecated"
 
+    @classmethod
+    def is_stored_property(cls, iri: str):
+        """
+        Checks if the given IRI is a valid member of the annotation property enum.
+
+        Args:
+            iri (str): The IRI to validate.
+
+        Returns:
+            bool: True if valid, False otherwise.
+        """
+        try:
+            cls(iri)
+            return True
+        except ValueError:
+            return False
+
 
 class OntologyTerm(__OntologyTerm):
     """
     Extension to OntologyTerm providing async database operations
     """
+
+    run_id: int  # the algorithm invocation (run) identifier
 
     async def exists(self, session) -> bool:
         """
@@ -40,16 +104,15 @@ class OntologyTerm(__OntologyTerm):
         return bool(await result.scalar())
 
     @classmethod
-    def get_property_iri(cls, field: str, preferred=True) -> str:
+    def get_field_iri(cls, field: str, preferred=True) -> str:
         """
         Returns (list) of property IRIs used to retrieve values of an OntologyTerm object
         """
+
         if field not in cls.get_model_fields():
             raise ValueError(f"Invalid field '{field}' for OntologyTerm.")
 
         match field:
-            case "term_category":
-                return AnnotationPropertyIRI.TYPE
             case "term":
                 if preferred:
                     return AnnotationPropertyIRI.EDITOR_PREFERRED_LABEL
@@ -230,5 +293,10 @@ class OntologyTerm(__OntologyTerm):
         return stored_term_definition
 
 
-class OntologyRelationship(__OntologyRelationship):
-    pass
+class OntologyTriple(__OntologyTriple):
+    run_id: int  # the algorithm invocation (run) identifier
+
+
+class OntologyRestriction(BaseModel):
+    run_id: int  # the algorithm invocation (run) identifier
+    triples: list[OntologyTriple]

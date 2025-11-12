@@ -6,31 +6,11 @@ in the reference ontology graph schema. Used for metadata extraction,
 validation, and graph construction in ontology loader plugins.
 """
 
-from enum import auto
 from typing import Optional, Union
-from niagads.enums.core import CaseInsensitiveEnum
 from niagads.common.models.core import TransformableModel
 from niagads.utils.regular_expressions import RegularExpressions
-from niagads.utils.string import dict_to_info_string, matches
+from niagads.utils.string import dict_to_info_string, matches, to_snake_case
 from pydantic import BaseModel, Field, field_validator, model_validator
-
-
-class RDFTermCategory(CaseInsensitiveEnum):
-    """
-    Enum for RDF/OWL ontology term categories.
-
-    Values:
-        CLASS: OWL class
-        PROPERTY: OWL property
-        INDIVIDUAL: OWL named individual
-    """
-
-    CLASS = auto()
-    PROPERTY = auto()
-    INDIVIDUAL = auto()
-
-    def __str__(self):
-        return self.value.lower()
 
 
 class OntologyTerm(TransformableModel):
@@ -49,10 +29,7 @@ class OntologyTerm(TransformableModel):
         default=None, description="unique, stable local identifier"
     )
     term: str = Field(..., description="the ontology term")
-    term_category: Optional[RDFTermCategory] = Field(
-        default=RDFTermCategory.CLASS,
-        description="Term category: class, property, or individual",
-    )
+
     label: Optional[str] = Field(
         default=None, description="Human-readable label for the term"
     )
@@ -67,17 +44,21 @@ class OntologyTerm(TransformableModel):
     )
     is_placeholder: bool = Field(default=False, description="True if palceholder term")
 
+    @staticmethod
+    def extract_term_id(iri: str) -> str:
+        return iri.rsplit("/", 1)[-1].replace("_", ":")
+
     @field_validator("term_id", mode="before")
-    def extract_term_id(cls, v, data: dict):
+    def validate_term_id(cls, v, data: dict):
         """
-        Returns the short ID for the ontology term. If term_id is None,
+        Validate ID for the ontology term. If term_id is None,
         extracts it from the URI. Raises a validation error if both are None.
         """
         if v is not None:
             return v
         term_iri: str = data.get("term_iri")
         if term_iri:
-            return term_iri.rsplit("/", 1)[-1].replace("_", ":")
+            return cls.extract_term_id(term_iri)
 
         raise ValueError(
             "Either 'term_id' or 'term_iri' must be provided for OntologyTerm."
@@ -121,7 +102,7 @@ class OntologyTerm(TransformableModel):
         return dict_to_info_string(info)
 
 
-class OntologyRelationship(BaseModel):
+class OntologyTriple(BaseModel):
     """
     Pydantic model representing an RDF triple in the ontology graph.
 
