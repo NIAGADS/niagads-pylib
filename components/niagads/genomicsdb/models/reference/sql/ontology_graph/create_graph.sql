@@ -2,7 +2,7 @@ RETURNS void AS $$
 BEGIN
     CREATE GRAPH IF NOT EXISTS Ontology;
 
-    CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.Term (
+    CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.term (
         term_id VARCHAR(32) PRIMARY KEY,       -- e.g. GO:0006915
         term_iri VARCHAR(150),                      -- full uri
         term VARCHAR(512),                     -- the term
@@ -11,33 +11,31 @@ BEGIN
         synonyms TEXT[],                       -- synonyms can be many / long
         is_deprecated BOOLEAN DEFAULT FALSE,
         is_placeholder BOOLEAN DEFAULT FALSE,  -- placeholder vertex
-        --term_category VARCHAR(16) NOT NULL
-        --    CHECK (term_category IN ('CLASS','PROPERTY','INDIVIDUAL'))
-
+        run_id INTEGER NOT NULL -- references admin.etltask run_id
     );
     
 
-    -- Generic restriction node
-    CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.restriction (
-        restriction_id SERIAL PRIMARY KEY
-    );
-
-
-
     CREATE EDGE TYPE IF NOT EXISTS Reference.Ontology.triple (
-        predicate VARCHAR(32) NOT NULL         -- must point to a term_id
+        predicate VARCHAR(32) NOT NULL,         -- must point to a term_id
+        run_id INTEGER NOT NULL -- references admin.etltask run_id
     ) SOURCE term DESTINATION term;
 
-    CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.externaldatabase_ref (
-        externaldatabase_id INT PRIMARY KEY
+    -- restriction blind node (BNode)
+    -- TODO: Instantiate when ETL Plugin adapted to handle restrictions 
+    /* CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.restriction (
+        restriction_id SERIAL PRIMARY KEY,
+        run_id INTEGER NOT NULL -- references admin.etltask run_id
+    );*/
+
+    -- link to source ontology metadata in Reference.ExternalDatabase
+    CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.ontology (
+        ontology_id INTEGER PRIMARY KEY, -- references reference.externaldatabase 
+        run_id INTEGER NOT NULL -- references admin.etltask run_id
     );
 
-    -- Edge type for classification relationships (e.g. dataset classified as ontology term)
-    CREATE EDGE TYPE IF NOT EXISTS Reference.Ontology.classified_as ()
-    SOURCE dataset DESTINATION term;
-
-    CREATE EDGE TYPE IF NOT EXISTS Reference.Ontology.defined_in ()
-    SOURCE term DESTINATION externaldatabase_ref;
+    CREATE EDGE TYPE IF NOT EXISTS Reference.Ontology.defined_in (
+        run_id INTEGER NOT NULL -- references admin.etltask run_id
+    ) SOURCE term DESTINATION ontology;
 END;
 $$ LANGUAGE plpgsql;
 
