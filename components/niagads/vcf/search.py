@@ -1,11 +1,10 @@
-import os
 from typing import List, Union
 from cyvcf2 import VCF
 import pysam
 
 # from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from niagads.genome.core import Human
+from niagads.assembly.core import Human
 from niagads.vcf.core import VCFEntry
 
 

@@ -1,3 +1,5 @@
+# TODO: Re-evaluate and fold what needs to be kept into VCFEntry in core.py
+
 """@brief VCF Entry Parser"""
 
 ##

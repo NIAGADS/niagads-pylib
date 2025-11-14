@@ -2,6 +2,11 @@
 **/dist
 !/projects/open-access-api/dist/
 
+# env files
+db.env
+.env
+.env.local
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

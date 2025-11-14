@@ -16,22 +16,24 @@ services:
       - ${KEYDB_DATA_DIR}:/data
 
   open-access-api-server:
-      image:  oaa-server-${NAMESPACE}:${API_VERSION}
-      container_name: oaa-server-${NAMESPACE}
-      restart: always
-      build:
-        context: .
-        dockerfile: ./Dockerfile
-        args:
-          API_VERSION: ${API_VERSION}
-          APP_MODULE: ${APP_MODULE}
-      ports:
-        - '${HOST_SERVICE_PORT}:8000'
+    image: oaa-server-${NAMESPACE}:${API_VERSION}
+    container_name: oaa-server-${NAMESPACE}
+    restart: always
+    depends_on:
+      - open-access-api-cachedb
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        API_VERSION: ${API_VERSION}
+        APP_MODULE: ${APP_MODULE}
+    ports:
+      - "${HOST_SERVICE_PORT}:8000"
 
-      # network_mode: bridge
-      # networks:
-      #  - niagads-api_default
+    # network_mode: bridge
+    # networks:
+    #  - niagads-api_default
 
   # networks:
-    #niagads-api_default:
-    #    external: true
+  #niagads-api_default:
+  #    external: true

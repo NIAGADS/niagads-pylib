@@ -1,0 +1,16 @@
+<Records>
+    <Table schema="admin" name="externaldatabase">
+        <Record>
+            <Field name="name">ENCODE</Field>
+        </Record>
+        <Record>
+            <Field name="name">GTEX</Field>
+            <Field name="person">me</Field>
+        </Record>
+    </Table>
+    <Table schema="admin" name="tracker">
+        <Record>
+            <Field name="value">True</Field>
+        </Record>
+    </Table>
+</Records>

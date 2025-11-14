@@ -1,8 +1,8 @@
 from typing import Any, List, Self, Union
-from niagads.genome.core import Human
+from niagads.assembly.core import Human
 from niagads.utils.dict import info_string_to_dict
 from niagads.utils.string import to_json
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 from cyvcf2 import Variant
 
 VCF_HEADER_FIELDS = [

@@ -1,19 +1,19 @@
 import logging
 from os.path import basename
-from typing import List, Set, Union
+from typing import List, Union
 from urllib.parse import unquote
 
 from niagads.common.constants.ontologies import BiosampleType
 from niagads.common.models.ontology import OntologyTerm
-from niagads.database.schemas.dataset.composite_attributes import (
+from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,
     Provenance,
 )
-from niagads.database.schemas.dataset.track import Track
+from niagads.genomicsdb.models.dataset.track import Track
 from niagads.utils.dict import print_dict
-from niagads.utils.list import array_in_string, remove_duplicates, remove_from_list
+from niagads.utils.list import array_in_string, remove_duplicates
 from niagads.utils.logging import FunctionContextAdapter
 from niagads.utils.string import (
     is_bool,

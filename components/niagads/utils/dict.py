@@ -5,10 +5,34 @@ from typing import Union
 import warnings
 from collections import abc
 from types import SimpleNamespace
-from copy import deepcopy, copy
+from copy import deepcopy
 
 from niagads.utils.string import is_bool, is_null, to_bool, to_json, to_number
 from niagads.utils.list import all_elements_are_none as __list_is_none
+
+
+def deep_merge(a: dict, b: dict) -> dict:
+    """
+    Recursively merge two dictionaries, combining their keys and values.
+    For each key:
+      - If the value in both a and b is a dict, merge them recursively.
+      - Otherwise, the value from b overrides the value from a.
+    Returns a new merged dictionary, does not modify inputs.
+
+    Args:
+        a (dict): The base dictionary.
+        b (dict): The dictionary with overriding values.
+
+    Returns:
+        dict: The deeply merged dictionary.
+    """
+    out = dict(a or {})
+    for k, v in (b or {}).items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = deep_merge(out[k], v)
+        else:
+            out[k] = v
+    return out
 
 
 def promote_nested(dictObj: dict, attributes=None, updateByReference: bool = False):

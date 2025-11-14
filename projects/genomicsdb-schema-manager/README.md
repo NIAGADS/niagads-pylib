@@ -2,6 +2,10 @@
 
 Generic single-database configuration with an async dbapi
 
+## TODO
+
+* for functions, views, triggers, etc use [alembic_utils](https://github.com/olirice/alembic_utils) (already added as depedency)
+
 ## Create schema and tables
 
 Add schema, if necessary to `lib/schemas.py`.  Follow example of the Metadata model defintions to ensure that all tables are imported when the `<Schema>SchemaBase.metadata` is loaded.
