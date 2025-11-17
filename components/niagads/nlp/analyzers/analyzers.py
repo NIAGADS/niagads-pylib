@@ -122,7 +122,7 @@ class PhraseClusterAnalyzer(ComponentBaseMixin):
         """
 
         # Tokenize input texts (lowercase, remove stopwords and short tokens)
-        tokens_list = self.tokenize(texts, self.__stopwords)
+        tokens_list = self.tokenize(texts)
 
         # If embeddings are not used, return top n-gram phrases by frequency only
         if not self.__use_embeddings:
