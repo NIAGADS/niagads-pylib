@@ -45,10 +45,59 @@ class LLMSynonymMatcher(ComponentBaseMixin):
             verbose (bool, optional): Enable verbose logging. Defaults to False.
         """
         super().__init__(debug=debug, verbose=verbose)
+        self._debug = debug
+        self._verbose = verbose
+        if self._debug:
+            self.logger.setLevel = "DEBUG"
+
         self.__reference_strings = reference_strings
-        self.__model = validate_llm_type(model, NLPModelType.SYNONYM)
-        self.__threshold = threshold
+        self.__model_name = validate_llm_type(model, NLPModelType.SYNONYM)
+        self.__threshold = self.set_threshold(threshold)
         self.__extended_strings: Optional[Set[str]] = None
+
+        # Load model and tokenizer at initialization
+        self.__tokenizer = AutoTokenizer.from_pretrained(self.__model_name)
+        self.__paraphraser = AutoModelForSeq2SeqLM.from_pretrained(self.__model_name)
+        self.__device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Try to move model to GPU if available, but fall back to CPU if out of memory
+        try:
+            self.__paraphraser = self.__paraphraser.to(self.__device)
+        except RuntimeError as e:
+            if self.__device.type == "cuda" and "out of memory" in str(e).lower():
+                self.logger.warning("CUDA out of memory. Falling back to CPU.")
+                self.__device = torch.device("cpu")
+                self.__paraphraser = self.__paraphraser.to(self.__device)
+            else:
+                raise
+
+    @staticmethod
+    def __validate_threshold(threshold):
+        if threshold < 0.0 or threshold > 1.0:
+            raise ValueError("Threshold must be between 0.0 and 1.0 (inclusive).")
+
+    def set_threshold(self, value: float):
+        """
+        Set the fuzzy matching threshold for string similarity.
+        Value must be between 0.0 and 1.0 (inclusive).
+
+        Recommended values:
+            - 0.6–0.7: Broad, permissive matching (may include distant matches)
+            - 0.8: Balanced (default)
+            - 0.9–1.0: Strict, only very close or exact matches
+
+        Adjust the threshold for your use case:
+            - Lower for recall-oriented tasks (find more matches)
+            - Higher for precision-oriented tasks (avoid false positives)
+
+        Args:
+            value (float): The new threshold value.
+
+        Raises:
+            ValueError: If value is outside the allowable range.
+        """
+        self.__validate_threshold(value)
+        self.__threshold = value
 
     async def generate(self):
         """
@@ -110,7 +159,7 @@ class LLMSynonymMatcher(ComponentBaseMixin):
 
     async def _generate_synonyms(self, text: str) -> List[str]:
         """
-        Generate synonyms for the input text using the LLM specified by self.__model.
+        Generate synonyms for the input text using the LLM specified by self.__model_name.
         Returns a list of unique paraphrases (excluding the original text).
 
         Args:
@@ -119,12 +168,8 @@ class LLMSynonymMatcher(ComponentBaseMixin):
         Returns:
             List[str]: A list of generated synonyms.
         """
-        tokenizer = AutoTokenizer.from_pretrained(self.__model)
-        paraphraser = AutoModelForSeq2SeqLM.from_pretrained(self.__model)
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        paraphraser = paraphraser.to(device)
         input_text = f"paraphrase: {text}"
-        encoding = tokenizer.encode_plus(
+        encoding = self.__tokenizer.encode_plus(
             input_text,
             padding="max_length",
             return_tensors="pt",
@@ -132,10 +177,10 @@ class LLMSynonymMatcher(ComponentBaseMixin):
             truncation=True,
         )
         input_ids, attention_mask = (
-            encoding["input_ids"].to(device),
-            encoding["attention_mask"].to(device),
+            encoding["input_ids"].to(self.__device),
+            encoding["attention_mask"].to(self.__device),
         )
-        outputs = paraphraser.generate(
+        outputs = self.__paraphraser.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             max_length=64,
@@ -146,7 +191,7 @@ class LLMSynonymMatcher(ComponentBaseMixin):
         )
         paraphrases = set()
         for output in outputs:
-            paraphrase = tokenizer.decode(
+            paraphrase = self.__tokenizer.decode(
                 output, skip_special_tokens=True, clean_up_tokenization_spaces=True
             )
             if paraphrase.lower() != text.lower():
