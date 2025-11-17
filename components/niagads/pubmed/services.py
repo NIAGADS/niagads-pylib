@@ -1,9 +1,14 @@
-import logging
+import asyncio
+import os
+from niagads.utils.list import chunker
 from typing import Dict, List, Optional, Union
 from xml.etree import ElementTree
 
+from aiohttp import ClientResponseError
+from niagads.common.core import ComponentBaseMixin
 from niagads.common.models.structures import Range
 from niagads.requests.core import HttpClientSessionManager
+from niagads.utils.sys import create_dir, verify_path
 from pydantic import BaseModel, model_validator
 
 
@@ -45,7 +50,7 @@ class PubMedQueryFilters(BaseModel):
         return self
 
 
-class PubMedQueryService:
+class PubMedQueryService(ComponentBaseMixin):
     """
     Service for querying PubMed and extracting abstracts, titles, authors, and metadata.
     Supports filtering by publication year, MeSH term, and keyword searches in titles/abstracts.
@@ -64,10 +69,56 @@ class PubMedQueryService:
     ):
         self._debug = debug
         self._verbose = verbose
-        self.logger: logging.Logger = logging.getLogger(__name__)
+
+        if self._debug:
+            self.logger.setLevel = "DEBUG"
+        else:
+            self.logger.setLevel = "INFO"
 
         self.__email = email
         self.__api_key = api_key
+        self.__rate_limit = 10 if self.__api_key else 3
+
+    async def _rate_limited_request(
+        self, path: str, params: dict, max_retries: int = 3
+    ) -> str:
+        """
+        wrapper for E-utilities requests with rate limiting and retry logic.
+        """
+
+        delay = 1.0 / self.__rate_limit
+        retries = 0
+        while True:
+            try:
+                self.logger.debug(
+                    f"Requesting: {self.EUTILS_BASE_URL}{path} with params: {params}"
+                )
+                async with HttpClientSessionManager(
+                    base_url=self.EUTILS_BASE_URL
+                ) as manager:
+                    response_text = await manager.fetch_text(path, params)
+                self.logger.debug(
+                    f"Response received for {path}: {response_text[:500]}..."
+                )
+                await asyncio.sleep(delay)
+                return response_text
+            except ClientResponseError as err:
+                self.logger.error(f"ClientResponseError for {path}: {err}")
+                if err.status == 429:
+                    self.logger.warning(
+                        f"Rate limit exceeded, retrying after delay. Attempt {retries+1}"
+                    )
+                    # Use Retry-After header if available, else exponential backoff
+                    retry_after = getattr(err, "headers", {}).get("Retry-After")
+                    if retry_after:
+                        await asyncio.sleep(float(retry_after))
+                    else:
+                        await asyncio.sleep(delay * (2**retries))
+                    retries += 1
+                    if retries > max_retries:
+                        raise
+                else:
+                    raise
 
     async def __search(
         self,
@@ -98,11 +149,13 @@ class PubMedQueryService:
                 terms.append(f"{mesh}[MeSH Terms]")
 
         if filters.open_access_only:
-            terms.append("pmc open access[filter]")
+            terms.append("free full text[filter]")
+
         if filters.journal:
             for journal in filters.journal:
                 terms.append(f"{journal}[Journal]")
         query = " AND ".join(t for t in terms if t)
+
         params = {
             "db": "pubmed",
             "term": query,
@@ -122,8 +175,7 @@ class PubMedQueryService:
         if self.__email:
             params["email"] = self.__email
 
-        async with HttpClientSessionManager(base_url=self.EUTILS_BASE_URL) as manager:
-            response_text = await manager.fetch_text(self.ESEARCH_PATH, params)
+        response_text = await self._rate_limited_request(self.ESEARCH_PATH, params)
 
         if count_only:
             root = ElementTree.fromstring(response_text)
@@ -143,10 +195,7 @@ class PubMedQueryService:
             if self.__email:
                 params["email"] = self.__email
 
-            async with HttpClientSessionManager(
-                base_url=self.EUTILS_BASE_URL
-            ) as manager:
-                response_text = await manager.fetch_text(self.ESEARCH_PATH, params)
+            response_text = await self._rate_limited_request(self.ESEARCH_PATH, params)
 
             root = ElementTree.fromstring(response_text)
             batch_pmids = [id_elem.text for id_elem in root.findall(".//Id")]
@@ -164,7 +213,8 @@ class PubMedQueryService:
         Handles batching internally if pmids > 200 (NCBI E-utilities limit per efetch request).
         """
         if not pmids:
-            return []
+            raise ValueError("No PMIDs provided to fetch_full_text.")
+
         all_articles = []
         batch_size = 200  # NCBI E-utilities efetch limit
         for start in range(0, len(pmids), batch_size):
@@ -176,10 +226,7 @@ class PubMedQueryService:
             if self.__email:
                 params["email"] = self.__email
 
-            async with HttpClientSessionManager(
-                base_url=self.EUTILS_BASE_URL
-            ) as manager:
-                response_text = await manager.fetch_text(self.EFETCH_PATH, params)
+            response_text = await self._rate_limited_request(self.EFETCH_PATH, params)
 
             root = ElementTree.fromstring(response_text)
             for article in root.findall(".//PubmedArticle"):
@@ -285,51 +332,143 @@ class PubMedQueryService:
         """
         return [a.pmid for a in articles if a.pmid]
 
-    async def fetch_full_text(self, pmids: List[str]) -> Dict:
+    def __write_xml_to_path(
+        self,
+        pmid: str,
+        xml: str,
+        dir: str,
+    ):
         """
-        Fetch full text for a list of PMIDs.
-        Returns dicts of 'pmid' : 'full_text' pairs.
-        Attempts to fetch from PubMed Central (PMC) Open Access subset.
+        Write XML string to file in the specified directory, named as <pmid>.xml.
         """
+
+        file_path = os.path.join(dir, f"{pmid}.xml")
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(xml)
+        except Exception as e:
+            self.logger.exception(
+                f"Failed to save XML for PMID {pmid} to {file_path}: {e}"
+            )
+            raise
+
+    async def fetch_full_text(
+        self, pmids: List[str], output_dir: str = None, batch_size: int = 200
+    ) -> Union[Dict, int]:
+        """
+        Fetch full text for a list of PMIDs from PubMed Central (PMC) Open Access
+        subset.
+
+        Processes PMIDs in batches (default: 200 per batch) for efficient network
+        usage. Each batch performs a single PMC lookup (elink.fcgi) for all PMIDs,
+        mapping PubMed IDs to PMC IDs. For each mapped PMC ID, fetches the full text
+        XML from PMC (efetch.fcgi).
+
+        Args:
+            pmids (List[str]): List of PubMed IDs to fetch full text for.
+            output_dir (str, optional): Directory to write XML files. If None,
+                returns results as a dict. Defaults to None.
+            batch_size (int, optional): Number of PMIDs per batch. Defaults to 200.
+
+        Returns:
+            Dict[str, str] or int: If output_dir is None, returns a dict mapping
+                'pmid' to XML string for each successfully retrieved full text. If
+                output_dir is provided, writes each XML file to the specified
+                directory (named <pmid>.xml) and returns the count of files written.
+
+        Raises:
+            ValueError: If no PMIDs are provided.
+
+        Logs warnings for missing PMC mappings and failed fetches or writes.
+        """
+
         if not pmids:
-            return []
-        results = {}
-        for pmid in pmids:
-            full_text = None
-            if pmid:
-                # Try to get PMC ID via E-utilities elink
-                params = {"dbfrom": "pubmed", "db": "pmc", "id": pmid, "retmode": "xml"}
-                try:
-                    async with HttpClientSessionManager(
-                        base_url=self.EUTILS_BASE_URL
-                    ) as manager:
-                        xml = await manager.fetch_text(
-                            "/entrez/eutils/elink.fcgi", params
+            raise ValueError("No PMIDs provided to fetch_full_text.")
+
+        self.logger.info(
+            f"Fetching full text for {len(pmids)} PMIDs (batch size = {batch_size})."
+        )
+
+        if output_dir is not None:
+            if not verify_path(output_dir, isDir=True):
+                self.logger.warning(
+                    f"Output directory '{output_dir}' does not exist. Creating it."
+                )
+                create_dir(output_dir)
+
+        full_text_query_params = {"db": "pmc", "rettype": "full", "retmode": "xml"}
+        pmc_lookup_query_params = {"dbfrom": "pubmed", "db": "pmc", "retmode": "xml"}
+
+        if self.__api_key:
+            pmc_lookup_query_params["api_key"] = self.__api_key
+            full_text_query_params["api_key"] = self.__api_key
+        if self.__email:
+            pmc_lookup_query_params["email"] = self.__email
+            full_text_query_params["email"] = self.__email
+
+        full_text_mappings = {}
+        count = 0
+        for batch_pmids in chunker(pmids, batch_size):
+            pmc_lookup_query_params["id"] = ",".join(batch_pmids)
+
+            xml_response = await self._rate_limited_request(
+                "/entrez/eutils/elink.fcgi", pmc_lookup_query_params
+            )
+            root = ElementTree.fromstring(xml_response)
+            # Map PMIDs to PMC IDs from batch response
+
+            pubmed_ids = [
+                id_elem.text for id_elem in root.findall(".//LinkSet/IdList/Id")
+            ]
+            pmc_ids = [
+                f"PMC{id_elem.text}"
+                for id_elem in root.findall('.//LinkSet/LinkSetDb[DbTo="pmc"]/Link/Id')
+            ]
+
+            pmc_to_pmid_mapping = dict(zip(pmc_ids, pubmed_ids))
+            self.logger.debug(f"Mappings: {pmc_to_pmid_mapping}")
+
+            # Warn for PMIDs with no PMC mapping
+            missing_pmids = set(batch_pmids) - set(pubmed_ids)
+            for missing_pmid in missing_pmids:
+                self.logger.warning(f"No mapping for PMID {missing_pmid} to PMC found.")
+
+            # Fetch full text for all mapped PMC IDs in a single batch
+            if pmc_to_pmid_mapping:
+                full_text_query_params["id"] = ",".join(pmc_to_pmid_mapping.keys())
+
+                full_text_xml = await self._rate_limited_request(
+                    self.EFETCH_PATH, full_text_query_params
+                )
+
+                root = ElementTree.fromstring(full_text_xml)
+                for article in root.findall(".//article"):
+
+                    pmc_id_elem = article.find(
+                        "front/article-meta/article-id[@pub-id-type='pmcid']"
+                    )
+
+                    if pmc_id_elem is None or not pmc_id_elem.text:
+                        raise ValueError("Missing PMC ID in article XML.")
+
+                    pmc_id = pmc_id_elem.text
+                    pubmed_id = pmc_to_pmid_mapping[pmc_id]
+                    try:
+                        xml_str = ElementTree.tostring(article, encoding="unicode")
+                        if output_dir is None:
+                            full_text_mappings[pubmed_id] = xml_str
+                        else:
+                            self.__write_xml_to_path(pubmed_id, xml_str, output_dir)
+                        count += 1
+                    except Exception as err:
+                        self.logger.warning(
+                            f"Failed to serialize XML for PMC ID {pmc_id} / PMID {pubmed_id}: {err}"
                         )
-                    root = ElementTree.fromstring(xml)
-                    pmc_id = None
-                    for link in root.findall(".//LinkSetDb/Link/Id"):
-                        pmc_id = link.text
-                        break
-                    if pmc_id:
-                        # Try to fetch full text XML from PMC OAI
-                        oai_params = {
-                            "verb": "GetRecord",
-                            "identifier": f"oai:pubmedcentral.nih.gov:{pmc_id}",
-                            "metadataPrefix": "pmc",
-                        }
-                        try:
-                            async with HttpClientSessionManager(
-                                base_url=self.EUTILS_BASE_URL
-                            ) as manager:
-                                oai_xml = await manager.fetch_text(
-                                    "/oai/oai.cgi", oai_params
-                                )
-                            # Just return the XML for now; parsing full text is complex
-                            full_text = oai_xml
-                        except Exception:
-                            full_text = None
-                except Exception:
-                    full_text = None
-            results.update({pmid: full_text})
-        return results
+
+        if output_dir is None:
+            self.logger.info(f"Retrieved {count} full text files from PMC.")
+            return full_text_mappings
+
+        else:
+            self.logger.info(f"Wrote {count} full text XML files to {output_dir}.")
+            return count
