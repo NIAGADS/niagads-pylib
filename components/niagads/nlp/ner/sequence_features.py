@@ -106,7 +106,7 @@ class VariantNER(EntityNER):
         NER-based: For each variant mention in the text, extract p-value/statistical references that are contextually linked to it.
         Uses parent class methods for reference and context extraction.
         """
-        pval_pattern = re.compile(RegularExpressions.PVALUE, re.IGNORECASE)
+        pval_pattern = re.compile(RegularExpressions.PVALUE_STATEMENT, re.IGNORECASE)
         variant_to_pvals = {}
 
         # Use parent method to get all variant references and their contexts (sentences)
