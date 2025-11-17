@@ -65,24 +65,6 @@ class NLPModel(CaseInsensitiveEnum):
     PUBMEDGPT = auto()
     MEDALPACA = auto()
 
-    _MODEL_TYPE_MAP = {
-        PEGASUS_PUBMED: NLPModelType.SUMMARIZATION,
-        BART_LARGE_CNN: NLPModelType.SUMMARIZATION,
-        LED_ARXIV: NLPModelType.SUMMARIZATION,
-        ALL_MINILM_L6_V2: NLPModelType.EMBEDDING,
-        BIOBERT_MNLI_SNLI: NLPModelType.EMBEDDING,
-        SPECTER: NLPModelType.EMBEDDING,
-        D4DATA: NLPModelType.NER,
-        SAPBERT: NLPModelType.NER,
-        BENT_PUBMEDBERT_VARIANT: NLPModelType.NER,
-        T5: NLPModelType.SYNONYM,
-        BART_PARAPHRASE: NLPModelType.SYNONYM,
-        BIOGPT_LARGE: NLPModelType.LLM,
-        BIOMEDLM: NLPModelType.LLM,
-        PUBMEDGPT: NLPModelType.LLM,
-        MEDALPACA: NLPModelType.LLM,
-    }
-
     def __str__(self):
         if self == NLPModel.PEGASUS_PUBMED:
             return "google/pegasus-pubmed"
@@ -122,7 +104,41 @@ class NLPModel(CaseInsensitiveEnum):
         """
         Return the NLPModelType for this model.
         """
-        return self._MODEL_TYPE_MAP[self]
+        if self == NLPModel.PEGASUS_PUBMED:
+            return NLPModelType.SUMMARIZATION
+        elif self == NLPModel.BART_LARGE_CNN:
+            return NLPModelType.SUMMARIZATION
+        elif self == NLPModel.LED_ARXIV:
+            return NLPModelType.SUMMARIZATION
+        elif self == NLPModel.ALL_MINILM_L6_V2:
+            return NLPModelType.EMBEDDING
+        elif self == NLPModel.BIOBERT_MNLI_SNLI:
+            return NLPModelType.EMBEDDING
+        elif self == NLPModel.SPECTER:
+            return NLPModelType.EMBEDDING
+        elif self == NLPModel.D4DATA:
+            return NLPModelType.NER
+        elif self == NLPModel.SAPBERT:
+            return NLPModelType.NER
+        elif self == NLPModel.BENT_PUBMEDBERT_VARIANT:
+            return NLPModelType.NER
+        elif self == NLPModel.T5:
+            return NLPModelType.SYNONYM
+        elif self == NLPModel.BART_PARAPHRASE:
+            return NLPModelType.SYNONYM
+        elif self == NLPModel.BIOGPT_LARGE:
+            return NLPModelType.LLM
+        elif self == NLPModel.BIOMEDLM:
+            return NLPModelType.LLM
+        elif self == NLPModel.PUBMEDGPT:
+            return NLPModelType.LLM
+        elif self == NLPModel.MEDALPACA:
+            return NLPModelType.LLM
+        else:
+            # return NLPModelType.LLM
+            raise ValueError(
+                f"Cannot validate NLP model type for unknown NLPModel: {self}"
+            )
 
     @classmethod
     def validate(cls, model, model_type: NLPModelType):
