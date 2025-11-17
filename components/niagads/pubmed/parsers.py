@@ -1,17 +1,29 @@
 from typing import Dict, List, Optional
 from xml.etree import ElementTree
 
+from niagads.common.core import ComponentBaseMixin
 import plotly.graph_objects as go
 from niagads.pubmed.services import PubMedArticleMetadata
 from pydantic import BaseModel, Field
 
 
-class PMCFullTextParser:
+class PMCFullTextParser(ComponentBaseMixin):
     """
     Parser for extracting content from PMC full text XML.
     """
 
-    def __init__(self, full_text_xml: str, pubmed_id: Optional[str] = None):
+    def __init__(
+        self,
+        full_text_xml: str,
+        pubmed_id: Optional[str] = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        self._debug = debug
+        self._verbose = verbose
+        if self._debug:
+            self.logger.setLevel = "DEBUG"
+
         self.__raw_xml = full_text_xml
         self.__pubmed_id = pubmed_id
 
