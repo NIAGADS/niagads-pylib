@@ -1,45 +1,52 @@
-"""
-Asynchronous LLM-based synonym matcher for flexible string matching.
-"""
-
-import asyncio
 import difflib
 from typing import List, Optional, Set
 
-import torch
 from niagads.common.core import ComponentBaseMixin
-from niagads.nlp.core import NLPModel, NLPModelType, validate_llm_type
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+try:
+    from nltk.corpus import wordnet as wn
+except ImportError:
+    wn = None
 
 
-class LLMSynonymMatcher(ComponentBaseMixin):
+class SynonymMatcher(ComponentBaseMixin):
     """
-    sss   Asynchronous matcher that uses an LLM to generate synonyms for a list of reference strings.
-       The matcher will match any string against the reference strings or their LLM-suggested synonyms.
+    WordNet-based synonym matcher for flexible string matching.
 
-       Usage:
-           1. Instantiate with a list of reference strings and an NLPModel for paraphrasing (default: T5).
-           2. Call `await generate()` to build the set of reference strings and their LLM-generated synonyms.
-           3. Use `match(query_string)` to check if a string matches any reference or synonym (case-insensitive, with optional fuzzy matching).
-           4. Use `get_extended_synonyms()` to retrieve the full set of matchable strings.
+    About WordNet:
+            WordNet is a large lexical database of English developed at
+            Princeton University. Nouns, verbs, adjectives, and adverbs are grouped
+            into sets of cognitive synonyms (synsets), each expressing a distinct
+            concept. Synsets are interlinked by means of conceptual-semantic and
+            lexical relations.
 
-       This approach enables robust, context-aware string matching by leveraging LLM-based paraphrasing for dynamic synonym expansion.
+            This matcher uses the NLTK interface to WordNet to retrieve synonyms for
+            words and short phrases.
+
+            - WordNet official site:
+                https://wordnet.princeton.edu/
+            - NLTK WordNet documentation:
+                https://www.nltk.org/howto/wordnet.html
+            - NLTK project:
+                https://www.nltk.org/
+
+            For installation and usage instructions, see:
+                    https://www.nltk.org/install.html
+                    https://www.nltk.org/data.html
     """
 
     def __init__(
         self,
-        reference_strings: List[str],
-        model: NLPModel = NLPModel.T5,
+        words: List[str],
         threshold: float = 0.8,
         debug: bool = False,
         verbose: bool = False,
     ):
         """
-        Initialize the LLMSynonymMatcher.
+        Initialize the SynonymMatcher.
 
         Args:
             reference_strings (List[str]): List of canonical reference strings to match against.
-            model (NLPModel, optional): The LLM model to use for synonym generation. Defaults to NLPModel.T5.
             threshold (float, optional): Fuzzy matching threshold (0-1, higher is stricter). Defaults to 0.8.
             debug (bool, optional): Enable debug logging. Defaults to False.
             verbose (bool, optional): Enable verbose logging. Defaults to False.
@@ -49,27 +56,9 @@ class LLMSynonymMatcher(ComponentBaseMixin):
         self._verbose = verbose
         if self._debug:
             self.logger.setLevel = "DEBUG"
-
-        self.__reference_strings = reference_strings
-        self.__model_name = validate_llm_type(model, NLPModelType.SYNONYM)
+        self.__reference_words = words
         self.__threshold = self.set_threshold(threshold)
-        self.__extended_strings: Optional[Set[str]] = None
-
-        # Load model and tokenizer at initialization
-        self.__tokenizer = AutoTokenizer.from_pretrained(self.__model_name)
-        self.__paraphraser = AutoModelForSeq2SeqLM.from_pretrained(self.__model_name)
-        self.__device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        # Try to move model to GPU if available, but fall back to CPU if out of memory
-        try:
-            self.__paraphraser = self.__paraphraser.to(self.__device)
-        except RuntimeError as e:
-            if self.__device.type == "cuda" and "out of memory" in str(e).lower():
-                self.logger.warning("CUDA out of memory. Falling back to CPU.")
-                self.__device = torch.device("cpu")
-                self.__paraphraser = self.__paraphraser.to(self.__device)
-            else:
-                raise
+        self.__extended_words: Optional[Set[str]] = None
 
     @staticmethod
     def __validate_threshold(threshold):
@@ -79,16 +68,6 @@ class LLMSynonymMatcher(ComponentBaseMixin):
     def set_threshold(self, value: float):
         """
         Set the fuzzy matching threshold for string similarity.
-        Value must be between 0.0 and 1.0 (inclusive).
-
-        Recommended values:
-            - 0.6–0.7: Broad, permissive matching (may include distant matches)
-            - 0.8: Balanced (default)
-            - 0.9–1.0: Strict, only very close or exact matches
-
-        Adjust the threshold for your use case:
-            - Lower for recall-oriented tasks (find more matches)
-            - Higher for precision-oriented tasks (avoid false positives)
 
         Args:
             value (float): The new threshold value.
@@ -99,101 +78,77 @@ class LLMSynonymMatcher(ComponentBaseMixin):
         self.__validate_threshold(value)
         self.__threshold = value
 
-    async def generate(self):
+    def generate(self):
         """
-        Asynchronously generate synonyms for all reference strings using the selected LLM and build the match set.
-        Expands the set of matchable strings to include LLM-generated paraphrases for robust, context-aware matching.
-        Call this before using `match()` or `get_extended_synonyms()`.
-        """
-        self.__extended_strings = set(s.lower() for s in self.__reference_strings)
-        synonym_lists = await self._gather_synonyms()
-        for syns in synonym_lists:
-            self.__extended_strings.update(s.lower() for s in syns)
+        Generate synonyms for all reference strings using WordNet and build the match set.
 
-    async def _gather_synonyms(self) -> List[List[str]]:
-        return await asyncio.gather(
-            *(
-                self._generate_synonyms(s, self.__model)
-                for s in self.__reference_strings
+        Raises:
+            ImportError: If NLTK WordNet is not available.
+        """
+        if wn is None:
+            raise ImportError(
+                f"nltk.corpus.wordnet is not available. Please install nltk and "
+                f"download wordnet data. See class docstring for more information."
             )
-        )
+        self.__extended_words = set(s.lower() for s in self.__reference_words)
+        for s in self.__reference_words:
+            for syn in self._get_wordnet_synonyms(s):
+                self.__extended_words.add(syn.lower().strip())
 
-    def match(self, query_string: str) -> bool:
+    def _get_wordnet_synonyms(self, text: str) -> Set[str]:
         """
-        Check if the query string matches any reference string or LLM-generated synonym.
+        Get synonyms for a single word using WordNet.
+
+        Args:
+            text (str): The input word.
+
+        Returns:
+            Set[str]: A set of synonyms for the input word.
+        """
+
+        if "_" in text:
+            self.logger.warning(
+                f"Whitespace detected in text: {text}; synonym matching may not be accurate."
+            )
+        synonyms = set()
+        for syn in wn.synsets(text):
+            for lemma in syn.lemmas():
+                synonym = lemma.name().replace("_", " ")
+                if synonym.lower() != text.lower():
+                    synonyms.add(synonym)
+        return synonyms
+
+    def match(self, query_string: str, allow_fuzzy: bool = True) -> bool:
+        """
+        Check if the query string matches any reference string or WordNet synonym.
 
         Args:
             query_string (str): The string to match against the reference set.
+            allow_fuzzy (bool, optional): If True, allow fuzzy matching using difflib.
+                If False, only exact matches are allowed. Defaults to True.
 
         Returns:
             bool: True if a match is found (case-insensitive, fuzzy or exact), otherwise False.
-
-        Note:
-            Call `generate()` before using this method to ensure the synonym set is built.
         """
-        if not query_string or self.__extended_strings is None:
+        if not query_string or self.__extended_words is None:
             return False
         s = query_string.lower()
-        # Direct match
-        if s in self.__extended_strings:
+        if s in self.__extended_words:
             return True
-        # Fuzzy match using difflib
-        best = difflib.get_close_matches(
-            s, self.__extended_strings, n=1, cutoff=self.__threshold
-        )
-        return bool(best)
+        if allow_fuzzy:
+            best = difflib.get_close_matches(
+                s, self.__extended_words, n=1, cutoff=self.__threshold
+            )
+            return bool(best)
+        return False
 
-    async def get_extended_synonyms(self) -> Optional[Set[str]]:
+    def get_extended_synonyms(self) -> Optional[Set[str]]:
         """
-        Return the set of all reference strings and their LLM-generated synonyms (lowercased).
+        Return the set of all reference strings and their WordNet synonyms (lowercased).
 
         Returns:
             Optional[Set[str]]: The set of all matchable strings, or None if not generated.
-
-        Note:
-            If not yet generated, this will call `generate()` first.
         """
-        if self.__extended_strings is None:
-            await self.generate()
-        return self.__extended_strings
-
-    async def _generate_synonyms(self, text: str) -> List[str]:
-        """
-        Generate synonyms for the input text using the LLM specified by self.__model_name.
-        Returns a list of unique paraphrases (excluding the original text).
-
-        Args:
-            text (str): The input text for which to generate synonyms.
-
-        Returns:
-            List[str]: A list of generated synonyms.
-        """
-        input_text = f"paraphrase: {text}"
-        encoding = self.__tokenizer.encode_plus(
-            input_text,
-            padding="max_length",
-            return_tensors="pt",
-            max_length=64,
-            truncation=True,
-        )
-        input_ids, attention_mask = (
-            encoding["input_ids"].to(self.__device),
-            encoding["attention_mask"].to(self.__device),
-        )
-        outputs = self.__paraphraser.generate(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            max_length=64,
-            num_beams=5,
-            num_return_sequences=3,
-            temperature=1.5,
-            early_stopping=True,
-        )
-        paraphrases = set()
-        for output in outputs:
-            paraphrase = self.__tokenizer.decode(
-                output, skip_special_tokens=True, clean_up_tokenization_spaces=True
-            )
-            if paraphrase.lower() != text.lower():
-                paraphrases.add(paraphrase.strip())
-        return list(paraphrases)
+        if self.__extended_words is None:
+            self.generate()
+        return self.__extended_words
