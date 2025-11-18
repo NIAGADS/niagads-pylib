@@ -23,7 +23,7 @@ class NLPModelType(CaseInsensitiveEnum):
     SUMMARIZATION = auto()
     EMBEDDING = auto()
     NER = auto()
-    SYNONYM = auto()
+    PARAPHRASE = auto()
     LLM = auto()
 
 
@@ -123,9 +123,9 @@ class NLPModel(CaseInsensitiveEnum):
         elif self == NLPModel.BENT_PUBMEDBERT_VARIANT:
             return NLPModelType.NER
         elif self == NLPModel.T5:
-            return NLPModelType.SYNONYM
+            return NLPModelType.PARAPHRASE
         elif self == NLPModel.BART_PARAPHRASE:
-            return NLPModelType.SYNONYM
+            return NLPModelType.PARAPHRASE
         elif self == NLPModel.BIOGPT_LARGE:
             return NLPModelType.LLM
         elif self == NLPModel.BIOMEDLM:
