@@ -1,10 +1,86 @@
+import difflib
+from enum import auto
 from typing import Dict, List, Optional
 from xml.etree import ElementTree
 
-from niagads.common.core import ComponentBaseMixin
 import plotly.graph_objects as go
+from niagads.common.core import ComponentBaseMixin
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.pubmed.services import PubMedArticleMetadata
 from pydantic import BaseModel, Field
+
+
+class ArticleSectionType(CaseInsensitiveEnum):
+    """
+    Enum for major article section types in full-text research papers.
+
+    Members:
+        INTRODUCTION: Introduction or background section.
+        METHODS: Methods, materials, or experimental procedures section.
+        DISCUSSION: Discussion, analysis, or interpretation section.
+        CONCLUSION: Conclusion, summary, or findings section.
+    """
+
+    INTRODUCTION = auto()
+    METHODS = auto()
+    DISCUSSION = auto()
+    CONCLUSION = auto()
+
+
+class ArticleSection(BaseModel):
+    """
+    Ranked section title with match score for section identification.
+
+    Attributes:
+        section_type (ArticleSection): The type of section (e.g., INTRODUCTION, METHODS).
+        section_index (int): Index of the section in the list of sections
+        title (str): The actual section title string from the article.
+        matched_title (str): the matched title string
+        score (float): Goodness of match score (0.0 to 1.0).
+    """
+
+    section_type: ArticleSectionType
+    section_index: int = Field(..., ge=0)
+    title: str
+    matched_title: str
+    score: float = Field(..., ge=0.0, le=1.0)
+    text: str
+
+    def __str__(self):
+        data = self.model_dump()
+        data["text"] = f"{data['text'][:150]}..."
+
+
+# Reference section titles for full-text article parsing
+ARTICLE_SECTION_TITLES = {
+    ArticleSectionType.INTRODUCTION: [
+        "introduction",
+        "background",
+        "overview",
+        "purpose",
+        "aims",
+    ],
+    ArticleSectionType.METHODS: [
+        "methods",
+        "materials and methods",
+        "experimental procedures",
+        "methodology",
+        "study design",
+    ],
+    ArticleSectionType.DISCUSSION: [
+        "discussion",
+        "interpretation",
+        "commentary",
+        "findings",
+    ],
+    ArticleSectionType.CONCLUSION: [
+        "conclusion",
+        "conclusions",
+        "summary",
+        "concluding remarks",
+        "implications",
+    ],
+}
 
 
 class PMCFullTextParser(ComponentBaseMixin):
@@ -64,30 +140,30 @@ class PMCFullTextParser(ComponentBaseMixin):
                 {"title": title, "caption": caption, "data": table_xml}
             )
 
+    def _extract_section(self, sec_elem):
+        title_elem = sec_elem.find("title")
+        title = (
+            title_elem.text.strip()
+            if title_elem is not None and title_elem.text
+            else None
+        )
+        text = " ".join(p.text.strip() for p in sec_elem.findall("p") if p.text)
+        # Recursively append all subsection text
+        for subsec in sec_elem.findall("sec"):
+            sub_text = self._extract_section(subsec)["text"]
+            if sub_text:
+                text = f"{text} {sub_text}".strip()
+        return {"title": title, "text": text}
+
     def _extract_sections(self) -> List[Dict]:
         """
         Recursively extract sections and subsections from the loaded PMC full text XML.
         Returns a list of dicts with 'title', 'text'. Subsection text is appended to the section.
         """
 
-        def extract_sec(sec_elem):
-            title_elem = sec_elem.find("title")
-            title = (
-                title_elem.text.strip()
-                if title_elem is not None and title_elem.text
-                else None
-            )
-            text = " ".join(p.text.strip() for p in sec_elem.findall("p") if p.text)
-            # Recursively append all subsection text
-            for subsec in sec_elem.findall("sec"):
-                sub_text = extract_sec(subsec)["text"]
-                if sub_text:
-                    text = f"{text} {sub_text}".strip()
-            return {"title": title, "text": text}
-
         self.__sections = []
         for sec in self.__xml_root.findall(".//body/sec"):
-            self.__sections.append(extract_sec(sec))
+            self.__sections.append(self._extract_section(sec))
 
     def _extract_figures(self) -> List[Dict]:
         """
@@ -121,32 +197,83 @@ class PMCFullTextParser(ComponentBaseMixin):
             self.parse()
         return self.__figures if self.__figures is not None else []
 
-    def get_sections(
+    def fetch_matching_article_section(
         self,
-        titles: Optional[List[str]] = None,
-        title_matcher: Optional[callable] = None,
-    ) -> List[Dict]:
+        section: ArticleSectionType,
+        title_generator: Optional[callable] = None,
+        allow_fuzzy: bool = True,
+    ) -> ArticleSection:
         """
-        Return sections, optionally filtering by a list of section titles (case-insensitive).
-        If titles is None, return all sections.
-        Optionally, a title_matcher callable can be provided for semantic/fuzzy/LLM-based matching.
+        Find the best-matching section by title for a given type (e.g., intro, results, etc).
+
+        Args:
+            section (ArticleSectionType): The section type to match (e.g., INTRODUCTION).
+            title_generator (Optional[callable]): Optional function to generate additional reference titles.
+            allow_fuzzy (bool): If True, use fuzzy matching for section titles. Default=True
+
+        Returns:
+            ArticleSection: The best-matching section (with title, text, and score), or None if no match above threshold.
+
+        Notes:
+            - Returns immediately on exact or substring match (score 1.0 or 0.9).
+            - Otherwise, returns the highest fuzzy match above threshold (default 0.8).
+            - The returned ArticleSection includes the matched title, score, and full section text.
+        """
+
+        # validate the section
+        article_section = ArticleSectionType(section)
+        reference_titles = ARTICLE_SECTION_TITLES[article_section]
+        if title_generator:
+            reference_titles += [
+                t.lower() for t in title_generator(str(article_section))
+            ]
+
+        best_match = None
+        for index, section in enumerate(self.__sections):
+            title = section.get("title")
+            if title is None:
+                continue
+            title = title.lower()
+
+            def make_ranked(score: float, match: str):
+                return ArticleSection(
+                    section_type=article_section,
+                    section_index=index,
+                    title=title,
+                    matched_title=match,
+                    score=score,
+                    text=section["text"],
+                )
+
+            for ref_title in reference_titles:
+                if title == ref_title:
+                    return make_ranked(1.0, ref_title)
+                if ref_title in title or title in ref_title:
+                    # e.g., Results and Discussion
+                    return make_ranked(0.9, ref_title)
+
+                if allow_fuzzy:
+                    score = difflib.SequenceMatcher(None, title, ref_title).ratio()
+                    if best_match and score > best_match.score:
+                        best_match = make_ranked(score, ref_title)
+
+        if best_match and best_match.score >= 0.8:
+            return best_match
+
+        return None
+
+    def get_sections(self) -> List[Dict]:
+        """
+        get all sections in dict form {title, text}
         """
         if self.__raw_xml is None:
             self.parse()
         if self.__sections is None:
-            return []
-        if not titles:
-            return self.__sections
-        if title_matcher is not None:
-            raise NotImplementedError(
-                "LLM/semantic title matching is not yet implemented. Please provide a callable in the future."
+            raise ValueError(
+                f"Sections have not been parsed from the XML. Check input data."
             )
-        titles_lower = set(t.lower() for t in titles)
-        return [
-            s
-            for s in self.__sections
-            if s["title"] and s["title"].lower() in titles_lower
-        ]
+
+        return self.__sections
 
 
 class PubMedArticleSummary(BaseModel):
