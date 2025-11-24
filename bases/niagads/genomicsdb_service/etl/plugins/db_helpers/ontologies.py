@@ -3,7 +3,11 @@ from niagads.common.models.ontology import (
 )
 from niagads.common.models.ontology import OntologyTerm as __OntologyTerm
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.utils.string import jaccard_word_similarity, to_snake_case
+from niagads.utils.string import (
+    dict_to_info_string,
+    jaccard_word_similarity,
+    to_snake_case,
+)
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound

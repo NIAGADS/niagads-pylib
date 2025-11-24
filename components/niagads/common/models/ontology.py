@@ -109,9 +109,9 @@ class OntologyTriple(BaseModel):
     Each triple consists of a subject, predicate, and object URI or value.
     """
 
-    subject: str
-    predicate: str
-    object: str
+    subject: OntologyTerm
+    predicate: OntologyTerm
+    object: OntologyTerm
 
     def __str__(self):
-        return dict_to_info_string(self.model_dump())
+        return f"{str(self.subject)} -> {str(self.precidcate)} -> {str(self.object)}"

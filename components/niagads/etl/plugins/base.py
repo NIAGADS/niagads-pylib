@@ -79,7 +79,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.logger: ETLLogger = FunctionContextLoggerWrapper(
             ETLLogger(
                 name=self._name,
-                log_file=self._resolve_log_file_path(),
+                log_file=self.__resolve_log_file_path(),
                 run_id=self._run_id,
                 plugin=self._name,
                 debug=self._debug,
@@ -126,7 +126,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     def status_report(self):
         return self.__status_report
 
-    def _resolve_log_file_path(self):
+    @property
+    def version(self):
+        # Local import to avoid circular import
+        from niagads.etl.plugins.registry import PluginRegistry
+
+        return PluginRegistry.describe(self.__class__.__name__).get("version")
+
+    def __resolve_log_file_path(self):
         """
         Resolve the log file path for the plugin.
 
@@ -265,18 +272,21 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         ...
 
-    @property
-    def version(self):
-        # Local import to avoid circular import
-        from niagads.etl.plugins.registry import PluginRegistry
+    def on_run_complete(self) -> None:
+        """
+        Hook for plugins to perform custom operations after the end of a run.
+        This may include additional logging or intermediary file cleanup.
 
-        return PluginRegistry.describe(self.__class__.__name__).get("version")
+        Override in your plugin if custom post-run actions are needed;
+        otherwise, leave as pass.
+        """
+        pass
 
     # -------------------------
     # Transaction Management
     # -------------------------
 
-    async def _handle_transaction(self, session, checkpoint: ResumeCheckpoint) -> None:
+    async def __handle_transaction(self, session, checkpoint: ResumeCheckpoint) -> None:
         """
         Commit or rollback the session based on ETLMode and commit_after logic.
         """
@@ -292,7 +302,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         # if transaction is successful, can update the checkpoint
         self.__checkpoint = checkpoint
 
-    def _handle_dry_run(self, count: int):
+    def __handle_dry_run(self, count: int):
         """
         Helper for DRY_RUN mode: update transaction count for the correct table.
         Args:
@@ -301,7 +311,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         table = self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
         self.update_transaction_count(self.operation, table, count)
 
-    async def _load(self, buffer, session) -> ResumeCheckpoint:
+    async def __execute_load(self, buffer, session) -> ResumeCheckpoint:
         """
         Loads data and performs validations.
 
@@ -345,7 +355,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         return checkpoint
 
-    async def _flush_chunked_buffer(self, buffer, session) -> ResumeCheckpoint:
+    async def __flush_chunked_buffer(self, buffer, session) -> ResumeCheckpoint:
         checkpoint = None
 
         if self.is_dry_run:
@@ -353,9 +363,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 count = len(buffer)
             except TypeError:  # handle iterators/generators
                 count = sum(1 for _ in buffer)
-            self._handle_dry_run(count)
+            self.__handle_dry_run(count)
         else:
-            checkpoint = await self._load(buffer, session)
+            checkpoint = await self.__execute_load(buffer, session)
 
         # Clear buffer if it's a list, else set to None to release reference
         if isinstance(buffer, list):
@@ -364,7 +374,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             buffer = None
         return checkpoint
 
-    async def _process_chunked_load(self):
+    async def __process_chunked_load(self):
         """
         Process records in chunks and load them into the database.
 
@@ -384,15 +394,15 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 processed_records = self.transform(records)
                 buffer.append(processed_records)
                 if len(buffer) == self._commit_after:
-                    checkpoint = await self._flush_chunked_buffer(buffer, session)
-                    await self._handle_transaction(session, checkpoint)
+                    checkpoint = await self.__flush_chunked_buffer(buffer, session)
+                    await self.__handle_transaction(session, checkpoint)
 
             # residuals
             if buffer:
-                checkpoint = await self._flush_chunked_buffer(buffer, session)
-                await self._handle_transaction(session, checkpoint)
+                checkpoint = await self.__flush_chunked_buffer(buffer, session)
+                await self.__handle_transaction(session, checkpoint)
 
-    async def _process_bulk_load(self) -> ResumeCheckpoint:
+    async def __process_bulk_load(self) -> ResumeCheckpoint:
         records = self.extract()
         processed_records = self.transform(records)
 
@@ -403,24 +413,24 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     count = len(processed_records)
                 except TypeError:  # handle iterators/generators
                     count = sum(1 for _ in processed_records)
-                self._handle_dry_run(count)
+                self.__handle_dry_run(count)
                 return None
             else:
-                checkpoint = await self._load(processed_records, session)
-                await self._handle_transaction(session, checkpoint)
+                checkpoint = await self.__execute_load(processed_records, session)
+                await self.__handle_transaction(session, checkpoint)
                 return checkpoint
 
-    async def _process_bulk_in_batch_load(self):
+    async def __process_bulk_in_batch_load(self):
         records = self.extract()
         processed_records = self.transform(records)
         batches = chunker(processed_records, self._commit_after, returnIterator=True)
         session_ctx = self._session_manager() if not self.is_dry_run else nullcontext()
         async with session_ctx as session:
             for batch in batches:
-                checkpoint = await self._flush_chunked_buffer(batch, session)
-                await self._handle_transaction(session, checkpoint)
+                checkpoint = await self.__flush_chunked_buffer(batch, session)
+                await self.__handle_transaction(session, checkpoint)
 
-    async def _db_log_plugin_run(self) -> Optional[int]:
+    async def __db_log_plugin_run(self) -> Optional[int]:
         """
         Log the start of a plugin run (except DRY_RUN). Returns the log row's ID, or None if not logged.
         """
@@ -443,7 +453,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             await session.commit()
         return task.task_id
 
-    async def _db_update_plugin_task(
+    async def __db_update_plugin_task(
         self,
         task_id: int,
         end_time,
@@ -552,7 +562,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         # Regular ETL modes
         try:
-            task_id = await self._db_log_plugin_run()
+            task_id = await self.__db_log_plugin_run()
             execution_status = ProcessStatus.RUNNING
             self.__status_report = ETLStatusReport(
                 status=execution_status,
@@ -570,11 +580,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.log_plugin_run()
 
             if self.load_strategy == LoadStrategy.CHUNKED:
-                await self._process_chunked_load()
+                await self.__process_chunked_load()
             elif self.load_strategy == LoadStrategy.BULK:
-                await self._process_bulk_load()
+                await self.__process_bulk_load()
             elif self.load_strategy == LoadStrategy.BATCH:
-                await self._process_bulk_in_batch_load()
+                await self.__process_bulk_in_batch_load()
             else:
                 raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
 
@@ -614,7 +624,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
             # --- Finalize plugin run log on error (except DRY_RUN) ---
             if self._mode != ETLMode.DRY_RUN and task_id:
-                await self._db_update_plugin_task(
+                await self.__db_update_plugin_task(
                     task_id,
                     datetime.now(),  # end time
                     execution_status,
@@ -622,6 +632,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     rows_processed=self.__status_report.total_writes(),
                 )
         finally:
+            self.on_run_complete()
+
             # log status
             end_time = datetime.now()
             runtime = (end_time - self.__start_time).total_seconds()
@@ -630,6 +642,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.__status_report.memory = mem_mb
             self.__status_report.status = execution_status
             self.logger.status(self.__status_report)
+
             total_writes = self.__status_report.total_writes()
 
             if self._mode != ETLMode.DRY_RUN and total_writes == 0:
@@ -640,7 +653,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
             try:
                 if self._mode != ETLMode.DRY_RUN:
-                    await self._db_update_plugin_task(
+                    await self.__db_update_plugin_task(
                         task_id,
                         end_time,
                         execution_status,

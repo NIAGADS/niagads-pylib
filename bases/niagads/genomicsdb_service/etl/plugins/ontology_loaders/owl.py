@@ -10,8 +10,6 @@ each term to its source ontology, which is recorded as a row in the table.
 """
 
 # TODO: restrictions ETL
-# TODO: compile list of annotation properties during extract, so can filter them from relations
-
 
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
@@ -66,9 +64,9 @@ class OntologyGraphLoader(AbstractBasePlugin):
         self._xdbref_id = self._params.resolve_xdbref()
         self._graph = None
 
-        # to track lookups, so we don't waste time looking up same relationships
-        # e.g., is_a, or subclassOf
-        self._verified_predicates = {}
+        # hash of created placeholder vertexes, log at end if any were
+        # left un-filled
+        self._placeholders = {}
 
     @classmethod
     def description(cls) -> str:
@@ -143,9 +141,9 @@ class OntologyGraphLoader(AbstractBasePlugin):
                         or predicate_iri == RDFPropertyIRI.ENTITY_TYPE
                     ):
                         yield OntologyTriple(
-                            subject=OntologyTerm.extract_term_id(subject_iri),
-                            predicate=OntologyTerm.extract_term_id(predicate_iri),
-                            object=OntologyTerm.extract_term_id(object_iri),
+                            subject=OntologyTerm(iri=subject_iri),
+                            predicate=OntologyTerm(iri=predicate_iri),
+                            object=OntologyTerm(iri=object_iri),
                             run_id=self._run_id,
                         )
 
@@ -208,7 +206,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
         Returns a unique identifier for a record (subject URI).
         """
         if isinstance(record, OntologyTriple):
-            return None
+            return f"Triple:{str(OntologyTriple)}"
         else:
             return record.term_id
 
@@ -265,9 +263,18 @@ class OntologyGraphLoader(AbstractBasePlugin):
             self.update_transaction_count(
                 ETLOperation.SKIP, "Reference.Ontology_triple"
             )
+        else:
+            # check to see if each entity exists, if not insert a placeholder
+            # this is can occur b/c we are parsing triples and nodes in parallel
+            # keep track of placeholders and log at end if any placeholders weren't
+            # updated
+            for entity in ["subject", "object", "predicate"]:
+                term = getattr(triple, entity)
 
-        await self._insert_triple(session, triple)
-        self.update_transaction_count(ETLOperation.INSERT, "Reference.Ontology_triple")
+            await self._insert_triple(session, triple)
+            self.update_transaction_count(
+                ETLOperation.INSERT, "Reference.Ontology_triple"
+            )
 
         return ResumeCheckpoint(full_record=triple)
 
@@ -287,3 +294,6 @@ class OntologyGraphLoader(AbstractBasePlugin):
                 return await self._load_ontology_triple(session, transformed)
             else:
                 raise TypeError(f"Unknown record type: {type(transformed)}")
+
+    def on_run_complete(self) -> None:
+        return None
