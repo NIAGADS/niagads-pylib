@@ -279,7 +279,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             assembly = await self.__validate_tracks(cursor.tracks)
 
         chunks = chunker(
-            cursor.tracks, TRACKS_PER_API_REQUEST_LIMIT, returnIterator=True
+            cursor.tracks, TRACKS_PER_API_REQUEST_LIMIT, return_iterator=True
         )
         tasks = [
             self.__get_track_data_task(

@@ -254,7 +254,7 @@ class MetadataEntryParser:
         self.__metadata.update(
             {
                 "searchable_text": ";".join(
-                    remove_duplicates(self.__searchableTextValues, caseInsensitive=True)
+                    remove_duplicates(self.__searchableTextValues, ignore_case=True)
                 )
             }
         )

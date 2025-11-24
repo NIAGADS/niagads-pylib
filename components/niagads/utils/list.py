@@ -5,9 +5,9 @@ from typing import List, Union
 from niagads.utils.string import xstr
 
 
-def all_elements_are_none(array):
+def all_elements_are_none(arr):
     """checks if list is all nones"""
-    return all(item is None for item in array)
+    return all(item is None for item in arr)
 
 
 def remove_from_list(arr: list, drop: list):
@@ -24,7 +24,7 @@ def remove_from_list(arr: list, drop: list):
     return [item for item in arr if item not in drop]
 
 
-def find(array, value, field: str = None, returnValues=True):
+def find(arr, value, field: str = None, return_values=True):
     """
     filters a list and returns matches
 
@@ -42,28 +42,28 @@ def find(array, value, field: str = None, returnValues=True):
     """
     result: dict = None
 
-    if len(array) == 0:
+    if len(arr) == 0:
         return result
-    if field is not None and not isinstance(array[0], dict):
+    if field is not None and not isinstance(arr[0], dict):
         raise ValueError(
-            "Cannot search by field; list does not contain dict %s", xstr(array)
+            "Cannot search by field; list does not contain dict %s", xstr(arr)
         )
 
     if field is None:
-        result = {index: x for index, x in enumerate(array) if x == value}
+        result = {index: x for index, x in enumerate(arr) if x == value}
     else:
-        result = {index: x for index, x in enumerate(array) if x[field] == value}
+        result = {index: x for index, x in enumerate(arr) if x[field] == value}
 
-    return list(result.values()) if returnValues else list(result.keys())
+    return list(result.values()) if return_values else list(result.keys())
 
 
-def flatten(array: list):
+def flatten(arr: list):
     """flatten nested list"""
     # sum(list, []) is a python hack for flattening a nested list
-    return sum(array, [])
+    return sum(arr, [])
 
 
-def chunker(seq, size, returnIterator=True):
+def chunker(seq, size, return_iterator=True):
     """for a given sequence, splits into even + residual chunks.  returns an iterator
     see: https://stackoverflow.com/a/434328
 
@@ -90,18 +90,18 @@ def chunker(seq, size, returnIterator=True):
     """
     return (
         (seq[pos : pos + size] for pos in range(0, len(seq), size))
-        if returnIterator
+        if return_iterator
         else [seq[pos : pos + size] for pos in range(0, len(seq), size)]
     )
 
 
-def qw(s, returnTuple=False):
+def qw(s, return_tuple=False):
     """
     mimics perl's qw function
     usage: qw('a b c') will yield ['a','b','c']
     returnTuple: return a tuple if true, otherwise return list
     """
-    if returnTuple:
+    if return_tuple:
         return tuple(s.split())
     else:
         return s.split()
@@ -126,22 +126,22 @@ def is_subset(list1, list2):
     return set(list1).issubset(list2)
 
 
-def alphabetize_string_list(slist):
+def alphabetize_string_list(str_arr):
     """sorts a list of strings alphabetically
     takes a list or a string, but always returns a string
     """
-    if isinstance(slist, str):
-        return ",".join(sorted(slist.split(",")))
+    if isinstance(str_arr, str):
+        return ",".join(sorted(str_arr.split(",")))
     else:
-        return ",".join(sorted(slist))
+        return ",".join(sorted(str_arr))
 
 
-def list_to_indexed_dict(clist):
+def list_to_indexed_dict(arr):
     """convert list to hash of value -> index"""
-    return OrderedDict(zip(clist, range(1, len(clist) + 1)))
+    return OrderedDict(zip(arr, range(1, len(arr) + 1)))
 
 
-def find_in_list(value: str, arr: List[str], ignoreCase=False):
+def find_in_list(value: str, arr: List[str], ignore_case=False):
     """
     wrapper for seeing if a string value is 'in' a list
     allows case insensitive matches
@@ -153,7 +153,7 @@ def find_in_list(value: str, arr: List[str], ignoreCase=False):
         arr (List[str]): list of strings
         ignoreCase (bool, optional): flag for case sensitive match. Defaults to False.
     """
-    if not ignoreCase:
+    if not ignore_case:
         return value in arr
     else:
         if value.casefold() in (s.casefold() for s in arr):
@@ -187,19 +187,19 @@ def drop_nulls(arr):
     return list(filter(None, arr))
 
 
-def get_duplicates(array):
+def get_duplicates(arr):
     """get duplicate values in an array"""
-    return [k for k, v in Counter(array).items() if v > 1]
+    return [k for k, v in Counter(arr).items() if v > 1]
 
 
-def remove_duplicates(array, caseInsensitive: bool = False):
+def remove_duplicates(arr, ignore_case: bool = False):
     """remove duplicates from a list by transforming to set and back"""
-    if not caseInsensitive:
-        return [*set(array)]
+    if not ignore_case:
+        return [*set(arr)]
     else:
         reference = set()
         unique = []
-        for value in array:
+        for value in arr:
             lvalue = value.lower()
             if lvalue not in reference:
                 reference.add(lvalue)
@@ -223,28 +223,28 @@ def sum_arrays(a, b):
     return [x + y for x, y in zip(a, b)]
 
 
-def sum_array_list(arrays):
+def sum_array_list(arrs):
     """
     calcs per-element sum for a
     list of arrays (lists)
     e.g., [[1,2],[3,4]] --> [3,6]
     """
-    return [sum(x) for x in zip(*arrays)]
+    return [sum(x) for x in zip(*arrs)]
 
 
-def average_array_list(arrays):
+def average_array_list(arrs):
     """
     calcs per-element average for
     a list of arrays (lists)
     e.g., [[1,2],[3,4]] --> [1.5,3]
     """
 
-    n = len(arrays)
-    return [float(x) / float(n) for x in sum_array_list(arrays)]
+    n = len(arrs)
+    return [float(x) / float(n) for x in sum_array_list(arrs)]
 
 
-def cumulative_sum(array: List[Union[int, float]]):
+def cumulative_sum(arr: List[Union[int, float]]):
     """calculates the cumulative sum array"""
-    nElements = len(array)
-    cSum = [sum(array[0:x:1]) for x in range(0, nElements + 1)]
+    nElements = len(arr)
+    cSum = [sum(arr[0:x:1]) for x in range(0, nElements + 1)]
     return cSum[1:]
