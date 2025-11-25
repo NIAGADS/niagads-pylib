@@ -36,6 +36,7 @@ EXISTING_GWAS_FIELDS = qw(
 TARGET_FIELDS = qw(
     "chrom position variant_id ref alt pval neg_log10_pvalue OR z_score effect_size effect_size_se non_ref_af rsid QC_flags source_info"
 )
+RESTRICTED_STATS = qw("OR z_score effect_size effect_size_se non_ref_af")
 
 
 class VariantType(Enum):
@@ -51,10 +52,13 @@ class Variant(BaseModel):
     ref: str
     alt: str
     test: str
-    ref_snp_id: Optional[str] = None
-    variant_type: Optional[VariantType] = None
+    ref_snp_id: str = None
+    variant_type: VariantType = None
+    variant_id: str = None
+    effect_sign_change: bool = False
+    verified: bool = False
 
-    @field_validator(variant_type, mode="after")
+    @field_validator("variant_type", mode="after")
     def resolve_variant_type(self):
         if self.variant_type is not None:
             return VariantType(self.variant_type)
@@ -81,16 +85,69 @@ class Variant(BaseModel):
             alt=alt,
             ref_snp_id=row["ref_snp_id"],
             test=row["allele"],
+            variant_id=row["metaseq_id"],
         )
 
-    def has_rsid(self):
-        return self.ref_snp_id is not None
+    def test_is_ref(self):
+        return self.test == self.ref
 
-    def test_is_alt(self):
-        return self.test == self.alt
+    def resolve_test_allele(self):
+        if self.variant_id is None:
+            raise ValueError(
+                "Must resolve alleles (w/checks against genome) before resolving test allele."
+            )
 
-    def is_sv(self):
-        return self.variant_type == VariantType.SV
+        # since variant ids have already been resolved
+        if self.test_is_ref():
+            self.test = self.alt
+            self.effect_size_change = True
+
+    def _get_alleles(self, swap=False):
+        if swap:
+            return [self.alt, self.ref]
+        else:
+            return [self.ref, self.alt]
+
+    def _resolve_variant_id(self, swap: bool = False, skip_validation: bool = False):
+        loc = [self.chromosome, self.position]
+
+        if self.verified or skip_validation:
+            if self.variant_type != VariantType.SV:
+                self.variant_id = ":".join(
+                    [str(x) for x in loc + self._get_alleles(swap)]
+                )
+                if len(self.variant_id) > 50:
+                    raise NotImplementedError(
+                        "Verified variant_id too long; use VRS to encode"
+                    )
+            else:  # SV
+                raise NotImplementedError("SV use VRS to encode ID")
+
+        else:  # not verified, verify against the genome
+            raise NotImplementedError("Use VRS to do this")
+
+    def verify_variant(self):
+        if self.ref_snp_id is not None:
+            # was mapped to dbSNP so verified
+            self.verified = True
+            self._resolve_variant_id()
+
+        else:  # need to verify against genome
+            try:
+                self._resolve_variant_id()
+                self.verified = True
+            except:  # catch error not match genome
+                # decide what do depending on variant type
+                if self.variant_type == VariantType.SNV:
+                    # if SNV, swap alleles and try again
+                    try:
+                        self._resolve_variant_id(swap=True)
+                        self.verified = True
+                    except:  # bypass validation and leave unverified
+                        self._resolve_variant_id(skip_validation=True)
+
+                else:  # not SNV, can't switch alleles, so bypass validation and leave unverified
+                    self._resolve_variant_id(skip_validation=True)
 
 
 @async_timed
@@ -122,19 +179,32 @@ async def retrieve_gwas_data(
             yield row._mapping  # should return a RowMapping (dict equivalent)
 
 
+def assemble_restricted_stats(data: RowMapping, effect_size_change: bool = False):
+    # OR z_score effect_size effect_size_se non_ref_af
+    # basically, need to pull these out of restricted stats and then assemble info string from what is left over
+    stats = {"OR": data["restricted_stats"]}
+    stats = data["restricted_stats"]
+    pass
+
+
 def write_association(variant: Variant, data: RowMapping, fh, pvfh):
+    # extract OR z_score effect_size effect_size_se non_ref_af from restricted stats
+
     pass
 
 
 # TODO transformation logic
 def transform(data: RowMapping, fh, pvfh, is_lifted: bool):
-    variant = Variant.from_row(data)
-    if is_lifted and variant.is_sv():
-        return
-    if variant.has_rsid() and variant.test_is_alt():
-        write_association(variant, data, fh, pvfh)
-    if not variant.test_is_alt():
-        pass
+    variant: Variant = Variant.from_row(data)
+    variant.verify_variant()
+    variant.resolve_test_allele()
+
+    if is_lifted and not variant.verified:
+        # if this was lifted over and can't be verified against the
+        # genome, then no confidence so skip
+        return  # TODO: count/log skips
+
+    write_association(variant, data, fh, pvfh)
 
 
 # plus chromosome, position
