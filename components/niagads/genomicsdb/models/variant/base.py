@@ -8,3 +8,5 @@ from niagads.genomicsdb.models.base.factory import DeclarativeModelBaseFactory
 VariantSchemaBase = DeclarativeModelBaseFactory.create(
     schema="variant", incl_housekeeping=True
 )
+
+# TODO: when we make this table: need metaseq_id + variant_id b/c there will be cases when the metaseq_id is long that we need an abbreviated variant_id
