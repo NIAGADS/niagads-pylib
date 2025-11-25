@@ -25,6 +25,7 @@ from niagads.utils.logging import (
     FunctionContextLoggerWrapper,
     async_timed,
 )
+from niagads.utils.string import dict_to_info_string
 from pydantic import BaseModel, field_validator, model_validator
 from sqlalchemy import Row, RowMapping, text
 
@@ -36,13 +37,21 @@ EXISTING_GWAS_FIELDS = qw(
 TARGET_FIELDS = qw(
     "chrom position variant_id ref alt pval neg_log10_pvalue OR z_score effect_size effect_size_se non_ref_af rsid QC_flags source_info"
 )
-RESTRICTED_STATS = qw("OR z_score effect_size effect_size_se non_ref_af")
+
+RESTRICTED_STATS_MAP = {
+    "effect": "effect_size",
+    "std_err": "effect_size_se",
+    "z_score": "z_score",
+    "odds_ratio": "OR",
+}
 
 
 class VariantType(Enum):
     SNV = auto()
     MNV = auto()
     INDEL = auto()
+    DEL = auto()
+    INS = auto()
     SV = auto()
 
 
@@ -59,20 +68,14 @@ class Variant(BaseModel):
     verified: bool = False
 
     @field_validator("variant_type", mode="after")
-    def resolve_variant_type(self):
-        if self.variant_type is not None:
-            return VariantType(self.variant_type)
-
+    def resolve_structural_variant(self):
         l_ref = len(self.ref)
         l_alt = len(self.alt)
 
         if l_ref >= 50 or l_alt >= 50:
             return VariantType.SV
 
-        if l_ref != l_alt:
-            return VariantType.INDEL
-
-        return VariantType.SNV
+        return self.variant_type
 
     @classmethod
     def from_row(cls, row):
@@ -86,6 +89,7 @@ class Variant(BaseModel):
             ref_snp_id=row["ref_snp_id"],
             test=row["allele"],
             variant_id=row["metaseq_id"],
+            variant_type=VariantType(row["variant_class"]),
         )
 
     def test_is_ref(self):
@@ -179,16 +183,42 @@ async def retrieve_gwas_data(
             yield row._mapping  # should return a RowMapping (dict equivalent)
 
 
-def assemble_restricted_stats(data: RowMapping, effect_size_change: bool = False):
-    # OR z_score effect_size effect_size_se non_ref_af
-    # basically, need to pull these out of restricted stats and then assemble info string from what is left over
-    stats = {"OR": data["restricted_stats"]}
-    stats = data["restricted_stats"]
-    pass
+def standardize_gwas_effects(data: RowMapping, effect_sign_changed: bool = False):
+    """
+    Extracts and harmonizes GWAS statistics from a row, mapping restricted stats to standard output fields.
+
+    Args:
+        data (RowMapping): Input row containing GWAS summary statistics and restricted stats.
+        effect_sign_changed (bool, optional): If True, flips effect size sign and adjusts frequency. Defaults to False.
+
+    Returns:
+        dict: Dictionary of mapped GWAS stats, including harmonized effect size, frequency, and unmapped source info.
+
+    Note:
+        If effect_sign_changed is True, effect_size is negated and frequency is set to 1 - frequency.
+        Unmapped restricted stats are serialized to 'source_info'.
+    """
+
+    original_stats = data.get("restricted_stats", {}).copy()
+    mapped_stats = {}
+    for in_key, out_key in RESTRICTED_STATS_MAP.items():
+        if in_key in original_stats:
+            mapped_stats[out_key] = original_stats.pop(in_key)
+        else:
+            mapped_stats[out_key] = None
+    mapped_stats["source_info"] = dict_to_info_string(original_stats)
+
+    if effect_sign_changed:
+        mapped_stats["frequency"] = 1.0 - data["frequency"]
+        try:
+            mapped_stats["effect_size"] = -float(mapped_stats.get("effect_size"))
+        except Exception:
+            pass
+    return mapped_stats
 
 
-def write_association(variant: Variant, data: RowMapping, fh, pvfh):
-    # extract OR z_score effect_size effect_size_se non_ref_af from restricted stats
+def write_association(self, variant: Variant, data: RowMapping, fh, pvfh):
+    mapped_stats = self.standardize_gwas_effects(data, variant.effect_sign_change)
 
     pass
 
@@ -219,6 +249,7 @@ async def process_dataset(dataset_id: str, session):
     file_name = f"{file_prefix}_restricted.txt"
     pvalue_file_name = f"{file_prefix}.txt"
     with open(file_name, "w") as fh, open(pvalue_file_name, "w") as pfh:
+        # TODO: print headers
         async for row in retrieve_gwas_data(dataset_id, session):
             transform(row, fh, pfh, is_lifted=is_lifted)
 
