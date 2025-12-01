@@ -52,7 +52,7 @@ class ExcelFileParser:
             self.__workbook = load_workbook(self.__file, data_only=True)
             self.__worksheets = self.__workbook.sheetnames
         except Exception as err:
-            raise ExcelFileError(f"Failed to parse Excel file: {str(err)}") from err
+            raise ExcelFileError(f"Failed to open Excel file: {str(err)}") from err
         
     def na(self, value: str):
         """
