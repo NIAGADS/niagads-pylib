@@ -28,6 +28,7 @@ from niagads.metadata_validator.core import (
 )
 from niagads.utils.string import xstr
 from niagads.utils.sys import print_args, verify_path
+from niagads.excel_parser.core import ExcelFileError
 
 
 class MetadataValidatorType(CaseInsensitiveEnum):
@@ -130,6 +131,8 @@ def initialize_validator(
             bsValidator.set_biosource_id(idField, requireUnique=True)
             bsValidator.load()
             return bsValidator
+    except ExcelFileError as err:
+        raise IOError(f"Invalid Excel file: {str(err)}") from err
     except KeyError:
         raise ValueError(
             f"Invalid `metadataType` : '{str(metadataType)}'.  Valid values are: {', '.join(MetadataValidatorType.list())}"

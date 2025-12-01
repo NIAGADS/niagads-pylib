@@ -10,6 +10,11 @@ from niagads.utils.dict import convert_str2numeric_values
 from niagads.utils.string import xstr, to_snake_case
 from niagads.utils.pandas import strip_df
 
+class ExcelFileError(Exception):
+    """
+    Custom exception wrapper for Excel parsing (I/O) errors.
+    """
+    pass
 
 class ExcelFileParser:
     """
@@ -43,9 +48,12 @@ class ExcelFileParser:
         (should do basic parsing & error reporting; e.g., non-ascii characters)
         """
         # data_only=True -> values, not formulas & formatting
-        self.__workbook = load_workbook(self.__file, data_only=True)
-        self.__worksheets = self.__workbook.sheetnames
-
+        try:
+            self.__workbook = load_workbook(self.__file, data_only=True)
+            self.__worksheets = self.__workbook.sheetnames
+        except Exception as err:
+            raise ExcelFileError(f"Failed to parse Excel file: {str(err)}") from err
+        
     def na(self, value: str):
         """
         fill NA's with specified value when using pandas conversions
