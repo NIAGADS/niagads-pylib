@@ -21,6 +21,7 @@ from typing import List, Union
 
 from niagads.arg_parser.core import case_insensitive_enum_type
 from niagads.enums.core import CaseInsensitiveEnum
+from niagads.exceptions.core import FileFormatError
 from niagads.utils.logging import LOG_FORMAT_STR, ExitOnExceptionHandler
 from niagads.metadata_validator.core import (
     BiosourcePropertiesValidator,
@@ -28,8 +29,13 @@ from niagads.metadata_validator.core import (
 )
 from niagads.utils.string import xstr
 from niagads.utils.sys import print_args, verify_path
-from niagads.excel_parser.core import ExcelFileError
 
+class MetadataFileFormatError(FileFormatError):
+    """Exception raised when metadata file parsing fails due to
+    inconsistency in file format or data quality issues (e.g., malformed content) 
+    that the user must resolve by providing a properly formatted file.
+    """
+    pass
 
 class MetadataValidatorType(CaseInsensitiveEnum):
     """Enum defining types of supported tabular metadata files.
@@ -131,13 +137,12 @@ def initialize_validator(
             bsValidator.set_biosource_id(idField, requireUnique=True)
             bsValidator.load()
             return bsValidator
-    except ExcelFileError as err:
-        raise IOError(f"Invalid Excel file: {str(err)}") from err
     except KeyError:
         raise ValueError(
             f"Invalid `metadataType` : '{str(metadataType)}'.  Valid values are: {', '.join(MetadataValidatorType.list())}"
         )
-
+    except FileFormatError as err:
+        raise MetadataFileFormatError(err)
 
 def run(
     file: str,
@@ -166,6 +171,8 @@ def run(
         if "warnings" not in result:
             result["warnings"] = []
         return result
+    except FileFormatError as err:
+        raise MetadataFileFormatError(err)
     except Exception as err:
         raise err
 

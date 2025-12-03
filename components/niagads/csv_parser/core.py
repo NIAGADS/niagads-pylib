@@ -1,8 +1,8 @@
 import logging
 import json
 
-from csv import Sniffer, Dialect
-from niagads.exceptions.core import ParserError
+from csv import Sniffer, Dialect, Error as CSVError
+from niagads.exceptions.core import FileFormatError
 from pandas import read_csv, DataFrame
 
 from niagads.utils.dict import convert_str2numeric_values
@@ -87,7 +87,7 @@ class CSVFileParser:
         """
         return strip_df(df) if self.__strip else df
 
-    def sniff(self):
+    def sniff(self, bytes: int = 1024):
         """
         'sniff' out / infer the delimitier
         """
@@ -96,11 +96,17 @@ class CSVFileParser:
                 return self.__sep
             else:
                 with open(self.__file, "r", encoding="utf-8", errors="ignore") as fh:
-                    dialect: Dialect = Sniffer().sniff(fh.read(4096))
+                    dialect: Dialect = Sniffer().sniff(fh.read(bytes))
                     fh.seek(0)
                     return dialect.delimiter
-        except Exception as err:
-            raise ParserError("Unable to determine delimiter.")
+        except CSVError as err:
+            if bytes < 4096: # try a larger section of the file
+                return self.sniff(bytes=4096)
+            raise FileFormatError(
+                "Unable to determine file delimiter."
+                "File may have inconsistent numbers of columns, sparse data, "
+                "or use inconsistent or non-standard delimiters. "
+            ) from err
 
     def to_pandas_df(self, transpose=False, **kwargs) -> DataFrame:
         """

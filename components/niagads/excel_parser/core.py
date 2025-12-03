@@ -3,9 +3,10 @@ import json
 
 from os import path
 from typing import Union
-from niagads.exceptions.core import ParserError
+from niagads.exceptions.core import FileFormatError
 from pandas import read_excel, DataFrame
 from openpyxl import Workbook as wb, load_workbook
+from openpyxl.utils.exceptions import InvalidFileException
 
 from niagads.utils.dict import convert_str2numeric_values
 from niagads.utils.string import xstr, to_snake_case
@@ -47,8 +48,8 @@ class ExcelFileParser:
         try:
             self.__workbook = load_workbook(self.__file, data_only=True)
             self.__worksheets = self.__workbook.sheetnames
-        except Exception as err:
-            raise ParserError(f"Failed to open Excel file: {str(err)}") from err
+        except InvalidFileException as err:
+            raise FileFormatError(f"Invalid or corrupted Excel file") from err
         
     def na(self, value: str):
         """
