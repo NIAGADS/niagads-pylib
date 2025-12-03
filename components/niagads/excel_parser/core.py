@@ -3,6 +3,7 @@ import json
 
 from os import path
 from typing import Union
+from niagads.exceptions.core import ParserError
 from pandas import read_excel, DataFrame
 from openpyxl import Workbook as wb, load_workbook
 
@@ -10,11 +11,6 @@ from niagads.utils.dict import convert_str2numeric_values
 from niagads.utils.string import xstr, to_snake_case
 from niagads.utils.pandas import strip_df
 
-class ExcelFileError(Exception):
-    """
-    Custom exception wrapper for Excel parsing (I/O) errors.
-    """
-    pass
 
 class ExcelFileParser:
     """
@@ -52,7 +48,7 @@ class ExcelFileParser:
             self.__workbook = load_workbook(self.__file, data_only=True)
             self.__worksheets = self.__workbook.sheetnames
         except Exception as err:
-            raise ExcelFileError(f"Failed to open Excel file: {str(err)}") from err
+            raise ParserError(f"Failed to open Excel file: {str(err)}") from err
         
     def na(self, value: str):
         """
