@@ -7,7 +7,7 @@ from collections import abc
 from types import SimpleNamespace
 from copy import deepcopy
 
-from niagads.utils.string import is_bool, is_null, to_bool, to_json, to_number
+from niagads.utils.string import is_bool, is_null, is_numeric, to_bool, to_json, to_number
 from niagads.utils.list import all_elements_are_none as __list_is_none
 
 
@@ -206,9 +206,9 @@ def convert_str2numeric_values(cdict: dict, nanAsStr=True, infAsStr=True):
         if "inf" in str(value).lower() and infAsStr:
             # is_float test will be true for Infinity / -Infinity
             continue
-        if is_bool(value):
+        if is_bool(value, int_as_bool=False):
             cdict[key] = to_bool(value)
-        if value.isnumeric():
+        elif is_numeric(value):
             cdict[key] = to_number(value)
 
     return cdict
