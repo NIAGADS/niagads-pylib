@@ -2,6 +2,7 @@ import logging
 import json
 
 from csv import Sniffer, Dialect
+from niagads.exceptions.core import ParserError
 from pandas import read_csv, DataFrame
 
 from niagads.utils.dict import convert_str2numeric_values
@@ -90,13 +91,16 @@ class CSVFileParser:
         """
         'sniff' out / infer the delimitier
         """
-        if self.__sep is not None:
-            return self.__sep
-        else:
-            with open(self.__file, "r", encoding="utf-8", errors="ignore") as fh:
-                dialect: Dialect = Sniffer().sniff(fh.read(1024))
-                fh.seek(0)
-                return dialect.delimiter
+        try:
+            if self.__sep is not None:
+                return self.__sep
+            else:
+                with open(self.__file, "r", encoding="utf-8", errors="ignore") as fh:
+                    dialect: Dialect = Sniffer().sniff(fh.read(4096))
+                    fh.seek(0)
+                    return dialect.delimiter
+        except Exception as err:
+            raise ParserError("Unable to determine delimiter.")
 
     def to_pandas_df(self, transpose=False, **kwargs) -> DataFrame:
         """
