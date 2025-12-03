@@ -163,7 +163,7 @@ class JSONValidator:
 
         if "is not of type 'null'" in error.message:
             field = error.path.popleft()
-            return f"unexpected value for `{field}`; field is not relevant for this record; please set to an empty string in a metadata text/EXCEL file; `null` in a .json file"
+            return f"unexpected value for `{field}`; check specification for dependent fields or set to an empty string (text/EXCEL) or `null` (json)"
         if error.message.startswith("None is not of type"):
             field = error.path.popleft()
             if field in requiredFields:
