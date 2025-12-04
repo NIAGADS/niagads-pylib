@@ -52,7 +52,7 @@ class CSVFileParser:
         """
         self.__strip = strip
 
-    def to_json(self, transpose=False, returnStr=False, **kwargs):
+    def to_json(self, transpose=False, return_str=False, **kwargs):
         """
         converts the CSV file to JSON
 
@@ -76,7 +76,7 @@ class CSVFileParser:
         else:
             jsonObj = convert_str2numeric_values(jsonObj)
 
-        return json.dumps(jsonObj) if returnStr else json.loads(jsonStr)
+        return json.dumps(jsonObj) if return_str else json.loads(jsonStr)
 
     def __trim(self, df: DataFrame):
         """
@@ -100,7 +100,7 @@ class CSVFileParser:
                     fh.seek(0)
                     return dialect.delimiter
         except CSVError as err:
-            if bytes < 4096: # try a larger section of the file
+            if bytes < 4096:  # try a larger section of the file
                 return self.sniff(bytes=4096)
             raise FileFormatError(
                 "Unable to determine file delimiter."
