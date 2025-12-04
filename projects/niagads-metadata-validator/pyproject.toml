@@ -1,6 +1,6 @@
 [project]
 name = "niagads-metadata-validator"
-authors = [{ name = "fossilfriend", email = "egreenfest@gmail.com" }]
+authors = [{name = "fossilfriend", email = "egreenfest@gmail.com"}]
 dependencies = [
     "jsonschema (>=4.23.0,<5.0.0)",
     "nh3 (>=0.2.21,<0.3.0)",
@@ -8,13 +8,13 @@ dependencies = [
     "pandas (>=2.2.3,<3.0.0)",
     "pydantic (>=2.11.3,<3.0.0)",
     "python-dateutil (>=2.9.0.post0,<3.0.0)",
-    "strenum (>=0.4.15,<0.5.0)",
+    "strenum (>=0.4.15,<0.5.0)"
 ]
 description = "JSON Schema based validation of dataset metadata developed to support submissions to the NIAGADS Data Sharing Service"
-license = { text = "GNU GPLv3" }
+license = {text = "GNU GPLv3"}
 readme = "README.md"
 requires-python = ">=3.11,<4.0"
-version = "0.2.2"
+version = "0.2.3"
 
 [project.scripts]
 metadata-validator = "niagads.metadata_validator_tool.core:main"
@@ -26,18 +26,18 @@ metadata-validator = "niagads.metadata_validator_tool.core:main"
 
 [tool.poetry]
 packages = [
-    { from = "../../bases", include = "niagads/metadata_validator_tool" },
-    { from = "../../components", include = "niagads/arg_parser" },
-    { from = "../../components", include = "niagads/csv_parser" },
-    { from = "../../components", include = "niagads/csv_validator" },
-    { from = "../../components", include = "niagads/enums" },
-    { from = "../../components", include = "niagads/excel_parser" },
-    { from = "../../components", include = "niagads/exceptions" },
-    { from = "../../components", include = "niagads/json_validator" },
-    { from = "../../components", include = "niagads/metadata_validator" },
-    { from = "../../components", include = "niagads/pd_dataframe" },
-    { from = "../../components", include = "niagads/utils" },
+    {from = "../../bases", include = "niagads/metadata_validator_tool"},
+    {from = "../../components", include = "niagads/arg_parser"},
+    {from = "../../components", include = "niagads/csv_parser"},
+    {from = "../../components", include = "niagads/csv_validator"},
+    {from = "../../components", include = "niagads/enums"},
+    {from = "../../components", include = "niagads/excel_parser"},
+    {from = "../../components", include = "niagads/exceptions"},
+    {from = "../../components", include = "niagads/json_validator"},
+    {from = "../../components", include = "niagads/metadata_validator"},
+    {from = "../../components", include = "niagads/utils"}
 ]
+exclude = ["../../bases/niagads/metadata_validator_tool/README.md"]
 
 [tool.poetry.group.dev.dependencies]
 lazydocs = "^0.4.8"
