@@ -196,6 +196,13 @@ a file that maps a sample or participant to descriptive properties
 FILE_MANIFEST = "file manifest or a sample-data-relationship (SDRF) file"
 ``` 
 
+---
+
+## <kbd>class</kbd> `MetadataFileFormatError`
+Exception raised when metadata file parsing fails due to
+inconsistency in file format or data quality issues (e.g., malformed content) that the user must 
+resolve by providing a properly formatted file.
+
 
 
 

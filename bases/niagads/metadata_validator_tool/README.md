@@ -2,7 +2,7 @@
 
 <a href="https://github.com/NIAGADS/niagads-pylib/blob/main/bases/niagads/metadata_validator_tool/core.py#L0"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-# <kbd>module</kbd> `core.py`
+# <kbd>module</kbd> `metadata_validatory_tool/core.py`
 NIAGADS JSON Schema based metadata validation. 
 
 This tool allows the user to perform [JSON Schema](https://json-schema.org/)-based validation of a sample or file manifest metadata file arranged in tabular format (with a header row that has field names matching the validation schema). 
@@ -190,9 +190,13 @@ FILE_MANIFEST = "file manifest or a sample-data-relationship (SDRF) file"
 ``` 
 
 
+---
 
-
-
+## <kbd>class</kbd> `MetadataFileFormatError`
+Exception raised when metadata file parsing fails due to
+inconsistency in file format or data quality issues 
+(e.g., malformed content) that the user must resolve 
+by providing a properly formatted file.
 
 
 ---
