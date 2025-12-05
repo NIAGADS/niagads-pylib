@@ -13,6 +13,10 @@ from niagads.utils.list import list_to_string
 
 from niagads.json_validator.format_checkers import JSONSchemaFormatChecker
 
+from niagads.json_validator.custom_validators import (
+    case_insensitive_value_validator,
+)
+
 
 class JSONValidator:
     """
@@ -22,22 +26,38 @@ class JSONValidator:
     for info on custom validators & format checkers
     """
 
-    def __init__(self, jsonObj, schema, debug: bool = False):
+    def __init__(self, json_obj, schema, debug: bool = False):
         self._debug = debug
         self.logger = logging.getLogger(__name__)
 
-        self.__json = json.loads(jsonObj) if isinstance(jsonObj, str) else jsonObj
+        self.__json = json.loads(json_obj) if isinstance(json_obj, str) else json_obj
         self.__schema = None
-        self.__schemaValidator = None
-        self.__customValidatorClass = None
+        self.__case_insensitive: bool = False
+        self.__schema_validator = None
+        self.__custom_validator_class = None
 
         self.__create_custom_validator()
         self.set_schema(schema)
 
     def get_schema_validator(self):
-        return self.__schemaValidator
+        return self.__schema_validator
 
-    def set_json(self, jsonObj):
+    def normalize(self):
+        """normalizes JSON object against the schema
+        1. matches against enums and fixes case
+        """
+        if self.__json is None:
+            raise ValueError(
+                "Need to set or load JSON file before attempting to normalize"
+            )
+
+    def case_insensitive(self, enable: bool = True):
+        self.__case_insensitive = enable
+
+        # need to recreate the custom validators
+        self.__create_custom_validator()
+
+    def set_json(self, obj):
         """
         set JSON to be validated; this allow applying the same schema
         to multiple JSON objects w/out revalidating the schema itself
@@ -45,7 +65,7 @@ class JSONValidator:
         Args:
             json (str|dict): JSON object to be validated in object or string format
         """
-        self.__json = json.loads(jsonObj) if isinstance(jsonObj, str) else jsonObj
+        self.__json = json.loads(obj) if isinstance(obj, str) else obj
 
     def set_schema(self, schema):
         """
@@ -95,14 +115,19 @@ class JSONValidator:
         create custom Draft Validator by adding in all custom validators
         basically a wrapper for the DraftValidator
         """
-        customValidators = dict(DraftValidator.VALIDATORS)
+        custom_validators = dict(DraftValidator.VALIDATORS)
+
         # add custom validators here
         # e.g., validators['is_positive']=is_positive
         # where is_positive is a function
         # see https://lat.sk/2017/03/custom-json-schema-type-validator-format-python/
 
-        self.__customValidatorClass = jsValidators.create(
-            meta_schema=DraftValidator.META_SCHEMA, validators=customValidators
+        if self.__case_insensitive:
+            custom_validators["enum"] = case_insensitive_value_validator
+            custom_validators["oneOf"] = case_insensitive_value_validator
+
+        self.__custom_validator_class = jsValidators.create(
+            meta_schema=DraftValidator.META_SCHEMA, validators=custom_validators
         )
 
     def __initialize_schema_validator(self):
@@ -111,7 +136,7 @@ class JSONValidator:
         happens exactly once
         """
         self.__check_schema()
-        self.__schemaValidator = self.__customValidatorClass(
+        self.__schema_validator = self.__custom_validator_class(
             self.__schema, format_checker=JSONSchemaFormatChecker
         )
 
@@ -155,25 +180,32 @@ class JSONValidator:
         Args:
             error (ValidationError): the validation error
         """
-        requiredFields = (
+        required_fields = (
             [f for f in self.__schema["required"]]
             if "required" in self.__schema
             else []
         )
 
-        if "is not of type 'null'" in error.message:
+        msg = error.message
+
+        if "is not of type 'null'" in msg:
             field = error.path.popleft()
-            return f"unexpected value for `{field}`; check specification for dependent fields or set to an empty string (text/EXCEL) or `null` (json)"
-        if error.message.startswith("None is not of type"):
+            msg = f"unexpected value for `{field}`; check specification for dependent fields or set to an empty string (text/EXCEL) or `null` (json)"
+        elif msg.startswith("None is not of type"):
             field = error.path.popleft()
-            if field in requiredFields:
-                return f"required field `{field}` cannot be empty / null"
+            if field in required_fields:
+                msg = f"required field `{field}` cannot be empty / null"
             else:
-                return f"optional `{field}` contains an empty string / null value; check specification - the value may be required to qualify other data"
+                msg = f"optional `{field}` contains an empty string / null value; check specification - the value may be required to qualify other data"
 
-        return error.message
+        # TODO: how to handle file-level (root) messages
+        path = list(error.path)
+        property_name = str(path[-1]) if path else None  # "file"
+        if property_name is not None:
+            return {property_name: msg}
+        return msg
 
-    def run(self, failOnError=False):
+    def run(self, fail_on_error=False):
         """
         Validate the JSON against the supplied json-schema
 
@@ -188,12 +220,12 @@ class JSONValidator:
         """
         errors = [
             self.__parse_validation_error(e)
-            for e in sorted(self.__schemaValidator.iter_errors(self.__json), key=str)
+            for e in sorted(self.__schema_validator.iter_errors(self.__json), key=str)
         ]
         if len(errors) == 0:
             return True
 
-        if failOnError:
+        if fail_on_error:
             self.validation_error(errors)
 
         else:

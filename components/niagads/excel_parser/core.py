@@ -50,7 +50,7 @@ class ExcelFileParser:
             self.__worksheets = self.__workbook.sheetnames
         except InvalidFileException as err:
             raise FileFormatError(f"Invalid or corrupted Excel file") from err
-        
+
     def na(self, value: str):
         """
         fill NA's with specified value when using pandas conversions
@@ -156,7 +156,7 @@ class ExcelFileParser:
         df.to_csv(fileName, sep=sep, index=False, encoding="utf-8", na_rep=self.__na)
 
     def worksheet_to_json(
-        self, worksheet: Union[str, int], transpose=False, returnStr=False, **kwargs
+        self, worksheet: Union[str, int], transpose=False, return_str=False, **kwargs
     ):
         """
         converts the EXCEL file to JSON
@@ -183,7 +183,7 @@ class ExcelFileParser:
         else:
             jsonObj = convert_str2numeric_values(jsonObj)
 
-        return json.dumps(jsonObj) if returnStr else json.loads(jsonStr)
+        return json.dumps(jsonObj) if return_str else json.loads(jsonStr)
 
     def __trim(self, df: DataFrame):
         """
