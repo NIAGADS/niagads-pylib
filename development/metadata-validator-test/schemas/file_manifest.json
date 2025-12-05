@@ -8,38 +8,465 @@
 		"file_category": {
 			"type": "string",
 			"description": "DSS File Classification: single- or multi-sample results, sample-independent annotations, or something else (other)",
-			"enum": [
-				"single-sample",
-				"multi-sample",
-				"sample-independent",
-				"other"
+			"oneOf": [
+				{
+					"const": "single-sample",
+					"description": "Data from analysis of a single sample",
+					"ontology_mapping": { "iri": "", "term": "", "id": "" }
+				},
+				{
+					"const": "multi-sample",
+					"description": "Data aggregated across multiple samples or from a meta-anaylsis of multiple individuals",
+					"ontology_mapping": { "iri": "", "term": "", "id": "" }
+				},
+				{
+					"const": "sample-independent",
+					"description": "Annotations or other sample-independent data",
+					"ontology_mapping": { "iri": "", "term": "", "id": "" }
+				},
+				{
+					"const": "documentation",
+					"description": "study or experiment documentation",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/topic_3061",
+						"term": "documentation and help",
+						"id": "EDAM:topic_3061"
+					}
+				}
 			]
 		},
 		"file_name": {
 			"type": "string",
 			"description": "Must include file extension.  If this file is a tar-ball, .zip or other compressed directory/package, please provide an additional file manifest listing the contents of the directory."
 		},
-		"analysis_category": {
-			"type": "string",
-			"description": "broad categorization of the type of analysis / experimental design",
-			"enum": [
-				"Genotyping",
-				"Phenotyping",
-				"Sequencing",
-				"GWAS",
-				"Annotation",
-				"Summary Statistics"
+		"assay": {
+			"type": ["string", "null"],
+			"description": "The experimental assay or sequencing method used to generate this data file (e.g., RNA-seq, WGS, ATAC-seq, ChIP-seq, exome sequencing, etc.)",
+			"oneOf": [
+				{
+					"const": "WGS",
+					"description": "Whole genome sequencing",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C101294",
+						"term": "whole genome sequencing",
+						"id": "NCIT:C101294"
+					}
+				},
+				{
+					"const": "WES",
+					"description": "Whole exome sequencing",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C101295",
+						"term": "whole exome seqeuncing",
+						"id": "NCIT:C101295"
+					}
+				},
+				{
+					"const": "RNA-seq",
+					"description": "transcriptome profiling using RNA sequencing",
+					"ontology_mapping": {
+						"iri": "http://id.nlm.nih.gov/mesh/D000081246",
+						"term": "RNA-seq",
+						"id": "mesh:D000081246"
+					}
+				},
+				{
+					"const": "scRNA-seq",
+					"description": "transcriptome profiling using single-cell RNA sequencing",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C171152",
+						"term": "single-cell RNA sequencing",
+						"id": "NCIT:C171152"
+					}
+				},
+				{
+					"const": "ATAC-seq",
+					"description": "Assay for Transposase-Accessible Chromatin using sequencing",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C156056",
+						"term": "ATAC-seq",
+						"id": "NCIT:C156056"
+					}
+				},
+				{
+					"const": "snATAC-seq",
+					"description": "Single-nucleus ATAC-seq",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C198496",
+						"term": "single nucleus ATAC-seq",
+						"id": "NCIT:C198496"
+					}
+				},
+				{
+					"const": "scATAC-seq",
+					"description": "Single-cell ATAC-seq",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C179458",
+						"term": "single-cell ATAC-seq",
+						"id": "NCIT:C179458"
+					}
+				},
+				{
+					"const": "ChIP-seq",
+					"description": "Chromatin immunoprecipitation sequencing",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C106049",
+						"term": "ChIP-seq",
+						"id": "NCIT:C106049"
+					}
+				},
+				{
+					"const": "Hi-C",
+					"description": "chromosome conformation capture sequencing",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C204819",
+						"term": "HI-C sequencing",
+						"id": "NCIT:C204819"
+					}
+				},
+				{
+					"const": "SNP array",
+					"description": "Genotyping array (e.g., Illumina, Affymetrix)",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C116151",
+						"term": "single nucleotide polymorphism array",
+						"id": "NCIT:C116151"
+					}
+				},
+				{
+					"const": "Targeted sequencing",
+					"description": "Targeted sequencing of selected regions on the genome",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C158253",
+						"term": "targeted genome sequencing",
+						"id": "NCIT:C158253"
+					}
+				},
+				{
+					"const": "other",
+					"description": "Other or unspecified assay type",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C17649",
+						"term": "other",
+						"id": "NCIT:C17649"
+					}
+				}
 			]
 		},
+
 		"data_type": {
 			"type": "string",
-			"description": "kind of data being captured",
-			"$comment": "TODO: controlled vocab"
+			"description": "type of data or information represented in the file",
+			"oneOf": [
+				{
+					"const": "imputation",
+					"description": "statistically imputation (usually of genotype data)ly",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C80304",
+						"term": "Imputation",
+						"id": "NCIT:C80304"
+					}
+				},
+				{
+					"const": "sample annotation",
+					"description": "sample ID lists or mappings, may include phenotype information",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/data_3113",
+						"term": "sample annotation",
+						"id": "EDAM:data_3113"
+					}
+				},
+				{
+					"const": "genetic association",
+					"description": "aggregate (summary statistics) or individual level data from a GWAS or QTL analysis or meta-analysis (e.g., burden testing)",
+					"ontology_mapping": {
+						"iri": "http://id.nlm.nih.gov/mesh/D056726",
+						"term": "genetic association study",
+						"id": "mesh:D056726"
+					}
+				},
+				{
+					"const": "expression",
+					"description": "gene or transcript expression data (e.g., from RNA-seq)",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/data_2603",
+						"term": "gene expression data",
+						"id": "EDAM:data_2603"
+					}
+				},
+				{
+					"const": "sequencing",
+					"description": "raw sequencing data, with possible annotations (e.g., FASTA or FASTQ files from RNA-seq, WGS, WES, etc.)",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/data_2044",
+						"term": "sequence",
+						"id": "EDAM:data_2044"
+					}
+				},
+				{
+					"const": "variant calling",
+					"description": "identified and mapped variants, such as SNPs, short indels and structural variants detected from the difference between an individual and reference sequence",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C188690",
+						"term": "variant calling",
+						"id": "NCIT:C188690"
+					}
+				},
+				{
+					"const": "gene annotation",
+					"description": "gene or gene functional annotation data from sequencing or statistical analyses",
+					"ontology_mapping": {
+						"iri": "https://id.nlm.nih.gov/mesh/D058977",
+						"term": "molecular sequence annotation",
+						"id": "mesh:D058977"
+					}
+				},
+				{
+					"const": "variant annotation",
+					"description": "variant or variant functional annotation data from statistical analyses (e.g., polygenic-risk score), or annotation tools (e.g., predicted variant effect); for sequencing based annotations, classify as `variant calling`",
+					"ontology_mapping": {
+						"iri": "https://id.nlm.nih.gov/mesh/D058977",
+						"term": "molecular sequence annotation",
+						"id": "mesh:D058977"
+					}
+				},
+				{
+					"const": "genomic region annotation",
+					"description": "annotation of genomic intervals from sequencing (e.g., peak calls) or feature extraction/identification analyses (e.g., location of HBD segments), excluding variant calling.",
+					"ontology_mapping": {
+						"iri": "https://id.nlm.nih.gov/mesh/D058977",
+						"term": "molecular sequence annotation",
+						"id": "mesh:D058977"
+					}
+				},
+				{
+					"const": "README",
+					"description": "a README or other descriptive document",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/topic_3061",
+						"term": "documentation and help",
+						"id": "EDAM:topic_3061"
+					}
+				},
+				{
+					"const": "data dictionary",
+					"description": "data dictionary or variable definitions",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/T4FS_0000073",
+						"term": "data dictionary",
+						"id": "T4FS:0000073"
+					}
+				},
+				{
+					"const": "other",
+					"description": "other data type",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C17649",
+						"term": "other",
+						"id": "NCIT:C17649"
+					}
+				}
+			]
 		},
 		"file_format": {
 			"type": "string",
-			"description": "file format; not always the same as the extension",
-			"$comment": "TODO: controlled vocabulary"
+			"description": "file format; not always the same as the extension; e.g., TXT, TAB, CSV, TSV are all simple delimited TEXT files",
+			"oneOf": [
+				{
+					"const": "free text",
+					"description": "Unstructured plain text, usually for human consumption; e.g., a README",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_1964",
+						"term": "plain text (unformatted)",
+						"id": "EDAM:format_1964"
+					}
+				},
+				{
+					"const": "delimited text",
+					"description": "structured text data file consisting of readable data organized in sequential rows that does not conform to an industry-standard specification (e.g. comma [.csv] or tab-delimited text [.tab/.txt/.tsv] but not BED)",
+					"ontology_mapping": {
+						"iri": "http://champ-project.org/images/ontology/cao.owl#CAO_000233",
+						"term": "Text data file",
+						"id": "CAO:000233"
+					}
+				},
+				{
+					"const": "XML",
+					"url": "http://www.w3.org/XML/",
+					"description": "eXtensible Markup Language (XML) format in text or binary format; includes files conforming to domain-specific schemas (i.e., XSD, such as OWL, NCBIXML, BioPax, phyloXML)",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_2332",
+						"term": "XML",
+						"id": "EDAM:format_2332"
+					}
+				},
+				{
+					"const": "YAML",
+					"url": "https://yaml.org/",
+					"description": "YAML Ain't Markup Language: a human-readable, tree-structured data-serialization language often used to create configuration files",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_3750",
+						"term": "YAML",
+						"id": "EDAM:format_3750"
+					}
+				},
+				{
+					"const": "JSON",
+					"url": "https://www.json.org/json-en.html",
+					"description": "JavaScript Object Notation format; a lightweight, text-based format to represent tree-structured data using key-value pairs; includes files conforming to domain-specific JSON schemas (e.g., BioJSON)",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_3464",
+						"term": "JSON",
+						"id": "EDAM:format_3464"
+					}
+				},
+				{
+					"const": "Excel",
+					"description": "Excel spreadsheet file; e.g. XLSX or XLS",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_3620",
+						"term": "Excel file",
+						"id": "EDAM:format_3620"
+					}
+				},
+				{
+					"const": "BAM",
+					"description": "Binary Alignment/Map format for sequencing reads",
+					"url": "https://samtools.github.io/hts-specs/",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_2572",
+						"term": "BAM",
+						"id": "EDAM:format_2572"
+					}
+				},
+				{
+					"const": "CRAM",
+					"description": "Compressed reference-oriented alignment format",
+					"url": "https://samtools.github.io/hts-specs/",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_3462",
+						"term": "CRAM",
+						"id": "EDAM:format_3462"
+					}
+				},
+				{
+					"const": "BED",
+					"description": "Genomic interval file, e.g., PLINK or UCSC BED",
+					"url": "https://genome.ucsc.edu/FAQ/FAQformat.html#format1",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_3003",
+						"term": "BED format",
+						"id": "EDAM:format_3003"
+					}
+				},
+				{
+					"const": "BIM (PLINK)",
+					"description": "PLINK extended variant information file",
+					"url": "https://www.cog-genomics.org/plink/1.9/formats#bim",
+					"ontology_mapping": { "iri": "", "term": "", "id": "" }
+				},
+				{
+					"const": "FAM (PLINK)",
+					"description": "PLINK sample information file",
+					"url": "https://www.cog-genomics.org/plink/1.9/formats#fam",
+					"ontology_mapping": { "iri": "", "term": "", "id": "" }
+				},
+				{
+					"const": "MAP (PLINK)",
+					"description": "PLINK text variant information file; accompanied by a pedigree and genotype table (.ped file)",
+					"url": "https://www.cog-genomics.org/plink/1.9/formats#map",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_3285",
+						"term": "MAP",
+						"id": "EDAM:format_3285"
+					}
+				},
+				{
+					"const": "PED (PLINK)",
+					"description": "PLINK text pedigree and genotype table, typically paired with MAP file.",
+					"url": "https://www.cog-genomics.org/plink/1.9/formats#ped",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_3286",
+						"term": "PED",
+						"id": "EDAM:format_3286"
+					}
+				},
+				{
+					"const": "BGEN",
+					"description": "Compressed binary format for typed and imputed genotype data",
+					"url": "https://www.chg.ox.ac.uk/~gav/bgen_format/spec/latest.html",
+					"ontology_mapping": {
+						"iri": "",
+						"term": "",
+						"id": ""
+					}
+				},
+				{
+					"const": "FASTA",
+					"description": "Sequence data in FASTA format",
+					"url": "https://blast.ncbi.nlm.nih.gov/doc/blast-topics/#fasta",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_1929",
+						"term": "FASTA",
+						"id": "EDAM:format_1929"
+					}
+				},
+				{
+					"const": "FASTQ",
+					"description": "Sequence data with quality scores",
+					"url": "https://maq.sourceforge.net/fastq.shtml",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_1930",
+						"term": "FASTQ",
+						"id": "EDAM:format_1930"
+					}
+				},
+				{
+					"const": "Folder archive",
+					"description": "Compressed folder archive, e.g., ZIP, TAR.GZ; not a single compressed file",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C62486",
+						"term": "Folder",
+						"id": "NCIT:C62486"
+					}
+				},
+				{
+					"const": "matrix",
+					"description": "Matrix-formatted data file",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_3033",
+						"term": "Matrix format",
+						"id": "EDAM:format_3033"
+					}
+				},
+				{
+					"const": "index",
+					"description": "Paired data indexing file, e.g., .bai for BAM, .bgi for BGEN, .tbi for TABIX",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_3326",
+						"term": "Data index format",
+						"id": "EDAM:format_3326"
+					}
+				},
+				{
+					"const": "sample",
+					"description": "Sample sheet or sample metadata file; used as input to an analysis; includes but not restricted to .SAMPLE format.  Not to be confused with structured phenotype file",
+					"ontology_mapping": {
+						"iri": "http://edamontology.org/format_3813",
+						"term": "Sample information file",
+						"id": "EDAM:format_3813"
+					}
+				},
+				{
+					"const": "other",
+					"description": "Other format not listed above",
+					"ontology_mapping": {
+						"iri": "http://purl.obolibrary.org/obo/NCIT_C17649",
+						"term": "Other",
+						"id": "NCIT:C17649"
+					}
+				}
+			]
 		},
 		"sample_id": {
 			"description": "required for single-sample results",
@@ -62,7 +489,6 @@
 	"required": [
 		"file_category",
 		"file_name",
-		"analysis_category",
 		"data_type",
 		"file_format",
 		"sample_id",
