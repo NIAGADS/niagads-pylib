@@ -469,7 +469,7 @@
 			]
 		},
 		"sample_id": {
-			"description": "required for single-sample results",
+			"description": "sample identifier; must match a `sample_id` in the `sample_info` file; required for single-sample results",
 			"type": ["string", "null"]
 		},
 		"md5sum": {
