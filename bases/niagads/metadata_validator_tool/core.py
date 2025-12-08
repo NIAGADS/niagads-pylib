@@ -130,7 +130,7 @@ def initialize_validator(
 
     Returns:
         Union[BiosourcePropertiesValidator, FileManifestValidator]: the validator object
-    """
+    """   
     try:
         if MetadataValidatorType(metadata_type) == MetadataValidatorType.FILE_MANIFEST:
             validator = FileManifestValidator(

@@ -14,7 +14,8 @@ from niagads.utils.list import list_to_string
 from niagads.json_validator.format_checkers import JSONSchemaFormatChecker
 
 from niagads.json_validator.custom_validators import (
-    case_insensitive_value_validator,
+    case_insensitive_enum_validator,
+    one_of_enum_validator,
 )
 
 
@@ -56,6 +57,7 @@ class JSONValidator:
 
         # need to recreate the custom validators
         self.__create_custom_validator()
+        self.__initialize_schema_validator()
 
     def set_json(self, obj):
         """
@@ -123,8 +125,10 @@ class JSONValidator:
         # see https://lat.sk/2017/03/custom-json-schema-type-validator-format-python/
 
         if self.__case_insensitive:
-            custom_validators["enum"] = case_insensitive_value_validator
-            custom_validators["oneOf"] = case_insensitive_value_validator
+            custom_validators["enum"] = case_insensitive_enum_validator
+            custom_validators["oneOf"] = case_insensitive_enum_validator
+        else:
+            custom_validators["oneOf"] = one_of_enum_validator 
 
         self.__custom_validator_class = jsValidators.create(
             meta_schema=DraftValidator.META_SCHEMA, validators=custom_validators
@@ -187,20 +191,15 @@ class JSONValidator:
         )
 
         msg = error.message
-
+        property_name = error.path.popleft() if error.path else None # file-level error -> None
         if "is not of type 'null'" in msg:
-            field = error.path.popleft()
-            msg = f"unexpected value for `{field}`; check specification for dependent fields or set to an empty string (text/EXCEL) or `null` (json)"
+            msg = f"unexpected value; check for an error in a related field or set to an empty string (text/EXCEL) or `null` (json)"
         elif msg.startswith("None is not of type"):
-            field = error.path.popleft()
-            if field in required_fields:
-                msg = f"required field `{field}` cannot be empty / null"
+            if property_name in required_fields:
+                msg = f"required field cannot be empty / null"
             else:
-                msg = f"optional `{field}` contains an empty string / null value; check specification - the value may be required to qualify other data"
+                msg = f"optional field contains an empty string / null value; check for related fields - the value may be required to qualify other data"
 
-        # TODO: how to handle file-level (root) messages
-        path = list(error.path)
-        property_name = str(path[-1]) if path else None  # "file"
         if property_name is not None:
             return {property_name: msg}
         return msg
@@ -210,11 +209,11 @@ class JSONValidator:
         Validate the JSON against the supplied json-schema
 
         Args:
-            failOnError (bool, optional): fail on error.  Defaults to False.
+            fail_on_error (bool, optional): fail on error.  Defaults to False.
 
         Returns:
-            True if valid
-            else raise a ValidationError or return list of errors depending on failOnError flag
+            
+            raise a ValidationError or return list of errors depending on fail_on_erro flag
         Raises
             jsonschema.exceptions.ValidationError
         """
@@ -222,11 +221,8 @@ class JSONValidator:
             self.__parse_validation_error(e)
             for e in sorted(self.__schema_validator.iter_errors(self.__json), key=str)
         ]
-        if len(errors) == 0:
-            return True
 
-        if fail_on_error:
+        if errors and fail_on_error :
             self.validation_error(errors)
 
-        else:
-            return errors
+        return errors

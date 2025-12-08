@@ -41,9 +41,33 @@ class CSVValidator(ABC):
         """
         self._schema = schema
 
-    def get_schema(self):
+    def get_schema(self, as_json: bool=False):
+        if as_json:
+            return self.__parse_schema()
         return self._schema
+    
+    def __parse_schema(self):
+        """
+        Parse the schema from a dict, JSON string, or file path.
 
+        Returns:
+            dict: Parsed schema
+
+        Raises:
+            ValueError: If the schema is not in an expected format.
+        """
+        if isinstance(self._schema, str):
+            if any(x in self._schema for x in ["[", "{"]):  # assume json
+                return json.loads(self._schema)
+            else:  # assume file
+                with open(self._schema, "r") as fh:
+                    return json.loads(fh.read())
+
+        elif isinstance(self._schema, dict):  # already an object
+            return self._schema
+        else:
+            raise ValueError("Invalid `schema` format:" + str(self._schema))
+        
     def get_metadata(self, asString=False):
         """
         retrieve the parsed metadata
@@ -125,14 +149,13 @@ class CSVPropertiesFileValidator(CSVValidator):
             fail_on_error (bool, optional): flag to fail on ValidationError. Defaults to False.
 
         Returns:
-            boolean if JSON is valid,
-            array of errors if invalid
+            list of errors
 
         Raises:
             jsonschema.exceptions.ValidationError if `fail_on_error` = True
         """
         validator = JSONValidator(self._metadata, self._schema, self._debug)
-        result = validator.run(fail_on_error)
+        return validator.run(fail_on_error)
 
 
 class CSVTableValidator(CSVValidator):
@@ -199,29 +222,43 @@ class CSVTableValidator(CSVValidator):
             parser = CSVFileParser(self._file)
             self._metadata = parser.to_json(return_str=False, header=0)
 
-    def to_text(self, normalize: bool = False):
+    def to_text(self, path_or_buf: str = None, normalize: bool = False):
         """Write the metadata to tab-delimited text file"""
         metadata = self.normalize() if normalize else self._metadata
         df = pd.DataFrame(metadata)
-        return df.to_csv(sep="\t", index=False)
+        return df.to_csv(path_or_buf, sep="\t", index=False)
 
+
+    def __resolve_enum_values(self, property_schema: dict):
+        property_type = property_schema.get('type')
+        if property_type == 'string' or (isinstance(property_type, list) and 'string' in property_type):
+            if "enum" in property_schema:
+                return property_schema["enum"], True
+            if "oneOf" in property_schema:
+                section = property_schema['oneOf']
+                if section and all(isinstance(s, dict) and "const" in s and isinstance(s["const"], str) for s in section):
+                    return [item["const"] for item in section]
+        return []
+            
     def normalize(self):
         """
         Get a normalized version of the metadata json, where normalization matches against enum
         fields and replaces values as necessary to match the canonical cases from the schema.
         """
         normalized_metadata = deepcopy(self._metadata)
+        schema_json = self.get_schema(as_json=True)
         for record in normalized_metadata:
-            for field, field_schema in self._schema.get("properties", {}).items():
-                if "enum" in field_schema and field in record:
-                    value = record[field]
-                    if isinstance(value, str):
+            for field, field_schema in schema_json.get("properties", {}).items():
+                if field in record:
+                    allowed_values = self.__resolve_enum_values(field_schema)
+                    field_value = record[field]
+                    if isinstance(field_value, str):
                         # find first case-insensitive match
                         canonical = next(
                             (
-                                e
-                                for e in field_schema["enum"]
-                                if value.lower() == e.lower()
+                                v
+                                for v in allowed_values
+                                if field_value.lower() == v.lower()
                             ),
                             None,
                         )
@@ -230,6 +267,11 @@ class CSVTableValidator(CSVValidator):
                         if canonical is not None:
                             record[field] = canonical
         return normalized_metadata
+
+    def _resolve_file_level_errors(errors: dict[int, list[str]]):
+        for row in errors:
+            1    
+        
 
     def run(self, fail_on_error: bool = False) -> dict:
         """
@@ -242,21 +284,34 @@ class CSVTableValidator(CSVValidator):
             array of {row#: validation result} pairs
 
         Raises:
-            jsonschema.exceptions.ValidationError if `failOnError` = True
+            jsonschema.exceptions.ValidationError if `fail_on_error` = True
         """
-
+        
+        INVALID_FIELD_ERRORS = ["Additional properties are not allowed", "is a required property"]
+        
+        file_errors = [] # for file-level errors
         result = []
         validator = JSONValidator(None, self._schema, self._debug)
-        validator.case_insensitive(self._case_insensitive)
+        validator.case_insensitive(enable = self._case_insensitive)
         for index, row in enumerate(self._metadata):
             validator.set_json(row)
-            row_validation = validator.run()
-            if not isinstance(row_validation, bool):
+            row_errors = validator.run()
+            if row_errors:
                 if fail_on_error:
                     validator.validation_error(
-                        row_validation, prefix="row " + xstr(index) + " - " + xstr(row)
+                        row_errors, prefix="row " + xstr(index) + " - " + xstr(row)
                     )
                 else:
-                    result.append({index + 1: row_validation})
+                    filtered_row_errors = []
+                    for err in row_errors:
+                        if any(msg in err for msg in INVALID_FIELD_ERRORS):
+                            file_errors.append(err)
+                        else:
+                            filtered_row_errors.append(err)
+                    if filtered_row_errors:
+                        result.append({index + 1: filtered_row_errors})
+                    
+        if file_errors:
+            result.insert(0, {'file': list(set(file_errors))})
 
         return {"errors": result}  # empty array; all rows passed
