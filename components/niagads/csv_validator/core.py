@@ -268,11 +268,6 @@ class CSVTableValidator(CSVValidator):
                             record[field] = canonical
         return normalized_metadata
 
-    def _resolve_file_level_errors(errors: dict[int, list[str]]):
-        for row in errors:
-            1    
-        
-
     def run(self, fail_on_error: bool = False) -> dict:
         """
         run validation on each row
