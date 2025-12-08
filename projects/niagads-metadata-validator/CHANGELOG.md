@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Brought in API dependencies (commit: 8eb33efd)
 - Various incremental improvements to error messages and validation logic
 
-## [0.2.0] - Earlier Release
+## [0.2.2] - 2025-04-08
 
-Initial tagged release of niagads-metadata-validator.
+Previous tagged release (tagged as v0.2.2, with version 0.2.0 in pyproject.toml).
+
+## [0.2.0] - Initial Release
+
+Initial release of niagads-metadata-validator.
