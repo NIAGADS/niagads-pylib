@@ -21,25 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced Excel parser to catch and report exceptions from invalid file formats
   - Improved CSV parser error handling with better error messages
   - Extended CSV sniffer region to handle files with lengthy data fields
-  - Better exception handling for abstract method implementation errors (commit: 9bcfdf88)
 
 ### Changed
 - **Python version support**: Relaxed Python version requirement to allow Python 3.10+ (commit: 2cc88ec9)
   - Updated `requires-python` to `>=3.10,<4.0` (previously `>=3.11,<4.0`)
   - Removed `nh3` dependency
-- **Documentation improvements**: Updated README files with enhanced usage instructions and API documentation (commits: 7f193e56, 550e5f9c)
 - **Dependency updates**: Added `pydantic` (>=2.11.3,<3.0.0) as a project dependency
-- **Code refactoring**: Various internal improvements (commits: 750cc27b, c12dea26, 2a43ae36)
-  - Cleaned up TOML configurations
-  - Linked utilities in a single component
-  - Consolidated common functionality
-
-### Internal
-- Added main function improvements (commit: b41a1ed3)
-- Code formatting improvements (commit: c2bcf8a3)
-- Exception handler enhancements (commit: 5fd415d8)
-- Brought in API dependencies (commit: 8eb33efd)
-- Various incremental improvements to error messages and validation logic
 
 ## [0.2.2] - 2025-04-08
 
