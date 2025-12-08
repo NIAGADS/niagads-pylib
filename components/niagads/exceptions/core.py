@@ -76,3 +76,12 @@ class ParserError(Exception):
     def __init__(self, message, errors):
         super().__init__(message)
         self.errors = errors
+
+class FileFormatError(Exception):
+    """
+    custom exception to report errors in parsing
+    """
+
+    def __init__(self, message, errors):
+        super().__init__(message)
+        self.errors = errors

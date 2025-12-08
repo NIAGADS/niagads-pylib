@@ -1,4 +1,3 @@
-from enum import StrEnum
 from niagads.enums.core import CaseInsensitiveEnum
 
 
@@ -12,7 +11,7 @@ class NIAGADSResources(CaseInsensitiveEnum):
     GENOMICSDB = "https://www.niagads.org/genomics"
 
 
-class ThirdPartyResources(StrEnum):
+class ThirdPartyResources(CaseInsensitiveEnum):
     PUBMED = "https://pubmed.ncbi.nlm.nih.gov"
     PUBMED_API = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id="
     DASHR2 = "http://dashr2.lisanwanglab.org/index.php"

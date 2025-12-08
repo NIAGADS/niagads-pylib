@@ -21,6 +21,7 @@ from typing import List, Union
 
 from niagads.arg_parser.core import case_insensitive_enum_type
 from niagads.enums.core import CaseInsensitiveEnum
+from niagads.exceptions.core import FileFormatError
 from niagads.utils.logging import LOG_FORMAT_STR, ExitOnExceptionHandler
 from niagads.metadata_validator.core import (
     BiosourcePropertiesValidator,
@@ -28,6 +29,15 @@ from niagads.metadata_validator.core import (
 )
 from niagads.utils.string import xstr
 from niagads.utils.sys import print_args, verify_path
+
+
+class MetadataFileFormatError(FileFormatError):
+    """Exception raised when metadata file parsing fails due to
+    inconsistency in file format or data quality issues (e.g., malformed content)
+    that the user must resolve by providing a properly formatted file.
+    """
+
+    pass
 
 
 class MetadataValidatorType(CaseInsensitiveEnum):
@@ -60,19 +70,19 @@ def get_templated_schema_file(dir: str, template: str) -> str:
         str: schema file name
     """
 
-    schemaFile = (
+    schema_file = (
         path.join(dir, f"{template}.json") if dir is not None else f"{template}.json"
     )
-    if verify_path(schemaFile):
-        return schemaFile
+    if verify_path(schema_file):
+        return schema_file
     else:
-        raise FileNotFoundError(f"Schema file `{schemaFile}` does not exist.")
+        raise FileNotFoundError(f"Schema file `{schema_file}` does not exist.")
 
 
 def get_templated_metadata_file(
     prefix: str,
     template: str,
-    extensions: List[str] = ["xlsx", "xls", "txt", "csv", "tab"],
+    extensions: List[str] = ["xlsx", "xls", "txt", "csv", "tsv", "tab"],
 ) -> str:
     """Find metadata file based on templated name `{prefix}{validator_type}.{ext}`.
 
@@ -87,27 +97,32 @@ def get_templated_metadata_file(
     Returns:
         str: metadata file name
     """
-    fileRoot = f"{prefix}{template}" if prefix is not None else f"{template}"
+    file_root = f"{prefix}{template}" if prefix is not None else f"{template}"
     for ext in extensions:
-        file = f"{fileRoot}.{ext}"
+        file = f"{file_root}.{ext}"
         if verify_path(file):
             return file
 
     raise FileNotFoundError(
-        f"Metadata file matching template `{fileRoot}` not found with any of the expected extensions `{xstr(extensions)}`"
+        f"Metadata file matching template `{file_root}` not found with any of the expected extensions `{xstr(extensions)}`"
     )
 
 
 def initialize_validator(
-    file: str, schema: str, metadataType: MetadataValidatorType, idField: str = None
+    file: str,
+    schema: str,
+    metadata_type: MetadataValidatorType,
+    id_field: str = None,
+    case_insensitive: bool = False,
 ) -> Union[BiosourcePropertiesValidator, FileManifestValidator]:
     """Initialize and return a metadata validator.
 
     Args:
         file (str): metadata file name
         schema (str): JSONschema file name
-        metadataType (MetadataValidatorType): type of metadata to be validated
-        idField (str, optional): biosource id field in the metadata file; required for `BIOSOURCE_PROPERTIES` validation. Defaults to None.
+        metadata_type (MetadataValidatorType): type of metadata to be validated
+        case_insensitive (bool, optional): allow case-insensitive matching against enums
+        id_field (str, optional): biosource id field in the metadata file; required for `BIOSOURCE_PROPERTIES` validation. Defaults to None.
 
     Raises:
         RuntimeError: if `metadataType == 'BIOSOURCE_PROPERTIES'` and no `idField` was provided
@@ -115,33 +130,40 @@ def initialize_validator(
 
     Returns:
         Union[BiosourcePropertiesValidator, FileManifestValidator]: the validator object
-    """
+    """   
     try:
-        if MetadataValidatorType(metadataType) == MetadataValidatorType.FILE_MANIFEST:
-            validator = FileManifestValidator(file, schema)
+        if MetadataValidatorType(metadata_type) == MetadataValidatorType.FILE_MANIFEST:
+            validator = FileManifestValidator(
+                file, schema, case_insensitive=case_insensitive
+            )
             validator.load()
             return validator
         else:
-            if idField is None:
+            if id_field is None:
                 raise RuntimeError(
                     "Must specify biosource id field `idField` to validate a biosource (sample or participants) metadata file"
                 )
-            bsValidator = BiosourcePropertiesValidator(file, schema)
-            bsValidator.set_biosource_id(idField, requireUnique=True)
-            bsValidator.load()
-            return bsValidator
+            bs_validator = BiosourcePropertiesValidator(
+                file, schema, case_insensitive=case_insensitive
+            )
+            bs_validator.set_biosource_id(id_field, must_be_unique=True)
+            bs_validator.load()
+            return bs_validator
     except KeyError:
         raise ValueError(
-            f"Invalid `metadataType` : '{str(metadataType)}'.  Valid values are: {', '.join(MetadataValidatorType.list())}"
+            f"Invalid `metadataType` : '{str(metadata_type)}'.  Valid values are: {', '.join(MetadataValidatorType.list())}"
         )
+    except FileFormatError as err:
+        raise MetadataFileFormatError(err)
 
 
 def run(
     file: str,
     schema: str,
-    metadataType: str,
-    idField: str = None,
-    failOnError: bool = False,
+    metadata_type: str,
+    id_field: str = None,
+    case_insensitive: bool = False,
+    fail_on_error: bool = False,
 ):
     """Run validation.
 
@@ -150,19 +172,24 @@ def run(
     Args:
         file (str): metadata file name
         schema (str): JSONschema file name
-        metadataType (MetadataValidatorType): type of metadata to be validated
-        idField (str, optional): biosource id field in the metadata file; required for `BIOSOURCE_PROPERTIES` valdiatoin. Defaults to None.
-        failOnError (bool, optional): raise an exception on validation error if true, otherwise returns list of validation errors. Defaults to False.
+        metadata_type (MetadataValidatorType): type of metadata to be validated
+        id_field (str, optional): biosource id field in the metadata file; required for `BIOSOURCE_PROPERTIES` validation. Defaults to None.
+        case_insensitive (bool, optional): allow case-insensitive matching against enums. Defaults to False.
+        fail_on_error (bool, optional): raise an exception on validation error if true, otherwise returns list of validation errors. Defaults to False.
 
     Returns:
         list: list of validation errors
     """
-    validator = initialize_validator(file, schema, metadataType, idField)
+    validator = initialize_validator(
+        file, schema, metadata_type, id_field, case_insensitive=case_insensitive
+    )
     try:
-        result = validator.run(failOnError=failOnError)
+        result = validator.run(fail_on_error=fail_on_error)
         if "warnings" not in result:
             result["warnings"] = []
         return result
+    except FileFormatError as err:
+        raise MetadataFileFormatError(err)
     except Exception as err:
         raise err
 
@@ -181,6 +208,11 @@ def main():
         choices=MetadataValidatorType.list(),
         type=case_insensitive_enum_type(MetadataValidatorType),
         required=True,
+    )
+    parser.add_argument(
+        "--caseInsensitive",
+        help="allow case-insensitive matching against enum values",
+        action="store_true",
     )
     parser.add_argument(
         "--log",
@@ -272,6 +304,7 @@ def main():
             schemaFile,
             args.metadataFileType,
             args.idField,
+            args.caseInsensitive,
             args.failOnError,
         )
     except Exception as err:
