@@ -40,7 +40,7 @@ class FileManifestValidator(CSVTableValidator):
             updated validation result
         """
 
-        sample_ids = self.get_field_values(self.__sample_field, drop_nulls=True)
+        sample_ids = self.get_field_values(self.__sample_field, exclude_nulls=True)
         sample_set = set(sample_ids)
         reference_set = set(self.__sample_reference)
 

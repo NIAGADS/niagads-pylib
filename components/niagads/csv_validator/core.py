@@ -171,13 +171,13 @@ class CSVTableValidator(CSVValidator):
     ):
         super().__init__(file_name, schema, case_insensitive, debug)
 
-    def get_field_values(self, field: str, drop_nulls: bool = False):
+    def get_field_values(self, field: str, exclude_nulls: bool = False):
         """
         fetch all values in a table field
 
         Args:
             field (str): field name
-            dropNulls (bool, Optional): drop null values from return. Defaults to False.
+            exclude_nulls (bool, Optional): drop null values from return. Defaults to False.
 
         Raises:
             TypeError: NullValue error if the metadata is not loaded
@@ -196,7 +196,7 @@ class CSVTableValidator(CSVValidator):
             raise KeyError(f"invalid metadata field `{field}`; cannot extract values")
 
         field_values = [r[field] for r in self._metadata]
-        return drop_nulls(field_values) if drop_nulls else field_values
+        return drop_nulls(field_values) if exclude_nulls else field_values
 
     def load(self, worksheet: Union[str, int] = 0):
         """
