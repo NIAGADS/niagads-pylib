@@ -23,6 +23,7 @@ version = "0.1.0"
 [project.scripts]
 gdbpexec = "niagads.pipeline_service.runners.core:run_main"
 gdbpexec-plugin = "niagads.pipeline_service.runners.plugin:run_main"
+filer-metadata-loader = "niagads.loaders.genomicsdb.schemas.metadata.filer:run_main"
 
 [tool.poetry]
 packages = [

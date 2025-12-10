@@ -3,6 +3,7 @@ from os.path import basename
 from typing import List, Union
 from urllib.parse import unquote
 
+from niagads.common.constants.external_resources import ThirdPartyResources
 from niagads.common.constants.ontologies import BiosampleType
 from niagads.common.models.ontology import OntologyTerm
 from niagads.common.models.composite_attributes.dataset import (
@@ -29,6 +30,17 @@ from niagads.utils.string import (
 )
 
 import requests
+
+UCSC_TRACKS = ["Centromeres", "Repeats", "PhastCons", "Reference_Genome", "Telomeres"]
+DATASOURCES_WITH_COLLECTIONS = [
+    "RefSeq",
+    "EpiMap",
+    "ROADMAP",
+    "Ensembl",
+    "FANTOM5",
+    "DASHR2",
+    "Inferno",
+]
 
 
 class MetadataTemplateParser:
@@ -203,7 +215,7 @@ class MetadataEntryParser:
 
         return unquote(value)  # html entities
 
-    def transform_key(self, key):
+    def transform_key(self, key: str):
         # camel -> snake + lower case
         tValue: str = to_snake_case(key)
         tValue = tValue.replace(" ", "_")
@@ -374,7 +386,7 @@ class MetadataEntryParser:
             )
 
             self.__metadata.update(
-                {"biosample_characteristics": characteristics.model_dump()}
+                {"biosample_characteristics": characteristics.model_dump(exclude=None)}
             )
 
             # pull out searchable text values
@@ -403,9 +415,13 @@ class MetadataEntryParser:
             antibody_target=self.get_entry_attribute("antibody_target"),
         )
 
-        self.__metadata.update({"experimental_design": design.model_dump()})
+        self.__metadata.update({"experimental_design": design.model_dump(exclude=None)})
         self.update_searchable_text(
-            [value for value in design.model_dump().values() if not is_bool(value)]
+            [
+                value
+                for value in design.model_dump(exclude=None).values()
+                if not is_bool(value)
+            ]
         )
 
     # FIXME: see NGEQC01308 -> getting a cell type instead
@@ -422,6 +438,7 @@ class MetadataEntryParser:
 
     def parse_provenance(self):
         dataSource, version = self.__parse_data_source()
+
         provenance = Provenance(
             data_source=dataSource,
             release_version=version,
@@ -466,7 +483,23 @@ class MetadataEntryParser:
                 )
             )
 
-        self.__metadata.update({"provenance": provenance.model_dump()})
+        # FIXME temporary patches
+        if dataSource == "MiGA":
+            self.logger.info("Patching NIAGADS DSS Accession Provenance: MiGA")
+            provenance.data_source = "NIAGADS DSS"
+            provenance.accession = "NG00105"
+            provenance.study = "MiGA - Microglia Genomic Atlas"
+        if dataSource.startswith("NG00102"):
+            self.logger.info("Patching NIAGADS DSS Accession Provenance: NG000102")
+            provenance.accession = provenance.data_source
+            provenance.data_source = "NIAGADS DSS"
+            provenance.study = provenance.release_version
+            provenance.release_version = None
+
+        if dataSource in DATASOURCES_WITH_COLLECTIONS:
+            provenance.accession = self.get_entry_attribute("data_source")
+
+        self.__metadata.update({"provenance": provenance.model_dump(exclude=None)})
         self.update_searchable_text(
             [provenance.study, provenance.project, provenance.data_source]
         )
@@ -488,7 +521,7 @@ class MetadataEntryParser:
             release_date=self.get_entry_attribute("filer_release_date"),
         )
 
-        self.__metadata.update({"file_properties": props.model_dump()})
+        self.__metadata.update({"file_properties": props.model_dump(exclude=None)})
 
     def __assign_feature_by_assay(self):
         assay = self.__metadata["experimental_design"].get("assay")
@@ -672,23 +705,31 @@ class MetadataEntryParser:
     def __parse_data_source(self):
         # FIXME: most of the SKIP_DATASOURCE list in the loader gets parsed incorrectly here
         source = self.get_entry_attribute("data_source")
-        if source.startswith("ADSP"):
+        version = None
+
+        if source.islower():
+            source = source.title()
+
+        if source in UCSC_TRACKS:
+            source = "UCSC"
+
+        try:
+            # we are good
+            ThirdPartyResources(source)
             source = source.replace("_", " ")
-            version = None
-        else:
+        except:
+            # there is versioning info in the source
             dsInfo = source.split("_", 1)
             source = dsInfo[0]
-            version = dsInfo[1] if len(dsInfo) > 1 and dsInfo[0] else None
+            version = dsInfo[1] if len(dsInfo) > 1 else None
 
-            if source == "FANTOM5" and "slide" in self.get_entry_attribute(
-                "link_out_url"
-            ):
-                version = version + "_SlideBase"
-
-            if array_in_string(source, ["INFERNO", "eQTL"]):
-                # don't split on the _
-                source = self.get_entry_attribute("data_source").replace("_", " ")
-                version = None
+            if source.startswith(tuple(DATASOURCES_WITH_COLLECTIONS)):
+                if source == "FANTOM5" and "slide" in self.get_entry_attribute(
+                    "link_out_url"
+                ):
+                    version = "SlideBase"
+                else:
+                    version = None
 
         return source, version
 

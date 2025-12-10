@@ -141,11 +141,11 @@ class Provenance(TransformableModel):
     release_version: Optional[str] = None
     release_date: Optional[str] = None
     download_date: Optional[str] = None
-    download_url: Optional[str] = Field(exclude=True)
+    download_url: Optional[str] = None  # Field(exclude=True)
 
     study: Optional[str] = None
     project: Optional[str] = None
-    accession: Optional[str] = None  # really shouldn't be, but FILER
+    accession: Optional[str] = None  # really shouldn't be optional, but FILER
 
     pubmed_id: Optional[Set[T_PubMedID]] = None
     doi: Optional[Set[str]] = None
@@ -178,20 +178,22 @@ class Provenance(TransformableModel):
     @computed_field
     @property
     def data_source_url(self) -> str:
-        dsKey: str = (
-            f"{self.data_source}|{self.release_version}"
-            if self.release_version is not None
-            else self.data_source
-        )
+        # dsKey: str = (
+        #    f"{self.data_source}|{self.release_version}"
+        #    if self.release_version is not None
+        #    else self.data_source
+        # )
+        # removed versioning from the data source URLs; incorrect legacy from FILER
+        dsKey = self.data_source
         try:
-            return ThirdPartyResources[dsKey].value
+            return ThirdPartyResources(dsKey).value
         except:
-            # FIXME: This needs to be fixed in data load
-            if dsKey.startswith("NG00102"):
-                return NIAGADSResources.NIAGADS_DSS
-            raise ValueError(
-                f"Data source URL not found for {dsKey}. Please add to external_resources.ThirdParty."
-            )
+            try:
+                return NIAGADSResources(dsKey).value
+            except:
+                raise ValueError(
+                    f"Data source URL not found for {dsKey}. Please add to external_resources.ThirdParty."
+                )
 
 
 class FileProperties(TransformableModel):
@@ -205,4 +207,4 @@ class FileProperties(TransformableModel):
 
     file_format: Optional[str] = None
     file_schema: Optional[str] = None
-    release_date: Optional[str] = Field(exclude=True)
+    release_date: Optional[str] = None  # Field(exclude=True)
