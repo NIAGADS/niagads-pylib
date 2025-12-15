@@ -4,7 +4,6 @@ Extract and migrate GWAS summary statistics from legacy GenomicsDB to hipFG-comp
 Note this is meant to be a one-off; which is why SQL queries included hard-coded primary keys
 that will not be valid for future instantiations of the database.
 
-# TODO: extract statistics correction logic into variant parsers
 # TODO: extract primary key generators
 """
 
@@ -25,7 +24,7 @@ from niagads.utils.logging import (
     FunctionContextLoggerWrapper,
     async_timed,
 )
-from niagads.utils.string import dict_to_info_string
+from niagads.utils.string import dict_to_info_string, xstr
 from pydantic import BaseModel, field_validator, model_validator
 from sqlalchemy import Row, RowMapping, text
 
@@ -35,8 +34,13 @@ EXISTING_GWAS_FIELDS = qw(
     "variant_record_primary_key neg_log10_pvalue pvalue_display frequency allele restricted_stats chromosome position"
 )
 TARGET_FIELDS = qw(
-    "chrom position variant_id ref alt pval neg_log10_pvalue OR z_score effect_size effect_size_se non_ref_af rsid QC_flags source_info"
+    "chrom position variant_id ref alt pval OR z_score effect_size effect_size_se non_ref_af rsid QC_flags source_info neg_log10_pvalue display_info"
 )
+
+PVALUE_ONLY_TARGET_FIELDS = qw(
+    "chrom position variant_id ref alt pval rsid QC_flags neg_log10_pvalue display_info"
+)
+
 
 RESTRICTED_STATS_MAP = {
     "effect": "effect_size",
@@ -67,15 +71,15 @@ class Variant(BaseModel):
     effect_sign_change: bool = False
     verified: bool = False
 
-    @field_validator("variant_type", mode="after")
+    @model_validator(mode="after")
     def resolve_structural_variant(self):
         l_ref = len(self.ref)
         l_alt = len(self.alt)
 
         if l_ref >= 50 or l_alt >= 50:
-            return VariantType.SV
+            self.variant_type = VariantType.SV
 
-        return self.variant_type
+        return self
 
     @classmethod
     def from_row(cls, row):
@@ -180,12 +184,14 @@ async def retrieve_gwas_data(
         )
         row: Row
         async for row in result:
+            LOG.critical(row._mapping)  # DEBUG
             yield row._mapping  # should return a RowMapping (dict equivalent)
 
 
-def standardize_gwas_effects(data: RowMapping, effect_sign_changed: bool = False):
+def standardize_stats(data: RowMapping, effect_sign_changed: bool = False):
     """
-    Extracts and harmonizes GWAS statistics from a row, mapping restricted stats to standard output fields.
+    Extracts and harmonizes GWAS statistics from a row, mapping restricted stats to standard output fields
+    and non-restrcited stats to new field names
 
     Args:
         data (RowMapping): Input row containing GWAS summary statistics and restricted stats.
@@ -209,22 +215,64 @@ def standardize_gwas_effects(data: RowMapping, effect_sign_changed: bool = False
     mapped_stats["source_info"] = dict_to_info_string(original_stats)
 
     if effect_sign_changed:
-        mapped_stats["frequency"] = 1.0 - data["frequency"]
+        mapped_stats["non_ref_af"] = 1.0 - data["frequency"]
         try:
             mapped_stats["effect_size"] = -float(mapped_stats.get("effect_size"))
         except Exception:
             pass
+    else:
+        mapped_stats["non_ref_af"] = data["frequency"]
+
+    mapped_stats["neg_log10_pvalue"] = data["neg_log10_pvalue"]
+    mapped_stats["pval"] = "pvalue_display"
     return mapped_stats
 
 
-def write_association(self, variant: Variant, data: RowMapping, fh, pvfh):
-    mapped_stats = self.standardize_gwas_effects(data, variant.effect_sign_change)
+def write_association(self, row, fh, pfh):
+    # "chrom position variant_id ref alt pval OR z_score effect_size effect_size_se non_ref_af rsid QC_flags source_info neg_log10_pvalue info"
+    variant: Variant = row["variant"]
+    stats = row["stats"]
+    flags = None
+    if variant.effect_sign_change:
+        flags = "EFFECT_STATS_SIGN_CHANGED"
+    # TODO other flags
+    values = [
+        variant.chromosome,
+        variant.position,
+        variant.variant_id,
+        variant.ref,
+        variant.alt,
+        stats["pval"],
+        variant.ref_snp_id,
+        flags,
+        stats["neg_log10_pvalue"],
+        None,  # display_info (later maybe annotation)
+    ]
+    print("\t".join([xstr(x, null_str="NULL") for x in values]), file=pfh)
 
-    pass
+    values = [
+        variant.chromosome,
+        variant.position,
+        variant.variant_id,
+        variant.ref,
+        variant.alt,
+        stats["pval"],
+        stats["OR"],
+        stats["z_score"],
+        stats["effect_size"],
+        stats["effect_size_se"],
+        stats["non_ref_af"],
+        variant.ref_snp_id,
+        flags,
+        stats["source_info"],
+        stats["neg_log10_pvalue"],
+        None,  # display_info (later maybe annotation)
+    ]
+    print("\t".join([xstr(x, null_str="NULL") for x in values]), file=fh)
 
 
 # TODO transformation logic
-def transform(data: RowMapping, fh, pvfh, is_lifted: bool):
+def transform(data: RowMapping, is_lifted: bool):
     variant: Variant = Variant.from_row(data)
     variant.verify_variant()
     variant.resolve_test_allele()
@@ -232,9 +280,10 @@ def transform(data: RowMapping, fh, pvfh, is_lifted: bool):
     if is_lifted and not variant.verified:
         # if this was lifted over and can't be verified against the
         # genome, then no confidence so skip
-        return  # TODO: count/log skips
+        return None  # TODO: count/log skips
 
-    write_association(variant, data, fh, pvfh)
+    standardize_statistics = standardize_stats(data, variant.effect_sign_change)
+    return {"variant": variant, "stats": standardize_statistics}
 
 
 # plus chromosome, position
@@ -242,16 +291,19 @@ def transform(data: RowMapping, fh, pvfh, is_lifted: bool):
 # 113176520	25	1:29937655:A:C:rs4949232	chr1.L1.B1.L2.B1.L3.B2.L4.B2.L5.B2.L6.B1.L7.B2.L8.B2.L9.B2.L10.B2.L11.B2.L12.B1.L13.B1	0.123551213121659	0.7524	0.868	C	{"effect": -0.0205, "std_err": 0.0651, "direction": "+++-++-+---", "frequency_se": 0.0119, "max_frequency": 0.9236, "min_frequency": 0.8497}
 
 
-async def process_dataset(dataset_id: str, session):
+async def process_dataset(dataset_id: str, output_dir: str, session):
     LOG.info(f"Processing dataset: {dataset_id}")
     is_lifted = "_GRCh38_" in dataset_id
-    file_prefix = os.path.join(args.output_dir, dataset_id.replace("_GRCh38_", "_"))
+    file_prefix = os.path.join(output_dir, dataset_id.replace("_GRCh38_", "_"))
     file_name = f"{file_prefix}_restricted.txt"
     pvalue_file_name = f"{file_prefix}.txt"
     with open(file_name, "w") as fh, open(pvalue_file_name, "w") as pfh:
-        # TODO: print headers
+        print("\t".join(TARGET_FIELDS), file=fh)
+        print("\t".join(PVALUE_ONLY_TARGET_FIELDS), file=pfh)
         async for row in retrieve_gwas_data(dataset_id, session):
-            transform(row, fh, pfh, is_lifted=is_lifted)
+            standardized_row = transform(row, is_lifted=is_lifted)
+            if standardized_row is not None:
+                write_association(standardized_row, fh, pfh)
 
 
 def resolve_accession_datasets(accession: str, session):
@@ -264,14 +316,16 @@ def resolve_accession_datasets(accession: str, session):
     ids = [row[0] for row in result.fetchall()]
     if not ids:
         raise ValueError(f"No datasets found for accession: {accession}")
+    else:
+        LOG.info(f"Found {len(ids)} datasets for {accession}: {ids}")
     return ids
 
 
-def resolve_dataset_ids(session):
-    if args.accession is not None:
-        return resolve_accession_datasets(args.accession, session)
+def resolve_dataset_ids(session, accession, dataset):
+    if accession is not None:
+        return resolve_accession_datasets(accession, session)
 
-    datasets = [d.upper() for d in args.dataset]
+    datasets = [d.upper() for d in dataset]
     sql = """SELECT source_id FROM Study.ProtocolAppNode
         WHERE external_database_release_id = 19
         AND subtype_id = 49841
@@ -286,10 +340,12 @@ def resolve_dataset_ids(session):
         raise ValueError(
             f"The following dataset IDs were not found: {sorted(unmatched)}"
         )
+
+    LOG.info(f"Verified {len(ids)} datasets: {ids}")
     return ids
 
 
-def run():
+def run(args):
 
     db_session_manager = DatabaseSessionManager(
         connection_string=args.connection_string,
@@ -298,11 +354,16 @@ def run():
     )
 
     with db_session_manager() as session:
-        dataset_ids = resolve_dataset_ids(args.datasets, session)
+        dataset_ids = resolve_dataset_ids(session, args.accession, args.dataset)
+
+    if args.list_datasets_only:
+        LOG.info("SUCCESS")
+        return
 
     async def run_all():
         tasks = [
-            asyncio.create_task(process_dataset(id, session)) for id in dataset_ids
+            asyncio.create_task(process_dataset(id, args.output_dir, session))
+            for id in dataset_ids
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         for result in results:
@@ -312,7 +373,7 @@ def run():
     asyncio.run(run_all())
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description=(
             "extract GWAS summary statistics from legacy GenomicsDB database"
@@ -331,7 +392,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--list_datasets_only",
         action="store_true",
-        description=(
+        help=(
             "List GWAS summary statistics accessions. "
             "If an accession number is provided with the `--accession`"
             "flag, then list datasets corresponding to that accession."
@@ -349,4 +410,9 @@ if __name__ == "__main__":
         level=logging.DEBUG if args.debug else logging.INFO,
     )
 
-    run()
+    run(args)
+    LOG.info("SUCCESS")
+
+
+if __name__ == "__main__":
+    main()
