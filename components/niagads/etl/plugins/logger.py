@@ -219,7 +219,7 @@ class ETLLogger:
             # log transaction types, iterating over reference
             # to ensure order is consistent when logging
 
-            for operation in [ETLOperation.list()]:
+            for operation in ETLOperation.list():
                 for table, record_count in status.transactions[str(operation)].items():
                     self.info(
                         f"{str(operation):<{keyw}} : {record_count} records into {table}"
