@@ -1,24 +1,31 @@
 from typing import Optional
+
 from niagads.etl.config import ETLMode
-from pydantic import BaseModel, Field, model_validator, field_validator
+from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import matches
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ResumeCheckpoint(BaseModel):
     """
     Resume checkpoint.
     - Use 'line' for source-relative resume (handled in extract()).
-    - Use 'id'   for domain resume (handled in transform()).
+    - Use 'record' for domain resume (handled in extract() or load()).
     """
 
     line: Optional[int] = Field(
-        None, description="Line number (1-based) to resume from"
+        None,
+        description="Line number (1-based) to resume from; header not included in count",
     )
-    id: Optional[str] = Field(None, description="Natural identifier to resume from")
+    record: Optional[str] = Field(
+        None, description="Natural identifier or full record to resume from"
+    )
+    full_record: Optional[dict]
 
     @model_validator(mode="after")
-    def require_line_or_id(self):
-        if not self.line and not self.id:
-            raise ValueError("checkpoint must define either 'line' or 'id'")
+    def validate_checkpoint(self):
+        if not self.line and not self.record:
+            raise ValueError("checkpoint must define either 'line' or 'record'")
         return self
 
 
@@ -95,7 +102,7 @@ class PathValidatorMixin:
 
     @classmethod
     def validator(cls, field_name, is_dir=False):
-        @field_validator(field_name)
+        @field_validator(field_name, model="plain")
         def file_exists(cls, value):
             from niagads.utils.sys import verify_path
 

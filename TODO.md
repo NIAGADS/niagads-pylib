@@ -1,5 +1,14 @@
 # TODOs
 
+## OWL ETL
+
+* add flag to include objectproperties (e.g., for loading the relation ontology)
+* resolve annotationproperties by skipping those not in the property iris
+* move term_category to triple
+* duplicates
+* placeholders
+
+ 
 ## Top Priority
 
 The `GeneFeature` model needs to be moved to common.models and out of the API common:

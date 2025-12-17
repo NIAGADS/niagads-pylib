@@ -147,6 +147,9 @@ class PluginRunner:
 
     def _register_plugin_args(self):
         for field_name, field in self._param_fields.items():
+            if field.exclude:  # i.e. bypass parent class parameters
+                continue  # skip field
+
             arg_type, required = self._resolve_arg_type(field.annotation)
             arg_info = PluginArgDef(
                 arg_name=f"--{field_name.replace('_', '-')}",
