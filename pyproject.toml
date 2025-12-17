@@ -6,7 +6,7 @@ authors = [
 description = "a collection of python packages, classes, and utility functions in support of NIAGADS projects"
 license = { text = "GNU GPLv3" }
 readme = "README.md"
-requires-python = ">=3.11,<4.0"
+requires-python = ">=3.11,<3.14"
 version = "2.0.0"
 
 [tool.black]
@@ -37,6 +37,7 @@ packages = [
     { from = "components", include = "niagads/database" },
     { from = "components", include = "niagads/decorators" },
     { from = "components", include = "niagads/enums" },
+    { from = "components", include = "niagads/etl" },
     { from = "components", include = "niagads/excel_parser" },
     { from = "components", include = "niagads/exceptions" },
     { from = "components", include = "niagads/genomicsdb" },
@@ -44,7 +45,6 @@ packages = [
     { from = "components", include = "niagads/metadata_parser" },
     { from = "components", include = "niagads/metadata_validator" },
     { from = "components", include = "niagads/objects" },
-    { from = "components", include = "niagads/etl" },
     { from = "components", include = "niagads/postgres_dbi" },
     { from = "components", include = "niagads/requests" },
     { from = "components", include = "niagads/s3" },
@@ -53,12 +53,11 @@ packages = [
     { from = "components", include = "niagads/variant_annotator" },
     { from = "components", include = "niagads/vcf" },
     { from = "components", include = "niagads/vep_json_parser" },
-    { include = "niagads/pipeline", from = "components" },
 ]
 include = [
-    { path = "components/niagads/genomicsdb/models/reference/sql/ontology/*.sql" },
-    { path = "bases/niagads/genomicsdb_service/etl/plugins/validators/*.xsd" },
     { path = "bases/niagads/genomicsdb_service/etl/plugins/validators/*.json" },
+    { path = "bases/niagads/genomicsdb_service/etl/plugins/validators/*.xsd" },
+    { path = "components/niagads/genomicsdb/models/reference/sql/ontology/*.sql" },
 ]
 
 [tool.poetry.dependencies]
@@ -77,10 +76,12 @@ fastapi = "^0.115.12"
 fastapi-cors = "^0.0.6"
 itsdangerous = "^2.2.0"
 jsonschema = "^4.23.0"
+lxml = "^6.0.2"
 nh3 = "^0.2.21"
 openpyxl = "^3.1.5"
 pandas = "^2.2.3"
 psutil = "^7.1.0"
+psycopg2-binary = "^2.9.11"
 pydantic = "^2.11.1"
 pydantic-settings = "^2.8.1"
 pyparsing = "^3.2.3"
@@ -95,7 +96,8 @@ strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
-lxml = "^6.0.2"
+hgvs = {git = "https://github.com/NIAGADS/hgvs.git", rev = "NIAGADS"}
+ga4gh-vrs = {extras = ["extras"], version = "^2.2.0"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
@@ -106,6 +108,10 @@ lazydoc = "^1.0.1"
 mypy = "^1.8.0"
 pydocstyle = "^6.3.0"
 pytest = "^8.2.2"
+
+[tool.poetry.scripts]
+runpipe = "niagads.pipeline_service.runners.core:run_main"
+runpipe-plugin = "niagads.pipeline_service.runners.plugin:run_main"
 
 [tool.pytest.ini_options]
 addopts = "-vv"
@@ -120,7 +126,3 @@ build-backend = "poetry.core.masonry.api"
 requires = [
     "poetry-core>=2.0.0,<3.0.0",
 ]
-
-[tool.poetry.scripts]
-runpipe = "niagads.pipeline_service.runners.core:run_main"
-runpipe-plugin = "niagads.pipeline_service.runners.plugin:run_main"
