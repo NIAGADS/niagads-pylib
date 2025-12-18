@@ -1,0 +1,37 @@
+# adapted from https://github.com/ga4gh/vrs-python/blob/e28852f9369f74e07e23e4652695eb95710798f3/docker-compose.yml
+services:
+  seqrepo:
+    image: biocommons/seqrepo:2024-12-20
+    volumes:
+      - ${HOST_SEQREPO_DATA_DIR}:/usr/local/share/seqrepo
+    read_only: true
+
+  seqrepo-rest-service:
+    # Test: curl http://localhost:5000/seqrepo/1/sequence/refseq:NM_000551.3
+    image: biocommons/seqrepo-rest-service:0.2.2
+    volumes:
+      - ${HOST_SEQREPO_DATA_DIR}:/usr/local/share/seqrepo
+    depends_on:
+      - seqrepo
+    command: seqrepo-rest-service -w /usr/local/share/seqrepo/2024-12-20
+    network_mode: bridge
+    ports:
+      - ${HOST_SEQREPO_SERVICE_PORT}:5000
+
+  uta:
+    # Test:
+    # psql -XAt postgres://anonymous@localhost/uta -c 'select count(*) from uta_20241220.transcript'
+    # 314227
+    image: biocommons/uta:uta_20241220
+    environment:
+      - POSTGRES_PASSWORD=$UTA_PGADMIN_PWD
+    volumes:
+      - ${HOST_UTA_DATA_DIR}:/var/lib/postgresql/data
+    ports:
+      - ${HOST_UTA_SERVICE_PORT}:5432
+
+volumes:
+  seqrepo_vol:
+    external: true
+  uta_vol:
+    external: true
