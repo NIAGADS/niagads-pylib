@@ -3,7 +3,7 @@ from typing import List, Union
 from aiohttp import ClientSession
 from niagads.api.common.models.datasets.track import TrackResultSize
 from niagads.api.common.models.features.bed import BEDFeature
-from niagads.sequence.chromosome import Assembly
+from niagads.sequence.types import Assembly
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import BaseModel
 

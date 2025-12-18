@@ -12,7 +12,8 @@ from niagads.common.models.composite_attributes.dataset import (
     Provenance,
 )
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.sequence.chromosome import Assembly, Human
+from niagads.sequence.types import Assembly
+from niagads.sequence.chromosome import Human
 from sqlalchemy import ARRAY, TEXT, Column, Index, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column

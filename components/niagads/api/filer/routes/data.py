@@ -1,7 +1,7 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-from niagads.sequence.chromosome import Assembly
+from niagads.sequence.types import Assembly
 from niagads.api.common.constants import SharedOpenAPITags
 
 from niagads.api.common.models.features.bed import BEDResponse
