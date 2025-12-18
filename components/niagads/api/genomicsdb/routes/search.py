@@ -28,7 +28,7 @@ from niagads.api.genomicsdb.queries.records.region import (
     RegionVariantQuery,
 )
 from niagads.api.genomicsdb.services.route import GenomicsRouteHelper
-from niagads.sequence.types import GenomicFeatureType
+from niagads.genomics.sequence.types import GenomicFeatureType
 
 router = APIRouter(
     prefix="/search",

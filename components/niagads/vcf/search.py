@@ -4,7 +4,7 @@ import pysam
 
 # from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from niagads.sequence.chromosome import Human
+from niagads.genomics.sequence.chromosome import Human
 from niagads.vcf.core import VCFEntry
 
 

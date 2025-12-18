@@ -1,6 +1,5 @@
 import csv
 import logging
-from enum import auto
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.string import xstr
@@ -131,6 +130,3 @@ class ChromosomeMapParser(object):
         """Return chromosome number mapped to the provided sequence ID."""
         # want to raise AttributeError if not in the map, so not checking
         return self.__map[sequenceId]
-
-
-from niagads.sequence.types import Strand, Assembly, GenomicFeatureType

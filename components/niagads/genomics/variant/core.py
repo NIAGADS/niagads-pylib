@@ -1,49 +1,35 @@
 """variant annotator functions"""
 
-import logging
-from niagads.utils.string import xstr, truncate, reverse
 
-
-def truncate_allele(allele: str, long=False):
-    """
-    wrapper for trunctate alleles to 8 chars by defualt
-
-    Args:
-        allele (str): allele string
-        long (bool, optional): for long indels, can specify to truncate to 100 chars. Defaults to False.
-
-    Returns:
-        truncated allele string
-    """
-    return truncate(allele, 100) if long else truncate(allele, 8)
+def truncate_allele(value, long=False):
+    """wrapper for trunctate to 5 chars"""
+    return truncate(value, 100) if long else truncate(value, 8)
 
 
 def reverse_complement(seq):
-    """@returns reverse complement of the specified sequence (seq)"""
+    """! @returns reverse complement of the specified sequence (seq)"""
     mapping = str.maketrans("ACGTacgt", "TGCAtgca")
     return seq.translate(mapping)[::-1]
 
 
 class VariantAnnotator(object):
-    """generate dervived variant annotations: e.g., normalized alleles, inferred length"""
+    """functions used to generate variant annotations"""
 
-    def __init__(self, chrom: str, pos: int, ref: str, alt: str, debug=False):
-        self._debug = debug
-        self.logger = logging.getLogger(__name__)
-        self.__ref = ref
-        self.__alt = alt
-        self.__chromosome = chrom
-        self.__position = pos
+    def __init__(self, refAllele, altAllele, chrom, position):
+        self.__ref = refAllele
+        self.__alt = altAllele
+        self.__chrom = chrom
+        self.__position = position
         self.__metaseqId = None
         self.__set_metaseq_id()
 
     def get_normalized_alleles(self, snvDivMinus=False):
-        """public wrapper for __normalize_alleles / LEGACY
+        """! public wrapper for __normalize_alleles / LEGACY
         @returns normalized alleles"""
         return self.__normalize_alleles(snvDivMinus)
 
     def infer_variant_end_location(self, rsPosition=None):
-        """infer span of indels/deletions for a
+        """! infer span of indels/deletions for a
         specific alternative allele, modeled off
         GUS Perl VariantAnnotator & dbSNP normalization conventions
         @returns                 end location
@@ -52,7 +38,7 @@ class VariantAnnotator(object):
         ref = self.__ref
         alt = self.__alt
 
-        normRef, normAlt = self.__normalize_alleles()
+        normRef, normAlt = self.get_normalized_alleles()
 
         rLength = len(ref)
         aLength = len(alt)
@@ -88,7 +74,7 @@ class VariantAnnotator(object):
             return position + nrLength
 
     def __normalize_alleles(self, snvDivMinus=False):
-        """left normalize VCF alleles
+        """! left normalize VCF alleles
         - remove leftmost alleles that are equivalent between the ref & alt alleles;
         e.g. CAGT/CG <-> AGT/G
 
@@ -129,17 +115,20 @@ class VariantAnnotator(object):
         return self.__ref, self.__alt
 
     def __set_metaseq_id(self):
-        """generate metaseq id and set value"""
+        """! generate metaseq id and set value"""
         self.__metaseqId = ":".join(
-            (xstr(self.__chromosome), xstr(self.__position), self.__ref, self.__alt)
+            (xstr(self.__chrom), xstr(self.__position), self.__ref, self.__alt)
         )
 
-    def metaseq_id(self):
-        """@returns metaseq id"""
+    def get_metaseq_id(self):
+        """! @returns metaseq id"""
         return self.__metaseqId
 
+    def get_sv_display_attributes(self, svType: str):
+        pass
+
     def get_display_attributes(self, rsPosition=None):
-        """generate and return display alleles & dbSNP compatible start-end
+        """! generate and return display alleles & dbSNP compatible start-end
         @param rsPosition       dbSNP property RSPOS
         @returns                 dict containing display attributes
         """
@@ -163,7 +152,7 @@ class VariantAnnotator(object):
         attributes = {"location_start": position, "location_end": position}
 
         normalizedMetaseqId = ":".join(
-            (xstr(self.__chromosome), xstr(self.__position), normRef, normAlt)
+            (xstr(self.__chrom), xstr(self.__position), normRef, normAlt)
         )
         if normalizedMetaseqId != self.__metaseqId:
             attributes.update({"normalized_metaseq_id": normalizedMetaseqId})

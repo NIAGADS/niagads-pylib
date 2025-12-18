@@ -1,5 +1,5 @@
 from typing import Any, List, Self, Union
-from niagads.sequence.chromosome import Human
+from niagads.genomics.sequence.chromosome import Human
 from niagads.utils.dict import info_string_to_dict
 from niagads.utils.string import to_json
 from pydantic import BaseModel

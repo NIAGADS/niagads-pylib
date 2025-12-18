@@ -28,7 +28,7 @@ packages = [
     { from = "components", include = "niagads/adsp_annotation" },
     { from = "components", include = "niagads/api" },
     { from = "components", include = "niagads/arg_parser" },
-    { from = "components", include = "niagads/sequence" },
+    { from = "components", include = "niagads/genomics" },
     { from = "components", include = "niagads/cache" },
     { from = "components", include = "niagads/common" },
     { from = "components", include = "niagads/csv_parser" },
@@ -50,7 +50,6 @@ packages = [
     { from = "components", include = "niagads/s3" },
     { from = "components", include = "niagads/settings" },
     { from = "components", include = "niagads/utils" },
-    { from = "components", include = "niagads/variant_annotator" },
     { from = "components", include = "niagads/vcf" },
     { from = "components", include = "niagads/vep_json_parser" },
 ]
@@ -96,8 +95,10 @@ strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
-hgvs = {git = "https://github.com/NIAGADS/hgvs.git", rev = "NIAGADS"}
-ga4gh-vrs = {extras = ["extras"], version = "^2.2.0"}
+hgvs = { git = "https://github.com/NIAGADS/hgvs.git", rev = "NIAGADS" }
+ga4gh-vrs = { extras = [
+    "extras",
+], version = "^2.2.0" }
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"

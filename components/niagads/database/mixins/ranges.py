@@ -1,4 +1,4 @@
-from niagads.sequence.chromosome import Human
+from niagads.genomics.sequence.chromosome import Human
 from niagads.common.models.structures import Range
 from niagads.database import RangeType, enum_column, enum_constraint
 from sqlalchemy import Index

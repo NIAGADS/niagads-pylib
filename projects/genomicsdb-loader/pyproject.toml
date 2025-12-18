@@ -31,7 +31,7 @@ packages = [
     { from = "../../bases", include = "niagads/pipeline_service/runners" },
     { from = "../../bases", include = "niagads/genomicsdb_service/data_migration" },
     { from = "../../components", include = "niagads/arg_parser" },
-    { from = "../../components", include = "niagads/sequence" },
+    { from = "../../components", include = "niagads/genomics" },
     { from = "../../components", include = "niagads/cache" },
     { from = "../../components", include = "niagads/common" },
     { from = "../../components", include = "niagads/database" },
