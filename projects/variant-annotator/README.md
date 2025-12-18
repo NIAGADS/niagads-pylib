@@ -19,41 +19,36 @@ The main goal of this project is to define and orchestrate containers for:
 
 These services are essential for tools and APIs that implement or depend on GA4GH VRS, enabling consistent and reproducible variant representation.
 
-## Usage
+This project is intended to be used as a dependency by other projects in the `niagads-pylib` monorepo, including:
 
-1. **Clone this repository** (or ensure it is available as a submodule/dependency in your project).
-   - Alternatively, you can use [git sparse checkout](https://git-scm.com/docs/git-sparse-checkout) to check out only the `projects/variant-annotator` directory if you do not need the entire codebase:
+- `genomicsdb-loader`: ETL plugins that require GA4GH standardized variant or sequence identifiers
+- `open-access-api` (TBD)
 
-   ```bash
-   git clone <repo-url>
-   cd niagads-pylib
-   git sparse-checkout init --cone
-   git sparse-checkout set projects/variant-annotator
-   ```
+## Installation
 
-2. **Configure Volume Mounts**
+If you are working within the `niagads-pylib` monorepo, the `variant-annotator` project is already part of the repository. Simply navigate to the project directory:
 
-- Edit the provided `.env` file to specify host paths for persistent data volumes (e.g., for UTA and SeqRepo data directories).
-- Volume mounts are defined in `docker-compose.yaml` and are not passed via the command line, in accordance with [GA4GH VRS documentation](https://pypi.org/project/ga4gh.vrs/0.8.4/).
+```bash
+cd projects/variant-annotator
+```
 
-1. **Start the Services**
+Alternatively, if you want to use the `variant-annotator` as a standalone project, you can clone only this directory using Git sparse checkout:
 
-- Run `docker-compose up -d` in this directory to launch all required containers.
+```bash
+git clone <repo-url>
+cd niagads-pylib
+git sparse-checkout init --cone
+git sparse-checkout set projects/variant-annotator
+cd projects/variant-annotator
+```
 
-## Integration
+Once inside the `variant-annotator` directory, follow the configuration and service execution instructions below.
 
-This project is intended to be used as a dependency by other projects in the codebase, including:
+### Configuration
 
-- `genomicsdb-loader`
-- `open-access-api` (potentially)
+Copy `sample.env` to `.env`.  **If working within the `niagads-pylib` monorepo, please COPY the file; DO NOT RENAME to avoid accidentally removing `sample.env` from the repository.**
 
-These projects can rely on the services defined here for variant normalization and annotation tasks.
-
-## Configuration
-
-Copy `sample.env` to `.env`.  **DO NOT RENAME**
-
-- **.env file**: The `.env` file is used to configure the environment variables required by the `docker-compose.yaml` file. Below are the variables you need to define:
+- Modify the following values in the `.env` as needed for your system:
 
   - `HOST_SEQREPO_DATA_DIR`: Absolute path to the SeqRepo data directory on the host machine. This directory contains the biological sequence data required by the SeqRepo services.
   - `HOST_UTA_DATA_DIR`: Absolute path to the UTA data directory on the host machine. This directory stores the PostgreSQL database files for the UTA service.
@@ -61,17 +56,53 @@ Copy `sample.env` to `.env`.  **DO NOT RENAME**
   - `HOST_UTA_SERVICE_PORT`: The port on the host machine to bind the UTA service. Default is `5432`.
   - `UTA_PGADMIN_PWD`: The password for the PostgreSQL database used by the UTA service. You can replace `UtaVar1a` with a secure password or leave as is if service is only deployed locally.
 
-- **docker-compose.yaml**: Defines the containers, networks, and volume mounts. No need to modify unless customizing service definitions.
+### Run the Services
 
-## Monitor Idle Containers
+Run `docker-compose up -d` in this directory to launch all services.
 
-The `monitor_idle_containers.sh` script is a utility to monitor Docker containers for inactivity and stop them if they remain idle for a specified period. This is useful for managing resource usage and ensuring that idle containers do not consume unnecessary resources.
+The `docker-compose.yaml` defines the following services:
 
-- Monitors specified Docker containers for network activity.
-- Stops containers that remain idle for a configurable timeout period.
-- Configurable via command-line flags for idle timeout, check interval, and containers to monitor.
+1. **SeqRepo**:
+   - Provides access to biological sequence data required for variant normalization and annotation.
+   - One-off service to retrieve version seqrepo version specified by the image (`2024-12-20`) and install locally.
+   - Data is stored in the directory specified by the `HOST_SEQREPO_DATA_DIR` environment variable.
 
-### Usage
+2. **SeqRepo REST Service**:
+   - A RESTful API for accessing locally stored SeqRepo data.  Service URL will be passed as a parameter to any ETL plugin that uses GA4GH VRS.
+   - Runs on the port specified by the `HOST_SEQREPO_SERVICE_PORT` environment variable (default: 5000).
+   - Depends on the SeqRepo service for initializing service data repository.
+   - Test: `curl http://localhost:5000/seqrepo/1/sequence/refseq:NM_000551.3`
+
+3. **UTA (Universal Transcript Archive)**:
+   - Provides transcript and alignment data for variant normalization and annotation.
+   - PostgresSQL data volume is mounted in the directory specified by the `HOST_UTA_DATA_DIR` environment variable.
+   - Runs on the port specified by the `HOST_UTA_SERVICE_PORT` environment variable (default: 5432). Recommend changing this value as it is likely that the ETL target database will also be on port 5432.
+   - Test (assuming psql installed on system): `psql -XAt postgres://anonymous@localhost/uta -c 'select count(*) from uta_20241220.transcript'` (expect 314227)
+
+### System Clean-up and Monitoring
+
+The `seqrepo` service is used to download and install the SeqRepo data. This service only needs to be run once. After the data is downloaded and installed, the container and image can be removed to free up resources.
+
+To remove the container and image:
+
+   ```bash
+   docker rm variant-annotator-seqrepo
+   docker rmi biocommons/seqrepo:2024-12-20
+   ```
+
+#### Monitor Idle Containers (MIC)
+
+The `monitor_idle_containers.sh` script is a utility used to monitor Docker containers for inactivity and stop them if they remain idle for a specified period. This helps manage resource usage and ensures that idle containers do not consume unnecessary resources.  
+
+> This is a script that has been generalized for other applications.
+
+> TODO: move into planned monorepo `bash` library
+
+- Specifically monitors the `seqrepo-rest-service` and `uta` containers for network activity.
+- Stops these containers if they remain idle for a configurable timeout period.
+- Provides command-line flags to customize idle timeout, check interval, and the list of containers to monitor.
+
+##### MIC Usage
 
 Run the script with the desired options. Defaults are provided if no options are specified.
 
@@ -90,25 +121,8 @@ To run the script in the background and monitor `seqrepo` and `uta` containers w
 nohup ./monitor_idle_containers.sh --days 3 --check-interval 7200 --containers "seqrepo,uta" > monitor_idle.log 2>&1 &
 ```
 
-This will:
-
-- Monitor the `seqrepo` and `uta` containers.
-- Stop them if they remain idle for 3 days.
-- Check their activity every 2 hours.
-- Log the output to `monitor_idle.log`.
-
-For more details, run:
-
-```bash
-./monitor_idle_containers.sh --help
-```
-
 ## References
 
 - [GA4GH VRS PyPI](https://pypi.org/project/ga4gh.vrs/0.8.4/)
 - [UTA Documentation](https://github.com/biocommons/uta)
 - [SeqRepo Documentation](https://github.com/biocommons/seqrepo)
-
----
-
-For questions or integration help, contact the NIAGADS team.

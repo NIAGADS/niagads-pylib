@@ -3,7 +3,7 @@
 # Default Configuration
 DEFAULT_DAYS=2  # Default idle timeout in days
 DEFAULT_CHECK_INTERVAL=3600  # Default check interval in seconds (1 hour)
-DEFAULT_CONTAINERS=("seqrepo" "seqrepo-rest-service" "uta")
+DEFAULT_CONTAINERS=("seqrepo-rest-service" "uta")
 
 # Function to display help message
 print_help() {
@@ -18,7 +18,7 @@ print_help() {
   echo "  --help                     Display this help message and exit."
   echo ""
   echo "Example:"
-  echo "  nohup $0 --days 3 --check-interval 7200 --containers \"seqrepo,uta\" > monitor_idle.log 2>&1 &"
+  echo "  nohup $0 --days 3 --check-interval 7200 --containers \"seqrepo-rest,uta\" > monitor_idle.log 2>&1 &"
   echo ""
   exit 0
 }
