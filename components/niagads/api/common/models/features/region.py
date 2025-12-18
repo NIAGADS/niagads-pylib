@@ -1,8 +1,11 @@
+from typing import Optional
 from niagads.api.common.models.core import RowModel
 from niagads.genomics.features.region.core import GenomicRegion as __BaseGenomicRegion
+from pydantic import Field
 
 
 class GenomicRegion(RowModel, __BaseGenomicRegion):
+    max_range_size: Optional[int] = Field(default=None, exclude=True)
 
     def as_info_string(self):
         raise NotImplementedError("TODO when required")

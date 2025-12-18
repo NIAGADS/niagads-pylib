@@ -10,7 +10,6 @@ class GenomicRegion(Range):
     chromosome: Human = Field(title="Chromosome", serialization_alias="chr")
     length: Optional[int] = Field(default=None, title="Length")
     strand: Optional[Strand] = Field(default=Strand.SENSE, title="Strand")
-    max_range_size: Optional[int] = Field(default=None, exclude=True)
 
     @classmethod
     def from_region_id(cls, span):
@@ -30,7 +29,7 @@ class GenomicRegion(Range):
 
     def __str__(self):
         span = f"{str(self.chromosome)}:{self.start}-{self.end}"
-        # if self.strand is not None:
-        #    return f"{span}:{str(self.strand)}"
-        # else:
-        return span
+        if self.strand is not None:
+            return f"{span}:{str(self.strand)}"
+        else:
+            return span
