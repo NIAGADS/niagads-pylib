@@ -1,5 +1,5 @@
-from niagads.sequence import core
+from niagads.sequence import chromosome
 
 
 def test_sample():
-    assert core is not None
+    assert chromosome is not None

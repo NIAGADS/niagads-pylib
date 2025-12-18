@@ -1,3 +1,3 @@
-from niagads.sequence import core
+from niagads.sequence import chromosome
 
-__all__ = ["core"]
+__all__ = ["chromosome"]

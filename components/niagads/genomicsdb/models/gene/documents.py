@@ -2,7 +2,7 @@
 
 from typing import Any, Optional
 
-from niagads.sequence.core import Human
+from niagads.sequence.chromosome import Human
 from niagads.common.models.composite_attributes.gene import (
     GOAnnotation,
     PathwayAnnotation,
