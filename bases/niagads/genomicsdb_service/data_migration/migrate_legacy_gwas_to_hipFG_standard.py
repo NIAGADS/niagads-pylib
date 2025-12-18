@@ -16,7 +16,7 @@ from logging import Logger
 from typing import AsyncGenerator, Optional
 
 from niagads.arg_parser.core import comma_separated_list
-from niagads.assembly.core import Human
+from niagads.sequence.core import Human
 from niagads.database.session import DatabaseSessionManager
 from niagads.utils.list import qw
 from niagads.utils.logging import (
@@ -382,6 +382,9 @@ def main():
         allow_abbrev=False,
     )
     parser.add_argument("--connection_string")
+    parser.add_argument(
+        "--seqrepo_service_url", default="http://localhost:5000/seqrepo"
+    )
     parser.add_argument(
         "--dataset", type=comma_separated_list, help="one or more dataset IDs"
     )

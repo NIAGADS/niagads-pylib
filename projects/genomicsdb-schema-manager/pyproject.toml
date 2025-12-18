@@ -21,7 +21,7 @@ version = "0.1.0"
 
 [tool.poetry]
 packages = [
-    {from = "../../components", include = "niagads/assembly"},
+    {from = "../../components", include = "niagads/sequence"},
     {from = "../../components", include = "niagads/common"},
     {from = "../../components", include = "niagads/database"},
     {from = "../../components", include = "niagads/enums"},

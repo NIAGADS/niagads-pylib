@@ -1,6 +1,5 @@
 """variant annotator functions"""
 
-#!pylint: disable=invalid-name
 import logging
 from niagads.utils.string import xstr, truncate, reverse
 

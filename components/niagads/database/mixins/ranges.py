@@ -1,4 +1,4 @@
-from niagads.assembly.core import Human
+from niagads.sequence.core import Human
 from niagads.common.models.structures import Range
 from niagads.database import RangeType, enum_column, enum_constraint
 from sqlalchemy import Index

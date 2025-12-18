@@ -4,7 +4,7 @@ import pysam
 
 # from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from niagads.assembly.core import Human
+from niagads.sequence.core import Human
 from niagads.vcf.core import VCFEntry
 
 

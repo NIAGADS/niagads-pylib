@@ -35,7 +35,7 @@ packages = [
     {from = "../../bases", include = "niagads/genomicsdb/api"},
     {from = "../../bases", include = "niagads/open_access/api"},
     {from = "../../components", include = "niagads/api"},
-    {from = "../../components", include = "niagads/assembly"},
+    {from = "../../components", include = "niagads/sequence"},
     {from = "../../components", include = "niagads/cache"},
     {from = "../../components", include = "niagads/common"},
     {from = "../../components", include = "niagads/database"},

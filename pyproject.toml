@@ -28,7 +28,7 @@ packages = [
     { from = "components", include = "niagads/adsp_annotation" },
     { from = "components", include = "niagads/api" },
     { from = "components", include = "niagads/arg_parser" },
-    { from = "components", include = "niagads/assembly" },
+    { from = "components", include = "niagads/sequence" },
     { from = "components", include = "niagads/cache" },
     { from = "components", include = "niagads/common" },
     { from = "components", include = "niagads/csv_parser" },

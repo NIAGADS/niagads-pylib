@@ -23,7 +23,7 @@ from niagads.api.filer.services.wrapper import (
     FILERApiDataResponse,
     FILERApiEndpoint,
 )
-from niagads.assembly.core import GenomicFeatureType
+from niagads.sequence.core import GenomicFeatureType
 from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.exceptions.core import ValidationError
 from niagads.genomicsdb.models.dataset.track import Track
