@@ -1,65 +1,18 @@
-from typing import List, Optional, Union
+from enum import auto
 
-from niagads.api.common.models.response.core import RecordResponse
 from niagads.common.models.structures import Range
-from niagads.exceptions.core import ValidationError
-from niagads.genomics.sequence.types import GenomicFeatureType, Strand
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomics.sequence.chromosome import Human
-from niagads.api.common.models.core import RowModel
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
-from pydantic import (
-    BaseModel,
-    Field,
-    field_serializer,
-    model_validator,
-)
+from pydantic import BaseModel, model_validator
 
 
-class GenomicRegion(RowModel, Range):
-    chromosome: Human = Field(title="Chromosome", serialization_alias="chr")
-    length: Optional[int] = Field(default=None, title="Length")
-    strand: Optional[Strand] = Field(default=Strand.SENSE, title="Strand")
-    max_range_size: Optional[int] = Field(default=None, exclude=True)
-
-    @classmethod
-    def from_region_id(cls, span):
-        chromosome, range = span.split(":")
-        start, end = range.split("-")
-        return cls(chromosome=Human(chromosome), start=start, end=end)
-
-    def as_info_string(self):
-        raise NotImplementedError("TODO when required")
-
-    @field_serializer("chromosome")
-    def serialize_chromosome(self, chromosome: Human, _info):
-        return str(chromosome)
-
-    @field_serializer("length")
-    def serialize_length(self, length: str, _info):
-        if length is None:
-            return self.end - self.start
-        return length
-
-    def __str__(self):
-        span = f"{str(self.chromosome)}:{self.start}-{self.end}"
-        # if self.strand is not None:
-        #    return f"{span}:{str(self.strand)}"
-        # else:
-        return span
-
-    @classmethod
-    def get_model_fields(cls, as_str=False):
-        fields = super().get_model_fields()
-        order = [
-            "chr",  # have to use serialization alias
-            "start",
-            "end",
-            "strand",
-            "length",
-        ]
-        ordered_fields = {k: fields[k] for k in order}
-        return list(ordered_fields.keys()) if as_str else ordered_fields
+class GenomicFeatureType(CaseInsensitiveEnum):
+    GENE = auto()
+    VARIANT = auto()
+    STRUCTURAL_VARIANT = auto()
+    REGION = auto()
 
 
 class GenomicFeature(BaseModel):
@@ -100,7 +53,7 @@ class GenomicFeature(BaseModel):
         if matches(pattern, id):
             return id
         else:
-            raise ValidationError(
+            raise ValueError(
                 f"Invalid gene identifier: `{id}`;"
                 f"please use Ensembl ID, Official Gene Symbol (case insensitive), or Entrez Gene ID"
             )
@@ -116,7 +69,7 @@ class GenomicFeature(BaseModel):
 
         # check against regexp
         if matches(pattern, span) == False:
-            raise ValidationError(
+            raise ValueError(
                 f"Invalid genomic span: `{span}`;"
                 f"for a chromosome, N, please specify as chrN:start-end or N:start-end"
             )
@@ -126,14 +79,14 @@ class GenomicFeature(BaseModel):
         try:
             validChrm = Human.validate(chrm, inclPrefix=False)
         except KeyError:
-            raise ValidationError(
+            raise ValueError(
                 f"Invalid genomic span: `{span}`; invalid chromosome `{chrm}`"
             )
 
         # validate start < end
         [start, end] = coords.split("-")
         if int(start) > int(end):
-            raise ValidationError(
+            raise ValueError(
                 f"Invalid genomic span: `{span}`; start coordinate must be <= end"
             )
 
@@ -152,7 +105,7 @@ class GenomicFeature(BaseModel):
                 if matches(pattern, id.upper()):
                     return id.upper()
                 else:
-                    raise ValidationError(
+                    raise ValueError(
                         f"Invalid variant: `{id}`; please specify using a refSNP id, a structural variant ID (e.g., DUP_CHR1_4AE4CDB8), or positional allelic identifier (chr:pos:ref:alt) with valid alleles: [A,C,G,T]"
                     )
 
@@ -161,40 +114,8 @@ class GenomicFeature(BaseModel):
         try:
             Human.validate(chrm)
         except KeyError:
-            raise ValidationError(
+            raise ValueError(
                 f"Invalid genomic location: `{id}`; invalid chromosome `{chrm}`"
             )
 
         return id
-
-
-class AnnotatedGenomicRegion(RowModel):
-    id: str = Field(title="Region ID")
-    location: GenomicRegion
-    # gc_content: float = Field(
-    #    default=None,
-    #    title="GC Content %",
-    #    description="proportion of guanine (G) and cytosine (C) bases in a DNA sequence, indicating its nucleotide composition and stability",
-    # )
-    num_structural_variants: int = Field(
-        title="Num. Strucutral Variants",
-        description="number of SVs contained within or overlapping the region",
-    )
-    num_genes: int = Field(
-        title="Num. Genes",
-        description="number of genes contained within or overlapping the region",
-    )
-    num_small_variants: Union[int, str] = Field(
-        title="Num. Small Variants",
-        description=f"number of SNVs, MVNs, and short INDELs (<50bp) contained within or overlapping the region; for regions > 50,000bp this number is not calculated",
-    )
-
-    # TODO: need to host and acces the FASTA fle to do this
-    # @field_validator("gc_content", mode="before")
-    # @classmethod
-    # def calculate_gc_content(cls, v):
-    #    gc_fraction()
-
-
-class RegionResponse(RecordResponse):
-    data: List[AnnotatedGenomicRegion]

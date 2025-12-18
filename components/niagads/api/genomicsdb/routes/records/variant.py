@@ -7,7 +7,7 @@ from niagads.api.common.models.annotations.associations import (
     AssociationTrait,
     GeneticAssociationResponse,
 )
-from niagads.api.common.models.features.genomic import GenomicFeature
+from niagads.genomics.features.core import GenomicFeature
 from niagads.api.common.models.features.variant import (
     AbridgedVariantResponse,
     VariantAnnotationResponse,

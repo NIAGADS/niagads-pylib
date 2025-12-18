@@ -51,10 +51,3 @@ class Assembly(CaseInsensitiveEnum):
             raise ValidationError(
                 f"Invalid value provided for `{label}`: {value}.  {cls.get_description()}"
             )
-
-
-class GenomicFeatureType(CaseInsensitiveEnum):
-    GENE = auto()
-    VARIANT = auto()
-    STRUCTURAL_VARIANT = auto()
-    REGION = auto()

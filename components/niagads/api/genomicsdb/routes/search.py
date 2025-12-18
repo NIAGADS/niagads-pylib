@@ -3,7 +3,7 @@ from typing import Union
 from fastapi import APIRouter, Depends, HTTPException
 from niagads.api.common.config import Settings
 from niagads.api.common.constants import SharedOpenAPITags
-from niagads.api.common.models.features.genomic import GenomicFeature, GenomicRegion
+from niagads.api.common.models.features.region import GenomicRegion
 from niagads.api.common.models.features.variant import (
     AbridgedVariantResponse,
     VariantResponse,
@@ -28,7 +28,7 @@ from niagads.api.genomicsdb.queries.records.region import (
     RegionVariantQuery,
 )
 from niagads.api.genomicsdb.services.route import GenomicsRouteHelper
-from niagads.genomics.sequence.types import GenomicFeatureType
+from niagads.genomics.features.core import GenomicFeature, GenomicFeatureType
 
 router = APIRouter(
     prefix="/search",

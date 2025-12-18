@@ -6,7 +6,6 @@ from typing import List, Union
 
 from niagads.api.common.models.datasets.track import TrackResultSize
 from niagads.api.common.models.features.bed import BEDFeature
-from niagads.api.common.models.features.genomic import GenomicFeature
 from niagads.api.common.models.services.cache import (
     CacheKeyDataModel,
     CacheKeyQualifier,
@@ -23,9 +22,9 @@ from niagads.api.filer.services.wrapper import (
     FILERApiDataResponse,
     FILERApiEndpoint,
 )
-from niagads.genomics.sequence.types import GenomicFeatureType
 from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.exceptions.core import ValidationError
+from niagads.genomics.features.core import GenomicFeature, GenomicFeatureType
 from niagads.genomicsdb.models.dataset.track import Track
 from niagads.utils.list import chunker, cumulative_sum
 from pydantic import BaseModel

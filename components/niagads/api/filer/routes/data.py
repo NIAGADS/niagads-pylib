@@ -1,13 +1,10 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-from niagads.genomics.sequence.types import Assembly
 from niagads.api.common.constants import SharedOpenAPITags
-
+from niagads.api.common.models.datasets.track import AbridgedTrackResponse
 from niagads.api.common.models.features.bed import BEDResponse
 from niagads.api.common.models.response.core import RecordResponse
-
-from niagads.api.common.models.datasets.track import AbridgedTrackResponse
 from niagads.api.common.parameters.location import assembly_param, loc_param
 from niagads.api.common.parameters.pagination import page_param
 from niagads.api.common.parameters.record.query import track_list_param
@@ -17,10 +14,7 @@ from niagads.api.common.parameters.response import (
     ResponseView,
 )
 from niagads.api.common.parameters.text_search import keyword_param
-from niagads.api.common.services.route import (
-    Parameters,
-    ResponseConfiguration,
-)
+from niagads.api.common.services.route import Parameters, ResponseConfiguration
 from niagads.api.common.views.table import TableViewResponse
 from niagads.api.filer.dependencies import (
     TEXT_FILTER_PARAMETER,
@@ -28,6 +22,7 @@ from niagads.api.filer.dependencies import (
 )
 from niagads.api.filer.documentation import BASE_TAGS
 from niagads.api.filer.services.route import FILERRouteHelper
+from niagads.genomics.sequence.core import Assembly
 
 router = APIRouter(
     prefix="/data",

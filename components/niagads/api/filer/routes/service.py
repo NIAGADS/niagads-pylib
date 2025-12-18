@@ -18,8 +18,8 @@ from niagads.api.common.views.table import TableViewResponse
 from niagads.api.filer.dependencies import InternalRequestParameters
 from niagads.api.filer.documentation import BASE_TAGS
 from niagads.api.filer.services.route import FILERRouteHelper
-from niagads.genomics.sequence.types import Assembly
 from niagads.exceptions.core import ValidationError
+from niagads.genomics.sequence.core import Assembly
 
 router = APIRouter(prefix="/service", tags=BASE_TAGS)
 

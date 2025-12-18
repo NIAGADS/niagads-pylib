@@ -1,19 +1,13 @@
 """variant annotator functions"""
 
-
-def truncate_allele(value, long=False):
-    """wrapper for trunctate to 5 chars"""
-    return truncate(value, 100) if long else truncate(value, 8)
-
-
-def reverse_complement(seq):
-    """! @returns reverse complement of the specified sequence (seq)"""
-    mapping = str.maketrans("ACGTacgt", "TGCAtgca")
-    return seq.translate(mapping)[::-1]
+from niagads.genomics.sequence.utils import reverse_complement
+from niagads.utils.string import truncate, xstr
 
 
 class VariantAnnotator(object):
-    """functions used to generate variant annotations"""
+    """
+    Functions used to generate variant annotations.
+    """
 
     def __init__(self, refAllele, altAllele, chrom, position):
         self.__ref = refAllele
@@ -23,16 +17,26 @@ class VariantAnnotator(object):
         self.__metaseqId = None
         self.__set_metaseq_id()
 
-    def get_normalized_alleles(self, snvDivMinus=False):
-        """! public wrapper for __normalize_alleles / LEGACY
-        @returns normalized alleles"""
-        return self.__normalize_alleles(snvDivMinus)
+    @staticmethod
+    def __truncate_allele(value, long=False):
+        """
+        Truncate an allele string for display.
 
-    def infer_variant_end_location(self, rsPosition=None):
-        """! infer span of indels/deletions for a
-        specific alternative allele, modeled off
-        GUS Perl VariantAnnotator & dbSNP normalization conventions
-        @returns                 end location
+        Args:
+            value (str): Allele string.
+            long (bool): If True, truncate to 100 chars; else 8 chars.
+
+        Returns:
+            str: Truncated allele string.
+        """
+        return truncate(value, 100) if long else truncate(value, 8)
+
+    def infer_variant_end_location(self):
+        """
+        Infer the end location of a variant (span of indels/deletions).
+
+        Returns:
+            int: End location of the variant.
         """
 
         ref = self.__ref
@@ -74,15 +78,14 @@ class VariantAnnotator(object):
             return position + nrLength
 
     def __normalize_alleles(self, snvDivMinus=False):
-        """! left normalize VCF alleles
-        - remove leftmost alleles that are equivalent between the ref & alt alleles;
-        e.g. CAGT/CG <-> AGT/G
+        """
+        Left normalize VCF alleles by removing leftmost matching bases.
 
-        - if no normalization is possible, keeps normalized alleles as
-        default equal to ref & alt
+        Args:
+            snvDivMinus (bool): Return '-' for SNV deletion when True, else empty string.
 
-        @param snvDivMinus       return '-' for SNV deletion when True, otherwise return empty string
-        @return                  a tuple containing the normalized alleles (ref, alt)
+        Returns:
+            tuple: Normalized (ref, alt) alleles.
         """
 
         rLength = len(self.__ref)
@@ -115,22 +118,34 @@ class VariantAnnotator(object):
         return self.__ref, self.__alt
 
     def __set_metaseq_id(self):
-        """! generate metaseq id and set value"""
+        """
+        Generate and set the metaseq ID for the variant.
+        """
         self.__metaseqId = ":".join(
             (xstr(self.__chrom), xstr(self.__position), self.__ref, self.__alt)
         )
 
     def get_metaseq_id(self):
-        """! @returns metaseq id"""
+        """
+        Get the metaseq ID for the variant.
+
+        Returns:
+            str: Metaseq ID.
+        """
         return self.__metaseqId
 
     def get_sv_display_attributes(self, svType: str):
         pass
 
     def get_display_attributes(self, rsPosition=None):
-        """! generate and return display alleles & dbSNP compatible start-end
-        @param rsPosition       dbSNP property RSPOS
-        @returns                 dict containing display attributes
+        """
+        Generate and return display alleles and dbSNP-compatible start-end.
+
+        Args:
+            rsPosition (int, optional): dbSNP property RSPOS.
+
+        Returns:
+            dict: Display attributes for the variant.
         """
 
         LONG = True
@@ -169,15 +184,15 @@ class VariantAnnotator(object):
 
         elif refLength == altLength:  # MNV
             # inversion
-            if self.__ref == reverse(self.__alt):
+            if self.__ref == reverse_complement(self.__alt):
                 attributes.update(
                     {
                         "variant_class": "inversion",
                         "variant_class_abbrev": "MNV",
                         "display_allele": "inv" + self.__ref,
-                        "sequence_allele": truncate_allele(self.__ref)
+                        "sequence_allele": self.__truncate_allele(self.__ref)
                         + "/"
-                        + truncate_allele(self.__alt),
+                        + self.__truncate_allele(self.__alt),
                         "location_end": endLocation,
                     }
                 )
@@ -187,9 +202,9 @@ class VariantAnnotator(object):
                         "variant_class": "substitution",
                         "variant_class_abbrev": "MNV",
                         "display_allele": normRef + ">" + normAlt,
-                        "sequence_allele": truncate_allele(normRef)
+                        "sequence_allele": self.__truncate_allele(normRef)
                         + "/"
-                        + truncate_allele(normAlt),
+                        + self.__truncate_allele(normAlt),
                         "location_start": position,
                         "location_end": endLocation,
                     }
@@ -214,12 +229,12 @@ class VariantAnnotator(object):
                     {
                         "location_end": endLocation,
                         "display_allele": "del"
-                        + truncate_allele(normRef, LONG)
+                        + self.__truncate_allele(normRef, LONG)
                         + insPrefix
-                        + truncate_allele(normAlt, LONG),
-                        "sequence_allele": truncate_allele(normRef)
+                        + self.__truncate_allele(normAlt, LONG),
+                        "sequence_allele": self.__truncate_allele(normRef)
                         + "/"
-                        + truncate_allele(normAlt),
+                        + self.__truncate_allele(normAlt),
                         "variant_class": "indel",
                         "variant_class_abbrev": "INDEL",
                     }
@@ -231,12 +246,12 @@ class VariantAnnotator(object):
                     {
                         "location_end": endLocation,
                         "display_allele": "del"
-                        + truncate_allele(originalRef, LONG)
+                        + self.__truncate_allele(originalRef, LONG)
                         + insPrefix
-                        + truncate_allele(normAlt, LONG),
-                        "sequence_allele": truncate_allele(normRef)
+                        + self.__truncate_allele(normAlt, LONG),
+                        "sequence_allele": self.__truncate_allele(normRef)
                         + "/"
-                        + truncate_allele(normAlt),
+                        + self.__truncate_allele(normAlt),
                         "variant_class": "indel",
                         "variant_class_abbrev": "INDEL",
                     }
@@ -246,8 +261,9 @@ class VariantAnnotator(object):
                 attributes.update(
                     {
                         "location_end": position + 1,
-                        "display_allele": insPrefix + truncate_allele(normAlt, LONG),
-                        "sequence_allele": insPrefix + truncate_allele(normAlt),
+                        "display_allele": insPrefix
+                        + self.__truncate_allele(normAlt, LONG),
+                        "sequence_allele": insPrefix + self.__truncate_allele(normAlt),
                         "variant_class": (
                             "duplication" if insPrefix == "dup" else "insertion"
                         ),
@@ -262,8 +278,8 @@ class VariantAnnotator(object):
                     "variant_class_abbrev": "DEL",
                     "location_end": endLocation,
                     "location_start": position + 1,
-                    "display_allele": "del" + truncate_allele(normRef, LONG),
-                    "sequence_allele": truncate_allele(normRef) + "/-",
+                    "display_allele": "del" + self.__truncate_allele(normRef, LONG),
+                    "sequence_allele": self.__truncate_allele(normRef) + "/-",
                 }
             )
 

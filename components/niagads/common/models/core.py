@@ -1,3 +1,7 @@
+"""
+Base Pydantic model classes for NIAGADS data models.
+"""
+
 from typing import TypeVar
 
 from niagads.utils.dict import prune
@@ -6,7 +10,9 @@ from pydantic import BaseModel, ConfigDict, model_serializer
 
 
 class NullFreeModel(BaseModel):
-    """a pydantic model where attributes with NULL values (e.g., None, 'NULL') are removed during serialization"""
+    """a pydantic base model where attributes with NULL values
+    (e.g., None, 'NULL') are removed during serialization
+    """
 
     # note: this ignores the model_config b/c it doesn't run model_dump()
 
@@ -16,6 +22,10 @@ class NullFreeModel(BaseModel):
 
 
 class TransformableModel(BaseModel):
+    """
+    Pydantic base model with utility methods for data transformation and null handling.
+    """
+
     model_config = ConfigDict(serialize_by_alias=True)
 
     def null_free_dump(self):
@@ -34,6 +44,7 @@ class TransformableModel(BaseModel):
         return delimiter.join(uniqueValues) if arr is not None else None
 
     def _flat_dump(self, nullFree: bool = False, delimiter="|"):
+        # FIXME: evaluate use cases b/c this is not a flat dump
         """function for creating a flat dump; i.e., remove nesting"""
         return self.null_free_dump() if nullFree else self.model_dump()
 
