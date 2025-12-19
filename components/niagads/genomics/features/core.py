@@ -94,7 +94,7 @@ class GenomicFeature(BaseModel):
 
     @staticmethod
     def validate_variant_id(id: str):
-        pattern = RegularExpressions.VARIANT
+        pattern = RegularExpressions.NIAGADS_VARIANT_ID
 
         if matches(pattern, id) == False:
             pattern = RegularExpressions.REFSNP

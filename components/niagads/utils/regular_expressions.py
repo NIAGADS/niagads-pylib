@@ -1,5 +1,7 @@
 from enum import StrEnum
 
+CHROM_PATTERN = r"(?:[1-9]|1[0-9]|2[0-2]|X|Y|M|MT)"
+
 
 class RegularExpressions(StrEnum):
     """
@@ -20,15 +22,22 @@ class RegularExpressions(StrEnum):
 
     GENE = r"^(?:[A-Za-z][A-Za-z0-9_.-]*(@)?|\d{5})$"  # matches symbols, ensembl ids, and entrez ids
 
-    VARIANT = r"^.+:\d+:[ACGT]+:[ACGT]+$"
+    CHROMSOME = r"(?:[1-9]|1[0-9]|2[0-2]|X|Y|M|MT)"
 
+    # variant identifiers
+    NIAGADS_VARIANT_ID = r"^.+:\d+:[ACGT]+:[ACGT]+$"
     REFSNP = r"^rs\d+$"
-
     STRUCTUAL_VARIANT = (
         r"^(DEL|INS|DUP|INV|CNV|TRA)_CHR(\d{1,2}|[XYM]|MT)_([A-Z]|\d){8}$"
     )
+    SPDI = r"^[^:]+:\d+:[ACGTNacgtn-]+:[ACGTNacgtn-]+$"
+    GNOMAD_VARIANT_ID = rf"^{CHROM_PATTERN}-\d+-[ACGTN]+-[ACGTN]+$"
+    HGVS = r"^[\w\d]+(:g\.)?\d+[ACGTNacgtn>_delinsdupinsinv]+$"
+    BEACON_VARIANT_ID = (
+        rf"^\s*{CHROM_PATTERN}\s*:\s*\d+\s*[ACGTNacgtn]+\s*>\s*[ACGTNacgtn]+\s*$"
+    )
 
-    GENOMIC_LOCATION = r"^(chr)?(1[0-9]|2[0-2]|[1-9]|X|Y|M)[:\-](\d+)[\-:](\d+)$"
+    GENOMIC_LOCATION = rf"^(chr)?{CHROM_PATTERN}[:\-](\d+)[\-:](\d+)$"
 
     # Mantissa: 1-3 digits, optional . and up to 2 decimals; Exponent: e- and 1-3 digits
     PVALUE_SCIENTIFIC_NOTATION = (
@@ -47,3 +56,5 @@ class RegularExpressions(StrEnum):
 
     # postgresql://<user>:<password>@<host>:<port>/<database>
     POSTGRES_URI = r"^postgresql:\/\/[^:]+:[^@]+@[^:]+:\d+\/[^\/\s]+$"
+
+    URL = r"^https?://[\w.-]+(?:\.[\w\.-]+)+(?:/[\w\-./?%&=]*)?$"
