@@ -6,30 +6,30 @@ This guide explains how to create a new ETL plugin for the GenomicsDB ETL framew
 
 A _plugin_ is a Python class that inherits from `AbstractBasePlugin`. It must implement the following abstract methods and properties:
 
-- `description`: Returns a string describing the plugin.
-- `parameter_model`: Returns a Pydantic model class for plugin parameters (subclass of `BasePluginParams`).
-- `operation`: Returns the `ETLOperation` type for the plugin.
-- `affected_tables`: Returns a list of database tables (`schema.table`) affected by the plugin.
-- `streaming`: Boolean indicating if the plugin E & T steps process records one-by-one (streaming) or in bulk.
-- `extract`: Extracts records from the data source.
-- `transform`: Transforms extracted data.
-- `load`: Asynchronously loads transformed data into the database.
-- `get_record_id`: Returns a unique identifier for a record (used for creating checkpoints for resumes points).
+- `description` (classmethod): Returns a string describing the plugin.
+- `parameter_model` (classmethod): Returns a Pydantic model class for plugin parameters (subclass of `BasePluginParams`).
+- `operation` (property): Returns the `ETLOperation` type for the plugin.
+- `affected_tables` (property): Returns a list of database tables (`schema.table`) affected by the plugin.
+- `load_strategy` (property): Returns a `LoadStrategy` enum value indicating chunked, bulk, or batch loading.
+- `extract` (method): Extracts records from the data source.
+- `transform` (method): Transforms extracted data.
+- `load` (async method): Asynchronously loads transformed data into the database.
+- `get_record_id` (method): Returns a unique identifier for a record.
 
 ## Example: SimpleTextLoaderPlugin
 
 Below is a simplified example of how to implement a plugin that loads and processes a plain text file, illustrating the required structure and methods.
 
 ```python
-from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
+from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin, ResumeCheckpoint
 from niagads.genomicsdb.models.admin.pipeline import ETLOperation
 from pydantic import Field
 
 class SimpleTextLoaderParams(BasePluginParams, PathValidatorMixin):
     file: str = Field(..., description="text file to load")
 
-    # add validatio check to ensure that the file passed to the `file`
+    # add validation check to ensure that the file passed to the `file`
     # parameter exists
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
@@ -53,13 +53,16 @@ class SimpleTextLoaderPlugin(AbstractBasePlugin):
         return ["genomicsdb.text_table"]
 
     @property
-    def streaming(self):
-        return True
+    def load_strategy(self):
+        # Use chunked loading for line-by-line processing
+        return LoadStrategy.CHUNKED
 
     def extract(self):
         # Parse header and yield each line as a dict mapping header to values
         with open(self._params.file) as f:
             header = next(f).strip().split("\t")  # assumes tab-delimited
+            self.logger.debug(f"Parsed header: {header}")
+
             for line in f:
                 fields = line.strip().split("\t")
                 yield dict(zip(header, fields))
@@ -68,31 +71,56 @@ class SimpleTextLoaderPlugin(AbstractBasePlugin):
         # Example: convert all values to uppercase
         return {k: v.upper() for k, v in data.items()}
 
-    async def load(self, transformed, mode):
-        # Example: pretend to load records into DB
-        # Replace with actual DB logic as needed
-        print(f"Loaded {len(transformed)} records: {transformed}")
-        return len(transformed)
+    async def load(self, transformed, session) -> ResumeCheckpoint:
+        """
+        Example: pretend to load records into DB. Replace with actual DB logic as needed.
+        """
+
+        # Simulate DB insert
+        self.logger.info(f"Loaded {len(transformed)} records into {self.affected_tables[0]}")
+
+        # Update transaction counts for plugin status logging
+        self.update_transaction_count(ETLOperation.INSERT, table_name, len(transformed))
+
+        # Return a checkpoint for resume support
+        return self.generate_checkpoint(line=None, record=transformed[-1])
+ 
 
     def get_record_id(self, record):
         # assume data had an id field for demonstration
         return record["id"]
 ```
 
+## Load Strategies
+
+Plugins must specify a load strategy by implementing the `load_strategy` property and returning a value from the `LoadStrategy` enum:
+
+- **CHUNKED**: Records are processed and loaded in chunks, where the chunk size is determined by the plugin developer by number of records yielded by `extract` (and by extension, `transform`). The plugin controls how many records are buffered before calling `load()` based on the `commit_after`parameter value. This is ideal for streaming or line-by-line processing, and allows for flexible chunk sizes based on the data source or transformation logic.
+
+- **BULK**: All records are extracted and transformed, then loaded in a single call to `load()`. The entire dataset is passed at once, and the plugin is responsible for handling all records in one transaction. Use this for small datasets or when batch processing is not required.  
+
+- **BATCH**: The transformed dataset is split into batches of size `commit_after` before loading. Each batch is passed to `load()` in turn. This is useful for large datasets that should be processed in manageable batches, with regular commits and checkpointing.
+
+Select the strategy that best matches your data source and processing requirements. Refer to the `AbstractBasePlugin` documentation and example plugins for implementation details.
+
+---
+
 ## Key Points
 
-- **Parameter Model**: Define a Pydantic model for plugin parameters. Inherit from `BasePluginParams` and add any plugin-specific fields.  Make sure to add any necessary validation.  Notice how the validation can be handled directly by the Pydantic model.
-- **Streaming vs Bulk**: Set the `streaming` property. If `True`, records are processed line by line and loaded in batches; if `False`, the ET stage processes the entire dataset at once (bulk).  Loading will still be in batches.
-- **ETL Methods**: Implement `extract`, `transform`, and `load` methods. Use `self.__session_manager` for loading data.
-- **Checkpointing**: Implement `get_record_id` to support resume and checkpoint features.
-- **Logging**: Use `self.logger` for JSON logging and status updates.
-- **Error Handling**: Enclose any codeblock in the ETL functions that may raise an error in `try/except` block to ensure that the error gets raised.  Failure to do so will lead to the plugin to exit with status `FAIL` without providing a stack-trace.
+ **Parameter Model**: Define a Pydantic model for plugin parameters. Inherit from `BasePluginParams` and add any plugin-specific fields. Validation can be handled directly by the Pydantic model.
+ **Load Strategy**: Implement the `load_strategy` property to specify chunked, bulk, or batch loading using the `LoadStrategy` enum.
+ **ETL Methods**: Implement `extract`, `transform`, and `load` methods. The `load` method must be async and accept both transformed data and a database session.
+ **Transaction Counting**: Use `self.update_transaction_count` in `load` to tally inserts, updates, and skips for accurate status reporting.
+ **Checkpointing**: Implement `get_record_id` to support resume and checkpoint features. The `load` method should return a `ResumeCheckpoint` object.
+ **Session Usage**: Use the provided async SQLAlchemy session in `load` for all database operations. Do not create your own session.
+ **Logging**: Use `self.logger` for JSON logging, debug statements, and status updates.
+ **Error Handling**: The base plugin handles error logging and propagation; you do not need to wrap ETL methods in try/except unless you need custom error handling.
 
 See the `XMLRecordLoader` for an example of how to write a plugin, including logging and error handling.
 
 ## Running a Plugin
 
-Plugins can be run via the CLI, programmatically, or through the ETL Pipeline Mangaer. Command line usage is illustrated below using the `XMLRecordLoader` plugin:
+Plugins can be run via the CLI, programmatically, or through the ETL Pipeline Manager. Command line usage is illustrated below using the `XMLRecordLoader` plugin:
 
 From within the project (e.g. during development):
 
