@@ -68,30 +68,6 @@ class VariantPKGenerator(object):
         self._initialize_dataproxy(seqrepoProxyPath)
         self._initialize_translators(normalize)
 
-    def _initialize_dataproxy(self, proxyPath):
-        self._seqrepoDataProxy = create_dataproxy("seqrepo+file://" + proxyPath)
-
-    def _initialize_translators(self, normalize=False):
-        """! set the seqrepo translator
-
-        @param proxyPath         full path to the file-based seqrepo data repository
-        @param normalize         apply GA4GH normalization
-        """
-        self._alleleTranslator = AlleleTranslator(data_proxy=self._seqrepoDataProxy)
-        self._alleleTranslator.normalize = normalize
-
-    def translate_vrs(self, vrsDict, formatSpec="spdi"):
-        """! translate VRS allele dict back to HGVS or SPDI format / for validation purposes
-        @param vrsDict           the VRS Allele Dict object
-        @param formatSpec        target format: hgvs or spdi
-        @returns                 translation of the VRS Allele Dict
-        """
-
-        if formatSpec not in ["hgvs", "spdi"]:
-            raise IndexError("invalid format spec: specify 'spdi' or 'hgvs'")
-
-        return self._alleleTranslator.translate_to(vrsDict, formatSpec)
-
     def get_ga4gh_sequence_location(self, chrm, start, end, genomeBuild="GRCh38"):
         # modeled after gnomad approach
         # https://github.com/broadinstitute/gnomad-browser/blob/3acd1354137b28b311f24ba14cb77478423af0ac/graphql-api/src/graphql/resolvers/va.ts#L135
