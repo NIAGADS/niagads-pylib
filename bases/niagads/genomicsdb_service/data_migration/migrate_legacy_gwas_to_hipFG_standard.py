@@ -50,15 +50,6 @@ RESTRICTED_STATS_MAP = {
 }
 
 
-class VariantType(Enum):
-    SNV = auto()
-    MNV = auto()
-    INDEL = auto()
-    DEL = auto()
-    INS = auto()
-    SV = auto()
-
-
 class Variant(BaseModel):
     chromosome: Human
     position: int
