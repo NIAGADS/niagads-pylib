@@ -37,7 +37,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         * extract() should honor resume_from.line (skip lines before that).
         * transform() may honor resume_from.id (skip until matching ID).
     - Chunked loading is a class property (`chunked`).
-        * chunked: records processed in chunks of size commit_after; load() receives lists of size commit_after.
+        * chunked: records processed in chunks of size determined by the plugin (chunk_size >= 1).
         * bulk: extract->transform over entire dataset; load() called once with bulk data.
 
     Note:
@@ -378,24 +378,32 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         Process records in chunks and load them into the database.
 
-        Chunks are processed with size defined by `commit_after`. Each chunk
-        is loaded and committed (or rolled back) according to ETL mode.
-
-        Raises:
-            RuntimeError: If `commit_after` is not set.
+        Chunks are processed with size determined by extract. Each chunk
+        is loaded, but commits and roll-backs happen according to `commit_after` parameter
+        and according to ETL mode.
         """
-        if self._commit_after is None:
-            raise ValueError("Running CHUNKED load, `commit_after` cannot be `None`")
 
         buffer: list = []
         session_ctx = self._session_manager() if not self.is_dry_run else nullcontext()
         async with session_ctx as session:
             for records in self.extract():
                 processed_records = self.transform(records)
-                buffer.append(processed_records)
-                if len(buffer) == self._commit_after:
-                    checkpoint = await self.__flush_chunked_buffer(buffer, session)
-                    await self.__handle_transaction(session, checkpoint)
+                # chunked can yield one or a list of records
+                if isinstance(processed_records, list):
+                    buffer.extend(processed_records)
+                else:
+                    buffer.append(processed_records)
+
+                if len(buffer) >= self._commit_after:
+                    batches = chunker(buffer, self._commit_after, returnIterator=True)
+                    for batch in batches:
+                        if len(batch) == self._commit_after:
+                            checkpoint = await self.__flush_chunked_buffer(
+                                batch, session
+                            )
+                            await self.__handle_transaction(session, checkpoint)
+                        else:
+                            buffer = batch  # residuals
 
             # residuals
             if buffer:
