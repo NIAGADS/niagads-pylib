@@ -3,9 +3,6 @@
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomics.features.region.core import GenomicRegion
 from niagads.genomics.sequence.chromosome import Human
-from niagads.genomics.sequence.core import Assembly
-from niagads.genomics.sequence.utils import reverse_complement
-from niagads.utils.string import truncate, xstr
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -129,13 +126,3 @@ class Variant(BaseModel, GenomicRegion):
             return position + len_ref - 1
         else:
             return position + len_nref
-
-
-class VariantStandardizer(object):
-    """
-    this normalizes, generates primary keys, and validates, standardizes using ga4gh.vrs
-    """
-
-    def __init__(self, genome_build: Assembly, seqrepo_service_url: str):
-        self._seqrepo_service_url = seqrepo_service_url
-        self._genome_build = genome_build
