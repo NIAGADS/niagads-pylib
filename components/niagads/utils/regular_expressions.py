@@ -1,5 +1,8 @@
-from enum import StrEnum
-
+from sys import version_info
+if version_info >= (3.11,):
+    from enum import StrEnum
+else:
+    from strenum import StrEnum
 
 class RegularExpressions(StrEnum):
     """

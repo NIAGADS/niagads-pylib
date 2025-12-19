@@ -1,8 +1,10 @@
 import json
 import logging
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import Union
 
+import pandas as pd
 from niagads.csv_parser.core import CSVFileParser
 from niagads.excel_parser.core import ExcelFileParser
 from niagads.json_validator.core import JSONValidator
@@ -16,12 +18,19 @@ class CSVValidator(ABC):
     Abstract Base Class for JSON-schema based CSV validation
     """
 
-    def __init__(self, fileName: str, schema, debug: bool = False):
+    def __init__(
+        self,
+        file_name: str,
+        schema,
+        case_insensitive: bool = False,
+        debug: bool = False,
+    ):
         self._debug = debug
         self.logger = logging.getLogger(__name__)
-        self._file = fileName
+        self._file = file_name
         self._schema = schema
         self._metadata = None
+        self._case_insensitive = case_insensitive
 
     def set_schema(self, schema):
         """
@@ -32,9 +41,33 @@ class CSVValidator(ABC):
         """
         self._schema = schema
 
-    def get_schema(self):
+    def get_schema(self, as_json: bool=False):
+        if as_json:
+            return self.__parse_schema()
         return self._schema
+    
+    def __parse_schema(self):
+        """
+        Parse the schema from a dict, JSON string, or file path.
 
+        Returns:
+            dict: Parsed schema
+
+        Raises:
+            ValueError: If the schema is not in an expected format.
+        """
+        if isinstance(self._schema, str):
+            if any(x in self._schema for x in ["[", "{"]):  # assume json
+                return json.loads(self._schema)
+            else:  # assume file
+                with open(self._schema, "r") as fh:
+                    return json.loads(fh.read())
+
+        elif isinstance(self._schema, dict):  # already an object
+            return self._schema
+        else:
+            raise ValueError("Invalid `schema` format:" + str(self._schema))
+        
     def get_metadata(self, asString=False):
         """
         retrieve the parsed metadata
@@ -61,7 +94,7 @@ class CSVValidator(ABC):
         )
 
     @abstractmethod
-    def run(self, failOnError: bool = False):
+    def run(self, fail_on_error: bool = False):
         raise NotImplementedError(
             "`run` method has not been implement for the child of this Abstract parent class"
         )
@@ -79,8 +112,8 @@ class CSVPropertiesFileValidator(CSVValidator):
     (e.g. study info files)
     """
 
-    def __init__(self, fileName: str, schema, debug: bool = False):
-        super().__init__(fileName, schema, debug)
+    def __init__(self, file_name: str, schema, debug: bool = False):
+        super().__init__(file_name, schema, debug)
 
     def load(self, worksheet: Union[str, int] = 0):
         """
@@ -98,32 +131,31 @@ class CSVPropertiesFileValidator(CSVValidator):
                     "Metadata file is of type `xlsx` (EXCEL); must supply name of the worksheet to load"
                 )
             self._metadata = parser.worksheet_to_json(
-                worksheet, transpose=True, returnStr=False, header=None, index_col=0
+                worksheet, transpose=True, return_str=False, header=None, index_col=0
             )[0]
 
         else:
             parser = CSVFileParser(self._file)
             parser.strip()
             self._metadata = parser.to_json(
-                transpose=True, returnStr=False, header=None, index_col=0
+                transpose=True, return_str=False, header=None, index_col=0
             )[0]
 
-    def run(self, failOnError: bool = False):
+    def run(self, fail_on_error: bool = False):
         """
         run validation
 
         Args:
-            failOnError (bool, optional): flag to fail on ValidationError. Defaults to False.
+            fail_on_error (bool, optional): flag to fail on ValidationError. Defaults to False.
 
         Returns:
-            boolean if JSON is valid,
-            array of errors if invalid
+            list of errors
 
         Raises:
-            jsonschema.exceptions.ValidationError if `failOnError` = True
+            jsonschema.exceptions.ValidationError if `fail_on_error` = True
         """
         validator = JSONValidator(self._metadata, self._schema, self._debug)
-        result = validator.run(failOnError)
+        return validator.run(fail_on_error)
 
 
 class CSVTableValidator(CSVValidator):
@@ -134,16 +166,18 @@ class CSVTableValidator(CSVValidator):
 
     """
 
-    def __init__(self, fileName, schema, debug: bool = False):
-        super().__init__(fileName, schema, debug)
+    def __init__(
+        self, file_name, schema, case_insensitive: bool = False, debug: bool = False
+    ):
+        super().__init__(file_name, schema, case_insensitive, debug)
 
-    def get_field_values(self, field: str, dropNulls: bool = False):
+    def get_field_values(self, field: str, exclude_nulls: bool = False):
         """
         fetch all values in a table field
 
         Args:
             field (str): field name
-            dropNulls (bool, Optional): drop null values from return. Defaults to False.
+            exclude_nulls (bool, Optional): drop null values from return. Defaults to False.
 
         Raises:
             TypeError: NullValue error if the metadata is not loaded
@@ -161,8 +195,8 @@ class CSVTableValidator(CSVValidator):
         if field not in self._metadata[0]:  # metadata is a list of dicts
             raise KeyError(f"invalid metadata field `{field}`; cannot extract values")
 
-        fieldValues = [r[field] for r in self._metadata]
-        return drop_nulls(fieldValues) if dropNulls else fieldValues
+        field_values = [r[field] for r in self._metadata]
+        return drop_nulls(field_values) if exclude_nulls else field_values
 
     def load(self, worksheet: Union[str, int] = 0):
         """
@@ -181,38 +215,98 @@ class CSVTableValidator(CSVValidator):
                     "Metadata file is of type `xlsx` (EXCEL); must supply name of the worksheet to load"
                 )
             self._metadata = parser.worksheet_to_json(
-                worksheet, returnStr=False, header=0
+                worksheet, return_str=False, header=0
             )
 
         else:
             parser = CSVFileParser(self._file)
-            self._metadata = parser.to_json(returnStr=False, header=0)
+            self._metadata = parser.to_json(return_str=False, header=0)
 
-    def run(self, failOnError: bool = False) -> dict:
+    def to_text(self, path_or_buf: str = None, normalize: bool = False):
+        """Write the metadata to tab-delimited text file"""
+        metadata = self.normalize() if normalize else self._metadata
+        df = pd.DataFrame(metadata)
+        return df.to_csv(path_or_buf, sep="\t", index=False)
+
+
+    def __resolve_enum_values(self, property_schema: dict):
+        property_type = property_schema.get('type')
+        if property_type == 'string' or (isinstance(property_type, list) and 'string' in property_type):
+            if "enum" in property_schema:
+                return property_schema["enum"], True
+            if "oneOf" in property_schema:
+                section = property_schema['oneOf']
+                if section and all(isinstance(s, dict) and "const" in s and isinstance(s["const"], str) for s in section):
+                    return [item["const"] for item in section]
+        return []
+            
+    def normalize(self):
+        """
+        Get a normalized version of the metadata json, where normalization matches against enum
+        fields and replaces values as necessary to match the canonical cases from the schema.
+        """
+        normalized_metadata = deepcopy(self._metadata)
+        schema_json = self.get_schema(as_json=True)
+        for record in normalized_metadata:
+            for field, field_schema in schema_json.get("properties", {}).items():
+                if field in record:
+                    allowed_values = self.__resolve_enum_values(field_schema)
+                    field_value = record[field]
+                    if isinstance(field_value, str):
+                        # find first case-insensitive match
+                        canonical = next(
+                            (
+                                v
+                                for v in allowed_values
+                                if field_value.lower() == v.lower()
+                            ),
+                            None,
+                        )
+                        # only update if find a match
+                        # leave mismatches as is for accurate error reporting
+                        if canonical is not None:
+                            record[field] = canonical
+        return normalized_metadata
+
+    def run(self, fail_on_error: bool = False) -> dict:
         """
         run validation on each row
 
         Args:
-            failOnError (bool, optional): flag to fail on ValidationError. Defaults to False.
+            fail_on_error (bool, optional): flag to fail on ValidationError. Defaults to False.
 
         Returns:
             array of {row#: validation result} pairs
 
         Raises:
-            jsonschema.exceptions.ValidationError if `failOnError` = True
+            jsonschema.exceptions.ValidationError if `fail_on_error` = True
         """
-
+        
+        INVALID_FIELD_ERRORS = ["Additional properties are not allowed", "is a required property"]
+        
+        file_errors = [] # for file-level errors
         result = []
         validator = JSONValidator(None, self._schema, self._debug)
+        validator.case_insensitive(enable = self._case_insensitive)
         for index, row in enumerate(self._metadata):
             validator.set_json(row)
-            rowValidation = validator.run()
-            if not isinstance(rowValidation, bool):
-                if failOnError:
+            row_errors = validator.run()
+            if row_errors:
+                if fail_on_error:
                     validator.validation_error(
-                        rowValidation, prefix="row " + xstr(index) + " - " + xstr(row)
+                        row_errors, prefix="row " + xstr(index) + " - " + xstr(row)
                     )
                 else:
-                    result.append({index + 1: rowValidation})
+                    filtered_row_errors = []
+                    for err in row_errors:
+                        if any(msg in err for msg in INVALID_FIELD_ERRORS):
+                            file_errors.append(err)
+                        else:
+                            filtered_row_errors.append(err)
+                    if filtered_row_errors:
+                        result.append({index + 1: filtered_row_errors})
+                    
+        if file_errors:
+            result.insert(0, {'file': list(set(file_errors))})
 
         return {"errors": result}  # empty array; all rows passed
