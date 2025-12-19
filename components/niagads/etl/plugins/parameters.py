@@ -102,7 +102,7 @@ class PathValidatorMixin:
 
     @classmethod
     def validator(cls, field_name, is_dir=False):
-        @field_validator(field_name, model="plain")
+        @field_validator(field_name, mode="plain")
         def file_exists(cls, value):
             from niagads.utils.sys import verify_path
 
