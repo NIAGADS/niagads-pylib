@@ -24,6 +24,9 @@ class VariantClass(CaseInsensitiveEnum):
     MEI = "mobile-element insertion"
     SV = "structural variant"
 
+    def __str__(self):
+        return self.name
+
     def is_short_indel(self):
         return self.name.startswith("SHORT")
 
@@ -31,7 +34,7 @@ class VariantClass(CaseInsensitiveEnum):
         return self.name in qw("DEL INS INDEL DUP INV TRANS CNV MEI SV")
 
 
-class Variant(BaseModel, GenomicRegion):
+class Variant(GenomicRegion):
     length: int = Field(description="variant length")
     ref: str
     alt: str
@@ -41,6 +44,17 @@ class Variant(BaseModel, GenomicRegion):
     verified: bool = False
     primary_key: str = Field(default=None, description="database primary key")
     ga4gh_vrs: Allele = None
+
+    def __str__(self):
+        if self.primary_key is not None:
+            return self.primary_key
+        else:
+            if self.variant_class.is_structural_variant():
+                return (
+                    f"{self.chromosome}:{self.start}/{self.variant_class}:{self.length}"
+                )
+            else:
+                return self.positional_id
 
     # GenomicRegion parent override
     zero_based: bool = Field(

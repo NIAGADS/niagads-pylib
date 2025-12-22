@@ -1,21 +1,24 @@
-import base64
 import hashlib
+import json
 from typing import Union
 
 from ga4gh.core import ga4gh_identify
-from ga4gh.vrs.dataproxy import create_dataproxy, DataProxyValidationError
+from ga4gh.vrs.dataproxy import DataProxyValidationError, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator
 from ga4gh.vrs.models import Allele, SequenceLocation, SequenceReference
-from ga4gh.vrs.normalize import normalize
+from ga4gh.vrs.normalize import normalize as vrs_normalize
 from niagads.common.core import ComponentBaseMixin
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError
 from niagads.genomics.features.region.core import GenomicRegion
-from niagads.genomics.features.variant.core import Variant, VariantClass
+from niagads.genomics.features.variant.core import Variant
 from niagads.genomics.sequence.chromosome import Human
 from niagads.genomics.sequence.core import Assembly
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
+
+
+# TODO: check normalize_positional_variant -> what does it return for
 
 
 class VariantNomenclature(CaseInsensitiveEnum):
@@ -25,23 +28,30 @@ class VariantNomenclature(CaseInsensitiveEnum):
     GNOMAD = "gnomad"
     POSITIONAL = "positional"
 
-    _regexp_map = {
-        "hgvs": RegularExpressions.HGVS,
-        "spdi": RegularExpressions.SPDI,
-        "beacon": RegularExpressions.BEACON_VARIANT_ID,
-        "gnomad": RegularExpressions.GNOMAD_VARIANT_ID,
-        "positional": RegularExpressions.POSITIONAL_VARIANT_ID,
-    }
+    def regexp_map(self):
+        match self.name:
+            case "HGVS":
+                return RegularExpressions.HGVS
+            case "SPDI":
+                return RegularExpressions.SPDI
+            case "BEACON":
+                return RegularExpressions.BEACON_VARIANT_ID
+            case "GNOMAD":
+                return RegularExpressions.GNOMAD_VARIANT_ID
+            case "POSITIONAL":
+                return RegularExpressions.POSITIONAL_VARIANT_ID
+            case _:
+                raise ValueError(f"Unknown variant nomenclature: {self.name}")
 
     def is_valid(self, variant_id: str, fail_on_error: bool = False) -> bool:
-        is_valid = matches(self._regexp_map[self.value], variant_id)
+        is_valid = matches(self.regexp_map(), variant_id)
         if not is_valid and fail_on_error:
             raise ValueError(f"Invalid '{self.name}' variant: {variant_id}.")
         else:
             return is_valid
 
     @classmethod
-    def gnomad2positional(cls, variant_id: str):
+    def convert_positional_to_gnomad(cls, variant_id: str):
         if cls.POSITIONAL.is_valid(variant_id):
             return variant_id.replace(":", "-")
         else:
@@ -50,7 +60,7 @@ class VariantNomenclature(CaseInsensitiveEnum):
             )
 
     @classmethod
-    def positional2gnomad(cls, variant_id: str):
+    def convert_gnomad_to_positional(cls, variant_id: str):
         if cls.GNOMAD.is_valid(variant_id):
             return variant_id.replace("-", ":")
         else:
@@ -72,34 +82,99 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             genome_build, seqrepo_service_url, debug=debug, verbose=verbose
         )
 
-    def primary_key(self, variant: Variant):
+    def primary_key(self, variant: Variant, require_validation: bool = True):
         if variant.variant_class.is_structural_variant():
             return self.sv_primary_key(variant)
 
         if variant.variant_class.is_short_indel():
-            # CHR_SHORT_DEL/INS/INDEL_hash
-            pass
-
-        else:  # SNV / MNV
+            return self.short_indel_primary_key(variant)
+        else:  # SNV / MNV - no normalization necessary
             return variant.positional_id
 
     def sv_primary_key(self, variant: Variant):
-        if variant.variant_class != VariantClass.SV:
+        """
+        Generate a unique primary key for a structural variant (SV) using a hashed
+        GA4GH VRS SequenceLocation.
+
+        The primary key is constructed from the variant class, chromosome, and the
+        first 8 characters of a SHA-512 hash of the serialized SequenceLocation.
+        This ensures uniqueness and reproducibility for SVs.
+
+        This is following convention adopted by gnomAD; trace from:
+        # https://github.com/broadinstitute/gnomad-browser/blob/3acd1354137b28b311f24ba14cb77478423af0ac/graphql-api/src/graphql/resolvers/va.ts#L135
+
+        Example:
+            "DEL_CHR1_8A1B2C3D"
+
+        Args:
+            variant (Variant): The structural variant to generate a primary key for.
+
+        Returns:
+            str: Unique primary key string for the SV.
+
+        Raises:
+            ValueError: If the variant is not a structural variant.
+        """
+        if not variant.variant_class.is_structural_variant():
+            raise ValueError(f"Invalid structural variant: '{variant}' ")
+
+        location: SequenceLocation = self._vrs_service.create_vrs_sequence_location(
+            GenomicRegion(
+                chromosome=variant.chromosome,
+                start=variant.start,
+                end=variant.start + variant.length - 1,
+            ),
+            compute_id=False,
+            normalize=False,
+        )
+        hashed_location_id = hashlib.sha512(
+            json.dumps(location.model_dump(exclude_none=True)).encode("utf-8")
+        ).hexdigest()
+
+        primary_key = (
+            f"{variant.variant_class}_"
+            f"{variant.chromosome.upper()}_"
+            f"{hashed_location_id[:8].upper()}"
+        )
+
+        self.logger.debug(
+            f"Primary Key for SV: {variant.variant_class} - {str(variant)} = {primary_key}"
+        )
+
+        return primary_key
+
+    def short_indel_primary_key(
+        self, variant: Variant, require_validation: bool = True
+    ):
+        """
+        Generate a primary key for a short indel variant.
+
+        For indels where the combined length of ref and alt alleles is ≤ 10,
+        returns a normalized positional variant string for human readability.
+        For longer indels, falls back to the hashed SV primary key convention.
+
+        Args:
+            variant (Variant): The indel variant to generate a primary key for.
+            require_validation (bool, optional): If True, validate reference allele
+                against reference sequence. Default is True.
+
+        Returns:
+            str: Primary key string for the indel variant.
+
+        Raises:
+            ValueError: If the variant is not a short indel.
+        """
+        if not variant.variant_class.is_short_indel():
             raise ValueError(
-                f"Invalid structural variant: '{variant.positional_id}' "
-                "is identified as a '{variant.type.name}'."
+                f"Invalid short insertion and/or deletion variant: '{variant}' "
             )
 
-    def indel_primary_key(self, variant: Variant):
-        if variant.variant_class not in [
-            VariantClass.SHORT_INDEL,
-            VariantClass.SHORT_DEL,
-            VariantClass.SHORT_INS,
-        ]:
-            raise ValueError(
-                f"Invalid insertion and/or deletion variant: '{variant.positional_id}' "
-                "is identified as a '{variant.type.name}'."
+        if len(variant.ref) + len(variant.alt) <= 10:  # still human readable
+            return self._vrs_service.normalize_positional_variant(
+                variant.positional_id, require_validation=require_validation
             )
+        else:
+            return self.sv_primary_key(variant)  # do like sv
 
 
 class GA4GHVRSService(ComponentBaseMixin):
@@ -188,7 +263,7 @@ class GA4GHVRSService(ComponentBaseMixin):
 
         if variant_id_type == VariantNomenclature.POSITIONAL:
             allele = self._allele_translator.translate_from(
-                VariantNomenclature.positional2gnomad(variant_id),
+                VariantNomenclature.convert_positional_to_gnomad(variant_id),
                 VariantNomenclature.GNOMAD.value,
                 require_validation=require_validation,
                 do_normalize=normalize,
@@ -267,7 +342,7 @@ class GA4GHVRSService(ComponentBaseMixin):
             ValueError: If the input is not a valid identifier.
         """
         if VariantNomenclature.POSITIONAL.is_valid(variant_id):
-            variant_id = VariantNomenclature.positional2gnomad(variant_id)
+            variant_id = VariantNomenclature.convert_positional_to_gnomad(variant_id)
 
         if not VariantNomenclature.GNOMAD.is_valid(variant_id):
             raise ValueError(
@@ -297,7 +372,7 @@ class GA4GHVRSService(ComponentBaseMixin):
             ValueError: If the input is not a valid identifier.
         """
         if VariantNomenclature.POSITIONAL.is_valid(variant_id):
-            variant_id = VariantNomenclature.positional2gnomad(variant_id)
+            variant_id = VariantNomenclature.convert_positional_to_gnomad(variant_id)
 
         if not VariantNomenclature.GNOMAD.is_valid(variant_id):
             raise ValueError(
@@ -370,18 +445,33 @@ class GA4GHVRSService(ComponentBaseMixin):
             refget_accession, self._assembly
         )
 
-    def create_vrs_sequence_location(self, region: GenomicRegion):
+    def create_vrs_sequence_location(
+        self,
+        region: GenomicRegion,
+        normalize: bool = True,
+        compute_id: bool = True,
+    ):
         """
-        Create and normalize a GA4GH VRS SequenceLocation object for a given genomic region.
+        Create a GA4GH VRS SequenceLocation object for a given genomic region and
+        optionally normalize and assign a GA4GH identifier.
 
         TODO: normalize should either adjust or raise errors if end
-        coordinates are beyond sequence length).  Need to test and decide how to handle
+        coordinates are beyond sequence length). Need to test and decide how to handle
+
+        This function constructs a SequenceLocation using the provided chromosome,
+        start, and end coordinates, assigns a refget accession, and can optionally
+        normalize the location and compute its GA4GH identifier.
 
         Args:
             region (GenomicRegion): Genomic region with chromosome, start, and end coordinates.
+            normalize (bool, optional): If True, normalize the SequenceLocation. Default is True.
+            compute_id (bool, optional): If True, compute and assign a GA4GH identifier.
+                Default is True.
 
         Returns:
-            SequenceLocation: Normalized GA4GH VRS SequenceLocation object for the region.
+            SequenceLocation: Normalized GA4GH VRS SequenceLocation object for the region
+                (if normalize=True),
+            otherwise the raw SequenceLocation object.
         """
         refget_accession = self.get_refget_accession(region.chromosome)
 
@@ -390,8 +480,9 @@ class GA4GHVRSService(ComponentBaseMixin):
             start=region.start,
             end=region.length,
         )
-        location.id = ga4gh_identify(location)  # compute ga4gh identifier
-        return normalize(location)
+        if compute_id:
+            location.id = ga4gh_identify(location)  # compute ga4gh identifier
+        return vrs_normalize(location) if normalize else location
 
     def normalize_positional_variant(
         self, variant_id: str, require_validation: bool = False
