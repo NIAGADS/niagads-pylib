@@ -10,6 +10,11 @@ class GenomicRegion(Range):
     chromosome: Human = Field(title="Chromosome", serialization_alias="chr")
     length: Optional[int] = Field(default=None, title="Length")
     strand: Optional[Strand] = Field(default=Strand.SENSE, title="Strand")
+    zero_based: Optional[bool] = Field(
+        default=True,
+        title="Zero-Based Coordinate System",
+        description="flag indicating if region is zero-based",
+    )
 
     @classmethod
     def from_region_id(cls, span):
