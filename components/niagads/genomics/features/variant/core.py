@@ -3,17 +3,32 @@
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomics.features.region.core import GenomicRegion
 from niagads.genomics.sequence.chromosome import Human
+from niagads.utils.list import qw
 from pydantic import BaseModel, Field, model_validator
 from ga4gh.vrs.models import Allele
 
 
-class VariantType(CaseInsensitiveEnum):
+class VariantClass(CaseInsensitiveEnum):
     SNV = "single-nucleotide variant"
     MNV = "multi-nucleotide variant"
-    INDEL = "insertion-deletion"
-    DEL = "deletion"
-    INS = "insertion"
+    SHORT_INDEL = "insertion-deletion (short)"
+    SHORT_DEL = "deletion (short)"
+    SHORT_INS = "insertion (short)"
+    DEL = "deletion (SV)"
+    INS = "insertion (SV)"
+    INDEL = "insertion-deltion (SV)"
+    DUP = "duplication"
+    INV = "inversion"
+    TRANS = "translocation"
+    CNV = "copy-number variation"
+    MEI = "mobile-element insertion"
     SV = "structural variant"
+
+    def is_short_indel(self):
+        return self.name.startswith("SHORT")
+
+    def is_structural_variant(self):
+        return self.name in qw("DEL INS INDEL DUP INV TRANS CNV MEI SV")
 
 
 class Variant(BaseModel, GenomicRegion):
@@ -22,7 +37,7 @@ class Variant(BaseModel, GenomicRegion):
     alt: str
     ref_snp_id: str = None
     positional_id: str = None
-    type: VariantType = None
+    variant_class: VariantClass = None
     verified: bool = False
     primary_key: str = Field(default=None, description="database primary key")
     ga4gh_vrs: Allele = None
@@ -42,12 +57,12 @@ class Variant(BaseModel, GenomicRegion):
         helper function created b/c needs to be done at initialization and then recalculated
         after normalization
         """
-        if self.type == VariantType.SV and self.length is None:
+        if self.variant_class == VariantClass.SV and self.length is None:
             raise ValueError(
                 "Must assign length of `structural variant` (`SV`) when initializing."
             )
 
-        if self.type in [VariantType.SNV, VariantType.INS]:
+        if self.variant_class in [VariantClass.SNV, VariantClass.SHORT_INS]:
             # SNV and INS: length is 1
             self.length = 1
         else:  # MVN, INDEL, DEL length = length of ref
@@ -57,23 +72,23 @@ class Variant(BaseModel, GenomicRegion):
     @model_validator(mode="after")
     def resolve_variant_type(self):
         if self.length and self.length >= 50:
-            self.type = VariantType.SV
+            self.variant_class = VariantClass.SV
 
         else:
             len_ref = len(self.ref)
             len_alt = len(self.alt)
             if len_ref >= 50 or len_alt >= 50:
-                self.type = VariantType.SV
+                self.variant_class = VariantClass.SV
             elif len_ref == 1 and len_alt == 1:
-                self.type = VariantType.SNV
+                self.variant_class = VariantClass.SNV
             elif len_ref == len_alt and len_ref > 1:
-                self.type = VariantType.MNV
+                self.variant_class = VariantClass.MNV
             elif len_ref == 0 and len_alt > 0:
-                self.type = VariantType.INS
+                self.variant_class = VariantClass.SHORT_INS
             elif len_ref > 0 and len_alt == 0:
-                self.type = VariantType.DEL
+                self.variant_class = VariantClass.SHORT_DEL
             elif len_ref > 0 and len_alt > 0:
-                self.type = VariantType.INDEL
+                self.variant_class = VariantClass.SHORT_INDEL
 
         return self
 

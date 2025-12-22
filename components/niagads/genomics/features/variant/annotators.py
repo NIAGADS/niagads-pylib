@@ -11,7 +11,7 @@ from niagads.common.core import ComponentBaseMixin
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError
 from niagads.genomics.features.region.core import GenomicRegion
-from niagads.genomics.features.variant.core import Variant, VariantType
+from niagads.genomics.features.variant.core import Variant, VariantClass
 from niagads.genomics.sequence.chromosome import Human
 from niagads.genomics.sequence.core import Assembly
 from niagads.utils.regular_expressions import RegularExpressions
@@ -73,23 +73,29 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         )
 
     def primary_key(self, variant: Variant):
-        match variant.type:
-            case VariantType.SV:
-                return self.sv_primary_key(variant)
-            case VariantType.INDEL | VariantType.DEL | VariantType.INS:
-                pass
-            case _:  # SNV or MNV
-                pass
+        if variant.variant_class.is_structural_variant():
+            return self.sv_primary_key(variant)
+
+        if variant.variant_class.is_short_indel():
+            # CHR_SHORT_DEL/INS/INDEL_hash
+            pass
+
+        else:  # SNV / MNV
+            return variant.positional_id
 
     def sv_primary_key(self, variant: Variant):
-        if variant.type != VariantType.SV:
+        if variant.variant_class != VariantClass.SV:
             raise ValueError(
                 f"Invalid structural variant: '{variant.positional_id}' "
                 "is identified as a '{variant.type.name}'."
             )
 
     def indel_primary_key(self, variant: Variant):
-        if variant.type not in [VariantType.INDEL, VariantType.DEL, VariantType.INS]:
+        if variant.variant_class not in [
+            VariantClass.SHORT_INDEL,
+            VariantClass.SHORT_DEL,
+            VariantClass.SHORT_INS,
+        ]:
             raise ValueError(
                 f"Invalid insertion and/or deletion variant: '{variant.positional_id}' "
                 "is identified as a '{variant.type.name}'."

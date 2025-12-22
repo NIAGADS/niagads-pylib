@@ -16,6 +16,7 @@ from logging import Logger
 from typing import AsyncGenerator, Optional
 
 from niagads.arg_parser.core import comma_separated_list
+from niagads.genomics.features.variant.core import VariantClass
 from niagads.genomics.sequence.chromosome import Human
 from niagads.database.session import DatabaseSessionManager
 from niagads.utils.list import qw
@@ -57,7 +58,7 @@ class Variant(BaseModel):
     alt: str
     test: str
     ref_snp_id: str = None
-    variant_type: VariantType = None
+    variant_type: VariantClass = None
     variant_id: str = None
     effect_sign_change: bool = False
     verified: bool = False
@@ -67,8 +68,9 @@ class Variant(BaseModel):
         l_ref = len(self.ref)
         l_alt = len(self.alt)
 
+        # FIXME: INS, DEL, INDEL
         if l_ref >= 50 or l_alt >= 50:
-            self.variant_type = VariantType.SV
+            self.variant_type = VariantClass.SV
 
         return self
 
@@ -84,7 +86,7 @@ class Variant(BaseModel):
             ref_snp_id=row["ref_snp_id"],
             test=row["allele"],
             variant_id=row["metaseq_id"],
-            variant_type=VariantType(row["variant_class"]),
+            variant_type=VariantClass(row["variant_class"]),
         )
 
     def test_is_ref(self):
@@ -111,7 +113,7 @@ class Variant(BaseModel):
         loc = [self.chromosome, self.position]
 
         if self.verified or skip_validation:
-            if self.variant_type != VariantType.SV:
+            if not self.variant_type.is_structural_variant():
                 self.variant_id = ":".join(
                     [str(x) for x in loc + self._get_alleles(swap)]
                 )
@@ -137,7 +139,7 @@ class Variant(BaseModel):
                 self.verified = True
             except:  # catch error not match genome
                 # decide what do depending on variant type
-                if self.variant_type == VariantType.SNV:
+                if self.variant_type == VariantClass.SNV:
                     # if SNV, swap alleles and try again
                     try:
                         self._resolve_variant_id(swap=True)
