@@ -24,8 +24,8 @@ class RegularExpressions(StrEnum):
 
     CHROMSOME = r"(?:[1-9]|1[0-9]|2[0-2]|X|Y|M|MT)"
 
-    # variant identifiers
-    NIAGADS_VARIANT_ID = r"^.+:\d+:[ACGT]+:[ACGT]+$"
+    # variant identifiers / nomenclatures
+    POSITIONAL_VARIANT_ID = r"^.+:\d+:[ACGT]+:[ACGT]+$"
     REFSNP = r"^rs\d+$"
     STRUCTUAL_VARIANT = (
         r"^(DEL|INS|DUP|INV|CNV|TRA)_CHR(\d{1,2}|[XYM]|MT)_([A-Z]|\d){8}$"
