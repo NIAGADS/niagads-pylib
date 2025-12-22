@@ -4,6 +4,7 @@ from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomics.features.region.core import GenomicRegion
 from niagads.genomics.sequence.chromosome import Human
 from pydantic import BaseModel, Field, model_validator
+from ga4gh.vrs.models import Allele
 
 
 class VariantType(CaseInsensitiveEnum):
@@ -16,113 +17,73 @@ class VariantType(CaseInsensitiveEnum):
 
 
 class Variant(BaseModel, GenomicRegion):
-    position: int
+    length: int = Field(description="variant length")
     ref: str
     alt: str
     ref_snp_id: str = None
     positional_id: str = None
-    variant_type: VariantType = None
+    type: VariantType = None
     verified: bool = False
     primary_key: str = Field(default=None, description="database primary key")
+    ga4gh_vrs: Allele = None
+
+    # GenomicRegion parent override
+    zero_based: bool = Field(
+        default=False, description="flag indicating if region is zero-based"
+    )
 
     @model_validator(mode="after")
-    def resolve_span(self):
-        return self._set_span()
+    def resolve_length(self):
+        return self._resolve_length()
 
-    def _set_span(self):
+    def _resolve_length(self):
         """
-        Set start and end coordinates for the variant based on its type.
+        Determine variant length based on type and length of reference allele
+        helper function created b/c needs to be done at initialization and then recalculated
+        after normalization
         """
-        self.start = self.position
+        if self.type == VariantType.SV and self.length is None:
+            raise ValueError(
+                "Must assign length of `structural variant` (`SV`) when initializing."
+            )
 
-        l_ref = len(self.ref)
-        if self.variant_type in [VariantType.SNV, VariantType.INS]:
-            # SNV: start = end = position
-            self.end = self.start
-        elif self.variant_type == VariantType.MNV:
-            # MNV: end = start + length - 1
-            self.end = self.start + l_ref - 1
-        elif self.variant_type == VariantType.DEL:
-            # DEL: end = start + length(ref) - 1
-            self.end = self.start + l_ref - 1
-        elif self.variant_type == VariantType.INDEL:
-            # INDEL: treat as deletion for span
-            self.end = self.start + l_ref - 1
-        elif self.variant_type == VariantType.SV:
-            self.end = None
+        if self.type in [VariantType.SNV, VariantType.INS]:
+            # SNV and INS: length is 1
+            self.length = 1
+        else:  # MVN, INDEL, DEL length = length of ref
+            self.length = len(self.ref)
         return self
 
     @model_validator(mode="after")
     def resolve_variant_type(self):
-        len_ref = len(self.ref)
-        len_alt = len(self.alt)
+        if self.length and self.length >= 50:
+            self.type = VariantType.SV
 
-        if len_ref >= 50 or len_alt >= 50:
-            self.variant_type = VariantType.SV
-        elif len_ref == 1 and len_alt == 1:
-            self.variant_type = VariantType.SNV
-        elif len_ref == len_alt and len_ref > 1:
-            self.variant_type = VariantType.MNV
-        elif len_ref == 0 and len_alt > 0:
-            self.variant_type = VariantType.INS
-        elif len_ref > 0 and len_alt == 0:
-            self.variant_type = VariantType.DEL
-        elif len_ref > 0 and len_alt > 0:
-            self.variant_type = VariantType.INDEL
+        else:
+            len_ref = len(self.ref)
+            len_alt = len(self.alt)
+            if len_ref >= 50 or len_alt >= 50:
+                self.type = VariantType.SV
+            elif len_ref == 1 and len_alt == 1:
+                self.type = VariantType.SNV
+            elif len_ref == len_alt and len_ref > 1:
+                self.type = VariantType.MNV
+            elif len_ref == 0 and len_alt > 0:
+                self.type = VariantType.INS
+            elif len_ref > 0 and len_alt == 0:
+                self.type = VariantType.DEL
+            elif len_ref > 0 and len_alt > 0:
+                self.type = VariantType.INDEL
 
         return self
 
     @classmethod
-    def from_positional_id(cls, positional_id):
-        chrm, position, ref, alt = positional_id.split(":")
-        start, end = cls._get_span(position, ref, alt)
+    def from_positional_id(cls, positional_id: str):
+        chrm, start, ref, alt = positional_id.replace("-", ":").split(":")
         return cls(
             chromosome=Human(chrm),
-            position=position,
+            start=start,
             ref=ref,
             alt=alt,
             positional_id=positional_id,
         )
-
-    def _get_span(self):
-        """
-        Infer the end location of a variant (span of indels/deletions).
-
-        Returns:
-            int: End location of the variant.
-        """
-
-        norm_ref, norm_alt = self._normalize_alleles()
-
-        len_ref = len(self.ref)
-        len_alt = len(self.alt)
-
-        len_nref = len(norm_ref)
-        len_nalt = len(norm_alt)
-
-        position = int(self.position)
-
-        if len_ref == 1 and len_alt == 1:  # SNV
-            return position
-
-        if len_ref == len_alt:  # MNV
-            if self.ref == self.alt[::-1]:  # inversion
-                return position + len_ref - 1
-
-            # substitution
-            return position + len_nref - 1
-
-        if len_nalt >= 1:  # insertion
-            if len_nref >= 1:  # indel
-                return position + len_nref
-            # e.g. CCTTAAT/CCTTAATC -> -/C but the VCF position is at the start and not where the ins actually happens
-            elif len_nref == 0 and len_ref > 1:
-                return position + len_ref - 1  # drop first base
-            else:
-                return position + 1
-
-        # deletion
-        if len_nref == 0:
-            return position + len_ref - 1
-        else:
-            return position + len_nref
