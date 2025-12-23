@@ -5,7 +5,7 @@ from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.string import xstr
 
 
-class Human(CaseInsensitiveEnum):
+class HumanGenome(CaseInsensitiveEnum):
     # name, value pair
     # e.g., for chr in Chromosome: print(chr.name)
     # will print a new line sep list of chr1 chr2 chr3, etc

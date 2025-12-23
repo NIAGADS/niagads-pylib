@@ -12,7 +12,7 @@ from niagads.common.models.composite_attributes.dataset import (
 )
 from niagads.database import enum_column, enum_constraint
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.genomics.sequence.chromosome import Human
+from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.genomics.sequence.core import Assembly
 from sqlalchemy import ARRAY, TEXT, Column, Index, String
 from sqlalchemy.dialects.postgresql import JSONB
@@ -30,7 +30,7 @@ class TrackMixin:
     __table_args__ = (
         enum_constraint("genome_build", Assembly),
         enum_constraint("data_store", TrackDataStore),
-        enum_constraint("shard_chromosome", Human),
+        enum_constraint("shard_chromosome", HumanGenome),
         Index(
             "ix_metadata_track_shard_root_track_id",
             "shard_root_track_id",
@@ -64,7 +64,7 @@ class TrackMixin:
     searchable_text: Mapped[str] = mapped_column(TEXT)
 
     is_shard: Mapped[Optional[bool]]
-    shard_chromosome: Mapped[str] = enum_column(Human, index=False, nullable=True)
+    shard_chromosome: Mapped[str] = enum_column(HumanGenome, index=False, nullable=True)
     shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
     cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))

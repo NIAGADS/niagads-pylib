@@ -17,7 +17,7 @@ from typing import AsyncGenerator, Optional
 
 from niagads.arg_parser.core import comma_separated_list
 from niagads.genomics.features.variant.core import VariantClass
-from niagads.genomics.sequence.chromosome import Human
+from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.database.session import DatabaseSessionManager
 from niagads.utils.list import qw
 from niagads.utils.logging import (
@@ -52,7 +52,7 @@ RESTRICTED_STATS_MAP = {
 
 
 class Variant(BaseModel):
-    chromosome: Human
+    chromosome: HumanGenome
     position: int
     ref: str
     alt: str
@@ -79,7 +79,7 @@ class Variant(BaseModel):
         chrm, position, ref, alt = row["metaseq_id"].split(":")
 
         return cls(
-            chromosome=Human(chrm),
+            chromosome=HumanGenome(chrm),
             position=position,
             ref=ref,
             alt=alt,
@@ -168,7 +168,7 @@ async def retrieve_gwas_data(
         ORDER BY position ASC
     """
 
-    chromosomes = Human.list()
+    chromosomes = HumanGenome.list()
     for chrm in chromosomes:
         LOG.debug(f"Retrieving data for {dataset_id}: {chrm}")
         result = await session.execute(

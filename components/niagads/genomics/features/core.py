@@ -2,7 +2,7 @@ from enum import auto
 
 from niagads.common.models.structures import Range
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.genomics.sequence.chromosome import Human
+from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 from pydantic import BaseModel, model_validator
@@ -77,7 +77,7 @@ class GenomicFeature(BaseModel):
         # split on :
         [chrm, coords] = span.split(":")
         try:
-            validChrm = Human.validate(chrm, inclPrefix=False)
+            validChrm = HumanGenome.validate(chrm, inclPrefix=False)
         except KeyError:
             raise ValueError(
                 f"Invalid genomic span: `{span}`; invalid chromosome `{chrm}`"
@@ -112,7 +112,7 @@ class GenomicFeature(BaseModel):
         # validate chrm
         [chrm, pos, ref, alt] = id.split(":")
         try:
-            Human.validate(chrm)
+            HumanGenome.validate(chrm)
         except KeyError:
             raise ValueError(
                 f"Invalid genomic location: `{id}`; invalid chromosome `{chrm}`"

@@ -1,3 +1,3 @@
-from niagads.genomics.sequence import chromosome
+from niagads.genomics.sequence import assembly
 
-__all__ = ["chromosome"]
+__all__ = ["assembly"]

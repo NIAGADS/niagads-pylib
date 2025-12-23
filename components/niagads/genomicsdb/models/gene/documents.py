@@ -2,7 +2,7 @@
 
 from typing import Any, Optional
 
-from niagads.genomics.sequence.chromosome import Human
+from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.common.models.composite_attributes.gene import (
     GOAnnotation,
     PathwayAnnotation,
@@ -20,7 +20,7 @@ from sqlalchemy_utils import LtreeType
 class RAGDocument(GeneMaterializedViewBase):
     __tablename__ = "document"
     __table_args__ = (
-        enum_constraint("shard_chromosome", Human),
+        enum_constraint("shard_chromosome", HumanGenome),
         CheckConstraint(
             f"ensembl_id ~ '{RegularExpressions.ENSEMBL_GENE_ID}'",
             name="ensembl_id_format_check",
@@ -31,7 +31,7 @@ class RAGDocument(GeneMaterializedViewBase):
 
     gene_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     ensembl_id: Mapped[str] = mapped_column(uniuqe=True, index=True)
-    chromosome: str = Column(Enum(Human, native_enum=False))
+    chromosome: str = Column(Enum(HumanGenome, native_enum=False))
     bin_index: Mapped[str] = mapped_column(LtreeType)
     location: Mapped[Any] = mapped_column(INT4RANGE)
     go_annotation: Mapped[Optional[GOAnnotation]] = mapped_column(

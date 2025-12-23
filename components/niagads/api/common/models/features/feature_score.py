@@ -2,7 +2,7 @@ from niagads.api.common.views.table import TableColumn
 from niagads.common.models.composite_attributes.variant import (
     PredictedConsequenceSummary,
 )
-from niagads.genomics.sequence.chromosome import Human
+from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.api.common.models.core import RowModel
 from niagads.api.common.models.features.gene import GeneFeature
 from niagads.api.common.models.features.variant import (
@@ -22,11 +22,11 @@ class VariantScore(RowModel):
     variant: Variant = Field(title="Variant")
     test_allele: str = Field(title="Test Allele")
     track_id: str = Field(title="Track")
-    chromosome: Human = Field(title="Chromosome")
+    chromosome: HumanGenome = Field(title="Chromosome")
     position: int = Field(title="Position")
 
     @field_serializer("chromosome")
-    def serialize_chromosome(self, chromosome: Human, _info):
+    def serialize_chromosome(self, chromosome: HumanGenome, _info):
         return str(chromosome)
 
 

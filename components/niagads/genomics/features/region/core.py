@@ -1,29 +1,25 @@
 from typing import Optional
 
 from niagads.common.models.structures import Range
-from niagads.genomics.sequence.chromosome import Human
+from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.genomics.sequence.core import Strand
 from pydantic import Field, field_serializer
 
 
+# zero based regions
 class GenomicRegion(Range):
-    chromosome: Human = Field(title="Chromosome", serialization_alias="chr")
+    chromosome: HumanGenome = Field(title="Chromosome", serialization_alias="chr")
     length: Optional[int] = Field(default=None, title="Length")
     strand: Optional[Strand] = Field(default=Strand.SENSE, title="Strand")
-    zero_based: Optional[bool] = Field(
-        default=True,
-        title="Zero-Based Coordinate System",
-        description="flag indicating if region is zero-based",
-    )
 
     @classmethod
     def from_region_id(cls, span):
         chromosome, range = span.split(":")
         start, end = range.split("-")
-        return cls(chromosome=Human(chromosome), start=start, end=end)
+        return cls(chromosome=HumanGenome(chromosome), start=start, end=end)
 
     @field_serializer("chromosome")
-    def serialize_chromosome(self, chromosome: Human, _info):
+    def serialize_chromosome(self, chromosome: HumanGenome, _info):
         return str(chromosome)
 
     @field_serializer("length")
