@@ -82,7 +82,7 @@ class Phenotype(TransformableModel):
     def _flat_dump(self, nullFree=False, delimiter="|"):
         obj = {
             k: self._list_to_string(v, delimiter=delimiter)
-            for k, v in super()._flat_dump(nullFree=nullFree)
+            for k, v in super()._flat_dump(null_free=nullFree)
         }
         return obj
 
@@ -123,7 +123,7 @@ class BiosampleCharacteristics(TransformableModel):
                 if isinstance(v, list) and k != "biosample"
                 else v
             )
-            for k, v in super()._flat_dump(nullFree=nullFree).items()
+            for k, v in super()._flat_dump(null_free=nullFree).items()
         }
         if self.biosample is not None:
             # have to redo b/c its been serialized above
@@ -160,7 +160,7 @@ class Provenance(TransformableModel):
                 if isinstance(v, set)
                 else str(v) if v is not None else v
             )
-            for k, v in super()._flat_dump(nullFree=nullFree).items()
+            for k, v in super()._flat_dump(null_free=nullFree).items()
         }
         return obj
 
