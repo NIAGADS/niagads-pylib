@@ -7,7 +7,7 @@ from niagads.arg_parser.core import case_insensitive_enum_type
 from niagads.common.constants.external_resources import NIAGADSResources
 from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.genomicsdb.models.dataset.track import Track
-from niagads.genomics.sequence.core import Assembly
+from niagads.genomics.sequence.assembly import Assembly
 from niagads.loaders.core import AbstractDataLoader
 from niagads.metadata_parser.filer import MetadataTemplateParser
 from niagads.requests.core import HttpClientSessionManager

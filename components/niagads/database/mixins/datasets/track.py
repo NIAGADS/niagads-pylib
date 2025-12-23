@@ -13,7 +13,7 @@ from niagads.common.models.composite_attributes.dataset import (
 from niagads.database import enum_column, enum_constraint
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomics.sequence.assembly import HumanGenome
-from niagads.genomics.sequence.core import Assembly
+from niagads.genomics.sequence.assembly import Assembly
 from sqlalchemy import ARRAY, TEXT, Column, Index, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column

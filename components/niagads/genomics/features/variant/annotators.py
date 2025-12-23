@@ -13,7 +13,7 @@ from niagads.exceptions.core import ValidationError
 from niagads.genomics.features.region.core import GenomicRegion
 from niagads.genomics.features.variant.core import Variant
 from niagads.genomics.sequence.assembly import HumanGenome
-from niagads.genomics.sequence.core import Assembly
+from niagads.genomics.sequence.assembly import Assembly
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 
