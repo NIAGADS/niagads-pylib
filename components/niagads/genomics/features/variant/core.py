@@ -42,7 +42,6 @@ class Variant(TransformableModel):
     ref_snp_id: str = None
     positional_id: str = None
     variant_class: VariantClass = None
-    verified: bool = False
     primary_key: str = Field(default=None, description="database primary key")
     ga4gh_vrs: Allele = None
 

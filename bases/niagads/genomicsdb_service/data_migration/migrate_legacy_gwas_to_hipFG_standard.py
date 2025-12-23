@@ -9,14 +9,14 @@ that will not be valid for future instantiations of the database.
 
 import argparse
 import asyncio
-from enum import Enum, auto
 import logging
 import os
 from logging import Logger
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 
 from niagads.arg_parser.core import comma_separated_list
-from niagads.genomics.features.variant.core import VariantClass
+from niagads.genomics.features.region.core import GenomicRegion
+from niagads.genomics.features.variant.core import VariantClass, Variant as _BaseVariant
 from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.database.session import DatabaseSessionManager
 from niagads.utils.list import qw
@@ -26,7 +26,7 @@ from niagads.utils.logging import (
     async_timed,
 )
 from niagads.utils.string import dict_to_info_string, xstr
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, model_validator
 from sqlalchemy import Row, RowMapping, text
 
 LOG: Logger = FunctionContextLoggerWrapper(logger=logging.getLogger(__name__))
@@ -51,42 +51,30 @@ RESTRICTED_STATS_MAP = {
 }
 
 
-class Variant(BaseModel):
-    chromosome: HumanGenome
-    position: int
-    ref: str
-    alt: str
+class Variant(_BaseVariant):
     test: str
     ref_snp_id: str = None
-    variant_type: VariantClass = None
-    variant_id: str = None
     effect_sign_change: bool = False
     verified: bool = False
 
-    @model_validator(mode="after")
-    def resolve_structural_variant(self):
-        l_ref = len(self.ref)
-        l_alt = len(self.alt)
-
-        # FIXME: INS, DEL, INDEL
-        if l_ref >= 50 or l_alt >= 50:
-            self.variant_type = VariantClass.SV
-
-        return self
-
     @classmethod
-    def from_row(cls, row):
-        chrm, position, ref, alt = row["metaseq_id"].split(":")
+    def from_row(cls, row: dict[str, str]):
+        positional_id = row["metaseq_id"]
+        chrm, position, ref, alt = positional_id.split(":")
+
+        start = position - 1
+        location: GenomicRegion = GenomicRegion(
+            chromosome=HumanGenome(chrm), start=start, end=start + len(ref)
+        )
 
         return cls(
-            chromosome=HumanGenome(chrm),
-            position=position,
+            location=location,
             ref=ref,
             alt=alt,
             ref_snp_id=row["ref_snp_id"],
             test=row["allele"],
-            variant_id=row["metaseq_id"],
-            variant_type=VariantClass(row["variant_class"]),
+            positional_id=positional_id,
+            variant_class=VariantClass(row["variant_class"]),
         )
 
     def test_is_ref(self):
@@ -110,10 +98,10 @@ class Variant(BaseModel):
             return [self.ref, self.alt]
 
     def _resolve_variant_id(self, swap: bool = False, skip_validation: bool = False):
-        loc = [self.chromosome, self.position]
+        loc = [self.location.chromosome, self.location.start + 1]
 
         if self.verified or skip_validation:
-            if not self.variant_type.is_structural_variant():
+            if not self.variant_class.is_structural_variant():
                 self.variant_id = ":".join(
                     [str(x) for x in loc + self._get_alleles(swap)]
                 )
@@ -139,7 +127,7 @@ class Variant(BaseModel):
                 self.verified = True
             except:  # catch error not match genome
                 # decide what do depending on variant type
-                if self.variant_type == VariantClass.SNV:
+                if self.variant_class == VariantClass.SNV:
                     # if SNV, swap alleles and try again
                     try:
                         self._resolve_variant_id(swap=True)
@@ -230,8 +218,8 @@ def write_association(self, row, fh, pfh):
         flags = "EFFECT_STATS_SIGN_CHANGED"
     # TODO other flags
     values = [
-        variant.chromosome,
-        variant.position,
+        variant.location.chromosome,
+        variant.location.start + 1,  # location are 0-based
         variant.variant_id,
         variant.ref,
         variant.alt,
