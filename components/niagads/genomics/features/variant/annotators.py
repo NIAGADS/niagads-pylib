@@ -12,7 +12,7 @@ from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError
 from niagads.genomics.features.region.core import GenomicRegion
 from niagads.genomics.features.variant.core import Variant
-from niagads.genomics.sequence.chromosome import Human
+from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.genomics.sequence.core import Assembly
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
@@ -87,7 +87,9 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             return self.sv_primary_key(variant)
 
         if variant.variant_class.is_short_indel():
-            return self.short_indel_primary_key(variant)
+            return self.short_indel_primary_key(
+                variant, require_validation=require_validation
+            )
         else:  # SNV / MNV - no normalization necessary
             return variant.positional_id
 
@@ -120,9 +122,9 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
 
         location: SequenceLocation = self._vrs_service.create_vrs_sequence_location(
             GenomicRegion(
-                chromosome=variant.chromosome,
-                start=variant.start,
-                end=variant.start + variant.length - 1,
+                chromosome=variant.location.chromosome,
+                start=variant.location.start,
+                end=variant.location.end,
             ),
             compute_id=False,
             normalize=False,
@@ -133,7 +135,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
 
         primary_key = (
             f"{variant.variant_class}_"
-            f"{variant.chromosome.upper()}_"
+            f"{variant.location.chromosome.upper()}_"
             f"{hashed_location_id[:8].upper()}"
         )
 
@@ -215,7 +217,7 @@ class GA4GHVRSService(ComponentBaseMixin):
                 and fail_on_error is True.
         """
         self.get_refget_accession(location.chromosome)  # verify chromosome
-        start = (location.start if location.zero_based else location.start - 1,)
+        start = location.start
         try:
             self._seqrepo_data_proxy.validate_ref_seq(
                 f"{self._assembly}:{location.chromosome}",
@@ -279,7 +281,8 @@ class GA4GHVRSService(ComponentBaseMixin):
 
     def allele_to_positional_variant(self, vrs_allele: Allele) -> str:
         """
-        Convert a GA4GH VRS Allele object to a positional variant string (chrom:start:ref:alt).
+        Convert a GA4GH VRS Allele object to a positional variant string
+        (chrom:start:ref:alt).
 
         Args:
             vrs_allele (Allele): GA4GH VRS Allele object.
@@ -293,12 +296,36 @@ class GA4GHVRSService(ComponentBaseMixin):
                 "for structural variant (sequence length >= 50bp)"
             )
 
-        chrm = self.refget_to_chromosome(
+        chrm: HumanGenome = self.refget_to_chromosome(
             vrs_allele.location.sequenceReference.refgetAccession
         )
-        ref = self.get_sequence(vrs_allele.location)
-        alt = vrs_allele.state.sequence
-        return f"{chrm}:{vrs_allele.location.start}:{ref}:{alt}"
+
+        if vrs_allele.state.type == "LiteralSequenceExpression":
+            if vrs_allele.location.start == vrs_allele.location.end:
+                # normalized insertion
+                ref = "-"
+            else:
+                ref = self.get_sequence(vrs_allele.location)
+            alt = vrs_allele.state.sequence.root
+        elif vrs_allele.state.type == "ReferenceLengthExpression":
+            if vrs_allele.state.sequence.root == "":  # bug, happens sometimes
+                ref = self.get_sequence(vrs_allele.location)
+            else:
+                ref = vrs_allele.state.sequence.root * vrs_allele.state.length
+            alt = "-"
+        elif vrs_allele.state.type == "LengthExpression":
+            raise ValueError(
+                "Cannot convert: allele type is a `LengthExpression`.  "
+                "Is this a structural variant?"
+            )
+        else:
+            raise ValueError(
+                f"Cannot convert: Unknown allele type: {vrs_allele.state.type}"
+            )
+
+        # ga4gh is zero-based so need to add one to change back
+        # to 1-based positional id
+        return f"{chrm.value}:{vrs_allele.location.start + 1}:{ref}:{alt}"
 
     def allele_to_hgvs(self, vrs_allele: Allele) -> str:
         """
@@ -388,7 +415,7 @@ class GA4GHVRSService(ComponentBaseMixin):
         )
         return self.allele_to_spdi(allele)
 
-    def get_refget_accession(self, chromosome: Human):
+    def get_refget_accession(self, chromosome: HumanGenome):
         """
         Get the GA4GH refget accession for a given chromosome.
         # TODO - handle refseq
@@ -427,11 +454,15 @@ class GA4GHVRSService(ComponentBaseMixin):
             refget_accession = self.get_refget_accession(location.chromosome)
         else:
             refget_accession = location.sequenceReference.refgetAccession
+
+        if not refget_accession.startswith("ga4gh"):
+            refget_accession = f"ga4gh:{refget_accession}"
+
         return self._seqrepo_data_proxy.get_sequence(
-            refget_accession, start=location.start, end=location.length
+            refget_accession, start=location.start, end=location.end
         )
 
-    def refget_to_chromosome(self, refget_accession: str):
+    def refget_to_chromosome(self, refget_accession: str) -> HumanGenome:
         """
         Translate a GA4GH refget accession back to the chromosome identifier for the current assembly.
 
@@ -441,8 +472,12 @@ class GA4GHVRSService(ComponentBaseMixin):
         Returns:
             str: Chromosome identifier for the current assembly.
         """
-        return self._seqrepo_data_proxy.translate_sequence_identifier(
-            refget_accession, self._assembly
+        if not refget_accession.startswith("ga4gh"):
+            refget_accession = f"ga4gh:{refget_accession}"
+        return HumanGenome(
+            self._seqrepo_data_proxy.translate_sequence_identifier(
+                refget_accession, self._assembly
+            )[0].split(":")[1]
         )
 
     def create_vrs_sequence_location(
@@ -520,4 +555,5 @@ class GA4GHVRSService(ComponentBaseMixin):
             normalize=True,
             require_validation=require_validation,
         )
+
         return self.allele_to_positional_variant(allele)
