@@ -1,53 +1,31 @@
 """variant annotator functions"""
 
-from niagads.common.models.core import TransformableModel
-from niagads.enums.core import CaseInsensitiveEnum
-from niagads.genomics.features.region.core import GenomicRegion
-from niagads.genomics.sequence.assembly import HumanGenome
-from niagads.utils.list import qw
-from pydantic import BaseModel, Field, model_validator
+from typing import Optional
 from ga4gh.vrs.models import Allele
-
-
-class VariantClass(CaseInsensitiveEnum):
-    SNV = "single-nucleotide variant"
-    MNV = "multi-nucleotide variant"
-    SHORT_INDEL = "insertion-deletion (short)"
-    SHORT_DEL = "deletion (short)"
-    SHORT_INS = "insertion (short)"
-    DEL = "deletion (SV)"
-    INS = "insertion (SV)"
-    INDEL = "insertion-deltion (SV)"
-    DUP = "duplication"
-    INV = "inversion"
-    TRANS = "translocation"
-    CNV = "copy-number variation"
-    MEI = "mobile-element insertion"
-    SV = "structural variant"
-
-    def __str__(self):
-        return self.name
-
-    def is_short_indel(self):
-        return self.name.startswith("SHORT")
-
-    def is_structural_variant(self):
-        return self.name in qw("DEL INS INDEL DUP INV TRANS CNV MEI SV")
+from niagads.common.models.core import TransformableModel
+from niagads.genomics.features.region.core import GenomicRegion
+from niagads.genomics.features.variant.types import VariantClass
+from niagads.genomics.sequence.assembly import HumanGenome
+from pydantic import Field, model_validator
 
 
 class Variant(TransformableModel):
     location: GenomicRegion
     ref: str
     alt: str
-    ref_snp_id: str = None
-    positional_id: str = None
-    variant_class: VariantClass = None
-    primary_key: str = Field(default=None, description="database primary key")
-    ga4gh_vrs: Allele = None
+    variant_class: VariantClass
+
+    ref_snp_id: Optional[str] = None
+    positional_id: Optional[str] = None
+    normalized_positional_id: Optional[str] = None
+    niagads_unique_id: Optional[str] = Field(
+        default=None, description="unique variant identifier in NIAGADS resources"
+    )
+    ga4gh_vrs_allele: Optional[Allele] = None
 
     def __str__(self):
-        if self.primary_key is not None:
-            return self.primary_key
+        if self.niagads_unique_id is not None:
+            return self.niagads_unique_id
         else:
             if self.variant_class.is_structural_variant():
                 return (
@@ -67,15 +45,15 @@ class Variant(TransformableModel):
         helper function created b/c needs to be done at initialization and then recalculated
         after normalization
         """
-        if self.variant_class == VariantClass.SV and self.length is None:
+        if self.variant_class.is_structural_variant() and self.location.length is None:
             raise ValueError(
                 "Must assign length of `structural variant` (`SV`) when initializing."
             )
 
         if self.variant_class in [VariantClass.SNV, VariantClass.SHORT_INS]:
-            # SNV and INS: length is 1
+            # SNV and SHORT_INS: length is 1
             self.location.length = 1
-        else:  # MVN, INDEL, DEL length = length of ref
+        else:  # MVN, SHORT_INDEL, SHORT_DEL length = length of ref
             self.location.length = len(self.ref)
         return self
 
@@ -86,7 +64,7 @@ class Variant(TransformableModel):
         len_alt = len(self.alt)
         if len_ref >= 50 or len_alt >= 50:
             # SV variant classes should have been set
-            # at creation
+            # at creation - FIXME: raise error?
             if self.variant_class is None:
                 self.variant_class = VariantClass.SV
         elif len_ref == 1 and len_alt == 1:
@@ -103,9 +81,10 @@ class Variant(TransformableModel):
         return self
 
     @classmethod
-    def from_positional_id(cls, positional_id: str):
-        chrm, position, ref, alt = positional_id.replace("-", ":").split(":")
-        start = position - 1
+    def from_positional_id(cls, variant_id: str):
+        positional_id = variant_id.replace("-", ":")
+        chrm, position, ref, alt = positional_id.split(":")
+        start = position - 1  # GenomicRegions are 0-based
         location = GenomicRegion(
             chromosome=HumanGenome(chrm), start=start, length=start + len(ref)
         )

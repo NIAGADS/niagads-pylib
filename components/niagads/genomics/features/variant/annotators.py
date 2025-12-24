@@ -11,7 +11,7 @@ from niagads.common.core import ComponentBaseMixin
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError
 from niagads.genomics.features.region.core import GenomicRegion
-from niagads.genomics.features.variant.core import Variant
+from niagads.genomics.features.variant.models import Variant
 from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.genomics.sequence.assembly import Assembly
 from niagads.utils.regular_expressions import RegularExpressions
