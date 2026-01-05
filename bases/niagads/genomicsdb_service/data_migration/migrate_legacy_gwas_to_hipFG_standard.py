@@ -66,7 +66,7 @@ class Variant(_BaseVariant):
         positional_id = row["metaseq_id"]
         chrm, position, ref, alt = positional_id.split(":")
 
-        start = position - 1
+        start = int(position) - 1
         location: GenomicRegion = GenomicRegion(
             chromosome=HumanGenome(chrm), start=start, end=start + len(ref)
         )
@@ -86,7 +86,7 @@ class Variant(_BaseVariant):
         # indicate that statistical correction needs to be made
         if self.test == self.ref:
             self.test = self.alt
-            self.effect_size_change = True
+            self.effect_sign_change = True
 
     def swap_alleles(self):
         self.positional_id = self._alt_positional_id()
@@ -108,6 +108,7 @@ class GWASDataMigrator(ComponentBaseMixin):
         accession: str,
         output_dir: str,
         max_workers: int,
+        test: bool = False,
         debug: bool = False,
     ):
         super().__init(debug=debug, verbose=False)
@@ -116,6 +117,7 @@ class GWASDataMigrator(ComponentBaseMixin):
         self._accession = accession
         self._output_dir = output_dir
         self._invalid_skips = 0
+        self._test = test
 
         self._session_manager = DatabaseSessionManager(
             connection_string=connection_string,
@@ -139,6 +141,9 @@ class GWASDataMigrator(ComponentBaseMixin):
             AND chromosome = :chr
             ORDER BY position ASC
         """
+
+        if self._test:
+            sql += " LIMIT 100"
 
         chromosomes = HumanGenome.list()
         for chrm in chromosomes:
@@ -179,7 +184,10 @@ class GWASDataMigrator(ComponentBaseMixin):
         mapped_stats["source_info"] = dict_to_info_string(original_stats)
 
         if effect_sign_changed:
-            mapped_stats["non_ref_af"] = 1.0 - data["frequency"]
+            try:
+                mapped_stats["non_ref_af"] = 1.0 - float(data["frequency"])
+            except Exception:
+                mapped_stats["non_ref_af"] = None
             try:
                 mapped_stats["effect_size"] = -float(mapped_stats.get("effect_size"))
             except Exception:
@@ -188,18 +196,18 @@ class GWASDataMigrator(ComponentBaseMixin):
             mapped_stats["non_ref_af"] = data["frequency"]
 
         mapped_stats["neg_log10_pvalue"] = data["neg_log10_pvalue"]
-        mapped_stats["pval"] = "pvalue_display"
+        mapped_stats["pval"] = data["pvalue_display"]
         return mapped_stats
 
-    def write_association(self, row, fh, pfh):
+    def write_association(self, variant: Variant, stats, fh, pfh):
         # "chrom position variant_id ref alt pval OR z_score effect_size effect_size_se non_ref_af rsid QC_flags source_info neg_log10_pvalue info"
-        variant: Variant = row["variant"]
-        stats = row["stats"]
         flags = []
         if variant.effect_sign_change:
             flags.append("EFFECT_STATS_SIGN_CHANGED")
+            self.logger.warning(f"EFFECT_STATS_SIGN_CHANGED: {variant.positional_id}")
         if variant.unverified:
             flags.append("UNVERIFIED")
+            self.logger.warning(f"UNVERIFIED: {variant.positional_id}")
 
         # TODO other flags
         values = [
@@ -237,8 +245,6 @@ class GWASDataMigrator(ComponentBaseMixin):
     def verify_variant(
         self, variant: Variant, seqrepo_service_url: str, allow_swap: bool = True
     ) -> AlleleValidationStatus:
-        # TODO - really spell out logic and think of timing of swapping stats vs matching to test allele
-        # vs matching to reference
 
         # if mapped to ref_snp; verified
         if variant.ref_snp_id is not None:
@@ -253,7 +259,7 @@ class GWASDataMigrator(ComponentBaseMixin):
                 return AlleleValidationStatus.VALID
             except ValidationError:
                 try:
-                    vrs_service.validate_sequence(variant.location, variant.ref)
+                    vrs_service.validate_sequence(variant.location, variant.alt)
                     return AlleleValidationStatus.VALID_IF_SWAPPED
                 except ValidationError:
                     return AlleleValidationStatus.INVALID
@@ -267,8 +273,10 @@ class GWASDataMigrator(ComponentBaseMixin):
             if is_lifted:
                 # if this was lifted over and can't be verified against the
                 # genome, then no confidence so skip
-                self._invalid_skips += 1
-                return None
+                self.logger.warning(
+                    f"SKIPPING - INVALID_LIFTOVER {variant.positional_id}"
+                )
+                return None, None
             else:
                 variant.unverified = True
 
@@ -279,12 +287,13 @@ class GWASDataMigrator(ComponentBaseMixin):
                 # otherwise INDEL -> keep direction
                 variant.unverified = True
 
+        # this is where effect sign change gets flagged
         variant.resolve_test_allele()
 
         standardize_statistics = self.standardize_stats(
             data, variant.effect_sign_change
         )
-        return {"variant": variant, "stats": standardize_statistics}
+        return variant, standardize_statistics
 
     # plus chromosome, position
     # variant_gwas_id	protocol_app_node_id	variant_record_primary_key	bin_index	neg_log10_pvalue	pvalue_display	frequency	allele	restricted_stats
@@ -300,9 +309,9 @@ class GWASDataMigrator(ComponentBaseMixin):
             print("\t".join(TARGET_FIELDS), file=fh)
             print("\t".join(PVALUE_ONLY_TARGET_FIELDS), file=pfh)
             async for row in self.retrieve_gwas_data(dataset_id, session):
-                standardized_row = self.transform(row, is_lifted=is_lifted)
-                if standardized_row is not None:
-                    self.write_association(standardized_row, fh, pfh)
+                variant, standardized_stats = self.transform(row, is_lifted=is_lifted)
+                if variant is not None:
+                    self.write_association(variant, standardized_stats, fh, pfh)
 
     def resolve_accession_datasets(self, accession: str, session):
         sql = """SELECT source_id FROM Study.ProtocolAppNode
@@ -365,6 +374,8 @@ class GWASDataMigrator(ComponentBaseMixin):
 
             asyncio.run(run_all())
 
+        self.logger.info("SUCCESS")
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -382,6 +393,7 @@ def main():
         "--dataset", type=comma_separated_list, help="one or more dataset IDs"
     )
     parser.add_argument("--accession")
+    parser.add_argument("--test", action="store_true")
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--max_workers", type=int, default=20)
     parser.add_argument("--debug", action="store_true")
@@ -396,7 +408,7 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.dataset and args.accession:
+    if (args.dataset and args.accession) or (not args.dataset and not args.accession):
         raise ValueError(
             "Please specify either a list of datasets or a list of accessions."
         )
@@ -407,6 +419,7 @@ def main():
         dataset=args.dataset,
         accession=args.accession,
         output_dir=args.output_dir,
+        test=args.test,
         max_workers=args.max_workers,
         debug=args.debug,
     )
