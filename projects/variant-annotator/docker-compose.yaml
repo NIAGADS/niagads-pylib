@@ -22,6 +22,7 @@ services:
   uta:
     container_name: variant-annotator-uta
     image: biocommons/uta:uta_20241220
+    user: ${UTA_UID}:${UTA_GID}
     environment:
       - POSTGRES_PASSWORD=$UTA_PGADMIN_PWD
     volumes:

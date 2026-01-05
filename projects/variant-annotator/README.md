@@ -55,6 +55,10 @@ Copy `sample.env` to `.env`.  **If working within the `niagads-pylib` monorepo, 
   - `HOST_SEQREPO_SERVICE_PORT`: The port on the host machine to bind the SeqRepo REST service. Default is `5000`.
   - `HOST_UTA_SERVICE_PORT`: The port on the host machine to bind the UTA service. Default is `5432`.
   - `UTA_PGADMIN_PWD`: The password for the PostgreSQL database used by the UTA service. You can replace `UtaVar1a` with a secure password or leave as is if service is only deployed locally.
+  - `UTA_UID`: user ID on the host machine (`id -u`); specify to ensure database volume is non-root
+  - `UTA_GID`: user group ID on the host mahcine (`id -g`); specify to ensure database volume is non-root
+
+> For ownership of the mounted volumes files to be correct (i.e., non-root), please **create the volumne target paths in full** _before_ building the containers.
 
 ### Run the Services
 
