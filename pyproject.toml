@@ -113,6 +113,7 @@ pytest = "^8.2.2"
 [tool.poetry.scripts]
 runpipe = "niagads.pipeline_service.runners.core:run_main"
 runpipe-plugin = "niagads.pipeline_service.runners.plugin:run_main"
+migrate-gwas = "niagads.genomicsdb_service.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
 
 [tool.pytest.ini_options]
 addopts = "-vv"
