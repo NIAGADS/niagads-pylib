@@ -27,7 +27,7 @@ from niagads.utils.list import qw
 from niagads.utils.logging import ExitOnExceptionHandler, async_timed
 from niagads.utils.string import dict_to_info_string, xstr
 from pydantic import ValidationError
-from sqlalchemy import Row, RowMapping, text
+from sqlalchemy import Row, RowMapping, bindparam, text
 
 
 QUERY_YIELD = 500000
@@ -304,25 +304,30 @@ class GWASDataMigrator(ComponentBaseMixin):
 
     async def process_dataset(self, dataset_id: str, output_dir: str, session):
         self.logger.info(f"Processing dataset: {dataset_id}")
-        is_lifted = "_GRCh38_" in dataset_id
-        file_prefix = os.path.join(output_dir, dataset_id.replace("_GRCh38_", "_"))
-        file_name = f"{file_prefix}_restricted.txt"
-        pvalue_file_name = f"{file_prefix}.txt"
+        is_lifted = "_GRCh38_" in dataset_id["source_id"]
+        file_prefix = os.path.join(
+            output_dir, dataset_id["source_id"].replace("_GRCh38_", "_GRCh38")
+        )
+        file_name = f"{file_prefix}.txt"
+        pvalue_file_name = f"{file_prefix}_pvalue.txt"
         with open(file_name, "w") as fh, open(pvalue_file_name, "w") as pfh:
             print("\t".join(TARGET_FIELDS), file=fh)
             print("\t".join(PVALUE_ONLY_TARGET_FIELDS), file=pfh)
-            async for row in self.retrieve_gwas_data(dataset_id, session):
+            # int b/c sqlalchmey returned pan_id as "Decimal"
+            async for row in self.retrieve_gwas_data(
+                int(dataset_id["protocol_app_node_id"]), session
+            ):
                 variant, standardized_stats = self.transform(row, is_lifted=is_lifted)
                 if variant is not None:
                     self.write_association(variant, standardized_stats, fh, pfh)
 
-    def resolve_accession_datasets(self, accession: str, session):
+    async def resolve_accession_datasets(self, accession: str, session):
         sql = """SELECT source_id FROM Study.ProtocolAppNode
             WHERE external_database_release_id = 19
             AND subtype_id = 49841
             AND source_id LIKE :accession
         """
-        result = session.execute(text(sql), {"accession": accession + "%"})
+        result = await session.execute(text(sql), {"accession": accession + "%"})
         ids = [row[0] for row in result.fetchall()]
         if not ids:
             raise ValueError(f"No datasets found for accession: {accession}")
@@ -330,23 +335,27 @@ class GWASDataMigrator(ComponentBaseMixin):
             self.logger.info(f"Found {len(ids)} datasets for {accession}: {ids}")
         return ids
 
-    def resolve_dataset_ids(self, session, accession, dataset):
+    async def resolve_dataset_ids(self, session, accession, datasets):
         self.logger.info(f"")
         if accession is not None:
-            return self.resolve_accession_datasets(accession, session)
+            dataset_ids = await self.resolve_accession_datasets(accession, session)
+        else:
+            dataset_ids = [d.upper() for d in datasets]
 
-        datasets = [d.upper() for d in dataset]
-        sql = """SELECT source_id FROM Study.ProtocolAppNode
+        sql = """SELECT source_id, protocol_app_node_id::int FROM Study.ProtocolAppNode
             WHERE external_database_release_id = 19
             AND subtype_id = 49841
             AND source_id IN :ids
         """
-        result = session.execute(text(sql), {"ids": tuple(datasets)})
-        ids = [row[0] for row in result.fetchall()]
+        result = await session.execute(
+            text(sql).bindparams(bindparam("ids", expanding=True)),
+            {"ids": tuple(dataset_ids)},
+        )
+        ids = [row._mapping for row in result]
         if not ids:
-            raise ValueError(f"No datasets found for ids: {datasets}.")
-        if len(ids) != len(datasets):
-            unmatched = set(datasets) - set(ids)
+            raise ValueError(f"No datasets found for ids: {dataset_ids}.")
+        if len(ids) != len(dataset_ids):
+            unmatched = set(dataset_ids) - set([id["source_id"] for id in ids])
             raise ValueError(
                 f"The following dataset IDs were not found: {sorted(unmatched)}"
             )
@@ -355,8 +364,8 @@ class GWASDataMigrator(ComponentBaseMixin):
         return ids
 
     async def run(self, list_datasets_only: bool = False):
-        async with self._session_manager() as session:
-            dataset_ids = self.resolve_dataset_ids(
+        async with self._session_manager.session_ctx() as session:
+            dataset_ids = await self.resolve_dataset_ids(
                 session, self._accession, self._dataset
             )
 
@@ -364,19 +373,14 @@ class GWASDataMigrator(ComponentBaseMixin):
                 self.logger.info("SUCCESS")
                 return
 
-            async def run_all():
-                tasks = [
-                    asyncio.create_task(
-                        self.process_dataset(id, self._output_dir, session)
-                    )
-                    for id in dataset_ids
-                ]
-                results = await asyncio.gather(*tasks, return_exceptions=True)
-                for result in results:
-                    if isinstance(result, Exception):
-                        self.logger.error(f"Error processing dataset: {result}")
-
-            asyncio.run(run_all())
+            tasks = [
+                asyncio.create_task(self.process_dataset(id, self._output_dir, session))
+                for id in dataset_ids
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    self.logger.error(f"Error processing dataset: {result}")
 
         self.logger.info("SUCCESS")
 
