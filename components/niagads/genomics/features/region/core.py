@@ -13,7 +13,7 @@ class GenomicRegion(Range):
     strand: Optional[Strand] = Field(default=Strand.SENSE, title="Strand")
 
     @classmethod
-    def from_region_id(cls, span):
+    def from_region_id(cls, span: str):
         chromosome, range = span.split(":")
         start, end = range.split("-")
         return cls(chromosome=HumanGenome(chromosome), start=start, end=end)
