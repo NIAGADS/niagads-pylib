@@ -1,6 +1,3 @@
-[tool.poetry]
-packages = []
-
 [project]
 name = "variant-annotator"
 version = "0.1.0"
@@ -8,11 +5,25 @@ version = "0.1.0"
 authors = [
     { name = "fossilfriend", email = "egreenfest@gmail.com" },
 ]
-
+dependencies = [
+]
 requires-python = ">=3.11,<3.14"
 
-dependencies = []
+
+[tool.poetry]
+packages = [
+]
+
+[project.scripts]
+
+
+[tool.tomlsort]
+all = true
+in_place = true
+spaces_indent_inline_array = 4
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+requires = [
+    "poetry-core>=1.0.0",
+]
