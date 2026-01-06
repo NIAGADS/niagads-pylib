@@ -1,5 +1,10 @@
+from sys import version_info
 from typing import List
-from strenum import StrEnum
+
+if version_info >= (3.11,):
+    from enum import StrEnum
+else:
+    from strenum import StrEnum
 
 
 class CaseInsensitiveEnum(StrEnum):

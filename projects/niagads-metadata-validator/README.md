@@ -117,8 +117,9 @@ Find metadata file based on templated name `{prefix}{validator_type}.{ext}`.
 initialize_validator(
     file: str,
     schema: str,
-    metadataType: MetadataValidatorType,
-    idField: str = None
+    metadata_type: MetadataValidatorType,
+    case_insensitive: bool = False,
+    id_field: str = None
 ) → Union[BiosourcePropertiesValidator, FileManifestValidator]
 ```
 
@@ -130,9 +131,9 @@ Initialize and return a metadata validator.
  
  - <b>`file`</b> (str):  metadata file name 
  - <b>`schema`</b> (str):  JSONschema file name 
- - <b>`metadataType`</b> (MetadataValidatorType):  type of metadata to be validated 
- - <b>`idField`</b> (str, optional):  biosource id field in the metadata file; required for `BIOSOURCE_PROPERTIES` validation. Defaults to None. 
-
+ - <b>`metadata_type`</b> (MetadataValidatorType):  type of metadata to be validated 
+ - <b>`case_insensitive`</b> (bool, optional):  allow case-insensitive matching against enums. Defaults to False. 
+ - <b>`id_field`</b> (str, optional):  biosource id field in the metadata file; required for `BIOSOURCE_PROPERTIES` validation. Defaults to None. 
 
 
 **Raises:**
@@ -156,9 +157,10 @@ Initialize and return a metadata validator.
 run(
     file: str,
     schema: str,
-    metadataType: str,
-    idField: str = None,
-    failOnError: bool = False,
+    metadata_type: str,
+    id_field: str = None,
+    case_insensitive: bool = False,
+    fail_on_error: bool = False
 )
 ```
 
@@ -172,10 +174,10 @@ Validator initialization fully encapsulated.  Returns validation result.
  
  - <b>`file`</b> (str):  metadata file name 
  - <b>`schema`</b> (str):  JSONschema file name 
- - <b>`metadataType`</b> (MetadataValidatorType):  type of metadata to be validated 
- - <b>`idField`</b> (str, optional):  biosource id field in the metadata file; required for `BIOSOURCE_PROPERTIES` valdiatoin. Defaults to None. 
- - <b>`failOnError`</b> (bool, optional):  raise an exception on validation error if true, otherwise returns list of validation errors. Defaults to False. 
-
+ - <b>`metadata_type`</b> (MetadataValidatorType):  type of metadata to be validated 
+ - <b>`id_field`</b> (str, optional):  biosource id field in the metadata file; required for `BIOSOURCE_PROPERTIES` valdiatoin. Defaults to None. 
+ - <b>`case_insensitive`</b> (bool, optional):  allow case-insensitive matching against enums. Defaults to False. 
+ - <b>`fail_on_error`</b> (bool, optional):  raise an exception on validation error if true, otherwise returns list of validation errors. Defaults to False. 
 
 
 **Returns:**
@@ -195,6 +197,13 @@ a file that maps a sample or participant to descriptive properties
 
 FILE_MANIFEST = "file manifest or a sample-data-relationship (SDRF) file"
 ``` 
+
+---
+
+## <kbd>class</kbd> `MetadataFileFormatError`
+Exception raised when metadata file parsing fails due to
+inconsistency in file format or data quality issues (e.g., malformed content) that the user must 
+resolve by providing a properly formatted file.
 
 
 

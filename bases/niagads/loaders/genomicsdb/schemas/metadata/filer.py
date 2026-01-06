@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
 
 import logging
-from typing import List
+from typing import List, Optional
 
 from niagads.arg_parser.core import case_insensitive_enum_type
+
+# from niagads.genomicsdb.models.dataset.track import Track
 from niagads.common.constants.external_resources import NIAGADSResources
+from niagads.common.models.composite_attributes.dataset import (
+    BiosampleCharacteristics,
+    ExperimentalDesign,
+    FileProperties,
+    Phenotype,
+    Provenance,
+)
 from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.genomicsdb.models.dataset.track import Track
 from niagads.genomics.sequence.assembly import Assembly
+from niagads.database.sa_enum_utils import enum_column
 from niagads.loaders.core import AbstractDataLoader
 from niagads.metadata_parser.filer import MetadataTemplateParser
 from niagads.requests.core import HttpClientSessionManager
@@ -15,23 +25,68 @@ from niagads.utils.logging import ExitOnExceptionHandler
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches, regex_extract, regex_replace
 from pydantic import BaseModel
-from sqlalchemy import insert
+from sqlalchemy import ARRAY, TEXT, String, insert
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 
-TARGET_TABLE = f"{Track.metadata.schema}.{Track.__tablename__}"
+# FIXME: temporary until we integrate w/new build as plugin
+# b/c current implement has no housekeeping
+Base = declarative_base()
+
+
+class Track(Base):
+    __tablename__ = "track"
+    __table_args__ = {"schema": "dataset"}
+
+    track_metadata_entry_id: Mapped[int] = mapped_column(
+        primary_key=True, autoincrement=True
+    )
+
+    track_id: Mapped[str] = mapped_column(unique=True, index=True)
+    data_store: Mapped[str] = enum_column(TrackDataStore)
+
+    name: Mapped[str]
+    description: Mapped[str] = mapped_column(String(2000))
+
+    genome_build: Mapped[str] = enum_column(Assembly)
+
+    feature_type: Mapped[str] = mapped_column(String(50), index=True)
+    is_download_only: Mapped[bool] = mapped_column(default=False, index=True)
+
+    searchable_text: Mapped[str] = mapped_column(TEXT)
+
+    is_shard: Mapped[Optional[bool]]
+    shard_chromosome: Mapped[str] = enum_column(Human, index=False, nullable=True)
+    shard_root_track_id: Mapped[Optional[str]] = mapped_column()
+
+    cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))
+
+    biosample_characteristics: Mapped[Optional[BiosampleCharacteristics]] = (
+        mapped_column(JSONB(none_as_null=True))
+    )
+    subject_phenotypes: Mapped[Optional[Phenotype]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    experimental_design: Mapped[Optional[ExperimentalDesign]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    provenance: Mapped[Provenance] = mapped_column(JSONB(none_as_null=True))
+    file_properties: Mapped[Optional[FileProperties]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+
+
+TARGET_TABLE = "dataset.track"  # f"{Track..schema}.{Track.__tablename__}"
 SKIP_DATASOURCES = [
-    "Repeats",
-    "Reference",
-    "1k",
-    "PhastCons",
+    "RefSeq",
+    "1K Genome Phase3",
     "dbSNP",
     "DASHR2",
     "RefSeq",
     "HOMER",
     "Inferno",
-    "Centromeres",
     "Gencode",
-    "Telomeres",
 ]
 
 
@@ -93,7 +148,9 @@ class TrackMetadataLoader(AbstractDataLoader):
         await sessionManager.close()
 
         self.__liveTracks = {
-            t["Identifier"] if "Identifier" in t else t["#Identifier"]: True
+            t[
+                "identifier"
+            ]: True  # t["Identifier"] if "Identifier" in t else t["#Identifier"]: True
             for t in response
         }
 
@@ -107,19 +164,28 @@ class TrackMetadataLoader(AbstractDataLoader):
         """Determine if a track should be skipped."""
 
         if track.genome_build is None:
+            self.logger.debug(f"Skipped {track.name} - no genome build")
             return True
 
         if "CADD" in track.name:
+            self.logger.debug(f"Skipped {track.name}")
             return True
 
         if track.name.startswith("GWAS_Catalog"):
+            self.logger.debug(f"Skipped {track.name}")
             return True
 
         dataSource = track.provenance.get("data_source")
         if dataSource in SKIP_DATASOURCES:
+            self.logger.debug(f"Skipped {dataSource}")
             return True
 
         if dataSource.startswith("Ensembl"):
+            self.logger.debug(f"Skipped {track.name}")
+            return True
+
+        if dataSource.startswith("UCSC"):
+            self.logger.debug(f"Skipped {track.name}")
             return True
 
         if "Not applicable" in track.name:
@@ -242,9 +308,9 @@ class TrackMetadataLoader(AbstractDataLoader):
         self.logger.info(f"Running {__file__}")
         self.log_section_header("Loader Config")
         self.logger.info(f"Template File: {self.__parser.get_template_file_name()}")
-        self.logger.info(
-            f"Database URI: {self._databaseSessionManager.get_engine().url}"
-        )
+        # self.logger.info(
+        #     f"Database URI: {self._databaseSessionManager.get_engine().url}"
+        # )
         self.logger.info(f"Data Store: {self.__dataStore}")
         self.logger.info(f"Genome Build: {self.__genomeBuild}")
         self.logger.info(f"API URL: {self.__apiUrl}")

@@ -1,13 +1,34 @@
+# AI & Copilot Code Change Policy
+
+## Code Change Requirements
+
+-   All code changes must strictly follow Python and PEP8 coding conventions and requirements in this file.
+-   Any deviation from these rules should be considered a bug and corrected immediately.
+-   AI-generated code must be reviewed for formatting, style, and logical placement before submission.
+
+## Implementation Checklist
+
+-   Avoid redundant code
+-   Always review and match project conventions, formatting, and style.
+-   Place imports, constants, and docstrings in logical order.
+-   Avoid duplicate imports and code blocks.
+-   Use idiomatic Python and PEP8 formatting.
+-   Only use Pydantic 2+
+-   Add extra blank spaces between large code blocks for readability.
+-   Only alter comments if necessary or requested.
+-   Never take credit for user changes.
+-   Only alter comments if either requested or necessary for explaining code modifications, additions, etc.
+-   Do not do inline imports unless necessary to avoid circular imports in the package.
+-   Ensure docstrings and comments are concise, relevant, and professional—focused on what the function does and why, not its visibility or trivial details. I
+
+## Additional Requirements
+
+-   Always use python best practices when inserting new code.
+-   Review codebase (files in same or parent folder, or all files in context) when implementing new files to keep conventions, style, and big picture of the project instead of writing generic code solutions.
+-   Pay attention to formatting, making sure that new code is not necessarily inserted at current cursor but where it logically flows in the existing files.
+-   Do not lecture; just focus on explicit tasks/requests. Only make suggestions when asked directly or when there are multiple paths that need to be evaluated. Provide minimum description unless more information is requested.
+
 # Copilot Instructions for niagads-pylib
-
-## Rules
-
--   remember to review codebase (either files in same or parent folder or all files in context) when implementing new files to keep conventions, style and big picture of the project instead of writing generic code solutions
--   pay attention to formatting, making sure that new code is not necessarily inserted at current cursor but where it logically flows in the existing files
--   don't lecture; just focus on explicit tasks/requests. Only make suggestions when asked directly or when there are multiple paths that need to be evaluated. Provide minimum description unless more information is requested.
--   always add extra blank spaces between large code blocks to improve readability
--   don't remove existing blank spaces in code
--   only alter comments if either requested or necessary for explaning code modifications, additions, etc
 
 ## Project Overview
 
@@ -18,6 +39,7 @@
 ## Key Directories
 
 -   `components/niagads/` — Core reusable modules (e.g., `utils`, `database`, `csv_parser`, etc.)
+-   `bases/niagads/genomicsdb_service/etl/plugins` - GenomicsDB ETL plugins
 -   `bases/niagads/` — Service entry points and tools
 -   `projects/` — Example apps, schema managers, API services
 -   `development/` — Experimental and test code
@@ -25,15 +47,13 @@
 
 ## Developer Workflows
 
--   **Setup:**
-    -   Use Python 3.12+ and Poetry.
-    -   Install with `poetry install` in repo root.
--   **Linting:**
-    -   VSCode task: `flake8-whole-project` only to look for things like malformed f-strings; don't do normally as it conflicts with black formatter.
--   **Testing:**
-    -   Run `pytest` (configured for verbose output via `pyproject.toml`). Obsolete. Ignore for now.
--   **TOML Sorting:**
-    -   Use `toml-sort` to keep `pyproject.toml` organized: `toml-sort --sort-first "project,tool,name,homepage,repository,packages" pyproject.toml`. Ignore this; should be done by developers as needed manually for now. Will later add to github as automated task on PR
+### Linting
+
+-   AI should never prompt to run flake tasks.
+
+#### ETL Plugins
+
+-   see `bases/niagads/genomicsdb_service/etl/plugins/README.md` for general plugin implementation guidelines
 
 ## Coding Conventions
 

@@ -1,4 +1,9 @@
-from enum import StrEnum
+from sys import version_info
+
+if version_info >= (3.11,):
+    from enum import StrEnum
+else:
+    from strenum import StrEnum
 
 CHROM_PATTERN = r"(?:[1-9]|1[0-9]|2[0-2]|X|Y|M|MT)"
 
@@ -58,3 +63,7 @@ class RegularExpressions(StrEnum):
     POSTGRES_URI = r"^postgresql:\/\/[^:]+:[^@]+@[^:]+:\d+\/[^\/\s]+$"
 
     URL = r"^https?://[\w.-]+(?:\.[\w\.-]+)+(?:/[\w\-./?%&=]*)?$"
+    EXTERNAL_DATABASE_REF = r"^(.+?)\|([^\s|]+)$"  # name|version
+
+    # e.g. GO:1234567 or chebi:15377; but will match with _ as the separator as well
+    ONTOLOGY_TERM_ID = r"^[A-Za-z][A-Za-z0-9_]+[:_][A-Za-z0-9_]+$"

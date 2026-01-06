@@ -1,7 +1,8 @@
 import logging
 import json
 
-from csv import Sniffer, Dialect
+from csv import Sniffer, Dialect, Error as CSVError
+from niagads.exceptions.core import FileFormatError
 from pandas import read_csv, DataFrame
 
 from niagads.utils.dict import convert_str2numeric_values
@@ -51,7 +52,7 @@ class CSVFileParser:
         """
         self.__strip = strip
 
-    def to_json(self, transpose=False, returnStr=False, **kwargs):
+    def to_json(self, transpose=False, return_str=False, **kwargs):
         """
         converts the CSV file to JSON
 
@@ -75,7 +76,7 @@ class CSVFileParser:
         else:
             jsonObj = convert_str2numeric_values(jsonObj)
 
-        return json.dumps(jsonObj) if returnStr else json.loads(jsonStr)
+        return json.dumps(jsonObj) if return_str else json.loads(jsonStr)
 
     def __trim(self, df: DataFrame):
         """
@@ -86,17 +87,26 @@ class CSVFileParser:
         """
         return strip_df(df) if self.__strip else df
 
-    def sniff(self):
+    def sniff(self, bytes: int = 1024):
         """
         'sniff' out / infer the delimitier
         """
-        if self.__sep is not None:
-            return self.__sep
-        else:
-            with open(self.__file, "r", encoding="utf-8", errors="ignore") as fh:
-                dialect: Dialect = Sniffer().sniff(fh.read(1024))
-                fh.seek(0)
-                return dialect.delimiter
+        try:
+            if self.__sep is not None:
+                return self.__sep
+            else:
+                with open(self.__file, "r", encoding="utf-8", errors="ignore") as fh:
+                    dialect: Dialect = Sniffer().sniff(fh.read(bytes))
+                    fh.seek(0)
+                    return dialect.delimiter
+        except CSVError as err:
+            if bytes < 4096:  # try a larger section of the file
+                return self.sniff(bytes=4096)
+            raise FileFormatError(
+                "Unable to determine file delimiter."
+                "File may have inconsistent numbers of columns, sparse data, "
+                "or use inconsistent or non-standard delimiters. "
+            ) from err
 
     def to_pandas_df(self, transpose=False, **kwargs) -> DataFrame:
         """

@@ -15,6 +15,31 @@ from dateutil.parser import parse as parse_date
 from typing_extensions import deprecated
 
 
+def jaccard_word_similarity(a: str, b: str) -> float:
+    """
+    Computes Jaccard similarity between two strings by comparing sets of unique
+    words. (see https://en.wikipedia.org/wiki/Jaccard_index)
+
+    The function splits each string into words, converts them to lowercase, and
+    forms sets of unique words. It then calculates the Jaccard similarity as the
+    ratio of the size of the intersection to the size of the union of these sets.
+    Word order, duplicates, and semantic meaning are ignored.
+
+    Args:
+        a (str): First string to compare.
+        b (str): Second string to compare.
+
+    Returns:
+        float: Jaccard similarity score between 0.0 and 1.0, representing the
+            overlap of unique words.
+    """
+    set_a = set(a.lower().split())
+    set_b = set(b.lower().split())
+    intersection = set_a & set_b
+    union = set_a | set_b
+    return len(intersection) / len(union) if union else 0.0
+
+
 def generate_uuid(value: str):
     """Generates a unique ID (UUID) from a string using SHA-256 hashing.
 
@@ -158,29 +183,33 @@ def to_date(value, pattern="%Y-%m-%d", returnStr=False):
     return date.strftime(pattern) if returnStr else date
 
 
-def to_bool(val):
-    """Convert a string representation of truth to true (1) or false (0).
+def to_bool(val, int_as_bool: bool=True):
+    """Convert a string representation of truth to true or false.
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
     are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
     'val' is anything else.
     modified from https://stackoverflow.com/a/18472142
     """
-    val = val.lower()
-    if val in ("y", "yes", "t", "true", "1"):
-        return 1
-    elif val in ("n", "no", "f", "false", "0"):
-        return 0
+    true_values =  ["y", "yes", "t", "true"]
+    if int_as_bool: true_values += ["1"]
+    false_values = ["n", "no", "f", "false"]
+    if int_as_bool: false_values += ["0"]
+
+    if val.lower() in true_values:
+        return True
+    elif val.lower() in false_values:
+        return False
     else:
         raise ValueError("Invalid boolean value %r" % (val,))
 
 
-def is_bool(value):
+def is_bool(value, int_as_bool: bool = True):
     """checks if value is a boolean"""
     if isinstance(value, bool):
         return True
 
     try:
-        to_bool(value)
+        to_bool(value, int_as_bool)
         return True
     except:
         return False

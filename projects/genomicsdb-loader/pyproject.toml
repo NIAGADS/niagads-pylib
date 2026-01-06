@@ -24,6 +24,7 @@ version = "0.1.0"
 gdbpexec = "niagads.pipeline_service.runners.core:run_main"
 gdbpexec-plugin = "niagads.pipeline_service.runners.plugin:run_main"
 gwas-migration = "niagads.genomicsdb_service.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
+filer-metadata-loader = "niagads.loaders.genomicsdb.schemas.metadata.filer:run_main"
 
 [tool.poetry]
 packages = [

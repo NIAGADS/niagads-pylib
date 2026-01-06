@@ -1,6 +1,7 @@
 """`ExternalDB` database model"""
 
 from niagads.genomicsdb.models.reference.base import ReferenceSchemaBase
+from pydantic import BaseModel
 from sqlalchemy import String, Text, DateTime, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
