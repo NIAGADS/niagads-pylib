@@ -10,6 +10,7 @@ that will not be valid for future instantiations of the database.
 import argparse
 import asyncio
 from enum import Enum, auto
+import logging
 import os
 from typing import AsyncGenerator
 
@@ -23,7 +24,7 @@ from niagads.genomics.features.variant.types import VariantClass
 from niagads.genomics.sequence.assembly import Assembly, HumanGenome
 from niagads.database.session import DatabaseSessionManager
 from niagads.utils.list import qw
-from niagads.utils.logging import async_timed
+from niagads.utils.logging import ExitOnExceptionHandler, async_timed
 from niagads.utils.string import dict_to_info_string, xstr
 from pydantic import ValidationError
 from sqlalchemy import Row, RowMapping, text
@@ -111,13 +112,15 @@ class GWASDataMigrator(ComponentBaseMixin):
         test: bool = False,
         debug: bool = False,
     ):
-        super().__init(debug=debug, verbose=False)
+        super().__init__(debug=debug, verbose=False)
         self._seqrepo_service_url = seqrepo_service_url
         self._dataset = dataset
         self._accession = accession
         self._output_dir = output_dir
         self._invalid_skips = 0
         self._test = test
+
+        self.logger.info(f"Initializing Data Migrator using: {connection_string}")
 
         self._session_manager = DatabaseSessionManager(
             connection_string=connection_string,
@@ -328,6 +331,7 @@ class GWASDataMigrator(ComponentBaseMixin):
         return ids
 
     def resolve_dataset_ids(self, session, accession, dataset):
+        self.logger.info(f"")
         if accession is not None:
             return self.resolve_accession_datasets(accession, session)
 
@@ -350,8 +354,8 @@ class GWASDataMigrator(ComponentBaseMixin):
         self.logger.info(f"Verified {len(ids)} datasets: {ids}")
         return ids
 
-    def run(self, list_datasets_only: bool = False):
-        with self._session_manager() as session:
+    async def run(self, list_datasets_only: bool = False):
+        async with self._session_manager() as session:
             dataset_ids = self.resolve_dataset_ids(
                 session, self._accession, self._dataset
             )
@@ -406,7 +410,19 @@ def main():
             "flag, then list datasets corresponding to that accession."
         ),
     )
+
     args = parser.parse_args()
+
+    logging.basicConfig(
+        handlers=[
+            ExitOnExceptionHandler(
+                filename=os.path.join(args.output_dir, "gwas-migration.log"),
+                mode="w",
+                encoding="utf-8",
+            )
+        ],
+        level=logging.DEBUG if args.debug else logging.INFO,
+    )
 
     if (args.dataset and args.accession) or (not args.dataset and not args.accession):
         raise ValueError(
@@ -425,7 +441,11 @@ def main():
     )
 
     try:
-        migrator.run(list_datasets_only=args.list_datasets_only)
+
+        async def run():
+            await migrator.run(list_datasets_only=args.list_datasets_only)
+
+        asyncio.run(run())
         migrator.logger.info("SUCCESS")
     except Exception as err:
         migrator.logger.info("FAIL")
