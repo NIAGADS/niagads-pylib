@@ -123,12 +123,14 @@ class GWASDataMigrator(ComponentBaseMixin):
         self._output_dir = output_dir
         self._invalid_skips = 0
         self._test = test
+        self._max_workers = max_workers
 
         self.logger.info(f"Initializing Data Migrator using: {connection_string}")
 
         self._session_manager = DatabaseSessionManager(
             connection_string=connection_string,
             echo=debug,
+            pool_size=max_workers
         )
 
     @async_timed
@@ -231,7 +233,7 @@ class GWASDataMigrator(ComponentBaseMixin):
             variant.ref_snp_id,
             ",".join(flags) if flags else None,
         ]
-        print("\t".join([xstr(x, null_str="NULL") for x in values]), file=pfh)
+        pfh.write("\t".join([xstr(x, null_str="NULL") for x in values]) + "\n")
 
         values = [
             variant.location.chromosome.value,
@@ -249,7 +251,8 @@ class GWASDataMigrator(ComponentBaseMixin):
             stats["source_info"],
             ",".join(flags) if flags else None,
         ]
-        print("\t".join([xstr(x, null_str="NULL") for x in values]), file=fh)
+        fh.write("\t".join([xstr(x, null_str="NULL") for x in values]) + "\n")
+        # print("\t".join([xstr(x, null_str="NULL") for x in values]), file=fh)
 
     def verify_variant(self, variant: Variant) -> AlleleValidationStatus:
 
@@ -408,8 +411,14 @@ class GWASDataMigrator(ComponentBaseMixin):
                 self.logger.info("SUCCESS")
                 return
 
+        semaphore = asyncio.Semaphore(self._max_workers)
+        
+        async def limited_process_dataset(dataset_id, output_dir):
+            async with semaphore:
+                await self.process_dataset(dataset_id, output_dir)
+                
         tasks = [
-            asyncio.create_task(self.process_dataset(id, self._output_dir))
+            asyncio.create_task(limited_process_dataset(id, self._output_dir))
             for id in dataset_ids
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
