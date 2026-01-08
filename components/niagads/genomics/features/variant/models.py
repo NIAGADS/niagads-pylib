@@ -46,9 +46,8 @@ class Variant(TransformableModel):
         after normalization
         """
         if self.variant_class.is_structural_variant() and self.location.length is None:
-            raise ValueError(
-                "Must assign length of `structural variant` (`SV`) when initializing."
-            )
+            # assume generic INDEL
+            self.location.length = max(len(self.ref), len(self.alt))
 
         if self.variant_class in [VariantClass.SNV, VariantClass.SHORT_INS]:
             # SNV and SHORT_INS: length is 1
