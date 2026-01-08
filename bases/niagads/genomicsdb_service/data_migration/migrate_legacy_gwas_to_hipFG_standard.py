@@ -15,8 +15,10 @@ import os
 from typing import AsyncGenerator
 
 from niagads.arg_parser.core import comma_separated_list
+from niagads.bed.utils import bed_file_sort
 from niagads.common.core import ComponentBaseMixin
 
+from niagads.exceptions.core import ValidationError
 from niagads.genomics.features.region.core import GenomicRegion
 from niagads.genomics.features.variant.annotators import GA4GHVRSService
 from niagads.genomics.features.variant.models import Variant as _BaseVariant
@@ -26,21 +28,18 @@ from niagads.database.session import DatabaseSessionManager
 from niagads.utils.list import qw
 from niagads.utils.logging import ExitOnExceptionHandler, async_timed
 from niagads.utils.string import dict_to_info_string, xstr
-from pydantic import ValidationError
 from sqlalchemy import Row, RowMapping, bindparam, text
 
 
-QUERY_YIELD = 500000
+QUERY_YIELD = 1000
 EXISTING_GWAS_FIELDS = qw(
     "variant_record_primary_key neg_log10_pvalue pvalue_display frequency allele restricted_stats chromosome position"
 )
 TARGET_FIELDS = qw(
-    "chrom position variant_id ref alt pval OR z_score effect_size effect_size_se non_ref_af rsid QC_flags source_info neg_log10_pvalue"
+    "chrom position variant_id ref alt pval OR z_score effect_size effect_size_se non_ref_af rsid source_info QC_flags"
 )
 
-PVALUE_ONLY_TARGET_FIELDS = qw(
-    "chrom position variant_id ref alt pval rsid QC_flags neg_log10_pvalue"
-)
+PVALUE_ONLY_TARGET_FIELDS = qw("chrom position variant_id ref alt pval rsid QC_flags")
 
 
 RESTRICTED_STATS_MAP = {
@@ -64,13 +63,17 @@ class Variant(_BaseVariant):
 
     @classmethod
     def from_row(cls, row: dict[str, str]):
-        positional_id = row["metaseq_id"]
+        positional_id = row["variant_id"]
         chrm, position, ref, alt = positional_id.split(":")
 
         start = int(position) - 1
         location: GenomicRegion = GenomicRegion(
             chromosome=HumanGenome(chrm), start=start, end=start + len(ref)
         )
+
+        variant_class = row["variant_class"]
+        if variant_class in ["INS", "DEL", "INDEL"] and max(len(ref), len(alt)) < 50:
+            variant_class = f"SHORT_{variant_class}"
 
         return cls(
             location=location,
@@ -111,8 +114,9 @@ class GWASDataMigrator(ComponentBaseMixin):
         max_workers: int,
         test: bool = False,
         debug: bool = False,
+        verbose: bool = False,
     ):
-        super().__init__(debug=debug, verbose=False)
+        super().__init__(debug=debug, verbose=verbose)
         self._seqrepo_service_url = seqrepo_service_url
         self._dataset = dataset
         self._accession = accession
@@ -124,41 +128,40 @@ class GWASDataMigrator(ComponentBaseMixin):
 
         self._session_manager = DatabaseSessionManager(
             connection_string=connection_string,
-            pool_size=max_workers + 5,
             echo=debug,
         )
 
     @async_timed
     async def retrieve_gwas_data(
-        self, dataset_id: str, session
+        self, dataset_id: str
     ) -> AsyncGenerator[RowMapping, None]:
 
+        self.logger.info(f"Retrieving data for dataset {dataset_id} from the database.")
         # extracting by chromosome to reduce sorting overhead
         sql = f"""
             SELECT {','.join(EXISTING_GWAS_FIELDS)}, 
             props.details->>'metaseq_id' AS variant_id,
-            props.details->>'ref_snp_id' AS ref_snp_id 
+            props.details->>'ref_snp_id' AS ref_snp_id,
+            props.details->>'variant_class_abbrev' AS variant_class
             FROM Results.VariantGWAS r,
             get_variant_display_details(r.variant_record_primary_key) as props
             WHERE protocol_app_node_id = :id
-            AND chromosome = :chr
-            ORDER BY position ASC
         """
 
         if self._test:
-            sql += " LIMIT 100"
+            sql += f" LIMIT {QUERY_YIELD}"
 
-        chromosomes = HumanGenome.list()
-        for chrm in chromosomes:
-            self.logger.debug(f"Retrieving data for {dataset_id}: {chrm}")
-            result = await session.execute(
-                text(sql).execution_options(stream_results=True, yield_per=QUERY_YIELD),
-                {"id": dataset_id, "chr": chrm},
+        async with self._session_manager.session_ctx() as session:
+            await session.execute(
+                text("SET statement_timeout = 7200000")
+            )  # 2 hours in ms
+            result = await session.stream(
+                text(sql).execution_options(yield_per=QUERY_YIELD),
+                {"id": dataset_id},
             )
             row: Row
             async for row in result:
-                self.logger.critical(row._mapping)  # DEBUG
-                yield row._mapping  # should return a RowMapping (dict equivalent)
+                yield row._mapping
 
     def standardize_stats(self, data: RowMapping, effect_sign_changed: bool = False):
         """
@@ -186,6 +189,9 @@ class GWASDataMigrator(ComponentBaseMixin):
                 mapped_stats[out_key] = None
         mapped_stats["source_info"] = dict_to_info_string(original_stats)
 
+        if mapped_stats["effect_size"] == None:  # if effect is not present, try beta
+            mapped_stats["effect_size"] = original_stats.get("beta", None)
+
         if effect_sign_changed:
             try:
                 mapped_stats["non_ref_af"] = 1.0 - float(data["frequency"])
@@ -203,14 +209,16 @@ class GWASDataMigrator(ComponentBaseMixin):
         return mapped_stats
 
     def write_association(self, variant: Variant, stats, fh, pfh):
-        # "chrom position variant_id ref alt pval OR z_score effect_size effect_size_se non_ref_af rsid QC_flags source_info neg_log10_pvalue info"
+        # "chrom position variant_id ref alt pval OR z_score effect_size effect_size_se non_ref_af rsid source_info QC_flags"
         flags = []
         if variant.effect_sign_change:
             flags.append("EFFECT_STATS_SIGN_CHANGED")
-            self.logger.warning(f"EFFECT_STATS_SIGN_CHANGED: {variant.positional_id}")
+            if self._verbose:
+                self.logger.debug(f"EFFECT_STATS_SIGN_CHANGED: {variant.positional_id}")
         if variant.unverified:
             flags.append("UNVERIFIED")
-            self.logger.warning(f"UNVERIFIED: {variant.positional_id}")
+            if self._verbose:
+                self.logger.debug(f"UNVERIFIED: {variant.positional_id}")
 
         # TODO other flags
         values = [
@@ -222,7 +230,6 @@ class GWASDataMigrator(ComponentBaseMixin):
             stats["pval"],
             variant.ref_snp_id,
             ",".join(flags) if flags else None,
-            stats["neg_log10_pvalue"],
         ]
         print("\t".join([xstr(x, null_str="NULL") for x in values]), file=pfh)
 
@@ -239,15 +246,12 @@ class GWASDataMigrator(ComponentBaseMixin):
             stats["effect_size_se"],
             stats["non_ref_af"],
             variant.ref_snp_id,
-            ",".join(flags) if flags else None,
             stats["source_info"],
-            stats["neg_log10_pvalue"],
+            ",".join(flags) if flags else None,
         ]
         print("\t".join([xstr(x, null_str="NULL") for x in values]), file=fh)
 
-    def verify_variant(
-        self, variant: Variant, seqrepo_service_url: str, allow_swap: bool = True
-    ) -> AlleleValidationStatus:
+    def verify_variant(self, variant: Variant) -> AlleleValidationStatus:
 
         # if mapped to ref_snp; verified
         if variant.ref_snp_id is not None:
@@ -255,7 +259,7 @@ class GWASDataMigrator(ComponentBaseMixin):
 
         else:  # verify against genome
             vrs_service: GA4GHVRSService = GA4GHVRSService(
-                assembly=Assembly.GRCh38, seqrepo_service_url=seqrepo_service_url
+                assembly=Assembly.GRCh38, seqrepo_service_url=self._seqrepo_service_url
             )
             try:
                 vrs_service.validate_sequence(variant.location, variant.ref)
@@ -285,13 +289,22 @@ class GWASDataMigrator(ComponentBaseMixin):
 
         if validation_status == AlleleValidationStatus.VALID_IF_SWAPPED:
             if variant.variant_class == VariantClass.SNV:
+                if self._verbose:
+                    msg = "Swapping Alleles for {variant.positional_id}"
+
                 variant.swap_alleles()
+                if self._verbose:
+                    self.logger.debug(f"{msg} - {variant.positional_id}")
+
             else:
                 # otherwise INDEL -> keep direction
                 variant.unverified = True
 
         # this is where effect sign change gets flagged
         variant.resolve_test_allele()
+
+        if self._verbose:
+            self.logger.debug(data)
 
         standardize_statistics = self.standardize_stats(
             data, variant.effect_sign_change
@@ -302,24 +315,46 @@ class GWASDataMigrator(ComponentBaseMixin):
     # variant_gwas_id	protocol_app_node_id	variant_record_primary_key	bin_index	neg_log10_pvalue	pvalue_display	frequency	allele	restricted_stats
     # 113176520	25	1:29937655:A:C:rs4949232	chr1.L1.B1.L2.B1.L3.B2.L4.B2.L5.B2.L6.B1.L7.B2.L8.B2.L9.B2.L10.B2.L11.B2.L12.B1.L13.B1	0.123551213121659	0.7524	0.868	C	{"effect": -0.0205, "std_err": 0.0651, "direction": "+++-++-+---", "frequency_se": 0.0119, "max_frequency": 0.9236, "min_frequency": 0.8497}
 
-    async def process_dataset(self, dataset_id: str, output_dir: str, session):
+    async def process_dataset(self, dataset_id: str, output_dir: str):
         self.logger.info(f"Processing dataset: {dataset_id}")
-        is_lifted = "_GRCh38_" in dataset_id["source_id"]
-        file_prefix = os.path.join(
-            output_dir, dataset_id["source_id"].replace("_GRCh38_", "_GRCh38")
+        source_id = dataset_id["source_id"]
+        is_lifted = "_GRCh38_" in source_id
+
+        if is_lifted:
+            if not source_id.endswith("GRCh38"):
+                source_id = source_id.replace("GRCh38_", "") + "_GRCh38"
+
+        file_prefix = os.path.join(output_dir, source_id)
+        log_file_name = f"{file_prefix}.log"
+        log_handler = logging.FileHandler(
+            log_file_name,
+            mode="w",
+            encoding="utf-8",
         )
-        file_name = f"{file_prefix}.txt"
-        pvalue_file_name = f"{file_prefix}_pvalue.txt"
-        with open(file_name, "w") as fh, open(pvalue_file_name, "w") as pfh:
-            print("\t".join(TARGET_FIELDS), file=fh)
-            print("\t".join(PVALUE_ONLY_TARGET_FIELDS), file=pfh)
-            # int b/c sqlalchmey returned pan_id as "Decimal"
-            async for row in self.retrieve_gwas_data(
-                int(dataset_id["protocol_app_node_id"]), session
-            ):
-                variant, standardized_stats = self.transform(row, is_lifted=is_lifted)
-                if variant is not None:
-                    self.write_association(variant, standardized_stats, fh, pfh)
+        log_handler.setLevel(logging.DEBUG if self._debug else logging.INFO)
+        self.logger.addHandler(log_handler)
+
+        try:
+            file_name = f"{file_prefix}.txt"
+            pvalue_file_name = f"{file_prefix}_pvalue.txt"
+            with open(file_name, "w") as fh, open(pvalue_file_name, "w") as pfh:
+                print("\t".join(TARGET_FIELDS), file=fh)
+                print("\t".join(PVALUE_ONLY_TARGET_FIELDS), file=pfh)
+                async for row in self.retrieve_gwas_data(
+                    dataset_id["protocol_app_node_id"]
+                ):
+                    variant, standardized_stats = self.transform(
+                        row, is_lifted=is_lifted
+                    )
+                    if variant is not None:
+                        self.write_association(variant, standardized_stats, fh, pfh)
+
+            self.logger.info(f"Sorting {dataset_id} files.")
+            bed_file_sort(file_name, header=True, overwrite=not self._debug)
+            bed_file_sort(pvalue_file_name, header=True, overwrite=not self._debug)
+        finally:
+            self.logger.removeHandler(log_handler)
+            log_handler.close()
 
     async def resolve_accession_datasets(self, accession: str, session):
         sql = """SELECT source_id FROM Study.ProtocolAppNode
@@ -340,7 +375,7 @@ class GWASDataMigrator(ComponentBaseMixin):
         if accession is not None:
             dataset_ids = await self.resolve_accession_datasets(accession, session)
         else:
-            dataset_ids = [d.upper() for d in datasets]
+            dataset_ids = datasets
 
         sql = """SELECT source_id, protocol_app_node_id::int FROM Study.ProtocolAppNode
             WHERE external_database_release_id = 19
@@ -373,16 +408,19 @@ class GWASDataMigrator(ComponentBaseMixin):
                 self.logger.info("SUCCESS")
                 return
 
-            tasks = [
-                asyncio.create_task(self.process_dataset(id, self._output_dir, session))
-                for id in dataset_ids
-            ]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            for result in results:
-                if isinstance(result, Exception):
-                    self.logger.error(f"Error processing dataset: {result}")
+        tasks = [
+            asyncio.create_task(self.process_dataset(id, self._output_dir))
+            for id in dataset_ids
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for result in results:
+            if isinstance(result, Exception):
+                self.logger.exception(f"Error processing dataset: {result}", exc_info=result)
 
-        self.logger.info("SUCCESS")
+        if self._test:
+            self.logger.info("DONE WITH TEST")
+        else:
+            self.logger.info("SUCCESS")
 
 
 def main():
@@ -403,8 +441,9 @@ def main():
     parser.add_argument("--accession")
     parser.add_argument("--test", action="store_true")
     parser.add_argument("--output_dir", required=True)
-    parser.add_argument("--max_workers", type=int, default=20)
+    parser.add_argument("--max_workers", type=int, default=5)
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
     parser.add_argument(
         "--list_datasets_only",
         action="store_true",
@@ -414,13 +453,18 @@ def main():
             "flag, then list datasets corresponding to that accession."
         ),
     )
+    parser.add_argument(
+        "--log_file",
+        help="log file name (saved to output directory)",
+        default="gwas-migration.log",
+    )
 
     args = parser.parse_args()
 
     logging.basicConfig(
         handlers=[
             ExitOnExceptionHandler(
-                filename=os.path.join(args.output_dir, "gwas-migration.log"),
+                filename=os.path.join(args.output_dir, args.log_file),
                 mode="w",
                 encoding="utf-8",
             )
@@ -442,6 +486,7 @@ def main():
         test=args.test,
         max_workers=args.max_workers,
         debug=args.debug,
+        verbose=args.verbose,
     )
 
     try:
