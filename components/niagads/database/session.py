@@ -42,7 +42,7 @@ class DatabaseSessionManager:
             pool_size=pool_size,  # Maximum number of permanent connections to maintain in the pool
             max_overflow=10,  # Maximum number of additional connections that can be created if the pool is exhausted
             pool_timeout=30,  # Number of seconds to wait for a connection if the pool is exhausted
-            pool_recycle=1800,  # Maximum age (in seconds) of connections that can be reused
+            pool_recycle=1800,  # Maximum age (in seconds) of connections that can be reused,
         )
 
         self.__sessionMaker: async_sessionmaker = async_sessionmaker(bind=self.__engine)
@@ -123,14 +123,9 @@ class DatabaseSessionManager:
         async with self.__session() as session:
             if session is None:
                 raise RuntimeError("DatabaseSessionManager is not initialized")
-            try:
-                yield session
-            finally:
-                if hasattr(session, "in_transaction") and session.in_transaction():
-                    await session.rollback()
-                if session.is_active:
-                    await session.close()
-
+        
+            yield session
+    
     async def __call__(self):
         """Provide an async database session; cannot be used as a context manager.
 
