@@ -18,7 +18,12 @@ from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 
 
-# TODO: check normalize_positional_variant -> what does it return for
+# hopefull disable seqrepo INFO notices for each request to the service
+import logging
+
+logging.getLogger("ga4gh.vrs").setLevel(logging.WARNING)
+logging.getLogger("seqrepo").setLevel(logging.WARNING)
+# logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 class VariantNomenclature(CaseInsensitiveEnum):
