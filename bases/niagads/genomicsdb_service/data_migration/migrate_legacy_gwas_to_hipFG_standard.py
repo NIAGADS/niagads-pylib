@@ -82,7 +82,7 @@ class Variant(_BaseVariant):
             ref_snp_id=row["ref_snp_id"],
             test=row["allele"],
             positional_id=positional_id,
-            variant_class=VariantClass(row["variant_class"]),
+            variant_class=VariantClass(variant_class),
         )
 
     def resolve_test_allele(self):
