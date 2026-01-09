@@ -10,7 +10,6 @@ class VariantClass(CaseInsensitiveEnum):
     SHORT_INS = "insertion (short)"
     DEL = "deletion (SV)"
     INS = "insertion (SV)"
-    INDEL = "insertion-deltion (SV)"
     DUP = "duplication"
     INV = "inversion"
     TRANS = "translocation"
