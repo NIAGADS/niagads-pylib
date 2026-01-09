@@ -123,9 +123,15 @@ class DatabaseSessionManager:
         async with self.__session() as session:
             if session is None:
                 raise RuntimeError("DatabaseSessionManager is not initialized")
-        
-            yield session
-    
+            try:
+                yield session
+
+            finally:
+                if hasattr(session, "in_transaction") and session.in_transaction():
+                    await session.rollback()
+                if session.is_active:
+                    await session.close()
+
     async def __call__(self):
         """Provide an async database session; cannot be used as a context manager.
 
