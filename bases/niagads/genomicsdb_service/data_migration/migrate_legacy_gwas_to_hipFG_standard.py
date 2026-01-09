@@ -191,7 +191,7 @@ class GWASDataMigrator(ComponentBaseMixin):
                 mapped_stats[out_key] = None
         mapped_stats["source_info"] = dict_to_info_string(original_stats)
 
-        if mapped_stats["effect_size"] == None:  # if effect is not present, try beta
+        if mapped_stats["effect_size"] is None:  # if effect is not present, try beta
             mapped_stats["effect_size"] = original_stats.get("beta", None)
 
         if effect_sign_changed:
