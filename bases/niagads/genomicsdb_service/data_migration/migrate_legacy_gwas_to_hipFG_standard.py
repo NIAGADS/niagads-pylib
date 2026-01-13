@@ -163,6 +163,7 @@ class GWASDataMigrator(ComponentBaseMixin):
         )
         row: Row
         async for row in result:
+            # self.logger.info(f"{row}")  # DEBUG speed
             yield row._mapping
 
     def standardize_stats(self, data: RowMapping, effect_sign_changed: bool = False):
@@ -212,6 +213,7 @@ class GWASDataMigrator(ComponentBaseMixin):
 
     def write_association(self, variant: Variant, stats, fh, pfh):
         # "chrom position variant_id ref alt pval OR z_score effect_size effect_size_se non_ref_af rsid source_info QC_flags"
+        # self.logger.info(f"writing {variant}")  # DEBUG speed
         flags = []
         if variant.effect_sign_change:
             flags.append("EFFECT_STATS_SIGN_CHANGED")
@@ -359,8 +361,8 @@ class GWASDataMigrator(ComponentBaseMixin):
                             row, is_lifted, vrs_service
                         )
 
-                    if variant is not None:
-                        self.write_association(variant, standardized_stats, fh, pfh)
+                        if variant is not None:
+                            self.write_association(variant, standardized_stats, fh, pfh)
 
             self.logger.info(f"DATASET {dataset_id}: Sorting {dataset_id} files.")
             bed_file_sort(file_name, header=True, overwrite=not self._debug)
