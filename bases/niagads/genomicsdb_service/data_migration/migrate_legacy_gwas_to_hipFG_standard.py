@@ -31,7 +31,7 @@ from niagads.utils.string import dict_to_info_string, xstr
 from sqlalchemy import Row, RowMapping, bindparam, text
 
 
-QUERY_YIELD = 1000
+QUERY_YIELD = 50000
 EXISTING_GWAS_FIELDS = qw(
     "variant_record_primary_key neg_log10_pvalue pvalue_display frequency allele restricted_stats chromosome position"
 )
@@ -124,21 +124,22 @@ class GWASDataMigrator(ComponentBaseMixin):
         self._invalid_skips = 0
         self._test = test
         self._max_workers = max_workers
+        self._connection_string = connection_string
 
         self.logger.info(f"Initializing Data Migrator using: {connection_string}")
 
         self._session_manager = DatabaseSessionManager(
-            connection_string=connection_string,
-            echo=debug,
-            pool_size=max_workers
+            connection_string=connection_string, echo=debug, pool_size=2
         )
 
     @async_timed
     async def retrieve_gwas_data(
-        self, dataset_id: str
+        self, dataset_id: str, session
     ) -> AsyncGenerator[RowMapping, None]:
 
-        self.logger.info(f"Retrieving data for dataset {dataset_id} from the database.")
+        self.logger.info(
+            f"DATASET {dataset_id}: Retrieving data for dataset {dataset_id} from the database."
+        )
         # extracting by chromosome to reduce sorting overhead
         sql = f"""
             SELECT {','.join(EXISTING_GWAS_FIELDS)}, 
@@ -153,17 +154,16 @@ class GWASDataMigrator(ComponentBaseMixin):
         if self._test:
             sql += f" LIMIT {QUERY_YIELD}"
 
-        async with self._session_manager.session_ctx() as session:
-            await session.execute(
-                text("SET statement_timeout = 7200000")
-            )  # 2 hours in ms
-            result = await session.stream(
-                text(sql).execution_options(yield_per=QUERY_YIELD),
-                {"id": dataset_id},
-            )
-            row: Row
-            async for row in result:
-                yield row._mapping
+        # await session.execute(
+        #    text("SET statement_timeout = 7200000")
+        # )  # 2 hours in ms
+        result = await session.stream(
+            text(sql).execution_options(yield_per=QUERY_YIELD),
+            {"id": dataset_id},
+        )
+        row: Row
+        async for row in result:
+            yield row._mapping
 
     def standardize_stats(self, data: RowMapping, effect_sign_changed: bool = False):
         """
@@ -254,16 +254,15 @@ class GWASDataMigrator(ComponentBaseMixin):
         fh.write("\t".join([xstr(x, null_str="NULL") for x in values]) + "\n")
         # print("\t".join([xstr(x, null_str="NULL") for x in values]), file=fh)
 
-    def verify_variant(self, variant: Variant) -> AlleleValidationStatus:
+    def verify_variant(
+        self, variant: Variant, vrs_service: GA4GHVRSService
+    ) -> AlleleValidationStatus:
 
         # if mapped to ref_snp; verified
         if variant.ref_snp_id is not None:
             return AlleleValidationStatus.VALID
 
         else:  # verify against genome
-            vrs_service: GA4GHVRSService = GA4GHVRSService(
-                assembly=Assembly.GRCh38, seqrepo_service_url=self._seqrepo_service_url
-            )
             try:
                 vrs_service.validate_sequence(variant.location, variant.ref)
                 return AlleleValidationStatus.VALID
@@ -275,17 +274,23 @@ class GWASDataMigrator(ComponentBaseMixin):
                     return AlleleValidationStatus.INVALID
 
     # TODO transformation logic
-    def transform(self, data: RowMapping, is_lifted: bool):
+    def transform(
+        self, data: RowMapping, is_lifted: bool, vrs_service: GA4GHVRSService
+    ):
         variant: Variant = Variant.from_row(data)
-        validation_status = self.verify_variant(variant)
+        validation_status = self.verify_variant(variant, vrs_service)
 
         if validation_status == AlleleValidationStatus.INVALID:
             if is_lifted:
                 # if this was lifted over and can't be verified against the
                 # genome, then no confidence so skip
-                self.logger.warning(
-                    f"SKIPPING - INVALID_LIFTOVER {variant.positional_id}"
-                )
+                try:
+                    self.logger.warning(
+                        f"SKIPPING {variant.positional_id} - invalid liftover"
+                    )
+                except:
+                    self.logger.info(data)
+                    raise
                 return None, None
             else:
                 variant.unverified = True
@@ -319,7 +324,7 @@ class GWASDataMigrator(ComponentBaseMixin):
     # 113176520	25	1:29937655:A:C:rs4949232	chr1.L1.B1.L2.B1.L3.B2.L4.B2.L5.B2.L6.B1.L7.B2.L8.B2.L9.B2.L10.B2.L11.B2.L12.B1.L13.B1	0.123551213121659	0.7524	0.868	C	{"effect": -0.0205, "std_err": 0.0651, "direction": "+++-++-+---", "frequency_se": 0.0119, "max_frequency": 0.9236, "min_frequency": 0.8497}
 
     async def process_dataset(self, dataset_id: str, output_dir: str):
-        self.logger.info(f"Processing dataset: {dataset_id}")
+        self.logger.info(f"DATASET {dataset_id}: Processing dataset: {dataset_id}")
         source_id = dataset_id["source_id"]
         is_lifted = "_GRCh38_" in source_id
 
@@ -328,36 +333,45 @@ class GWASDataMigrator(ComponentBaseMixin):
                 source_id = source_id.replace("GRCh38_", "") + "_GRCh38"
 
         file_prefix = os.path.join(output_dir, source_id)
-        log_file_name = f"{file_prefix}.log"
-        log_handler = logging.FileHandler(
-            log_file_name,
-            mode="w",
-            encoding="utf-8",
-        )
-        log_handler.setLevel(logging.DEBUG if self._debug else logging.INFO)
-        self.logger.addHandler(log_handler)
 
+        file_name = f"{file_prefix}.txt"
+        pvalue_file_name = f"{file_prefix}_pvalue.txt"
+
+        vrs_service: GA4GHVRSService = GA4GHVRSService(
+            assembly=Assembly.GRCh38, seqrepo_service_url=self._seqrepo_service_url
+        )
+        # not ideal, but hope solves dropped connection issue
+        session_manager = DatabaseSessionManager(
+            connection_string=self._connection_string, echo=self._debug, pool_size=2
+        )
         try:
-            file_name = f"{file_prefix}.txt"
-            pvalue_file_name = f"{file_prefix}_pvalue.txt"
             with open(file_name, "w") as fh, open(pvalue_file_name, "w") as pfh:
+
                 print("\t".join(TARGET_FIELDS), file=fh)
                 print("\t".join(PVALUE_ONLY_TARGET_FIELDS), file=pfh)
-                async for row in self.retrieve_gwas_data(
-                    dataset_id["protocol_app_node_id"]
-                ):
-                    variant, standardized_stats = self.transform(
-                        row, is_lifted=is_lifted
-                    )
+
+                async with session_manager.session_ctx() as session:
+                    async for row in self.retrieve_gwas_data(
+                        dataset_id["protocol_app_node_id"], session
+                    ):
+
+                        variant, standardized_stats = self.transform(
+                            row, is_lifted, vrs_service
+                        )
+
                     if variant is not None:
                         self.write_association(variant, standardized_stats, fh, pfh)
 
-            self.logger.info(f"Sorting {dataset_id} files.")
+            self.logger.info(f"DATASET {dataset_id}: Sorting {dataset_id} files.")
             bed_file_sort(file_name, header=True, overwrite=not self._debug)
             bed_file_sort(pvalue_file_name, header=True, overwrite=not self._debug)
+        except Exception as err:
+            self.logger.info(
+                f"DATASET {dataset_id}: Unexpected Error during processing"
+            )
+            raise err
         finally:
-            self.logger.removeHandler(log_handler)
-            log_handler.close()
+            await session_manager.close()
 
     async def resolve_accession_datasets(self, accession: str, session):
         sql = """SELECT source_id FROM Study.ProtocolAppNode
@@ -368,13 +382,12 @@ class GWASDataMigrator(ComponentBaseMixin):
         result = await session.execute(text(sql), {"accession": accession + "%"})
         ids = [row[0] for row in result.fetchall()]
         if not ids:
-            raise ValueError(f"No datasets found for accession: {accession}")
+            raise ValueError(f"ACCESSION {accession}:No datasets found for accession.")
         else:
-            self.logger.info(f"Found {len(ids)} datasets for {accession}: {ids}")
+            self.logger.info(f"ACCESSION {accession}: Found {len(ids)} datasets: {ids}")
         return ids
 
     async def resolve_dataset_ids(self, session, accession, datasets):
-        self.logger.info(f"")
         if accession is not None:
             dataset_ids = await self.resolve_accession_datasets(accession, session)
         else:
@@ -398,7 +411,7 @@ class GWASDataMigrator(ComponentBaseMixin):
                 f"The following dataset IDs were not found: {sorted(unmatched)}"
             )
 
-        self.logger.info(f"Verified {len(ids)} datasets: {ids}")
+        self.logger.info(f"ACCESSION {accession}: Verified {len(ids)} datasets: {ids}")
         return ids
 
     async def run(self, list_datasets_only: bool = False):
@@ -412,11 +425,11 @@ class GWASDataMigrator(ComponentBaseMixin):
                 return
 
         semaphore = asyncio.Semaphore(self._max_workers)
-        
+
         async def limited_process_dataset(dataset_id, output_dir):
             async with semaphore:
                 await self.process_dataset(dataset_id, output_dir)
-                
+
         tasks = [
             asyncio.create_task(limited_process_dataset(id, self._output_dir))
             for id in dataset_ids
@@ -424,7 +437,9 @@ class GWASDataMigrator(ComponentBaseMixin):
         results = await asyncio.gather(*tasks, return_exceptions=True)
         for result in results:
             if isinstance(result, Exception):
-                self.logger.exception(f"Error processing dataset: {result}", exc_info=result)
+                self.logger.exception(
+                    f"Error processing dataset: {result}", exc_info=result
+                )
 
         if self._test:
             self.logger.info("DONE WITH TEST")
