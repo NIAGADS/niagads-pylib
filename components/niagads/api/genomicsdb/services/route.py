@@ -7,7 +7,7 @@ from niagads.api.common.models.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,
 )
-from niagads.api.common.models.features.genomic import (
+from niagads.api.common.models.features.region import (
     AnnotatedGenomicRegion,
     GenomicRegion,
 )

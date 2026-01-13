@@ -7,7 +7,7 @@ from niagads.common.models.composite_attributes.variant import (
 )
 from niagads.common.models.core import TransformableModel
 from niagads.api.common.views.table import TableRow
-from niagads.api.common.models.features.genomic import GenomicRegion
+from niagads.api.common.models.features.region import GenomicRegion
 
 from niagads.api.common.models.core import RowModel
 from niagads.api.common.models.response.core import RecordResponse

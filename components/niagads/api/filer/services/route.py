@@ -6,7 +6,6 @@ from typing import List, Union
 
 from niagads.api.common.models.datasets.track import TrackResultSize
 from niagads.api.common.models.features.bed import BEDFeature
-from niagads.api.common.models.features.genomic import GenomicFeature
 from niagads.api.common.models.services.cache import (
     CacheKeyDataModel,
     CacheKeyQualifier,
@@ -23,9 +22,9 @@ from niagads.api.filer.services.wrapper import (
     FILERApiDataResponse,
     FILERApiEndpoint,
 )
-from niagads.assembly.core import GenomicFeatureType
 from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.exceptions.core import ValidationError
+from niagads.genomics.features.core import GenomicFeature, GenomicFeatureType
 from niagads.genomicsdb.models.dataset.track import Track
 from niagads.utils.list import chunker, cumulative_sum
 from pydantic import BaseModel
@@ -279,7 +278,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             assembly = await self.__validate_tracks(cursor.tracks)
 
         chunks = chunker(
-            cursor.tracks, TRACKS_PER_API_REQUEST_LIMIT, returnIterator=True
+            cursor.tracks, TRACKS_PER_API_REQUEST_LIMIT, return_iterator=True
         )
         tasks = [
             self.__get_track_data_task(

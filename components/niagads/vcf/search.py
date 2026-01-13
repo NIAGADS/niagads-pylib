@@ -4,13 +4,13 @@ import pysam
 
 # from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from niagads.assembly.core import Human
+from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.vcf.core import VCFEntry
 
 
 def file_search(
     vcfFile: str,
-    chrm: Union[Human, int, str],
+    chrm: Union[HumanGenome, int, str],
     start: int,
     end: int,
     countsOnly: bool = False,
@@ -30,7 +30,7 @@ def file_search(
     Note: no try block b/c error handling will depend on application
     """
 
-    region = f"{str(chrm) if isinstance(chrm, Human) else str(Human(str(chrm)))}:{start}-{end}"
+    region = f"{str(chrm) if isinstance(chrm, HumanGenome) else str(HumanGenome(str(chrm)))}:{start}-{end}"
 
     hits = []
     vcf = VCF(vcfFile)
@@ -46,7 +46,11 @@ def file_search(
 
 
 def remote_file_search(
-    url, chrm: Union[Human, int, str], start: int, end: int, countsOnly: bool = False
+    url,
+    chrm: Union[HumanGenome, int, str],
+    start: int,
+    end: int,
+    countsOnly: bool = False,
 ) -> Union[int, List[VCFEntry]]:
     """
     Search a single (remote) VCF (compressed) file for records in a given genomic region using pysam
@@ -62,7 +66,7 @@ def remote_file_search(
     """
 
     hits = []
-    region = f"{str(chrm) if isinstance(chrm, Human) else str(Human(str(chrm)))}:{start}-{end}"
+    region = f"{str(chrm) if isinstance(chrm, HumanGenome) else str(HumanGenome(str(chrm)))}:{start}-{end}"
     with pysam.TabixFile(url) as vcf:
         if countsOnly:
             return sum(1 for _ in vcf.fetch(region=region))

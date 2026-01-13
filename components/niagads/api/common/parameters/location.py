@@ -1,7 +1,8 @@
 from fastapi import Query
 from niagads.exceptions.core import ValidationError
-from niagads.assembly.core import Assembly, GenomicFeatureType, Human
-from niagads.api.common.models.features.genomic import GenomicFeature
+from niagads.genomics.sequence.assembly import Assembly
+from niagads.genomics.features.core import GenomicFeature, GenomicFeatureType
+from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.api.common.utils import sanitize
 
 
@@ -15,13 +16,13 @@ async def assembly_param(
 
 async def chromosome_param(
     chromosome: str = Query(
-        Human.chr19.value,
-        enum=[c.name for c in Human],
+        HumanGenome.chr19.value,
+        enum=[c.name for c in HumanGenome],
         description="chromosome, specificed as 1..22,X,Y,M,MT or chr1...chr22,chrX,chrY,chrM,chrMT",
     )
 ):
     try:
-        return Human.validate(sanitize(chromosome))
+        return HumanGenome.validate(sanitize(chromosome))
     except KeyError:
         raise ValidationError(f"Invalid chromosome {chromosome}.")
 

@@ -38,6 +38,7 @@ async def is_adsp_variant_param(
 
 
 # TODO include INS, DEL, SNV, DUP, etc
+# FIXME: use VariantClass from genomics/features/variant
 class VariantType(EnumParameter):
     SNV = auto()
     SV = auto()

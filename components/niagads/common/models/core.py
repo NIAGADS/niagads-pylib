@@ -1,3 +1,7 @@
+"""
+Base Pydantic model classes for NIAGADS data models.
+"""
+
 from typing import TypeVar
 
 from niagads.utils.dict import prune
@@ -6,7 +10,9 @@ from pydantic import BaseModel, ConfigDict, model_serializer
 
 
 class NullFreeModel(BaseModel):
-    """a pydantic model where attributes with NULL values (e.g., None, 'NULL') are removed during serialization"""
+    """a pydantic base model where attributes with NULL values
+    (e.g., None, 'NULL') are removed during serialization
+    """
 
     # note: this ignores the model_config b/c it doesn't run model_dump()
 
@@ -16,6 +22,10 @@ class NullFreeModel(BaseModel):
 
 
 class TransformableModel(BaseModel):
+    """
+    Pydantic base model with utility methods for data transformation and null handling.
+    """
+
     model_config = ConfigDict(serialize_by_alias=True)
 
     def null_free_dump(self):
@@ -33,12 +43,19 @@ class TransformableModel(BaseModel):
         uniqueValues = set([str(a) for a in arr])
         return delimiter.join(uniqueValues) if arr is not None else None
 
-    def _flat_dump(self, nullFree: bool = False, delimiter="|"):
+    def _flat_dump(self, null_free: bool = False, delimiter="|"):
         """function for creating a flat dump; i.e., remove nesting"""
-        return self.null_free_dump() if nullFree else self.model_dump()
+        for k, v in self.__dict__.items():
+            if isinstance(v, (dict, BaseModel)):
+                raise NotImplementedError(
+                    f"Field '{k}' in '{self.__class__.__name__}' is complex (type: {type(v).__name__}). "
+                    "Please override the _flat_dump method in your subclass "
+                    "to flatten nested structures."
+                )
+        return self.null_free_dump() if null_free else self.model_dump()
 
     def as_info_string(self):
-        return dict_to_info_string(self._flat_dump(nullFree=True))
+        return dict_to_info_string(self._flat_dump(null_free=True))
 
     def as_list(self, fields=None):
         if fields is None:
@@ -65,6 +82,9 @@ class TransformableModel(BaseModel):
         )
 
     def __str__(self):
+        return self.as_info_string()
+
+    def __repr__(self):
         return self.as_info_string()
 
 
