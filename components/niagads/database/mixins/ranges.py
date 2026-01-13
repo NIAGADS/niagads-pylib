@@ -1,4 +1,4 @@
-from niagads.assembly.core import Human
+from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.common.models.structures import Range
 from niagads.database import RangeType, enum_column, enum_constraint
 from sqlalchemy import Index
@@ -21,12 +21,12 @@ class GenomicRegionMixin(object):
 
     # native_enum set to True here, so postgres will sort the columns by the enum
     # ordering; may potentially throw a "type already exists error" during migration
-    chromosome: Mapped[str] = enum_column(Human, native_enum=True)
+    chromosome: Mapped[str] = enum_column(HumanGenome, native_enum=True)
     genomic_region: Mapped[Range] = mapped_column(RangeType, nullable=False)
     genomic_region_bin: Mapped[str] = mapped_column(LtreeType)
 
     __table_args__ = (
-        enum_constraint("chromosome", Human),
+        enum_constraint("chromosome", HumanGenome),
         Index("ix_genomic_region_gist", "genomic_region", postgresql_using="gist"),
         Index(
             "ix_genomic_region_bin_gist", "genomic_region_bin", postgresql_using="gist"

@@ -49,7 +49,7 @@ class PluginRunner:
             print(err)
             sys.exit(1)
         except KeyError:
-            available_plugins = '\n'.join(PluginRegistry.list_plugins())
+            available_plugins = "\n".join(PluginRegistry.list_plugins())
             print(
                 f"Error: Plugin '{plugin_name}' not found in registry.\n"
                 f"Available plugins:\n {available_plugins}"

@@ -1,4 +1,4 @@
-from niagads.variant_annotator import core
+from niagads.genomics import core
 
 
 def test_sample():

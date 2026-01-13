@@ -25,6 +25,8 @@ class CaseInsensitiveEnum(StrEnum):
             for member in cls:
                 if member.value.lower() == value.lower():
                     return member
+                if member.name.lower() == value.lower():
+                    return member
         except ValueError as err:
             raise err
 

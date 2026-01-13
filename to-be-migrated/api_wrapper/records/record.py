@@ -189,7 +189,7 @@ class Record:
     def fetch(self):
         if self._page_size is None:
             raise ValueError("Must set page size before fetching")
-        chunks = chunker(self._ids, self._page_size, returnIterator=True)
+        chunks = chunker(self._ids, self._page_size, return_iterator=True)
         with Pool() as pool:
             response = pool.map(self._fetch_chunk, chunks)
             self._response = sum(response, [])  # concatenates indvidual responses

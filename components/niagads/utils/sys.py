@@ -5,10 +5,11 @@ import gzip
 import io
 import logging
 import os
+import subprocess
 from enum import auto
-from subprocess import CalledProcessError, check_output
+from pathlib import Path
 from sys import exit, stderr
-from typing import IO
+from typing import IO, Union
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.dict import print_dict
@@ -222,32 +223,69 @@ def is_binary_file(fileName):
     return is_binary_string(open(fileName, "rb").read(1024))
 
 
-def execute_cmd(cmd, cwd=None, printCmdOnly=False, verbose=True, shell=False):
+def get_parent_directory(file_name: str):
     """
-    execute a shell command
-    cmd = command as array of strings
-    cwd = working directory for the command
-    printCmdOnly = prints the command w/out executing
-    shell = execute in a shell (e.g., necessary for commands like gzip)
+    Return the parent directory of a file as a string.
+    If the file is in the current directory, return the current working directory.
+
+    Args:
+        file_name (str): The file path for which to get the parent directory.
+
+    Returns:
+        str: The parent directory as a string, or the current working directory if the parent is empty.
     """
-    if verbose or printCmdOnly:
+    parent = str(Path(file_name).parent)
+    return parent if parent else os.getcwd()
+
+
+def execute_cmd(
+    cmd: Union[str, list],
+    cwd: str = None,
+    print_cmd_only: bool = False,
+    verbose: bool = False,
+    shell: bool = False,
+    logger: logging.Logger = None,
+):
+    """
+    Execute a shell command and return its standard output as a string.
+
+    Args:
+        cmd (str | list): The command to execute, as a string or list of arguments.
+        cwd (str, optional): Working directory for the command.
+        print_cmd_only (bool, optional): If True, print the command and do not execute.
+        verbose (bool, optional): If True, print/log the command before execution.
+        shell (bool, optional): If True, execute the command in a shell.
+        logger (logging.Logger, optional): Logger to use for command output (if provided).
+
+    Returns:
+        str: The standard output from the command.
+
+    Raises:
+        RuntimeError: If the command returns a non-zero exit code or execution fails.
+    """
+    if verbose or print_cmd_only:
         if not isinstance(cmd, str):
-            asciiSafeCmd = [ascii_safe_str(c) for c in cmd]
-            warning("EXECUTING: " + " ".join(asciiSafeCmd))
+            ascii_safe_cmd = [ascii_safe_str(c) for c in cmd]
+            msg = f"EXECUTING: {" ".join(ascii_safe_cmd)}"
         else:
-            warning("EXECUTING: " + cmd)
-        if printCmdOnly:
-            return
-    try:
-        if shell:
-            if isinstance(cmd, list):
-                cmd = " ".join(cmd)
-            output = check_output(cmd, cwd=cwd, shell=True)
+            msg = cmd
+        if logger is not None:
+            logger.info(msg)
         else:
-            output = check_output(cmd, cwd=cwd)
-        warning(output)
-    except CalledProcessError as e:
-        die(e)
+            print(msg)
+        if print_cmd_only:
+            return None
+
+    if shell:
+        if isinstance(cmd, list):
+            cmd = " ".join(cmd)
+
+    result = subprocess.run(cmd, cwd=cwd, shell=shell, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Command failed with code {result.returncode}: {result.stderr.strip()}"
+        )
+    return result.stdout
 
 
 def backup_file(fileName):
