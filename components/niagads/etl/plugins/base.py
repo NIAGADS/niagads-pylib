@@ -414,7 +414,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         records = self.extract()
         processed_records = self.transform(records)
 
-        async with self._session_manager() as session:
+        session_ctx = self._session_manager() if not self.is_dry_run else nullcontext()
+        async with session_ctx as session:
             # Bulk: load all at once, ignore commit_after
             if self._mode == ETLMode.DRY_RUN:
                 try:
