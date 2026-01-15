@@ -29,6 +29,10 @@ def chromosomes_are_prefixed(file_name: str) -> bool:
         ).strip()
         == "1"
     )
+    
+    
+# TODO: debug -> this fails somewhere for large files, causing (when overwrite = True) an empty file
+# need to figure out why
 
 
 def bed_file_sort(file_name: str, header: bool, overwrite: bool = False):
@@ -61,7 +65,10 @@ def bed_file_sort(file_name: str, header: bool, overwrite: bool = False):
         + sorted_file_name
     )
 
-    execute_cmd(cmd, shell=True)
+    # Run the command and check for errors
+    result = execute_cmd(cmd, shell=True)
+    if not result.endswith("0"):
+        raise RuntimeError(f"bed_file_sort failed: {cmd}\nOutput: {result}")
 
     if overwrite:
         execute_cmd("mv " + sorted_file_name + " " + file_name, shell=True)
