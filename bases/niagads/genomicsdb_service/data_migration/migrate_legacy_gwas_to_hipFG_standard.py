@@ -30,6 +30,8 @@ from niagads.utils.logging import ExitOnExceptionHandler, async_timed
 from niagads.utils.string import dict_to_info_string, xstr
 from sqlalchemy import Row, RowMapping, bindparam, text
 
+logging.getLogger("ga4gh.vrs").setLevel(logging.ERROR)
+logging.getLogger("seqrepo").setLevel(logging.ERROR)
 
 QUERY_YIELD = 5000
 EXISTING_GWAS_FIELDS = qw(
@@ -159,18 +161,26 @@ class GWASDataMigrator(ComponentBaseMixin):
         await session.execute(
             text("SET statement_timeout = 86400000")
         )  # 24 hours in ms
+        
+        
+        row_count = 0
         try:
             result = await session.stream(
                 text(sql).execution_options(yield_per=self._query_yield),
                 {"id": dataset_id},
             )
+
+            # fetch_count = 0
             row: Row
             async for row in result:
-                # self.logger.info(f"{row}")  # DEBUG speed
+                row_count += 1
+                if row_count % 50000 == 0:
+                    self.logger.info(f"DATASET {dataset_id}: Retrieved {row_count}")
                 yield row._mapping
         except Exception as err:
-            self.logger.error("Error during db streaming", exc_info="True")
-            raise
+            self.logger.exception("Error during db streaming")
+        finally:
+            self.logger.info(f"DATASET {dataset_id}: Retrieved {row_count}")
 
     def standardize_stats(self, data: RowMapping, effect_sign_changed: bool = False):
         """
@@ -266,7 +276,6 @@ class GWASDataMigrator(ComponentBaseMixin):
             # print("\t".join([xstr(x, null_str="NULL") for x in values]), file=fh)
         except Exception as err:
             self.logger.exception("Error writing association", exc_info=True)
-            raise
 
     def verify_variant(
         self, variant: Variant, vrs_service: GA4GHVRSService
@@ -299,13 +308,9 @@ class GWASDataMigrator(ComponentBaseMixin):
                 if is_lifted:
                     # if this was lifted over and can't be verified against the
                     # genome, then no confidence so skip
-                    try:
-                        self.logger.warning(
-                            f"SKIPPING {variant.positional_id} - invalid liftover"
-                        )
-                    except:
-                        self.logger.info(data)
-                        raise
+                    self.logger.debug(
+                        f"SKIPPING {variant.positional_id} - invalid liftover"
+                    )
                     return None, None
                 else:
                     variant.unverified = True
@@ -335,7 +340,6 @@ class GWASDataMigrator(ComponentBaseMixin):
             return variant, standardize_statistics
         except Exception as err:
             self.logger.exception("Error transforming variant", exc_info=True)
-            raise
 
     # plus chromosome, position
     # variant_gwas_id	protocol_app_node_id	variant_record_primary_key	bin_index	neg_log10_pvalue	pvalue_display	frequency	allele	restricted_stats
@@ -383,11 +387,13 @@ class GWASDataMigrator(ComponentBaseMixin):
                         if variant is not None:
                             self.write_association(variant, standardized_stats, fh, pfh)
 
-            self.logger.info(f"DATASET {dataset_id}: Sorting {dataset_id} files.")
-            bed_file_sort(file_name, header=True, overwrite=not self._debug)
-            bed_file_sort(pvalue_file_name, header=True, overwrite=not self._debug)
+            # self.logger.info(f"DATASET {dataset_id}: Sorting {dataset_id} files.")
+            # something is wrong; do manually later
+            # use following to debug later:
+            # awk 'NR==1{print;next} {c=$1; if(c=="X")c=23; else if(c=="Y")c=24; else if(c=="M"||c=="MT")c=25; print c "\t" $0}' <file_name> | sort -T <working_dir> -k1,1n -k3,3n | cut -f2- > <file_name>.sorted
+            # bed_file_sort(file_name, header=True, overwrite=not self._debug)
+            # bed_file_sort(pvalue_file_name, header=True, overwrite=not self._debug)
         except Exception as err:
-
             self.logger.info(
                 f"DATASET {dataset_id}: Unexpected Error during processing"
             )
@@ -465,8 +471,6 @@ class GWASDataMigrator(ComponentBaseMixin):
 
         if self._test:
             self.logger.info("DONE WITH TEST")
-        else:
-            self.logger.info("SUCCESS")
 
 
 def main():
