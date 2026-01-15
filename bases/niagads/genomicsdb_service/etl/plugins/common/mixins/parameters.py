@@ -10,7 +10,7 @@ implementations.
 See project documentation for usage patterns and integration details.
 """
 
-from niagads.genomicsdb.models.reference.externaldb import ExternalDatabase
+from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 from pydantic import BaseModel, field_validator

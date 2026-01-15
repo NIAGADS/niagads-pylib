@@ -12,8 +12,8 @@ from niagads.common.models.composite_attributes.dataset import (
 from niagads.database.mixins import GenomicRegionMixin
 from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.database.sa_enum_utils import enum_column, enum_constraint
-from niagads.genomicsdb.models.dataset.base import DatasetSchemaBase
-from niagads.genomicsdb.models.reference.mixins import (
+from niagads.genomicsdb.schema.dataset.base import DatasetSchemaBase
+from niagads.genomicsdb.schema.reference.mixins import (
     ExternalDBMixin,
     OntologyTermMixin,
 )

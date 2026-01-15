@@ -1,7 +1,7 @@
 """`Gene` database model"""
 
 from niagads.database.mixins.ranges import GenomicRegionMixin
-from niagads.genomicsdb.models.gene.base import GeneSchemaBase
+from niagads.genomicsdb.schema.gene.base import GeneSchemaBase
 from niagads.utils.regular_expressions import RegularExpressions
 from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import JSONB

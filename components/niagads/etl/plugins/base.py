@@ -16,7 +16,7 @@ from niagads.etl.config import ETLMode
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport
 from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLTask
+from niagads.genomicsdb.schema.admin.pipeline import ETLOperation, ETLTask
 from niagads.utils.logging import FunctionContextLoggerWrapper
 
 
