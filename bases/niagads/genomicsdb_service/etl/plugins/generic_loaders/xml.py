@@ -15,7 +15,7 @@ from niagads.etl.plugins.parameters import (
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation
+from niagads.genomicsdb.schema.admin.pipeline import ETLOperation
 from pydantic import Field, ConfigDict, BaseModel, computed_field
 from sqlalchemy import text
 import importlib.resources
@@ -141,7 +141,7 @@ class XMLRecordLoader(AbstractBasePlugin):
     @property
     def operation(self):
         # Use the appropriate ETLOperation for your use case
-        from niagads.genomicsdb.models.admin.pipeline import ETLOperation
+        from niagads.genomicsdb.schema.admin.pipeline import ETLOperation
 
         return ETLOperation.LOAD  # insert or update
 

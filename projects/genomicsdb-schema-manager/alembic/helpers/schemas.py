@@ -5,11 +5,11 @@ from enum import Enum
 # note the schema base is imported from `core`, which contains both the base and the models
 # not `base`, which just defines the base; this ensures all tables are generated
 # see https://stackoverflow.com/a/77767002
-from niagads.genomicsdb.models.admin.core import AdminSchemaBase
-from niagads.genomicsdb.models.dataset.core import DatasetSchemaBase
-from niagads.genomicsdb.models.gene.core import GeneSchemaBase
-from niagads.genomicsdb.models.reference.core import ReferenceSchemaBase
-from niagads.genomicsdb.models.variant.core import VariantSchemaBase
+from niagads.genomicsdb.schema.admin.core import AdminSchemaBase
+from niagads.genomicsdb.schema.dataset.core import DatasetSchemaBase
+from niagads.genomicsdb.schema.gene.core import GeneSchemaBase
+from niagads.genomicsdb.schema.reference.core import ReferenceSchemaBase
+from niagads.genomicsdb.schema.variant.core import VariantSchemaBase
 from sqlalchemy import Connection, MetaData, Table, event
 from sqlalchemy.orm import DeclarativeBase
 

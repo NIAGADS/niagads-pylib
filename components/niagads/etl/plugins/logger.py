@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Union
 from niagads.enums.common import ProcessStatus
 from niagads.etl.config import ETLMode
 from niagads.etl.plugins.parameters import BasePluginParams
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation
+from niagads.genomicsdb.schema.admin.pipeline import ETLOperation
 from niagads.utils.logging import LOG_FORMAT_STR
 from pydantic import BaseModel
 
