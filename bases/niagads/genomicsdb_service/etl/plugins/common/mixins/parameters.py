@@ -89,4 +89,4 @@ class ExternalDatabaseRefMixin:
         References:
             See QueryMixin.get_primary_key for implementation details and error handling.
         """
-        return ExternalDatabase.get_primary_key(session, self.xdbref_to_dict())
+        return ExternalDatabase.find_primary_key(session, self.xdbref_to_dict())
