@@ -42,6 +42,7 @@ class Track(OntologyTermMixin, ExternalDBMixin, DatasetSchemaBase):
             },
         ),
     )
+    stable_id = "track_id"
 
     track_metadata_entry_id: Mapped[int] = mapped_column(
         primary_key=True, autoincrement=True
