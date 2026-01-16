@@ -30,13 +30,13 @@ class ETLOperation(CaseInsensitiveEnum):
     SKIP = auto()
 
 
-class ETLTask(AdminSchemaBase):
-    __tablename__ = "etltask"
+class ETLRun(AdminSchemaBase):
+    __tablename__ = "etlrun"
     __table_args__ = (
         enum_constraint("status", ProcessStatus),
         enum_constraint("operation", ETLOperation),
     )
-    task_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    etl_run_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     plugin_name: Mapped[str] = mapped_column(String(150), nullable=False)
     code_version: Mapped[str] = mapped_column(String(50), nullable=True)
@@ -44,7 +44,6 @@ class ETLTask(AdminSchemaBase):
     message: Mapped[str] = mapped_column(Text)  # free-text errors/info
     status: Mapped[str] = enum_column(ProcessStatus, nullable=False)
     operation: Mapped[str] = enum_column(ETLOperation, nullable=False)
-    run_id: Mapped[str] = mapped_column(String(64), nullable=True, index=True)
 
     # Timing + metrics
     start_time: Mapped[datetime] = mapped_column(DateTime, default=func.now())

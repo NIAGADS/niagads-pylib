@@ -2,4 +2,4 @@
 # see https://stackoverflow.com/a/77767002
 
 from niagads.genomicsdb.schema.admin.base import AdminSchemaBase
-from niagads.genomicsdb.schema.admin.pipeline import ETLTask
+from niagads.genomicsdb.schema.admin.pipeline import ETLRun

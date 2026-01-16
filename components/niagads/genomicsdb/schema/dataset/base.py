@@ -3,8 +3,9 @@ Base class for the `Dataset` schema models in the genomicsdb database.
 Uses DeclarativeModelBaseFactory to create a SQLAlchemy DeclarativeBase with housekeeping fields.
 """
 
-from niagads.genomicsdb.schema.base.factory import DeclarativeModelBaseFactory
+from niagads.genomicsdb.schema.base import DeclarativeTableBase
+from sqlalchemy import MetaData
 
-DatasetSchemaBase = DeclarativeModelBaseFactory.create(
-    schema="dataset", incl_housekeeping=True
-)
+
+class DatasetSchemaBase(DeclarativeTableBase):
+    metadata = MetaData(schema="dataset")

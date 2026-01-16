@@ -1,11 +1,38 @@
+from datetime import datetime
 from typing import Any, Dict, Union
 
-from sqlalchemy import exists, inspect, select
-from sqlalchemy.exc import NoResultFound, MultipleResultsFound
+from niagads.database.mixins.serialization import ModelDumpMixin
+from sqlalchemy import DATETIME, exists, func, inspect, select
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql.schema import ForeignKey
+from sqlalchemy import MetaData
+from sqlalchemy.orm import DeclarativeBase
 
 
-class QueryMixin:
+class HousekeepingMixin(object):
+    """
+    Mixin providing common housekeeping fields for database models:
+    - run_id: Foreign key to Core.ETLLog table
+    - modification_date: Timestamp of last modification
+    - is_private: Boolean flag for privacy
+    """
+
+    run_id: Mapped[int] = mapped_column(
+        ForeignKey("admin.etloperationslog.etl_run_id"),
+        nullable=False,
+        index=True,
+    )
+    modification_date: Mapped[datetime] = mapped_column(
+        DATETIME,
+        server_default=func.now(),
+        nullable=False,
+    )
+    # is_private: Mapped[bool] = mapped_column(nullable=True, index=True)
+
+
+class RecordLookupMixin:
     @classmethod
     async def exists(cls, session: AsyncSession, fields: Dict[str, Any]) -> bool:
         """
@@ -47,3 +74,11 @@ class QueryMixin:
                 f"Multiple records found for {fields} in {cls.__name__}"
             )
         return rows[0][0]
+
+
+class DeclarativeTableBase(
+    DeclarativeBase, ModelDumpMixin, HousekeepingMixin, RecordLookupMixin
+): ...
+
+
+class DeclarativeMaterializedViewBase(DeclarativeBase, ModelDumpMixin): ...
