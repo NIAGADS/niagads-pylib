@@ -122,8 +122,8 @@ class Transcript(GeneSchemaBase, GenomicRegionMixin):
     )
 
     transcript_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    ensembl_id: Mapped[str] = mapped_column(uniuqe=True, index=True)
-    gene_id: Mapped[int] = mapped_column(ForeignKey("gene.model.gene_id"), index=True)
+    ensembl_id: Mapped[str] = mapped_column(unique=True, index=True)
+    gene_id: Mapped[int] = mapped_column(ForeignKey("gene.gene.gene_id"), index=True)
 
 
 class Exon(GeneSchemaBase, GenomicRegionMixin):
@@ -136,8 +136,8 @@ class Exon(GeneSchemaBase, GenomicRegionMixin):
     )
 
     exon_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    ensembl_id: Mapped[str] = mapped_column(uniuqe=True, index=True)
-    gene_id: Mapped[int] = mapped_column(ForeignKey("gene.model.gene_id"), index=True)
+    ensembl_id: Mapped[str] = mapped_column(unique=True, index=True)
+    gene_id: Mapped[int] = mapped_column(ForeignKey("gene.gene.gene_id"), index=True)
     transcript_id: Mapped[int] = mapped_column(
-        ForeignKey("gene.model.transcript_id"), index=True
+        ForeignKey("gene.transcript.transcript_id"), index=True
     )
