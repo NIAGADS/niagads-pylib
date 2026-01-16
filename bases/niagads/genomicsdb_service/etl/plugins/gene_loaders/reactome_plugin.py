@@ -23,9 +23,9 @@ COLUMN_NAMES = [
 
 class GenePathwayAnnotation(BaseModel):
     id: str = Field(alias="gene_id")
-    pathway_id: str = Field(alias="pathway_id")
-    pathway_name: str = Field(alias="pathway_name")
-    evidence_code: str = Field(alias="evidence_code")
+    pathway_id: str
+    pathway_name: str
+    evidence_code: str
 
     model_config = {"extra": "ignore"}
 
