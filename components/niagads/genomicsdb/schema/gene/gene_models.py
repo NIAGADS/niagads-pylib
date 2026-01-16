@@ -25,7 +25,7 @@ class GeneIdentifierType(CaseInsensitiveEnum):
     UNIPROT = "uniprot_id"
     OMIM = "omim_id"
     UCSC = "ucsc_id"
-    REFSQ = "refseq_id"
+    REFSEQ = "refseq_id"
     # TODO: orthologs?
 
 
