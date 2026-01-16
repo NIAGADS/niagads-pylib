@@ -3,7 +3,7 @@
 from typing import Self, cast
 from niagads.database.mixins.ranges import GenomicRegionMixin
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.genomicsdb.schema.gene.base import GeneSchemaBase
+from niagads.genomicsdb.schema.gene.base import GeneTableBase
 from niagads.utils.regular_expressions import RegularExpressions
 from sqlalchemy import String, select
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
@@ -29,7 +29,7 @@ class GeneIdentifierType(CaseInsensitiveEnum):
     # TODO: orthologs?
 
 
-class Gene(GeneSchemaBase, GenomicRegionMixin):
+class Gene(GeneTableBase, GenomicRegionMixin):
     __tablename__ = "gene"
     __table_args__ = (
         CheckConstraint(
@@ -46,9 +46,8 @@ class Gene(GeneSchemaBase, GenomicRegionMixin):
     synonyms: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=True)
     cytogenic_location: str = mapped_column(String(100), index=True)
     external_ids: Mapped[dict] = mapped_column(JSONB, nullable=True)
-    # model_data_source: Mapped[int]
-    # nomenclature_data_source: Mapped[int]
-    # external_database_id: Mapped[list]
+    # model_data_source: Mapped[int] = external_database_id_column()
+    # nomenclature_data_source: Mapped[int] = external_database_id_column()
 
     async def resolve_identifier(
         self, session: AsyncSession, id: str, gene_identifier_type: GeneIdentifierType
@@ -112,7 +111,7 @@ class Gene(GeneSchemaBase, GenomicRegionMixin):
             return {"gene_id": record.gene_id, "ensembl_id": record.ensembl_id}
 
 
-class Transcript(GeneSchemaBase, GenomicRegionMixin):
+class Transcript(GeneTableBase, GenomicRegionMixin):
     __tablename__ = "transcript"
     __table_args__ = (
         CheckConstraint(
@@ -126,7 +125,7 @@ class Transcript(GeneSchemaBase, GenomicRegionMixin):
     gene_id: Mapped[int] = mapped_column(ForeignKey("gene.gene.gene_id"), index=True)
 
 
-class Exon(GeneSchemaBase, GenomicRegionMixin):
+class Exon(GeneTableBase, GenomicRegionMixin):
     __tablename__ = "exon"
     __table_args__ = (
         CheckConstraint(
