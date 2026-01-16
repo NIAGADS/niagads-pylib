@@ -51,7 +51,7 @@ class Gene(GeneSchemaBase, GenomicRegionMixin):
     # external_database_id: Mapped[list]
 
     async def resolve_identifier(
-        self, id: str, gene_identifier_type: GeneIdentifierType, session: AsyncSession
+        self, session: AsyncSession, id: str, gene_identifier_type: GeneIdentifierType
     ):
         """
         Resolve a gene record by a given identifier and identifier type.
@@ -86,7 +86,7 @@ class Gene(GeneSchemaBase, GenomicRegionMixin):
         """
         if gene_identifier_type == GeneIdentifierType.ENSEMBL:
             record: Self = cast(
-                Self, await super().find_record({"ensembl_id": id.upper()})
+                Self, await super().find_record(session, {"ensembl_id": id.upper()})
             )
             return {"gene_id": record.gene_id, "ensembl_id": record.ensembl_id}
         if gene_identifier_type == GeneIdentifierType.SYMBOL:
