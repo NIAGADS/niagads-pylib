@@ -39,7 +39,7 @@ class Gene(GeneSchemaBase, GenomicRegionMixin):
     )
 
     gene_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    ensembl_id: Mapped[str] = mapped_column(uniuqe=True, index=True)
+    ensembl_id: Mapped[str] = mapped_column(unique=True, index=True)
     symbol: Mapped[str] = mapped_column(String(50))
     name: Mapped[str] = mapped_column(String(250))
     gene_type: Mapped[str] = mapped_column(String(150))
