@@ -88,12 +88,12 @@ class LookupTableMixin(
                 and allow_multiple is False.
 
         Example:
-            await Model.get_primary_key(session, {"field1": value1})
+            await Model.find_primary_key(session, {"field1": value1})
         """
         mapper = inspect(cls)
         if len(mapper.primary_key) != 1:
             raise NotImplementedError(
-                "`get_primary_key` only supports single-column primary keys."
+                "`find_primary_key` only supports single-column primary keys."
             )
         pk_col = mapper.primary_key[0].name
 
@@ -145,7 +145,7 @@ class LookupTableMixin(
                 and allow_multiple is False.
 
         Example:
-            await Model.get_stable_id(session, {"field1": value1})
+            await Model.find_stable_id(session, {"field1": value1})
         """
         stable_id_field = getattr(cls, "stable_id", None)
         if stable_id_field is None:
