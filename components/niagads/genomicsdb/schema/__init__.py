@@ -1,1 +1,4 @@
-from niagads.genomicsdb.schema.base.factory import DeclarativeModelBaseFactory
+from niagads.genomicsdb.schema.base import (
+    DeclarativeTableBase,
+    DeclarativeMaterializedViewBase,
+)
