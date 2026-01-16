@@ -1,5 +1,6 @@
 """Database session management"""
 
+from contextlib import asynccontextmanager
 import logging
 from asyncio import current_task
 
@@ -16,6 +17,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 CONNECTION_POOL_SIZE = 10
+POOL_RECYCLE = 1800  # 30 minutes
 
 
 class DatabaseSessionManager:
@@ -27,6 +29,7 @@ class DatabaseSessionManager:
         self,
         connection_string: str,
         pool_size: int = CONNECTION_POOL_SIZE,
+        max_connection_lifetime: int = POOL_RECYCLE,
         echo: bool = False,
     ):
         """Initialize DatabaseSessionManager object.
@@ -41,7 +44,7 @@ class DatabaseSessionManager:
             pool_size=pool_size,  # Maximum number of permanent connections to maintain in the pool
             max_overflow=10,  # Maximum number of additional connections that can be created if the pool is exhausted
             pool_timeout=30,  # Number of seconds to wait for a connection if the pool is exhausted
-            pool_recycle=1800,  # Maximum age (in seconds) of connections that can be reused
+            pool_recycle=max_connection_lifetime,  # Maximum lifetime (in seconds) of a connection before it is closed and replaced (prevents stale connections)
         )
 
         self.__sessionMaker: async_sessionmaker = async_sessionmaker(bind=self.__engine)
@@ -103,24 +106,50 @@ class DatabaseSessionManager:
             raise Exception("DatabaseSessionManager is not initialized")
         await self.__engine.dispose()
 
+    @asynccontextmanager
+    async def session_ctx(self):
+        """
+        Provide an async context manager for a SQLAlchemy async session.
+
+        Yields:
+            AsyncSession: An active SQLAlchemy async session.
+
+        Raises:
+            RuntimeError: If the session manager is not initialized.
+
+        Example:
+            async with manager.session_ctx() as session:
+                await session.execute(...)
+        """
+        session: AsyncSession  # annotated type hint
+        async with self.__session() as session:
+            if session is None:
+                raise RuntimeError("DatabaseSessionManager is not initialized")
+            try:
+                yield session
+
+            finally:
+                if hasattr(session, "in_transaction") and session.in_transaction():
+                    await session.rollback()
+                if session.is_active:
+                    await session.close()
+
     async def __call__(self):
-        """Provide an async database session as a context manager.
+        """Provide an async database session; cannot be used as a context manager.
 
         Yields:
             AsyncSession: The SQLAlchemy async session.
 
         Raises:
-            NotImplementedError: If an abstract method is not implemented.
             OSError: For database connection errors.
-            RuntimeError: For unexpected errors.
+            RuntimeError: For errors propogated up from calling functions.
         """
         session: AsyncSession  # annotated type hint
         async with self.__session() as session:
             if session is None:
-                raise Exception("DatabaseSessionManager is not initialized")
+                raise RuntimeError("DatabaseSessionManager is not initialized")
 
             try:
-                # await session.execute(text("SELECT 1"))
                 yield session
 
             except (

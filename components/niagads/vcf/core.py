@@ -1,5 +1,5 @@
 from typing import Any, List, Self, Union
-from niagads.assembly.core import Human
+from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.utils.dict import info_string_to_dict
 from niagads.utils.string import to_json
 from pydantic import BaseModel
@@ -60,7 +60,7 @@ class VCFEntry(BaseModel):
     @classmethod
     def from_cyvcf2_variant(cls, variant: Variant) -> Self:
         return cls(
-            chrom=str(Human(str(variant.CHROM))),
+            chrom=str(HumanGenome(str(variant.CHROM))),
             pos=variant.POS,
             id=variant.ID or ".",
             ref=variant.REF,

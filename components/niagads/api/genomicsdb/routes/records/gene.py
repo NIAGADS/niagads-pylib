@@ -12,7 +12,7 @@ from niagads.api.common.models.features.gene import (
     GeneAnnotationResponse,
     GeneResponse,
 )
-from niagads.api.common.models.features.genomic import GenomicFeature
+from niagads.genomics.features.core import GenomicFeature
 from niagads.api.common.models.records import Entity
 from niagads.api.common.models.response.core import RecordResponse
 from niagads.api.common.models.services.query import QueryFilter

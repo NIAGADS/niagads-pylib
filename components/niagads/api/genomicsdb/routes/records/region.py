@@ -4,7 +4,7 @@ from niagads.api.common.config import Settings
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.annotations.regions import RegionVariant
 from niagads.api.common.models.features.gene import RegionGene
-from niagads.api.common.models.features.genomic import (
+from niagads.api.common.models.features.region import (
     GenomicFeature,
     GenomicRegion,
     RegionResponse,

@@ -7,7 +7,7 @@ from niagads.common.models.composite_attributes.gene import (
 from niagads.api.common.models.core import RowModel
 from niagads.api.common.models.response.core import RecordResponse
 from pydantic import Field
-from niagads.api.common.models.features.genomic import GenomicRegion
+from niagads.api.common.models.features.region import GenomicRegion
 
 
 # FIXME: this needs to be a common.model without the RowModel b/c it is used in

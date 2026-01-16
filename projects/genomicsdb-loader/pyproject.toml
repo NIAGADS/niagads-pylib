@@ -23,14 +23,16 @@ version = "0.1.0"
 [project.scripts]
 gdbpexec = "niagads.pipeline_service.runners.core:run_main"
 gdbpexec-plugin = "niagads.pipeline_service.runners.plugin:run_main"
+gwas-migration = "niagads.genomicsdb_service.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
 filer-metadata-loader = "niagads.loaders.genomicsdb.schemas.metadata.filer:run_main"
 
 [tool.poetry]
 packages = [
     { from = "../../bases", include = "niagads/genomicsdb_service/etl" },
     { from = "../../bases", include = "niagads/pipeline_service/runners" },
+    { from = "../../bases", include = "niagads/genomicsdb_service/data_migration" },
     { from = "../../components", include = "niagads/arg_parser" },
-    { from = "../../components", include = "niagads/assembly" },
+    { from = "../../components", include = "niagads/genomics" },
     { from = "../../components", include = "niagads/cache" },
     { from = "../../components", include = "niagads/common" },
     { from = "../../components", include = "niagads/database" },
@@ -42,12 +44,9 @@ packages = [
     { from = "../../components", include = "niagads/requests" },
     { from = "../../components", include = "niagads/settings" },
     { from = "../../components", include = "niagads/utils" },
-    {include = "niagads/api",from = "../../components"},
+    { include = "niagads/api", from = "../../components" },
 ]
 
-# [tool.poetry.virtualenvs]
-# path = ".venv"
-# in-project = true
 
 [tool.tomlsort]
 all = true

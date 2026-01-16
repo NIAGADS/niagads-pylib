@@ -1,11 +1,14 @@
+import asyncio
 import inspect
 import logging
 from functools import wraps
 from time import perf_counter
 from typing import Any
+
 from typing_extensions import deprecated
 
 LOG_FORMAT_STR: str = "%(asctime)s %(levelname)-8s %(message)s"
+
 
 class FunctionContextLoggerWrapper:
     """
@@ -45,11 +48,13 @@ class FunctionContextLoggerWrapper:
     def __getattr__(self, name: str):
         attr = getattr(self._logger, name)
         if callable(attr):
+
             def wrapper(*args, **kwargs):
                 if args and isinstance(args[0], str):
                     prefix = self._get_calling_context()
                     args = (prefix + args[0],) + args[1:]
                 return attr(*args, **kwargs)
+
             wrapper.__name__ = name
             wrapper.__doc__ = attr.__doc__
             return wrapper
@@ -189,26 +194,33 @@ class ExitOnCriticalExceptionHandler(logging.Handler):
             raise SystemExit(-1)
 
 
-def timed(fn):
-    """decorator for timing a function call"""
+def _timed(fn):
+    """Universal timing decorator for sync and async functions"""
 
     @wraps(fn)
-    def wrapper(*args, **kwargs):
+    def sync_wrapper(*args, **kwargs):
         logger = logging.getLogger(fn.__name__)
         start = perf_counter()
-        logger.debug("Entering %s" % fn.__name__)
-
+        logger.debug(f"Entering {fn.__name__}")
         result = fn(*args, **kwargs)
-
-        elapsed = start - perf_counter()
-        logger.debug(
-            "Exiting %s" % fn.__name__
-            + "ELAPSED TIME: "
-            + f"Elapsed time: {elapsed:0.4f} seconds"
-        )
-
-        # Return the return value
+        elapsed = perf_counter() - start
+        logger.debug(f"Exiting {fn.__name__} ELAPSED TIME: {elapsed:0.4f} seconds")
         return result
 
-    return wrapper
+    @wraps(fn)
+    async def async_wrapper(*args, **kwargs):
+        logger = logging.getLogger(fn.__name__)
+        start = perf_counter()
+        logger.debug(f"Entering {fn.__name__}")
+        result = await fn(*args, **kwargs)
+        elapsed = perf_counter() - start
+        logger.debug(f"Exiting {fn.__name__} ELAPSED TIME: {elapsed:0.4f} seconds")
+        return result
 
+    if asyncio.iscoroutinefunction(fn):
+        return async_wrapper
+    return sync_wrapper
+
+
+timed = _timed
+async_timed = _timed

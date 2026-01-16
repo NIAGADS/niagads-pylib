@@ -3,8 +3,8 @@ from typing import List, Union
 from aiohttp import ClientSession
 from niagads.api.common.models.datasets.track import TrackResultSize
 from niagads.api.common.models.features.bed import BEDFeature
-from niagads.assembly.core import Assembly
 from niagads.enums.core import CaseInsensitiveEnum
+from niagads.genomics.sequence.assembly import Assembly
 from pydantic import BaseModel
 
 

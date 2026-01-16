@@ -7,7 +7,7 @@ from niagads.api.common.models.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,
 )
-from niagads.api.common.models.features.genomic import (
+from niagads.api.common.models.features.region import (
     AnnotatedGenomicRegion,
     GenomicRegion,
 )
@@ -30,7 +30,7 @@ from niagads.api.genomicsdb.queries.track_data import (
 from niagads.common.models.structures import Range
 from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.exceptions.core import ValidationError
-from niagads.genomicsdb.models.dataset.track import Track
+from niagads.genomicsdb.schema.dataset.track import Track
 from niagads.utils.dict import all_values_are_none
 from pydantic import BaseModel
 from sqlalchemy.exc import NoResultFound
