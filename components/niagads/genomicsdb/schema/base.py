@@ -13,7 +13,7 @@ from sqlalchemy.orm import DeclarativeBase
 class HousekeepingMixin(object):
     """
     Mixin providing common housekeeping fields for database models:
-    - run_id: Foreign key to Core.ETLTask table
+    - run_id: Foreign key to Core.ETLRun table
     - modification_date: Timestamp of last modification
     - is_private: Boolean flag for privacy
     """
