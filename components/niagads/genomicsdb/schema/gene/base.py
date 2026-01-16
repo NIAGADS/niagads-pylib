@@ -10,9 +10,12 @@ from niagads.genomicsdb.schema.base import (
 from sqlalchemy import MetaData
 
 
-class GeneSchemaBase(DeclarativeTableBase):
+class GeneMetadataMixin:
     metadata = MetaData(schema="gene")
+    stable_id = "ensembl_id"
 
 
-class GeneMaterializedViewBase(DeclarativeMaterializedViewBase):
-    metadata = MetaData(schema="gene")
+class GeneSchemaBase(DeclarativeTableBase, GeneMetadataMixin): ...
+
+
+class GeneMaterializedViewBase(DeclarativeMaterializedViewBase, GeneMetadataMixin): ...
