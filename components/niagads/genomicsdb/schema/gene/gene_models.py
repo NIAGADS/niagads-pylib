@@ -20,7 +20,7 @@ class GeneIdentifierType(CaseInsensitiveEnum):
     ENSEMBL = "ensembl_id"
     ENTREZ = "entrez_id"
     NCBI = "entrez_id"
-    SYMBOL = "gene_synmbol"
+    SYMBOL = "gene_symbol"
     HGNC = "hgnc_id"
     UNIPROT = "uniprot_id"
     OMIM = "omim_id"
