@@ -21,7 +21,7 @@ from niagads.etl.plugins.parameters import (
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation
+from niagads.genomicsdb.schema.admin.pipeline import ETLOperation
 from niagads.genomicsdb_service.etl.plugins.db_helpers.ontologies import (
     AnnotationPropertyIRI,
     EntityIRI,

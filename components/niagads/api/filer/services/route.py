@@ -25,7 +25,7 @@ from niagads.api.filer.services.wrapper import (
 from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.exceptions.core import ValidationError
 from niagads.genomics.features.core import GenomicFeature, GenomicFeatureType
-from niagads.genomicsdb.models.dataset.track import Track
+from niagads.genomicsdb.schema.dataset.track import Track
 from niagads.utils.list import chunker, cumulative_sum
 from pydantic import BaseModel
 

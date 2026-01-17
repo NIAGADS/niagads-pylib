@@ -30,8 +30,10 @@ from niagads.utils.logging import ExitOnExceptionHandler, async_timed
 from niagads.utils.string import dict_to_info_string, xstr
 from sqlalchemy import Row, RowMapping, bindparam, text
 
+logging.getLogger("ga4gh.vrs").setLevel(logging.ERROR)
+logging.getLogger("seqrepo").setLevel(logging.ERROR)
 
-QUERY_YIELD = 50000
+QUERY_YIELD = 5000
 EXISTING_GWAS_FIELDS = qw(
     "variant_record_primary_key neg_log10_pvalue pvalue_display frequency allele restricted_stats chromosome position"
 )
@@ -112,6 +114,7 @@ class GWASDataMigrator(ComponentBaseMixin):
         accession: str,
         output_dir: str,
         max_workers: int,
+        query_yield: int,
         test: bool = False,
         debug: bool = False,
         verbose: bool = False,
@@ -125,6 +128,7 @@ class GWASDataMigrator(ComponentBaseMixin):
         self._test = test
         self._max_workers = max_workers
         self._connection_string = connection_string
+        self._query_yield = query_yield
 
         self.logger.info(f"Initializing Data Migrator using: {connection_string}")
 
@@ -152,19 +156,31 @@ class GWASDataMigrator(ComponentBaseMixin):
         """
 
         if self._test:
-            sql += f" LIMIT {QUERY_YIELD}"
+            sql += f" LIMIT {self._query_yield}"
 
-        # await session.execute(
-        #    text("SET statement_timeout = 7200000")
-        # )  # 2 hours in ms
-        result = await session.stream(
-            text(sql).execution_options(yield_per=QUERY_YIELD),
-            {"id": dataset_id},
-        )
-        row: Row
-        async for row in result:
-            # self.logger.info(f"{row}")  # DEBUG speed
-            yield row._mapping
+        await session.execute(
+            text("SET statement_timeout = 86400000")
+        )  # 24 hours in ms
+        
+        
+        row_count = 0
+        try:
+            result = await session.stream(
+                text(sql).execution_options(yield_per=self._query_yield),
+                {"id": dataset_id},
+            )
+
+            # fetch_count = 0
+            row: Row
+            async for row in result:
+                row_count += 1
+                if row_count % 50000 == 0:
+                    self.logger.info(f"DATASET {dataset_id}: Retrieved {row_count}")
+                yield row._mapping
+        except Exception as err:
+            self.logger.exception("Error during db streaming")
+        finally:
+            self.logger.info(f"DATASET {dataset_id}: Retrieved {row_count}")
 
     def standardize_stats(self, data: RowMapping, effect_sign_changed: bool = False):
         """
@@ -214,47 +230,52 @@ class GWASDataMigrator(ComponentBaseMixin):
     def write_association(self, variant: Variant, stats, fh, pfh):
         # "chrom position variant_id ref alt pval OR z_score effect_size effect_size_se non_ref_af rsid source_info QC_flags"
         # self.logger.info(f"writing {variant}")  # DEBUG speed
-        flags = []
-        if variant.effect_sign_change:
-            flags.append("EFFECT_STATS_SIGN_CHANGED")
-            if self._verbose:
-                self.logger.debug(f"EFFECT_STATS_SIGN_CHANGED: {variant.positional_id}")
-        if variant.unverified:
-            flags.append("UNVERIFIED")
-            if self._verbose:
-                self.logger.debug(f"UNVERIFIED: {variant.positional_id}")
+        try:
+            flags = []
+            if variant.effect_sign_change:
+                flags.append("EFFECT_STATS_SIGN_CHANGED")
+                if self._verbose:
+                    self.logger.debug(
+                        f"EFFECT_STATS_SIGN_CHANGED: {variant.positional_id}"
+                    )
+            if variant.unverified:
+                flags.append("UNVERIFIED")
+                if self._verbose:
+                    self.logger.debug(f"UNVERIFIED: {variant.positional_id}")
 
-        # TODO other flags
-        values = [
-            variant.location.chromosome.value,
-            variant.location.start + 1,  # location are 0-based
-            variant.positional_id,
-            variant.ref,
-            variant.alt,
-            stats["pval"],
-            variant.ref_snp_id,
-            ",".join(flags) if flags else None,
-        ]
-        pfh.write("\t".join([xstr(x, null_str="NULL") for x in values]) + "\n")
+            # TODO other flags
+            values = [
+                variant.location.chromosome.value,
+                variant.location.start + 1,  # location are 0-based
+                variant.positional_id,
+                variant.ref,
+                variant.alt,
+                stats["pval"],
+                variant.ref_snp_id,
+                ",".join(flags) if flags else None,
+            ]
+            pfh.write("\t".join([xstr(x, null_str="NULL") for x in values]) + "\n")
 
-        values = [
-            variant.location.chromosome.value,
-            variant.location.start + 1,
-            variant.positional_id,
-            variant.ref,
-            variant.alt,
-            stats["pval"],
-            stats["OR"],
-            stats["z_score"],
-            stats["effect_size"],
-            stats["effect_size_se"],
-            stats["non_ref_af"],
-            variant.ref_snp_id,
-            stats["source_info"],
-            ",".join(flags) if flags else None,
-        ]
-        fh.write("\t".join([xstr(x, null_str="NULL") for x in values]) + "\n")
-        # print("\t".join([xstr(x, null_str="NULL") for x in values]), file=fh)
+            values = [
+                variant.location.chromosome.value,
+                variant.location.start + 1,
+                variant.positional_id,
+                variant.ref,
+                variant.alt,
+                stats["pval"],
+                stats["OR"],
+                stats["z_score"],
+                stats["effect_size"],
+                stats["effect_size_se"],
+                stats["non_ref_af"],
+                variant.ref_snp_id,
+                stats["source_info"],
+                ",".join(flags) if flags else None,
+            ]
+            fh.write("\t".join([xstr(x, null_str="NULL") for x in values]) + "\n")
+            # print("\t".join([xstr(x, null_str="NULL") for x in values]), file=fh)
+        except Exception as err:
+            self.logger.exception("Error writing association", exc_info=True)
 
     def verify_variant(
         self, variant: Variant, vrs_service: GA4GHVRSService
@@ -279,47 +300,46 @@ class GWASDataMigrator(ComponentBaseMixin):
     def transform(
         self, data: RowMapping, is_lifted: bool, vrs_service: GA4GHVRSService
     ):
-        variant: Variant = Variant.from_row(data)
-        validation_status = self.verify_variant(variant, vrs_service)
+        try:
+            variant: Variant = Variant.from_row(data)
+            validation_status = self.verify_variant(variant, vrs_service)
 
-        if validation_status == AlleleValidationStatus.INVALID:
-            if is_lifted:
-                # if this was lifted over and can't be verified against the
-                # genome, then no confidence so skip
-                try:
-                    self.logger.warning(
+            if validation_status == AlleleValidationStatus.INVALID:
+                if is_lifted:
+                    # if this was lifted over and can't be verified against the
+                    # genome, then no confidence so skip
+                    self.logger.debug(
                         f"SKIPPING {variant.positional_id} - invalid liftover"
                     )
-                except:
-                    self.logger.info(data)
-                    raise
-                return None, None
-            else:
-                variant.unverified = True
+                    return None, None
+                else:
+                    variant.unverified = True
 
-        if validation_status == AlleleValidationStatus.VALID_IF_SWAPPED:
-            if variant.variant_class == VariantClass.SNV:
-                if self._verbose:
-                    msg = "Swapping Alleles for {variant.positional_id}"
+            if validation_status == AlleleValidationStatus.VALID_IF_SWAPPED:
+                if variant.variant_class == VariantClass.SNV:
+                    if self._verbose:
+                        msg = "Swapping Alleles for {variant.positional_id}"
 
-                variant.swap_alleles()
-                if self._verbose:
-                    self.logger.debug(f"{msg} - {variant.positional_id}")
+                    variant.swap_alleles()
+                    if self._verbose:
+                        self.logger.debug(f"{msg} - {variant.positional_id}")
 
-            else:
-                # otherwise INDEL -> keep direction
-                variant.unverified = True
+                else:
+                    # otherwise INDEL -> keep direction
+                    variant.unverified = True
 
-        # this is where effect sign change gets flagged
-        variant.resolve_test_allele()
+            # this is where effect sign change gets flagged
+            variant.resolve_test_allele()
 
-        if self._verbose:
-            self.logger.debug(data)
+            if self._verbose:
+                self.logger.debug(data)
 
-        standardize_statistics = self.standardize_stats(
-            data, variant.effect_sign_change
-        )
-        return variant, standardize_statistics
+            standardize_statistics = self.standardize_stats(
+                data, variant.effect_sign_change
+            )
+            return variant, standardize_statistics
+        except Exception as err:
+            self.logger.exception("Error transforming variant", exc_info=True)
 
     # plus chromosome, position
     # variant_gwas_id	protocol_app_node_id	variant_record_primary_key	bin_index	neg_log10_pvalue	pvalue_display	frequency	allele	restricted_stats
@@ -344,7 +364,10 @@ class GWASDataMigrator(ComponentBaseMixin):
         )
         # not ideal, but hope solves dropped connection issue
         session_manager = DatabaseSessionManager(
-            connection_string=self._connection_string, echo=self._debug, pool_size=2
+            connection_string=self._connection_string,
+            echo=self._debug,
+            pool_size=2,
+            max_connection_lifetime=86400,  # 24hrs
         )
         try:
             with open(file_name, "w") as fh, open(pvalue_file_name, "w") as pfh:
@@ -364,9 +387,12 @@ class GWASDataMigrator(ComponentBaseMixin):
                         if variant is not None:
                             self.write_association(variant, standardized_stats, fh, pfh)
 
-            self.logger.info(f"DATASET {dataset_id}: Sorting {dataset_id} files.")
-            bed_file_sort(file_name, header=True, overwrite=not self._debug)
-            bed_file_sort(pvalue_file_name, header=True, overwrite=not self._debug)
+            # self.logger.info(f"DATASET {dataset_id}: Sorting {dataset_id} files.")
+            # something is wrong; do manually later
+            # use following to debug later:
+            # awk 'NR==1{print;next} {c=$1; if(c=="X")c=23; else if(c=="Y")c=24; else if(c=="M"||c=="MT")c=25; print c "\t" $0}' <file_name> | sort -T <working_dir> -k1,1n -k3,3n | cut -f2- > <file_name>.sorted
+            # bed_file_sort(file_name, header=True, overwrite=not self._debug)
+            # bed_file_sort(pvalue_file_name, header=True, overwrite=not self._debug)
         except Exception as err:
             self.logger.info(
                 f"DATASET {dataset_id}: Unexpected Error during processing"
@@ -445,8 +471,6 @@ class GWASDataMigrator(ComponentBaseMixin):
 
         if self._test:
             self.logger.info("DONE WITH TEST")
-        else:
-            self.logger.info("SUCCESS")
 
 
 def main():
@@ -470,6 +494,7 @@ def main():
     parser.add_argument("--max_workers", type=int, default=5)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--query_yield", type=int, default=QUERY_YIELD)
     parser.add_argument(
         "--list_datasets_only",
         action="store_true",
@@ -509,6 +534,7 @@ def main():
         dataset=args.dataset,
         accession=args.accession,
         output_dir=args.output_dir,
+        query_yield=args.query_yield,
         test=args.test,
         max_workers=args.max_workers,
         debug=args.debug,

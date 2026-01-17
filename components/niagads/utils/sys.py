@@ -285,7 +285,7 @@ def execute_cmd(
         raise RuntimeError(
             f"Command failed with code {result.returncode}: {result.stderr.strip()}"
         )
-    return result.stdout
+    return result.stdout.strip()
 
 
 def backup_file(fileName):

@@ -16,7 +16,7 @@ from niagads.etl.config import ETLMode
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport
 from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation, ETLTask
+from niagads.genomicsdb.schema.admin.pipeline import ETLOperation, ETLRun
 from niagads.utils.logging import FunctionContextLoggerWrapper
 
 
@@ -492,8 +492,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         if self._mode == ETLMode.DRY_RUN:
             return ETLMode.DRY_RUN
 
-        async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            task = ETLTask(
+        async with self._session_manager() as session:
+            task = ETLRun(
                 plugin_name=self._name,
                 code_version=self.version,
                 params=self._params.model_dump(),
