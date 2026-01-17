@@ -214,7 +214,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
     # ontology and may want to update the properties, when you load the source
     # need to create an update behavior to load better or missing property values
     # TODO: add xdbref vectors on duplicates (i.e., this term in multiple ontologies)
-    async def _load_term(self, session, term: OntologyTerm) -> ResumeCheckpoint:
+    async def _insert_term(self, term: OntologyTerm, session) -> ResumeCheckpoint:
         try:
             await term.insert(session)
             self.update_transaction_count(
@@ -228,7 +228,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
             self.update_transaction_count(ETLOperation.SKIP, "Reference.Ontology_term")
             return 0
 
-    async def _triple_exists(self, session, triple: OntologyTriple) -> bool:
+    async def _triple_exists(self, triple: OntologyTriple, session) -> bool:
         result = await session.execute(
             text(
                 """
@@ -241,7 +241,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
         )
         return bool(result.scalar())
 
-    async def _insert_triple(self, session, triple: OntologyTriple) -> ResumeCheckpoint:
+    async def _insert_triple(self, triple: OntologyTriple, session) -> ResumeCheckpoint:
         await session.execute(
             text(
                 """
@@ -255,8 +255,8 @@ class OntologyGraphLoader(AbstractBasePlugin):
             triple.model_dump(),
         )
 
-    async def _load_ontology_triple(self, session, triple: OntologyTriple) -> int:
-        if await self._triple_exists(session, triple):
+    async def _load_ontology_triple(self, triple: OntologyTriple, session) -> int:
+        if await self._triple_exists(triple, session):
             self.logger.warning(
                 f"Duplicate triple ({triple.subject}, {triple.predicate}, {triple.object}) skipped."
             )
@@ -269,16 +269,18 @@ class OntologyGraphLoader(AbstractBasePlugin):
             # keep track of placeholders and log at end if any placeholders weren't
             # updated
             for entity in ["subject", "object", "predicate"]:
-                term = getattr(triple, entity)
+                term: OntologyTerm = getattr(triple, entity)
+                if not await term.exists(session):
+                    await term.insert_placeholder(term, session)
 
-            await self._insert_triple(session, triple)
+            await self._insert_triple(triple, session)
             self.update_transaction_count(
                 ETLOperation.INSERT, "Reference.Ontology_triple"
             )
 
         return ResumeCheckpoint(full_record=triple)
 
-    async def load(self, transformed: Any) -> ResumeCheckpoint:
+    async def load(self, transformed: Any, session) -> ResumeCheckpoint:
         """
         Insert a single ontology term or triple record into the database using SQLAlchemy text queries.
         Args:
@@ -287,13 +289,12 @@ class OntologyGraphLoader(AbstractBasePlugin):
             ResumeCheckpoint
         """
 
-        async with self._session_manager() as session:
-            if isinstance(transformed, OntologyTerm):
-                return await self._load_term(session, transformed)
-            elif isinstance(transformed, OntologyTriple):
-                return await self._load_ontology_triple(session, transformed)
-            else:
-                raise TypeError(f"Unknown record type: {type(transformed)}")
+        if isinstance(transformed, OntologyTerm):
+            return await self._insert_term(transformed, session)
+        elif isinstance(transformed, OntologyTriple):
+            return await self._load_ontology_triple(transformed, session)
+        else:
+            raise TypeError(f"Unknown record type: {type(transformed)}")
 
     def on_run_complete(self) -> None:
         return None

@@ -1,13 +1,7 @@
-from niagads.common.models.ontology import (
-    OntologyTriple as __OntologyTriple,
-)
 from niagads.common.models.ontology import OntologyTerm as __OntologyTerm
+from niagads.common.models.ontology import OntologyTriple as __OntologyTriple
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.utils.string import (
-    dict_to_info_string,
-    jaccard_word_similarity,
-    to_snake_case,
-)
+from niagads.utils.string import jaccard_word_similarity
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
@@ -208,8 +202,8 @@ class OntologyTerm(__OntologyTerm):
 
         stmt = text(
             """
-            INSERT INTO Reference.Ontology.term (term_id, term_iri, term_category)
-            VALUES (:term_id, :term_iri, :term_category)
+            INSERT INTO Reference.Ontology.term (term_id, term_iri, run_id)
+            VALUES (:term_id, :term_iri, :run_id)
             """
         )
         await session.execute(
@@ -217,9 +211,52 @@ class OntologyTerm(__OntologyTerm):
             {
                 "term_id": self.term_id,
                 "term_iri": self.term_iri,
-                "term_category": str(self.term_category),
                 "is_placeholder": True,
+                "run_id": self.run_id,
             },
+        )
+
+    async def update_placeholder(self, session):
+        """
+        Update an existing placeholder ontology term with full details.
+        Only updates if is_placeholder is True and term_id matches.
+
+        Args:
+            session: SQLAlchemy async session.
+        """
+        stmt = text(
+            """
+            UPDATE Reference.Ontology.term
+            SET term_iri = :term_iri,
+                term = :term,
+                label = :label,
+                definition = :definition,
+                synonyms = :synonyms,
+                is_deprecated = :is_deprecated,
+                is_placeholder = FALSE,
+                run_id = :run_id
+            WHERE term_id = :term_id AND is_placeholder = TRUE
+            """
+        )
+        await session.execute(
+            stmt,
+            {
+                "term_id": self.term_id,
+                "term_iri": self.term_iri,
+                "term": self.term,
+                "label": self.label,
+                "definition": self.definition,
+                "synonyms": self.synonyms,
+                "is_deprecated": self.is_deprecated,
+                "run_id": self.run_id,
+            },
+        )
+
+    async def link_xdbref(self, xdbref_id: int, session):
+        stmt = text(
+            """
+            INSERT INTO Reference.Ontology.defined_in (SOURCE, DESTINATION, run_id)
+            """
         )
 
     async def insert(self, session):
@@ -239,10 +276,10 @@ class OntologyTerm(__OntologyTerm):
             """
             INSERT INTO Reference.Ontology.term (
                 term_id, term_iri, term, label, definition, synonyms,
-                is_obsolete, term_category
+                is_deprecated, run_id
             ) VALUES (
                 :term_id, :term_iri, :term, :label, :definition, :synonyms,
-                :is_obsolete, :term_category
+                :is_deprecated, :run_id
             )
             """
         )
