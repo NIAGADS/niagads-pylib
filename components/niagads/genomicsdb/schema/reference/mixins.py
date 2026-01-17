@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.schema import ForeignKey
 
 
-class ExternalDBMixin(object):
+class ExternalDatabaseMixin(object):
     """
     Mixin providing fields and a unique constraint for linking to an external database and source identifier.
 

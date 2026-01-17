@@ -4,6 +4,7 @@ from typing import Self, cast
 from niagads.database.mixins.ranges import GenomicRegionMixin
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomicsdb.schema.gene.base import GeneSchemaBase
+from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.utils.regular_expressions import RegularExpressions
 from sqlalchemy import String, select
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
@@ -29,7 +30,7 @@ class GeneIdentifierType(CaseInsensitiveEnum):
     # TODO: orthologs?
 
 
-class Gene(GeneSchemaBase, GenomicRegionMixin):
+class Gene(GeneSchemaBase, GenomicRegionMixin, ExternalDatabaseMixin):
     __tablename__ = "gene"
     __table_args__ = (
         CheckConstraint(
