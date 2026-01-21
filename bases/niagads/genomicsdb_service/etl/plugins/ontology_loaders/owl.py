@@ -21,15 +21,15 @@ from niagads.etl.plugins.parameters import (
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.schema.admin.pipeline import ETLOperation
-from niagads.genomicsdb_service.etl.plugins.db_helpers.ontologies import (
+from niagads.genomicsdb.schema.admin.etl import ETLOperation
+from niagads.genomicsdb_service.etl.plugins.common.models.ontologies import (
     AnnotationPropertyIRI,
     EntityIRI,
     RDFPropertyIRI,
     OntologyTerm,
     OntologyTriple,
 )
-from niagads.genomicsdb_service.etl.plugins.mixins.parameters import (
+from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
 from pydantic import Field
