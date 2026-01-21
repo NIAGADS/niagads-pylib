@@ -9,3 +9,4 @@ from sqlalchemy import MetaData
 
 class ReferenceSchemaBase(DeclarativeTableBase):
     metadata = MetaData(schema="reference")
+    stable_id = None
