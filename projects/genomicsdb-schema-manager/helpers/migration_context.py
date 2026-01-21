@@ -1,6 +1,6 @@
 from alembic import context
+from niagads.genomicsdb.schema.core import Schema
 from helpers.config import Settings
-from helpers.schemas import Schema
 from sqlalchemy import Connection, MetaData
 from typing import List, Any
 

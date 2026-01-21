@@ -40,10 +40,12 @@ class Assembly(CaseInsensitiveEnum):
     @classmethod
     def validate(cls, value, label: str, returnCls: CaseInsensitiveEnum):
         from niagads.exceptions.core import ValidationError
-        from niagads.api.common.utils import sanitize  # avoid circular import
+
+        # FIXME: sanitize is a API parameter need, should not be here
+        # from niagads.api.common.utils import sanitize  # avoid circular import
 
         try:
-            cls(sanitize(value))
+            # cls(sanitize(value))
             return returnCls(value)
         except Exception as err:
             raise ValidationError(

@@ -52,6 +52,9 @@ packages = [
     { from = "components", include = "niagads/utils" },
     { from = "components", include = "niagads/vcf" },
     { from = "components", include = "niagads/vep_json_parser" },
+    {include = "niagads/bed",from = "components"},
+    {include = "niagads/variant_annotator",from = "components"},
+    {include = "niagads/assembly",from = "components"},
 ]
 include = [
     { path = "bases/niagads/genomicsdb_service/etl/plugins/validators/*.json" },
@@ -99,6 +102,7 @@ hgvs = { git = "https://github.com/NIAGADS/hgvs.git", rev = "NIAGADS" }
 ga4gh-vrs = { extras = [
     "extras",
 ], version = "^2.2.0" }
+pgvector = "^0.4.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"

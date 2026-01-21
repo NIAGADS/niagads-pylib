@@ -45,6 +45,7 @@ packages = [
     { from = "../../components", include = "niagads/settings" },
     { from = "../../components", include = "niagads/utils" },
     { include = "niagads/api", from = "../../components" },
+    {include = "niagads/assembly",from = "../../components"},
 ]
 
 

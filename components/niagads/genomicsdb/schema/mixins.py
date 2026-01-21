@@ -1,13 +1,13 @@
 from datetime import datetime
 from typing import Any, Dict, Union
 
+from niagads.database.mixins.columns import datetime_column
 from niagads.database.mixins.serialization import ModelDumpMixin
-from sqlalchemy import DATETIME, exists, func, inspect, select
+from sqlalchemy import exists, inspect, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql.schema import ForeignKey
-from sqlalchemy.orm import DeclarativeBase
 
 
 class HousekeepingMixin(object):
@@ -19,15 +19,12 @@ class HousekeepingMixin(object):
     """
 
     run_id: Mapped[int] = mapped_column(
-        ForeignKey("admin.etloperationslog.etl_run_id"),
+        ForeignKey("admin.eltrun.etl_run_id"),
         nullable=False,
         index=True,
     )
-    modification_date: Mapped[datetime] = mapped_column(
-        DATETIME,
-        server_default=func.now(),
-        nullable=False,
-    )
+    creation_date: Mapped[datetime] = datetime_column()
+    modification_date: Mapped[datetime] = datetime_column()
     # is_private: Mapped[bool] = mapped_column(nullable=True, index=True)
 
 
@@ -35,6 +32,7 @@ class LookupTableMixin(
     DeclarativeBase,
     ModelDumpMixin,
 ):
+    __abstract__ = True
     stable_id: str = None
 
     @classmethod
@@ -69,6 +67,11 @@ class LookupTableMixin(
         """
         Return the primary key value(s) for records matching given filter criteria.
 
+        If the mapped class does not define a primary key (e.g., for a materialized
+        view or document), this method will use the class attribute
+        `document_primary_key` if it is set. Otherwise, a NotImplementedError is
+        raised.
+
         Args:
             session (AsyncSession): SQLAlchemy async session.
             filters (Dict[str, Any]): Dictionary of field-value pairs to filter
@@ -82,7 +85,8 @@ class LookupTableMixin(
                 matches are found.
 
         Raises:
-            NotImplementedError: If the primary key is not a single column.
+            NotImplementedError: If the primary key is not a single column or
+                if no primary key is defined and `document_primary_key` is not set.
             NoResultFound: If no record matches the filter criteria.
             MultipleResultsFound: If multiple records match the filter criteria
                 and allow_multiple is False.
@@ -91,11 +95,22 @@ class LookupTableMixin(
             await Model.find_primary_key(session, {"field1": value1})
         """
         mapper = inspect(cls)
-        if len(mapper.primary_key) != 1:
+        if len(mapper.primary_key) > 1:
             raise NotImplementedError(
                 "`find_primary_key` only supports single-column primary keys."
             )
-        pk_col = mapper.primary_key[0].name
+
+        if len(mapper.primary_key) == 0:  # no PK in this table
+            pk_col = getattr(cls, "document_primary_key", None)
+            if pk_col is None:
+                raise NotImplementedError(
+                    "Attempting to do a primary key search on a materialized view or"
+                    "malformed table without a primary key."
+                    "If attempting to query a RAG document please update the SQLAlchemy "
+                    "model to set `document_primary_key`."
+                )
+        else:
+            pk_col = mapper.primary_key[0].name
 
         stmt = select(getattr(cls, pk_col)).where(
             *(getattr(cls, k) == v for k, v in filters.items())
@@ -212,9 +227,3 @@ class LookupTableMixin(
                     f"Multiple records found for {filters} in {cls.table_name()}"
                 )
         return rows[0]
-
-
-class DeclarativeTableBase(LookupTableMixin, HousekeepingMixin): ...
-
-
-class DeclarativeMaterializedViewBase(DeclarativeBase, ModelDumpMixin): ...

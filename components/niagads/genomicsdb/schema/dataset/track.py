@@ -14,7 +14,7 @@ from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.database.sa_enum_utils import enum_column, enum_constraint
 from niagads.genomicsdb.schema.dataset.base import DatasetSchemaBase
 from niagads.genomicsdb.schema.reference.mixins import (
-    ExternalDBMixin,
+    ExternalDatabaseMixin,
     OntologyTermMixin,
 )
 from sqlalchemy import ARRAY, TEXT, Column, Index, String
@@ -22,7 +22,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
 
 
-class Track(OntologyTermMixin, ExternalDBMixin, DatasetSchemaBase):
+class Track(OntologyTermMixin, ExternalDatabaseMixin, DatasetSchemaBase):
     __tablename__ = "track"
     __table_args__ = (
         enum_constraint("genome_build", Assembly),
