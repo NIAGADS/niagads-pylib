@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Any, Dict, Union
 
+from niagads.database.mixins.columns import datetime_column
 from niagads.database.mixins.serialization import ModelDumpMixin
-from sqlalchemy import DATETIME, exists, func, inspect, select
+from sqlalchemy import exists, inspect, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -23,16 +24,8 @@ class HousekeepingMixin(object):
         nullable=False,
         index=True,
     )
-    creation_date: Mapped[datetime] = mapped_column(
-        DATETIME,
-        server_default=func.now(),
-        nullable=False,
-    )
-    modification_date: Mapped[datetime] = mapped_column(
-        DATETIME,
-        server_default=func.now(),
-        nullable=False,
-    )
+    creation_date: Mapped[datetime] = datetime_column()
+    modification_date: Mapped[datetime] = datetime_column()
     # is_private: Mapped[bool] = mapped_column(nullable=True, index=True)
 
 
