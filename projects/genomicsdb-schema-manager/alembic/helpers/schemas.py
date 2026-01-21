@@ -8,6 +8,7 @@ from enum import Enum
 from niagads.genomicsdb.schema.admin.core import AdminSchemaBase
 from niagads.genomicsdb.schema.dataset.core import DatasetSchemaBase
 from niagads.genomicsdb.schema.gene.core import GeneSchemaBase
+from niagads.genomicsdb.schema.ragdoc.base import RAGDocSchemaBase
 from niagads.genomicsdb.schema.reference.core import ReferenceSchemaBase
 from niagads.genomicsdb.schema.variant.core import VariantSchemaBase
 from sqlalchemy import Connection, MetaData, Table, event
@@ -31,6 +32,7 @@ class Schema(Enum):
     DATASET = DatasetSchemaBase
     VARIANT = VariantSchemaBase
     GENE = GeneSchemaBase
+    RAG = RAGDocSchemaBase
     ALL = "ALL"
 
     @classmethod

@@ -99,6 +99,7 @@ hgvs = { git = "https://github.com/NIAGADS/hgvs.git", rev = "NIAGADS" }
 ga4gh-vrs = { extras = [
     "extras",
 ], version = "^2.2.0" }
+pgvector = "^0.4.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
