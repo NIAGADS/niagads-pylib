@@ -1,14 +1,24 @@
-from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
+from niagads.etl.plugins.parameters import (
+    BasePluginParams,
+    PathValidatorMixin,
+    ResumeCheckpoint,
+)
+from niagads.etl.plugins.registry import PluginRegistry
 from niagads.genomicsdb.schema.admin.pipeline import ETLOperation
 from niagads.csv_parser.core import CSVFileParser
+from niagads.genomicsdb.schema.gene.annotation import PathwayMembership
+from niagads.genomicsdb.schema.gene.gene_models import Gene, GeneIdentifierType
+from niagads.genomicsdb.schema.reference.pathway import Pathway
 from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
 from pydantic import BaseModel, Field, field_validator
 from typing import List
-import pandas as pd
-
+from sqlalchemy.exc import (
+    MultipleResultsFound,
+    NoResultFound,
+)  # TODO: EGA - make wrappers
 
 # Define column names for Reactome file
 COLUMN_NAMES = [
@@ -78,6 +88,7 @@ class ReactomeLoaderParams(
         return file_name
 
 
+@PluginRegistry.register(metadata={"version": 1.0})
 class ReactomeLoaderPlugin(AbstractBasePlugin):
     """
     Plugin for loading Reactome data.
@@ -103,11 +114,11 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
     @property
     def affected_tables(self):
         # TODO: Replace with actual table name(s)
-        return ["genomicsdb.-----"]
+        return [Pathway.table_name(), PathwayMembership.table_name()]
 
     @property
-    def streaming(self):
-        return False  # Process entire dataset at once as bulk
+    def load_strategy(self):
+        return LoadStrategy.BULK
 
     def extract(self):
         """
@@ -159,9 +170,9 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
             f"Data extraction complete with {len(filtered_df)} filtered rows"
         )
 
-        yield filtered_df
+        return filtered_df.to_dict(orient="dict")
 
-    def transform(self, data: pd.DataFrame):
+    def transform(self, data: list):
         """
         Transform the extracted DataFrame into a list of PathwayAnnotation objects.
 
@@ -174,23 +185,67 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         self.logger.debug(f"Starting transformation with {len(data)} input rows")
 
         # Transform DataFrame to list of PathwayAnnotation objects
-        records = [
-            GenePathwayAnnotation(**row) for row in data.to_dict(orient="records")
-        ]
+        records = [GenePathwayAnnotation(**row) for row in data]
 
         self.logger.info(f"Transformation complete with {len(records)} records")
 
         return records
 
-    async def load(self, transformed: List[dict], mode):
+    async def load(
+        self, transformed: List[GenePathwayAnnotation], session
+    ) -> ResumeCheckpoint:
         """
         Load transformed records into the database.
 
+        # TODO -> have to enclose the whole load in a try/finally block so that
+        # whether success or failure, it will return the ResumeCheckpoint
+
+        # TODO - plugins require you to count your database operations so they can
+        # be logged
+        # using    self.update_transaction_count(self.operation, table, count) after loop end
+        e.g. self.update_transaction_count(ELTOperation.INSERT, Pathway.table_name(), pathway_count )
 
         """
-        self.logger.debug(
-            f"Starting load with {len(transformed)} records in mode: {mode}"
-        )
+        self.logger.debug(f"Starting load with {len(transformed)} records.")
+        external_database_id = self._params.resolve_xdbref(session)
+
+        record: GenePathwayAnnotation  # type hint
+        pathway_count = 0
+        membership_count = 0
+        for record in transformed:
+            # set our checkpoint
+            checkpoint = ResumeCheckpoint(full_record=record)
+
+            # load pathway and get its primary key
+            try:
+                pathway_pk = Pathway.find_primary_key(
+                    filters={"source_id": record.pathway_id}
+                )
+            except NoResultFound:
+                session.add(
+                    Pathway(
+                        source_id=record.pathway_id,
+                        pathway_name=record.pathway_name,
+                        external_database_id=external_database_id,
+                        run_id=self._run_id,
+                    )
+                )
+                # TODO - EGA how to get primary key of what we just added without having to run find_primary_key again
+
+            # lookup the gene and get its primary key
+            gene_pk = Gene.resolve_identifier(
+                session, id=record.id, gene_identifier_type=GeneIdentifierType.ENSEMBL
+            )
+
+            # load the gene<->pathway membership
+            session.add(
+                PathwayMembership(
+                    gene_id=gene_pk,
+                    pathway_id=pathway_pk,
+                    run_id=self._run_id,
+                    external_database_id=external_database_id,
+                )
+            )
 
         return len(transformed)
 
