@@ -214,7 +214,28 @@ class LookupTableMixin(
         return rows[0]
 
 
-class DeclarativeTableBase(LookupTableMixin, HousekeepingMixin): ...
+class TransactionTableBase(DeclarativeBase):
+    __abstract__ = True
+
+    async def submit(self, session: AsyncSession) -> int:
+        """
+        Insert this table object into the database and return the primary key value.
+
+        Args:
+            session: SQLAlchemy AsyncSession.
+
+        Returns:
+            int: The primary key value of the inserted record.
+        """
+        session.add(self)
+        await session.flush()
+        pk_name = self.__mapper__.primary_key[0].name
+        return getattr(self, pk_name)
+
+
+class DeclarativeTableBase(
+    LookupTableMixin, HousekeepingMixin, TransactionTableBase
+): ...
 
 
 class DeclarativeMaterializedViewBase(DeclarativeBase, ModelDumpMixin): ...
