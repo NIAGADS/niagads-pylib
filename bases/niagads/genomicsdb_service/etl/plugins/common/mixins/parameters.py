@@ -13,7 +13,7 @@ See project documentation for usage patterns and integration details.
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class ExternalDatabaseRef(BaseModel):
@@ -51,7 +51,9 @@ class ExternalDatabaseRefMixin:
         xdbref (str): External database reference string in the format 'name|version'.
     """
 
-    xdbref: str
+    xdbref: str = Field(
+        description="External database reference string in the format 'name|version'"
+    )
 
     @field_validator("xdbref")
     def validate_xdbref_format(cls, value):
