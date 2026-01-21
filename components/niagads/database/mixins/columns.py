@@ -14,6 +14,6 @@ def datetime_column(nullable: bool = False):
     """
     return mapped_column(
         DATETIME,
-        server_default=func.now(),
+        server_default=None if nullable else func.now(),
         nullable=nullable,
     )
