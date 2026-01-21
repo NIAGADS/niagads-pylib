@@ -207,7 +207,7 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
 
         """
         self.logger.debug(f"Starting load with {len(transformed)} records.")
-        external_database_id = self._params.resolve_xdbref(session)
+        external_database_id = await self._params.resolve_xdbref(session)
 
         record: GenePathwayAnnotation  # type hint
         pathway_count = 0
@@ -218,11 +218,11 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
 
             # load pathway and get its primary key
             try:
-                pathway_pk = Pathway.find_primary_key(
+                pathway_pk = await Pathway.find_primary_key(
                     filters={"source_id": record.pathway_id}
                 )
             except NoResultFound:
-                session.add(
+                await session.add(
                     Pathway(
                         source_id=record.pathway_id,
                         pathway_name=record.pathway_name,
@@ -238,7 +238,7 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
             )
 
             # load the gene<->pathway membership
-            session.add(
+            await session.add(
                 PathwayMembership(
                     gene_id=gene_pk,
                     pathway_id=pathway_pk,
