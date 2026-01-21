@@ -6,8 +6,8 @@ from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from sqlalchemy import create_engine
 
-from database.genomicsdb.schemas import Schema
-from database.config import Settings
+from alembic.helpers.schemas import Schema
+from alembic.helpers.config import Settings
 
 metadata: Schema = Schema.base("metadata").metadata
 engine = create_engine(Settings.from_env().DATABASE_URI)

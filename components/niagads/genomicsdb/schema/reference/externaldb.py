@@ -2,12 +2,12 @@
 
 from datetime import datetime
 from niagads.database.mixins.columns import datetime_column
-from niagads.genomicsdb.schema.reference.base import ReferenceSchemaBase
+from niagads.genomicsdb.schema.reference.base import ReferenceTableBase
 from sqlalchemy import String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class ExternalDatabase(ReferenceSchemaBase):
+class ExternalDatabase(ReferenceTableBase):
     __tablename__ = "externaldatabase"
     __table_args__ = (
         UniqueConstraint("name", "version", name="uq_externaldatabase_name_version"),

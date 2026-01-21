@@ -9,26 +9,15 @@ from niagads.genomicsdb.schema.admin.core import AdminSchemaBase
 from niagads.genomicsdb.schema.dataset.core import DatasetSchemaBase
 from niagads.genomicsdb.schema.gene.core import GeneSchemaBase
 from niagads.genomicsdb.schema.ragdoc.base import RAGDocSchemaBase
-from niagads.genomicsdb.schema.reference.core import ReferenceSchemaBase
+from niagads.genomicsdb.schema.reference.core import ReferenceTableBase
 from niagads.genomicsdb.schema.variant.core import VariantSchemaBase
-from sqlalchemy import Connection, MetaData, Table, event
+from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
-
-
-def register_schema_creation():
-    """Register global event to auto-create schemas for tables with .schema set."""
-
-    def ensure_schema(target: Table, connection: Connection, **kw):
-        schema = target.schema
-        if schema:
-            connection.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}"')
-
-    event.listen(Table, "before_create", ensure_schema)
 
 
 class Schema(Enum):
     ADMIN = AdminSchemaBase
-    REFERENCE = ReferenceSchemaBase
+    REFERENCE = ReferenceTableBase
     DATASET = DatasetSchemaBase
     VARIANT = VariantSchemaBase
     GENE = GeneSchemaBase

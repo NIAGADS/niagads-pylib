@@ -45,6 +45,8 @@ packages = [
     { from = "../../components", include = "niagads/requests" },
     { from = "../../components", include = "niagads/settings" },
     { from = "../../components", include = "niagads/utils" },
+    {include = "niagads/genomics",from = "../../components"},
+    {include = "niagads/assembly",from = "../../components"},
 ]
 
 [tool.tomlsort]

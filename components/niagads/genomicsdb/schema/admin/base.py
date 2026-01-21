@@ -5,7 +5,15 @@ Uses DeclarativeModelBaseFactory to create a SQLAlchemy DeclarativeBase with hou
 
 from niagads.genomicsdb.schema.base import DeclarativeTableBase
 from sqlalchemy import MetaData
+from sqlalchemy.orm import DeclarativeBase
+
+SCHEMA = "admin"
 
 
-class AdminSchemaBase(DeclarativeTableBase):
-    metadata = MetaData(schema="admin")
+class AdminSchemaBase(DeclarativeBase):
+    metadata = MetaData(schema=SCHEMA)
+
+
+class AdminTableBase(DeclarativeTableBase):
+    __abstract__ = True
+    metadata = MetaData(schema=SCHEMA)

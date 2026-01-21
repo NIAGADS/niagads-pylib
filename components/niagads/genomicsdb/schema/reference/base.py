@@ -7,6 +7,10 @@ from niagads.genomicsdb.schema.base import DeclarativeTableBase
 from sqlalchemy import MetaData
 
 
-class ReferenceSchemaBase(DeclarativeTableBase):
+class ReferenceSchemaBase(DeclarativeBase):
     metadata = MetaData(schema="reference")
+
+
+class ReferenceTableBase(ReferenceSchemaBase, DeclarativeTableBase):
+
     stable_id = None

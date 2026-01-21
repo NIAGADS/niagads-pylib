@@ -3,7 +3,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from helpers.config import Settings
-from helpers.schemas import register_schema_creation
+from helpers.hooks import register_schema_creation
 from helpers.migration_context import MigrationContext
 from niagads.database import DatabaseSessionManager
 from sqlalchemy import Connection

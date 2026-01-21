@@ -52,6 +52,9 @@ packages = [
     { from = "components", include = "niagads/utils" },
     { from = "components", include = "niagads/vcf" },
     { from = "components", include = "niagads/vep_json_parser" },
+    {include = "niagads/bed",from = "components"},
+    {include = "niagads/variant_annotator",from = "components"},
+    {include = "niagads/assembly",from = "components"},
 ]
 include = [
     { path = "bases/niagads/genomicsdb_service/etl/plugins/validators/*.json" },

@@ -6,13 +6,13 @@ Intended for use alongside the ontology graph schema for comprehensive ontology 
 """
 
 from niagads.database.mixins.embeddings import EmbeddingMixin
-from niagads.genomicsdb.schema.reference.base import ReferenceSchemaBase
+from niagads.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from sqlalchemy import ARRAY, TEXT, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class OntologyTerm(ReferenceSchemaBase, ExternalDatabaseMixin, EmbeddingMixin):
+class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, EmbeddingMixin):
     __tablename__ = "ontologyterm"
     __table_args__ = (UniqueConstraint("source_id", name="uq_ontology_term_id"),)
     stable_id = "source_id"
