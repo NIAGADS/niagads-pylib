@@ -1,4 +1,4 @@
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.schema import ForeignKey
 
@@ -20,7 +20,7 @@ class ExternalDatabaseMixin(object):
         nullable=False,
         index=True,
     )
-    source_id: Mapped[str] = mapped_column(index=True, nullable=False)
+    source_id: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
 
     __table_args__ = (
         UniqueConstraint(
