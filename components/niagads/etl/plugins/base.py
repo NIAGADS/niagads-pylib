@@ -495,7 +495,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         async with self._session_manager() as session:
             task = ETLRun(
                 plugin_name=self._name,
-                code_version=self.version,
+                plugin_version=self.version,
                 params=self._params.model_dump(),
                 message="plugin run initiated",
                 status=ProcessStatus.RUNNING,
@@ -506,11 +506,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             )
             session.add(task)
             await session.commit()
-        return task.task_id
+        return task.run_id
 
     async def __db_update_plugin_task(
         self,
-        task_id: int,
+        run_id: int,
         end_time,
         status: ProcessStatus,
         rows_processed: int = None,
@@ -524,7 +524,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             return
 
         async with self.session_ctx() as session:
-            task: ETLTask = await session.get(ETLTask, task_id)
+            task: ETLRun = await session.get(ETLRun, run_id)
             task.rows_processed = rows_processed
             task.end_time = end_time
             task.status = status
@@ -586,7 +586,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             ProcessStatus: SUCCESS if ETL completed, FAIL otherwise.
         """
         merged_params = None
-        task_id = None
+        run_id = None
         execution_status = None
 
         if runtime_params:
@@ -618,13 +618,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         # Regular ETL modes
         try:
-            task_id = await self.__db_log_plugin_run()
+            run_id = await self.__db_log_plugin_run()
             execution_status = ProcessStatus.RUNNING
             self.__status_report = ETLStatusReport(
                 status=execution_status,
                 mode=self._mode,
                 test=self._mode == ETLMode.DRY_RUN,
-                task_id=task_id,
+                run_id=run_id,
             )
 
         except Exception as e:
@@ -679,9 +679,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.exception(f"Plugin failed: {e}")
 
             # --- Finalize plugin run log on error (except DRY_RUN) ---
-            if self._mode != ETLMode.DRY_RUN and task_id:
+            if self._mode != ETLMode.DRY_RUN and run_id:
                 await self.__db_update_plugin_task(
-                    task_id,
+                    run_id,
                     datetime.now(),  # end time
                     execution_status,
                     message=f"ETL run failed: {e}",
@@ -710,7 +710,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             try:
                 if self._mode != ETLMode.DRY_RUN:
                     await self.__db_update_plugin_task(
-                        task_id,
+                        run_id,
                         end_time,
                         execution_status,
                         rows_processed=self.__status_report.total_writes(),
