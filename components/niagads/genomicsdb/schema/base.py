@@ -227,7 +227,7 @@ class TransactionTableBase(DeclarativeBase):
         Returns:
             int: The primary key value of the inserted record.
         """
-        session.add(self)
+        await session.add(self)
         await session.flush()
         pk_name = self.__mapper__.primary_key[0].name
         return getattr(self, pk_name)

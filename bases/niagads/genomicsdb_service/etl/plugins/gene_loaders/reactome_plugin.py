@@ -212,13 +212,13 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         record: GenePathwayAnnotation  # type hint
 
         
-        try: 
+        
             
-            external_database_id = await self._params.resolve_xdbref(session)
-            record: GenePathwayAnnotation  # type hint
-            pathway_count = 0
-            membership_count = 0
-            
+        external_database_id = await self._params.resolve_xdbref(session)
+        record: GenePathwayAnnotation  # type hint
+        pathway_count = 0
+        membership_count = 0
+        try:    
             for record in transformed:
                 # set our checkpoint
                 checkpoint = ResumeCheckpoint(full_record=record)
@@ -229,33 +229,32 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
                         filters={"source_id": record.pathway_id}
                     )
                 except NoResultFound:
-                    await session.add(
-                        Pathway(
+                    pathway = Pathway(
                             source_id=record.pathway_id,
                             pathway_name=record.pathway_name,
                             external_database_id=external_database_id,
                             run_id=self._run_id,
                         )
-                        pathway_pk = await pathway.submit(session)
-                    )
-                    # TODO - EGA how to get primary key of what we just added without having to run find_primary_key again
+                        
+                    
+                    pathway_pk = await pathway.submit(session)
 
                 # lookup the gene and get its primary key
-                gene_pk = Gene.resolve_identifier(
+                gene_pk = await Gene.resolve_identifier(
                     session, id=record.id, gene_identifier_type=GeneIdentifierType.ENSEMBL
                 )
 
                 # load the gene<->pathway membership
-                await session.add(
-                    PathwayMembership(
+            
+                await PathwayMembership(
                         gene_id=gene_pk,
                         pathway_id=pathway_pk,
                         run_id=self._run_id,
                         external_database_id=external_database_id,
-                    )
-                )
+                    ).submit(session)
+                
         finally:
-            return checkpoint if checkpoint else ResumeCheckpoint()
+            return checkpoint
 
     def get_record_id(self, record: dict) -> str:
         """
