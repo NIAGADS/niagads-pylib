@@ -1,11 +1,24 @@
+from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
+from niagads.etl.plugins.parameters import (
+    BasePluginParams,
+    PathValidatorMixin,
+    ResumeCheckpoint,
+)
+from niagads.etl.plugins.registry import PluginRegistry
+from niagads.genomicsdb.schema.admin.pipeline import ETLOperation
+from niagads.csv_parser.core import CSVFileParser
+from niagads.genomicsdb.schema.gene.annotation import PathwayMembership
+from niagads.genomicsdb.schema.gene.gene_models import Gene, GeneIdentifierType
+from niagads.genomicsdb.schema.reference.pathway import Pathway
+from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
+    ExternalDatabaseRefMixin,
+)
+from pydantic import BaseModel, Field, field_validator
 from typing import List
-import pandas as pd
-from pydantic import Field, field_validator
-import xml.etree.ElementTree as ET
-from niagads.common.models.composite_attributes.gene import PathwayAnnotation
-from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation
+from sqlalchemy.exc import (
+    MultipleResultsFound,
+    NoResultFound,
+)  # TODO: EGA - make wrappers
 
 
 class KEGGLoaderParams(BasePluginParams, PathValidatorMixin):
@@ -15,7 +28,7 @@ class KEGGLoaderParams(BasePluginParams, PathValidatorMixin):
 
     file: str = Field(..., description="KEGG KGML XML file to load")
 
-  
+
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
 
@@ -40,7 +53,7 @@ class KEGGLoaderParams(BasePluginParams, PathValidatorMixin):
         return file_name
 
     
-
+@PluginRegistry.register(metadata={"version": 1.0})
 class KEGGLoaderPlugin(AbstractBasePlugin):
     """
     Loads KEGG pathway annotations from KGML XML files.
@@ -61,8 +74,14 @@ class KEGGLoaderPlugin(AbstractBasePlugin):
         return ETLOperation.INSERT
 
     @property
-    def streaming(self):
-        return False
+    def affected_tables(self):
+        # TODO: Replace with actual table name(s)
+        return [Pathway.table_name(), PathwayMembership.table_name()]
+
+    @property
+    def load_strategy(self):
+        return LoadStrategy.CHUNKED
+
 
     def extract(self):
         file_path = self._params.file

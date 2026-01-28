@@ -197,7 +197,7 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         """
         Load transformed records into the database.
 
-        # TODO -> have to enclose the whole load in a try/finally block so that
+        # done? -> have to enclose the whole load in a try/finally block so that
         # whether success or failure, it will return the ResumeCheckpoint
 
         # TODO - plugins require you to count your database operations so they can
@@ -207,47 +207,55 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
 
         """
         self.logger.debug(f"Starting load with {len(transformed)} records.")
-        external_database_id = await self._params.resolve_xdbref(session)
+    # external_database_id = await self._params.resolve_xdbref(session)
 
         record: GenePathwayAnnotation  # type hint
-        pathway_count = 0
-        membership_count = 0
-        for record in transformed:
-            # set our checkpoint
-            checkpoint = ResumeCheckpoint(full_record=record)
 
-            # load pathway and get its primary key
-            try:
-                pathway_pk = await Pathway.find_primary_key(
-                    filters={"source_id": record.pathway_id}
+        
+        try: 
+            
+            external_database_id = await self._params.resolve_xdbref(session)
+            record: GenePathwayAnnotation  # type hint
+            pathway_count = 0
+            membership_count = 0
+            
+            for record in transformed:
+                # set our checkpoint
+                checkpoint = ResumeCheckpoint(full_record=record)
+
+                # load pathway and get its primary key
+                try:
+                    pathway_pk = await Pathway.find_primary_key(
+                        filters={"source_id": record.pathway_id}
+                    )
+                except NoResultFound:
+                    await session.add(
+                        Pathway(
+                            source_id=record.pathway_id,
+                            pathway_name=record.pathway_name,
+                            external_database_id=external_database_id,
+                            run_id=self._run_id,
+                        )
+                        pathway_pk = await pathway.submit(session)
+                    )
+                    # TODO - EGA how to get primary key of what we just added without having to run find_primary_key again
+
+                # lookup the gene and get its primary key
+                gene_pk = Gene.resolve_identifier(
+                    session, id=record.id, gene_identifier_type=GeneIdentifierType.ENSEMBL
                 )
-            except NoResultFound:
+
+                # load the gene<->pathway membership
                 await session.add(
-                    Pathway(
-                        source_id=record.pathway_id,
-                        pathway_name=record.pathway_name,
-                        external_database_id=external_database_id,
+                    PathwayMembership(
+                        gene_id=gene_pk,
+                        pathway_id=pathway_pk,
                         run_id=self._run_id,
+                        external_database_id=external_database_id,
                     )
                 )
-                # TODO - EGA how to get primary key of what we just added without having to run find_primary_key again
-
-            # lookup the gene and get its primary key
-            gene_pk = Gene.resolve_identifier(
-                session, id=record.id, gene_identifier_type=GeneIdentifierType.ENSEMBL
-            )
-
-            # load the gene<->pathway membership
-            await session.add(
-                PathwayMembership(
-                    gene_id=gene_pk,
-                    pathway_id=pathway_pk,
-                    run_id=self._run_id,
-                    external_database_id=external_database_id,
-                )
-            )
-
-        return len(transformed)
+        finally:
+            return checkpoint if checkpoint else ResumeCheckpoint()
 
     def get_record_id(self, record: dict) -> str:
         """
