@@ -18,14 +18,14 @@ class CollectionMixin:
             postgresql_include=["name", "description", "tracks_are_sharded"],
         ),
         Index(
-            "ix_metadata_collection_primary_key_unique",
-            "primary_key",
+            "ix_metadata_collection_key_unique",
+            "collection_key",
             unique=True,
         ),
     )
 
     collection_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    primary_key: Mapped[str]
+    collection_key: Mapped[str]
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
     tracks_are_sharded: Mapped[Optional[bool]] = mapped_column(default=False)
