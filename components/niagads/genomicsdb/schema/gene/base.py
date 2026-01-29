@@ -1,5 +1,5 @@
 """
-Base classes and helpers for SQLAlchemy ORM models in the GenomicsDB "Gene" schema.
+Base classes for SQLAlchemy ORM models in the GenomicsDB "Gene" schema.
 """
 
 from niagads.genomicsdb.schema.mixins import GenomicsDBMVMixin, GenomicsDBTableMixin
