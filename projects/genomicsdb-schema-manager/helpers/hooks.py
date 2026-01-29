@@ -15,7 +15,7 @@ def register_schemas():
     for _, modname, ispkg in pkgutil.walk_packages(
         package.__path__, package.__name__ + "."
     ):
-        if not ispkg:
+        if not ispkg and modname.endswith(".core"):
             importlib.import_module(modname)
 
 
