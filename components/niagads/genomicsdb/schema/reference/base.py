@@ -1,16 +1,14 @@
 """
-Base class for the `Core` schema models in the genomicsdb database.
-Uses DeclarativeModelBaseFactory to create a SQLAlchemy DeclarativeBase with housekeeping fields.
+Base classes for SQLAlchemy ORM models in the GenomicsDB "Reference" schema.
 """
 
-from niagads.genomicsdb.schema.bases import DeclarativeTableBase
+from niagads.genomicsdb.schema.mixins import GenomicsDBTableMixin
+from niagads.genomicsdb.schema.registry import SchemaRegistry
 from sqlalchemy import MetaData
+from sqlalchemy.orm import DeclarativeBase
 
 
-class ReferenceSchemaBase(DeclarativeBase):
+@SchemaRegistry.register()
+class ReferenceSchemaBase(DeclarativeBase, GenomicsDBTableMixin):
     metadata = MetaData(schema="reference")
-
-
-class ReferenceTableBase(ReferenceSchemaBase, DeclarativeTableBase):
-
     stable_id = None
