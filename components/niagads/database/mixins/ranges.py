@@ -12,23 +12,21 @@ class GenomicRegionMixin(object):
 
     Fields:
         genomic_region (Range): Genomic interval (start/end) stored as a INT4RANGE object using RangeType.
-        genomic_region_bin (str): Binning path for the region, stored as an ltree string.
+        bin_index (str): Binning path for the region, stored as an ltree string.
 
     Indexes:
         - GiST index on genomic_region for efficient range queries.
-        - GiST index on genomic_region_bin for LTree queries.
+        - GiST index on bin_index for LTree queries.
     """
 
     # native_enum set to True here, so postgres will sort the columns by the enum
     # ordering; may potentially throw a "type already exists error" during migration
     chromosome: Mapped[str] = enum_column(HumanGenome, native_enum=True)
     genomic_region: Mapped[Range] = mapped_column(RangeType, nullable=False)
-    genomic_region_bin: Mapped[str] = mapped_column(LtreeType)
+    bin_index: Mapped[str] = mapped_column(LtreeType)
 
     __table_args__ = (
         enum_constraint("chromosome", HumanGenome),
         Index("ix_genomic_region_gist", "genomic_region", postgresql_using="gist"),
-        Index(
-            "ix_genomic_region_bin_gist", "genomic_region_bin", postgresql_using="gist"
-        ),
+        Index("ix_bin_index_gist", "bin_index", postgresql_using="gist"),
     )
