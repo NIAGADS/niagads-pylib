@@ -53,4 +53,4 @@ class ETLRun(AdminSchema):
     # Timing + metrics
     start_time: Mapped[datetime] = datetime_column()
     end_time: Mapped[datetime] = datetime_column(nullable=True)
-    rows_processed: Mapped[int] = mapped_column(server_default=0)
+    rows_processed: Mapped[int] = mapped_column(server_default="0")
