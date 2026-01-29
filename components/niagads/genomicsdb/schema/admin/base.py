@@ -1,13 +1,13 @@
 """
-Base class for the `Core` schema models in the genomicsdb database.
-Uses DeclarativeModelBaseFactory to create a SQLAlchemy DeclarativeBase with housekeeping fields.
+Base class for the `Admin` schema models in the genomicsdb database.
 """
 
-from niagads.genomicsdb.schema.bases import DeclarativeTableBase
+from niagads.genomicsdb.schema.mixins import GenomicsDBTableMixin
 from niagads.genomicsdb.schema.registry import SchemaRegistry
 from sqlalchemy import MetaData
+from sqlalchemy.orm import DeclarativeBase
 
 
 @SchemaRegistry.register()
-class AdminSchema(DeclarativeTableBase):
+class AdminSchema(DeclarativeBase, GenomicsDBTableMixin):
     metadata = MetaData(schema="admin")
