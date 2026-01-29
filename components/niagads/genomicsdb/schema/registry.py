@@ -23,33 +23,23 @@ class SchemaRegistry:
         return decorator
 
     @classmethod
-    def get_base(cls, name: str) -> Type[DeclarativeBase]:
+    def get_schema_base(cls, name: str) -> Type[DeclarativeBase]:
         return cls._registry[name.upper()]
 
     @classmethod
-    def get_metadata(cls, name: str):
+    def get_schema_metadata(cls, name: str):
         """Return the SQLAlchemy MetaData object for a given schema base name."""
         return cls._registry[name.upper()].metadata
 
     @classmethod
-    def get_schema(cls, name: str):
-        """Return schema name for registered SQLAlchemy Schema model."""
-        return cls.get_metadata(name).schema
-
-    @classmethod
-    def all_bases(cls):
+    def get_registered_bases(cls):
         """Return a list of all registered schema base classes."""
         return list(cls._registry.values())
 
     @classmethod
-    def all_metadata(cls):
+    def get_registered_metadata(cls):
         """Return a list of all registered SQLAlchemy MetaData objects."""
         return [base.metadata for base in cls._registry.values()]
-
-    @classmethod
-    def all_schemas(cls):
-        """Return a list of all registered SQLAlchemy MetaData objects."""
-        return [base.metadata.schema for base in cls._registry.values()]
 
     @classmethod
     def is_registered(cls, name: str) -> bool:
