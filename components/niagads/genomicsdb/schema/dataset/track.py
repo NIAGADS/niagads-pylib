@@ -1,7 +1,6 @@
 """`Track` (metadata) database model"""
 
 from typing import List, Optional
-from niagads.assembly.core import Assembly, Human
 from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     ExperimentalDesign,
@@ -11,7 +10,9 @@ from niagads.common.models.composite_attributes.dataset import (
 )
 from niagads.database.mixins import GenomicRegionMixin
 from niagads.database.mixins.datasets.track import TrackDataStore
+from niagads.database.mixins.embeddings import EmbeddingMixin
 from niagads.database.sa_enum_utils import enum_column, enum_constraint
+from niagads.genomics.sequence.assembly import Assembly, HumanGenome
 from niagads.genomicsdb.schema.dataset.base import DatasetSchemaBase
 from niagads.genomicsdb.schema.reference.mixins import (
     ExternalDatabaseMixin,
@@ -22,12 +23,14 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
 
 
-class Track(OntologyTermMixin, ExternalDatabaseMixin, DatasetSchemaBase):
+class Track(
+    DatasetSchemaBase, OntologyTermMixin, ExternalDatabaseMixin, EmbeddingMixin
+):
     __tablename__ = "track"
     __table_args__ = (
         enum_constraint("genome_build", Assembly),
         enum_constraint("data_store", TrackDataStore),
-        enum_constraint("shard_chromosome", Human),
+        enum_constraint("shard_chromosome", HumanGenome),
         Index(
             "ix_metadata_track_shard_root_track_id",
             "shard_root_track_id",
@@ -62,7 +65,7 @@ class Track(OntologyTermMixin, ExternalDatabaseMixin, DatasetSchemaBase):
     searchable_text: Mapped[str] = mapped_column(TEXT)
 
     is_shard: Mapped[Optional[bool]]
-    shard_chromosome: Mapped[str] = enum_column(Human, index=False, nullable=True)
+    shard_chromosome: Mapped[str] = enum_column(HumanGenome, index=False, nullable=True)
     shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
     cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))
@@ -82,7 +85,7 @@ class Track(OntologyTermMixin, ExternalDatabaseMixin, DatasetSchemaBase):
     )
 
 
-class TrackInterval(GenomicRegionMixin, DatasetSchemaBase):
+class TrackInterval(DatasetSchemaBase, GenomicRegionMixin):
     """indexing table; stores the number of hits per bin index for a track"""
 
     __tablename__ = "trackinterval"
