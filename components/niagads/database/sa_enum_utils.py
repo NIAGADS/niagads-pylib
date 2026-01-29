@@ -23,8 +23,6 @@ def enum_constraint(
     enum_cls: CaseInsensitiveEnum
     for enum_cls in enum:
         allowed_values.extend(enum_cls.list(return_enum_names=use_enum_names))
-    else:
-        allowed_values = enum.list()
 
     return CheckConstraint(
         f"{field_name} in ({list_to_string(allowed_values, quote=True, delim=', ')})",
