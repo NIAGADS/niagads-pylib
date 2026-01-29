@@ -10,7 +10,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql.schema import ForeignKey
 
 
-class HousekeepingMixin(object):
+class HousekeepingMixin:
     """
     Mixin providing common housekeeping fields for database models:
     - run_id: Foreign key to Core.ETLRun table
@@ -227,3 +227,23 @@ class LookupTableMixin(
                     f"Multiple records found for {filters} in {cls.table_name()}"
                 )
         return rows[0]
+
+
+class TransactionTableMixin:
+    __abstract__ = True
+
+    async def submit(self, session: AsyncSession) -> int:
+        """
+        Insert this table object into the database and return the primary key value.
+
+        Args:
+            session: SQLAlchemy AsyncSession.
+
+        Returns:
+            int: The primary key value of the inserted record.
+        """
+        await session.add(self)
+        await session.flush()
+
+        pk_name = self.__mapper__.primary_key[0].name
+        return getattr(self, pk_name)
