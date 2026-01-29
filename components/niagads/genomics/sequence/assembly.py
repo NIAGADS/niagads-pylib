@@ -96,9 +96,8 @@ class HumanGenome(CaseInsensitiveEnum):
         return self.name
 
     @classmethod
-    def list(cls):
-        """return a list of the enum values"""
-        return [f"chr{v}" for v in super().list()]
+    def list(cls, return_enum_names: bool = True):
+        return super().list(return_enum_names=return_enum_names)
 
     @classmethod
     def sort_order(self):
