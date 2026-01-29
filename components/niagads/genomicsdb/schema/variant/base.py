@@ -1,14 +1,17 @@
 """
-Base class for the `Variant` schema models in the genomicsdb database.
-Uses DeclarativeModelBaseFactory to create a SQLAlchemy DeclarativeBase with housekeeping fields.
+Base classes for SQLAlchemy ORM models in the GenomicsDB "Gene" schema.
 """
 
-from niagads.genomicsdb.schema.bases import DeclarativeTableBase
+from niagads.genomicsdb.schema.mixins import GenomicsDBTableMixin
+from niagads.genomicsdb.schema.registry import SchemaRegistry
 from sqlalchemy import MetaData
+from sqlalchemy.orm import DeclarativeBase
 
 
-class VariantSchemaBase(DeclarativeTableBase):
-    metadata = MetaData(schema="variant")
+@SchemaRegistry.register()
+class VariantSchemaBase(DeclarativeBase):
+    metadata = MetaData(schema="dataset")
 
 
-# TODO: when we make this table: need metaseq_id + variant_id b/c there will be cases when the metaseq_id is long that we need an abbreviated variant_id
+class VariantTableBase(VariantSchemaBase, GenomicsDBTableMixin):
+    stable_id = "positional_id"
