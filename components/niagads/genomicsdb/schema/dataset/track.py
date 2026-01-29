@@ -14,18 +14,16 @@ from niagads.database.mixins.embeddings import EmbeddingMixin
 from niagads.database.sa_enum_utils import enum_column, enum_constraint
 from niagads.genomics.sequence.assembly import Assembly, HumanGenome
 from niagads.genomicsdb.schema.dataset.base import DatasetSchemaBase
+from niagads.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.genomicsdb.schema.reference.mixins import (
     ExternalDatabaseMixin,
-    OntologyTermMixin,
 )
 from sqlalchemy import ARRAY, TEXT, Column, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
 
 
-class Track(
-    DatasetSchemaBase, OntologyTermMixin, ExternalDatabaseMixin, EmbeddingMixin
-):
+class Track(DatasetSchemaBase, ExternalDatabaseMixin, EmbeddingMixin):
     __tablename__ = "track"
     __table_args__ = (
         enum_constraint("genome_build", Assembly),
@@ -53,6 +51,7 @@ class Track(
 
     track_id: Mapped[str] = mapped_column(unique=True, index=True)
     data_store: Mapped[str] = enum_column(TrackDataStore)
+    dataset_type_id: Mapped[int] = ontology_term_fk_column()
 
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))

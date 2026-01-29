@@ -27,7 +27,3 @@ class ExternalDatabaseMixin(object):
             "external_database_id", "source_id", name="uq_externaldb_source"
         ),
     )
-
-
-class OntologyTermMixin(object):
-    ontology_term_id: Mapped[int] = mapped_column()
