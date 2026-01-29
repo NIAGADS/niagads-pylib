@@ -28,10 +28,7 @@ class HousekeepingMixin:
     # is_private: Mapped[bool] = mapped_column(nullable=True, index=True)
 
 
-class LookupTableMixin(
-    DeclarativeBase,
-    ModelDumpMixin,
-):
+class LookupTableMixin:
     __abstract__ = True
     stable_id: str = None
 
@@ -247,3 +244,39 @@ class TransactionTableMixin:
 
         pk_name = self.__mapper__.primary_key[0].name
         return getattr(self, pk_name)
+
+
+class IdAliasMixin:
+    """
+    Mixin that provides a generic `id` property for mapped classes to facilitate
+    mapping query resuts to Pydantic models (e.g., for the API)
+
+    - If the class defines a `stable_id` attribute (the name of a field/column),
+        `id` returns the value of that field.
+    - Otherwise, `id` returns the value of the primary key column (only supports
+        single-column primary keys).
+    """
+
+    @property
+    def id(self):
+        # If the class has a 'stable_id' property/column, return that
+        stable_id_field = getattr(self.__class__, "stable_id", None)
+        if stable_id_field is not None:
+            return getattr(self, stable_id_field)
+        # Otherwise, return the primary key value
+        mapper = inspect(self.__class__)
+        if len(mapper.primary_key) != 1:
+            raise NotImplementedError(
+                "IdAliasMixin only supports single-column primary keys."
+            )
+        pk_attr = mapper.primary_key[0].name
+        return getattr(self, pk_attr)
+
+
+class GenomicsDBTableMixin(
+    LookupTableMixin, TransactionTableMixin, HousekeepingMixin
+): ...
+
+
+class GenomicsDBMVMixin(LookupTableMixin):
+    document_primary_key = None  # set to do pk lookups on RAG docs
