@@ -9,8 +9,10 @@ class MigrationContext:
     def __init__(self):
         xArgs: dict = context.get_x_argument(as_dictionary=True)
         schema: str = xArgs.get("schema", "")
-        self.__target_schema_metadata: List[MetaData] = SchemaRegistry.get_metadata(
-            schema
+        self.__target_schema_metadata: List[MetaData] = (
+            SchemaRegistry.get_registered_metadata()
+            if schema == "ALL"
+            else SchemaRegistry.get_schema_metadata(schema)
         )
 
     def include_name(self, name: str, type_: str, parent_names: Any) -> bool:
