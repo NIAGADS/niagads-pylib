@@ -1,11 +1,13 @@
 """
 Base class for the `Dataset` schema models in the genomicsdb database.
-Uses DeclarativeModelBaseFactory to create a SQLAlchemy DeclarativeBase with housekeeping fields.
 """
 
-from niagads.genomicsdb.schema.bases import DeclarativeTableBase
+from niagads.genomicsdb.schema.mixins import GenomicsDBTableMixin
+from niagads.genomicsdb.schema.registry import SchemaRegistry
 from sqlalchemy import MetaData
+from sqlalchemy.orm import DeclarativeBase
 
 
-class DatasetSchemaBase(DeclarativeTableBase):
+@SchemaRegistry.register()
+class DatasetSchemaBase(DeclarativeBase, GenomicsDBTableMixin):
     metadata = MetaData(schema="dataset")
