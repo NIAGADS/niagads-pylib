@@ -2,7 +2,6 @@ import importlib
 import pkgutil
 
 from sqlalchemy import Connection, Table, event
-from helpers.constants import SCHEMA_PACKAGES
 from helpers.config import Settings
 
 
