@@ -39,7 +39,14 @@ class CaseInsensitiveEnum(StrEnum):
         return self.value
 
     @classmethod
-    def list(cls, toLower: bool = False) -> List[str]:
-        if toLower:
-            return [v.lower() for v in cls._value2member_map_]
-        return [v for v in cls._value2member_map_]
+    def list(cls, to_lower: bool = False, return_enum_names: bool = False) -> List[str]:
+        values = (
+            [member.name for member in cls]
+            if return_enum_names
+            else [member.value for member in cls]
+        )
+
+        if to_lower:
+            return [v.lower() for v in values]
+        else:
+            return values
