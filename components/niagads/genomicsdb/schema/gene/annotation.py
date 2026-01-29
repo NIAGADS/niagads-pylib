@@ -26,4 +26,4 @@ class PathwayMembership(GeneTableBase):
         index=True,
     )
     gene_id: Mapped[int] = gene_fk_column()
-    # evidence: -> ontology_term graph link
+    # TODO: evidence -> does this need to be a linking column?

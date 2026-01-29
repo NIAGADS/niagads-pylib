@@ -1,24 +1,22 @@
 """
-Base classes and helpers for SQLAlchemy ORM models in the genomicsdb gene schema.
-
-Defines declarative base classes, metadata mixins, and foreign key helpers for gene-related tables.
+Base classes and helpers for SQLAlchemy ORM models in the GenomicsDB "Gene" schema.
 """
 
-from niagads.genomicsdb.schema.bases import (
-    DeclarativeMaterializedViewBase,
-    DeclarativeTableBase,
-)
+from niagads.genomicsdb.schema.mixins import GenomicsDBMVMixin, GenomicsDBTableMixin
+from niagads.genomicsdb.schema.registry import SchemaRegistry
 from sqlalchemy import MetaData
+from sqlalchemy.orm import DeclarativeBase
 
 
-class GeneMetadataMixin:
-    metadata = MetaData(schema="gene")
+@SchemaRegistry.register()
+class GeneSchemaBase(DeclarativeBase):
+    metadata = MetaData(schema="dataset")
 
 
-class GeneTableBase(DeclarativeTableBase, GeneMetadataMixin):
+class GeneTableBase(GeneSchemaBase, GenomicsDBTableMixin):
     stable_id = "source_id"
 
 
-class GeneMaterializedViewBase(DeclarativeMaterializedViewBase, GeneMetadataMixin):
+class GeneMaterializedViewBase(GeneSchemaBase, GenomicsDBMVMixin):
     document_primary_key = "gene_id"
     stable_id = "ensembl_id"
