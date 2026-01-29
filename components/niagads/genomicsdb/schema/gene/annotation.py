@@ -4,8 +4,8 @@ SQLAlchemy ORM table definitions for gene annotation and membership tables.
 Defines annotation, pathway membership, and related tables for gene-centric knowledge in the genomicsdb gene schema.
 """
 
-from niagads.genomicsdb.schema.gene.base import GeneTableBase, gene_fk_column
-
+from niagads.genomicsdb.schema.gene.base import GeneTableBase
+from niagads.genomicsdb.schema.gene.helpers import gene_fk_column
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 

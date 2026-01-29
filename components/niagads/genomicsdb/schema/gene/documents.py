@@ -12,7 +12,7 @@ from niagads.common.models.composite_attributes.gene import (
 )
 from niagads.database.mixins.ranges import GenomicRegionMixin
 from niagads.genomicsdb.schema.gene.base import GeneMaterializedViewBase
-from niagads.genomicsdb.schema.gene.xrefs import GeneIdentifierType
+from niagads.genomicsdb.schema.gene.xrefs import GeneXRefType
 from sqlalchemy import ARRAY, String, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
@@ -41,7 +41,7 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin):
         self,
         session: AsyncSession,
         id: str,
-        gene_identifier_type: GeneIdentifierType,
+        gene_identifier_type: GeneXRefType,
     ):
         """
         Resolve a gene record by a given identifier and identifier type.
@@ -74,12 +74,12 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin):
                 "ENSG00000123456", GeneIdentifierType.ENSEMBL, session
             )
         """
-        if gene_identifier_type == GeneIdentifierType.ENSEMBL:
+        if gene_identifier_type == GeneXRefType.ENSEMBL:
             record: Self = cast(
                 Self, await super().find_record(session, {"ensembl_id": id.upper()})
             )
             return {"gene_id": record.gene_id, "ensembl_id": record.ensembl_id}
-        if gene_identifier_type == GeneIdentifierType.SYMBOL:
+        if gene_identifier_type == GeneXRefType.SYMBOL:
             raise NotImplementedError(
                 "need to write sql function to do case insensitive(?) match on symbol and synonyms"
             )

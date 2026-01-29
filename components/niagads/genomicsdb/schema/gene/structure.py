@@ -5,13 +5,12 @@ Defines the canonical tables for gene structure in the genomicsdb gene schema.
 """
 
 from niagads.database.mixins.ranges import GenomicRegionMixin
-from niagads.genomicsdb.schema.gene.base import GeneTableBase, gene_fk_column
+from niagads.genomicsdb.schema.gene.base import GeneTableBase
+from niagads.genomicsdb.schema.gene.helpers import gene_fk_column
 from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.utils.regular_expressions import RegularExpressions
-from sqlalchemy import String
-
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import ForeignKey
 from sqlalchemy.schema import CheckConstraint
 
 

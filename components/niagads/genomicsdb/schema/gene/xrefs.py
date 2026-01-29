@@ -1,12 +1,12 @@
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.genomicsdb.schema.gene.base import GeneTableBase, gene_fk_column
+from niagads.genomicsdb.schema.gene.base import GeneTableBase
+from niagads.genomicsdb.schema.gene.helpers import gene_fk_column
 from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
-
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class GeneIdentifierType(CaseInsensitiveEnum):
+class GeneXRefType(CaseInsensitiveEnum):
     ENSEMBL = "ensembl_id"
     ENTREZ = "entrez_id"
     NCBI = "entrez_id"
