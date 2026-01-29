@@ -3,3 +3,8 @@
 #  FIXME: can I just use __init__.py?
 
 from niagads.genomicsdb.schema.ragdoc.base import RAGDocSchemaBase
+from niagads.genomicsdb.schema.ragdoc.documents import (
+    TableMap,
+    ChunkEmbedding,
+    ChunkMetadata,
+)
