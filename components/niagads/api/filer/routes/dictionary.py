@@ -26,7 +26,7 @@ async def get_allowable_text_filters(
 ) -> ListResponse:
 
     return ListResponse(
-        data=TextSearchFilterFields.list(toLower=True), request=internal.request_data
+        data=TextSearchFilterFields.list(to_lower=True), request=internal.request_data
     )
 
 
