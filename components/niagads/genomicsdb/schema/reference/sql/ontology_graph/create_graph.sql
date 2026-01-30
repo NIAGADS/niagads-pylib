@@ -145,3 +145,31 @@ MATCH (source:term)-[:has_restriction]->(r:restriction),
 RETURN DISTINCT source.term_iri, source.term
 
 */
+
+/*
+--POSSIBLE NLP QUERY PATTERN; note that example does not reflect current relational table schema
+
+-- User queries "neurons"
+WITH query_embedding AS (
+  SELECT embedding_vector('neurons') AS vec
+),
+semantic_matches AS (
+  -- Find similar terms via vector search
+  SELECT term_id, term_iri, label, similarity
+  FROM ontologyterm
+  ORDER BY embedding <-> query_embedding.vec
+  LIMIT 10
+),
+expanded_matches AS (
+  -- For each match, traverse AGE to find related terms
+  MATCH (t:term {term_iri: semantic_matches.term_iri})-[:derived_from|:part_of|:equivalent_to*..3]->(related:term)
+  RETURN semantic_matches.term_iri, related.term_iri, related.label
+)
+SELECT DISTINCT d.sample_id, d.cell_type
+FROM genomic_data d
+WHERE d.cell_type_term_id IN (
+  SELECT term_id FROM semantic_matches
+  UNION
+  SELECT term_id FROM ontologyterm WHERE term_iri IN (expanded_matches.term_iri)
+);
+*/
