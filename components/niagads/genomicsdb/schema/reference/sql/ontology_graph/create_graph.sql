@@ -1,23 +1,23 @@
 RETURNS void AS $$
 BEGIN
     CREATE PROPERTY GRAPH IF NOT EXISTS Ontology;
-/* TODO: Multi-ontology / multi-version scoping: 
-   Uses term_iri as stable identifier; ontology_id on vertices and edges 
-   enables multi-ontology coexistence without duplication.
-*/
 
     -- Vertex labels for ontology terms
     CREATE VERTEX LABELS (term, ontology, restriction);
 
     CREATE EDGE LABELS (
-        is_a,                -- rdfs:subClassOf
+        is_a,                -- rdfs:subClassOf (term to term)
         part_of,             -- frequently traversed in bio-ontologies
         equivalent_to,       -- owl:equivalentClass (optional but commonly useful)
+        has_restriction,     -- Links term to its OWL restriction constraints
+        defined_in,          -- Links term to the ontology that defines it
         triple               -- generic predicate edge: use `predicate` property
     );
     
     -- Ontology term vertex with core properties
     -- Uses term_iri as stable identifier across multiple ontologies/versions
+    -- Deduplicated: single term instance per unique term_iri
+    -- Ontology scoping is handled via edges (defined_in, is_a, part_of, equivalent_to, triple)
     CREATE (:term {
         ontology_term_id: INT NOT NULL UNIQUE,   -- Integer key, assigned from sequence (see below)
         term_iri: STRING NOT NULL UNIQUE,        -- Full URI (e.g., http://purl.obolibrary.org/obo/GO_0006915)
@@ -28,7 +28,6 @@ BEGIN
         synonyms: LIST,                          -- Array of synonym strings
         is_deprecated: BOOLEAN DEFAULT FALSE,
         is_placeholder: BOOLEAN DEFAULT FALSE,
-        ontology_id: INTEGER,           -- References reference.externaldatabase; allows multi-ontology scoping
         run_id: INTEGER NOT NULL                 -- References admin.etlrun for versioning
     });
 
@@ -60,24 +59,43 @@ BEGIN
         run_id: INTEGER NOT NULL
     })-[]->();
 
-    -- Restriction/blank node vertex (for OWL restrictions)
-    CREATE (:restriction {
-        restriction_id: STRING,
+    CREATE (=defined_in {
+        ontology_id: INTEGER,           -- Source ontology
         run_id: INTEGER NOT NULL
+    })-[]->();
+
+    CREATE (=has_restriction {
+        ontology_id: INTEGER,           -- Source ontology
+        run_id: INTEGER NOT NULL
+    })-[]->();
+
+    -- Restriction/blank node vertex (for OWL restrictions)
+    -- A restriction is an anonymous blank node that serves as a container for restriction properties.
+    -- Each restriction node's definition is the subgraph of outbound triple edges from it.
+    -- The restriction itself carries only metadata (ontology scope and version).
+    -- Example: a someValuesFrom restriction is defined by its outbound triple edges:
+    --   (:restriction)-[:triple {predicate: 'owl:onProperty'}]->(:term {property})
+    --   (:restriction)-[:triple {predicate: 'owl:someValuesFrom'}]->(:term {filler})
+    CREATE (:restriction {
+        restriction_id: STRING NOT NULL UNIQUE,  -- Blank node identifier
+        ontology_id: INTEGER,                    -- Source ontology (scopes the restriction)
+        run_id: INTEGER NOT NULL                 -- Version/load snapshot
     });
 
     -- Ontology metadata vertex
     CREATE (:ontology {
         ontology_id: INTEGER,          -- References reference.externaldatabase (unique key)
-        ontology: STRING,                       -- Ontology name/code
+        ontology: STRING UNIQUE,                       -- Ontology name/code
+        ontology_code: STRING UNIQUE,
         version: STRING,                        -- Release/version identifier
         run_id: INTEGER NOT NULL                -- References admin.etlrun
     });
 
-    -- NOTE
-    -- `defined_in` was intentionally removed as a dedicated edge label.
-    -- Model it (and other non-reasoned relationships) as `triple` edges:
-    --   (:term)-[:triple {predicate: 'defined_in', ontology_id: ..., run_id: ...}]->(:ontology)
+    -- NOTE on ontology tracking:
+    -- Terms are deduplicated by term_iri (UNIQUE constraint on :term vertex).
+    -- Use explicit `defined_in` edges to track which ontology defines each term:
+    --   (:term)-[:defined_in {ontology_id: ..., run_id: ...}]->(:ontology)
+    -- This maintains ontology_id scoping on edges while keeping vertices lean.
 END;
 $$ LANGUAGE plpgsql;
 
@@ -94,7 +112,36 @@ $$ LANGUAGE plpgsql;
     </rdfs:subClassOf>
 </owl:Class>
 */
--- (SO_0000016, subClassOf, restriction_node)
--- (restriction_node, onProperty, part_of)
--- (restriction_node, someValuesFrom, SO_0001669)
 
+-- Graph representation:
+-- (:term {term_iri: SO_0000016})-[:is_a]->(:term {term_iri: SO_0001660})
+-- (:term {term_iri: SO_0000016})-[:has_restriction]->(:restriction {restriction_id: '_blank1'})
+--
+-- Restriction subgraph (defined by its outbound edges):
+-- (:restriction {restriction_id: '_blank1'})-[:triple {predicate: 'http://www.w3.org/2002/07/owl#onProperty', ontology_id, run_id}]->(:term {term_iri: so#part_of})
+-- (:restriction {restriction_id: '_blank1'})-[:triple {predicate: 'http://www.w3.org/2002/07/owl#someValuesFrom', ontology_id, run_id}]->(:term {term_iri: SO_0001669})
+--
+-- NOTE: If the restriction uses a named edge type (e.g., part_of), use that instead of triple:
+-- (:restriction {restriction_id: '_blank1'})-[:part_of {ontology_id, run_id}]->(:term {target_iri})
+--
+-- Interpretation: SO_0000016 (BREUR_motif) is a subclass of SO_0001660 and is constrained by
+-- a restriction: instances must have at least one part_of relationship to SO_0001669 (RNApol_II_core_promoter).
+
+/*
+-- Find all terms with part_of relationships to SO_0001669
+-- including through restrictions of any structure
+
+MATCH (target:term {term_iri: 'http://purl.obolibrary.org/obo/SO_0001669'})
+
+-- Direct part_of edges
+MATCH (source:term)-[:part_of {ontology_id, run_id}]->(target)
+
+UNION
+
+-- Through restrictions: find restrictions that have ANY outbound edge to this target
+MATCH (source:term)-[:has_restriction]->(r:restriction),
+    (r)-[]->(target)
+
+RETURN DISTINCT source.term_iri, source.term
+
+*/
