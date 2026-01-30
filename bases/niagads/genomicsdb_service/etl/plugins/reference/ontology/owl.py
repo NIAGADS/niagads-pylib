@@ -33,8 +33,7 @@ from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
 from pydantic import Field
-from rdflib import OWL, RDF, Graph
-from rdflib.term import BNode, Literal, URIRef
+from rdflib import OWL, RDF, Graph, Literal, URIRef, BNode
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import text
 
@@ -51,45 +50,10 @@ class OntologyGraphLoaderParams(
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
 
-@PluginRegistry.register(metadata={"version": 1.0})
-class OntologyGraphLoader(AbstractBasePlugin):
-    """
-    ETL plugin for loading an ontology from an OWL file into the reference ontology graph schema.
-    """
-
-    _params: OntologyGraphLoaderParams  # type annotation
-
-    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
-        super().__init__(params, name)
-        self._xdbref_id = self._params.resolve_xdbref()
-        self._graph = None
-
-        # hash of created placeholder vertexes, log at end if any were
-        # left un-filled
-        self._placeholders = {}
-
-    @classmethod
-    def description(cls) -> str:
-        return (
-            "Loads an ontology (terms and relationships) from an OWL file into the "
-            "Reference.Ontology graph schema."
-        )
-
-    @classmethod
-    def parameter_model(cls) -> Type[BasePluginParams]:
-        return OntologyGraphLoaderParams
-
-    @property
-    def operation(self) -> ETLOperation:
-        return ETLOperation.INSERT
-
-    @property
-    def affected_tables(self) -> List[str]:
-        return ["Reference.Ontology"]
-
-    @property
-    def load_strategy(self) -> LoadStrategy:
-        return LoadStrategy.CHUNKED
+class OntologyGraphParser:
+    def __init__(self, owl_file: str):
+        self._graph = Graph()
+        self._graph.parse(owl_file, format="xml")
 
     def _resolve_entity_type(self, node):
         assigned_types = [
@@ -97,17 +61,30 @@ class OntologyGraphLoader(AbstractBasePlugin):
         ]
         return EntityIRI.resolve_entity_type(assigned_types)
 
-    def extract(self) -> Iterator[Any]:
+    # TODO - fix logic now that it is moved
+    # TODO: handle restrictions
+    def extract_entities(
+        self,
+        extract_terms: bool = True,
+        extract_relationships: bool = False,
+        ignore_restrictions: bool = True,
+    ) -> Iterator[Any]:
         """
-        Parses the OWL file and yields ontology terms and triples.
-        For each subject in the RDF graph, if it is a recognized ontology type
-        (class, property, or individual), yield an OntologyTermModel instance.
-        Then, yield all RDF triples as OntologyTripleModel instances.
-        This supports downstream graph construction.
-        """
+        Extracts ontology entities from the RDF graph and yields them for downstream processing.
 
-        self._graph = Graph()
-        self._graph.parse(self._params.file, format="xml")
+        For each subject in the RDF graph, if it is a recognized ontology type
+        (class, property, or individual), yields a dictionary.
+        Also yields OntologyTriple instances for recognized object property relationships.
+
+        Args:
+            extract_terms: Whether to yield term entities (default: True).
+            extract_relationships: Whether to yield relationship triples (default: False).
+            ignore_restrictions: Whether to skip OWL restrictions (default: True).
+
+        Yields:
+            Dict: Term dictionaries with subject_iri, type, and properties.
+            OntologyTriple: Relationship triples (subject, predicate, object).
+        """
 
         for subject in self._graph.subjects():
             subject_iri = str(subject)
@@ -160,33 +137,49 @@ class OntologyGraphLoader(AbstractBasePlugin):
                 "properties": subject_properties,
             }
 
-    @staticmethod
-    def _resolve_label(props: dict):
-        label = props.get(OntologyTerm.get_field_iri("term", preferred=True)[None])
-        if label is None:  # no editor preffered label
-            label = props.get(OntologyTerm.get_field_iri("term", preferred=False)[None])
-        return label[0]
 
-    def _build_ontology_term(self, record):
-        props: dict = record["properties"]
+@PluginRegistry.register(metadata={"version": 1.0})
+class OntologyGraphLoader(AbstractBasePlugin):
+    """
+    ETL plugin for loading an ontology from an OWL file into the reference ontology graph schema.
+    """
 
-        label = self._resolve_label(props)
-        term_id = props.get(OntologyTerm.get_field_iri("term_id"), [None])[0]
-        definition = props.get(OntologyTerm.get_field_iri("definition"), [None])[0]
-        synonyms = props.get(OntologyTerm.get_field_iri("synonyms"), [])
-        is_deprecated = bool(
-            props.get(OntologyTerm.get_field_iri("is_deprecated"), [False])[0]
+    _params: OntologyGraphLoaderParams  # type annotation
+
+    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
+        super().__init__(params, name)
+        self._xdbref_id = self._params.resolve_xdbref()
+
+        # hash of created placeholder vertexes, log at end if any were
+        # left un-filled
+        self._placeholders = {}
+
+    @classmethod
+    def description(cls) -> str:
+        return (
+            "Loads an ontology (terms and relationships) from an OWL file into the "
+            "Reference.Ontology graph schema."
         )
 
-        return OntologyTerm(
-            term_iri=record["subject"],
-            term_id=term_id,
-            term=label,
-            definition=definition,
-            synonyms=synonyms,
-            is_deprecated=is_deprecated,
-            run_id=self._run_id,
-        )
+    @classmethod
+    def parameter_model(cls) -> Type[BasePluginParams]:
+        return OntologyGraphLoaderParams
+
+    @property
+    def operation(self) -> ETLOperation:
+        return ETLOperation.INSERT
+
+    @property
+    def affected_tables(self) -> List[str]:
+        return ["Reference.Ontology"]
+
+    @property
+    def load_strategy(self) -> LoadStrategy:
+        return LoadStrategy.CHUNKED
+
+    def extract(self) -> Iterator[Any]:
+        parser = OntologyGraphParser(self._params.file)
+        yield from parser.extract_entities()
 
     def transform(
         self, record: Union[OntologyTerm, OntologyTriple]
@@ -199,7 +192,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
         if isinstance(record, OntologyTriple):
             return record
 
-        return self._build_ontology_term(record)
+        return OntologyTerm.from_owl_entry(record, self._run_id)
 
     def get_record_id(self, record: Union[OntologyTerm, OntologyTriple]) -> str:
         """
@@ -298,3 +291,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
 
     def on_run_complete(self) -> None:
         return None
+
+
+@PluginRegistry.register(metadata={"version": 1.0})
+class OntologyTermLoader(AbstractBasePlugin): ...

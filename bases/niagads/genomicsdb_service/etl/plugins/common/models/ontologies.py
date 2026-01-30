@@ -102,6 +102,36 @@ class OntologyTerm(__OntologyTerm):
         return bool(await result.scalar())
 
     @classmethod
+    def from_owl_entry(cls, owl_entry: dict, run_id: int):
+        term_properties: dict = owl_entry["properties"]
+        label = term_properties.get(
+            OntologyTerm.get_field_iri("term", preferred=True)[None]
+        )
+        if label is None:  # no editor preffered label
+            label = term_properties.get(
+                OntologyTerm.get_field_iri("term", preferred=False)[None]
+            )
+
+        term_id = term_properties.get(OntologyTerm.get_field_iri("term_id"), [None])[0]
+        definition = term_properties.get(
+            OntologyTerm.get_field_iri("definition"), [None]
+        )[0]
+        synonyms = term_properties.get(OntologyTerm.get_field_iri("synonyms"), [])
+        is_deprecated = bool(
+            term_properties.get(OntologyTerm.get_field_iri("is_deprecated"), [False])[0]
+        )
+
+        return cls(
+            term_iri=owl_entry["subject"],
+            term_id=term_id,
+            term=label[0],
+            definition=definition,
+            synonyms=synonyms,
+            is_deprecated=is_deprecated,
+            run_id=run_id,
+        )
+
+    @classmethod
     def get_field_iri(cls, field: str, preferred=True) -> str:
         """
         Returns (list) of property IRIs used to retrieve values of an OntologyTerm object
@@ -335,9 +365,11 @@ class OntologyTerm(__OntologyTerm):
 
 
 class OntologyTriple(__OntologyTriple):
+    ontology_id: int  # the external db ref
     run_id: int  # the algorithm invocation (run) identifier
 
 
 class OntologyRestriction(BaseModel):
+    ontology_id: int  # the external db ref
     run_id: int  # the algorithm invocation (run) identifier
     triples: list[OntologyTriple]
