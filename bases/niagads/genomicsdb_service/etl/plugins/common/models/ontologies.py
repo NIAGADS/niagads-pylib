@@ -1,5 +1,5 @@
-from niagads.common.models.ontology import OntologyTerm as __OntologyTerm
-from niagads.common.models.ontology import OntologyTriple as __OntologyTriple
+from niagads.common.models.ontologies import OntologyTerm as __OntologyTerm
+from niagads.common.models.ontologies import OntologyTriple as __OntologyTriple
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.string import jaccard_word_similarity
 from pydantic import BaseModel

@@ -2,7 +2,7 @@ from enum import auto
 from typing import Dict, List, Optional, Union
 
 from niagads.api.common.models.features.variant import AbridgedVariant, Variant
-from niagads.common.models.ontology import OntologyTerm
+from niagads.common.models.ontologies import OntologyTerm
 from niagads.common.types import T_PubMedID
 from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,

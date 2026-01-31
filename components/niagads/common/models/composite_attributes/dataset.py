@@ -7,7 +7,7 @@ from niagads.common.constants.external_resources import (
 )
 from niagads.common.constants.ontologies import BiosampleType
 from niagads.common.models.core import TransformableModel
-from niagads.common.models.ontology import OntologyTerm
+from niagads.common.models.ontologies import OntologyTerm
 from niagads.common.types import T_PubMedID
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches

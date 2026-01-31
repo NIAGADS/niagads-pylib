@@ -1,5 +1,5 @@
 from enum import Enum
-from niagads.common.models.ontology import OntologyTerm
+from niagads.common.models.ontologies import OntologyTerm
 
 
 class BiosampleType(Enum):

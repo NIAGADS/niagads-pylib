@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Self, Union
 
-from niagads.common.models.ontology import OntologyTerm
+from niagads.common.models.ontologies import OntologyTerm
 from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     ExperimentalDesign,
