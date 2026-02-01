@@ -27,7 +27,6 @@ BEGIN
         definition: STRING,                      -- Term definition
         synonyms: LIST,                          -- Array of synonym strings
         is_deprecated: BOOLEAN DEFAULT FALSE,
-        is_placeholder: BOOLEAN DEFAULT FALSE,
         run_id: INTEGER NOT NULL                 -- References admin.etlrun for versioning
     });
 
@@ -85,8 +84,8 @@ BEGIN
     -- Ontology metadata vertex
     CREATE (:ontology {
         ontology_id: INTEGER,          -- References reference.externaldatabase (unique key)
-        ontology: STRING UNIQUE,                       -- Ontology name/code
-        ontology_code: STRING UNIQUE,
+        ontology: STRING UNIQUE,                       -- Ontology name
+        namespace: STRING UNIQUE,               -- ontology namespace or code
         version: STRING,                        -- Release/version identifier
         run_id: INTEGER NOT NULL                -- References admin.etlrun
     });

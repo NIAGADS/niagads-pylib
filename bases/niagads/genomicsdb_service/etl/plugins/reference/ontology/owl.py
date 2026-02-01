@@ -22,7 +22,7 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.genomicsdb.schema.admin.etl import ETLOperation
-from niagads.genomicsdb_service.etl.plugins.common.models.ontologies import (
+from niagads.genomicsdb_service.etl.plugins.reference.ontology.graph_models import (
     AnnotationPropertyIRI,
     EntityIRI,
     RDFPropertyIRI,
@@ -121,7 +121,6 @@ class OntologyGraphParser:
                             subject=OntologyTerm(iri=subject_iri),
                             predicate=OntologyTerm(iri=predicate_iri),
                             object=OntologyTerm(iri=object_iri),
-                            run_id=self._run_id,
                         )
 
                 # TODO: restrictions
@@ -190,6 +189,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
                 "No records provided to transform(). At least one record is required."
             )
         if isinstance(record, OntologyTriple):
+            record.run_id = self._run_id
             return record
 
         return OntologyTerm.from_owl_entry(record, self._run_id)
@@ -202,6 +202,12 @@ class OntologyGraphLoader(AbstractBasePlugin):
             return f"Triple:{str(OntologyTriple)}"
         else:
             return record.term_id
+
+    async def _term_exists(self, term: OntologyTerm, session) -> bool:
+        try:
+            await term.exists()
+        except:
+            ...
 
     # TODO: with ontology terms sometimes you may see a term first in the non-source
     # ontology and may want to update the properties, when you load the source
@@ -281,6 +287,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
         Returns:
             ResumeCheckpoint
         """
+        ontology_id = self._params.resolve_xdbref()
 
         if isinstance(transformed, OntologyTerm):
             return await self._insert_term(transformed, session)
