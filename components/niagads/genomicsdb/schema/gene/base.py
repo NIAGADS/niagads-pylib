@@ -14,9 +14,11 @@ class GeneSchemaBase(DeclarativeBase):
 
 
 class GeneTableBase(GeneSchemaBase, GenomicsDBTableMixin):
-    stable_id = "source_id"
+    __abstract__ = True
+    _stable_id = "source_id"
 
 
 class GeneMaterializedViewBase(GeneSchemaBase, GenomicsDBMVMixin):
-    document_primary_key = "gene_id"
-    stable_id = "ensembl_id"
+    __abstract__ = True
+    _document_primary_key = "gene_id"
+    _stable_id = "ensembl_id"

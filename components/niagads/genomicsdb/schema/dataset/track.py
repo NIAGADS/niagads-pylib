@@ -1,6 +1,8 @@
 """`Track` (metadata) database model"""
 
 from typing import List, Optional
+
+from niagads.common.constants.track import TrackDataStore
 from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     ExperimentalDesign,
@@ -8,23 +10,21 @@ from niagads.common.models.composite_attributes.dataset import (
     Phenotype,
     Provenance,
 )
-from niagads.database.mixins import GenomicRegionMixin
-from niagads.database.mixins.datasets.track import TrackDataStore
-from niagads.database.mixins.embeddings import EmbeddingMixin
-from niagads.database.sa_enum_utils import enum_column, enum_constraint
+from niagads.database.helpers import enum_column, enum_constraint
+from niagads.database.mixins import EmbeddingMixin, GenomicRegionMixin
 from niagads.genomics.sequence.assembly import Assembly, HumanGenome
-from niagads.genomicsdb.schema.dataset.base import DatasetSchemaBase
+from niagads.genomicsdb.schema.dataset.base import DatasetTableBase
+from niagads.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.genomicsdb.schema.reference.helpers import ontology_term_fk_column
-from niagads.genomicsdb.schema.reference.mixins import (
-    ExternalDatabaseMixin,
-)
-from sqlalchemy import ARRAY, TEXT, Column, Index, String
-from sqlalchemy.orm import Mapped, mapped_column
+from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
+from sqlalchemy import ARRAY, TEXT, Column, Index, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
 
 
-class Track(DatasetSchemaBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMixin):
+class Track(DatasetTableBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMixin):
+    _stable_id = "source_id"
     __tablename__ = "track"
     __table_args__ = (
         enum_constraint("genome_build", Assembly),
@@ -44,7 +44,6 @@ class Track(DatasetSchemaBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMix
             },
         ),
     )
-    stable_id = "source_id"
 
     track_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
@@ -82,9 +81,10 @@ class Track(DatasetSchemaBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMix
     )
 
 
-class TrackInterval(DatasetSchemaBase, GenomicRegionMixin):
+class TrackInterval(DatasetTableBase, GenomicRegionMixin):
     """indexing table; stores the number of hits per bin index for a track"""
 
+    _stable_id = None
     __tablename__ = "trackinterval"
     __table_args__ = (
         Index(
@@ -95,5 +95,5 @@ class TrackInterval(DatasetSchemaBase, GenomicRegionMixin):
     )
 
     track_interval_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    track_id: Mapped[str]  # TODO: mapped_column(ForeignKey("metadata.track.track_id"))
-    num_hits: Mapped[int]
+    track_id: Mapped[str] = track_fk_column()
+    num_hits: Mapped[int] = mapped_column(Integer, nullable=False)

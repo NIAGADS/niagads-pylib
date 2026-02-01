@@ -6,6 +6,5 @@ from niagads.enums.core import CaseInsensitiveEnum
 
 
 class TrackDataStore(CaseInsensitiveEnum):
-    GENOMICS = auto()
+    GENOMICSDB = auto()
     FILER = auto()
-    SHARED = auto()

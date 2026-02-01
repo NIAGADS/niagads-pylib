@@ -9,5 +9,9 @@ from sqlalchemy.orm import DeclarativeBase
 
 
 @SchemaRegistry.register()
-class AdminSchema(DeclarativeBase, GenomicsDBTableMixin):
+class AdminSchemaBase(DeclarativeBase):
     metadata = MetaData(schema="admin")
+
+
+class AdminTableBase(AdminSchemaBase, GenomicsDBTableMixin):
+    __abstract__ = True

@@ -14,4 +14,5 @@ class VariantSchemaBase(DeclarativeBase):
 
 
 class VariantTableBase(VariantSchemaBase, GenomicsDBTableMixin):
-    stable_id = "positional_id"
+    __abstract__ = True
+    _stable_id = "positional_id"

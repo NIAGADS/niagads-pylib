@@ -25,7 +25,7 @@ from niagads.api.common.views.table import TableViewResponse
 from niagads.api.genomicsdb.dependencies import InternalRequestParameters
 from niagads.api.genomicsdb.documentation import APP_NAME
 from niagads.api.genomicsdb.services.route import GenomicsRouteHelper
-from niagads.database.mixins.datasets.track import TrackDataStore
+from niagads.common.constants.track import TrackDataStore
 
 router = APIRouter(
     prefix="/record/collection",
@@ -60,7 +60,7 @@ async def get_collections(
     )
 
     result = await MetadataQueryService(
-        internal.session, data_store=[TrackDataStore.GENOMICS, TrackDataStore.SHARED]
+        internal.session, data_store=[TrackDataStore.GENOMICSDB, TrackDataStore.SHARED]
     ).get_collections()
     return await helper.generate_response(result)
 

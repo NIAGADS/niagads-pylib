@@ -15,7 +15,7 @@ class PathwayMembership(GeneTableBase):
     __table_args__ = (
         UniqueConstraint("pathway_id", "gene_id", name="uq_pathway_gene_membership"),
     )
-    stable_id = None
+    _stable_id = None
 
     pathway_membership_id: Mapped[int] = mapped_column(
         primary_key=True, autoincrement=True

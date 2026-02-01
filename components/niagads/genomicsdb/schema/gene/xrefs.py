@@ -21,6 +21,6 @@ class GeneXRefType(CaseInsensitiveEnum):
 
 class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
     __tablename__ = "xref"
-    stable_id = None
+    _stable_id = None
     gene_id: Mapped[int] = gene_fk_column()
     cross_references: Mapped[dict] = mapped_column(JSONB, nullable=True)

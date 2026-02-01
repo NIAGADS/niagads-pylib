@@ -9,5 +9,9 @@ from sqlalchemy.orm import DeclarativeBase
 
 
 @SchemaRegistry.register()
-class DatasetSchemaBase(DeclarativeBase, GenomicsDBTableMixin):
+class DatasetSchemaBase(DeclarativeBase):
     metadata = MetaData(schema="dataset")
+
+
+class DatasetTableBase(DatasetSchemaBase, GenomicsDBTableMixin):
+    __abstract__ = True

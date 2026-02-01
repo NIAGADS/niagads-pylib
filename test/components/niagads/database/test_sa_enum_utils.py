@@ -1,4 +1,4 @@
-from niagads.database.sa_enum_utils import enum_column, enum_constraint
+from niagads.database.helpers import enum_column, enum_constraint
 from niagads.enums.core import CaseInsensitiveEnum
 
 

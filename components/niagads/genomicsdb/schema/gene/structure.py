@@ -4,7 +4,7 @@ SQLAlchemy ORM table definitions for core gene structure entities: gene, transcr
 Defines the canonical tables for gene structure in the genomicsdb gene schema.
 """
 
-from niagads.database.mixins.ranges import GenomicRegionMixin
+from niagads.database.mixins import GenomicRegionMixin
 from niagads.genomicsdb.schema.gene.base import GeneTableBase
 from niagads.genomicsdb.schema.gene.helpers import gene_fk_column
 from niagads.genomicsdb.schema.mixins import IdAliasMixin

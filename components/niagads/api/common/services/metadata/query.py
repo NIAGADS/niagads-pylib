@@ -10,7 +10,7 @@ from niagads.common.models.composite_attributes.dataset import (
     Phenotype,
     Provenance,
 )
-from niagads.database.mixins.datasets.track import TrackDataStore
+from niagads.common.constants.track import TrackDataStore
 from niagads.genomicsdb.schema.dataset.collection import Collection, TrackCollection
 from niagads.genomicsdb.schema.dataset.track import Track
 from niagads.utils.list import list_to_string

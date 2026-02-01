@@ -10,7 +10,7 @@ from niagads.common.models.composite_attributes.gene import (
     GOAnnotation,
     PathwayAnnotation,
 )
-from niagads.database.mixins.ranges import GenomicRegionMixin
+from niagads.database.mixins import GenomicRegionMixin
 from niagads.genomicsdb.schema.gene.base import GeneMaterializedViewBase
 from niagads.genomicsdb.schema.gene.xrefs import GeneXRefType
 from niagads.genomicsdb.schema.mixins import IdAliasMixin

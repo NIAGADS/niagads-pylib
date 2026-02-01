@@ -7,11 +7,10 @@ These models support auditing, monitoring, and debugging of ETL processes in the
 from datetime import datetime
 from enum import auto
 
-from niagads.database import enum_column, enum_constraint
-from niagads.database.mixins.columns import datetime_column
+from niagads.database.helpers import enum_column, enum_constraint, datetime_column
 from niagads.enums.common import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.genomicsdb.schema.admin.base import AdminSchema
+from niagads.genomicsdb.schema.admin.base import AdminTableBase
 from sqlalchemy import String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -35,7 +34,7 @@ class ETLOperation(CaseInsensitiveEnum):
     SKIP = auto()
 
 
-class ETLRun(AdminSchema):
+class ETLRun(AdminTableBase):
     __tablename__ = "etlrun"
     __table_args__ = (
         enum_constraint("status", ProcessStatus),

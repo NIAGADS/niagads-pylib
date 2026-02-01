@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from niagads.database.mixins.columns import datetime_column
+from niagads.database.helpers import datetime_column
 from pgvector import Vector
 from sqlalchemy import ForeignKey, Index, LargeBinary, String
 from sqlalchemy.orm import Mapped, mapped_column

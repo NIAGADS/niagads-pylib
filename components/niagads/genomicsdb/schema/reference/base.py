@@ -9,6 +9,10 @@ from sqlalchemy.orm import DeclarativeBase
 
 
 @SchemaRegistry.register()
-class ReferenceSchemaBase(DeclarativeBase, GenomicsDBTableMixin):
+class ReferenceSchemaBase(DeclarativeBase):
     metadata = MetaData(schema="reference")
-    stable_id = None
+
+
+class ReferenceTableBase(ReferenceSchemaBase, GenomicsDBTableMixin):
+    __abstract__ = True
+    _stable_id = None

@@ -5,7 +5,7 @@ Defines table mapping, chunk metadata, and embedding tables for chunked
 retrieval-augmented generation (RAG) workflows in the genomicsdb ragdoc schema.
 """
 
-from niagads.genomicsdb.schema.ragdoc.base import RAGDocSchemaBase
+from niagads.genomicsdb.schema.ragdoc.base import RAGDocTableBase
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     TEXT,
@@ -19,7 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class TableMap(RAGDocSchemaBase):
+class TableMap(RAGDocTableBase):
     """
     Maps logical document sources to table and schema names for RAG workflows.
     """
@@ -33,7 +33,7 @@ class TableMap(RAGDocSchemaBase):
     table_name: Mapped[str] = mapped_column(String(50), index=True)
 
 
-class ChunkMetadata(RAGDocSchemaBase):
+class ChunkMetadata(RAGDocTableBase):
     """
     Stores chunk boundaries and metadata for structured and unstructured documents.
     """
@@ -67,7 +67,7 @@ class ChunkMetadata(RAGDocSchemaBase):
         return f"{self.section}_{self.chunk_index}"
 
 
-class ChunkEmbedding(RAGDocSchemaBase):
+class ChunkEmbedding(RAGDocTableBase):
     """
     Stores vector embeddings for document chunks, linked to chunk metadata.
     """
