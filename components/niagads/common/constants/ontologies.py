@@ -11,7 +11,7 @@ class RDFPropertyIRI(CaseInsensitiveEnum):
     ENTITY_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 
 
-class EntityIRI(CaseInsensitiveEnum):
+class EntityTypeIRI(CaseInsensitiveEnum):
     """
     Enum for RDF/OWL ontology entity types
 
@@ -21,6 +21,9 @@ class EntityIRI(CaseInsensitiveEnum):
     OBJECT_PROPERTY = "http://www.w3.org/2002/07/owl#ObjectProperty"
     NAMED_INDIVIDUAL = "http://www.w3.org/2002/07/owl#NamedIndividual"
     ANNOTATION_PROPERTY = "http://www.w3.org/2002/07/owl#AnnotationProperty"
+
+    def __str__(self):
+        return self.name
 
     @classmethod
     def resolve_entity_type(cls, assigned_types: list[str]):
