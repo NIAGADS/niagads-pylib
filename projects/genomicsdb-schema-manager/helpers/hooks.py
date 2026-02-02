@@ -1,7 +1,7 @@
 import importlib
 import pkgutil
 
-from sqlalchemy import Connection, Table, event
+from sqlalchemy import Connection, Table, event, text
 from helpers.config import Settings
 
 
@@ -24,6 +24,6 @@ def register_schema_creation():
     def ensure_schema(target: Table, connection: Connection, **kw):
         schema = target.schema
         if schema:
-            connection.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}"')
+            connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
 
     event.listen(Table, "before_create", ensure_schema)
