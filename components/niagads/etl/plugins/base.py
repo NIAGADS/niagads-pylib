@@ -6,6 +6,7 @@ from datetime import datetime
 from enum import auto
 from typing import Any, Dict, List, Optional, Type
 
+from niagads.utils.asynchronous import null_async_context
 from niagads.utils.list import chunker
 import psutil
 from niagads.common.core import ComponentBaseMixin
@@ -314,7 +315,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         Returns:
             Async context manager: Use with 'async with' to yield a database
-                session, or nullcontext() if the session manager is not initialized
+                session, or a null context if the session manager is not initialized
                 and allow_null_if_unintialized is True.
 
         Example:
@@ -324,7 +325,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         if self.__session_manager is None:
             if allow_null_if_unintialized:
-                return nullcontext()
+                return null_async_context()
             else:
                 raise ValueError(
                     "Database session is not initialized, cannot return session context."
