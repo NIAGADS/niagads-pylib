@@ -14,7 +14,6 @@ from niagads.common.constants.ontologies import (
 )
 from niagads.common.helpers.ontologies import get_field_iri
 from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
-from niagads.etl.plugins.logger import ETLOperation
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     PathValidatorMixin,
@@ -283,7 +282,7 @@ class OntologyTermLoader(AbstractBasePlugin):
             self.__generate_term_embedding(term)
         except Exception as err:
             raise RuntimeError(
-                "Error generating embeddings for OntologyTerm: {term.source_id}"
+                f"Error generating embeddings for OntologyTerm: {term.source_id}"
             ) from err
 
         return term
