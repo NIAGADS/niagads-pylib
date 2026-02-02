@@ -19,6 +19,7 @@ from niagads.utils.string import jaccard_word_similarity
 from pydantic import BaseModel, Field
 from sqlalchemy import ARRAY, TEXT, Boolean, Index, String, UniqueConstraint
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
 
 
@@ -36,7 +37,7 @@ class OntologyTerm(
             postgresql_ops={"term": "gin_trgm_ops"},
         ),
     )
-    _stable_id = "source_id"  # "term_id"; from xdb-mixin
+    _stable_id = "source_id"
 
     ontology_term_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     term: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
@@ -46,6 +47,14 @@ class OntologyTerm(
     definition: Mapped[str] = mapped_column(TEXT, nullable=True)
     synonyms: Mapped[list[str]] = mapped_column(ARRAY, nullable=True)
     is_deprecated: Mapped[bool] = mapped_column(Boolean, nullable=True)
+
+    @hybrid_property
+    def curie(self):
+        return self.source_id
+
+    @curie.expression
+    def curie(cls):
+        return cls.source_id
 
     # -------------------------
     # Duplicate Term Handlers
@@ -126,7 +135,7 @@ class OntologyGraphTermVertex(BaseModel):
     term_iri: str = Field(
         ..., description="Full URI (e.g., http://purl.obolibrary.org/obo/GO_0006915)"
     )
-    term_id: Optional[str] = Field(None, description="CURIE form (e.g., GO:0006915)")
+    curie: Optional[str] = Field(None, description="CURIE form (e.g., GO:0006915)")
     term: Optional[str] = Field(None, description="Term name/label")
     label: Optional[str] = Field(None, description="Display-friendly label")
     definition: Optional[str] = Field(None, description="Term definition")
@@ -155,7 +164,7 @@ class OntologyGraphTriple(BaseModel):
 
     subject: OntologyGraphTermVertex = Field(..., description="Subject term")
     predicate: OntologyGraphTermVertex = Field(
-        ..., description="Predicate term (property IRI)"
+        ..., description="Predicate term (CURIE)"
     )
     object: OntologyGraphTermVertex = Field(..., description="Object term")
     ontology_id: Optional[int] = Field(None, description="Source ontology")
