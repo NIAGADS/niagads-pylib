@@ -21,6 +21,7 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.genomicsdb.schema.admin.etl import ETLOperation
+from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.genomicsdb.schema.reference.ontology import (
     OntologyGraphTermVertex,
     OntologyGraphTriple,
@@ -213,9 +214,10 @@ class OntologyTermLoader(AbstractBasePlugin):
     async def on_run_start(self, session):
         """on run start hook override"""
         # validate the xdbref against the database
-        self.__external_database_id = (
-            None if self.is_dry_run else await self._params.resolve_xdbref(session)
+        self.__external_database: ExternalDatabase = (
+            None if self.is_dry_run else await self._params.fetch_xdbref(session)
         )
+
         self.__embedding_generator = TextEmbeddingGenerator(
             self._params.embedding_model
         )
@@ -277,7 +279,7 @@ class OntologyTermLoader(AbstractBasePlugin):
         record["source_id"] = record.pop("curie")
         term = OntologyTerm(**record)
         term.run_id = self._run_id
-        term.external_database_id = self.__external_database_id
+        term.external_database_id = self.__external_database.external_database_id
 
         try:
             self.__generate_term_embedding(term)
@@ -297,7 +299,9 @@ class OntologyTermLoader(AbstractBasePlugin):
 
             # if exists, update defintion, synonyms if need be
             updated_definitions = await existing_record.resolve_definition(
-                session, transformed.definition
+                session,
+                transformed.definition,
+                namespace=self.__external_database.database_key,
             )
             updated_synonyms = await existing_record.resolve_synonyms(
                 session, transformed.synonyms
