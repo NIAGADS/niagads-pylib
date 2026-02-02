@@ -292,7 +292,7 @@ class OntologyTermLoader(AbstractBasePlugin):
         # try to retrieve from database
         try:
             existing_record: OntologyTerm = await OntologyTerm.fetch_record(
-                filters={"curie": transformed.curie}
+                session, filters={"curie": transformed.curie}
             )
 
             # if exists, update defintion, synonyms if need be
