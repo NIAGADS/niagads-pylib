@@ -37,7 +37,9 @@ class LookupTableMixin:
         return f"{cls.metadata.schema}.{cls.__tablename__}"
 
     @classmethod
-    async def exists(cls, session: AsyncSession, filters: Dict[str, Any]) -> bool:
+    async def record_exists(
+        cls, session: AsyncSession, filters: Dict[str, Any]
+    ) -> bool:
         """
         Check if a record exists in the table based on filter criteria.
 
@@ -53,6 +55,46 @@ class LookupTableMixin:
         )
         result = await session.execute(stmt)
         return result.scalar() is True
+
+    async def exists(self, session: AsyncSession) -> bool:
+        """
+        Instance method to check if an instantiated record exists in the table.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+
+        Returns:
+            bool: True if a matching record exists, False otherwise.
+        """
+        filters = {}
+        for field_name in self.model_dump().keys():
+            value = getattr(self, field_name, None)
+            if value is not None:
+                filters[field_name] = value
+
+        return await self.record_exists(session, filters)
+
+    @classmethod
+    def get_primary_key_column(cls):
+        mapper = inspect(cls)
+        if len(mapper.primary_key) > 1:
+            raise NotImplementedError(
+                "`find_primary_key` only supports single-column primary keys."
+            )
+
+        if len(mapper.primary_key) == 0:  # no PK in this table
+            pk_column = getattr(cls, "_document_primary_key", None)
+            if pk_column is None:
+                raise NotImplementedError(
+                    "Attempting to do a primary key search on a materialized view or"
+                    "malformed table without a primary key."
+                    "If attempting to query a RAG document please update the SQLAlchemy "
+                    "model to set `_document_primary_key`."
+                )
+        else:
+            pk_column = mapper.primary_key[0].name
+
+        return pk_column
 
     @classmethod
     async def find_primary_key(
@@ -91,24 +133,7 @@ class LookupTableMixin:
         Example:
             await Model.find_primary_key(session, {"field1": value1})
         """
-        mapper = inspect(cls)
-        if len(mapper.primary_key) > 1:
-            raise NotImplementedError(
-                "`find_primary_key` only supports single-column primary keys."
-            )
-
-        if len(mapper.primary_key) == 0:  # no PK in this table
-            pk_col = getattr(cls, "_document_primary_key", None)
-            if pk_col is None:
-                raise NotImplementedError(
-                    "Attempting to do a primary key search on a materialized view or"
-                    "malformed table without a primary key."
-                    "If attempting to query a RAG document please update the SQLAlchemy "
-                    "model to set `_document_primary_key`."
-                )
-        else:
-            pk_col = mapper.primary_key[0].name
-
+        pk_col = cls.get_primary_key_column()
         stmt = select(getattr(cls, pk_col)).where(
             *(getattr(cls, k) == v for k, v in filters.items())
         )
@@ -124,6 +149,36 @@ class LookupTableMixin:
                     f"Multiple records found for {filters} in {cls.table_name()}"
                 )
         return rows[0][0]
+
+    async def fetch_primary_key(self, session: AsyncSession) -> bool:
+        """
+        Set the primary key value of this instance if it exists in the database.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+
+        Returns:
+            bool: True if the primary key was set, False if no record found.
+
+        Raises:
+            MultipleResultsFound: If multiple records match this instance's fields.
+        """
+        filters = {}
+        for field_name in self.model_dump().keys():
+            value = getattr(self, field_name, None)
+            if value is not None:
+                filters[field_name] = value
+
+        try:
+            primary_key = await self.find_primary_key(
+                session, filters, allow_multiple=False
+            )
+        except NoResultFound:
+            return False
+
+        pk_field = self.__class__.get_primary_key_column()
+        setattr(self, pk_field, primary_key)
+        return True
 
     @classmethod
     async def find_stable_id(
@@ -181,7 +236,7 @@ class LookupTableMixin:
         return rows[0][0]
 
     @classmethod
-    async def find_record(
+    async def fetch_record(
         cls,
         session: AsyncSession,
         filters: Dict[str, Any],

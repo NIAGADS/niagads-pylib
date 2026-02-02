@@ -180,7 +180,7 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
         """
         if gene_identifier_type == GeneXRefType.ENSEMBL:
             record: Gene = cast(
-                Gene, await super().find_record(session, {"ensembl_id": id.upper()})
+                Gene, await super().fetch_record(session, {"ensembl_id": id.upper()})
             )
             return {"gene_id": record.gene_id, "ensembl_id": record.ensembl_id}
 
