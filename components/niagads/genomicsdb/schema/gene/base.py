@@ -12,7 +12,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 @SchemaRegistry.register()
 class GeneSchemaBase(DeclarativeBase):
-    metadata = MetaData(schema="dataset")
+    metadata = MetaData(schema="gene")
 
 
 class GeneTableBase(GeneSchemaBase, GenomicsDBTableMixin, ExternalDatabaseMixin):
