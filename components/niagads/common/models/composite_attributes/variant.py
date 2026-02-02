@@ -3,7 +3,7 @@ from enum import auto
 from typing import List, Optional
 from niagads.common.models.core import TransformableModel
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.api.common.models.features.gene import GeneFeature
+from niagads.genomics.features.gene.models import GeneDescriptor
 from pydantic import BaseModel, Field
 
 
@@ -73,7 +73,7 @@ class PredictedConsequenceSummary(TransformableModel):
     is_coding: Optional[bool] = Field(
         default=False, serialization_alias="is_coding", title="Is Coding?"
     )
-    impacted_gene: Optional[GeneFeature] = Field(default=None, title="Impacted Gene")
+    impacted_gene: Optional[GeneDescriptor] = Field(default=None, title="Impacted Gene")
     impacted_transcript: Optional[str] = Field(
         default=None, title="Impacted Transcript"
     )
@@ -95,7 +95,7 @@ class PredictedConsequenceSummary(TransformableModel):
             impact=ConsequenceImpact(v["impact"]),
             is_coding=v.get("consequence_is_coding", False),
             impacted_gene=(
-                GeneFeature(**impactedGene) if impactedGene is not None else None
+                GeneDescriptor(**impactedGene) if impactedGene is not None else None
             ),
             impacted_transcript=v.get("transcript_id"),
             codon_change=v.get("codons"),
@@ -111,7 +111,9 @@ class PredictedConsequenceSummary(TransformableModel):
         if self.impacted_gene is not None:
             geneObj.update(self.impacted_gene._flat_dump())
         else:
-            geneObj.update({k: None for k in GeneFeature.get_model_fields(as_str=True)})
+            geneObj.update(
+                {k: None for k in GeneDescriptor.get_model_fields(as_str=True)}
+            )
         obj.update(
             {
                 "impacted_gene_id": geneObj["id"],
@@ -129,7 +131,7 @@ class PredictedConsequenceSummary(TransformableModel):
         fields = super().get_model_fields()
 
         del fields["impacted_gene"]
-        geneFields = deepcopy(GeneFeature.get_model_fields())
+        geneFields = deepcopy(GeneDescriptor.get_model_fields())
 
         for k, info in geneFields.items():
             fields.update(

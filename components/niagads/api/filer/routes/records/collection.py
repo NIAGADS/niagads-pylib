@@ -22,7 +22,7 @@ from niagads.api.common.views.table import TableViewResponse
 from niagads.api.filer.dependencies import InternalRequestParameters
 from niagads.api.filer.documentation import BASE_TAGS
 from niagads.api.filer.services.route import FILERRouteHelper
-from niagads.database.mixins.datasets.track import TrackDataStore
+from niagads.common.constants.track import TrackDataStore
 
 router = APIRouter(
     prefix="/collection",

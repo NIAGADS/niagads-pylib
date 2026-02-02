@@ -10,8 +10,8 @@ from niagads.common.models.composite_attributes.dataset import (
     Phenotype,
     Provenance,
 )
-from niagads.database.mixins.datasets.track import TrackDataStore
-from niagads.genomicsdb.schema.dataset.collection import Collection, TrackCollection
+from niagads.common.constants.track import TrackDataStore
+from niagads.genomicsdb.schema.dataset.collection import Collection, TrackCollectionLink
 from niagads.genomicsdb.schema.dataset.track import Track
 from niagads.utils.list import list_to_string
 from niagads.utils.string import regex_replace
@@ -88,11 +88,11 @@ class MetadataQueryService:
                 Collection.primary_key,
                 Collection.name,
                 Collection.description,
-                func.count(TrackCollection.track_id).label("num_tracks"),
+                func.count(TrackCollectionLink.track_id).label("num_tracks"),
             )
             .join(
-                TrackCollection,
-                TrackCollection.collection_id == Collection.collection_id,
+                TrackCollectionLink,
+                TrackCollectionLink.collection_id == Collection.collection_id,
             )
             .filter(Collection.data_store.in_(self.__data_store))
         )
@@ -149,8 +149,8 @@ class MetadataQueryService:
 
         statement = (
             select(target)
-            .join(TrackCollection, TrackCollection.track_id == Track.track_id)
-            .where(TrackCollection.collection_id == collection.collection_id)
+            .join(TrackCollectionLink, TrackCollectionLink.track_id == Track.track_id)
+            .where(TrackCollectionLink.collection_id == collection.collection_id)
             .filter(Track.data_store.in_(self.__data_store))
             .order_by(Track.track_id)
         )

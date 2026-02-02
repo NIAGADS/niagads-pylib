@@ -1,6 +1,6 @@
 from alembic import context
+from niagads.genomicsdb.schema.registry import SchemaRegistry
 from helpers.config import Settings
-from helpers.schemas import Schema
 from sqlalchemy import Connection, MetaData
 from typing import List, Any
 
@@ -9,7 +9,11 @@ class MigrationContext:
     def __init__(self):
         xArgs: dict = context.get_x_argument(as_dictionary=True)
         schema: str = xArgs.get("schema", "")
-        self.__target_schema_metadata: List[MetaData] = Schema.metadata(schema)
+        self.__target_schema_metadata: List[MetaData] = (
+            SchemaRegistry.get_registered_metadata()
+            if schema == "ALL"
+            else SchemaRegistry.get_schema_metadata(schema)
+        )
 
     def include_name(self, name: str, type_: str, parent_names: Any) -> bool:
         if type_ == "schema":

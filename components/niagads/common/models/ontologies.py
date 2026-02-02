@@ -100,18 +100,3 @@ class OntologyTerm(TransformableModel):
         if self.term_id:
             info.update({"term_id": self.term_id})
         return dict_to_info_string(info)
-
-
-class OntologyTriple(BaseModel):
-    """
-    Pydantic model representing an RDF triple in the ontology graph.
-
-    Each triple consists of a subject, predicate, and object URI or value.
-    """
-
-    subject: OntologyTerm
-    predicate: OntologyTerm
-    object: OntologyTerm
-
-    def __str__(self):
-        return f"{str(self.subject)} -> {str(self.precidcate)} -> {str(self.object)}"

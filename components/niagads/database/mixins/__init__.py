@@ -1,15 +1,5 @@
-from niagads.database.mixins.datasets.collection import (
-    CollectionMixin,
-    TrackCollectionMixin,
-)
-from niagads.database.mixins.datasets.track import TrackDataStore
 from niagads.database.mixins.ranges import GenomicRegionMixin
 from niagads.database.mixins.serialization import ModelDumpMixin
+from niagads.database.mixins.embeddings import EmbeddingMixin
 
-__all__ = [
-    "CollectionMixin",
-    "TrackCollectionMixin",
-    "TrackDataStore",
-    "GenomicRegionMixin",
-    "ModelDumpMixin",
-]
+__all__ = ["GenomicRegionMixin", "ModelDumpMixin", "EmbeddingMixin"]

@@ -1,21 +1,34 @@
 """
-Base class for the `Gene` schema models in the genomicsdb database.
-Uses DeclarativeModelBaseFactory to create a SQLAlchemy DeclarativeBase with housekeeping fields.
+Base classes for SQLAlchemy ORM models in the GenomicsDB "Gene" schema.
 """
 
-from niagads.genomicsdb.schema.base import (
-    DeclarativeTableBase,
-    DeclarativeMaterializedViewBase,
-)
+from niagads.genomicsdb.schema.mixins import GenomicsDBMVMixin, GenomicsDBTableMixin
+from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
+from niagads.genomicsdb.schema.registry import SchemaRegistry
 from sqlalchemy import MetaData
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
-class GeneMetadataMixin:
+@SchemaRegistry.register()
+class GeneSchemaBase(DeclarativeBase):
     metadata = MetaData(schema="gene")
-    stable_id = "ensembl_id"
 
 
-class GeneSchemaBase(DeclarativeTableBase, GeneMetadataMixin): ...
+class GeneTableBase(GeneSchemaBase, GenomicsDBTableMixin, ExternalDatabaseMixin):
+    __abstract__ = True
+    _stable_id = "source_id"
+
+    @hybrid_property
+    def ensembl_id(self):
+        return self.source_id
+
+    @ensembl_id.expression
+    def ensembl_id(cls):
+        return cls.source_id
 
 
-class GeneMaterializedViewBase(DeclarativeMaterializedViewBase, GeneMetadataMixin): ...
+class GeneMaterializedViewBase(GeneSchemaBase, GenomicsDBMVMixin):
+    __abstract__ = True
+    _document_primary_key = "gene_id"
+    _stable_id = "ensembl_id"

@@ -1,7 +1,8 @@
 """`Track` (metadata) database model"""
 
 from typing import List, Optional
-from niagads.assembly.core import Assembly, Human
+
+from niagads.common.constants.track import TrackDataStore
 from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     ExperimentalDesign,
@@ -9,25 +10,26 @@ from niagads.common.models.composite_attributes.dataset import (
     Phenotype,
     Provenance,
 )
-from niagads.database.mixins import GenomicRegionMixin
-from niagads.database.mixins.datasets.track import TrackDataStore
-from niagads.database.sa_enum_utils import enum_column, enum_constraint
-from niagads.genomicsdb.schema.dataset.base import DatasetSchemaBase
-from niagads.genomicsdb.schema.reference.mixins import (
-    ExternalDBMixin,
-    OntologyTermMixin,
-)
-from sqlalchemy import ARRAY, TEXT, Column, Index, String
-from sqlalchemy.orm import Mapped, mapped_column
+from niagads.database.helpers import enum_column, enum_constraint
+from niagads.database.mixins import EmbeddingMixin, GenomicRegionMixin
+from niagads.genomics.sequence.assembly import Assembly, HumanGenome
+from niagads.genomicsdb.schema.dataset.base import DatasetTableBase
+from niagads.genomicsdb.schema.dataset.helpers import track_fk_column
+from niagads.genomicsdb.schema.mixins import IdAliasMixin
+from niagads.genomicsdb.schema.reference.helpers import ontology_term_fk_column
+from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
+from sqlalchemy import ARRAY, TEXT, Column, Index, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
 
 
-class Track(OntologyTermMixin, ExternalDBMixin, DatasetSchemaBase):
+class Track(DatasetTableBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMixin):
+    _stable_id = "source_id"
     __tablename__ = "track"
     __table_args__ = (
         enum_constraint("genome_build", Assembly),
         enum_constraint("data_store", TrackDataStore),
-        enum_constraint("shard_chromosome", Human),
+        enum_constraint("shard_chromosome", HumanGenome),
         Index(
             "ix_metadata_track_shard_root_track_id",
             "shard_root_track_id",
@@ -42,14 +44,11 @@ class Track(OntologyTermMixin, ExternalDBMixin, DatasetSchemaBase):
             },
         ),
     )
-    stable_id = "track_id"
 
-    track_metadata_entry_id: Mapped[int] = mapped_column(
-        primary_key=True, autoincrement=True
-    )
+    track_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    track_id: Mapped[str] = mapped_column(unique=True, index=True)
     data_store: Mapped[str] = enum_column(TrackDataStore)
+    dataset_type_id: Mapped[int] = ontology_term_fk_column()
 
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
@@ -62,7 +61,7 @@ class Track(OntologyTermMixin, ExternalDBMixin, DatasetSchemaBase):
     searchable_text: Mapped[str] = mapped_column(TEXT)
 
     is_shard: Mapped[Optional[bool]]
-    shard_chromosome: Mapped[str] = enum_column(Human, index=False, nullable=True)
+    shard_chromosome: Mapped[str] = enum_column(HumanGenome, index=False, nullable=True)
     shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
     cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))
@@ -82,9 +81,10 @@ class Track(OntologyTermMixin, ExternalDBMixin, DatasetSchemaBase):
     )
 
 
-class TrackInterval(GenomicRegionMixin, DatasetSchemaBase):
+class TrackInterval(DatasetTableBase, GenomicRegionMixin):
     """indexing table; stores the number of hits per bin index for a track"""
 
+    _stable_id = None
     __tablename__ = "trackinterval"
     __table_args__ = (
         Index(
@@ -95,5 +95,5 @@ class TrackInterval(GenomicRegionMixin, DatasetSchemaBase):
     )
 
     track_interval_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    track_id: Mapped[str]  # TODO: mapped_column(ForeignKey("metadata.track.track_id"))
-    num_hits: Mapped[int]
+    track_id: Mapped[int] = track_fk_column()
+    num_hits: Mapped[int] = mapped_column(Integer, nullable=False)

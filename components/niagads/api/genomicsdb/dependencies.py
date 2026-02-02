@@ -3,7 +3,7 @@ from typing import Annotated, List
 
 from fastapi import Depends
 
-from niagads.database.mixins.datasets.track import TrackDataStore
+from niagads.common.constants.track import TrackDataStore
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.api.common.config import Settings
@@ -31,7 +31,7 @@ class InternalRequestParameters(
 
 
 TRACK_DATA_STORES: List[TrackDataStore] = [
-    TrackDataStore.GENOMICS,
+    TrackDataStore.GENOMICSDB,
     TrackDataStore.SHARED,
 ]
 

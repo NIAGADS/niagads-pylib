@@ -5,5 +5,5 @@ from niagads.genomicsdb.schema.dataset.base import DatasetSchemaBase
 from niagads.genomicsdb.schema.dataset.track import Track
 from niagads.genomicsdb.schema.dataset.collection import (
     Collection,
-    TrackCollection,
+    TrackCollectionLink,
 )

@@ -1,0 +1,25 @@
+STOPWORDS = {
+    "the",
+    "and",
+    "of",
+    "in",
+    "on",
+    "for",
+    "with",
+    "a",
+    "an",
+    "to",
+    "by",
+    "from",
+    "is",
+    "are",
+    "was",
+    "were",
+    "study",
+    "studies",
+    "patients",
+    "subjects",
+    "using",
+}
+
+KNN_LIMIT = 250

@@ -77,7 +77,7 @@ class FilterParameter(ABC):
                 self._fields(t.field)
             except:
                 raise ValidationError(
-                    f"Invalid filter field `{t.field}`.  Allowable values are: {self._fields.list(toLower=True)}"
+                    f"Invalid filter field `{t.field}`.  Allowable values are: {self._fields.list(to_lower=True)}"
                 )
 
     def __call__(

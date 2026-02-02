@@ -1,9 +1,9 @@
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.schema import ForeignKey
 
 
-class ExternalDBMixin(object):
+class ExternalDatabaseMixin(object):
     """
     Mixin providing fields and a unique constraint for linking to an external database and source identifier.
 
@@ -16,18 +16,10 @@ class ExternalDBMixin(object):
     """
 
     external_database_id: Mapped[int] = mapped_column(
-        ForeignKey("core.externaldatabase.external_database_id"),
+        ForeignKey("reference.externaldatabase.external_database_id"),
         nullable=False,
         index=True,
     )
-    source_id: Mapped[str] = mapped_column(index=True, nullable=False)
+    source_id: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint(
-            "external_database_id", "source_id", name="uq_externaldb_source"
-        ),
-    )
-
-
-class OntologyTermMixin(object):
-    ontology_term_id: Mapped[int] = mapped_column()
+    __table_args__ = (UniqueConstraint("external_database_id", "source_id", name=None),)

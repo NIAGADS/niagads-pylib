@@ -28,7 +28,7 @@ from niagads.api.genomicsdb.queries.track_data import (
     TrackQTLGeneQuery,
 )
 from niagads.common.models.structures import Range
-from niagads.database.mixins.datasets.track import TrackDataStore
+from niagads.common.constants.track import TrackDataStore
 from niagads.exceptions.core import ValidationError
 from niagads.genomicsdb.schema.dataset.track import Track
 from niagads.utils.dict import all_values_are_none
@@ -57,7 +57,7 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
             managers,
             response_config,
             params,
-            [TrackDataStore.SHARED, TrackDataStore.GENOMICS],
+            [TrackDataStore.SHARED, TrackDataStore.GENOMICSDB],
         )
         self.__query = query
         self.__id_parameter: str = id_parameter

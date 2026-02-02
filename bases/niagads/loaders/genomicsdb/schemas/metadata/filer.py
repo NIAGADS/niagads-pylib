@@ -14,10 +14,10 @@ from niagads.common.models.composite_attributes.dataset import (
     Phenotype,
     Provenance,
 )
-from niagads.database.mixins.datasets.track import TrackDataStore
+from niagads.common.constants.track import TrackDataStore
 from niagads.genomicsdb.schema.dataset.track import Track
 from niagads.genomics.sequence.assembly import Assembly
-from niagads.database.sa_enum_utils import enum_column
+from niagads.database.helpers import enum_column
 from niagads.loaders.core import AbstractDataLoader
 from niagads.metadata_parser.filer import MetadataTemplateParser
 from niagads.requests.core import HttpClientSessionManager

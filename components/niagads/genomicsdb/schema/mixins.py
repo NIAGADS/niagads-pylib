@@ -1,16 +1,16 @@
 from datetime import datetime
 from typing import Any, Dict, Union
 
-from niagads.database.mixins.serialization import ModelDumpMixin
-from sqlalchemy import DATETIME, exists, func, inspect, select
+from niagads.database.helpers import datetime_column
+from niagads.database.mixins import ModelDumpMixin
+from sqlalchemy import exists, inspect, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.schema import ForeignKey
-from sqlalchemy.orm import DeclarativeBase
 
 
-class HousekeepingMixin(object):
+class HousekeepingMixin:
     """
     Mixin providing common housekeeping fields for database models:
     - run_id: Foreign key to Core.ETLRun table
@@ -19,23 +19,18 @@ class HousekeepingMixin(object):
     """
 
     run_id: Mapped[int] = mapped_column(
-        ForeignKey("admin.etloperationslog.etl_run_id"),
+        ForeignKey("admin.eltrun.etl_run_id"),
         nullable=False,
         index=True,
     )
-    modification_date: Mapped[datetime] = mapped_column(
-        DATETIME,
-        server_default=func.now(),
-        nullable=False,
-    )
+    creation_date: Mapped[datetime] = datetime_column()
+    modification_date: Mapped[datetime] = datetime_column()
     # is_private: Mapped[bool] = mapped_column(nullable=True, index=True)
 
 
-class LookupTableMixin(
-    DeclarativeBase,
-    ModelDumpMixin,
-):
-    stable_id: str = None
+class LookupTableMixin:
+    __abstract__ = True
+    _stable_id: str = None
 
     @classmethod
     def table_name(cls):
@@ -69,6 +64,11 @@ class LookupTableMixin(
         """
         Return the primary key value(s) for records matching given filter criteria.
 
+        If the mapped class does not define a primary key (e.g., for a materialized
+        view or document), this method will use the class attribute
+        `_document_primary_key` if it is set. Otherwise, a NotImplementedError is
+        raised.
+
         Args:
             session (AsyncSession): SQLAlchemy async session.
             filters (Dict[str, Any]): Dictionary of field-value pairs to filter
@@ -82,7 +82,8 @@ class LookupTableMixin(
                 matches are found.
 
         Raises:
-            NotImplementedError: If the primary key is not a single column.
+            NotImplementedError: If the primary key is not a single column or
+                if no primary key is defined and `_document_primary_key` is not set.
             NoResultFound: If no record matches the filter criteria.
             MultipleResultsFound: If multiple records match the filter criteria
                 and allow_multiple is False.
@@ -91,11 +92,22 @@ class LookupTableMixin(
             await Model.find_primary_key(session, {"field1": value1})
         """
         mapper = inspect(cls)
-        if len(mapper.primary_key) != 1:
+        if len(mapper.primary_key) > 1:
             raise NotImplementedError(
                 "`find_primary_key` only supports single-column primary keys."
             )
-        pk_col = mapper.primary_key[0].name
+
+        if len(mapper.primary_key) == 0:  # no PK in this table
+            pk_col = getattr(cls, "_document_primary_key", None)
+            if pk_col is None:
+                raise NotImplementedError(
+                    "Attempting to do a primary key search on a materialized view or"
+                    "malformed table without a primary key."
+                    "If attempting to query a RAG document please update the SQLAlchemy "
+                    "model to set `_document_primary_key`."
+                )
+        else:
+            pk_col = mapper.primary_key[0].name
 
         stmt = select(getattr(cls, pk_col)).where(
             *(getattr(cls, k) == v for k, v in filters.items())
@@ -123,7 +135,7 @@ class LookupTableMixin(
         """
         Return the stable identifier value(s) for records matching given filter criteria.
 
-        The stable identifier field is defined by the model's `stable_id` attribute.
+        The stable identifier field is defined by the model's `_stable_id` attribute.
 
         Args:
             session (AsyncSession): SQLAlchemy async session.
@@ -138,7 +150,7 @@ class LookupTableMixin(
                 multiple matches are found.
 
         Raises:
-            NotImplementedError: If the model does not define a 'stable_id' class
+            NotImplementedError: If the model does not define a '_stable_id' class
                 attribute.
             NoResultFound: If no record matches the filter criteria.
             MultipleResultsFound: If multiple records match the filter criteria
@@ -147,10 +159,10 @@ class LookupTableMixin(
         Example:
             await Model.find_stable_id(session, {"field1": value1})
         """
-        stable_id_field = getattr(cls, "stable_id", None)
+        stable_id_field = getattr(cls, "_stable_id", None)
         if stable_id_field is None:
             raise NotImplementedError(
-                f"Cannot fetch stable id: {cls.__name__} does not define a 'stable_id' class attribute."
+                f"Cannot fetch stable id: {cls.__name__} does not define a '_stable_id' class attribute."
             )
         stmt = select(getattr(cls, stable_id_field)).where(
             *(getattr(cls, k) == v for k, v in filters.items())
@@ -214,7 +226,57 @@ class LookupTableMixin(
         return rows[0]
 
 
-class DeclarativeTableBase(LookupTableMixin, HousekeepingMixin): ...
+class TransactionTableMixin:
+    __abstract__ = True
+
+    async def submit(self, session: AsyncSession) -> int:
+        """
+        Insert this table object into the database and return the primary key value.
+
+        Args:
+            session: SQLAlchemy AsyncSession.
+
+        Returns:
+            int: The primary key value of the inserted record.
+        """
+        await session.add(self)
+        await session.flush()
+
+        pk_name = self.__mapper__.primary_key[0].name
+        return getattr(self, pk_name)
 
 
-class DeclarativeMaterializedViewBase(DeclarativeBase, ModelDumpMixin): ...
+class IdAliasMixin:
+    """
+    Mixin that provides a generic `id` property for mapped classes to facilitate
+    mapping query resuts to Pydantic models (e.g., for the API)
+
+    - If the class defines a `_stable_id` attribute (the name of a field/column),
+        `id` returns the value of that field.
+    - Otherwise, `id` returns the value of the primary key column (only supports
+        single-column primary keys).
+    """
+
+    @property
+    def id(self):
+        # If the class has a '_stable_id' property/column, return that
+        stable_id_field = getattr(self.__class__, "_stable_id", None)
+        if stable_id_field is not None:
+            return getattr(self, stable_id_field)
+        # Otherwise, return the primary key value
+        mapper = inspect(self.__class__)
+        if len(mapper.primary_key) != 1:
+            raise NotImplementedError(
+                "IdAliasMixin only supports single-column primary keys."
+            )
+        pk_attr = mapper.primary_key[0].name
+        return getattr(self, pk_attr)
+
+
+class GenomicsDBTableMixin(
+    ModelDumpMixin, LookupTableMixin, TransactionTableMixin, HousekeepingMixin
+): ...
+
+
+class GenomicsDBMVMixin(ModelDumpMixin, LookupTableMixin):
+    _document_primary_key = None  # set to do pk lookups on RAG docs

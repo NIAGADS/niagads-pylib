@@ -15,7 +15,7 @@ from niagads.etl.plugins.parameters import (
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.schema.admin.pipeline import ETLOperation
+from niagads.genomicsdb.schema.admin.etl import ETLOperation
 from pydantic import Field, ConfigDict, BaseModel, computed_field
 from sqlalchemy import text
 import importlib.resources
@@ -141,7 +141,7 @@ class XMLRecordLoader(AbstractBasePlugin):
     @property
     def operation(self):
         # Use the appropriate ETLOperation for your use case
-        from niagads.genomicsdb.schema.admin.pipeline import ETLOperation
+        from niagads.genomicsdb.schema.admin.etl import ETLOperation
 
         return ETLOperation.LOAD  # insert or update
 
@@ -155,7 +155,8 @@ class XMLRecordLoader(AbstractBasePlugin):
                 xml_content = xml_file.read()
             # Use importlib.resources to load records.xsd from the package
             with importlib.resources.open_binary(
-                "niagads.genomicsdb_service.etl.plugins.validators", "records.xsd"
+                "niagads.genomicsdb_service.etl.plugins.validation_schemas",
+                "records.xsd",
             ) as xsd_file:
                 schema_root = etree.XML(xsd_file.read())
             schema = etree.XMLSchema(schema_root)

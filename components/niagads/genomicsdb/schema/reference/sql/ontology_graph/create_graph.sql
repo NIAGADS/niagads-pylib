@@ -1,58 +1,127 @@
-RETURNS void AS $$
-BEGIN
-    CREATE GRAPH IF NOT EXISTS Ontology;
+-- Apache AGE graph schema initialization for ontology relationships
 
-    CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.term (
-        term_id VARCHAR(32) PRIMARY KEY,       -- e.g. GO:0006915
-        term_iri VARCHAR(150),                      -- full uri
-        term VARCHAR(512),                     -- the term
-        label VARCHAR(512),                    -- a display term for applications
-        definition TEXT,                       -- definitions can be long
-        synonyms TEXT[],                       -- synonyms can be many / long
-        is_deprecated BOOLEAN DEFAULT FALSE,
-        is_placeholder BOOLEAN DEFAULT FALSE,  -- placeholder vertex
-        run_id INTEGER NOT NULL -- references admin.etltask run_id
-    );
-    
+-- Create the ontology graph using documented function
+SELECT ag_catalog.create_graph('ontology_graph');
 
-    CREATE EDGE TYPE IF NOT EXISTS Reference.Ontology.triple (
-        predicate VARCHAR(32) NOT NULL,         -- must point to a term_id
-        run_id INTEGER NOT NULL -- references admin.etltask run_id
-    ) SOURCE term DESTINATION term;
+-- Create vertex labels using documented function
+SELECT ag_catalog.create_vlabel('ontology_graph', 'term');
+SELECT ag_catalog.create_vlabel('ontology_graph', 'ontology');
+SELECT ag_catalog.create_vlabel('ontology_graph', 'restriction');
 
-    -- restriction blind node (BNode)
-    -- TODO: Instantiate when ETL Plugin adapted to handle restrictions 
-    /* CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.restriction (
-        restriction_id SERIAL PRIMARY KEY,
-        run_id INTEGER NOT NULL -- references admin.etltask run_id
-    );*/
+-- Create edge labels using documented function
+SELECT ag_catalog.create_elabel('ontology_graph', 'is_a');
+SELECT ag_catalog.create_elabel('ontology_graph', 'part_of');
+SELECT ag_catalog.create_elabel('ontology_graph', 'equivalent_to');
+SELECT ag_catalog.create_elabel('ontology_graph', 'has_restriction');
+SELECT ag_catalog.create_elabel('ontology_graph', 'defined_in');
+SELECT ag_catalog.create_elabel('ontology_graph', 'triple');
 
-    -- link to source ontology metadata in Reference.ExternalDatabase
-    CREATE VERTEX TYPE IF NOT EXISTS Reference.Ontology.ontology (
-        ontology_id INTEGER PRIMARY KEY, -- references reference.externaldatabase 
-        run_id INTEGER NOT NULL -- references admin.etltask run_id
-    );
+-- Create unique indexes on unique properties
+CREATE UNIQUE INDEX idx_og_ontology_term_id
+ON ag_catalog."ontology_graph_term" ((properties->>'ontology_term_id'));
 
-    CREATE EDGE TYPE IF NOT EXISTS Reference.Ontology.defined_in (
-        run_id INTEGER NOT NULL -- references admin.etltask run_id
-    ) SOURCE term DESTINATION ontology;
-END;
-$$ LANGUAGE plpgsql;
+CREATE UNIQUE INDEX idx_og_restriction_id
+ON ag_catalog."ontology_graph_restriction" ((properties->>'restriction_id'));
 
+CREATE UNIQUE INDEX idx_og_ontology_id
+ON ag_catalog."ontology_graph_ontology" ((properties->>'ontology_id'));
+
+CREATE INDEX idx_og_triple_predicate
+ON ag_catalog."ontology_graph_triple" ((properties->>'predicate'));
+
+-- XXX: not sure that this is needed
+--CREATE UNIQUE INDEX idx_triple_spo_uniq
+--ON ag_catalog."ontology_graph_triple" (start_id, end_id, (properties->>'predicate'), (properties->>'ontology_id'));
+
+
+-- example Triple
+/*
+(s)-[:triple {p: <predicate>}]->(o)
+
+-- insert
+SELECT * FROM cypher('ontology_graph', $$
+  MATCH (s {id: $sid}), (o {id: $oid})
+  CREATE (s)-[:triple {predicate: $pred}]->(o)
+$$, $${"sid": 1, "oid": 2, "pred": "is_a"}$$);
+
+-- select through
+SELECT * FROM cypher('ontology_graph', $$
+  MATCH (s)-[r:triple]->(o)
+  WHERE r.predicate = $pred
+  RETURN s, r, o
+$$, $${"pred":"is_a"}$$);
+*/
 
 -- Example RESTRICTION usage:
 /*
 <owl:Class rdf:about="http://purl.obolibrary.org/obo/SO_0000016">
-    <rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/SO_0001660"/>
-    <rdfs:subClassOf>
-        <owl:Restriction>
-            <owl:onProperty rdf:resource="http://purl.obolibrary.org/obo/so#part_of"/>
-            <owl:someValuesFrom rdf:resource="http://purl.obolibrary.org/obo/SO_0001669"/>
-        </owl:Restriction>
-    </rdfs:subClassOf>
+<rdfs:subClassOf rdf:resource="http://purl.obolibrary.org/obo/SO_0001660"/>
+<rdfs:subClassOf>
+    <owl:Restriction>
+        <owl:onProperty rdf:resource="http://purl.obolibrary.org/obo/so#part_of"/>
+        <owl:someValuesFrom rdf:resource="http://purl.obolibrary.org/obo/SO_0001669"/>
+    </owl:Restriction>
+</rdfs:subClassOf>
 </owl:Class>
 */
--- (SO_0000016, subClassOf, restriction_node)
--- (restriction_node, onProperty, part_of)
--- (restriction_node, someValuesFrom, SO_0001669)
 
+-- Graph representation:
+-- (:term {term_iri: SO_0000016})-[:is_a]->(:term {term_iri: SO_0001660})
+-- (:term {term_iri: SO_0000016})-[:has_restriction]->(:restriction {restriction_id: '_blank1'})
+--
+-- Restriction subgraph (defined by its outbound edges):
+-- (:restriction {restriction_id: '_blank1'})-[:triple {predicate: 'http://www.w3.org/2002/07/owl#onProperty', ontology_id, run_id}]->(:term {term_iri: so#part_of})
+-- (:restriction {restriction_id: '_blank1'})-[:triple {predicate: 'http://www.w3.org/2002/07/owl#someValuesFrom', ontology_id, run_id}]->(:term {term_iri: SO_0001669})
+--
+-- NOTE: If the restriction uses a named edge type (e.g., part_of), use that instead of triple:
+-- (:restriction {restriction_id: '_blank1'})-[:part_of {ontology_id, run_id}]->(:term {target_iri})
+--
+-- Interpretation: SO_0000016 (BREUR_motif) is a subclass of SO_0001660 and is constrained by
+-- a restriction: instances must have at least one part_of relationship to SO_0001669 (RNApol_II_core_promoter).
+
+/*
+-- Find all terms with part_of relationships to SO_0001669
+-- including through restrictions of any structure
+
+MATCH (target:term {term_iri: 'http://purl.obolibrary.org/obo/SO_0001669'})
+
+-- Direct part_of edges
+MATCH (source:term)-[:part_of {ontology_id, run_id}]->(target)
+
+UNION
+
+-- Through restrictions: find restrictions that have ANY outbound edge to this target
+MATCH (source:term)-[:has_restriction]->(r:restriction),
+(r)-[]->(target)
+
+RETURN DISTINCT source.term_iri, source.term
+
+*/
+
+/*
+--POSSIBLE NLP QUERY PATTERN; note that example does not reflect current relational table schema
+
+-- User queries "neurons"
+WITH query_embedding AS (
+SELECT embedding_vector('neurons') AS vec
+),
+semantic_matches AS (
+-- Find similar terms via vector search
+SELECT term_id, term_iri, label, similarity
+FROM ontologyterm
+ORDER BY embedding <-> query_embedding.vec
+LIMIT 10
+),
+expanded_matches AS (
+-- For each match, traverse AGE to find related terms
+MATCH (t:term {term_iri: semantic_matches.term_iri})-[:derived_from|:part_of|:equivalent_to*..3]->(related:term)
+RETURN semantic_matches.term_iri, related.term_iri, related.label
+)
+SELECT DISTINCT d.sample_id, d.cell_type
+FROM genomic_data d
+WHERE d.cell_type_term_id IN (
+SELECT term_id FROM semantic_matches
+UNION
+SELECT term_id FROM ontologyterm WHERE term_iri IN (expanded_matches.term_iri)
+);
+*/

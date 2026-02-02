@@ -1,5 +1,5 @@
 from niagads.enums.core import CaseInsensitiveEnum
-from pydantic import model_validator
+from pydantic import ValidationError, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 import os
@@ -28,10 +28,22 @@ class CustomSettings(BaseSettings):
         set to `dev` or `prod
         and load configuration from appropriate `{SERVICE_ENV}.env` file
         """
+        env_file = ".env"
         env = os.getenv("SERVICE_ENV", None)
-        if env is not None:
-            return cls(_env_file=f"{str(env)}.env")
-        return cls()
+        try:
+            if env is not None:
+                env_file = f"{str(env)}.env"
+                return cls(_env_file=env_file)
+            return cls()
+        except ValidationError as e:
+            error_details = "; ".join(
+                f"{err['loc'][0]}: {err['msg']}" for err in e.errors()
+            )
+            raise ValueError(
+                f"Configuration error(s) found in the environmental settings: \n"
+                f"{error_details}\n"
+                f"Please check your `{env_file}` file for missing or invalid values."
+            ) from None
 
 
 class ServiceEnvironment(CaseInsensitiveEnum):

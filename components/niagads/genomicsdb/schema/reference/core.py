@@ -4,3 +4,5 @@
 from niagads.genomicsdb.schema.reference.base import ReferenceSchemaBase
 from niagads.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
+from niagads.genomicsdb.schema.reference.ontology import OntologyTerm
+from niagads.genomicsdb.schema.reference.pathway import Pathway

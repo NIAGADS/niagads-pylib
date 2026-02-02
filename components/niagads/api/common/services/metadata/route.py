@@ -9,7 +9,7 @@ from niagads.api.common.services.route import (
     ResponseConfiguration,
     RouteHelperService,
 )
-from niagads.database.mixins.datasets.track import TrackDataStore
+from niagads.common.constants.track import TrackDataStore
 
 
 class MetadataRouteHelperService(RouteHelperService):

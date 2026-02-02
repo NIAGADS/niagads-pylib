@@ -5,7 +5,7 @@ from urllib.parse import unquote
 
 from niagads.common.constants.external_resources import ThirdPartyResources
 from niagads.common.constants.ontologies import BiosampleType
-from niagads.common.models.ontology import OntologyTerm
+from niagads.common.models.ontologies import OntologyTerm
 from niagads.common.models.composite_attributes.dataset import (
     BiosampleCharacteristics,
     ExperimentalDesign,

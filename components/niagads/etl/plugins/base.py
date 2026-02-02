@@ -6,6 +6,7 @@ from datetime import datetime
 from enum import auto
 from typing import Any, Dict, List, Optional, Type
 
+from niagads.utils.asynchronous import null_async_context
 from niagads.utils.list import chunker
 import psutil
 from niagads.common.core import ComponentBaseMixin
@@ -16,7 +17,7 @@ from niagads.etl.config import ETLMode
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport
 from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
-from niagads.genomicsdb.schema.admin.pipeline import ETLOperation, ETLRun
+from niagads.genomicsdb.schema.admin.etl import ETLOperation, ETLRun
 from niagads.utils.logging import FunctionContextLoggerWrapper
 
 
@@ -99,13 +100,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             )
             self._mode = ETLMode.DRY_RUN
 
-        if self._mode != ETLMode.DRY_RUN:
+        if self.is_dry_run:
             # don't attempt to connect to DB on dry runs
-            self._session_manager = DatabaseSessionManager(
+            self.__session_manager = DatabaseSessionManager(
                 connection_string=self._connection_string, echo=self._debug
             )
         else:
-            self._session_manager = None
+            self.__session_manager = None
 
     @property
     def is_dry_run(self) -> bool:
@@ -242,7 +243,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         ...
 
     @abstractmethod
-    async def load(self, transformed, session) -> ResumeCheckpoint:
+    async def load(self, session, transformed) -> ResumeCheckpoint:
         """
         Persist transformed data using an async SQLAlchemy session.
 
@@ -252,8 +253,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         for accurate ETL status reporting.
 
         Args:
-            transformed: The data to persist. For streaming, a list of records (buffer size <= commit_after). For bulk, the entire dataset.
             session: Async SQLAlchemy session.
+            transformed: The data to persist. For streaming, a list of records (buffer size <= commit_after). For bulk, the entire dataset.
 
         Returns:
             ResumeCheckpoint: Contains count of rows persisted and checkpoint info (line/id).
@@ -282,9 +283,73 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         pass
 
+    async def on_run_start(self, session) -> None:
+        """
+        Hook for plugins to perform custom operations at the start of a run.
+        This may include initialization, validation, or setup operations.
+
+        Passes session to plugin instance to allow DB-based validations
+        (e.g., xdbref) if not DRY_RUN.  It is the responsiblity of the
+        plugin developer to check run mode before attempting to validate against
+        the database.
+
+        Override in your plugin if custom pre-run actions are needed;
+        otherwise, leave as pass.
+        """
+        pass
+
     # -------------------------
     # Transaction Management
     # -------------------------
+
+    def session_ctx(self, allow_null_if_unintialized: bool = False):
+        """
+        Async context manager for obtaining a database session, intended for use
+        with 'async with'.
+
+        Args:
+            allow_null_if_unintialized (bool): If True, returns a nullcontext()
+                if the session manager is not initialized (i.e., in dry-run mode),
+                instead of raising an error. If False, raises ValueError when the
+                session manager is not available.
+
+        Returns:
+            Async context manager: Use with 'async with' to yield a database
+                session, or a null context if the session manager is not initialized
+                and allow_null_if_unintialized is True.
+
+        Example:
+            async with self.session_ctx(allow_null_if_unintialized=True) as session:
+                # use session here
+                ...
+        """
+        if self.__session_manager is None:
+            if allow_null_if_unintialized:
+                return null_async_context()
+            else:
+                raise ValueError(
+                    "Database session is not initialized, cannot return session context."
+                )
+
+        return self.__session_manager.session_ctx()
+
+    def session_manager(self, pool_size: int = 1):
+        """
+        Create a new DatabaseSessionManager instance with the given pool size.
+
+        This is used for preprocessing steps that require database lookups or
+        for parallel ETL loads that need separate session managers.
+
+        Args:
+            pool_size (int): The number of connections in the session pool. Default is 1.
+
+        Returns:
+            DatabaseSessionManager: A new session manager instance configured with the
+                current connection string and debug settings.
+        """
+        return DatabaseSessionManager(
+            self._connection_string, pool_size=pool_size, echo=self._debug
+        )
 
     async def __handle_transaction(self, session, checkpoint: ResumeCheckpoint) -> None:
         """
@@ -311,7 +376,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         table = self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
         self.update_transaction_count(self.operation, table, count)
 
-    async def __execute_load(self, buffer, session) -> ResumeCheckpoint:
+    async def __execute_load(self, session, buffer) -> ResumeCheckpoint:
         """
         Loads data and performs validations.
 
@@ -330,7 +395,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         if not buffer or len(buffer) == 0:
             raise ValueError("Empty buffer (transformed) passed to load.")
 
-        checkpoint = await self.load(buffer, session)
+        checkpoint = await self.load(session, buffer)
 
         # a plugin may not have checkpoint handling so
         # returning None is okay
@@ -365,7 +430,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 count = sum(1 for _ in buffer)
             self.__handle_dry_run(count)
         else:
-            checkpoint = await self.__execute_load(buffer, session)
+            checkpoint = await self.__execute_load(session, buffer)
 
         # Clear buffer if it's a list, else set to None to release reference
         if isinstance(buffer, list):
@@ -384,8 +449,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
 
         buffer: list = []
-        session_ctx = self._session_manager() if not self.is_dry_run else nullcontext()
-        async with session_ctx as session:
+        async with self.session_ctx(allow_null_if_unintialized=True) as session:
             for records in self.extract():
                 processed_records = self.transform(records)
                 # chunked can yield one or a list of records
@@ -414,7 +478,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         records = self.extract()
         processed_records = self.transform(records)
 
-        async with self._session_manager() as session:
+        async with self.session_ctx(allow_null_if_unintialized=True) as session:
             # Bulk: load all at once, ignore commit_after
             if self._mode == ETLMode.DRY_RUN:
                 try:
@@ -424,7 +488,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 self.__handle_dry_run(count)
                 return None
             else:
-                checkpoint = await self.__execute_load(processed_records, session)
+                checkpoint = await self.__execute_load(session, processed_records)
                 await self.__handle_transaction(session, checkpoint)
                 return checkpoint
 
@@ -432,8 +496,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         records = self.extract()
         processed_records = self.transform(records)
         batches = chunker(processed_records, self._commit_after, returnIterator=True)
-        session_ctx = self._session_manager() if not self.is_dry_run else nullcontext()
-        async with session_ctx as session:
+        async with self.session_ctx(allow_null_if_unintialized=True) as session:
             for batch in batches:
                 checkpoint = await self.__flush_chunked_buffer(batch, session)
                 await self.__handle_transaction(session, checkpoint)
@@ -448,7 +511,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         async with self._session_manager() as session:
             task = ETLRun(
                 plugin_name=self._name,
-                code_version=self.version,
+                plugin_version=self.version,
                 params=self._params.model_dump(),
                 message="plugin run initiated",
                 status=ProcessStatus.RUNNING,
@@ -459,11 +522,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             )
             session.add(task)
             await session.commit()
-        return task.task_id
+        return task.run_id
 
     async def __db_update_plugin_task(
         self,
-        task_id: int,
+        run_id: int,
         end_time,
         status: ProcessStatus,
         rows_processed: int = None,
@@ -475,8 +538,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         if self._mode == ETLMode.DRY_RUN:
             return
-        async with self._session_manager() as session:
-            task: ETLRun = await session.get(ETLRun, task_id)
+
+        async with self.session_ctx() as session:
+            task: ETLRun = await session.get(ETLRun, run_id)
             task.rows_processed = rows_processed
             task.end_time = end_time
             task.status = status
@@ -538,7 +602,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             ProcessStatus: SUCCESS if ETL completed, FAIL otherwise.
         """
         merged_params = None
-        task_id = None
+        run_id = None
         execution_status = None
 
         if runtime_params:
@@ -550,6 +614,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self._commit_after = self._params.commit_after
 
         self.__start_time = datetime.now()
+
+        async with self.session_ctx(allow_null_if_unintialized=True) as session:
+            await self.on_run_start(session)
 
         # Preprocess mode - transformers write intermediary data to file
         if self._mode == ETLMode.PREPROCESS:
@@ -570,13 +637,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         # Regular ETL modes
         try:
-            task_id = await self.__db_log_plugin_run()
+            run_id = await self.__db_log_plugin_run()
             execution_status = ProcessStatus.RUNNING
             self.__status_report = ETLStatusReport(
                 status=execution_status,
                 mode=self._mode,
                 test=self._mode == ETLMode.DRY_RUN,
-                task_id=task_id,
+                run_id=run_id,
             )
 
         except Exception as e:
@@ -631,9 +698,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.exception(f"Plugin failed: {e}")
 
             # --- Finalize plugin run log on error (except DRY_RUN) ---
-            if self._mode != ETLMode.DRY_RUN and task_id:
+            if self._mode != ETLMode.DRY_RUN and run_id:
                 await self.__db_update_plugin_task(
-                    task_id,
+                    run_id,
                     datetime.now(),  # end time
                     execution_status,
                     message=f"ETL run failed: {e}",
@@ -662,7 +729,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             try:
                 if self._mode != ETLMode.DRY_RUN:
                     await self.__db_update_plugin_task(
-                        task_id,
+                        run_id,
                         end_time,
                         execution_status,
                         rows_processed=self.__status_report.total_writes(),
