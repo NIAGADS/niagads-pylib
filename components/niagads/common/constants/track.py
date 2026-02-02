@@ -8,3 +8,4 @@ from niagads.enums.core import CaseInsensitiveEnum
 class TrackDataStore(CaseInsensitiveEnum):
     GENOMICSDB = auto()
     FILER = auto()
+    SHARED = auto()
