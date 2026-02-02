@@ -19,7 +19,7 @@ class GeneXRefType(CaseInsensitiveEnum):
     # TODO: orthologs?
 
 
-class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
+class GeneXRef(GeneTableBase):
     __tablename__ = "xref"
     _stable_id = None
     gene_id: Mapped[int] = gene_fk_column()

@@ -16,11 +16,11 @@ from sqlalchemy.schema import CheckConstraint
 
 
 # Note: no IdAliasMixin on this one b/c API, etc will query the RAG Doc view
-class GeneModel(GeneTableBase, GenomicRegionMixin, ExternalDatabaseMixin):
+class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "gene"
     __table_args__ = (
         CheckConstraint(
-            f"source_id ~ '{RegularExpressions.ENSEMBL_GENE_ID}'",
+            f"ensembl_id ~ '{RegularExpressions.ENSEMBL_GENE_ID}'",
             name="ensembl_gene_id_format_check",
         ),
     )
@@ -31,13 +31,11 @@ class GeneModel(GeneTableBase, GenomicRegionMixin, ExternalDatabaseMixin):
     gene_type: Mapped[str] = mapped_column(String(150))  # TODO: map to ontology term?
 
 
-class TranscriptModel(
-    GeneTableBase, GenomicRegionMixin, ExternalDatabaseMixin, IdAliasMixin
-):
+class TranscriptModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "transcript"
     __table_args__ = (
         CheckConstraint(
-            f"source_id ~ '{RegularExpressions.ENSEMBL_TRANSCRIPT_ID}'",
+            f"ensembl_id ~ '{RegularExpressions.ENSEMBL_TRANSCRIPT_ID}'",
             name="ensembl_transcript_id_format_check",
         ),
     )
@@ -46,11 +44,11 @@ class TranscriptModel(
     gene_id: Mapped[int] = gene_fk_column()
 
 
-class ExonModel(GeneTableBase, GenomicRegionMixin, ExternalDatabaseMixin, IdAliasMixin):
+class ExonModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "exon"
     __table_args__ = (
         CheckConstraint(
-            f"source_id ~ '{RegularExpressions.ENSEMBL_EXON_ID}'",
+            f"ensembl_id ~ '{RegularExpressions.ENSEMBL_EXON_ID}'",
             name="ensembl_exon_id_format_check",
         ),
     )
