@@ -21,11 +21,12 @@ BEGIN
     CREATE (:term {
         ontology_term_id: INT NOT NULL UNIQUE,   -- Integer key, assigned from sequence (see below)
         term_iri: STRING NOT NULL UNIQUE,        -- Full URI (e.g., http://purl.obolibrary.org/obo/GO_0006915)
-        term_id: STRING,                         -- CURIE form (e.g., GO:0006915)
-        term: STRING,                            -- The term name/label
+        term_id: STRING NOT NULL UNIQUE,         -- CURIE form (e.g., GO:0006915)
+        term: STRING NOT NULL,                            -- The term name/label
         label: STRING,                           -- Display-friendly label
         definition: STRING,                      -- Term definition
         synonyms: LIST,                          -- Array of synonym strings
+        entity_type: STRING,                     -- entity type (e.g., class, property, individual)
         is_deprecated: BOOLEAN DEFAULT FALSE,
         run_id: INTEGER NOT NULL                 -- References admin.etlrun for versioning
     });
