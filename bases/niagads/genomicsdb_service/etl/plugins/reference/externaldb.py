@@ -128,6 +128,6 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
                 f"External Database Reference {transformed.database_key}: {transformed.name}|{transformed.version} already exists"
             )
             self.update_transaction_count(
-                self.operation, ExternalDatabase.table_name(), 0
+                ETLOperation.SKIP, ExternalDatabase.table_name(), 1
             )
         return ResumeCheckpoint(record=self.get_record_id(transformed))
