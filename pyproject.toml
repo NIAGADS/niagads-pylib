@@ -1,10 +1,10 @@
 [project]
 name = "niagads-pylib"
 authors = [
-    { name = "fossilfriend", email = "egreenfest@gmail.com" },
+    {name = "fossilfriend", email = "egreenfest@gmail.com"}
 ]
 description = "a collection of python packages, classes, and utility functions in support of NIAGADS projects"
-license = { text = "GNU GPLv3" }
+license = {text = "GNU GPLv3"}
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 version = "2.0.0"
@@ -18,57 +18,58 @@ profile = "black"
 homepage = "https://github.com/NIAGADS/niagads-pylib"
 repository = "https://github.com/NIAGADS/niagads-pylib"
 packages = [
-    { from = "bases", include = "niagads/advp_service" },
-    { from = "bases", include = "niagads/filer_service" },
-    { from = "bases", include = "niagads/genomicsdb_service" },
-    { from = "bases", include = "niagads/loaders" },
-    { from = "bases", include = "niagads/metadata_validator_tool" },
-    { from = "bases", include = "niagads/open_access_service" },
-    { from = "bases", include = "niagads/pipeline_service" },
-    { from = "components", include = "niagads/adsp_annotation" },
-    { from = "components", include = "niagads/api" },
-    { from = "components", include = "niagads/arg_parser" },
-    { from = "components", include = "niagads/genomics" },
-    { from = "components", include = "niagads/cache" },
-    { from = "components", include = "niagads/common" },
-    { from = "components", include = "niagads/csv_parser" },
-    { from = "components", include = "niagads/csv_triples_parser" },
-    { from = "components", include = "niagads/csv_validator" },
-    { from = "components", include = "niagads/database" },
-    { from = "components", include = "niagads/decorators" },
-    { from = "components", include = "niagads/enums" },
-    { from = "components", include = "niagads/etl" },
-    { from = "components", include = "niagads/excel_parser" },
-    { from = "components", include = "niagads/exceptions" },
-    { from = "components", include = "niagads/genomicsdb" },
-    { from = "components", include = "niagads/json_validator" },
-    { from = "components", include = "niagads/metadata_parser" },
-    { from = "components", include = "niagads/metadata_validator" },
-    { from = "components", include = "niagads/objects" },
-    { from = "components", include = "niagads/postgres_dbi" },
-    { from = "components", include = "niagads/requests" },
-    { from = "components", include = "niagads/s3" },
-    { from = "components", include = "niagads/settings" },
-    { from = "components", include = "niagads/utils" },
-    { from = "components", include = "niagads/vcf" },
-    { from = "components", include = "niagads/vep_json_parser" },
-    { include = "niagads/bed", from = "components" },
-    { include = "niagads/variant_annotator", from = "components" },
-    { include = "niagads/assembly", from = "components" },
+    {from = "bases", include = "niagads/advp_service"},
+    {from = "bases", include = "niagads/filer_service"},
+    {from = "bases", include = "niagads/genomicsdb_service"},
+    {from = "bases", include = "niagads/loaders"},
+    {from = "bases", include = "niagads/metadata_validator_tool"},
+    {from = "bases", include = "niagads/open_access_service"},
+    {from = "bases", include = "niagads/pipeline_service"},
+    {from = "components", include = "niagads/adsp_annotation"},
+    {from = "components", include = "niagads/api"},
+    {from = "components", include = "niagads/arg_parser"},
+    {from = "components", include = "niagads/assembly"},
+    {from = "components", include = "niagads/bed"},
+    {from = "components", include = "niagads/cache"},
+    {from = "components", include = "niagads/common"},
+    {from = "components", include = "niagads/csv_parser"},
+    {from = "components", include = "niagads/csv_triples_parser"},
+    {from = "components", include = "niagads/csv_validator"},
+    {from = "components", include = "niagads/database"},
+    {from = "components", include = "niagads/decorators"},
+    {from = "components", include = "niagads/enums"},
+    {from = "components", include = "niagads/etl"},
+    {from = "components", include = "niagads/excel_parser"},
+    {from = "components", include = "niagads/exceptions"},
+    {from = "components", include = "niagads/genomics"},
+    {from = "components", include = "niagads/genomicsdb"},
+    {from = "components", include = "niagads/json_validator"},
+    {from = "components", include = "niagads/metadata_parser"},
+    {from = "components", include = "niagads/metadata_validator"},
+    {from = "components", include = "niagads/nlp"},
+    {from = "components", include = "niagads/objects"},
+    {from = "components", include = "niagads/postgres_dbi"},
+    {from = "components", include = "niagads/requests"},
+    {from = "components", include = "niagads/s3"},
+    {from = "components", include = "niagads/settings"},
+    {from = "components", include = "niagads/utils"},
+    {from = "components", include = "niagads/variant_annotator"},
+    {from = "components", include = "niagads/vcf"},
+    {from = "components", include = "niagads/vep_json_parser"}
 ]
 include = [
-    { path = "bases/niagads/genomicsdb_service/etl/plugins/validation_schemas/*.json" },
-    { path = "bases/niagads/genomicsdb_service/etl/plugins/validation_schemas/*.xsd" },
-    { path = "components/niagads/genomicsdb/models/reference/sql/ontology/*.sql" },
+    {path = "bases/niagads/genomicsdb_service/etl/plugins/validation_schemas/*.json"},
+    {path = "bases/niagads/genomicsdb_service/etl/plugins/validation_schemas/*.xsd"},
+    {path = "components/niagads/genomicsdb/models/reference/sql/ontology/*.sql"}
 ]
 
 [tool.poetry.dependencies]
-aiocache = { extras = [
-    "redis",
-], version = "^0.12.3" }
-aiohttp = { extras = [
-    "speedups",
-], version = "^3.11.16" }
+aiocache = {extras = [
+    "redis"
+], version = "^0.12.3"}
+aiohttp = {extras = [
+    "speedups"
+], version = "^3.11.16"}
 asgi-correlation-id = "^4.3.4"
 asyncpg = "^0.30.0"
 boto3 = "^1.38.36"
@@ -76,12 +77,17 @@ cyvcf2 = "^0.31.1"
 email-validator = "^2.2.0"
 fastapi = "^0.115.12"
 fastapi-cors = "^0.0.6"
+ga4gh-vrs = {extras = [
+    "extras"
+], version = "^2.2.0"}
+hgvs = {git = "https://github.com/NIAGADS/hgvs.git", rev = "NIAGADS"}
 itsdangerous = "^2.2.0"
 jsonschema = "^4.23.0"
 lxml = "^6.0.2"
 nh3 = "^0.2.21"
 openpyxl = "^3.1.5"
 pandas = "^2.2.3"
+pgvector = "^0.4.2"
 psutil = "^7.1.0"
 psycopg2-binary = "^2.9.11"
 pydantic = "^2.11.1"
@@ -92,19 +98,14 @@ python-dateutil = "^2.9.0.post0"
 pyyaml = "^6.0.2"
 rdflib = "^7.1.4"
 requests = "^2.32.3"
+sentence-transformers = "^5.2.2"
+spacy = "^3.8.11"
 sqlalchemy = "^2.0.40"
 sqlalchemy-utils = "^0.41.2"
 strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
-hgvs = { git = "https://github.com/NIAGADS/hgvs.git", rev = "NIAGADS" }
-ga4gh-vrs = { extras = [
-    "extras",
-], version = "^2.2.0" }
-pgvector = "^0.4.2"
-sentence-transformers = "^5.2.2"
-spacy = "^3.8.11"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
@@ -117,9 +118,9 @@ pydocstyle = "^6.3.0"
 pytest = "^8.2.2"
 
 [tool.poetry.scripts]
+migrate-gwas = "niagads.genomicsdb_service.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
 runpipe = "niagads.pipeline_service.runners.core:run_main"
 runpipe-plugin = "niagads.pipeline_service.runners.plugin:run_main"
-migrate-gwas = "niagads.genomicsdb_service.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
 
 [tool.pytest.ini_options]
 addopts = "-vv"
@@ -132,5 +133,5 @@ spaces_indent_inline_array = 4
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = [
-    "poetry-core>=2.0.0,<3.0.0",
+    "poetry-core>=2.0.0,<3.0.0"
 ]
