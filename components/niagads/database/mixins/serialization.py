@@ -47,6 +47,8 @@ class ModelDumpMixin(object):
                 for column in cls.__table__.columns:
                     if isinstance(column.type, COMPLEX_TYPES):
                         self.fields.pop(column.name, None)
+                    if "run_id" in column.name:
+                        self.fields.pop(column.name, None)
 
                 if make_fields_optional:
                     for field in self.fields.values():
