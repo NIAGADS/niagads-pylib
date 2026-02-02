@@ -73,7 +73,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         """
         with open(self._params.file, "r") as f:
             config = json.load(f)
-        yield config
+        return config
 
     def transform(self, record: dict) -> ExternalDatabase:
         """
@@ -92,6 +92,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
 
         xdbref = ExternalDatabase(**record)
         xdbref.run_id = self._run_id
+        return xdbref
 
     def get_record_id(self, record: ExternalDatabase) -> str:
         """
