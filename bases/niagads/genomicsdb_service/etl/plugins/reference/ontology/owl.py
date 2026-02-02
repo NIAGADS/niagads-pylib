@@ -1,12 +1,7 @@
 """
-OntologyOWLLoader Plugin
-
+Ontology Loader Plugins
+- Parse OWL files and load ontology terms into Reference.OntologyTerm or the (Public).OntologyGraph
 Loads an ontology from an OWL file into the reference ontology graph schema.
-
-Follows niagads-pylib GenomicsDB ETL plugin conventions.
-While it can be adapted for another application, it relies on the existence of a
-`Reference.ExternalDatabse` table, creates virtual edges linking
-each term to its source ontology, which is recorded as a row in the table.
 """
 
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
