@@ -106,6 +106,7 @@ strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
+marshmallow-sqlalchemy = "^1.4.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
