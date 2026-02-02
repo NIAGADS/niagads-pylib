@@ -99,7 +99,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             )
             self._mode = ETLMode.DRY_RUN
 
-        if self._mode != ETLMode.DRY_RUN:
+        if self.is_dry_run:
             # don't attempt to connect to DB on dry runs
             self.__session_manager = DatabaseSessionManager(
                 connection_string=self._connection_string, echo=self._debug
@@ -278,6 +278,21 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         This may include additional logging or intermediary file cleanup.
 
         Override in your plugin if custom post-run actions are needed;
+        otherwise, leave as pass.
+        """
+        pass
+
+    async def on_run_start(self, session) -> None:
+        """
+        Hook for plugins to perform custom operations at the start of a run.
+        This may include initialization, validation, or setup operations.
+
+        Passes session to plugin instance to allow DB-based validations
+        (e.g., xdbref) if not DRY_RUN.  It is the responsiblity of the
+        plugin developer to check run mode before attempting to validate against
+        the database.
+
+        Override in your plugin if custom pre-run actions are needed;
         otherwise, leave as pass.
         """
         pass
@@ -598,6 +613,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self._commit_after = self._params.commit_after
 
         self.__start_time = datetime.now()
+
+        async with self.session_ctx(allow_null_if_unintialized=True) as session:
+            await self.on_run_start(session)
 
         # Preprocess mode - transformers write intermediary data to file
         if self._mode == ETLMode.PREPROCESS:
