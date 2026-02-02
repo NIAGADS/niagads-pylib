@@ -10,7 +10,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 @SchemaRegistry.register()
 class VariantSchemaBase(DeclarativeBase):
-    metadata = MetaData(schema="dataset")
+    metadata = MetaData(schema="variant")
 
 
 class VariantTableBase(VariantSchemaBase, GenomicsDBTableMixin):
