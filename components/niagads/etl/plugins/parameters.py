@@ -128,7 +128,7 @@ class JSONConfigValidatorMixin:
         @model_validator(mode="after")
         def validate_config(self):
             file_path = getattr(self, field_name)
-            config: dict = json.load(Path(file_path).read_text())
+            config: dict = json.loads(Path(file_path).read_text(encoding="utf-8"))
             jsonschema.validate(instance=config, schema=schema)
             self.config = config
             return self
