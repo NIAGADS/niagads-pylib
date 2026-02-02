@@ -27,7 +27,7 @@ class TextEmbeddingGenerator:
         return SentenceTransformer(str(model))
 
     @staticmethod
-    def list_registered_models(self):
+    def list_registered_models():
         return LLM.list(NLPModelType.EMBEDDING)
 
     def generate(
