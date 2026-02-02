@@ -2,8 +2,6 @@ import re
 
 import spacy
 from niagads.nlp.constants import STOPWORDS
-from niagads.nlp.llm_types import LLM, NLPModelType
-from sentence_transformers import SentenceTransformer
 
 
 def segment_sentences(text: str) -> list[str]:
@@ -86,39 +84,3 @@ def tokenize(
     if is_single:
         return tokens_list[0]
     return tokens_list
-
-
-def calculate_text_embedding(
-    text: str,
-    model_name: LLM = LLM.ALL_MINILM_L6_V2,
-    normalize: bool = True,
-    as_list: bool = True,
-) -> list[float]:
-    """
-    Calculate a text embedding using SentenceTransformer.
-
-    Args:
-        text (str): The input text to embed.
-        model_name (LLM): The embedding model to use. Defaults to ALL_MINILM_L6_V2.
-        normalize (bool): Whether to normalize the embedding to unit length. Defaults to True.
-            Set to True for cosine similarity operations (e.g., pgvector cosine_distance),
-            as normalized vectors ensure fair comparison regardless of text length and enable
-            efficient distance computation. Set to False only when using Euclidean distance
-            or when magnitude carries semantic meaning.
-        as_list (bool): Whether to return the embedding as a Python list. Defaults to True.
-            Set to True for database storage and JSON serialization. Set to False to return
-            the raw NumPy array for performance-critical operations.
-
-    Returns:
-        list[float] or numpy array: The embedding vector as a list of floats (if as_list=True)
-            or as a NumPy array (if as_list=False).
-
-    Raises:
-        ValueError: If the model is not a valid embedding model.
-    """
-
-    LLM.validate(model_name, NLPModelType.EMBEDDING)
-
-    model = SentenceTransformer(model_name.value)
-    embedding = model.encode(text, normalize_embeddings=normalize)
-    return embedding.tolist() if as_list else embedding
