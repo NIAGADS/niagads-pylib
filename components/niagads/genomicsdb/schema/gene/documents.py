@@ -14,7 +14,7 @@ from niagads.database.mixins import GenomicRegionMixin
 from niagads.genomicsdb.schema.gene.base import GeneMaterializedViewBase
 from niagads.genomicsdb.schema.gene.xrefs import GeneXRefType
 from niagads.genomicsdb.schema.mixins import IdAliasMixin
-from sqlalchemy import ARRAY, String, func, or_, select
+from sqlalchemy import ARRAY, String, func, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession

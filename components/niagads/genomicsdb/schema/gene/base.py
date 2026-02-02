@@ -5,7 +5,7 @@ Base classes for SQLAlchemy ORM models in the GenomicsDB "Gene" schema.
 from niagads.genomicsdb.schema.mixins import GenomicsDBMVMixin, GenomicsDBTableMixin
 from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.genomicsdb.schema.registry import SchemaRegistry
-from sqlalchemy import MetaData, func
+from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.hybrid import hybrid_property
 
