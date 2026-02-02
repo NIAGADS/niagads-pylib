@@ -1,15 +1,13 @@
 from datetime import datetime
 
 from niagads.database.helpers import datetime_column
-from pgvector import Vector
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import ForeignKey, Index, LargeBinary, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 
 class EmbeddingMixin:
-    __table_args__ = (
-        Index("ix_embedding_vector_hnsw", "embedding", postgresql_using="hnsw"),
-    )
+    __table_args__ = (Index(None, "embedding", postgresql_using="hnsw"),)
 
     embedding: Mapped[list[float]] = mapped_column(Vector(384), nullable=True)
     embedding_model: Mapped[str] = mapped_column(String(250), nullable=True, index=True)

@@ -16,14 +16,10 @@ class ExternalDatabaseMixin(object):
     """
 
     external_database_id: Mapped[int] = mapped_column(
-        ForeignKey("core.externaldatabase.external_database_id"),
+        ForeignKey("reference.externaldatabase.external_database_id"),
         nullable=False,
         index=True,
     )
     source_id: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint(
-            "external_database_id", "source_id", name="uq_externaldb_source"
-        ),
-    )
+    __table_args__ = (UniqueConstraint("external_database_id", "source_id", name=None),)

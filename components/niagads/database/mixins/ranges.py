@@ -1,6 +1,7 @@
+from niagads.database.helpers import enum_column, enum_constraint
 from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.common.models.structures import Range
-from niagads.database import RangeType, enum_column, enum_constraint
+from niagads.database import RangeType
 from sqlalchemy import Index
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy_utils import LtreeType
@@ -27,6 +28,6 @@ class GenomicRegionMixin(object):
 
     __table_args__ = (
         enum_constraint("chromosome", HumanGenome),
-        Index("ix_genomic_region_gist", "genomic_region", postgresql_using="gist"),
-        Index("ix_bin_index_gist", "bin_index", postgresql_using="gist"),
+        Index(None, "genomic_region", postgresql_using="gist"),
+        Index(None, "bin_index", postgresql_using="gist"),
     )
