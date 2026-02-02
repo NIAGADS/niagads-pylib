@@ -118,7 +118,9 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         Returns:
             Optional[ResumeCheckpoint]: Checkpoint info for this record.
         """
-        if not transformed.exists(session):
+        if not ExternalDatabase.record_exists(
+            session, {"name": transformed.name, "version": transformed.version}
+        ):
             await transformed.submit(session)
             self.update_transaction_count(self.operation, ExternalDatabase.table_name())
         else:
