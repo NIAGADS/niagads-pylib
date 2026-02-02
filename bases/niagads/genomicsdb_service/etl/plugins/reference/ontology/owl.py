@@ -34,8 +34,6 @@ from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM, NLPModelType
 from pydantic import BaseModel, Field, field_validator
 from rdflib import Graph, Literal, URIRef, BNode
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql import text
 
 
 # FIXME - just use ontologygraphtriple
@@ -91,7 +89,7 @@ class OWLParser:
 
         term_id = entity_properties.get(get_field_iri("term_id"), [None])[0]
         definition = entity_properties.get(get_field_iri("definition"), [None])[0]
-        synonyms = entity_properties.get(get_field_iri("synonyms"), [])
+        synonyms = entity_properties.get(get_field_iri("synonym"), [])
         is_deprecated = bool(
             entity_properties.get(get_field_iri("is_deprecated"), [False])[0]
         )
@@ -293,7 +291,7 @@ class OntologyTermLoader(AbstractBasePlugin):
         return term
 
     async def load(self, session, transformed: OntologyTerm):
-        transformed.submit(session)
+        await transformed.submit(session)
         self.update_transaction_count(ETLOperation.INSERT, OntologyTerm.table_name())
         return ResumeCheckpoint(full_record=transformed)
 
