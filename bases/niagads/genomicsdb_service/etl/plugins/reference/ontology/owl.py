@@ -4,6 +4,7 @@ Ontology Loader Plugins
 Loads an ontology from an OWL file into the reference ontology graph schema.
 """
 
+from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
 from niagads.common.constants.ontologies import (
@@ -12,7 +13,6 @@ from niagads.common.constants.ontologies import (
     RDFPropertyIRI,
 )
 from niagads.common.helpers.ontologies import get_field_iri
-from niagads.etl.config import ETLMode
 from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
 from niagads.etl.plugins.logger import ETLOperation
 from niagads.etl.plugins.parameters import (
@@ -30,25 +30,44 @@ from niagads.genomicsdb.schema.reference.ontology import (
 from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
-from pydantic import BaseModel, Field
+from niagads.nlp.embeddings import TextEmbeddingGenerator
+from niagads.nlp.llm_types import LLM, NLPModelType
+from pydantic import BaseModel, Field, field_validator
 from rdflib import Graph, Literal, URIRef, BNode
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import text
 
 
+# FIXME - just use ontologygraphtriple
 class Triple(BaseModel):
     subject: str
     predicate: str
     object: str
 
     def __str__(self):
-        return f"{str(self.subject)} -> {str(self.precidcate)} -> {str(self.object)}"
+        return f"{str(self.subject)} -> {str(self.predicate)} -> {str(self.object)}"
 
 
 class OWLLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin):
-    file: str
+    file: str = Field(..., description="full path to OWL file")
 
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
+
+
+class OntologyTermReferenceLoaderParams(OWLLoaderParams):
+    embedding_model: LLM = Field(
+        LLM.ALL_MINILM_L6_V2,
+        description="LLM model for generating text embeddings",
+    )
+
+    @field_validator("embedding_model")
+    @classmethod
+    def validate_embedding_model(cls, v: LLM) -> LLM:
+        """Validate that embedding_model is in allowed embedding models list."""
+        allowed = LLM.list(NLPModelType.EMBEDDING)
+        if v not in allowed:
+            raise ValueError(f"embedding_model must be one of {allowed}, got {v}")
+        return v
 
 
 class OWLParser:
@@ -80,7 +99,7 @@ class OWLParser:
         return {
             "term_iri": entity_iri,
             "entity_type": str(entity_type),
-            "term_id": term_id,
+            "curie": term_id,
             "term": label,
             "definition": definition,
             "synonyms": synonyms,
@@ -190,7 +209,7 @@ class OntologyTermLoader(AbstractBasePlugin):
     ETL plugin for loading ontology terms from an OWL file into the reference ontologyterm table
     """
 
-    _params: OWLLoaderParams  # type annotation
+    _params: OntologyTermReferenceLoaderParams  # type annotation
 
     def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
         super().__init__(params, name)
@@ -198,20 +217,23 @@ class OntologyTermLoader(AbstractBasePlugin):
     async def on_run_start(self, session):
         """on run start hook override"""
         # validate the xdbref against the database
-        self._xdbref_id = (
+        self.__external_database_id = (
             None if self.is_dry_run else await self._params.resolve_xdbref(session)
+        )
+        self.__embedding_generator = TextEmbeddingGenerator(
+            self._params.embedding_model
         )
 
     @classmethod
     def description(cls) -> str:
         return (
-            "Loads an ontology (terms and relationships) from an OWL file into the "
-            "Reference.Ontology graph schema."
+            f"ETL Plugin to load ontology terms from an OWL file into {OntologyTerm.table_name()}."
+            f"Loads terms, properties, and embeddings."
         )
 
     @classmethod
     def parameter_model(cls) -> Type[BasePluginParams]:
-        return OWLLoaderParams
+        return OntologyTermReferenceLoaderParams
 
     @property
     def operation(self) -> ETLOperation:
@@ -219,30 +241,61 @@ class OntologyTermLoader(AbstractBasePlugin):
 
     @property
     def affected_tables(self) -> List[str]:
-        return ["Reference.Ontology"]
+        return [OntologyTerm.table_name()]
 
     @property
     def load_strategy(self) -> LoadStrategy:
         return LoadStrategy.CHUNKED
 
+    def get_record_id(self, record: OntologyTerm) -> str:
+        """
+        Returns a unique identifier for a record (subject URI).
+        """
+        return record.source_id
+
     def extract(self) -> Iterator[Any]:
         parser = OWLParser(self._params.file)
         yield from parser.extract_terms()
-        yield from parser.extract_triples()
-        # yield from parser.extract_restrictions()
 
-    def transform(
-        self, record: Union[dict, Triple]
-    ) -> Union[OntologyGraphTermVertex, Triple]:
+    def __generate_term_embedding(self, term: OntologyTerm):
+        term.embedding_date = datetime.now(tz=timezone.utc)
+        term.embedding_model = str(self._params.embedding_model)
+        term.embedding_run_id = self._run_id
 
+        values = [term.term, term.label, term.definition, term.curie] + (
+            term.synonyms or []
+        )
+        embedding_text = "|".join([v for v in values if v])
+        term.embedding_hash = self.__embedding_generator.hash_text(embedding_text)
+        term.embedding = self.__embedding_generator.generate(embedding_text)
+
+    def transform(self, record: dict) -> OntologyTerm:
+        """
+        Convert a record (OWL entity) dict to an OntologyTerm and generate embedding.
+        """
         if record is None:
             raise RuntimeError(
                 "No records provided to transform(). At least one record is required."
             )
-        if isinstance(record, Triple):
-            return record
 
-        return OntologyGraphTermVertex(**record)
+        record["source_id"] = record.pop("curie")
+        term = OntologyTerm(**record)
+        term.run_id = self._run_id
+        term.external_database_id = self.__external_database_id
+
+        try:
+            self.__generate_term_embedding(term)
+        except Exception as err:
+            raise RuntimeError(
+                "Error generating embeddings for OntologyTerm: {term.source_id}"
+            ) from err
+
+        return term
+
+    async def load(self, session, transformed: OntologyTerm):
+        transformed.submit(session)
+        self.update_transaction_count(ETLOperation.INSERT, OntologyTerm.table_name())
+        return ResumeCheckpoint(full_record=transformed)
 
 
 @PluginRegistry.register(metadata={"version": 1.0})
