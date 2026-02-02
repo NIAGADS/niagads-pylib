@@ -62,9 +62,7 @@ class OntologyTermReferenceLoaderParams(OWLLoaderParams):
     @classmethod
     def validate_embedding_model(cls, v: LLM) -> LLM:
         """Validate that embedding_model is in allowed embedding models list."""
-        allowed = LLM.list(NLPModelType.EMBEDDING)
-        if v not in allowed:
-            raise ValueError(f"embedding_model must be one of {allowed}, got {v}")
+        LLM(v).validate(NLPModelType.EMBEDDING)
         return v
 
 
