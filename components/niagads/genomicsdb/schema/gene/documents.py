@@ -82,7 +82,7 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
         record: Self = cast(Self, rows[0])
         return {"gene_id": record.gene_id, "ensembl_id": record.ensembl_id}
 
-    async def resolve_gene_symobl(
+    async def resolve_gene_symbol(
         self, session: AsyncSession, id: str, case_insensitive: bool = False
     ):
         """
