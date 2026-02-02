@@ -9,10 +9,15 @@ While it can be adapted for another application, it relies on the existence of a
 each term to its source ontology, which is recorded as a row in the table.
 """
 
-# TODO: restrictions ETL
-
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
+from niagads.common.constants.ontologies import (
+    AnnotationPropertyIRI,
+    EntityTypeIRI,
+    RDFPropertyIRI,
+)
+from niagads.common.helpers.ontologies import get_field_iri
+from niagads.etl.config import ETLMode
 from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
 from niagads.etl.plugins.logger import ETLOperation
 from niagads.etl.plugins.parameters import (
@@ -22,75 +27,88 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.genomicsdb.schema.admin.etl import ETLOperation
-from niagads.genomicsdb_service.etl.plugins.reference.ontology.graph_models import (
-    AnnotationPropertyIRI,
-    EntityIRI,
-    RDFPropertyIRI,
+from niagads.genomicsdb.schema.reference.ontology import (
+    OntologyGraphTermVertex,
+    OntologyGraphTriple,
     OntologyTerm,
-    OntologyTriple,
 )
 from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
-from pydantic import Field
-from rdflib import OWL, RDF, Graph, Literal, URIRef, BNode
+from pydantic import BaseModel, Field
+from rdflib import Graph, Literal, URIRef, BNode
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import text
 
 
-class OntologyGraphLoaderParams(
-    BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin
-):
-    file: str
+class Triple(BaseModel):
+    subject: str
+    predicate: str
+    object: str
 
-    # XXX: asking for this here b/c it seems too needlessly complex to pull
-    # it out of the file
-    namespace: str = Field(..., description="ontology base URI")
+    def __str__(self):
+        return f"{str(self.subject)} -> {str(self.precidcate)} -> {str(self.object)}"
+
+
+class OWLLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin):
+    file: str
 
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
 
-class OntologyGraphParser:
+class OWLParser:
     def __init__(self, owl_file: str):
         self._graph = Graph()
         self._graph.parse(owl_file, format="xml")
 
-    def _resolve_entity_type(self, node):
+    def __resolve_entity_type(self, node) -> EntityTypeIRI:
         assigned_types = [
             str(obj) for obj in self._graph.objects(node, RDFPropertyIRI.ENTITY_TYPE)
         ]
-        return EntityIRI.resolve_entity_type(assigned_types)
+        return EntityTypeIRI.resolve_entity_type(assigned_types)
 
-    # TODO - fix logic now that it is moved
-    # TODO: handle restrictions
-    def extract_entities(
-        self,
-        extract_terms: bool = True,
-        extract_relationships: bool = False,
-        ignore_restrictions: bool = True,
-    ) -> Iterator[Any]:
+    @staticmethod
+    def __build_term(entity_iri, entity_type: EntityTypeIRI, entity_properties: dict):
+        label = entity_properties.get(get_field_iri("term", preferred=True), [None])[0]
+        if label is None:  # no editor preffered label
+            label = entity_properties.get(
+                get_field_iri("term", preferred=False), [None]
+            )[0]
+
+        term_id = entity_properties.get(get_field_iri("term_id"), [None])[0]
+        definition = entity_properties.get(get_field_iri("definition"), [None])[0]
+        synonyms = entity_properties.get(get_field_iri("synonyms"), [])
+        is_deprecated = bool(
+            entity_properties.get(get_field_iri("is_deprecated"), [False])[0]
+        )
+
+        return {
+            "term_iri": entity_iri,
+            "entity_type": str(entity_type),
+            "term_id": term_id,
+            "term": label,
+            "definition": definition,
+            "synonyms": synonyms,
+            "is_deprecated": is_deprecated,
+        }
+
+    def extract_terms(self) -> Iterator[dict]:
         """
-        Extracts ontology entities from the RDF graph and yields them for downstream processing.
+        Extracts ontology term entities from the RDF graph.
 
-        For each subject in the RDF graph, if it is a recognized ontology type
-        (class, property, or individual), yields a dictionary.
-        Also yields OntologyTriple instances for recognized object property relationships.
+        Iterates over all subjects in the RDF graph, resolves their entity type,
+        and collects annotation properties. Yields a dictionary for each term
+        with its IRI, type, and properties (label, definition, synonyms, etc.).
 
-        Args:
-            extract_terms: Whether to yield term entities (default: True).
-            extract_relationships: Whether to yield relationship triples (default: False).
-            ignore_restrictions: Whether to skip OWL restrictions (default: True).
-
-        Yields:
-            Dict: Term dictionaries with subject_iri, type, and properties.
-            OntologyTriple: Relationship triples (subject, predicate, object).
+        Returns:
+            Iterator[dict]: dict with fields that can be used to build OntologyTerm
+                or OntologyTermVertex object as required by Plugin
         """
-
         for subject in self._graph.subjects():
             subject_iri = str(subject)
 
             try:
-                subject_type = self._resolve_entity_type(subject)
+                subject_type: EntityTypeIRI = self.__resolve_entity_type(subject)
             except ValueError:
                 continue  # skip the node
 
@@ -105,53 +123,89 @@ class OntologyGraphParser:
                             object_iri
                         )
 
-                elif isinstance(obj, URIRef):  # relation prop
+            yield self.__build_term(subject_iri, subject_type, subject_properties)
+
+    def extract_triples(self) -> Iterator[Triple]:
+        """
+        Extracts ontology relationship triples from the RDF graph.
+
+        Iterates over all subjects and their predicate-object pairs in the RDF graph.
+        For each predicate that is an object property or entity type, yields a Triple
+        object with subject, predicate, and object IRIs. Skips annotation properties
+        and unsupported predicate types.
+
+        Returns:
+            Iterator[Triple]: Each Triple contains subject, predicate, and object IRIs.
+        """
+        for subject in self._graph.subjects():
+            subject_iri = str(subject)
+
+            try:
+                self.__resolve_entity_type(subject)
+            except ValueError:
+                continue  # skip the node
+
+            for predicate, obj in self._graph.predicate_objects(subject):
+                predicate_iri = str(predicate)
+                object_iri = str(obj)
+
+                if isinstance(obj, URIRef):  # relation prop
                     # get the type of the predicate
                     try:
-                        predicate_type = self._resolve_entity_type(predicate)
+                        predicate_type = self.__resolve_entity_type(predicate)
                     except ValueError:
                         continue  # not a supported predicate type
 
                     # only keep triples that are not annotations
                     if (
-                        predicate_type == EntityIRI.OBJECT_PROPERTY
+                        predicate_type == EntityTypeIRI.OBJECT_PROPERTY
                         or predicate_iri == RDFPropertyIRI.ENTITY_TYPE
                     ):
-                        yield OntologyTriple(
-                            subject=OntologyTerm(iri=subject_iri),
-                            predicate=OntologyTerm(iri=predicate_iri),
-                            object=OntologyTerm(iri=object_iri),
+                        yield Triple(
+                            subject=subject_iri,
+                            predicate=predicate_iri,
+                            object=object_iri,
                         )
 
-                # TODO: restrictions
-                elif isinstance(obj, BNode):
+    def extract_restrictions(self):
+        raise NotImplementedError()
+        for subject in self._graph.subjects():
+            subject_iri = str(subject)
+
+            try:
+                self.__resolve_entity_type(subject)
+            except ValueError:
+                continue  # skip the node
+
+            subject_properties = {}
+            for predicate, obj in self._graph.predicate_objects(subject):
+                predicate_iri = str(predicate)
+                object_iri = str(obj)
+
+                if isinstance(obj, BNode):
                     continue
                     # Check if this BNode is an OWL restriction
                     # if (obj, RDF.type, OWL.Restriction) in self._graph:
-                    #   ...
-
-            yield {
-                "subject": subject_iri,
-                "type": subject_type,
-                "properties": subject_properties,
-            }
+                    #   ..
 
 
 @PluginRegistry.register(metadata={"version": 1.0})
-class OntologyGraphLoader(AbstractBasePlugin):
+class OntologyTermLoader(AbstractBasePlugin):
     """
-    ETL plugin for loading an ontology from an OWL file into the reference ontology graph schema.
+    ETL plugin for loading ontology terms from an OWL file into the reference ontologyterm table
     """
 
-    _params: OntologyGraphLoaderParams  # type annotation
+    _params: OWLLoaderParams  # type annotation
 
     def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
         super().__init__(params, name)
-        self._xdbref_id = self._params.resolve_xdbref()
 
-        # hash of created placeholder vertexes, log at end if any were
-        # left un-filled
-        self._placeholders = {}
+    async def on_run_start(self, session):
+        """on run start hook override"""
+        # validate the xdbref against the database
+        self._xdbref_id = (
+            None if self.is_dry_run else await self._params.resolve_xdbref(session)
+        )
 
     @classmethod
     def description(cls) -> str:
@@ -162,7 +216,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
 
     @classmethod
     def parameter_model(cls) -> Type[BasePluginParams]:
-        return OntologyGraphLoaderParams
+        return OWLLoaderParams
 
     @property
     def operation(self) -> ETLOperation:
@@ -177,108 +231,96 @@ class OntologyGraphLoader(AbstractBasePlugin):
         return LoadStrategy.CHUNKED
 
     def extract(self) -> Iterator[Any]:
-        parser = OntologyGraphParser(self._params.file)
-        yield from parser.extract_entities()
+        parser = OWLParser(self._params.file)
+        yield from parser.extract_terms()
+        yield from parser.extract_triples()
+        # yield from parser.extract_restrictions()
 
     def transform(
-        self, record: Union[OntologyTerm, OntologyTriple]
-    ) -> Union[OntologyTerm, OntologyTriple]:
+        self, record: Union[dict, Triple]
+    ) -> Union[OntologyGraphTermVertex, Triple]:
 
         if record is None:
             raise RuntimeError(
                 "No records provided to transform(). At least one record is required."
             )
-        if isinstance(record, OntologyTriple):
-            record.run_id = self._run_id
+        if isinstance(record, Triple):
             return record
 
-        return OntologyTerm.from_owl_entry(record, self._run_id)
+        return OntologyGraphTermVertex(**record)
 
-    def get_record_id(self, record: Union[OntologyTerm, OntologyTriple]) -> str:
+
+@PluginRegistry.register(metadata={"version": 1.0})
+class OntologyGraphLoader(AbstractBasePlugin):
+    """
+    ETL plugin for loading an ontology from an OWL file into the reference ontology graph schema.
+    """
+
+    _params: OWLLoaderParams  # type annotation
+
+    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
+        super().__init__(params, name)
+
+    async def on_run_start(self, session):
+        """on run start hook override"""
+        # validate the xdbref against the database
+        self._xdbref_id = (
+            None if self.is_dry_run else await self._params.resolve_xdbref(session)
+        )
+
+    @classmethod
+    def description(cls) -> str:
+        return (
+            "Loads an ontology (terms and relationships) from an OWL file into the "
+            "Reference.Ontology graph schema."
+        )
+
+    @classmethod
+    def parameter_model(cls) -> Type[BasePluginParams]:
+        return OWLLoaderParams
+
+    @property
+    def operation(self) -> ETLOperation:
+        return ETLOperation.INSERT
+
+    @property
+    def affected_tables(self) -> List[str]:
+        return ["Reference.Ontology"]
+
+    @property
+    def load_strategy(self) -> LoadStrategy:
+        return LoadStrategy.CHUNKED
+
+    def extract(self) -> Iterator[Any]:
+        parser = OWLParser(self._params.file)
+        yield from parser.extract_terms()
+        yield from parser.extract_triples()
+        # yield from parser.extract_restrictions()
+
+    def transform(
+        self, record: Union[dict, Triple]
+    ) -> Union[OntologyGraphTermVertex, Triple]:
+
+        if record is None:
+            raise RuntimeError(
+                "No records provided to transform(). At least one record is required."
+            )
+        if isinstance(record, Triple):
+            return record
+
+        return OntologyGraphTermVertex(**record)
+
+    def get_record_id(self, record) -> str:
         """
         Returns a unique identifier for a record (subject URI).
         """
-        if isinstance(record, OntologyTriple):
-            return f"Triple:{str(OntologyTriple)}"
+        if isinstance(record, Triple):
+            return str(Triple)
         else:
             return record.term_id
 
-    async def _term_exists(self, term: OntologyTerm, session) -> bool:
-        try:
-            await term.exists()
-        except:
-            ...
-
-    # TODO: with ontology terms sometimes you may see a term first in the non-source
-    # ontology and may want to update the properties, when you load the source
-    # need to create an update behavior to load better or missing property values
-    # TODO: add xdbref vectors on duplicates (i.e., this term in multiple ontologies)
-    async def _insert_term(self, term: OntologyTerm, session) -> ResumeCheckpoint:
-        try:
-            await term.insert(session)
-            self.update_transaction_count(
-                ETLOperation.INSERT, "Reference.Ontology_term"
-            )
-            return ResumeCheckpoint(full_record=term)
-
-        # TODO: update logic?
-        except IntegrityError:
-            self.logger.warning(f"Duplicate term_id '{term.term_id}' skipped.")
-            self.update_transaction_count(ETLOperation.SKIP, "Reference.Ontology_term")
-            return 0
-
-    async def _triple_exists(self, triple: OntologyTriple, session) -> bool:
-        result = await session.execute(
-            text(
-                """
-                SELECT 1 FROM Reference.Ontology.triple
-                WHERE subject = :subject AND predicate = :predicate AND object = :object
-                LIMIT 1
-                """
-            ),
-            triple.model_dump(),
-        )
-        return bool(result.scalar())
-
-    async def _insert_triple(self, triple: OntologyTriple, session) -> ResumeCheckpoint:
-        await session.execute(
-            text(
-                """
-                INSERT INTO Reference.Ontology.triple (
-                    subject, predicate, object
-                ) VALUES (
-                    :subject, :predicate, :object
-                )
-                """
-            ),
-            triple.model_dump(),
-        )
-
-    async def _load_ontology_triple(self, triple: OntologyTriple, session) -> int:
-        if await self._triple_exists(triple, session):
-            self.logger.warning(
-                f"Duplicate triple ({triple.subject}, {triple.predicate}, {triple.object}) skipped."
-            )
-            self.update_transaction_count(
-                ETLOperation.SKIP, "Reference.Ontology_triple"
-            )
-        else:
-            # check to see if each entity exists, if not insert a placeholder
-            # this is can occur b/c we are parsing triples and nodes in parallel
-            # keep track of placeholders and log at end if any placeholders weren't
-            # updated
-            for entity in ["subject", "object", "predicate"]:
-                term: OntologyTerm = getattr(triple, entity)
-                if not await term.exists(session):
-                    await term.insert_placeholder(term, session)
-
-            await self._insert_triple(triple, session)
-            self.update_transaction_count(
-                ETLOperation.INSERT, "Reference.Ontology_triple"
-            )
-
-        return ResumeCheckpoint(full_record=triple)
-
+    # FIXME: these are all wrong now
+    # NOTE: insert term needs to check against OntologyTerm relational table for ontology_term_id and definition
     async def load(self, transformed: Any, session) -> ResumeCheckpoint:
         """
         Insert a single ontology term or triple record into the database using SQLAlchemy text queries.
@@ -288,17 +330,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
             ResumeCheckpoint
         """
         ontology_id = self._params.resolve_xdbref()
-
-        if isinstance(transformed, OntologyTerm):
-            return await self._insert_term(transformed, session)
-        elif isinstance(transformed, OntologyTriple):
-            return await self._load_ontology_triple(transformed, session)
-        else:
-            raise TypeError(f"Unknown record type: {type(transformed)}")
+        raise NotImplementedError()
 
     def on_run_complete(self) -> None:
         return None
-
-
-@PluginRegistry.register(metadata={"version": 1.0})
-class OntologyTermLoader(AbstractBasePlugin): ...
