@@ -16,7 +16,13 @@ class SchemaRegistry:
     @classmethod
     def register(cls, name: str = None):
         def decorator(base_cls: Type[DeclarativeBase]) -> Type[DeclarativeBase]:
-            key = name or base_cls.__name__.replace("Schema", "")
+            if key is None and "SchemaBase" not in base_cls.__name__:
+                raise ValueError(
+                    "Please supply the registered schema name or "
+                    "ensure your class name follows the convention `<schema_name>SchemaBase`"
+                )
+
+            key = name or base_cls.__name__.replace("SchemaBase", "")
             cls._registry[key.upper()] = base_cls
             return base_cls
 
