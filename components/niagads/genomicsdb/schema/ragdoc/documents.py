@@ -17,6 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class TableMap(RAGDocTableBase):
@@ -41,7 +42,12 @@ class ChunkMetadata(RAGDocTableBase):
     __tablename__ = "chunkmetadata"
     __table_args__ = (
         UniqueConstraint(
-            "table_id", "doc_id", "chunk_id", "chunk_hash", name="uq_chunk_metadata"
+            "table_id",
+            "doc_id",
+            "section",
+            "chunk_index",
+            "chunk_hash",
+            name="uq_chunk_metadata",
         ),
         Index("ix_chunkmetadata_table_doc", "table_id", "doc_id"),
         Index("ix_chunkembedding_chunk_hash", "chunk_hash"),  # for checking staleness
@@ -63,8 +69,13 @@ class ChunkMetadata(RAGDocTableBase):
     chunk_text: Mapped[str] = mapped_column(TEXT, nullable=True)
     doc_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=True)
 
+    @hybrid_property
     def chunk_id(self):
         return f"{self.section}_{self.chunk_index}"
+
+    @chunk_id.expression
+    def chunk_id(cls):
+        return f"{cls.section}_{cls.chunk_index}"
 
 
 class ChunkEmbedding(RAGDocTableBase):
