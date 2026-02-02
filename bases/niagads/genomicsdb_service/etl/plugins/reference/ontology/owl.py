@@ -33,6 +33,7 @@ from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM, NLPModelType
 from pydantic import BaseModel, Field, field_validator
 from rdflib import Graph, Literal, URIRef, BNode
+from sqlalchemy.exc import NoResultFound  # TODO Wrap
 
 
 # FIXME - just use ontologygraphtriple
@@ -288,9 +289,35 @@ class OntologyTermLoader(AbstractBasePlugin):
         return term
 
     async def load(self, session, transformed: OntologyTerm):
-        await transformed.submit(session)
-        self.update_transaction_count(ETLOperation.INSERT, OntologyTerm.table_name())
-        return ResumeCheckpoint(full_record=transformed)
+        # try to retrieve from database
+        try:
+            existing_record: OntologyTerm = await OntologyTerm.fetch_record(
+                filters={"curie": transformed.curie}
+            )
+
+            # if exists, update defintion, synonyms if need be
+            updated_definitions = await existing_record.resolve_definition(
+                session, transformed.definition
+            )
+            updated_synonyms = await existing_record.resolve_synonyms(
+                session, transformed.synonyms
+            )
+            if updated_definitions or updated_synonyms:
+                self.update_transaction_count(
+                    ETLOperation.UPDATE, OntologyTerm.table_name(), 1
+                )
+            else:
+                self.update_transaction_count(
+                    ETLOperation.SKIP, OntologyTerm.table_name(), 1
+                )
+
+        except NoResultFound:  # not found in DB, submit
+            await transformed.submit(session)
+            self.update_transaction_count(
+                ETLOperation.INSERT, OntologyTerm.table_name()
+            )
+        finally:
+            return ResumeCheckpoint(full_record=transformed)
 
 
 @PluginRegistry.register(metadata={"version": 1.0})
