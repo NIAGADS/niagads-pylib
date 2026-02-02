@@ -28,7 +28,7 @@ def get_field_iri(field: str, preferred=True) -> str:
             if preferred:
                 return AnnotationPropertyIRI.EDITOR_PREFERRED_LABEL
             else:
-                AnnotationPropertyIRI.LABEL
+                return AnnotationPropertyIRI.LABEL
         case "definition":
             return AnnotationPropertyIRI.DEFINITION
         case "term_id":
