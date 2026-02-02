@@ -73,13 +73,36 @@ class OntologyTerm(
         if namespace.startswith("http"):
             return self.term_iri.startswith(namespace)
         else:  # assume namespace ==  ontology code
-            ontology: ExternalDatabase = await ExternalDatabase.find_record(
+            ontology: ExternalDatabase = await ExternalDatabase.fetch_record(
                 session, {"external_database_id": self.external_database_id}
             )
             return ontology.database_key == namespace
 
-    async def _update_definition(self, session: AsyncSession, definition) -> bool:
+    async def _update_definition(self, session: AsyncSession, definition: str) -> bool:
         self.definition = definition
+        await session.flush()
+        return True
+
+    async def resolve_synonyms(
+        self, session: AsyncSession, new_synonyms: list[str]
+    ) -> bool:
+        """
+        Merge new synonyms with existing synonyms, removing duplicates.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+            new_synonyms (list[str]): New synonym strings to merge.
+
+        Returns:
+            bool: True if synonyms were updated, False if new_synonyms was empty.
+        """
+        if not new_synonyms:
+            return False
+        if not self.synonyms:
+            self.synonyms = sorted(new_synonyms)
+        else:
+            self.synonyms = sorted(list(set(self.synonyms) | set(new_synonyms)))
+
         await session.flush()
         return True
 
@@ -100,6 +123,9 @@ class OntologyTerm(
         Returns:
             True if definition was updated.  False otherwise.
         """
+        if not new_definition:
+            return False
+
         if not self.definition:
             return await self._update_definition(session, new_definition)
 

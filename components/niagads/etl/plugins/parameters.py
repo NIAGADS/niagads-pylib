@@ -1,8 +1,9 @@
+import json
+from pathlib import Path
 from typing import Optional
 
+import jsonschema
 from niagads.etl.config import ETLMode
-from niagads.utils.regular_expressions import RegularExpressions
-from niagads.utils.string import matches
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -112,3 +113,24 @@ class PathValidatorMixin:
             return value
 
         return file_exists
+
+
+class JSONConfigValidatorMixin:
+    """
+    Mixin providing schema validation for JSON configuration files.
+    Validates a file path field against a JSONSchema and populates a `config` field.
+    """
+
+    config: Optional[dict] = None
+
+    @classmethod
+    def validator(cls, field_name, schema):
+        @model_validator(mode="after")
+        def validate_config(self):
+            file_path = getattr(self, field_name)
+            config: dict = json.loads(Path(file_path).read_text(encoding="utf-8"))
+            jsonschema.validate(instance=config, schema=schema)
+            self.config = config
+            return self
+
+        return validate_config

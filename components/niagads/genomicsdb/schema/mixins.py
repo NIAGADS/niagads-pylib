@@ -27,6 +27,17 @@ class HousekeepingMixin:
     modification_date: Mapped[datetime] = datetime_column()
     # is_private: Mapped[bool] = mapped_column(nullable=True, index=True)
 
+    def get_model_fields(self):
+        """
+        Return a dictionary of all public, non-callable attributes for this instance.
+        Excludes dunder, private, and callable attributes.
+        """
+        return {
+            k: v
+            for k, v in self.__dict__.items()
+            if not k.startswith("_") and not callable(v)
+        }
+
 
 class LookupTableMixin:
     __abstract__ = True
@@ -37,7 +48,39 @@ class LookupTableMixin:
         return f"{cls.metadata.schema}.{cls.__tablename__}"
 
     @classmethod
-    async def exists(cls, session: AsyncSession, filters: Dict[str, Any]) -> bool:
+    def stable_id_column(cls):
+        if cls._stable_id is None:
+            raise NotImplementedError(
+                f"Cannot fetch stable id: {cls.__name__} does not define a '_stable_id' class attribute."
+            )
+        return cls._stable_id
+
+    @classmethod
+    def primary_key_column(cls):
+        mapper = inspect(cls)
+        if len(mapper.primary_key) > 1:
+            raise NotImplementedError(
+                "`find_primary_key` only supports single-column primary keys."
+            )
+
+        if len(mapper.primary_key) == 0:  # no PK in this table
+            pk_column = getattr(cls, "_document_primary_key", None)
+            if pk_column is None:
+                raise NotImplementedError(
+                    "Attempting to do a primary key search on a materialized view or"
+                    "malformed table without a primary key."
+                    "If attempting to query a RAG document please update the SQLAlchemy "
+                    "model to set `_document_primary_key`."
+                )
+        else:
+            pk_column = mapper.primary_key[0].name
+
+        return pk_column
+
+    @classmethod
+    async def record_exists(
+        cls, session: AsyncSession, filters: Dict[str, Any]
+    ) -> bool:
         """
         Check if a record exists in the table based on filter criteria.
 
@@ -53,6 +96,31 @@ class LookupTableMixin:
         )
         result = await session.execute(stmt)
         return result.scalar() is True
+
+    async def exists(
+        self, session: AsyncSession, match_stable_id_only: bool = False
+    ) -> bool:
+        """
+        Instance method to check if an instantiated record exists in the table.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+
+        Returns:
+            bool: True if a matching record exists, False otherwise.
+        """
+        if match_stable_id_only:
+            stable_id_field = self.__class__.stable_id_column()
+            filters = {stable_id_field: getattr(self, stable_id_field)}
+        else:
+            filters = {}
+            housekeeping_fields = HousekeepingMixin.get_model_fields()
+            for field_name in self.model_dump().keys():
+                value = getattr(self, field_name, None)
+                if value is not None and field_name not in housekeeping_fields:
+                    filters[field_name] = value
+
+        return await self.record_exists(session, filters)
 
     @classmethod
     async def find_primary_key(
@@ -91,24 +159,7 @@ class LookupTableMixin:
         Example:
             await Model.find_primary_key(session, {"field1": value1})
         """
-        mapper = inspect(cls)
-        if len(mapper.primary_key) > 1:
-            raise NotImplementedError(
-                "`find_primary_key` only supports single-column primary keys."
-            )
-
-        if len(mapper.primary_key) == 0:  # no PK in this table
-            pk_col = getattr(cls, "_document_primary_key", None)
-            if pk_col is None:
-                raise NotImplementedError(
-                    "Attempting to do a primary key search on a materialized view or"
-                    "malformed table without a primary key."
-                    "If attempting to query a RAG document please update the SQLAlchemy "
-                    "model to set `_document_primary_key`."
-                )
-        else:
-            pk_col = mapper.primary_key[0].name
-
+        pk_col = cls.primary_key_column()
         stmt = select(getattr(cls, pk_col)).where(
             *(getattr(cls, k) == v for k, v in filters.items())
         )
@@ -124,6 +175,43 @@ class LookupTableMixin:
                     f"Multiple records found for {filters} in {cls.table_name()}"
                 )
         return rows[0][0]
+
+    async def retrieve_primary_key(
+        self, session: AsyncSession, match_stable_id_only: bool = False
+    ) -> bool:
+        """
+        Set the primary key value of this instance if it exists in the database.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+
+        Returns:
+            bool: True if the primary key was set, False if no record found.
+
+        Raises:
+            MultipleResultsFound: If multiple records match this instance's fields.
+        """
+        if match_stable_id_only:
+            stable_id_field = self.__class__.stable_id_column()
+            filters = {stable_id_field: getattr(self, stable_id_field)}
+        else:
+            filters = {}
+            housekeeping_fields = HousekeepingMixin.get_model_fields()
+            for field_name in self.model_dump().keys():
+                value = getattr(self, field_name, None)
+                if value is not None and field_name not in housekeeping_fields:
+                    filters[field_name] = value
+
+        try:
+            primary_key = await self.find_primary_key(
+                session, filters, allow_multiple=False
+            )
+        except NoResultFound:
+            return False
+
+        pk_field = self.__class__.primary_key_column()
+        setattr(self, pk_field, primary_key)
+        return True
 
     @classmethod
     async def find_stable_id(
@@ -159,11 +247,7 @@ class LookupTableMixin:
         Example:
             await Model.find_stable_id(session, {"field1": value1})
         """
-        stable_id_field = getattr(cls, "_stable_id", None)
-        if stable_id_field is None:
-            raise NotImplementedError(
-                f"Cannot fetch stable id: {cls.__name__} does not define a '_stable_id' class attribute."
-            )
+        stable_id_field = cls.stable_id_column()
         stmt = select(getattr(cls, stable_id_field)).where(
             *(getattr(cls, k) == v for k, v in filters.items())
         )
@@ -181,7 +265,7 @@ class LookupTableMixin:
         return rows[0][0]
 
     @classmethod
-    async def find_record(
+    async def fetch_record(
         cls,
         session: AsyncSession,
         filters: Dict[str, Any],
