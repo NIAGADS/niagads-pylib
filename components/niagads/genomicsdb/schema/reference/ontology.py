@@ -8,7 +8,8 @@ Intended for use alongside the ontology graph schema for comprehensive ontology 
 from typing import Optional
 from uuid import uuid4
 
-from niagads.common.helpers.ontologies import get_field_iri
+from niagads.common.constants.ontologies import EntityTypeIRI
+from niagads.database.helpers import enum_column, enum_constraint
 from niagads.database.mixins import EmbeddingMixin
 from niagads.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.genomicsdb.schema.reference.base import ReferenceTableBase
@@ -16,7 +17,7 @@ from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.utils.string import jaccard_word_similarity
 from pydantic import BaseModel, Field
-from sqlalchemy import ARRAY, TEXT, Boolean, String, UniqueConstraint
+from sqlalchemy import ARRAY, TEXT, Boolean, Index, String, UniqueConstraint
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -25,12 +26,22 @@ class OntologyTerm(
     ReferenceTableBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMixin
 ):
     __tablename__ = "ontologyterm"
-    __table_args__ = (UniqueConstraint("source_id", name="uq_ontology_term_id"),)
+    __table_args__ = (
+        UniqueConstraint("source_id", name="uq_ontology_term_id"),
+        enum_constraint("entity_type", EntityTypeIRI, use_enum_names=True),
+        Index(
+            "ix_ontologyterm_term_trgm",
+            "term",
+            postgresql_using="gin",
+            postgresql_ops={"term": "gin_trgm_ops"},
+        ),
+    )
     _stable_id = "source_id"  # "term_id"; from xdb-mixin
 
     ontology_term_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     term: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
     term_iri: Mapped[str] = mapped_column(String(250), index=False, nullable=False)
+    entity_type: Mapped[str] = enum_column(EntityTypeIRI, use_enum_names=True)
     label: Mapped[str] = mapped_column(String(100), nullable=True)
     definition: Mapped[str] = mapped_column(TEXT, nullable=True)
     synonyms: Mapped[list[str]] = mapped_column(ARRAY, nullable=True)
@@ -120,37 +131,19 @@ class OntologyGraphTermVertex(BaseModel):
     label: Optional[str] = Field(None, description="Display-friendly label")
     definition: Optional[str] = Field(None, description="Term definition")
     synonyms: Optional[list[str]] = Field(None, description="Array of synonym strings")
+    entity_type: str = Field(None, description="ontology entity type")
     is_deprecated: bool = Field(False, description="Whether term is deprecated")
-    is_placeholder: bool = Field(False, description="Whether term is a placeholder")
+
     run_id: Optional[int] = Field(
         None, description="References admin.etlrun for versioning"
     )
 
-    @classmethod
-    def from_owl_entry(cls, owl_entry: dict, run_id: int):
-        term_properties: dict = owl_entry["properties"]
-        label = term_properties.get(get_field_iri("term", preferred=True)[None])
-        if label is None:  # no editor preffered label
-            label = term_properties.get(get_field_iri("term", preferred=False)[None])
+    # TODO
+    async def submit(self, session: AsyncSession):
+        raise NotImplementedError()
 
-        term_id = term_properties.get(get_field_iri("term_id"), [None])[0]
-        definition = term_properties.get(get_field_iri("definition"), [None])[0]
-        synonyms = term_properties.get(get_field_iri("synonyms"), [])
-        is_deprecated = bool(
-            term_properties.get(get_field_iri("is_deprecated"), [False])[0]
-        )
-
-        return cls(
-            term_iri=owl_entry["subject"],
-            term_id=term_id,
-            term=label[0],
-            definition=definition,
-            synonyms=synonyms,
-            is_deprecated=is_deprecated,
-            run_id=run_id,
-        )
-
-    # ------------------------
+    async def exists(self, session: AsyncSession):
+        raise NotImplementedError()
 
 
 class OntologyGraphTriple(BaseModel):
@@ -167,6 +160,18 @@ class OntologyGraphTriple(BaseModel):
     object: OntologyGraphTermVertex = Field(..., description="Object term")
     ontology_id: Optional[int] = Field(None, description="Source ontology")
     run_id: Optional[int] = Field(None, description="Version/load snapshot")
+
+    # TODO
+    async def submit(self, session: AsyncSession):
+        raise NotImplementedError()
+
+    async def exists(self, session: AsyncSession):
+        raise NotImplementedError()
+
+    async def is_valid(self, session: AsyncSession):
+        await self.subject.exists()
+        await self.predicate.exists()
+        await self.object.exists()
 
 
 class OntologyGraphOntologyVertex(BaseModel):
@@ -185,6 +190,13 @@ class OntologyGraphOntologyVertex(BaseModel):
     version: Optional[str] = Field(None, description="Release/version identifier")
     run_id: Optional[int] = Field(None, description="References admin.etlrun")
 
+    # TODO
+    async def submit(self, session: AsyncSession):
+        raise NotImplementedError()
+
+    async def exists(self, session: AsyncSession):
+        raise NotImplementedError()
+
 
 class OntologyGraphRestrictionVertex(BaseModel):
     """
@@ -201,3 +213,7 @@ class OntologyGraphRestrictionVertex(BaseModel):
         None, description="Source ontology (scopes the restriction)"
     )
     run_id: Optional[int] = Field(None, description="Version/load snapshot")
+
+    # TODO
+    async def submit(self, session: AsyncSession):
+        raise NotImplementedError()
