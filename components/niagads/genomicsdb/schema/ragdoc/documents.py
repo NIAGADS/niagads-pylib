@@ -50,7 +50,7 @@ class ChunkMetadata(RAGDocTableBase):
             name="uq_chunk_metadata",
         ),
         Index("ix_chunkmetadata_table_doc", "table_id", "doc_id"),
-        Index("ix_chunkembedding_chunk_hash", "chunk_hash"),  # for checking staleness
+        Index("ix_chunkmetadata_chunk_hash", "chunk_hash"),  # for checking staleness
     )
 
     chunk_metadata_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
