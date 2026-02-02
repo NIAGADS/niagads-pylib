@@ -99,9 +99,9 @@ class OntologyTerm(
         if not new_synonyms:
             return False
         if not self.synonyms:
-            self.synonyms = new_synonyms
+            self.synonyms = sorted(new_synonyms)
         else:
-            self.synonyms = list(set(self.synonyms) | set(new_synonyms))
+            self.synonyms = sorted(list(set(self.synonyms) | set(new_synonyms)))
 
         await session.flush()
         return True
