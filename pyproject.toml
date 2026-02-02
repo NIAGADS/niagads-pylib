@@ -103,6 +103,8 @@ ga4gh-vrs = { extras = [
     "extras",
 ], version = "^2.2.0" }
 pgvector = "^0.4.2"
+sentence-transformers = "^5.2.2"
+spacy = "^3.8.11"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
