@@ -8,7 +8,6 @@ from niagads.database.mixins import GenomicRegionMixin
 from niagads.genomicsdb.schema.gene.base import GeneTableBase
 from niagads.genomicsdb.schema.gene.helpers import gene_fk_column
 from niagads.genomicsdb.schema.mixins import IdAliasMixin
-from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.utils.regular_expressions import RegularExpressions
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
