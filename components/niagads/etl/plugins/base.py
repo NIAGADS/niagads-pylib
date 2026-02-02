@@ -242,7 +242,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         ...
 
     @abstractmethod
-    async def load(self, transformed, session) -> ResumeCheckpoint:
+    async def load(self, session, transformed) -> ResumeCheckpoint:
         """
         Persist transformed data using an async SQLAlchemy session.
 
@@ -252,8 +252,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         for accurate ETL status reporting.
 
         Args:
-            transformed: The data to persist. For streaming, a list of records (buffer size <= commit_after). For bulk, the entire dataset.
             session: Async SQLAlchemy session.
+            transformed: The data to persist. For streaming, a list of records (buffer size <= commit_after). For bulk, the entire dataset.
 
         Returns:
             ResumeCheckpoint: Contains count of rows persisted and checkpoint info (line/id).
@@ -375,7 +375,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         table = self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
         self.update_transaction_count(self.operation, table, count)
 
-    async def __execute_load(self, buffer, session) -> ResumeCheckpoint:
+    async def __execute_load(self, session, buffer) -> ResumeCheckpoint:
         """
         Loads data and performs validations.
 
@@ -394,7 +394,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         if not buffer or len(buffer) == 0:
             raise ValueError("Empty buffer (transformed) passed to load.")
 
-        checkpoint = await self.load(buffer, session)
+        checkpoint = await self.load(session, buffer)
 
         # a plugin may not have checkpoint handling so
         # returning None is okay
@@ -429,7 +429,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 count = sum(1 for _ in buffer)
             self.__handle_dry_run(count)
         else:
-            checkpoint = await self.__execute_load(buffer, session)
+            checkpoint = await self.__execute_load(session, buffer)
 
         # Clear buffer if it's a list, else set to None to release reference
         if isinstance(buffer, list):
@@ -487,7 +487,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 self.__handle_dry_run(count)
                 return None
             else:
-                checkpoint = await self.__execute_load(processed_records, session)
+                checkpoint = await self.__execute_load(session, processed_records)
                 await self.__handle_transaction(session, checkpoint)
                 return checkpoint
 
