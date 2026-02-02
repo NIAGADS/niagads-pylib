@@ -95,5 +95,5 @@ class TrackInterval(DatasetTableBase, GenomicRegionMixin):
     )
 
     track_interval_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    track_id: Mapped[str] = track_fk_column()
+    track_id: Mapped[int] = track_fk_column()
     num_hits: Mapped[int] = mapped_column(Integer, nullable=False)

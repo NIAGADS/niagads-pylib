@@ -49,7 +49,7 @@ class TrackCollectionLink(DatasetTableBase):
     track_collection_link: Mapped[int] = mapped_column(
         primary_key=True, autoincrement=True
     )
-    track_id: Mapped[str] = track_fk_column()
+    track_id: Mapped[int] = track_fk_column()
     collection_id: Mapped[int] = mapped_column(
         ForeignKey("dataset.collection.collection_id"), nullable=False, index=True
     )
