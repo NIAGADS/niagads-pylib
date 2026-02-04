@@ -195,26 +195,39 @@ class ExitOnCriticalExceptionHandler(logging.Handler):
 
 
 def _timed(fn):
-    """Universal timing decorator for sync and async functions"""
+    """Universal timing decorator for sync and async functions, for debugging only"""
 
     @wraps(fn)
     def sync_wrapper(*args, **kwargs):
         logger = logging.getLogger(fn.__name__)
-        start = perf_counter()
-        logger.debug(f"Entering {fn.__name__}")
+
+        # only start the counter if in debug mode
+        if logger.isEnabledFor(logging.DEBUG):
+            start = perf_counter()
+            logger.debug(f"Entering {fn.__name__}")
+
         result = fn(*args, **kwargs)
-        elapsed = perf_counter() - start
-        logger.debug(f"Exiting {fn.__name__} ELAPSED TIME: {elapsed:0.4f} seconds")
+
+        if logger.isEnabledFor(logging.DEBUG):
+            elapsed = perf_counter() - start
+            logger.debug(f"Exiting {fn.__name__} ELAPSED TIME: {elapsed:0.4f} seconds")
+
         return result
 
     @wraps(fn)
     async def async_wrapper(*args, **kwargs):
         logger = logging.getLogger(fn.__name__)
-        start = perf_counter()
-        logger.debug(f"Entering {fn.__name__}")
+        # only start the counter if in debug mode
+        if logger.isEnabledFor(logging.DEBUG):
+            start = perf_counter()
+            logger.debug(f"Entering {fn.__name__}")
+
         result = await fn(*args, **kwargs)
-        elapsed = perf_counter() - start
-        logger.debug(f"Exiting {fn.__name__} ELAPSED TIME: {elapsed:0.4f} seconds")
+
+        if logger.isEnabledFor(logging.DEBUG):
+            elapsed = perf_counter() - start
+            logger.debug(f"Exiting {fn.__name__} ELAPSED TIME: {elapsed:0.4f} seconds")
+
         return result
 
     if asyncio.iscoroutinefunction(fn):
