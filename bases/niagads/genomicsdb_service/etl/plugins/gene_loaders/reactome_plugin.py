@@ -197,8 +197,6 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         """
         Load transformed records into the database.
 
-        # done? -> have to enclose the whole load in a try/finally block so that
-        # whether success or failure, it will return the ResumeCheckpoint
 
         # TODO - plugins require you to count your database operations so they can
         # be logged
@@ -207,13 +205,8 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
 
         """
         self.logger.debug(f"Starting load with {len(transformed)} records.")
-    # external_database_id = await self._params.resolve_xdbref(session)
 
-        record: GenePathwayAnnotation  # type hint
-
-        
-        
-            
+        record: GenePathwayAnnotation  # type hint  
         external_database_id = await self._params.resolve_xdbref(session)
         record: GenePathwayAnnotation  # type hint
         pathway_count = 0
@@ -234,10 +227,12 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
                             pathway_name=record.pathway_name,
                             external_database_id=external_database_id,
                             run_id=self._run_id,
-                        )
+                    )
                         
                     
                     pathway_pk = await pathway.submit(session)
+                    pathway_count += 1
+                    
 
                 # lookup the gene and get its primary key
                 gene_pk = await Gene.resolve_identifier(
@@ -251,8 +246,12 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
                         pathway_id=pathway_pk,
                         run_id=self._run_id,
                         external_database_id=external_database_id,
-                    ).submit(session)
-                
+                ).submit(session)
+                membership_count +=1
+            
+            self.update_transaction_count(ETLOperation.INSERT, Pathway.table_name(), pathway_count)
+            self.update_transaction_count(ETLOperation.INSERT, PathwayMembership.table_name(), membership_count)
+
         finally:
             return checkpoint
 
