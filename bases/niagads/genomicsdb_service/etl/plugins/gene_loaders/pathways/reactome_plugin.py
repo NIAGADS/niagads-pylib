@@ -206,12 +206,11 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         """
         self.logger.debug(f"Starting load with {len(transformed)} records.")
 
-        record: GenePathwayAnnotation  # type hint  
         external_database_id = await self._params.resolve_xdbref(session)
-        record: GenePathwayAnnotation  # type hint
         pathway_count = 0
         membership_count = 0
-        try:    
+        try:   
+            record: GenePathwayAnnotation  
             for record in transformed:
                 # set our checkpoint
                 checkpoint = ResumeCheckpoint(full_record=record)
@@ -233,10 +232,10 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
                     pathway_pk = await pathway.submit(session)
                     pathway_count += 1
                     
-
+                self.update_transaction_count(ETLOperation.INSERT, Pathway.table_name(), pathway_count)
                 # lookup the gene and get its primary key
                 gene_pk = await Gene.resolve_identifier(
-                    session, id=record.id, gene_identifier_type=GeneIdentifierType.ENSEMBL
+                    session, id=record.id, gene_identifier_type=GeneIdentifierType.ENSEMBL #can be ncbi
                 )
 
                 # load the gene<->pathway membership
@@ -249,7 +248,7 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
                 ).submit(session)
                 membership_count +=1
             
-            self.update_transaction_count(ETLOperation.INSERT, Pathway.table_name(), pathway_count)
+        
             self.update_transaction_count(ETLOperation.INSERT, PathwayMembership.table_name(), membership_count)
 
         finally:

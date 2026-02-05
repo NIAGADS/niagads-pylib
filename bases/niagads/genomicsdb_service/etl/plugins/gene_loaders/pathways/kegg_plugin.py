@@ -13,12 +13,23 @@ from niagads.genomicsdb.schema.reference.pathway import Pathway
 from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
+import xml.etree.ElementTree as ET
 from pydantic import BaseModel, Field, field_validator
 from typing import List
 from sqlalchemy.exc import (
     MultipleResultsFound,
     NoResultFound,
 )  # TODO: EGA - make wrappers
+
+class GenePathwayAnnotation(BaseModel):
+    """Model for KEGG pathway annotation."""
+    id: str = Field(alias="gene_id")
+    pathway_id: str
+    pathway_name: str
+    evidence_code: str
+
+    model_config = {"extra": "ignore"}
+
 
 
 class KEGGLoaderParams(BasePluginParams, PathValidatorMixin):
