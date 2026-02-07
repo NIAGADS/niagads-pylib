@@ -1,0 +1,15 @@
+services:
+  schema-inspector-server:
+    image: schema-inspector:${API_VERSION}
+    container_name: schema-inspector
+    restart: always
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        API_VERSION: ${API_VERSION}
+    ports:
+      - "${HOST_SERVICE_PORT}:8000"
+    environment:
+      - DATABASE_URI=${DATABASE_URI}
+      - DEBUG=${DEBUG}
