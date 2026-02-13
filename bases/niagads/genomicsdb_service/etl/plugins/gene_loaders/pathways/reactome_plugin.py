@@ -19,6 +19,8 @@ from sqlalchemy.exc import (
     MultipleResultsFound,
     NoResultFound,
 )  # TODO: EGA - make wrappers
+from .helpers import pathway_load
+from .types import PathwayAnnotation
 
 # Define column names for Reactome file
 COLUMN_NAMES = [
@@ -197,62 +199,14 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         """
         Load transformed records into the database.
 
+        Args:
+            transformed: List of transformed pathway annotations.
+            session: Database session.
 
-        # TODO - plugins require you to count your database operations so they can
-        # be logged
-        # using    self.update_transaction_count(self.operation, table, count) after loop end
-        e.g. self.update_transaction_count(ELTOperation.INSERT, Pathway.table_name(), pathway_count )
-
+        Returns:
+            ResumeCheckpoint: The checkpoint for resuming the ETL process.
         """
-        self.logger.debug(f"Starting load with {len(transformed)} records.")
-
-        external_database_id = await self._params.resolve_xdbref(session)
-        pathway_count = 0
-        membership_count = 0
-        try:   
-            record: GenePathwayAnnotation  
-            for record in transformed:
-                # set our checkpoint
-                checkpoint = ResumeCheckpoint(full_record=record)
-
-                # load pathway and get its primary key
-                try:
-                    pathway_pk = await Pathway.find_primary_key(
-                        filters={"source_id": record.pathway_id}
-                    )
-                except NoResultFound:
-                    pathway = Pathway(
-                            source_id=record.pathway_id,
-                            pathway_name=record.pathway_name,
-                            external_database_id=external_database_id,
-                            run_id=self._run_id,
-                    )
-                        
-                    
-                    pathway_pk = await pathway.submit(session)
-                    pathway_count += 1
-                    
-                self.update_transaction_count(ETLOperation.INSERT, Pathway.table_name(), pathway_count)
-                # lookup the gene and get its primary key
-                gene_pk = await Gene.resolve_identifier(
-                    session, id=record.id, gene_identifier_type=GeneIdentifierType.ENSEMBL #can be ncbi
-                )
-
-                # load the gene<->pathway membership
-            
-                await PathwayMembership(
-                        gene_id=gene_pk,
-                        pathway_id=pathway_pk,
-                        run_id=self._run_id,
-                        external_database_id=external_database_id,
-                ).submit(session)
-                membership_count +=1
-            
-        
-            self.update_transaction_count(ETLOperation.INSERT, PathwayMembership.table_name(), membership_count)
-
-        finally:
-            return checkpoint
+        return await pathway_load(self, session, transformed, GeneIdentifierType.ENSEMBL)
 
     def get_record_id(self, record: dict) -> str:
         """

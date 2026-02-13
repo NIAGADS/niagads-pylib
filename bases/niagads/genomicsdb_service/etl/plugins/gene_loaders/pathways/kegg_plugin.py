@@ -20,6 +20,9 @@ from sqlalchemy.exc import (
     MultipleResultsFound,
     NoResultFound,
 )  # TODO: EGA - make wrappers
+from .helpers import pathway_load
+from .types import PathwayAnnotation
+
 
 class GenePathwayAnnotation(BaseModel):
     """Model for KEGG pathway annotation."""
@@ -137,9 +140,20 @@ class KEGGLoaderPlugin(AbstractBasePlugin):
         self.logger.debug("Transform step skipped (KEGG already transformed in extract).")
         return data
     
-    async def load(self, transformed: List[PathwayAnnotation], _mode):
-        self.logger.debug(f"Loading {len(transformed)} KEGG annotation records")
-        return len(transformed)
+    async def load(
+        self, transformed: List[PathwayAnnotation], session
+    ) -> ResumeCheckpoint:
+        """
+        Load transformed records into the database.
+
+        Args:
+            transformed: List of transformed pathway annotations.
+            session: Database session.
+
+        Returns:
+            ResumeCheckpoint: The checkpoint for resuming the ETL process.
+        """
+        return await pathway_load(self, session, transformed, GeneIdentifierType.NCBI)
 
     def get_record_id(self, record: dict):
         return f"{record['pathway_id']}:{record['gene_id']}"
