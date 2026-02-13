@@ -33,13 +33,13 @@ COLUMN_NAMES = [
 ]
 
 
-class GenePathwayAnnotation(BaseModel):
-    id: str = Field(alias="gene_id")
-    pathway_id: str
-    pathway_name: str
-    evidence_code: str
+#class GenePathwayAnnotation(BaseModel):
+    # id: str = Field(alias="gene_id")
+    #pathway_id: str
+    #pathway_name: str
+    #evidence_code: str
 
-    model_config = {"extra": "ignore"}
+    #model_config = {"extra": "ignore"}
 
 
 class ReactomeLoaderParams(
@@ -187,14 +187,14 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         self.logger.debug(f"Starting transformation with {len(data)} input rows")
 
         # Transform DataFrame to list of PathwayAnnotation objects
-        records = [GenePathwayAnnotation(**row) for row in data]
+        records = [PathwayAnnotation(**row) for row in data]
 
         self.logger.info(f"Transformation complete with {len(records)} records")
 
         return records
 
     async def load(
-        self, transformed: List[GenePathwayAnnotation], session
+        self, transformed: List[PathwayAnnotation], session
     ) -> ResumeCheckpoint:
         """
         Load transformed records into the database.

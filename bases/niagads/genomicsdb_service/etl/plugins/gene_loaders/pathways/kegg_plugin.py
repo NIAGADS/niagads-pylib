@@ -117,18 +117,19 @@ class KEGGLoaderPlugin(AbstractBasePlugin):
 
         # Extract gene
         for entry in root.findall("entry"):
+            ncbi_gene_id = entry.attrib.get("id")
 
 
-                annotation = PathwayAnnotation(
-                    gene_id=ncbi_gene_id,
-                    pathway_id=pathway_id,
-                    pathway_url=pathway_url,
-                    pathway_name=pathway_name,
-                    evidence_code="KEGG",
-                    species=species,
+            annotation = PathwayAnnotation(
+                gene_id=ncbi_gene_id,
+                pathway_id=pathway_id,
+                pathway_url=pathway_url,
+                pathway_name=pathway_name,
+                evidence_code="KEGG",
+                species=species,
                 )
 
-                annotations.append(annotation)
+            annotations.append(annotation)
 
         self.logger.info(
             f"Extracted {len(annotations)} KEGG PathwayAnnotation records from pathway {pathway_id}"
