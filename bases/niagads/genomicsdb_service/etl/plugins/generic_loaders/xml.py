@@ -8,14 +8,14 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 
 from lxml import etree
 from typing import Any, Dict, Iterator, List, Optional, Type
-from niagads.etl.plugins.base import AbstractBasePlugin, ETLMode, LoadStrategy
+from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     PathValidatorMixin,
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.schema.admin.etl import ETLOperation
+from niagads.genomicsdb.schema.admin.types import ETLOperation
 from pydantic import Field, ConfigDict, BaseModel, computed_field
 from sqlalchemy import text
 import importlib.resources
@@ -141,7 +141,6 @@ class XMLRecordLoader(AbstractBasePlugin):
     @property
     def operation(self):
         # Use the appropriate ETLOperation for your use case
-        from niagads.genomicsdb.schema.admin.etl import ETLOperation
 
         return ETLOperation.LOAD  # insert or update
 

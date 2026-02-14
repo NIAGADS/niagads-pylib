@@ -7,33 +7,17 @@ These models support auditing, monitoring, and debugging of ETL processes in the
 from datetime import datetime
 from enum import auto
 
-from niagads.database.helpers import enum_column, enum_constraint, datetime_column
+from niagads.database.helpers import datetime_column, enum_column, enum_constraint
 from niagads.enums.common import ProcessStatus
-from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomicsdb.schema.admin.base import AdminTableBase
+from niagads.genomicsdb.schema.admin.helpers import etlrun_fk_column
+from niagads.genomicsdb.schema.admin.types import ETLOperation
 from sqlalchemy import String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class ETLOperation(CaseInsensitiveEnum):
-    """
-    Type of ETL operation:
-    - LOAD: Insert new or Update existing records.
-    - UPDATE: Update existing records.
-    - DELETE: Delete records.
-    - PATCH: Partially update records.
-    - INSERT: Insert new records.
-    """
-
-    INSERT = auto()
-    UPDATE = auto()
-    LOAD = auto()
-    PATCH = auto()
-    DELETE = auto()
-    SKIP = auto()
-
-
+# not using Admin
 class ETLRun(AdminTableBase):
     __tablename__ = "etlrun"
     __table_args__ = (
@@ -53,3 +37,4 @@ class ETLRun(AdminTableBase):
     start_time: Mapped[datetime] = datetime_column()
     end_time: Mapped[datetime] = datetime_column(nullable=True)
     rows_processed: Mapped[int] = mapped_column(server_default="0")
+    run_id: Mapped[int] = etlrun_fk_column(nullable=True)

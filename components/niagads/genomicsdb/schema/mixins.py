@@ -3,11 +3,11 @@ from typing import Any, Dict, Union
 
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
+from niagads.genomicsdb.schema.admin.types import ETLOperation
 from sqlalchemy import exists, inspect, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql.schema import ForeignKey
+from sqlalchemy.orm import Mapped
 
 
 class HousekeepingMixin:
@@ -18,11 +18,9 @@ class HousekeepingMixin:
     - is_private: Boolean flag for privacy
     """
 
-    run_id: Mapped[int] = mapped_column(
-        ForeignKey("admin.eltrun.etl_run_id"),
-        nullable=False,
-        index=True,
-    )
+    from niagads.genomicsdb.schema.admin.helpers import etlrun_fk_column
+
+    run_id: Mapped[int] = etlrun_fk_column()
     creation_date: Mapped[datetime] = datetime_column()
     modification_date: Mapped[datetime] = datetime_column()
     # is_private: Mapped[bool] = mapped_column(nullable=True, index=True)
@@ -310,12 +308,33 @@ class LookupTableMixin:
         return rows[0]
 
 
+class TransactionCounter:
+    transactions: Dict[ETLOperation, Dict[str, int]] = {}
+
+
 class TransactionTableMixin:
     __abstract__ = True
 
+    @classmethod
+    def table_name(cls):
+        return f"{cls.metadata.schema}.{cls.__tablename__}"
+
+    def __increment_transaction(
+        self, operation: ETLOperation, counter: TransactionCounter, increment: int = 1
+    ):
+        """
+        Increment the count for a given ETLOperation and table.
+        """
+
+        if ETLOperation(operation) not in counter:
+            counter[operation] = {}
+
+        table = self.table_name()
+        counter[operation][table] = counter[operation].get(table, 0) + increment
+
     async def submit(self, session: AsyncSession) -> int:
         """
-        Insert this table object into the database and return the primary key value.
+        Insert this table entry into the database and return the primary key value.
 
         Args:
             session: SQLAlchemy AsyncSession.
@@ -328,6 +347,34 @@ class TransactionTableMixin:
 
         pk_name = self.__mapper__.primary_key[0].name
         return getattr(self, pk_name)
+
+    async def update(self, session: AsyncSession):
+        """
+        Update this table entry in the database. Must include primary key.
+
+        Args:
+            session: SQLAlchemy AsyncSession.
+
+        Raises:
+            ValueError: If the primary key field is not set in this instance
+            or the row does not exist in the database.
+        """
+        pk_name = self.__mapper__.primary_key[0].name
+        pk_value = getattr(self, pk_name, None)
+        if pk_value is None:
+            raise ValueError(
+                f"Primary key field '{pk_name}' must be set to update a record in the database."
+            )
+
+        stmt = select(exists().where(getattr(type(self), pk_name) == pk_value))
+        result = await session.execute(stmt)
+        if not result.scalar():
+            raise ValueError(
+                f"Cannot update record; no row exists in the database with {pk_name}={pk_value}"
+            )
+
+        await session.merge(self)
+        await session.flush()
 
 
 class IdAliasMixin:

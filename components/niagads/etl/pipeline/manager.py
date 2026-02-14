@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.enums.common import ProcessStatus
-from niagads.etl.config import ETLMode
+from niagads.etl.types import ETLMode
 from niagads.etl.pipeline.config import (
     ParallelMode,
     PipelineConfig,

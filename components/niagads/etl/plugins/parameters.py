@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 import jsonschema
-from niagads.etl.config import ETLMode
+from niagads.etl.types import ETLMode
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -58,10 +58,6 @@ class BasePluginParams(BaseModel):
     resume_checkpoint: Optional[ResumeCheckpoint] = Field(
         default=None,
         description="resume checkpoint, a line number or record ID.  Indicate as line=<N> or id=<record ID>",
-    )
-    run_id: Optional[str] = Field(
-        default=None,
-        description="optional run identifier, provided by pipeline manager when run in pipeline",
     )
     connection_string: Optional[str] = Field(
         default=None,
