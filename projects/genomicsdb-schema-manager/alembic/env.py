@@ -3,15 +3,21 @@ from logging.config import fileConfig
 
 from alembic import context
 from helpers.config import Settings
-from helpers.hooks import register_schema_creation, register_schemas
+from helpers.hooks import (
+    register_schema_creation,
+    register_schemas,
+)
 from helpers.migration_context import MigrationContext
 from niagads.database import DatabaseSessionManager
 from sqlalchemy import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-# register hooks
+# load schema registry
 register_schemas()
+
+# register hooks that are attached to event listeners
 register_schema_creation()
+
 
 # get config options from the .ini file
 # including logging config
@@ -49,7 +55,7 @@ async def run_async_migrations() -> None:
         connection_string=Settings.from_env().DATABASE_URI
     )
 
-    connectable: AsyncEngine = SessionManager.get_engine()
+    connectable: AsyncEngine = SessionManager.engine
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

@@ -1,4 +1,5 @@
 from alembic import context
+from helpers.hooks import process_revision_directives
 from niagads.genomicsdb.schema.registry import SchemaRegistry
 from helpers.config import Settings
 from sqlalchemy import Connection, MetaData
@@ -10,8 +11,10 @@ class MigrationContext:
         xArgs: dict = context.get_x_argument(as_dictionary=True)
         schema: str = xArgs.get("schema", "")
         self.__target_schema_metadata: List[MetaData] = (
-            SchemaRegistry.get_registered_metadata()
-            if schema == "ALL"
+            SchemaRegistry.get_registered_metadata(
+                dependency_schemas=["admin", "reference", "gene", "variant"]
+            )
+            if schema.upper() == "ALL"
             else SchemaRegistry.get_schema_metadata(schema)
         )
 
@@ -29,6 +32,7 @@ class MigrationContext:
                 include_name=self.include_name,
                 literal_binds=True,
                 dialect_opts={"paramstyle": "named"},
+                process_revision_directives=process_revision_directives,
             )
             with context.begin_transaction():
                 context.run_migrations()
@@ -40,6 +44,7 @@ class MigrationContext:
                 target_metadata=metadata,
                 include_schemas=True,
                 include_name=self.include_name,
+                process_revision_directives=process_revision_directives,
             )
             with context.begin_transaction():
                 context.run_migrations()

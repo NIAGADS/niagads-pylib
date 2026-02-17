@@ -16,7 +16,7 @@ class SchemaRegistry:
     @classmethod
     def register(cls, name: str = None):
         def decorator(base_cls: Type[DeclarativeBase]) -> Type[DeclarativeBase]:
-            if key is None and "SchemaBase" not in base_cls.__name__:
+            if name is None and "SchemaBase" not in base_cls.__name__:
                 raise ValueError(
                     "Please supply the registered schema name or "
                     "ensure your class name follows the convention `<schema_name>SchemaBase`"
@@ -38,14 +38,68 @@ class SchemaRegistry:
         return cls._registry[name.upper()].metadata
 
     @classmethod
-    def get_registered_bases(cls):
-        """Return a list of all registered schema base classes."""
-        return list(cls._registry.values())
+    def get_registered_bases(cls, dependency_schemas: list[str] = None):
+        """
+        Return a list of all registered schema base classes,
+        with dependencies (if any) first in the given order.
+
+        Args:
+            dependency_schemas (list[str], optional):
+                List of schema names to prioritize first in the result order.
+                Defaults to None.
+
+        Returns:
+            list[Type[DeclarativeBase]]:
+                List of registered schema base classes, with dependencies first
+                (if provided), followed by the rest in registration order.
+        """
+        if not dependency_schemas:
+            return list(cls._registry.values())
+
+        reg = cls._registry
+        seen = set()
+        # Add dependencies in order, if present
+        result = [
+            cls.get_schema_base(dep)
+            for dep in dependency_schemas
+            if dep and dep.upper() in reg and not seen.add(dep)
+        ]
+        # Add the rest, preserving registration order
+        result.extend(cls.get_schema_base(key) for key in reg.keys() if key not in seen)
+        return result
 
     @classmethod
-    def get_registered_metadata(cls):
-        """Return a list of all registered SQLAlchemy MetaData objects."""
-        return [base.metadata for base in cls._registry.values()]
+    def get_registered_metadata(cls, dependency_schemas: list[str] = None):
+        """
+        Return a list of all registered SQLAlchemy MetaData objects, with
+        dependencies (if any) first in the given order.
+
+        Args:
+            dependency_schemas (list[str], optional):
+                List of schema names to prioritize first in the result order.
+                Defaults to None.
+
+        Returns:
+            list[MetaData]:
+                List of SQLAlchemy MetaData objects, with dependencies first
+                (if provided), followed by the rest in registration order.
+        """
+        if not dependency_schemas:
+            return [base.metadata for base in cls._registry.values()]
+
+        reg = cls._registry
+        seen = set()
+        # Add dependencies in order, if present
+        result = [
+            cls.get_schema_metadata(dep)
+            for dep in dependency_schemas
+            if dep and dep.upper() in reg and not seen.add(dep)
+        ]
+        # Add the rest, preserving registration order
+        result.extend(
+            cls.get_schema_metadata(key) for key in reg.keys() if key not in seen
+        )
+        return result
 
     @classmethod
     def is_registered(cls, name: str) -> bool:
