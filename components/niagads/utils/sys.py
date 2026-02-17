@@ -266,7 +266,7 @@ def execute_cmd(
     if verbose or print_cmd_only:
         if not isinstance(cmd, str):
             ascii_safe_cmd = [ascii_safe_str(c) for c in cmd]
-            msg = f"EXECUTING: {" ".join(ascii_safe_cmd)}"
+            msg = f"EXECUTING: {' '.join(ascii_safe_cmd)}"
         else:
             msg = cmd
         if logger is not None:
