@@ -15,9 +15,7 @@ class MigrationContext:
             [MetaData()]
             if self.__schema_independent
             else (
-                SchemaRegistry.get_registered_metadata(
-                    dependency_schemas=["admin", "reference", "gene", "variant"]
-                )
+                SchemaRegistry.get_registered_metadata()
                 if schema.upper() == "ALL"
                 else [SchemaRegistry.get_schema_metadata(schema)]
             )

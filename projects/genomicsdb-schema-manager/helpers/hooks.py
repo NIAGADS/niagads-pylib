@@ -1,9 +1,5 @@
 import importlib
 import pkgutil
-from typing import Any, List
-
-from alembic.operations import MigrationScript
-from alembic.operations.ops import CreateForeignKeyOp, UpgradeOps
 from helpers.config import Settings
 from sqlalchemy import Connection, Table, event, text
 
