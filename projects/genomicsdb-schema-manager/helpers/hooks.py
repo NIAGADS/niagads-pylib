@@ -3,10 +3,9 @@ import pkgutil
 from typing import Any, List
 
 from alembic.operations import MigrationScript
-from alembic.operations.ops import CreateForeignKeyOp
+from alembic.operations.ops import CreateForeignKeyOp, UpgradeOps
 from helpers.config import Settings
 from sqlalchemy import Connection, Table, event, text
-from sqlalchemy.schema import ForeignKey
 
 
 def process_revision_directives(context, revision, directives):
@@ -71,7 +70,8 @@ def strip_foreign_keys_and_defer(
         directives (List[Any]): List of Alembic migration directives.
     """
     migration: MigrationScript = directives[0]
-    deferred_fks = []
+    deferred_foreign_key_ops = []
+    print("STRIPPING")
 
     for upgrade_ops in migration.upgrade_ops_list:
         for operation in upgrade_ops.ops[:]:
@@ -80,32 +80,21 @@ def strip_foreign_keys_and_defer(
 
             table: Table = operation.table
 
-            # Collect and remove all foreign keys
+            # Collect and remove all foreign keys, directly build fk_ops
             for fk in list(table.foreign_keys):
-                deferred_fks.append(
-                    {
-                        "name": fk.name,
-                        "source_table": table.name,
-                        "source_schema": table.schema,
-                        "source_columns": [col.name for col in fk.parent.columns],
-                        "target_table": fk.column.table.name,
-                        "target_schema": fk.column.table.schema,
-                        "target_column": fk.column.name,
-                    }
+                print(fk.name)
+                fk_op = CreateForeignKeyOp(
+                    constraint_name=fk.name,
+                    source_table=table.name,
+                    referent_table=fk.column.table.name,
+                    local_cols=[col.name for col in fk.parent.columns],
+                    remote_side=[f"{fk.column.table.name}.{fk.column.name}"],
+                    source_schema=table.schema,
+                    referent_schema=fk.column.table.schema,
                 )
+                deferred_foreign_key_ops.append(fk_op)
                 table.foreign_keys.discard(fk)
 
-        # Add deferred foreign key creation at the end
-        if deferred_fks:
-            fk: ForeignKey
-            for fk in deferred_fks:
-                fk_op = CreateForeignKeyOp(
-                    constraint_name=fk["name"],
-                    source_table=fk["source_table"],
-                    referent_table=fk["target_table"],
-                    local_cols=fk["source_columns"],
-                    remote_side=[f"{fk['target_table']}.{fk['target_column']}"],
-                    source_schema=fk["source_schema"],
-                    referent_schema=fk["target_schema"],
-                )
-                upgrade_ops.ops.append(fk_op)
+    # Add deferred foreign key creation as a new UpgradeOps at the end
+    if deferred_foreign_key_ops:
+        migration.upgrade_ops_list.append(UpgradeOps(ops=deferred_foreign_key_ops))
