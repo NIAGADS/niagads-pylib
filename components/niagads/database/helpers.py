@@ -1,12 +1,12 @@
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.list import list_to_string
-from sqlalchemy import DATETIME, CheckConstraint, Column, Enum, func
+from sqlalchemy import TIMESTAMP, CheckConstraint, Column, Enum, func
 from sqlalchemy.orm import mapped_column
 
 
 def datetime_column(nullable: bool = False):
     """
-    Returns a SQLAlchemy mapped_column for DATETIME with server_default=func.now().
+    Returns a SQLAlchemy mapped_column for TIMESTAMP with server_default=func.now().
 
     Args:
         nullable (bool): Whether the column should be nullable. Default is False.
@@ -15,7 +15,7 @@ def datetime_column(nullable: bool = False):
         sqlalchemy.orm.MappedColumn: Configured mapped_column instance.
     """
     return mapped_column(
-        DATETIME,
+        TIMESTAMP,
         server_default=None if nullable else func.now(),
         nullable=nullable,
     )
