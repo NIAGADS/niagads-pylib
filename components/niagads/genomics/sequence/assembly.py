@@ -22,10 +22,10 @@ class Assembly(CaseInsensitiveEnum):
         return super(Assembly, cls)._missing_(value)
 
     @classmethod
-    def list(cls):
+    def list(cls, return_enum_names: bool = False):
         """return a list of the enum values"""
         # FIXME: need hg19, 18 for the enumparameter; check api code
-        return super(Assembly, cls).list()  #  + ["hg19", "hg38"]
+        return super().list(return_enum_names=return_enum_names)  #  + ["hg19", "hg38"]
 
     def hg_label(self):
         return "hg19" if self.value == "GRCh37" else "hg38"
