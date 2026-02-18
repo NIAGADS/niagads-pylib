@@ -8,23 +8,6 @@ from helpers.config import Settings
 from sqlalchemy import Connection, Table, event, text
 
 
-def process_revision_directives(context, revision, directives):
-    """
-    Alembic callback to modify migration operations before script output.
-
-    Args:
-        context: The Alembic migration context, providing access to
-            configuration and database state.
-        revision: The migration revision identifier.
-        directives: A list of migration directives (operations) that
-            define what changes Alembic will emit in the migration script.
-            Each directive represents a schema operation, such as creating
-            or altering tables and constraints. This function can inspect
-            and modify these before the migration file is generated.
-    """
-    strip_foreign_keys_and_defer(context, revision, directives)
-
-
 def register_schemas():
     """
     Dynamically import all modules in the given schema packages
@@ -47,54 +30,3 @@ def register_schema_creation():
             connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
 
     event.listen(Table, "before_create", ensure_schema)
-
-
-def strip_foreign_keys_and_defer(
-    context: Any,
-    revision: str,
-    directives: List[Any],
-) -> None:
-    """
-    Alembic autogenerate hook to defer foreign key creation.
-
-    Removes foreign keys from initial table creation and defers them to
-    separate CREATE FOREIGN KEY statements.
-
-    This mitigates a a known alembic bug (https://github.com/sqlalchemy/alembic/issues/1059)
-    that leads to "table not found" errors when foreign keys reference tables that are
-    created later in the same migration.
-
-    Args:
-        context (Any): Alembic migration context.
-        revision (str): Migration revision identifier.
-        directives (List[Any]): List of Alembic migration directives.
-    """
-    migration: MigrationScript = directives[0]
-    deferred_foreign_key_ops = []
-    print("STRIPPING")
-
-    for upgrade_ops in migration.upgrade_ops_list:
-        for operation in upgrade_ops.ops[:]:
-            if not hasattr(operation, "table"):
-                continue
-
-            table: Table = operation.table
-
-            # Collect and remove all foreign keys, directly build fk_ops
-            for fk in list(table.foreign_keys):
-                print(fk.name)
-                fk_op = CreateForeignKeyOp(
-                    constraint_name=fk.name,
-                    source_table=table.name,
-                    referent_table=fk.column.table.name,
-                    local_cols=[col.name for col in fk.parent.columns],
-                    remote_side=[f"{fk.column.table.name}.{fk.column.name}"],
-                    source_schema=table.schema,
-                    referent_schema=fk.column.table.schema,
-                )
-                deferred_foreign_key_ops.append(fk_op)
-                table.foreign_keys.discard(fk)
-
-    # Add deferred foreign key creation as a new UpgradeOps at the end
-    if deferred_foreign_key_ops:
-        migration.upgrade_ops_list.append(UpgradeOps(ops=deferred_foreign_key_ops))
