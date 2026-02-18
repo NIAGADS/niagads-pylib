@@ -66,7 +66,10 @@ class DatabaseSessionManager:
         Returns:
             str: The asyncpg-compatible PostgreSQL URI.
         """
-        return uri.replace("postgresql:", "postgresql+asyncpg:")
+        return uri.replace("postgresql:", "postgresql+asyncpg:").replace(
+            "postgres:",  # in case of copy paste from tsh connection string
+            "postgresql+asyncpg:",
+        )
 
     @property
     def engine(self) -> AsyncEngine:
