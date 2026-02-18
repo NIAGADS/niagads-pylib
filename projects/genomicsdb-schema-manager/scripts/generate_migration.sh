@@ -38,12 +38,12 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             usage
-            exit 0
+            return 2 2>/dev/null || true
             ;;
         *)
             echo "Unknown option: $1"
             usage
-            exit 1
+            return 2 2>/dev/null || true
             ;;
     esac
 done
@@ -52,7 +52,7 @@ done
 if [[ -z "$SCHEMA" || -z "$MESSAGE" ]]; then
     echo "Error: Both --schema and --message are required."
     usage
-    exit 2
+    return 2 2>/dev/null || true
 fi
 
 echo "Generating migration for schema: $SCHEMA"
