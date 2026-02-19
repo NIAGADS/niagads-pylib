@@ -8,8 +8,9 @@ from typing import List, Any
 class MigrationContext:
     def __init__(self):
         xArgs: dict = context.get_x_argument(as_dictionary=True)
-        schema: str = xArgs.get("schema", "")
-        self.__schema_independent: bool = True if schema.upper() == "NONE" else False
+        schema: str = xArgs.get("schema", None)
+        self.__skip_fks = "skipForeignKeys" in xArgs
+        self.__schema_independent: bool = True if schema is None else False
 
         self.__target_schema_metadata: List[MetaData] = (
             [MetaData()]
@@ -22,11 +23,27 @@ class MigrationContext:
         )
 
     def include_name(self, name: str, type_: str, parent_names: Any) -> bool:
+        # adapted to allow affect registered schemas, except when
+        # schema-independent (e.g., create extension) commands are
+        # executed
         if self.__schema_independent:
             return True
         if type_ == "schema":
             return name in self.__target_schema_metadata
         return type_ != "schema"
+
+    def include_object(
+        self, object_, name: str, type_: str, reflected: bool, compare_to: Any
+    ) -> bool:
+        """
+        Alembic context filter
+        adapted to exclude foreign keys from migrations that require
+        fks not yet created, generating w/out FKs, then upgrading, then running
+        migration again w/out excluding FKs should bypass the alembic bug
+        """
+        if self.__skip_fks and type_ == "foreign_key_constraint":
+            return False
+        return True
 
     def run_migrations_offline(self) -> None:
         for metadata in self.__target_schema_metadata:
@@ -37,8 +54,11 @@ class MigrationContext:
                 "dialect_opts": {"paramstyle": "named"},
             }
             if not self.__schema_independent:
-                config_kwargs["include_schemas"] = True
-                config_kwargs["include_name"] = self.include_name
+                config_kwargs |= {
+                    "include_schemas": True,
+                    "include_name": self.include_name,
+                    "include_object": self.include_object,
+                }
 
             context.configure(**config_kwargs)
             with context.begin_transaction():
@@ -51,8 +71,11 @@ class MigrationContext:
                 "target_metadata": metadata,
             }
             if not self.__schema_independent:
-                config_kwargs["include_schemas"] = True
-                config_kwargs["include_name"] = self.include_name
+                config_kwargs |= {
+                    "include_schemas": True,
+                    "include_name": self.include_name,
+                    "include_object": self.include_object,
+                }
 
             context.configure(**config_kwargs)
             with context.begin_transaction():
