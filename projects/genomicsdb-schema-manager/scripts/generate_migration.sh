@@ -29,7 +29,7 @@ while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
         -s|--schema)
-            SCHEMA="$2"
+            SCHEMA="-x schema=$2"
             shift; shift
             ;;
         -m|--message)
@@ -48,17 +48,15 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Require both SCHEMA and MESSAGE
-if [[ -z "$SCHEMA" || -z "$MESSAGE" ]]; then
-    echo "Error: Both --schema and --message are required."
+# Require MESSAGE
+if [[ -z "$MESSAGE" ]]; then
+    echo "Error: Both  --message is required."
     usage
     return 2 2>/dev/null || true
 fi
 
-echo "Generating migration for schema: $SCHEMA"
-echo "Migration message: $MESSAGE"
-if poetry run alembic -c "$ALEMBIC_ROOT/../alembic.ini" -x schema="$SCHEMA" revision --autogenerate -m "$MESSAGE"; then
-    echo "Done. Edit the generated migration files to add CREATE SCHEMA and required extensions as needed."
+if poetry run alembic -c "$ALEMBIC_ROOT/../alembic.ini" ${SCHEMA} revision --autogenerate -m "$MESSAGE"; then
+    echo "Done. Please review and edit the generated migration file as needed."
 else
     echo "Alembic migration failed. Check the error above, fix any issues, and re-run the script as needed."
 fi
