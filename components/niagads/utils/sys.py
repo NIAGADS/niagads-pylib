@@ -283,7 +283,7 @@ def execute_cmd(
     result = subprocess.run(cmd, cwd=cwd, shell=shell, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(
-            f"Command failed with code {result.returncode}: {result.stderr.strip()}"
+            f"Command failed with code {result.returncode} - \n STDOUT: {result.stdout.strip()} \n STDERR: {result.stderr.strip()}"
         )
     return result.stdout.strip()
 

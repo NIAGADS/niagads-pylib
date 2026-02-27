@@ -44,13 +44,14 @@ def main():
         cmd.extend(["-x", f"schema={args.schema}"])
 
     # Add revision command
-    cmd.extend(["revision", "--autogenerate", "-m", args.message])
+    cmd.extend(["revision", "--autogenerate", f'-m "{args.message}"'])
 
     # Execute the command
     try:
         execute_cmd(cmd)
         print("Done. Please review and edit the generated migration file as needed.")
-    except Exception as err:
+    except RuntimeError as err:
+        print(f"Error: Migration generation failed", str(err))
         raise
 
 
