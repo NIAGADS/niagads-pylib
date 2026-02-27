@@ -36,9 +36,10 @@ packages = [
 ]
 
 [project.scripts]
-run_sql = "niagads.sql_runner.core:main"
-add_user = "scripts.create_db_user:main"
-drop_user = "scripts.remove_db_user:main"
+gdb_run_sql = "niagads.sql_runner.core:main"
+gdb_add_user = "scripts.create_db_user:main"
+gdb_drop_user = "scripts.remove_db_user:main"
+gdb_generate_migration = "scripts.generate_migration:main"
 
 
 [tool.tomlsort]
