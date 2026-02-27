@@ -102,7 +102,7 @@ class SqlRunner(ComponentBaseMixin):
             await manager.close()
 
 
-async def main():
+async def run():
     """Entry point for running the SQL runner as a script."""
     import argparse
 
@@ -155,12 +155,12 @@ async def main():
     await runner.run()
 
 
-def run_main():
+def main():
     """Wrapper so that the main coroutine is correctly awaited."""
     import asyncio
 
-    asyncio.run(main())
+    asyncio.run(run())
 
 
 if __name__ == "__main__":
-    run_main()
+    main()

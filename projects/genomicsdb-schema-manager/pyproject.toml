@@ -37,6 +37,8 @@ packages = [
 
 [project.scripts]
 run_sql = "niagads.sql_runner.core:main"
+add_user = "scripts.create_db_user:main"
+drop_user = "scripts.remove_db_user:main"
 
 
 [tool.tomlsort]

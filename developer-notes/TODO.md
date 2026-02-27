@@ -1,5 +1,11 @@
 # API TODOS
 
+## Bugs
+
+`variant_id` (aliased as id) is not showing in table/text view (see recent email about SVs to Fanny)
+
+## other
+
 * revisit GenomicRegion -> zero vs one-based especially for variants
 * Pipe SQL Alchemy Echo to log for non-api
 

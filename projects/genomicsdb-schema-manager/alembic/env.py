@@ -5,6 +5,7 @@ from alembic import context
 from helpers.config import Settings
 from helpers.hooks import (
     register_schema_creation,
+    register_schema_permissions,
     register_schemas,
 )
 from helpers.migration_context import MigrationContext
@@ -16,7 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 register_schemas()
 
 # register hooks that are attached to event listeners
-register_schema_creation()
+register_schema_creation("etl_runner")
+register_schema_permissions("app_readonly", True)
 
 
 # get config options from the .ini file
