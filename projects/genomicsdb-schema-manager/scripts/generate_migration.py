@@ -42,18 +42,18 @@ def main():
 
     args = parser.parse_args()
 
-    alembic_root = Settings.from_env().ALEMBIC_ROOT
-    verify_path(alembic_root)
+    project_root = Settings.from_env().PROJECT_ROOT
+    verify_path(project_root)
 
     cmd = [
         "poetry",
         "run",
         "alembic",
         "-c",
-        path.join(path.dirname(alembic_root), "alembic.ini"),
+        path.join(project_root, "alembic.ini"),
     ]
 
-    # Add optional schema filter
+    # Add optional xArgs
     if args.schema:
         cmd.extend(["-x", f"schema={args.schema}"])
 
@@ -65,10 +65,11 @@ def main():
 
     # Execute the command
     try:
-        execute_cmd(cmd)
+        stdout = execute_cmd(cmd)
         print("Done. Please review and edit the generated migration file as needed.")
+        print(stdout)
     except RuntimeError as err:
-        print(f"Error: Migration generation failed", str(err))
+        print(f"Error: Migration generation failed")
         raise
 
 
