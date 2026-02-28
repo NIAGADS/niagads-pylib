@@ -4,4 +4,4 @@ from niagads.settings.core import CustomSettings
 class Settings(CustomSettings):
     DATABASE_URI: str
     SCHEMA_DEFS: str = "niagads.genomicsdb.schema"
-    ALEMBIC_ROOT: str
+    PROJECT_ROOT: str
