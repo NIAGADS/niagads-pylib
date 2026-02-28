@@ -4,6 +4,7 @@ from logging.config import fileConfig
 from alembic import context
 from helpers.config import Settings
 from helpers.hooks import (
+    register_catalog_hooks,
     register_schema_creation,
     register_schema_permissions,
     register_schemas,
@@ -19,6 +20,7 @@ register_schemas()
 # register hooks that are attached to event listeners
 register_schema_creation("etl_runner")
 register_schema_permissions("app_readonly", True)
+register_catalog_hooks()
 
 
 # get config options from the .ini file
