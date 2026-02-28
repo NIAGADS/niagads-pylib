@@ -7,7 +7,6 @@ Usage:
 """
 
 import argparse
-import sys
 from os import path
 
 from helpers.config import Settings
@@ -31,6 +30,11 @@ def main():
         metavar="MESSAGE",
         help="Migration message",
     )
+    parser.add_argument(
+        "--skip-fks",
+        action="store_true",
+        help="skip foreign key generation; required when table involves FK to table that may not yet exist, run generator again w/out this flag after creating dependencies",
+    )
 
     args = parser.parse_args()
 
@@ -42,6 +46,9 @@ def main():
     # Add optional schema filter
     if args.schema:
         cmd.extend(["-x", f"schema={args.schema}"])
+
+    if args.skip_fks:
+        cmd.extend(["-x ", "skipForeignKeys=true"])
 
     # Add revision command
     cmd.extend(["revision", "--autogenerate", f'-m "{args.message}"'])
