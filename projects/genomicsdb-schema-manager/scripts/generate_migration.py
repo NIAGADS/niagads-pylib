@@ -33,7 +33,11 @@ def main():
     parser.add_argument(
         "--skip-fks",
         action="store_true",
-        help="skip foreign key generation; required when table involves FK to table that may not yet exist, run generator again w/out this flag after creating dependencies",
+        help=(
+            "Skip foreign key generation. Required when the table involves a "
+            "foreign key to another table that may not yet exist. Run the "
+            "generator again without this flag after creating dependencies."
+        ),
     )
 
     args = parser.parse_args()
@@ -41,7 +45,13 @@ def main():
     alembic_root = Settings.from_env().ALEMBIC_ROOT
     verify_path(alembic_root)
 
-    cmd = ["poetry", "run", "alembic", "-c", path.join(alembic_root, "alembic.ini")]
+    cmd = [
+        "poetry",
+        "run",
+        "alembic",
+        "-c",
+        path.join(path.dirname(alembic_root), "alembic.ini"),
+    ]
 
     # Add optional schema filter
     if args.schema:

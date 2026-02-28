@@ -29,7 +29,6 @@ packages = [
     { from = "components", include = "niagads/adsp_annotation" },
     { from = "components", include = "niagads/api" },
     { from = "components", include = "niagads/arg_parser" },
-    { from = "components", include = "niagads/assembly" },
     { from = "components", include = "niagads/bed" },
     { from = "components", include = "niagads/cache" },
     { from = "components", include = "niagads/common" },
@@ -54,7 +53,6 @@ packages = [
     { from = "components", include = "niagads/s3" },
     { from = "components", include = "niagads/settings" },
     { from = "components", include = "niagads/utils" },
-    { from = "components", include = "niagads/variant_annotator" },
     { from = "components", include = "niagads/vcf" },
     { from = "components", include = "niagads/vep_json_parser" },
 ]

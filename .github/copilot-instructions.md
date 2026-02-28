@@ -2,7 +2,7 @@
 
 ## Code Change Requirements
 
-- All code changes must strictly follow Python and PEP8 coding conventions and requirements in this file.
+- All code changes must strictly follow Python and PEP8 coding and line length conventions and requirements in this file.
 - Any deviation from these rules should be considered a bug and corrected immediately.
 - AI-generated code must be reviewed for formatting, style, and logical placement before submission.
 
