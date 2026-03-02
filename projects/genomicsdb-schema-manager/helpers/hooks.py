@@ -131,12 +131,24 @@ def register_catalog_hooks():
                     )
         try:
             schema_id = catalog_schema_creation(schema, connection)
+
+            try:
+                pk_field = target.primary_key.columns[0]
+            except:
+                raise RuntimeError(
+                    f"Table '{schema}.{table_name}' does not have a primary key."
+                )
+
             with Session(bind=connection) as session:
-                session.add(AdminTableCatalog(schema_id=schema_id, name=table_name))
+                session.add(
+                    AdminTableCatalog(
+                        schema_id=schema_id, name=table_name, primary_key=pk_field
+                    )
+                )
                 session.commit()
 
             logger.info(
-                f"New Table `{schema}.{table_name}` detected. Adding to entry to `Admin.TableCatalog`"
+                f"New Table `{schema}.{table_name}` detected. Adding to entry to `Admin.TableCatalog` with primary key `{pk_field}`"
             )
         except IntegrityError:
             logger.warning(f"Table '{schema}.{table_name}' already cataloged")
