@@ -105,3 +105,35 @@ class SchemaRegistry:
     def is_registered(cls, name: str) -> bool:
         """Check if a schema is registered."""
         return name.upper() in cls._registry
+
+    @classmethod
+    def get_table_class(cls, qualified_table_name: str) -> Type:
+        """
+        Get the table class for a given 'schema.table' string.
+
+        Args:
+            schema_table (str): String in the format 'schema.table'
+
+        Returns:
+            Type: The SQLAlchemy table class
+
+        Raises:
+            ValueError: If schema_table format is invalid
+            KeyError: If schema or table is not found in registry
+        """
+        try:
+            schema_name, table_name = qualified_table_name.split(".", 1)
+        except ValueError:
+            raise ValueError(
+                f"Invalid schema.table format: '{qualified_table_name}'. "
+                "Expected format: 'schema_name.table_name'"
+            )
+
+        schema_base = cls.get_schema_base(schema_name)
+
+        # Find the table class in the schema base's registry
+        for mapper in schema_base.registry.mappers:
+            if mapper.class_.__tablename__ == table_name:
+                return mapper.class_
+
+        raise KeyError(f"Table '{table_name}' not found in schema '{schema_name}'")
