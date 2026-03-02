@@ -63,7 +63,7 @@ def bed_file_sort(file_name: str, header: bool, overwrite: bool = False):
         + file_name
         + " | sort -T "
         + working_directory
-        + " -k1,1n -k2,2n | cut -f2- > "
+        + " -k1,1n -k3,3n | cut -f2- > "
         + sorted_file_name
     )
 
