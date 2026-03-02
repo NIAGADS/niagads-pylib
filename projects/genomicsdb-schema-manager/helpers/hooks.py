@@ -90,17 +90,15 @@ def register_catalog_hooks():
     and admin.tablecatalog after creation.
     """
     from niagads.genomicsdb.schema.admin.catalog import (
-        AdminSchemaCatalog,
-        AdminTableCatalog,
+        SchemaCatalog,
+        TableCatalog,
     )
 
     def catalog_schema_creation(schema: str, connection: Connection, **kw):
         """Insert schema entry into admin.schemacatalog after schema creation."""
 
         with Session(bind=connection) as session:
-            schema_entry = (
-                session.query(AdminSchemaCatalog).filter_by(name=schema).first()
-            )
+            schema_entry = session.query(SchemaCatalog).filter_by(name=schema).first()
             if not schema_entry:
                 if schema == "admin":
                     raise RuntimeError(
@@ -109,7 +107,7 @@ def register_catalog_hooks():
                 logger.info(
                     f"New Schema `{schema}` detected. Adding to entry to `Admin.SchemaCatalog`"
                 )
-                session.add(AdminSchemaCatalog(name=schema))
+                session.add(SchemaCatalog(name=schema))
                 session.commit()
         return schema_entry.schema_id
 
@@ -120,7 +118,7 @@ def register_catalog_hooks():
         if table_name in ["tablecatalog", "schemacatalog"]:
             with Session(bind=connection) as session:
                 table_entry = (
-                    session.query(AdminTableCatalog)
+                    session.query(TableCatalog)
                     .filter_by(schema_id=schema_id, name=table_name)
                     .first()
                 )
@@ -141,8 +139,8 @@ def register_catalog_hooks():
 
             with Session(bind=connection) as session:
                 session.add(
-                    AdminTableCatalog(
-                        schema_id=schema_id, name=table_name, primary_key=pk_field
+                    TableCatalog(
+                        schema_id=schema_id, name=table_name, table_primary_key=pk_field
                     )
                 )
                 session.commit()
