@@ -29,8 +29,8 @@ def chromosomes_are_prefixed(file_name: str) -> bool:
         ).strip()
         == "1"
     )
-    
-    
+
+
 # TODO: debug -> this fails somewhere for large files, causing (when overwrite = True) an empty file
 # need to figure out why
 
@@ -46,14 +46,16 @@ def bed_file_sort(file_name: str, header: bool, overwrite: bool = False):
             the sorted output.
     """
     sorted_file_name = file_name + ".sorted"
-    header_clause = "NR==1{print;next} " if header else ""
+    header_clause = (
+        f"head -n 1 {file_name}; tail -n + 2 {file_name} | " if header else ""
+    )
 
     working_directory = get_parent_directory(file_name)
     strip_chr = 'sub(/^chr/, "", c); ' if chromosomes_are_prefixed(file_name) else ""
 
     cmd = (
-        "awk '"
-        + header_clause
+        header_clause
+        + "awk '"
         + "{c=$1; "
         + strip_chr
         + ' if(c=="X")c=23; else if(c=="Y")c=24; else if(c=="M"||c=="MT")c=25;'
@@ -61,7 +63,7 @@ def bed_file_sort(file_name: str, header: bool, overwrite: bool = False):
         + file_name
         + " | sort -T "
         + working_directory
-        + " -k1,1n -k3,3n | cut -f2- > "
+        + " -k1,1n -k2,2n | cut -f2- > "
         + sorted_file_name
     )
 
