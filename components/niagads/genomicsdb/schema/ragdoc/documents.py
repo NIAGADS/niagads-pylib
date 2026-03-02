@@ -5,6 +5,7 @@ Defines table mapping, chunk metadata, and embedding tables for chunked
 retrieval-augmented generation (RAG) workflows in the genomicsdb ragdoc schema.
 """
 
+from niagads.genomicsdb.schema.admin.helpers import table_fk_column
 from niagads.genomicsdb.schema.ragdoc.base import RAGDocTableBase
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -18,20 +19,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property
-
-
-class TableMap(RAGDocTableBase):
-    """
-    Maps logical document sources to table and schema names for RAG workflows.
-    """
-
-    __tablename__ = "tablemap"
-    __table_args__ = (
-        UniqueConstraint("schema_name", "table_name", name="uq_schema_table_pair"),
-    )
-    table_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    schema_name: Mapped[str] = mapped_column(String(50), index=True)
-    table_name: Mapped[str] = mapped_column(String(50), index=True)
 
 
 class ChunkMetadata(RAGDocTableBase):
@@ -54,9 +41,7 @@ class ChunkMetadata(RAGDocTableBase):
     )
 
     chunk_metadata_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    table_id: Mapped[int] = mapped_column(
-        ForeignKey("ragdoc.tablemap.table_id"), nullable=False, index=True
-    )
+    table_id: Mapped[int] = table_fk_column()
     doc_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     chunk_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)
 

@@ -4,7 +4,6 @@
 
 from niagads.genomicsdb.schema.ragdoc.base import RAGDocSchemaBase
 from niagads.genomicsdb.schema.ragdoc.documents import (
-    TableMap,
     ChunkEmbedding,
     ChunkMetadata,
 )
