@@ -3,3 +3,4 @@
 
 from niagads.genomicsdb.schema.admin.base import AdminSchemaBase
 from niagads.genomicsdb.schema.admin.etl import ETLRun
+from niagads.genomicsdb.schema.admin.catalog import TableCatalog, SchemaCatalog

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class AdminSchemaCatalog(AdminTableBase):
+class SchemaCatalog(AdminTableBase):
     """
     Catalog of database schemas.
     """
@@ -19,7 +19,7 @@ class AdminSchemaCatalog(AdminTableBase):
     )
 
 
-class AdminTableCatalog(AdminTableBase):
+class TableCatalog(AdminTableBase):
     """
     Catalog of tables within a schema.
     """
@@ -34,11 +34,13 @@ class AdminTableCatalog(AdminTableBase):
         Integer, ForeignKey("admin.schemacatalog.schema_id"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
-    primary_key: Mapped[str] = mapped_column(String(50), nullable=False, index=False)
+    table_primary_key: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=False
+    )
 
-    schema_name: str
+    _schema: str
 
-    async def table_ref(self, session: AsyncSession = None) -> str:
+    async def full_name(self, session: AsyncSession = None) -> str:
         """
         Returns the 'schema.table' name representation for this table.
         If the schema relationship is not loaded, fetches it from the session.
@@ -49,17 +51,17 @@ class AdminTableCatalog(AdminTableBase):
         Returns:
             str: schema.table name
         """
-        if self.schema_name is None:
+        if self._schema is None:
             if session is None:
                 raise ValueError("Session required to fetch schema if not loaded.")
 
             result = await session.execute(
-                select(AdminSchemaCatalog.name).where(
-                    AdminSchemaCatalog.schema_id == self.schema_id
+                select(SchemaCatalog.name).where(
+                    SchemaCatalog.schema_id == self.schema_id
                 )
             )
-            self.schema_name = result.scalar_one_or_none()
-            if self.schema_name is None:
+            self._schema = result.scalar_one_or_none()
+            if self._schema is None:
                 raise ValueError(f"Schema with id {self.schema_id} not found.")
 
-        return f"{self.schema_name}.{self.name}"
+        return f"{self._schema}.{self.name}"
