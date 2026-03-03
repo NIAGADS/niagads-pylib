@@ -28,6 +28,8 @@ class OntologyTerm(
 ):
     __tablename__ = "ontologyterm"
     __table_args__ = (
+        *ExternalDatabaseMixin.__table_args__,
+        *EmbeddingMixin.get_indexes(ReferenceTableBase.metadata.schema, "ontologyterm"),
         UniqueConstraint("source_id", name="uq_ontology_term_id"),
         enum_constraint("entity_type", EntityTypeIRI, use_enum_names=True),
         Index(
@@ -45,7 +47,7 @@ class OntologyTerm(
     entity_type: Mapped[str] = enum_column(EntityTypeIRI, use_enum_names=True)
     label: Mapped[str] = mapped_column(String(100), nullable=True)
     definition: Mapped[str] = mapped_column(TEXT, nullable=True)
-    synonyms: Mapped[list[str]] = mapped_column(ARRAY(Strin(250)), nullable=True)
+    synonyms: Mapped[list[str]] = mapped_column(ARRAY(String(250)), nullable=True)
     is_deprecated: Mapped[bool] = mapped_column(Boolean, nullable=True)
 
     @hybrid_property

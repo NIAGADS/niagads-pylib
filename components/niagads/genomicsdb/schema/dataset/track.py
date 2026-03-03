@@ -27,6 +27,8 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMixi
     _stable_id = "source_id"
     __tablename__ = "track"
     __table_args__ = (
+        *EmbeddingMixin.get_indexes(DatasetTableBase.metadata.schema, "track"),
+        *ExternalDatabaseMixin.__table_args__,
         enum_constraint("genome_build", Assembly),
         enum_constraint("data_store", TrackDataStore),
         enum_constraint("shard_chromosome", HumanGenome),
@@ -87,6 +89,10 @@ class TrackInterval(DatasetTableBase, GenomicRegionMixin):
     _stable_id = None
     __tablename__ = "trackinterval"
     __table_args__ = (
+        *GenomicRegionMixin.__table_args__,  # Unpack mixin's args first
+        *GenomicRegionMixin.get_indexes(
+            DatasetTableBase.metadata.schema, "trackinterval"
+        ),
         Index(
             "ix_index_trackinterval_track_id",
             "track_id",

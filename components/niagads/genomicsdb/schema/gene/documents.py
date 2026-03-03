@@ -24,6 +24,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "document_mv"
 
+    __table_args__ = (
+        *GenomicRegionMixin.get_indexes(
+            GeneMaterializedViewBase.metadata.schema, "document_mv"
+        ),
+    )
+
     gene_id: Mapped[int] = mapped_column(index=True, primary_key=True)  # not PK b/c MV
     ensembl_id: Mapped[str] = mapped_column(unique=True, index=True)
     symbol: Mapped[str] = mapped_column(String(50))
@@ -38,7 +44,7 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
     pathway_membership: Mapped[Optional[PathwayAnnotation]] = mapped_column(
         JSONB(none_as_null=True)
     )
-    data_sources: Mapped[dict] = mapped_column(JSONB, none_as_null=True)
+    data_sources: Mapped[dict] = mapped_column(JSONB(none_as_null=True))
 
     async def __resolve_synonyms(
         self, session: AsyncSession, id: str, case_insensitive: bool = False

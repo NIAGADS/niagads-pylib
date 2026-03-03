@@ -18,7 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 register_schemas()
 
 # register hooks that are attached to event listeners
-register_schema_creation("etl_runner")
+register_schema_creation()
+register_schema_permissions("etlrunner")
 register_schema_permissions("app_readonly", True)
 register_catalog_hooks()
 

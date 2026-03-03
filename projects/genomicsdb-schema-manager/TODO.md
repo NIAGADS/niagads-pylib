@@ -19,13 +19,13 @@ GenomicRegionMixin (ranges.py)
 
 Defines: enum_constraint("chromosome", HumanGenome), GIST indexes on genomic_region and bin_index
 Models inheriting WITH __table_args__ override (LOSING mixin's constraints):
-GeneModel (gene/structure.py) ✗
-TranscriptModel (gene/structure.py) ✗
-ExonModel (gene/structure.py) ✗
-TrackInterval (dataset/track.py) ✗
+x GeneModel (gene/structure.py) ✗
+x TranscriptModel (gene/structure.py) ✗
+x ExonModel (gene/structure.py) ✗
+x TrackInterval (dataset/track.py) ✗
 Models inheriting WITHOUT override (OK - inherit mixin's):
-Gene (gene/documents.py) - MV, skip in migrations
-IntervalBin (reference/interval_bin.py) - OK
+x Gene (gene/documents.py) - MV, skip in migrations
+x IntervalBin (reference/interval_bin.py) - OK
 EmbeddingMixin (embeddings.py)
 
 Defines: HNSW index on embedding column

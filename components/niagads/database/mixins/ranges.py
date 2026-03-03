@@ -26,8 +26,14 @@ class GenomicRegionMixin(object):
     genomic_region: Mapped[Range] = mapped_column(RangeType, nullable=False)
     bin_index: Mapped[str] = mapped_column(LtreeType)
 
-    __table_args__ = (
-        enum_constraint("chromosome", HumanGenome),
-        Index(None, "genomic_region", postgresql_using="gist"),
-        Index(None, "bin_index", postgresql_using="gist"),
-    )
+    __table_args__ = (enum_constraint("chromosome", HumanGenome),)
+
+    @classmethod
+    def get_indexes(cls, schema: str, table: str):
+        """Return only the Index objects from __table_args__"""
+
+        prefix = f"ix_{schema}_{table}_"
+        return (
+            Index(f"{prefix}_{field}", field, postgresql_using="gist")
+            for field in ["bin_index", "genomic_region"]
+        )

@@ -18,6 +18,7 @@ from sqlalchemy.schema import CheckConstraint
 class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "gene"
     __table_args__ = (
+        *GenomicRegionMixin.__table_args__,  # Unpack mixin's args first
         CheckConstraint(
             f"ensembl_id ~ '{RegularExpressions.ENSEMBL_GENE_ID}'",
             name="ensembl_gene_id_format_check",
@@ -33,6 +34,7 @@ class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
 class TranscriptModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "transcript"
     __table_args__ = (
+        *GenomicRegionMixin.__table_args__,  # Unpack mixin's args first
         CheckConstraint(
             f"ensembl_id ~ '{RegularExpressions.ENSEMBL_TRANSCRIPT_ID}'",
             name="ensembl_transcript_id_format_check",
@@ -46,6 +48,7 @@ class TranscriptModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
 class ExonModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "exon"
     __table_args__ = (
+        *GenomicRegionMixin.__table_args__,  # Unpack mixin's args first
         CheckConstraint(
             f"ensembl_id ~ '{RegularExpressions.ENSEMBL_EXON_ID}'",
             name="ensembl_exon_id_format_check",

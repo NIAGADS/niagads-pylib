@@ -15,10 +15,10 @@ class Pathway(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin, Embedding
     __tablename__ = "pathway"
     _stable_id = "source_id"  # from the ExternalDBMixin
 
+    __table_args__ = (
+        *EmbeddingMixin.get_indexes(ReferenceTableBase.metadata.schema, "pathway"),
+        *ExternalDatabaseMixin.__table_args__,
+    )
     pathway_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(nullable=False, index=True)
-    description: Optional[Mapped[str]] = mapped_column(String(400), nullable=True)
-
-    gene_memberships: Mapped[PathwayMembership] = relationship(
-        back_populates=lambda: PathwayMembership.pathway,
-    )
+    description: Mapped[Optional[str]] = mapped_column(String(400), nullable=True)
