@@ -12,7 +12,7 @@ from os import path
 from helpers.config import Settings
 from niagads.common.core import ComponentBaseMixin
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.utils.sys import execute_cmd, verify_path
+from niagads.utils.sys import execute_cmd, verify_path, remove_path
 
 
 class MigrationAction(CaseInsensitiveEnum):
@@ -38,6 +38,52 @@ class AlembicWrapper(ComponentBaseMixin):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(project_root='{self._project_root}')"
+
+    def reset(self):
+        """resets alembic by removing all versions and deleting the alembic tables in the database
+        cannot be reversed"""
+        db_name = Settings.from_env().DATABASE_URI.split("/")[-1].split("?")[0]
+
+        print(
+            "\n⚠️  WARNING: This will delete all migration history from"
+            f"database `{db_name}` and from the `$PROJECT_ROOT/alembic/versions` directory"
+        )
+        print("This action CANNOT be reversed.")
+
+        confirmation = input(
+            f"\nEnter the database name `{db_name}` to confirm: "
+        ).strip()
+
+        if confirmation != db_name:
+            self.logger.info("Reset cancelled.")
+            return
+
+        try:
+            self.logger.warning(
+                f"DELETING all migration history from database `{db_name}`"
+                "and from the `$PROJECT_ROOT/alembic/versions` directory"
+            )
+            # Remove versions directory
+            versions_dir = path.join(self._project_root, "alembic", "versions")
+            if path.exists(versions_dir):
+                remove_path(versions_dir)
+                self.logger.info(f"✓ Removed versions directory: {versions_dir}")
+
+            # Drop alembic_version table
+            cmd = ["alembic"]
+            cmd.extend(["downgrade", "base"])
+
+            stdout = execute_cmd(cmd, print_cmd_only=self._debug, verbose=self._verbose)
+            self.logger.info(f"✓ Alembic reset complete for database '{db_name}'.")
+            self.logger.info(stdout)
+        except RuntimeError as err:
+            self.logger.exception(
+                f"Alembic reset for database '{db_name}' failed.", exc_info=True
+            )
+        except Exception as err:
+            self.logger.exception(
+                f"Error removing versions directory: {err}", exc_info=True
+            )
 
     def upgrade(self, revision: str):
         cmd = ["alembic"]
@@ -127,6 +173,11 @@ def main():
         help="autogenrate a revision",
     )
     parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="reset alembic revision history; note - cannot be reversed",
+    )
+    parser.add_argument(
         "--upgrade",
         action="store_true",
         help="upgrade a revision",
@@ -166,13 +217,14 @@ def main():
 
     wrapper = AlembicWrapper(args.schema, debug=args.debug, verbose=args.verbose)
 
-    actions = [args.autogenerate, args.upgrade, args.downgrade]
+    actions = [args.autogenerate, args.upgrade, args.downgrade, args.reset]
     if sum(1 for x in actions if x) > 1:
         raise ValueError(
             "Cannot determine action.  Specify only one of the following arguments:",
             "`--upgrade`, `--downgrade`, `--autogenerate`",
         )
-
+    if args.reset:
+        wrapper.reset()
     if args.autogenerate:
         wrapper.generate_revision(args.message, skip_fks=args.skip_fks)
     if args.upgrade:

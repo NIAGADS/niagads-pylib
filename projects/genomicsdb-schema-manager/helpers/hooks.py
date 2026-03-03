@@ -4,7 +4,7 @@ import pkgutil
 from helpers.config import Settings
 from helpers.types import DBRole
 from sqlalchemy import Connection, Table, event, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.orm import Session
 
 
@@ -98,24 +98,41 @@ def register_catalog_hooks():
         """Insert schema entry into admin.schemacatalog after schema creation."""
 
         with Session(bind=connection) as session:
-            schema_entry = session.query(SchemaCatalog).filter_by(name=schema).first()
-            if not schema_entry:
-                if schema == "admin":
-                    raise RuntimeError(
-                        "Missing entry for `Admin` schema.  Execute the `admin-bootstrap.sql` file."
-                    )
-                logger.info(
-                    f"New Schema `{schema}` detected. Adding to entry to `Admin.SchemaCatalog`"
+            try:
+                schema_entry = (
+                    session.query(SchemaCatalog).filter_by(name=schema).first()
                 )
-                session.add(SchemaCatalog(name=schema))
-                session.commit()
+                if not schema_entry:
+                    logger.info(
+                        f"New Schema `{schema}` detected. Adding to entry to `Admin.SchemaCatalog`"
+                    )
+                    schema_entry = SchemaCatalog(name=schema)
+                    session.add(schema_entry)
+                    session.commit()
+            except ProgrammingError:
+                logger.warning(
+                    f"ADMIN SCHEMA `{schema}` not yet created. Initialize the Admin schema and "
+                    f"Execute the `admin-bootstrap.sql` script after schema creation to add"
+                    f"`{schema} tables to the catalog before proceeding."
+                )
+                session.rollback()
+                return None
         return schema_entry.schema_id
 
     def catalog_table_creation(target: Table, connection: Connection, **kw):
         """Insert table entry into admin.tablecatalog after table creation."""
         schema = target.schema
         table_name = target.name
-        if table_name in ["tablecatalog", "schemacatalog"]:
+
+        try:
+            schema_id = catalog_schema_creation(schema, connection)
+
+            if schema_id is None:  # admin schema needs to be created
+                logger.warning(
+                    f"Cannot add table to catalogy, `Admin` schema does not exist or is currently being created."
+                )
+                return
+
             with Session(bind=connection) as session:
                 table_entry = (
                     session.query(TableCatalog)
@@ -123,33 +140,23 @@ def register_catalog_hooks():
                     .first()
                 )
                 if not table_entry:
-                    raise RuntimeError(
-                        f"Missing entry for `{table_name}` schema. "
-                        "Execute the `admin-bootstrap.sql` file."
+                    # sqlalchemy will have long thrown a missing pk error
+                    # so can assume it exists
+                    pk_field = target.primary_key.columns[0]
+                    session.add(
+                        TableCatalog(
+                            schema_id=schema_id,
+                            name=table_name,
+                            table_primary_key=pk_field,
+                        )
                     )
-        try:
-            schema_id = catalog_schema_creation(schema, connection)
+                    session.commit()
 
-            try:
-                pk_field = target.primary_key.columns[0]
-            except:
-                raise RuntimeError(
-                    f"Table '{schema}.{table_name}' does not have a primary key."
-                )
-
-            with Session(bind=connection) as session:
-                session.add(
-                    TableCatalog(
-                        schema_id=schema_id, name=table_name, table_primary_key=pk_field
+                    logger.info(
+                        f"New Table `{schema}.{table_name}` detected. "
+                        f"Adding to entry to `Admin.TableCatalog` with primary key `{pk_field}`"
                     )
-                )
-                session.commit()
-
-            logger.info(
-                f"New Table `{schema}.{table_name}` detected. Adding to entry to `Admin.TableCatalog` with primary key `{pk_field}`"
-            )
         except IntegrityError:
             logger.warning(f"Table '{schema}.{table_name}' already cataloged")
 
-    event.listen(Table, "after_create", catalog_schema_creation)
     event.listen(Table, "after_create", catalog_table_creation)
