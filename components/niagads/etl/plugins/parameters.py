@@ -103,7 +103,7 @@ class PathValidatorMixin:
         def file_exists(cls, value):
             from niagads.utils.sys import verify_path
 
-            if not verify_path(value, isDir=is_dir):
+            if not verify_path(value):
                 target_type = "Directory" if is_dir else "File"
                 raise ValueError(f"{target_type} does not exist: {value}")
             return value
