@@ -53,7 +53,7 @@ class ExonModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     )
 
     exon_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    gene_id: gene_fk_column()  # type: ignore
+    gene_id: Mapped[int] = gene_fk_column()  # type: ignore
     transcript_id: Mapped[int] = mapped_column(
         ForeignKey("gene.transcript.transcript_id"), index=True, nullable=False
     )

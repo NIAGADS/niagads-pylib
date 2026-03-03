@@ -22,6 +22,12 @@ class MigrationContext:
             )
         )
 
+        self.__target_schema: List[str] = (
+            None
+            if self.__schema_independent
+            else [metadata.schema for metadata in self.__target_schema_metadata]
+        )
+
     def include_name(self, name: str, type_: str, parent_names: Any) -> bool:
         # adapted to allow affect registered schemas, except when
         # schema-independent (e.g., create extension) commands are
@@ -29,7 +35,7 @@ class MigrationContext:
         if self.__schema_independent:
             return True
         if type_ == "schema":
-            return name in self.__target_schema_metadata
+            return name in self.__target_schema
         return type_ != "schema"
 
     def include_object(
@@ -42,6 +48,12 @@ class MigrationContext:
         migration again w/out excluding FKs should bypass the alembic bug
         """
         if self.__skip_fks and type_ == "foreign_key_constraint":
+            return False
+
+        # Skip objects (tables, constraints, etc.) related to materialized views
+        if hasattr(object_, "table") and object_.table.name.endswith("_mv"):
+            return False
+        if type_ == "table" and name.endswith("_mv"):
             return False
         return True
 

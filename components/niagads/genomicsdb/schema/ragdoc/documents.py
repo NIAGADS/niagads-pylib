@@ -36,7 +36,7 @@ class ChunkMetadata(RAGDocTableBase, TableRefMixin):
             "chunk_hash",
             name="uq_chunk_metadata",
         ),
-        Index("ix_chunkmetadata_table_doc", "table_id", "doc_id"),
+        Index("ix_chunkmetadata_table_doc", "table_id", "row_id"),
         Index("ix_chunkmetadata_chunk_hash", "chunk_hash"),  # for checking staleness
     )
 
