@@ -374,16 +374,16 @@ def warning(*objs, **kwargs):
         fh.flush()
 
 
-def create_dir(dirName):
+def create_dir(directory_name):
     """
     check if directory exists in the path, if not create
     """
     try:
-        os.stat(dirName)
+        os.stat(directory_name)
     except OSError:
-        os.mkdir(dirName)
+        os.mkdir(directory_name)
 
-    return dirName
+    return directory_name
 
 
 def verify_path(target_path):

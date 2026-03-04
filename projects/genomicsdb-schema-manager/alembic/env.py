@@ -5,21 +5,19 @@ from alembic import context
 from helpers.config import Settings
 from helpers.hooks import (
     register_catalog_hooks,
-    register_schema_creation,
     register_schema_permissions,
     register_schemas,
 )
 from helpers.migration_context import MigrationContext
 from niagads.database import DatabaseSessionManager
-from sqlalchemy import Connection
+from sqlalchemy import Connection, create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 # load schema registry
 register_schemas()
 
 # register hooks that are attached to event listeners
-register_schema_creation()
-register_schema_permissions("etlrunner")
+register_schema_permissions("etl_runner")
 register_schema_permissions("app_readonly", True)
 register_catalog_hooks()
 

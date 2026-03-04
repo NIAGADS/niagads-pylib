@@ -1,8 +1,9 @@
+from typing import Any, List
+
 from alembic import context
-from niagads.genomicsdb.schema.registry import SchemaRegistry
 from helpers.config import Settings
+from niagads.genomicsdb.schema.registry import SchemaRegistry
 from sqlalchemy import Connection, MetaData
-from typing import List, Any
 
 
 class MigrationContext:
@@ -12,7 +13,7 @@ class MigrationContext:
         self.__skip_fks = "skipForeignKeys" in xArgs
         self.__schema_independent: bool = True if schema is None else False
 
-        self.__target_schema_metadata: List[MetaData] = (
+        self.__target_metadata: List[MetaData] = (
             [MetaData()]
             if self.__schema_independent
             else (
@@ -25,7 +26,7 @@ class MigrationContext:
         self.__target_schema: List[str] = (
             None
             if self.__schema_independent
-            else [metadata.schema for metadata in self.__target_schema_metadata]
+            else [metadata.schema for metadata in self.__target_metadata]
         )
 
     def include_name(self, name: str, type_: str, parent_names: Any) -> bool:
@@ -47,6 +48,7 @@ class MigrationContext:
         fks not yet created, generating w/out FKs, then upgrading, then running
         migration again w/out excluding FKs should bypass the alembic bug
         """
+        print(f"include_object: name={name}, type_={type_}, skip_fks={self.__skip_fks}")
         if self.__skip_fks and type_ == "foreign_key_constraint":
             return False
 
@@ -58,7 +60,7 @@ class MigrationContext:
         return True
 
     def run_migrations_offline(self) -> None:
-        for metadata in self.__target_schema_metadata:
+        for metadata in self.__target_metadata:
             config_kwargs = {
                 "url": Settings.from_env().DATABASE_URI,
                 "target_metadata": metadata,
@@ -77,7 +79,7 @@ class MigrationContext:
                 context.run_migrations()
 
     def do_run_migrations(self, connection: Connection) -> None:
-        for metadata in self.__target_schema_metadata:
+        for metadata in self.__target_metadata:
             config_kwargs = {
                 "connection": connection,
                 "target_metadata": metadata,

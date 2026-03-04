@@ -12,7 +12,9 @@ from os import path
 from helpers.config import Settings
 from niagads.common.core import ComponentBaseMixin
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.utils.sys import execute_cmd, verify_path, remove_path
+from niagads.utils.sys import create_dir, execute_cmd, verify_path, remove_path
+from datetime import datetime
+import uuid
 
 
 class MigrationAction(CaseInsensitiveEnum):
@@ -35,9 +37,45 @@ class AlembicWrapper(ComponentBaseMixin):
         self._project_root = Settings.from_env().PROJECT_ROOT
         self.__schema = schema
         verify_path(self._project_root)
+        self._alembic_cmd_root = [
+            "poetry",
+            "run",
+            "alembic",
+            "-c",
+            path.join(self._project_root, "alembic.ini"),
+        ]
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(project_root='{self._project_root}')"
+
+    def create_schema_revision(self) -> None:
+        """
+        Create a manual Alembic revision file for schema creation (no autogenerate).
+        """
+        versions_dir = path.join(self._project_root, "alembic", "versions")
+        revision_id = uuid.uuid4().hex[:12]
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+        filename = f"{revision_id}_create_schema_{self.__schema}.py"
+        filepath = path.join(versions_dir, filename)
+        content = (
+            f'"""Create schema {self.__schema}\n\n'
+            f"Revision ID: {revision_id}\n"
+            f"Revises: \n"
+            f'Create Date: {now}\n\n"""\n\n'
+            "from alembic import op\n\n"
+            f'revision = "{revision_id}"\n'
+            "down_revision = None\n"
+            "branch_labels = None\n"
+            "depends_on = None\n\n"
+            "def upgrade():\n"
+            "    with op.get_context().autocommit_block():\n"
+            f'        op.execute("CREATE SCHEMA IF NOT EXISTS {self.__schema}")\n\n'
+            "def downgrade():\n"
+            f'    op.execute("DROP SCHEMA IF EXISTS {self.__schema} CASCADE")\n'
+        )
+        with open(filepath, "w") as f:
+            f.write(content)
+        self.logger.info(f"✓ Created manual schema migration: {filepath}")
 
     def reset(self):
         """resets alembic by removing all versions and deleting the alembic tables in the database
@@ -63,18 +101,20 @@ class AlembicWrapper(ComponentBaseMixin):
                 f"DELETING all migration history from database `{db_name}`"
                 "and from the `$PROJECT_ROOT/alembic/versions` directory"
             )
+
+            # downgrade alembic_version table
+            cmd = self._alembic_cmd_root.copy()
+            cmd.extend(["downgrade", "base"])
+            stdout = execute_cmd(cmd, print_cmd_only=self._debug, verbose=self._verbose)
+            self.logger.info(f"✓ Alembic reset complete for database '{db_name}'.")
+
             # Remove versions directory
             versions_dir = path.join(self._project_root, "alembic", "versions")
             if path.exists(versions_dir):
                 remove_path(versions_dir)
-                self.logger.info(f"✓ Removed versions directory: {versions_dir}")
+                create_dir(versions_dir)  # need to recreate
+                self.logger.info(f"✓ Removed all versioning files in: {versions_dir}")
 
-            # Drop alembic_version table
-            cmd = ["alembic"]
-            cmd.extend(["downgrade", "base"])
-
-            stdout = execute_cmd(cmd, print_cmd_only=self._debug, verbose=self._verbose)
-            self.logger.info(f"✓ Alembic reset complete for database '{db_name}'.")
             self.logger.info(stdout)
         except RuntimeError as err:
             self.logger.exception(
@@ -86,10 +126,13 @@ class AlembicWrapper(ComponentBaseMixin):
             )
 
     def upgrade(self, revision: str):
-        cmd = ["alembic"]
+        cmd = self._alembic_cmd_root.copy()
+
         if self.__schema:
             cmd.extend(["-x", f"schema={self.__schema}"])
-        cmd.extend("upgrade", revision)
+
+        cmd.extend(["upgrade", revision])
+
         try:
             stdout = execute_cmd(cmd, print_cmd_only=self._debug, verbose=self._verbose)
             self.logger.info(f"Done - Ugrade to revision `{revision}` complete.")
@@ -100,10 +143,13 @@ class AlembicWrapper(ComponentBaseMixin):
             )
 
     def downgrade(self, revision: str):
-        cmd = ["alembic"]
+        cmd = self._alembic_cmd_root.copy()
+
         if self.__schema:
             cmd.extend(["-x", f"schema={self.__schema}"])
-        cmd.extend("downgrade", revision)
+
+        cmd.extend(["downgrade", revision])
+
         try:
             stdout = execute_cmd(cmd, print_cmd_only=self._debug, verbose=self._verbose)
             self.logger.info(f"Done - Downgrade to revision `{revision}` complete.")
@@ -124,13 +170,7 @@ class AlembicWrapper(ComponentBaseMixin):
         Raises:
             RuntimeError: If migration generation fails.
         """
-        cmd = [
-            "poetry",
-            "run",
-            "alembic",
-            "-c",
-            path.join(self._project_root, "alembic.ini"),
-        ]
+        cmd = self._alembic_cmd_root.copy()
 
         if self.__schema:
             cmd.extend(["-x", f"schema={self.__schema}"])
@@ -163,7 +203,6 @@ def main():
     )
     parser.add_argument(
         "--message",
-        required=True,
         metavar="MESSAGE",
         help="Migration message",
     )
@@ -213,24 +252,47 @@ def main():
         help="Enable verbose output",
     )
 
+    parser.add_argument(
+        "--create-schema",
+        action="store_true",
+        help="Create a manual revision for schema creation",
+    )
+
     args = parser.parse_args()
 
     wrapper = AlembicWrapper(args.schema, debug=args.debug, verbose=args.verbose)
 
-    actions = [args.autogenerate, args.upgrade, args.downgrade, args.reset]
+    # List of mutually exclusive action argument names
+    action_arg_names = [
+        "autogenerate",
+        "upgrade",
+        "downgrade",
+        "reset",
+        "create_schema",
+    ]
+    actions = [getattr(args, name) for name in action_arg_names]
+    allowed_actions = [f"--{name.replace('_', '-')}" for name in action_arg_names]
     if sum(1 for x in actions if x) > 1:
         raise ValueError(
-            "Cannot determine action.  Specify only one of the following arguments:",
-            "`--upgrade`, `--downgrade`, `--autogenerate`",
+            "Cannot determine action. Specify only one of the following arguments:",
+            ", ".join(allowed_actions),
         )
     if args.reset:
         wrapper.reset()
     if args.autogenerate:
+        if not args.message:
+            raise ValueError(
+                "Must provide a message (`--message`) to describe a revision"
+            )
         wrapper.generate_revision(args.message, skip_fks=args.skip_fks)
     if args.upgrade:
         wrapper.upgrade(revision=args.revision)
     if args.downgrade:
         wrapper.downgrade(revision="-1" if args.revision == "head" else args.revision)
+    if args.create_schema:
+        if not args.schema:
+            raise ValueError("Must provide --schema for --create-schema option.")
+        wrapper.create_schema_revision()
 
 
 if __name__ == "__main__":

@@ -24,15 +24,42 @@ def register_schemas():
             importlib.import_module(modname)
 
 
-def register_schema_creation():
-    """Register global event to auto-create schemas for tables with .schema set."""
+def inject_schema_creation_directives(context, revision, directives):
+    """
+    Alembic process_revision_directives callback to inject CREATE SCHEMA statements.
+    Extracts schemas from metadata.schema (not table.schema) and injects them
+    at the beginning of the upgrade operations.
+    """
+    from alembic.operations import ops
 
-    def ensure_schema(target: Table, connection: Connection, **kw):
-        schema = target.schema
+    # Skip if no operations
+    if not directives or directives[0].upgrade_ops.is_empty():
+        return
+
+    # Get target_metadata from context
+    target_metadata = context.opts.get("target_metadata")
+    if not target_metadata:
+        return
+
+    # Collect unique schemas from metadata objects
+    metadata_list = (
+        target_metadata if isinstance(target_metadata, list) else [target_metadata]
+    )
+    schemas = set()
+    for metadata in metadata_list:
+        schema = getattr(metadata, "schema", None)
         if schema:
-            connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+            schemas.add(schema)
 
-    event.listen(Table, "before_create", ensure_schema)
+    # Inject CREATE SCHEMA statements at the beginning
+    if schemas:
+        # Insert CREATE SCHEMA and COMMIT for each schema at the beginning
+        for schema in sorted(schemas):
+            # prepending each
+            directives[0].upgrade_ops.ops.insert(0, ops.ExecuteSQLOp("COMMIT"))
+            directives[0].upgrade_ops.ops.insert(
+                0, ops.ExecuteSQLOp(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+            )
 
 
 def register_schema_permissions(role: DBRole, read_only: bool = False):
@@ -98,42 +125,32 @@ def register_catalog_hooks():
         """Insert schema entry into admin.schemacatalog after schema creation."""
 
         with Session(bind=connection) as session:
-            try:
-                schema_entry = (
-                    session.query(SchemaCatalog).filter_by(name=schema).first()
+            schema_id = (
+                session.query(SchemaCatalog.schema_id).filter_by(name=schema).first()
+            )
+            if not schema_id:
+                logger.info(
+                    f"New Schema `{schema}` detected. Adding to entry to `Admin.SchemaCatalog`"
                 )
-                if not schema_entry:
-                    logger.info(
-                        f"New Schema `{schema}` detected. Adding to entry to `Admin.SchemaCatalog`"
-                    )
-                    schema_entry = SchemaCatalog(name=schema)
-                    session.add(schema_entry)
-                    session.commit()
-            except ProgrammingError:
-                logger.warning(
-                    f"ADMIN SCHEMA `{schema}` not yet created. Initialize the Admin schema and "
-                    f"Execute the `admin-bootstrap.sql` script after schema creation to add"
-                    f"`{schema} tables to the catalog before proceeding."
-                )
-                session.rollback()
-                return None
-        return schema_entry.schema_id
+                schema_entry = SchemaCatalog(name=schema)
+                session.add(schema_entry)
+                session.commit()
+                schema_id = schema_entry.schema_id
+
+        return schema_id
 
     def catalog_table_creation(target: Table, connection: Connection, **kw):
         """Insert table entry into admin.tablecatalog after table creation."""
         schema = target.schema
         table_name = target.name
 
-        try:
-            schema_id = catalog_schema_creation(schema, connection)
+        if schema.lower() == "admin":
+            return
 
-            if schema_id is None:  # admin schema needs to be created
-                logger.warning(
-                    f"Cannot add table to catalogy, `Admin` schema does not exist or is currently being created."
-                )
-                return
+        schema_id = catalog_schema_creation(schema, connection)
 
-            with Session(bind=connection) as session:
+        with Session(bind=connection) as session:
+            try:
                 table_entry = (
                     session.query(TableCatalog)
                     .filter_by(schema_id=schema_id, name=table_name)
@@ -156,7 +173,8 @@ def register_catalog_hooks():
                         f"New Table `{schema}.{table_name}` detected. "
                         f"Adding to entry to `Admin.TableCatalog` with primary key `{pk_field}`"
                     )
-        except IntegrityError:
-            logger.warning(f"Table '{schema}.{table_name}' already cataloged")
+            except IntegrityError:
+                logger.warning(f"Table '{schema}.{table_name}' already cataloged")
+                session.rollback()
 
     event.listen(Table, "after_create", catalog_table_creation)

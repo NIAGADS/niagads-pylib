@@ -30,7 +30,21 @@ In addition to `PROJECT_ROOT` Alembic needs the following environmental variable
 
 Create a `.env` file with the following or set as system environmental variables.  **Note**: System variables will override anything in the `.env` file.
 
-### Step 1. `Admin` Schema Revision
+### Step 1. Initialize `Admin` Schema
+
+#### Create the Admin Schema
+  
+```bash
+poetry run gdb_alembic --schema Admin --create-schema
+poetry run gdb_alembic --upgrade 
+```
+
+#### Create the Admin tables
+
+```bash
+poetry run gdb_alembic --schema Admin --message "admin schema initialization" --autogenerate 
+poetry run gdb_alembic --upgrade 
+```
 
 #### `Admin` Functions
 
