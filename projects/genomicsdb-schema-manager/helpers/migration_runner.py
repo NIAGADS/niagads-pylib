@@ -67,37 +67,36 @@ class MigrationRunner:
             return False
 
     def run_migrations_offline(self) -> None:
-        for metadata in self.__target_metadata:
-            config_kwargs = {
-                "url": Settings.from_env().DATABASE_URI,
-                "target_metadata": metadata,
-                "literal_binds": True,
-                "dialect_opts": {"paramstyle": "named"},
+        config_kwargs = {
+            "url": Settings.from_env().DATABASE_URI,
+            "target_metadata": GenomicsDBSchemaBase.metadata,
+            "literal_binds": True,
+            "dialect_opts": {"paramstyle": "named"},
+        }
+        if not self.__schema_independent:
+            config_kwargs |= {
+                "include_schemas": True,
+                "include_name": self.include_name,
+                "include_object": self.include_object,
             }
-            if not self.__schema_independent:
-                config_kwargs |= {
-                    "include_schemas": True,
-                    "include_name": self.include_name,
-                    "include_object": self.include_object,
-                }
 
-            context.configure(**config_kwargs)
-            with context.begin_transaction():
-                context.run_migrations()
+        context.configure(**config_kwargs)
+        with context.begin_transaction():
+            context.run_migrations()
 
     def do_run_migrations(self, connection: Connection) -> None:
-        for metadata in self.__target_metadata:
-            config_kwargs = {
-                "connection": connection,
-                "target_metadata": metadata,
-            }
-            if not self.__schema_independent:
-                config_kwargs |= {
-                    "include_schemas": True,
-                    "include_name": self.include_name,
-                    "include_object": self.include_object,
-                }
 
-            context.configure(**config_kwargs)
-            with context.begin_transaction():
-                context.run_migrations()
+        config_kwargs = {
+            "connection": connection,
+            "target_metadata": GenomicsDBSchemaBase.metadata,
+        }
+        if not self.__schema_independent:
+            config_kwargs |= {
+                "include_schemas": True,
+                "include_name": self.include_name,
+                "include_object": self.include_object,
+            }
+
+        context.configure(**config_kwargs)
+        with context.begin_transaction():
+            context.run_migrations()
