@@ -2,8 +2,8 @@ from typing import Any, List
 
 from alembic import context
 from helpers.config import Settings
-from niagads.genomicsdb.schema.registry import SchemaRegistry
-from sqlalchemy import Connection, MetaData
+from sqlalchemy import Connection
+from niagads.genomicsdb.schema.base import GenomicsDBSchemaBase
 
 
 class MigrationContext:
@@ -13,21 +13,32 @@ class MigrationContext:
         self.__skip_fks = "skipForeignKeys" in xArgs
         self.__schema_independent: bool = True if schema is None else False
 
-        self.__target_metadata: List[MetaData] = (
-            [MetaData()]
-            if self.__schema_independent
-            else (
-                SchemaRegistry.get_registered_metadata()
-                if schema.upper() == "ALL"
-                else [SchemaRegistry.get_schema_metadata(schema)]
-            )
-        )
-
         self.__target_schema: List[str] = (
             None
             if self.__schema_independent
-            else [metadata.schema for metadata in self.__target_metadata]
+            else (
+                self.__get_all_schemas()
+                if schema.lower() == "all"
+                else [self.__validate_schema(schema)]
+            )
         )
+
+    def __get_all_schemas(self) -> List[str]:
+        """Dynamically extract all schemas from GenomicsDBSchemaBase registry."""
+        schemas = []
+        for mapper in GenomicsDBSchemaBase.registry.mappers:
+            table = mapper.class_.__table__
+            if hasattr(table, "schema") and table.schema:
+                schemas.append(table.schema)
+        return list(set(schemas))  # Remove duplicates
+
+    def __validate_schema(self, schema: str) -> bool:
+        """Check if a schema string is a valid schema in GenomicsDBSchemaBase."""
+        valid_schemas = self.__get_all_schemas()
+        if schema.lower() in valid_schemas:
+            return schema.lower()
+        else:
+            raise ValueError(f"Schema {schema} is invalid for the GenomicsDB")
 
     def include_name(self, name: str, type_: str, parent_names: Any) -> bool:
         # adapted to allow affect registered schemas, except when
@@ -48,16 +59,12 @@ class MigrationContext:
         fks not yet created, generating w/out FKs, then upgrading, then running
         migration again w/out excluding FKs should bypass the alembic bug
         """
-        print(f"include_object: name={name}, type_={type_}, skip_fks={self.__skip_fks}")
+        # print(f"include_object: name={name}, type_={type_}, skip_fks={self.__skip_fks}")
         if self.__skip_fks and type_ == "foreign_key_constraint":
             return False
 
-        # Skip objects (tables, constraints, etc.) related to materialized views
-        if hasattr(object_, "table") and object_.table.name.endswith("_mv"):
+        if type_ == "table" and getattr(object_, "is_view", False):
             return False
-        if type_ == "table" and name.endswith("_mv"):
-            return False
-        return True
 
     def run_migrations_offline(self) -> None:
         for metadata in self.__target_metadata:
