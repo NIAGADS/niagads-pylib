@@ -2,17 +2,13 @@
 Base classes for SQLAlchemy ORM models in the GenomicsDB "Gene" schema.
 """
 
+from niagads.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.genomicsdb.schema.mixins import GenomicsDBTableMixin
-from niagads.genomicsdb.schema.registry import SchemaRegistry
-from sqlalchemy import MetaData
-from sqlalchemy.orm import DeclarativeBase
 
 
-@SchemaRegistry.register()
-class VariantSchemaBase(DeclarativeBase):
-    metadata = MetaData(schema="variant")
-
-
-class VariantTableBase(VariantSchemaBase, GenomicsDBTableMixin):
+class VariantTableBase(GenomicsDBSchemaBase, GenomicsDBTableMixin):
     __abstract__ = True
     _stable_id = "positional_id"
+    _schema = "variant"
+
+    __table_args__ = {"schema": _schema}

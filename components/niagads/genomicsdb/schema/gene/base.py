@@ -2,22 +2,18 @@
 Base classes for SQLAlchemy ORM models in the GenomicsDB "Gene" schema.
 """
 
+from niagads.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.genomicsdb.schema.mixins import GenomicsDBMVMixin, GenomicsDBTableMixin
 from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
-from niagads.genomicsdb.schema.registry import SchemaRegistry
-from sqlalchemy import MetaData
-from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.hybrid import hybrid_property
 
 
-@SchemaRegistry.register()
-class GeneSchemaBase(DeclarativeBase):
-    metadata = MetaData(schema="gene")
-
-
-class GeneTableBase(GeneSchemaBase, GenomicsDBTableMixin, ExternalDatabaseMixin):
+class GeneTableBase(GenomicsDBSchemaBase, GenomicsDBTableMixin, ExternalDatabaseMixin):
     __abstract__ = True
     _stable_id = "source_id"
+    _schema = "gene"
+
+    __table_args__ = {"schema": _schema}
 
     @hybrid_property
     def ensembl_id(self):
@@ -28,7 +24,10 @@ class GeneTableBase(GeneSchemaBase, GenomicsDBTableMixin, ExternalDatabaseMixin)
         return cls.source_id
 
 
-class GeneMaterializedViewBase(GeneSchemaBase, GenomicsDBMVMixin):
+class GeneMaterializedViewBase(GenomicsDBSchemaBase, GenomicsDBMVMixin):
     __abstract__ = True
     _document_primary_key = "gene_id"
     _stable_id = "ensembl_id"
+    _schema = "gene"
+
+    __table_args__ = {"schema": _schema, "info": {"is_view": True}}

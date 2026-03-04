@@ -25,8 +25,9 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "document_mv"
 
     __table_args__ = (
+        *GeneMaterializedViewBase.__table_args__,
         *GenomicRegionMixin.get_indexes(
-            GeneMaterializedViewBase.metadata.schema, "document_mv"
+            *GeneMaterializedViewBase._schema, __tablename__
         ),
     )
 
@@ -193,7 +194,7 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
             return {"gene_id": record.gene_id, "ensembl_id": record.ensembl_id}
 
         if gene_identifier_type == GeneXRefType.SYMBOL:
-            return await self.resolve_gene_symobl(session, id, case_insensitive)
+            return await self.resolve_gene_symbol(session, id, case_insensitive)
 
         else:  # check against the external_ids
             return await self.__resolve_gene_xref(session, id, gene_identifier_type)

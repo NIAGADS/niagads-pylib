@@ -21,6 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 class ETLRun(AdminTableBase):
     __tablename__ = "etlrun"
     __table_args__ = (
+        *AdminTableBase.__table_args__,
         enum_constraint("status", ProcessStatus),
         enum_constraint("operation", ETLOperation),
     )

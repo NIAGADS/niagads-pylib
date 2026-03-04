@@ -27,6 +27,7 @@ class TableCatalog(AdminTableBase):
     __allow_unmapped__ = True
     __tablename__ = "tablecatalog"
     __table_args__ = (
+        *AdminTableBase.__table_args__,
         UniqueConstraint("schema_id", "name", name="uq_schema_table_name"),
     )
 

@@ -15,6 +15,7 @@ class Collection(DatasetTableBase, IdAliasMixin):
     _stable_id = "collection_key"
     __tablename__ = "collection"
     __table_args__ = (
+        *DatasetTableBase.__table_args__,
         enum_constraint("data_store", TrackDataStore),
         Index(
             "ix_metadata_collection_data_store",
@@ -40,6 +41,7 @@ class TrackCollectionLink(DatasetTableBase):
     _stable_id = None
     __tablename__ = "trackcollectionlink"
     __table_args__ = (
+        *DatasetTableBase.__table_args__,
         Index(
             "ix_metadata_trackcollectionlink_collection_id",
             "collection_id",

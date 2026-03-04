@@ -28,8 +28,9 @@ class OntologyTerm(
 ):
     __tablename__ = "ontologyterm"
     __table_args__ = (
+        *ReferenceTableBase.__table_args__,
         *ExternalDatabaseMixin.__table_args__,
-        *EmbeddingMixin.get_indexes(ReferenceTableBase.metadata.schema, "ontologyterm"),
+        *EmbeddingMixin.get_indexes(ReferenceTableBase._schema, __tablename__),
         UniqueConstraint("source_id", name="uq_ontology_term_id"),
         enum_constraint("entity_type", EntityTypeIRI, use_enum_names=True),
         Index(

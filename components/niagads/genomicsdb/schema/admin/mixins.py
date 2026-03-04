@@ -60,14 +60,14 @@ class TableRefMixin:
             await self.fetch_table_ref(session)
         return self._table_ref.table_primary_key
 
-    def get_table_class(self, session: AsyncSession = None):
-        """
-        Returns the SQLAlchemy table class for this object's table.
+    def get_table_model(self, session: AsyncSession):
+        schema, table = self.get_table_name(session).split(".")
 
-        Args:
-            session (AsyncSession, optional): SQLAlchemy async session.
+        registry = type(self).registry
 
-        Returns:
-            type: The table class.
-        """
-        return SchemaRegistry.get_table_class(self.get_table_name(session))
+        for mapper in registry.mappers:
+            tbl = mapper.local_table
+            if tbl.name == table and tbl.schema == schema:
+                return mapper.class_
+
+        raise LookupError(f"{self._table_ref.full_name()} not mapped")

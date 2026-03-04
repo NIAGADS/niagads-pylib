@@ -2,17 +2,15 @@
 Base classes for SQLAlchemy ORM models in the GenomicsDB "Reference" schema.
 """
 
+from niagads.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.genomicsdb.schema.mixins import GenomicsDBTableMixin
-from niagads.genomicsdb.schema.registry import SchemaRegistry
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
 
-@SchemaRegistry.register()
-class ReferenceSchemaBase(DeclarativeBase):
-    metadata = MetaData(schema="reference")
-
-
-class ReferenceTableBase(ReferenceSchemaBase, GenomicsDBTableMixin):
+class ReferenceTableBase(GenomicsDBSchemaBase, GenomicsDBTableMixin):
     __abstract__ = True
     _stable_id = None
+    _schema = "reference"
+
+    __table_args__ = {"schema": _schema}

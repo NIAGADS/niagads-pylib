@@ -28,6 +28,7 @@ class ChunkMetadata(RAGDocTableBase, TableRefMixin):
 
     __tablename__ = "chunkmetadata"
     __table_args__ = (
+        *RAGDocTableBase.__table_args__,
         UniqueConstraint(
             "table_id",
             "row_id",
@@ -68,6 +69,7 @@ class ChunkEmbedding(RAGDocTableBase):
 
     __tablename__ = "chunkembedding"
     __table_args__ = (
+        *RAGDocTableBase.__table_args__,
         UniqueConstraint(
             "chunk_metadata_id",
             "model_id",
