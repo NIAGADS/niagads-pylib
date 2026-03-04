@@ -6,7 +6,7 @@ from sqlalchemy import Connection
 from niagads.genomicsdb.schema.base import GenomicsDBSchemaBase
 
 
-class MigrationContext:
+class MigrationRunner:
     def __init__(self):
         xArgs: dict = context.get_x_argument(as_dictionary=True)
         schema: str = xArgs.get("schema", None)
@@ -19,7 +19,7 @@ class MigrationContext:
             else (
                 self.__get_all_schemas()
                 if schema.lower() == "all"
-                else [self.__validate_schema(schema)]
+                else [schema.lower()] if self.is_valid_schema(schema) else None
             )
         )
 
@@ -32,11 +32,11 @@ class MigrationContext:
                 schemas.append(table.schema)
         return list(set(schemas))  # Remove duplicates
 
-    def __validate_schema(self, schema: str) -> bool:
+    def is_valid_schema(self, schema: str) -> bool:
         """Check if a schema string is a valid schema in GenomicsDBSchemaBase."""
         valid_schemas = self.__get_all_schemas()
         if schema.lower() in valid_schemas:
-            return schema.lower()
+            return True
         else:
             raise ValueError(f"Schema {schema} is invalid for the GenomicsDB")
 

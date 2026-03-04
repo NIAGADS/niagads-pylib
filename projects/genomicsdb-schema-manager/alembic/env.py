@@ -8,7 +8,7 @@ from helpers.hooks import (
     register_schema_permissions,
     register_schemas,
 )
-from helpers.migration_context import MigrationContext
+from helpers.migration_runner import MigrationRunner
 from niagads.database import DatabaseSessionManager
 from sqlalchemy import Connection, create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -28,7 +28,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-migration_ctx: MigrationContext = MigrationContext()
+runner: MigrationRunner = MigrationRunner()
 
 
 def run_migrations_offline() -> None:
@@ -43,11 +43,11 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    migration_ctx.run_migrations_offline()
+    runner.run_migrations_offline()
 
 
 def do_run_migrations(connection: Connection) -> None:
-    migration_ctx.do_run_migrations(connection)
+    runner.do_run_migrations(connection)
 
 
 async def run_async_migrations() -> None:
