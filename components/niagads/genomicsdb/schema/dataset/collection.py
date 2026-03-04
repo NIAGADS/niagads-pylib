@@ -15,7 +15,6 @@ class Collection(DatasetTableBase, IdAliasMixin):
     _stable_id = "collection_key"
     __tablename__ = "collection"
     __table_args__ = (
-        *DatasetTableBase.__table_args__,
         enum_constraint("data_store", TrackDataStore),
         Index(
             "ix_metadata_collection_data_store",
@@ -27,6 +26,7 @@ class Collection(DatasetTableBase, IdAliasMixin):
             "collection_key",
             unique=True,
         ),
+        DatasetTableBase.__table_args__,
     )
 
     collection_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -41,12 +41,12 @@ class TrackCollectionLink(DatasetTableBase):
     _stable_id = None
     __tablename__ = "trackcollectionlink"
     __table_args__ = (
-        *DatasetTableBase.__table_args__,
         Index(
             "ix_metadata_trackcollectionlink_collection_id",
             "collection_id",
             postgresql_include=["track_id"],
         ),
+        DatasetTableBase.__table_args__,
     )
     track_collection_link: Mapped[int] = mapped_column(
         primary_key=True, autoincrement=True

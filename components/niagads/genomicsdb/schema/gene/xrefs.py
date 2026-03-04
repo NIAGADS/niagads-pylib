@@ -23,8 +23,8 @@ class GeneXRefType(CaseInsensitiveEnum):
 class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
     __tablename__ = "xref"
     __table_args__ = (
-        *GeneTableBase.__table_args__,
         *ExternalDatabaseMixin.__table_args__,
+        GeneTableBase.__table_args__,
     )
     _stable_id = None
     xref_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

@@ -12,8 +12,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 class ExternalDatabase(ReferenceTableBase, IdAliasMixin):
     __tablename__ = "externaldatabase"
     __table_args__ = (
-        *ReferenceTableBase.__table_args__,
         UniqueConstraint("name", "version", name="uq_externaldatabase_name_version"),
+        ReferenceTableBase.__table_args__,
     )
     _stable_id = "database_key"
     external_database_id: Mapped[int] = mapped_column(

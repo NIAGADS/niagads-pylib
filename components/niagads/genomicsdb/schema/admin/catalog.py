@@ -10,6 +10,7 @@ class SchemaCatalog(AdminTableBase):
     """
 
     __tablename__ = "schemacatalog"
+    __table_args = AdminTableBase.__table_args__
 
     schema_id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True
@@ -27,8 +28,8 @@ class TableCatalog(AdminTableBase):
     __allow_unmapped__ = True
     __tablename__ = "tablecatalog"
     __table_args__ = (
-        *AdminTableBase.__table_args__,
         UniqueConstraint("schema_id", "name", name="uq_schema_table_name"),
+        AdminTableBase.__table_args__,
     )
 
     table_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

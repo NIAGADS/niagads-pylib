@@ -16,9 +16,9 @@ class Pathway(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin, Embedding
     _stable_id = "source_id"  # from the ExternalDBMixin
 
     __table_args__ = (
-        *ReferenceTableBase.__table_args__,
         *EmbeddingMixin.get_indexes(ReferenceTableBase._schema, __tablename__),
         *ExternalDatabaseMixin.__table_args__,
+        ReferenceTableBase.__table_args__,
     )
     pathway_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(nullable=False, index=True)

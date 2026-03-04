@@ -28,7 +28,6 @@ class OntologyTerm(
 ):
     __tablename__ = "ontologyterm"
     __table_args__ = (
-        *ReferenceTableBase.__table_args__,
         *ExternalDatabaseMixin.__table_args__,
         *EmbeddingMixin.get_indexes(ReferenceTableBase._schema, __tablename__),
         UniqueConstraint("source_id", name="uq_ontology_term_id"),
@@ -39,6 +38,7 @@ class OntologyTerm(
             postgresql_using="gin",
             postgresql_ops={"term": "gin_trgm_ops"},
         ),
+        ReferenceTableBase.__table_args__,
     )
     _stable_id = "source_id"
 

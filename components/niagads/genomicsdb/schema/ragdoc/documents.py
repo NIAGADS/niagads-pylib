@@ -28,7 +28,6 @@ class ChunkMetadata(RAGDocTableBase, TableRefMixin):
 
     __tablename__ = "chunkmetadata"
     __table_args__ = (
-        *RAGDocTableBase.__table_args__,
         UniqueConstraint(
             "table_id",
             "row_id",
@@ -39,6 +38,7 @@ class ChunkMetadata(RAGDocTableBase, TableRefMixin):
         ),
         Index("ix_chunkmetadata_table_doc", "table_id", "row_id"),
         Index("ix_chunkmetadata_chunk_hash", "chunk_hash"),  # for checking staleness
+        RAGDocTableBase.__table_args__,
     )
 
     chunk_metadata_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -69,7 +69,6 @@ class ChunkEmbedding(RAGDocTableBase):
 
     __tablename__ = "chunkembedding"
     __table_args__ = (
-        *RAGDocTableBase.__table_args__,
         UniqueConstraint(
             "chunk_metadata_id",
             "model_id",
@@ -78,6 +77,7 @@ class ChunkEmbedding(RAGDocTableBase):
         ),
         Index("ix_embedding_vector_hnsw", "embedding", postgresql_using="hnsw"),
         Index("ix_chunkembedding_chunk_hash", "chunk_hash"),  # for checking staleness
+        RAGDocTableBase.__table_args__,
     )
 
     embedding_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

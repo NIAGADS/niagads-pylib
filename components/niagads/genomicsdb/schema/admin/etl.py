@@ -21,9 +21,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 class ETLRun(AdminTableBase):
     __tablename__ = "etlrun"
     __table_args__ = (
-        *AdminTableBase.__table_args__,
         enum_constraint("status", ProcessStatus),
         enum_constraint("operation", ETLOperation),
+        AdminTableBase.__table_args__,
     )
     etl_run_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 

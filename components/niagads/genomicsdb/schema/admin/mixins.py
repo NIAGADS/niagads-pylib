@@ -1,6 +1,5 @@
 from niagads.genomicsdb.schema.admin.catalog import TableCatalog
 from niagads.genomicsdb.schema.admin.helpers import table_fk_column
-from niagads.genomicsdb.schema.registry import SchemaRegistry
 from sqlalchemy import Integer, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column

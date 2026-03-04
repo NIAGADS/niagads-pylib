@@ -10,9 +10,9 @@ class IntervalBin(ReferenceTableBase, GenomicRegionMixin):
     __tablename__ = "intervalbin"
     _stable_id = "bin_index"
     __table_args__ = (
-        *ReferenceTableBase.__table_args__,
         *GenomicRegionMixin.__table_args__,
         *GenomicRegionMixin.get_indexes(ReferenceTableBase._schema, __tablename__),
+        ReferenceTableBase.__table_args__,
     )
 
     interval_bin_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

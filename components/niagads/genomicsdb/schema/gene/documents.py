@@ -25,10 +25,10 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "document_mv"
 
     __table_args__ = (
-        *GeneMaterializedViewBase.__table_args__,
         *GenomicRegionMixin.get_indexes(
-            *GeneMaterializedViewBase._schema, __tablename__
+            GeneMaterializedViewBase._schema, __tablename__
         ),
+        GeneMaterializedViewBase.__table_args__,
     )
 
     gene_id: Mapped[int] = mapped_column(index=True, primary_key=True)  # not PK b/c MV

@@ -16,8 +16,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 class PathwayMembership(GeneTableBase):
     __tablename__ = "pathwaymembership"
     __table_args__ = (
-        *GeneTableBase.__table_args__,
         UniqueConstraint("pathway_id", "gene_id", name="uq_pathway_gene_membership"),
+        GeneTableBase.__table_args__,
     )
     _stable_id = None
 
@@ -35,8 +35,8 @@ class PathwayMembership(GeneTableBase):
 class GOAssociation(GeneTableBase):
     __tablename__ = "goassociation"
     __table_args__ = (
-        *GeneTableBase.__table_args__,
         UniqueConstraint("go_term_id", "gene_id", name="uq_go_association"),
+        GeneTableBase.__table_args__,
     )
     _stable_id = None
 
@@ -48,10 +48,10 @@ class GOAssociation(GeneTableBase):
 class AnnotationEvidence(GeneTableBase, TableRefMixin):
     __tablename__ = "annotationevidence"
     __table_args__ = (
-        *GeneTableBase.__table_args__,
         UniqueConstraint(
             "evidence_code_id", "table_id", "row_id", name="uq_gene_annotation_evidence"
         ),
+        GeneTableBase.__table_args__,
     )
     _stable_id = None
     annotation_evidence_id: Mapped[int] = mapped_column(
