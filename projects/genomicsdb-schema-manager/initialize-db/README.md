@@ -19,7 +19,7 @@ Run the bootstrap script to create extensions and roles.
 source $PROJECT_ROOT/initialize-db/boostrap_db.sh --commit
 ```
 
-## Initial Alembic Migration
+## Initial Alembic Migration - No Version Files Exist
 
 ### Alembic Environment
 
@@ -30,19 +30,17 @@ In addition to `PROJECT_ROOT` Alembic needs the following environmental variable
 
 Create a `.env` file with the following or set as system environmental variables.  **Note**: System variables will override anything in the `.env` file.
 
-### Step 1. Initialize `Admin` Schema
+### Step 1. Create the Schemas
 
-#### Create the Admin Schema
-  
 ```bash
-poetry run gdb_alembic --schema Admin --create-schema
+poetry run gdb_alembic --schema All --create-schema
 poetry run gdb_alembic --upgrade 
 ```
 
-#### Create the Admin tables
+#### Step 2. Generate the initial migration
 
 ```bash
-poetry run gdb_alembic --schema Admin --message "admin schema initialization" --autogenerate 
+poetry run gdb_alembic --schema All --message "initial table creation - all schemas" --autogenerate
 poetry run gdb_alembic --upgrade 
 ```
 

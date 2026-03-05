@@ -237,3 +237,39 @@ def _timed(fn):
 
 timed = _timed
 async_timed = _timed
+
+
+def setup_root_logger(
+    level: int = logging.INFO,
+    log_file: str | None = None,
+    format_str: str = LOG_FORMAT_STR,
+) -> None:
+    """
+    Configure the root logger with sensible defaults.
+
+    Sets up console (stderr) or file logging based on parameters.
+    Exits on ERROR or CRITICAL level logs.
+
+    Args:
+        level (int): Logging level (default: logging.INFO).
+        log_file (Optional[str]): Path to log file. If None, logs to stderr.
+            If provided, creates a file handler instead of console.
+        format_str (str): Log format string (default: LOG_FORMAT_STR).
+
+    Example:
+        # Log to console (stderr)
+        setup_root_logger(level=logging.DEBUG)
+
+        # Log to file
+        setup_root_logger(level=logging.INFO, log_file="app.log")
+    """
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+
+    # Remove any existing handlers to avoid duplicates
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
+    handler = ExitOnExceptionHandler(filename=log_file, format=format_str)
+    handler.setLevel(level)
+    root_logger.addHandler(handler)

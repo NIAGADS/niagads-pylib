@@ -9,7 +9,10 @@ Usage:
 import argparse
 from os import path
 
+from helpers.migration_runner import MigrationRunner
 from helpers.config import Settings
+from niagads.genomicsdb.schema.base import GenomicsDBSchemaBase
+from niagads.utils.logging import setup_root_logger
 from niagads.common.core import ComponentBaseMixin
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.sys import create_dir, execute_cmd, verify_path, remove_path
@@ -35,7 +38,7 @@ class AlembicWrapper(ComponentBaseMixin):
     def __init__(self, schema: str, debug: bool = False, verbose: bool = False):
         super().__init__(debug, verbose)
         self._project_root = Settings.from_env().PROJECT_ROOT
-        self.__schema = schema
+        self.__schema = schema.lower() if schema is not None else schema
         verify_path(self._project_root)
         self._alembic_cmd_root = [
             "poetry",
@@ -52,13 +55,21 @@ class AlembicWrapper(ComponentBaseMixin):
         """
         Create a manual Alembic revision file for schema creation (no autogenerate).
         """
+        if self.__schema == "all":
+            schemas = GenomicsDBSchemaBase.get_all_schemas()
+        elif GenomicsDBSchemaBase.is_valid_schema(self.__schema):
+            schemas = [self.__schema]
+        else:
+            raise ValueError(f"Invalid schema for GenomicsDB {self.__schema}")
+
         versions_dir = path.join(self._project_root, "alembic", "versions")
         revision_id = uuid.uuid4().hex[:12]
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        filename = f"{revision_id}_create_schema_{self.__schema}.py"
+        filename = f"{revision_id}_create_{self.__schema}_schema.py"
         filepath = path.join(versions_dir, filename)
+
         content = (
-            f'"""Create schema {self.__schema}\n\n'
+            f'"""Create {self.__schema} schema(s)\n\n'
             f"Revision ID: {revision_id}\n"
             f"Revises: \n"
             f'Create Date: {now}\n\n"""\n\n'
@@ -69,10 +80,22 @@ class AlembicWrapper(ComponentBaseMixin):
             "depends_on = None\n\n"
             "def upgrade():\n"
             "    with op.get_context().autocommit_block():\n"
-            f'        op.execute("CREATE SCHEMA IF NOT EXISTS {self.__schema}")\n\n'
+            + "".join(
+                [
+                    f'        op.execute("CREATE SCHEMA IF NOT EXISTS {schema}")\n'
+                    for schema in schemas
+                ]
+            )
+            + "\n"
             "def downgrade():\n"
-            f'    op.execute("DROP SCHEMA IF EXISTS {self.__schema} CASCADE")\n'
+            + "".join(
+                [
+                    f'        op.execute("DROP SCHEMA IF EXISTS {schema} CASCADE")\n'
+                    for schema in schemas
+                ]
+            )
         )
+
         with open(filepath, "w") as f:
             f.write(content)
         self.logger.info(f"✓ Created manual schema migration: {filepath}")
@@ -259,6 +282,8 @@ def main():
     )
 
     args = parser.parse_args()
+
+    setup_root_logger()
 
     wrapper = AlembicWrapper(args.schema, debug=args.debug, verbose=args.verbose)
 

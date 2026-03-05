@@ -2,53 +2,33 @@ from typing import Any, List
 
 from alembic import context
 from helpers.config import Settings
+from niagads.common.core import ComponentBaseMixin
 from sqlalchemy import Connection
-from niagads.genomicsdb.schema.base import GenomicsDBSchemaBase
+from niagads.genomicsdb.schema.core import GenomicsDBSchemaBase
 
 
-class MigrationRunner:
+# can't get logging to wrok. alembic_wrapper will capture stdout and print
+class MigrationRunner(ComponentBaseMixin):
     def __init__(self):
+        super().__init__(debug=True)
         xArgs: dict = context.get_x_argument(as_dictionary=True)
         schema: str = xArgs.get("schema", None)
         self.__skip_fks = "skipForeignKeys" in xArgs
         self.__schema_independent: bool = True if schema is None else False
 
-        self.__target_schema: List[str] = (
+        self.__target_schemas: List[str] = (
             None
             if self.__schema_independent
             else (
-                self.__get_all_schemas()
+                GenomicsDBSchemaBase.get_all_schemas()
                 if schema.lower() == "all"
-                else [schema.lower()] if self.is_valid_schema(schema) else None
+                else (
+                    [schema.lower()]
+                    if GenomicsDBSchemaBase.is_valid_schema(schema)
+                    else None
+                )
             )
         )
-
-    def __get_all_schemas(self) -> List[str]:
-        """Dynamically extract all schemas from GenomicsDBSchemaBase registry."""
-        schemas = []
-        for mapper in GenomicsDBSchemaBase.registry.mappers:
-            table = mapper.class_.__table__
-            if hasattr(table, "schema") and table.schema:
-                schemas.append(table.schema)
-        return list(set(schemas))  # Remove duplicates
-
-    def is_valid_schema(self, schema: str) -> bool:
-        """Check if a schema string is a valid schema in GenomicsDBSchemaBase."""
-        valid_schemas = self.__get_all_schemas()
-        if schema.lower() in valid_schemas:
-            return True
-        else:
-            raise ValueError(f"Schema {schema} is invalid for the GenomicsDB")
-
-    def include_name(self, name: str, type_: str, parent_names: Any) -> bool:
-        # adapted to allow affect registered schemas, except when
-        # schema-independent (e.g., create extension) commands are
-        # executed
-        if self.__schema_independent:
-            return True
-        if type_ == "schema":
-            return name in self.__target_schema
-        return type_ != "schema"
 
     def include_object(
         self, object_, name: str, type_: str, reflected: bool, compare_to: Any
@@ -63,8 +43,15 @@ class MigrationRunner:
         if self.__skip_fks and type_ == "foreign_key_constraint":
             return False
 
-        if type_ == "table" and getattr(object_, "is_view", False):
+        if type_ == "table" and getattr(object_, "info", {}).get("is_view", False):
             return False
+
+        # Filter by target schema if not schema-independent
+        if not self.__schema_independent and hasattr(object_, "schema"):
+            if object_.schema not in self.__target_schemas:
+                return False
+
+        return True
 
     def run_migrations_offline(self) -> None:
         config_kwargs = {
@@ -72,13 +59,9 @@ class MigrationRunner:
             "target_metadata": GenomicsDBSchemaBase.metadata,
             "literal_binds": True,
             "dialect_opts": {"paramstyle": "named"},
+            "include_schemas": True,
+            "include_object": self.include_object,
         }
-        if not self.__schema_independent:
-            config_kwargs |= {
-                "include_schemas": True,
-                "include_name": self.include_name,
-                "include_object": self.include_object,
-            }
 
         context.configure(**config_kwargs)
         with context.begin_transaction():
@@ -89,13 +72,9 @@ class MigrationRunner:
         config_kwargs = {
             "connection": connection,
             "target_metadata": GenomicsDBSchemaBase.metadata,
+            "include_schemas": True,
+            "include_object": self.include_object,
         }
-        if not self.__schema_independent:
-            config_kwargs |= {
-                "include_schemas": True,
-                "include_name": self.include_name,
-                "include_object": self.include_object,
-            }
 
         context.configure(**config_kwargs)
         with context.begin_transaction():
