@@ -5,6 +5,7 @@ import gzip
 import io
 import logging
 import os
+import shutil
 import subprocess
 from enum import auto
 from pathlib import Path
@@ -116,8 +117,7 @@ def generic_file_sort(file: str, header=True, overwrite=True):
     execute_cmd(cmd)
 
     if overwrite:
-        cmd = ["mv", file + ".sorted", file]
-        execute_cmd(cmd)
+        move(f"{file}.sorted", file)
         return file
     else:
         return file + ".sorted"
@@ -134,16 +134,16 @@ def remove_duplicate_lines(file: str, header=True, overwrite=True):
     Returns:
         cleaned file name
     """
-    sortedFile = generic_file_sort(file, header, overwrite)
-    cmd = ["uniq", sortedFile, ">", sortedFile + ".uniq"]
+    sorted_file = generic_file_sort(file, header, overwrite)
+    uniq_file_name = f"{sorted_file}.uniq"
+    cmd = ["uniq", sorted_file, ">", uniq_file_name]
     execute_cmd(cmd)
 
     if overwrite:
-        cmd = ["mv", sortedFile + ".uniq", file]
-        execute_cmd(cmd)
+        shutil.move(uniq_file_name, file)
         return file
     else:
-        return sortedFile + ".uniq"
+        return uniq_file_name
 
 
 def generator_size(generator):
@@ -266,7 +266,7 @@ def execute_cmd(
     if verbose or print_cmd_only:
         if not isinstance(cmd, str):
             ascii_safe_cmd = [ascii_safe_str(c) for c in cmd]
-            msg = f"EXECUTING: {" ".join(ascii_safe_cmd)}"
+            msg = f"EXECUTING: {' '.join(ascii_safe_cmd)}"
         else:
             msg = cmd
         if logger is not None:
@@ -283,31 +283,68 @@ def execute_cmd(
     result = subprocess.run(cmd, cwd=cwd, shell=shell, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(
-            f"Command failed with code {result.returncode}: {result.stderr.strip()}"
+            f"Command failed with code {result.returncode} - \n STDOUT:"
+            f"{result.stdout.strip()} \n STDERR: {result.stderr.strip()}"
         )
     return result.stdout.strip()
 
 
-def backup_file(fileName):
+def backup_file(target_file):
     """create a .bak version of a file"""
-    cmd = ["cp", fileName, fileName + ".bak"]
-    execute_cmd(cmd, shell=True)
+    shutil.copy(target_file, f"{target_file}.bak")
 
 
-def rename_file(oldFileName, targetFileName, backupExistingTarget=True):
+def remove_path(target_path: str):
+    if verify_path(target_path):
+        if os.path.isdir(target_path):
+            shutil.rmtree(target_path)
+        else:
+            os.remove(target_path)
+
+
+def rename_file(
+    source_file, target_file, backup_source: bool = False, overwrite: bool = False
+):
     """
-    _summary_
+    rename a file
 
     Args:
-        oldFileName (string): original file name
-        targetFileName (string): new file name
-        backupExistingTarget (bool, optional): if the target file exists, back up before renaming the old file. Defaults to True.
-    """
-    if backupExistingTarget and verify_path(targetFileName):
-        backup_file(targetFileName)
+        source_file (string): original file name
+        target_file (string): new file name
+        backup_source (bool, optional): back up before renaming the source file.
+            Defaults to False.
+        overwrite (bool, optional): if the target file exists, overwrite.
+            Defaults to False.
 
-    cmd = ["mv", oldFileName, targetFileName]
-    execute_cmd(cmd, shell=True)
+    Returns
+        bool indicating success
+    """
+    logger = logging.getLogger(__name__)
+
+    if not verify_path(source_file):
+        raise ValueError(
+            f"Cannot rename source file {source_file} - file does not exist."
+        )
+
+    if os.path.isdir(source_file):
+        raise NotImplementedError(
+            f"{source_file} is a directory. This utility function is for file operations only."
+        )
+
+    target_exists = verify_path(target_file)
+    if target_exists:
+        if not overwrite:
+            logger.warning(
+                f"Target file {target_file}.  To overwrite, set `overwrite` to `True`."
+            )
+            return False
+        else:
+            logger.warning(f"Target file {target_file}.  Overwriting.")
+
+    if backup_source:
+        backup_file(source_file)
+
+    shutil.move(source_file, target_file)
 
 
 def gzip_file(filename, removeOriginal):
@@ -337,28 +374,26 @@ def warning(*objs, **kwargs):
         fh.flush()
 
 
-def create_dir(dirName):
+def create_dir(directory_name):
     """
     check if directory exists in the path, if not create
     """
     try:
-        os.stat(dirName)
+        os.stat(directory_name)
     except OSError:
-        os.mkdir(dirName)
+        os.mkdir(directory_name)
 
-    return dirName
+    return directory_name
 
 
-def verify_path(fileName, isDir=False):
+def verify_path(target_path):
     """
-    verify that a file exists
-    if isDir is True, just verifies that the path
-    exists
+    verify that a file or directory exists
     """
-    if isDir:
-        return os.path.exists(fileName)
+    if os.path.isdir(target_path):
+        return os.path.exists(target_path)
     else:
-        return os.path.isfile(fileName)
+        return os.path.isfile(target_path)
 
 
 def die(message):

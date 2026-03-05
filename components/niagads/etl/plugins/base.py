@@ -1,24 +1,24 @@
-from contextlib import nullcontext
 import os
-import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import auto
 from typing import Any, Dict, List, Optional, Type
 
-from niagads.utils.asynchronous import null_async_context
-from niagads.utils.list import chunker
 import psutil
 from niagads.common.core import ComponentBaseMixin
 from niagads.database.session import DatabaseSessionManager
 from niagads.enums.common import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.etl.config import ETLMode
+from niagads.etl.types import ETLMode
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport
 from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
-from niagads.genomicsdb.schema.admin.etl import ETLOperation, ETLRun
+from niagads.genomicsdb.schema.admin.etl import ETLRun
+from niagads.genomicsdb.schema.admin.types import ETLOperation
+from niagads.utils.asynchronous import null_async_context
+from niagads.utils.list import chunker
 from niagads.utils.logging import FunctionContextLoggerWrapper
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class LoadStrategy(CaseInsensitiveEnum):
@@ -69,44 +69,33 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         self._name = name or self.__class__.__name__
         self.__start_time: Optional[datetime] = None
-        self._mode = self._params.mode
         self.__status_report: ETLStatusReport = None
         self.__checkpoint: ResumeCheckpoint = None
+        self.__etl_run: ETLRun = None
 
-        # members initialized from validated params
+        # parameter based properties
+        self._mode = ETLMode(self._params.mode)
         self._commit_after: int = self._params.commit_after
-        self._run_id = self._params.run_id or uuid.uuid4().hex[:8].upper()
 
         self.logger: ETLLogger = FunctionContextLoggerWrapper(
             ETLLogger(
                 name=self._name,
                 log_file=self.__resolve_log_file_path(),
-                run_id=self._run_id,
-                plugin=self._name,
                 debug=self._debug,
             )
         )
-
-        if self._debug:
-            self.logger.level = "DEBUG"
 
         self._connection_string = (
             self._params.connection_string or PipelineSettings.from_env().DATABASE_URI
         )
 
-        if self._connection_string is None and self._mode is not ETLMode.DRY_RUN:
-            self.logger.warning(
-                f"No DB connection string provided. Setting ETLMode to `DRY_RUN`"
-            )
-            self._mode = ETLMode.DRY_RUN
+        self.__session_manager = (
+            self.__initialize_database_session() if not self.is_dry_run else None
+        )
 
-        if self.is_dry_run:
-            # don't attempt to connect to DB on dry runs
-            self.__session_manager = DatabaseSessionManager(
-                connection_string=self._connection_string, echo=self._debug
-            )
-        else:
-            self.__session_manager = None
+    # -------------------------
+    # Properties
+    # -------------------------
 
     @property
     def is_dry_run(self) -> bool:
@@ -116,24 +105,22 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         return self._mode == ETLMode.DRY_RUN
 
     @property
-    def has_preprocess_mode(self) -> bool:
-        """
-        Indicates whether the plugin supports preprocessing mode.
-        Subclasses may override to enable/disable preprocessing.
-        """
-        return False
-
-    @property
-    def status_report(self):
-        return self.__status_report
-
-    @property
     def version(self):
         # Local import to avoid circular import
         from niagads.etl.plugins.registry import PluginRegistry
 
         return PluginRegistry.describe(self.__class__.__name__).get("version")
 
+    @property
+    def run_id(self):
+        if not self.is_dry_run:
+            return self.__etl_run.etl_run_id
+        else:
+            return None
+
+    # -------------------------
+    # Initialization helpers
+    # -------------------------
     def __resolve_log_file_path(self):
         """
         Resolve the log file path for the plugin.
@@ -148,6 +135,16 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             return self._params.log_path
 
         return os.path.join(self._params.log_path, f"{self._name}.log")
+
+    def __initialize_database_session(self):
+        if self._connection_string is None:
+            raise ValueError(
+                "Database connection string is required unless ETLMode is DRY_RUN."
+            )
+
+        return DatabaseSessionManager(
+            connection_string=self._connection_string, echo=self._debug
+        )
 
     # -------------------------
     # Abstract contract
@@ -254,7 +251,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         Args:
             session: Async SQLAlchemy session.
-            transformed: The data to persist. For streaming, a list of records (buffer size <= commit_after). For bulk, the entire dataset.
+            transformed: The data to persist. For streaming, a list of records
+            (buffer size <= commit_after). For bulk, the entire dataset.
 
         Returns:
             ResumeCheckpoint: Contains count of rows persisted and checkpoint info (line/id).
@@ -272,6 +270,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             str: The unique identifier for the record.
         """
         ...
+
+    # -------------------------
+    # Overridable Lifecycle Hooks
+    # -------------------------
 
     def on_run_complete(self) -> None:
         """
@@ -297,6 +299,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         otherwise, leave as pass.
         """
         pass
+
+    @property
+    def has_preprocess_mode(self) -> bool:
+        """
+        Indicates whether the plugin supports preprocessing mode.
+        Subclasses may override to enable/disable preprocessing.
+        """
+        return False
 
     # -------------------------
     # Transaction Management
@@ -351,7 +361,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self._connection_string, pool_size=pool_size, echo=self._debug
         )
 
-    async def __handle_transaction(self, session, checkpoint: ResumeCheckpoint) -> None:
+    async def __handle_transaction(
+        self, session: AsyncSession, checkpoint: ResumeCheckpoint
+    ) -> None:
         """
         Commit or rollback the session based on ETLMode and commit_after logic.
         """
@@ -480,7 +492,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             # Bulk: load all at once, ignore commit_after
-            if self._mode == ETLMode.DRY_RUN:
+            if self.is_dry_run:
                 try:
                     count = len(processed_records)
                 except TypeError:  # handle iterators/generators
@@ -501,32 +513,29 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 checkpoint = await self.__flush_chunked_buffer(batch, session)
                 await self.__handle_transaction(session, checkpoint)
 
-    async def __db_log_plugin_run(self) -> Optional[int]:
+    async def __initialize_etl_run(self) -> Optional[int]:
         """
-        Log the start of a plugin run (except DRY_RUN). Returns the log row's ID, or None if not logged.
+        Log the start of a plugin run in the database.
+        No log entry is created if ETLMode is DRY_RUN.
         """
-        if self._mode == ETLMode.DRY_RUN:
-            return ETLMode.DRY_RUN
+        self.__etl_run = ETLRun(
+            plugin_name=self._name,
+            plugin_version=self.version,
+            params=self._params.model_dump(),
+            message="plugin run initiated",
+            status=ProcessStatus.RUNNING,
+            operation=str(self.operation),
+            start_time=self.__start_time,
+            rows_processed=0,
+        )
 
-        async with self._session_manager() as session:
-            task = ETLRun(
-                plugin_name=self._name,
-                plugin_version=self.version,
-                params=self._params.model_dump(),
-                message="plugin run initiated",
-                status=ProcessStatus.RUNNING,
-                operation=self.operation.value,
-                run_id=self._run_id,
-                start_time=self.__start_time,
-                rows_processed=0,
-            )
-            session.add(task)
-            await session.commit()
-        return task.run_id
+        async with self.session_ctx(allow_null_if_unintialized=True) as session:
+            run_id = self.__etl_run.submit(session)
 
-    async def __db_update_plugin_task(
+        self.__etl_run.run_id = run_id
+
+    async def __finalize_etl_run(
         self,
-        run_id: int,
         end_time,
         status: ProcessStatus,
         rows_processed: int = None,
@@ -536,16 +545,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Update the plugin task in the database at plugin completion.
         Sets rows_processed, end_time, status, and message.
         """
-        if self._mode == ETLMode.DRY_RUN:
-            return
+
+        self.__etl_run.rows_processed = rows_processed
+        self.__etl_run.end_time = end_time
+        self.__etl_run.status = status
+        self.__etl_run.message = message
 
         async with self.session_ctx() as session:
-            task: ETLRun = await session.get(ETLRun, run_id)
-            task.rows_processed = rows_processed
-            task.end_time = end_time
-            task.status = status
-            task.message = message
-            await session.commit()
+            await self.__etl_run.update(session)
 
     def update_transaction_count(
         self, transaction_type: ETLOperation, table: str, count: int = 1
@@ -554,7 +561,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Increment the count for a given ETLOperation and table in the ETL status report.
 
         Args:
-            transaction_type (ETLOperation): The ETL operation type (e.g., ETLOperation.INSERT, ETLOperation.UPDATE, ETLOperation.SKIP, ETLOperation.DELETE).
+            transaction_type (ETLOperation): The ETL operation type
             table (str): Fully-qualified table name ('schema.table').
             count (int): Number of transactions to add to the total count. Default = 1.
 
@@ -591,18 +598,17 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         runtime_params: Optional[Dict[str, Any]] = None,
     ) -> ProcessStatus:
         """
-        Execute ETL.
-        - mode=DRY_RUN (default): dry-run (no DB writes), count only.
-        - mode=COMMIT: call load() with buffers/dataset, plugin commits internally.
-        - mode=NON_COMMIT: call load() but plugin should roll back at the end.
+        Execute the ETL process for this plugin instance.
 
-        extra_params are merged atop validated self.params for this run only. The instance's original parameters are restored after the run.
+        Args:
+            runtime_params (Optional[Dict[str, Any]]):
+                Runtime parameter overrides, merged atop validated self.params for this run only.
+                The instance's original parameters are restored after the run.
 
         Returns:
             ProcessStatus: SUCCESS if ETL completed, FAIL otherwise.
         """
         merged_params = None
-        run_id = None
         execution_status = None
 
         if runtime_params:
@@ -637,13 +643,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         # Regular ETL modes
         try:
-            run_id = await self.__db_log_plugin_run()
+            await self.__initialize_etl_run()
             execution_status = ProcessStatus.RUNNING
             self.__status_report = ETLStatusReport(
                 status=execution_status,
                 mode=self._mode,
-                test=self._mode == ETLMode.DRY_RUN,
-                run_id=run_id,
+                test=self.is_dry_run,
+                run_id=self.run_id,
             )
 
         except Exception as e:
@@ -698,9 +704,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.exception(f"Plugin failed: {e}")
 
             # --- Finalize plugin run log on error (except DRY_RUN) ---
-            if self._mode != ETLMode.DRY_RUN and run_id:
-                await self.__db_update_plugin_task(
-                    run_id,
+            if self.run_id:
+                await self.__finalize_etl_run(
                     datetime.now(),  # end time
                     execution_status,
                     message=f"ETL run failed: {e}",
@@ -720,20 +725,21 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
             total_writes = self.__status_report.total_writes()
 
-            if self._mode != ETLMode.DRY_RUN and total_writes == 0:
+            if not self.is_dry_run and (
+                total_writes == 0 and self.__status_report.total_skips() == 0
+            ):
                 self.logger.warning(
                     "WARNING: No transaction counts were updated in load(). "
-                    "Implementers must call update_transaction_count for inserts/updates to ensure proper status reporting."
+                    "Implementers must call `update_transaction_count` after "
+                    "inserts/updates/skips to ensure proper status reporting."
                 )
 
             try:
-                if self._mode != ETLMode.DRY_RUN:
-                    await self.__db_update_plugin_task(
-                        run_id,
-                        end_time,
-                        execution_status,
-                        rows_processed=self.__status_report.total_writes(),
+                if self.run_id:
+                    await self.__finalize_etl_run(
+                        end_time, execution_status, rows_processed=total_writes
                     )
+
             except Exception as db_error:
                 self.logger.exception(f"Failed to update plugin task in DB: {db_error}")
 

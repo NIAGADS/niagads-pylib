@@ -16,7 +16,7 @@ from niagads.common.models.composite_attributes.dataset import (
 )
 from niagads.common.constants.track import TrackDataStore
 from niagads.genomicsdb.schema.dataset.track import Track
-from niagads.genomics.sequence.assembly import Assembly
+from niagads.genomics.sequence.assembly import Assembly, HumanGenome
 from niagads.database.helpers import enum_column
 from niagads.loaders.core import AbstractDataLoader
 from niagads.metadata_parser.filer import MetadataTemplateParser
@@ -57,7 +57,7 @@ class Track(Base):
     searchable_text: Mapped[str] = mapped_column(TEXT)
 
     is_shard: Mapped[Optional[bool]]
-    shard_chromosome: Mapped[str] = enum_column(Human, index=False, nullable=True)
+    shard_chromosome: Mapped[str] = enum_column(HumanGenome, index=False, nullable=True)
     shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
     cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))

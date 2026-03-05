@@ -2,10 +2,6 @@
 
 from datetime import datetime
 
-from niagads.common.constants.external_resources import (
-    NIAGADSResources,
-    ThirdPartyResources,
-)
 from niagads.database.helpers import datetime_column, enum_column, enum_constraint
 from niagads.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.genomicsdb.schema.reference.base import ReferenceTableBase
@@ -17,6 +13,7 @@ class ExternalDatabase(ReferenceTableBase, IdAliasMixin):
     __tablename__ = "externaldatabase"
     __table_args__ = (
         UniqueConstraint("name", "version", name="uq_externaldatabase_name_version"),
+        ReferenceTableBase.__table_args__,
     )
     _stable_id = "database_key"
     external_database_id: Mapped[int] = mapped_column(

@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 import jsonschema
-from niagads.etl.config import ETLMode
+from niagads.etl.types import ETLMode
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -59,10 +59,6 @@ class BasePluginParams(BaseModel):
         default=None,
         description="resume checkpoint, a line number or record ID.  Indicate as line=<N> or id=<record ID>",
     )
-    run_id: Optional[str] = Field(
-        default=None,
-        description="optional run identifier, provided by pipeline manager when run in pipeline",
-    )
     connection_string: Optional[str] = Field(
         default=None,
         description="database connection string; if not provided, the plugin will try to assign from `DATABASE_URI` property in an `.env` file",
@@ -107,7 +103,7 @@ class PathValidatorMixin:
         def file_exists(cls, value):
             from niagads.utils.sys import verify_path
 
-            if not verify_path(value, isDir=is_dir):
+            if not verify_path(value):
                 target_type = "Directory" if is_dir else "File"
                 raise ValueError(f"{target_type} does not exist: {value}")
             return value

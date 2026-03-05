@@ -24,19 +24,28 @@ from sqlalchemy.orm import Mapped, mapped_column
 class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "document_mv"
 
-    gene_id: Mapped[int] = mapped_column(index=True)  # not PK b/c MV
+    __table_args__ = (
+        *GenomicRegionMixin.get_indexes(
+            GeneMaterializedViewBase._schema, __tablename__
+        ),
+        GeneMaterializedViewBase.__table_args__,
+    )
+
+    gene_id: Mapped[int] = mapped_column(index=True, primary_key=True)  # not PK b/c MV
     ensembl_id: Mapped[str] = mapped_column(unique=True, index=True)
     symbol: Mapped[str] = mapped_column(String(50))
     name: Mapped[str] = mapped_column(String(250))
     gene_type: Mapped[str] = mapped_column(String(150))
     synonyms: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=True)
-    cytogenic_location: str = mapped_column(String(100), index=True)
+    cytogenic_location: Mapped[str] = mapped_column(String(100), index=True)
     xrefs: Mapped[dict] = mapped_column(JSONB)
     go_annotation: Mapped[Optional[GOAnnotation]] = mapped_column(
         JSONB(none_as_null=True)
     )
-    pathway_membership: Mapped[Optional[PathwayAnnotation]]
-    data_sources: Mapped[dict] = mapped_column(JSONB)
+    pathway_membership: Mapped[Optional[PathwayAnnotation]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    data_sources: Mapped[dict] = mapped_column(JSONB(none_as_null=True))
 
     async def __resolve_synonyms(
         self, session: AsyncSession, id: str, case_insensitive: bool = False
@@ -185,7 +194,7 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
             return {"gene_id": record.gene_id, "ensembl_id": record.ensembl_id}
 
         if gene_identifier_type == GeneXRefType.SYMBOL:
-            return await self.resolve_gene_symobl(session, id, case_insensitive)
+            return await self.resolve_gene_symbol(session, id, case_insensitive)
 
         else:  # check against the external_ids
             return await self.__resolve_gene_xref(session, id, gene_identifier_type)

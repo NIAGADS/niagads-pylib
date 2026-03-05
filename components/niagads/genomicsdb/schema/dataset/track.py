@@ -27,6 +27,8 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMixi
     _stable_id = "source_id"
     __tablename__ = "track"
     __table_args__ = (
+        *EmbeddingMixin.get_indexes(DatasetTableBase._schema, __tablename__),
+        *ExternalDatabaseMixin.__table_args__,
         enum_constraint("genome_build", Assembly),
         enum_constraint("data_store", TrackDataStore),
         enum_constraint("shard_chromosome", HumanGenome),
@@ -43,6 +45,7 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMixi
                 "searchable_text": "gin_trgm_ops",
             },
         ),
+        DatasetTableBase.__table_args__,
     )
 
     track_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -61,7 +64,9 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMixi
     searchable_text: Mapped[str] = mapped_column(TEXT)
 
     is_shard: Mapped[Optional[bool]]
-    shard_chromosome: Mapped[str] = enum_column(HumanGenome, index=False, nullable=True)
+    shard_chromosome: Mapped[str] = enum_column(
+        HumanGenome, index=False, nullable=True, native_enum=True
+    )
     shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
     cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))
@@ -87,11 +92,14 @@ class TrackInterval(DatasetTableBase, GenomicRegionMixin):
     _stable_id = None
     __tablename__ = "trackinterval"
     __table_args__ = (
+        *GenomicRegionMixin.__table_args__,  # Unpack mixin's args first
+        *GenomicRegionMixin.get_indexes(DatasetTableBase._schema, __tablename__),
         Index(
             "ix_index_trackinterval_track_id",
             "track_id",
-            postgresql_include=["num_hits", "span"],
+            postgresql_include=["num_hits", "genomic_region"],
         ),
+        DatasetTableBase.__table_args__,
     )
 
     track_interval_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

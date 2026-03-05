@@ -26,6 +26,7 @@ class Collection(DatasetTableBase, IdAliasMixin):
             "collection_key",
             unique=True,
         ),
+        DatasetTableBase.__table_args__,
     )
 
     collection_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -45,6 +46,7 @@ class TrackCollectionLink(DatasetTableBase):
             "collection_id",
             postgresql_include=["track_id"],
         ),
+        DatasetTableBase.__table_args__,
     )
     track_collection_link: Mapped[int] = mapped_column(
         primary_key=True, autoincrement=True

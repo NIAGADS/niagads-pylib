@@ -3,5 +3,11 @@
 	"python.testing.pytestArgs": ["test"],
 	"python.testing.unittestEnabled": false,
 	"python.testing.pytestEnabled": true,
-	"editor.formatOnSave": true
+	"editor.formatOnSave": true,
+	"files.associations": {
+		"*.mako": "mako"
+	},
+	"[mako]": {
+		"editor.formatOnSave": false
+	}
 }

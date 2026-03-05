@@ -20,7 +20,7 @@ from niagads.etl.plugins.parameters import (
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.schema.admin.etl import ETLOperation
+from niagads.genomicsdb.schema.admin.types import ETLOperation
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.genomicsdb.schema.reference.ontology import (
     OntologyGraphTermVertex,

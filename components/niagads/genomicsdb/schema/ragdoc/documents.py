@@ -5,6 +5,7 @@ Defines table mapping, chunk metadata, and embedding tables for chunked
 retrieval-augmented generation (RAG) workflows in the genomicsdb ragdoc schema.
 """
 
+from niagads.genomicsdb.schema.admin.mixins import TableRefMixin
 from niagads.genomicsdb.schema.ragdoc.base import RAGDocTableBase
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -20,21 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property
 
 
-class TableMap(RAGDocTableBase):
-    """
-    Maps logical document sources to table and schema names for RAG workflows.
-    """
-
-    __tablename__ = "tablemap"
-    __table_args__ = (
-        UniqueConstraint("schema_name", "table_name", name="uq_schema_table_pair"),
-    )
-    table_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    schema_name: Mapped[str] = mapped_column(String(50), index=True)
-    table_name: Mapped[str] = mapped_column(String(50), index=True)
-
-
-class ChunkMetadata(RAGDocTableBase):
+class ChunkMetadata(RAGDocTableBase, TableRefMixin):
     """
     Stores chunk boundaries and metadata for structured and unstructured documents.
     """
@@ -43,21 +30,18 @@ class ChunkMetadata(RAGDocTableBase):
     __table_args__ = (
         UniqueConstraint(
             "table_id",
-            "doc_id",
+            "row_id",
             "section",
             "chunk_index",
             "chunk_hash",
             name="uq_chunk_metadata",
         ),
-        Index("ix_chunkmetadata_table_doc", "table_id", "doc_id"),
+        Index("ix_chunkmetadata_table_doc", "table_id", "row_id"),
         Index("ix_chunkmetadata_chunk_hash", "chunk_hash"),  # for checking staleness
+        RAGDocTableBase.__table_args__,
     )
 
     chunk_metadata_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    table_id: Mapped[int] = mapped_column(
-        ForeignKey("ragdoc.tablemap.table_id"), nullable=False, index=True
-    )
-    doc_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     chunk_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)
 
     section: Mapped[str] = mapped_column(
@@ -91,8 +75,14 @@ class ChunkEmbedding(RAGDocTableBase):
             "chunk_hash",
             name="uq_embedding_chunk",
         ),
-        Index("ix_embedding_vector_hnsw", "embedding", postgresql_using="hnsw"),
+        Index(
+            "ix_embedding_vector_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
         Index("ix_chunkembedding_chunk_hash", "chunk_hash"),  # for checking staleness
+        RAGDocTableBase.__table_args__,
     )
 
     embedding_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

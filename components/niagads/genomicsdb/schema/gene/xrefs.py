@@ -4,6 +4,8 @@ from niagads.genomicsdb.schema.gene.helpers import gene_fk_column
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
+from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
+
 
 class GeneXRefType(CaseInsensitiveEnum):
     ENSEMBL = "ensembl_id"
@@ -18,8 +20,13 @@ class GeneXRefType(CaseInsensitiveEnum):
     # TODO: orthologs?
 
 
-class GeneXRef(GeneTableBase):
+class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
     __tablename__ = "xref"
+    __table_args__ = (
+        *ExternalDatabaseMixin.__table_args__,
+        GeneTableBase.__table_args__,
+    )
     _stable_id = None
+    xref_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     gene_id: Mapped[int] = gene_fk_column()
     cross_references: Mapped[dict] = mapped_column(JSONB, nullable=True)

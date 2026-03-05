@@ -2,9 +2,9 @@ import logging
 from typing import Any, Dict, Optional, Union
 
 from niagads.enums.common import ProcessStatus
-from niagads.etl.config import ETLMode
+from niagads.etl.types import ETLMode
 from niagads.etl.plugins.parameters import BasePluginParams
-from niagads.genomicsdb.schema.admin.etl import ETLOperation
+from niagads.genomicsdb.schema.admin.types import ETLOperation
 from niagads.utils.logging import LOG_FORMAT_STR
 from pydantic import BaseModel
 
@@ -20,7 +20,9 @@ class ETLStatusReport(BaseModel):
     test: bool = False
     runtime: Optional[float] = None
     memory: Optional[float] = None
-    task_id: Union[ETLMode, int]
+    task_id: Optional[int] = None
+    run_id: Optional[int] = None
+    plugin: str
 
     def _validate_key_format(self, key: str):
         """
@@ -30,18 +32,6 @@ class ETLStatusReport(BaseModel):
             raise ValueError(
                 "Table must be qualified by a schema (e.g., 'myschema.mytable')."
             )
-
-    def increment_transaction(self, operation, table: str, count: int = 1):
-        """
-        Increment the count for a given ETLOperation and table.
-        """
-        self._validate_key_format(table)
-
-        if ETLOperation(operation) not in self.transactions:
-            self.transactions[operation] = {}
-        self.transactions[operation][table] = (
-            self.transactions[operation].get(table, 0) + count
-        )
 
     def total_writes(self) -> int:
         """
@@ -80,13 +70,10 @@ class ETLLogger:
         self,
         name: str,
         log_file: str,
-        run_id: str,
-        plugin: str,
-        task_id: Any = None,
         debug: bool = False,
     ):
         self.__logger = logging.getLogger(name)  # , run_id=run_id)# , plugin, task_id)
-        self.__logger.setLevel(logging.INFO)
+        self.__logger.setLevel(logging.DEBUG if debug else logging.INFO)
         handler = logging.FileHandler(log_file, mode="w")
         handler.setFormatter(logging.Formatter(LOG_FORMAT_STR))
         self.__logger.handlers.clear()

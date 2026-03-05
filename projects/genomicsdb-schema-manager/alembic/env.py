@@ -3,15 +3,24 @@ from logging.config import fileConfig
 
 from alembic import context
 from helpers.config import Settings
-from helpers.hooks import register_schema_creation, register_schemas
-from helpers.migration_context import MigrationContext
+from helpers.hooks import (
+    register_catalog_hooks,
+    register_schema_permissions,
+    register_schemas,
+)
+from helpers.migration_runner import MigrationRunner
 from niagads.database import DatabaseSessionManager
-from sqlalchemy import Connection
+from sqlalchemy import Connection, create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-# register hooks
+# load schema registry
 register_schemas()
-register_schema_creation()
+
+# register hooks that are attached to event listeners
+register_schema_permissions("etl_runner")
+register_schema_permissions("app_readonly", True)
+register_catalog_hooks()
+
 
 # get config options from the .ini file
 # including logging config
@@ -19,7 +28,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-migration_ctx: MigrationContext = MigrationContext()
+runner: MigrationRunner = MigrationRunner()
 
 
 def run_migrations_offline() -> None:
@@ -34,11 +43,11 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    migration_ctx.run_migrations_offline()
+    runner.run_migrations_offline()
 
 
 def do_run_migrations(connection: Connection) -> None:
-    migration_ctx.do_run_migrations(connection)
+    runner.do_run_migrations(connection)
 
 
 async def run_async_migrations() -> None:
@@ -49,7 +58,7 @@ async def run_async_migrations() -> None:
         connection_string=Settings.from_env().DATABASE_URI
     )
 
-    connectable: AsyncEngine = SessionManager.get_engine()
+    connectable: AsyncEngine = SessionManager.engine
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

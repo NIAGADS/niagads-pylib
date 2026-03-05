@@ -8,7 +8,6 @@
 * duplicates
 * placeholders
 
- 
 ## Top Priority
 
 The `GeneFeature` model needs to be moved to common.models and out of the API common:

@@ -18,10 +18,13 @@ from sqlalchemy.schema import CheckConstraint
 class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "gene"
     __table_args__ = (
+        *GenomicRegionMixin.__table_args__,
+        *GenomicRegionMixin.get_indexes(GeneTableBase._schema, __tablename__),
         CheckConstraint(
-            f"ensembl_id ~ '{RegularExpressions.ENSEMBL_GENE_ID}'",
-            name="ensembl_gene_id_format_check",
+            f"source_id ~ '{RegularExpressions.ENSEMBL_GENE_ID}'",
+            name="gene_source_id_format_check",
         ),
+        GeneTableBase.__table_args__,
     )
 
     gene_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -33,10 +36,13 @@ class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
 class TranscriptModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "transcript"
     __table_args__ = (
+        *GenomicRegionMixin.__table_args__,
+        *GenomicRegionMixin.get_indexes(GeneTableBase._schema, __tablename__),
         CheckConstraint(
-            f"ensembl_id ~ '{RegularExpressions.ENSEMBL_TRANSCRIPT_ID}'",
-            name="ensembl_transcript_id_format_check",
+            f"source_id ~ '{RegularExpressions.ENSEMBL_TRANSCRIPT_ID}'",
+            name="transcript_source_id_format_check",
         ),
+        GeneTableBase.__table_args__,
     )
 
     transcript_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -46,14 +52,17 @@ class TranscriptModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
 class ExonModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "exon"
     __table_args__ = (
+        *GenomicRegionMixin.__table_args__,
+        *GenomicRegionMixin.get_indexes(GeneTableBase._schema, __tablename__),
         CheckConstraint(
-            f"ensembl_id ~ '{RegularExpressions.ENSEMBL_EXON_ID}'",
-            name="ensembl_exon_id_format_check",
+            f"source_id ~ '{RegularExpressions.ENSEMBL_EXON_ID}'",
+            name="exon_source_id_format_check",
         ),
+        GeneTableBase.__table_args__,
     )
 
     exon_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    gene_id: gene_fk_column()  # type: ignore
+    gene_id: Mapped[int] = gene_fk_column()  # type: ignore
     transcript_id: Mapped[int] = mapped_column(
         ForeignKey("gene.transcript.transcript_id"), index=True, nullable=False
     )

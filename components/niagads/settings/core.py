@@ -35,7 +35,7 @@ class CustomSettings(BaseSettings):
                 env_file = f"{str(env)}.env"
                 return cls(_env_file=env_file)
             return cls()
-        except ValidationError as e:
+        except (ValidationError, ValueError) as e:
             error_details = "; ".join(
                 f"{err['loc'][0]}: {err['msg']}" for err in e.errors()
             )

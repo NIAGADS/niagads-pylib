@@ -66,7 +66,10 @@ class DatabaseSessionManager:
         Returns:
             str: The asyncpg-compatible PostgreSQL URI.
         """
-        return uri.replace("postgresql:", "postgresql+asyncpg:")
+        return uri.replace("postgresql:", "postgresql+asyncpg:").replace(
+            "postgres:",  # in case of copy paste from tsh connection string
+            "postgresql+asyncpg:",
+        )
 
     @property
     def engine(self) -> AsyncEngine:
@@ -105,6 +108,31 @@ class DatabaseSessionManager:
         if self.__engine is None:
             raise Exception("DatabaseSessionManager is not initialized")
         await self.__engine.dispose()
+
+    @asynccontextmanager
+    async def raw_connection(self):
+        """Provide an async context manager for a raw asyncpg connection.
+
+        Bypasses SQLAlchemy's prepared statement protocol, allowing execution
+        of multi-statement SQL strings and `$$`-quoted procedural blocks
+        (e.g., PL/pgSQL function definitions).
+
+        Yields:
+            asyncpg.Connection: The underlying asyncpg driver connection.
+
+        Raises:
+            RuntimeError: If the engine is not initialized.
+
+        Example:
+            async with manager.raw_connection() as conn:
+                await conn.execute(sql)
+        """
+        if self.__engine is None:
+            raise RuntimeError("DatabaseSessionManager is not initialized")
+
+        async with self.__engine.connect() as conn:
+            raw = await conn.get_raw_connection()
+            yield raw.driver_connection
 
     @asynccontextmanager
     async def session_ctx(self):
