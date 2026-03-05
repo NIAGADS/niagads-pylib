@@ -7,10 +7,6 @@
 - `Apache AGE`
 - `plpython`
 
-## Set Project Root
-
-Set `PROJECT_ROOT` to the full path to the `genomicsdb-schema-manager` project.
-
 ## Bootstrap Database
 
 Run the bootstrap script to create extensions and roles.
@@ -19,14 +15,19 @@ Run the bootstrap script to create extensions and roles.
 source $PROJECT_ROOT/initialize-db/boostrap_db.sh --commit
 ```
 
+where `$PROJECT_ROOT` is the full path to the `genomicsdb-schema-manager` project.
+
 ## Initial Alembic Migration - No Version Files Exist
+
+If building from already generated [version](../alembic/versions/) files, see [TBA]
 
 ### Alembic Environment
 
-In addition to `PROJECT_ROOT` Alembic needs the following environmental variables.
+Alembic needs the following environmental variables:
 
 - `DATABASE_URI` - database connection string in the format `postgresql://user:password@host:port/database`
 - `SCHEMA_DEFS` - (optional) for the schema registry, defaults to `niagads.genomicsdb.schema`
+- `PROJECT_ROOT`- the full path to the `genomicsdb-schema-manager` project
 
 Create a `.env` file with the following or set as system environmental variables.  **Note**: System variables will override anything in the `.env` file.
 
@@ -44,7 +45,13 @@ poetry run gdb_alembic --schema All --message "initial table creation - all sche
 poetry run gdb_alembic --upgrade 
 ```
 
-#### `Admin` Functions
+#### Step 3. Create `Admin` Helpers
+
+These commands will create DBAdmin Helper Views and Functions for tasks such as like lock and table Size monitoring, a lookup for user defined functions, estimating result sizes, etc.
+
+```bash
+source $PROJECT_ROOT/initialize-db/create_admin_views.sh --commit
+```
 
 #### `Admin` Views
 

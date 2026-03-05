@@ -75,6 +75,8 @@ def enum_column(
     enum_cls: CaseInsensitiveEnum
     for enum_cls in enum:
         combined_values.extend(enum_cls.list(return_enum_names=use_enum_names))
-    sa_enum = Enum(*combined_values, native_enum=native_enum)
+    name = "_".join(cls.__name__ for cls in enum)
+
+    sa_enum = Enum(*combined_values, native_enum=native_enum, name=name)
 
     return Column(sa_enum, nullable=nullable, index=index)

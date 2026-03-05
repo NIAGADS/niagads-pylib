@@ -64,7 +64,9 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMixi
     searchable_text: Mapped[str] = mapped_column(TEXT)
 
     is_shard: Mapped[Optional[bool]]
-    shard_chromosome: Mapped[str] = enum_column(HumanGenome, index=False, nullable=True)
+    shard_chromosome: Mapped[str] = enum_column(
+        HumanGenome, index=False, nullable=True, native_enum=True
+    )
     shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
     cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))
@@ -95,7 +97,7 @@ class TrackInterval(DatasetTableBase, GenomicRegionMixin):
         Index(
             "ix_index_trackinterval_track_id",
             "track_id",
-            postgresql_include=["num_hits", "span"],
+            postgresql_include=["num_hits", "genomic_region"],
         ),
         DatasetTableBase.__table_args__,
     )

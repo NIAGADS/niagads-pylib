@@ -75,7 +75,12 @@ class ChunkEmbedding(RAGDocTableBase):
             "chunk_hash",
             name="uq_embedding_chunk",
         ),
-        Index("ix_embedding_vector_hnsw", "embedding", postgresql_using="hnsw"),
+        Index(
+            "ix_embedding_vector_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
         Index("ix_chunkembedding_chunk_hash", "chunk_hash"),  # for checking staleness
         RAGDocTableBase.__table_args__,
     )

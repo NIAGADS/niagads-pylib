@@ -3,7 +3,7 @@ from datetime import datetime
 from niagads.database.helpers import datetime_column
 from niagads.genomicsdb.schema.admin.helpers import etlrun_fk_column
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import ForeignKey, Index, LargeBinary, String
+from sqlalchemy import Index, LargeBinary, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 
@@ -20,4 +20,11 @@ class EmbeddingMixin:
         """Return only the Index objects for __table_args__"""
 
         id = f"ix_{schema}_{table}_embedding"
-        return (Index(id, "embedding", postgresql_using="hnsw"),)
+        return (
+            Index(
+                id,
+                "embedding",
+                postgresql_using="hnsw",
+                postgresql_ops={"embedding": "vector_cosine_ops"},
+            ),
+        )

@@ -128,6 +128,7 @@ def register_catalog_hooks():
             schema_id = (
                 session.query(SchemaCatalog.schema_id).filter_by(name=schema).first()
             )
+
             if not schema_id:
                 logger.info(
                     f"New Schema `{schema}` detected. Adding to entry to `Admin.SchemaCatalog`"
@@ -136,8 +137,9 @@ def register_catalog_hooks():
                 session.add(schema_entry)
                 session.commit()
                 schema_id = schema_entry.schema_id
-
-        return schema_id
+                return schema_id
+            else:
+                return schema_id[0]
 
     def catalog_table_creation(target: Table, connection: Connection, **kw):
         """Insert table entry into admin.tablecatalog after table creation."""

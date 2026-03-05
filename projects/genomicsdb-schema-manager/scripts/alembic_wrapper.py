@@ -9,7 +9,6 @@ Usage:
 import argparse
 from os import path
 
-from helpers.migration_runner import MigrationRunner
 from helpers.config import Settings
 from niagads.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.utils.logging import setup_root_logger
@@ -182,6 +181,25 @@ class AlembicWrapper(ComponentBaseMixin):
                 f"Downgrade to revision `{revision}` failed.", exc_info=True
             )
 
+    def stamp(self, revision: str = "head"):
+        """
+        Stamp the database with a specific revision without running migrations.
+
+        Args:
+            revision (str): Revision identifier to stamp. Defaults to 'head'.
+        """
+        cmd = self._alembic_cmd_root.copy()
+        cmd.extend(["stamp", revision])
+
+        try:
+            stdout = execute_cmd(cmd, print_cmd_only=self._debug, verbose=self._verbose)
+            self.logger.info(f"Done - Stamp to revision `{revision}` complete.")
+            self.logger.info(stdout)
+        except RuntimeError as err:
+            self.logger.exception(
+                f"Stamp to revision `{revision}` failed.", exc_info=True
+            )
+
     def generate_revision(self, message: str, skip_fks: bool = False) -> None:
         """
         Generate an alembic revision.
@@ -250,6 +268,11 @@ def main():
         help="downgrade a revision",
     )
     parser.add_argument(
+        "--stamp",
+        action="store_true",
+        help="stamp the database to a given revision without running migrations",
+    )
+    parser.add_argument(
         "--revision",
         default="head",
         help="revision number; defaults to `head` for ugrades, `-1` for downgrades",
@@ -294,6 +317,7 @@ def main():
         "downgrade",
         "reset",
         "create_schema",
+        "stamp",
     ]
     actions = [getattr(args, name) for name in action_arg_names]
     allowed_actions = [f"--{name.replace('_', '-')}" for name in action_arg_names]
@@ -314,6 +338,9 @@ def main():
         wrapper.upgrade(revision=args.revision)
     if args.downgrade:
         wrapper.downgrade(revision="-1" if args.revision == "head" else args.revision)
+    if args.stamp:
+        # stamp uses the provided revision (defaults to head)
+        wrapper.stamp(revision=args.revision)
     if args.create_schema:
         if not args.schema:
             raise ValueError("Must provide --schema for --create-schema option.")
