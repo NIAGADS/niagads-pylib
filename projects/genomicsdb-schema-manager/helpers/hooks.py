@@ -164,7 +164,7 @@ def register_catalog_hooks():
                         TableCatalog(
                             schema_id=schema_id,
                             name=table_name,
-                            table_primary_key=pk_field,
+                            table_primary_key=pk_field.name,
                         )
                     )
                     session.commit()
