@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Track Metadata Builder</title>
+    <style>
+      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        margin: 0;
+        background: #f6f7f9;
+        color: #1f2937;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 24px auto;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 24px;
+      }
+      h1, h2 { margin: 0 0 12px 0; }
+      h2 {
+        margin-top: 24px;
+        font-size: 1.1rem;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 6px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 10px;
+      }
+      .field.full { grid-column: 1 / -1; }
+      label { font-weight: 600; margin-bottom: 4px; }
+      input, select, textarea {
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 8px;
+        font: inherit;
+      }
+      textarea { min-height: 84px; }
+      .hint { font-size: 0.85rem; color: #475569; margin-top: 4px; }
+      .error {
+        color: #991b1b;
+        font-size: 0.85rem;
+        margin-top: 4px;
+      }
+      .banner {
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        color: #92400e;
+        padding: 10px;
+        border-radius: 6px;
+        margin: 10px 0;
+      }
+      .actions { margin-top: 20px; }
+      button {
+        background: #0f766e;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 16px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      @media (max-width: 760px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Track Metadata Builder</h1>
+      <p>Fill out the form and download validated metadata JSON. No JSON editing is required.</p>
+
+      {% if errors.get("_form") %}
+      <div class="banner">{{ errors.get("_form") }}</div>
+      {% endif %}
+
+      <form method="post" action="/export">
+        <h2>Core Fields</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="track_id">Track ID *</label>
+            <input id="track_id" name="track_id" value="{{ form_data.get('track_id', '') }}" required />
+            {% if errors.get("track_id") %}<div class="error">{{ errors.get("track_id") }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label for="name">Name *</label>
+            <input id="name" name="name" value="{{ form_data.get('name', '') }}" required />
+            {% if errors.get("name") %}<div class="error">{{ errors.get("name") }}</div>{% endif %}
+          </div>
+
+          <div class="field full">
+            <label for="description">Description</label>
+            <textarea id="description" name="description">{{ form_data.get('description', '') }}</textarea>
+            {% if errors.get("description") %}<div class="error">{{ errors.get("description") }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label for="genome_build">Genome Build *</label>
+            <select id="genome_build" name="genome_build" required>
+              {% for option in genome_build_options %}
+              <option value="{{ option }}" {% if form_data.get('genome_build') == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+            {% if errors.get("genome_build") %}<div class="error">{{ errors.get("genome_build") }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label for="feature_type">Feature Type</label>
+            <input id="feature_type" name="feature_type" value="{{ form_data.get('feature_type', '') }}" />
+            {% if errors.get("feature_type") %}<div class="error">{{ errors.get("feature_type") }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label for="cohorts">Cohorts (one per line)</label>
+            <textarea id="cohorts" name="cohorts">{{ form_data.get('cohorts', '') }}</textarea>
+            {% if errors.get("cohorts") %}<div class="error">{{ errors.get("cohorts") }}</div>{% endif %}
+          </div>
+        </div>
+
+        <h2>Biosample Characteristics</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="biosample_characteristics.system">System (one per line)</label>
+            <textarea id="biosample_characteristics.system" name="biosample_characteristics.system">{{ form_data.get('biosample_characteristics.system', '') }}</textarea>
+          </div>
+          <div class="field">
+            <label for="biosample_characteristics.tissue">Tissue (one per line)</label>
+            <textarea id="biosample_characteristics.tissue" name="biosample_characteristics.tissue">{{ form_data.get('biosample_characteristics.tissue', '') }}</textarea>
+          </div>
+          <div class="field">
+            <label for="biosample_characteristics.biomarker">Biomarker (one per line)</label>
+            <textarea id="biosample_characteristics.biomarker" name="biosample_characteristics.biomarker">{{ form_data.get('biosample_characteristics.biomarker', '') }}</textarea>
+          </div>
+          <div class="field">
+            <label for="biosample_characteristics.biosample_type">Biosample Type</label>
+            <input id="biosample_characteristics.biosample_type" name="biosample_characteristics.biosample_type" value="{{ form_data.get('biosample_characteristics.biosample_type', '') }}" />
+          </div>
+          <div class="field">
+            <label for="biosample_characteristics.life_stage">Life Stage</label>
+            <input id="biosample_characteristics.life_stage" name="biosample_characteristics.life_stage" value="{{ form_data.get('biosample_characteristics.life_stage', '') }}" />
+          </div>
+          <div class="field full">
+            <label for="biosample_characteristics.biosample">Biosample Ontology Terms</label>
+            <textarea id="biosample_characteristics.biosample" name="biosample_characteristics.biosample">{{ form_data.get('biosample_characteristics.biosample', '') }}</textarea>
+            <div class="hint">Use one line per term: <code>term|term_id</code> (term_id optional).</div>
+          </div>
+        </div>
+
+        <h2>Subject Phenotypes</h2>
+        <div class="grid">
+          <div class="field"><label for="subject_phenotypes.disease">Disease</label><textarea id="subject_phenotypes.disease" name="subject_phenotypes.disease">{{ form_data.get('subject_phenotypes.disease', '') }}</textarea></div>
+          <div class="field"><label for="subject_phenotypes.ethnicity">Ethnicity</label><textarea id="subject_phenotypes.ethnicity" name="subject_phenotypes.ethnicity">{{ form_data.get('subject_phenotypes.ethnicity', '') }}</textarea></div>
+          <div class="field"><label for="subject_phenotypes.race">Race</label><textarea id="subject_phenotypes.race" name="subject_phenotypes.race">{{ form_data.get('subject_phenotypes.race', '') }}</textarea></div>
+          <div class="field"><label for="subject_phenotypes.neuropathology">Neuropathology</label><textarea id="subject_phenotypes.neuropathology" name="subject_phenotypes.neuropathology">{{ form_data.get('subject_phenotypes.neuropathology', '') }}</textarea></div>
+          <div class="field"><label for="subject_phenotypes.genotype">Genotype</label><textarea id="subject_phenotypes.genotype" name="subject_phenotypes.genotype">{{ form_data.get('subject_phenotypes.genotype', '') }}</textarea></div>
+          <div class="field"><label for="subject_phenotypes.biological_sex">Biological Sex</label><textarea id="subject_phenotypes.biological_sex" name="subject_phenotypes.biological_sex">{{ form_data.get('subject_phenotypes.biological_sex', '') }}</textarea></div>
+          <div class="field full"><div class="hint">For each field above, use one line per term: <code>term|term_id</code>.</div></div>
+        </div>
+
+        <h2>Experimental Design</h2>
+        <div class="grid">
+          <div class="field"><label for="experimental_design.assay">Assay</label><input id="experimental_design.assay" name="experimental_design.assay" value="{{ form_data.get('experimental_design.assay', '') }}" /></div>
+          <div class="field"><label for="experimental_design.analysis">Analysis</label><input id="experimental_design.analysis" name="experimental_design.analysis" value="{{ form_data.get('experimental_design.analysis', '') }}" /></div>
+          <div class="field"><label for="experimental_design.classification">Classification</label><input id="experimental_design.classification" name="experimental_design.classification" value="{{ form_data.get('experimental_design.classification', '') }}" /></div>
+          <div class="field"><label for="experimental_design.data_category">Data Category</label><input id="experimental_design.data_category" name="experimental_design.data_category" value="{{ form_data.get('experimental_design.data_category', '') }}" /></div>
+          <div class="field"><label for="experimental_design.output_type">Output Type</label><input id="experimental_design.output_type" name="experimental_design.output_type" value="{{ form_data.get('experimental_design.output_type', '') }}" /></div>
+          <div class="field"><label for="experimental_design.antibody_target">Antibody Target</label><input id="experimental_design.antibody_target" name="experimental_design.antibody_target" value="{{ form_data.get('experimental_design.antibody_target', '') }}" /></div>
+          <div class="field"><label for="experimental_design.covariates">Covariates (one per line)</label><textarea id="experimental_design.covariates" name="experimental_design.covariates">{{ form_data.get('experimental_design.covariates', '') }}</textarea></div>
+          <div class="field">
+            <label for="experimental_design.is_lifted">Is Lifted</label>
+            <select id="experimental_design.is_lifted" name="experimental_design.is_lifted">
+              <option value=""></option>
+              <option value="true" {% if form_data.get('experimental_design.is_lifted') == 'true' %}selected{% endif %}>true</option>
+              <option value="false" {% if form_data.get('experimental_design.is_lifted') == 'false' %}selected{% endif %}>false</option>
+            </select>
+          </div>
+        </div>
+
+        <h2>Provenance</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="provenance.data_source">Data Source *</label>
+            <input id="provenance.data_source" name="provenance.data_source" value="{{ form_data.get('provenance.data_source', '') }}" required />
+            {% if errors.get("provenance.data_source") %}<div class="error">{{ errors.get("provenance.data_source") }}</div>{% endif %}
+          </div>
+          <div class="field"><label for="provenance.release_version">Release Version</label><input id="provenance.release_version" name="provenance.release_version" value="{{ form_data.get('provenance.release_version', '') }}" /></div>
+          <div class="field"><label for="provenance.release_date">Release Date</label><input id="provenance.release_date" name="provenance.release_date" value="{{ form_data.get('provenance.release_date', '') }}" /></div>
+          <div class="field"><label for="provenance.download_date">Download Date</label><input id="provenance.download_date" name="provenance.download_date" value="{{ form_data.get('provenance.download_date', '') }}" /></div>
+          <div class="field full"><label for="provenance.download_url">Download URL</label><input id="provenance.download_url" name="provenance.download_url" value="{{ form_data.get('provenance.download_url', '') }}" /></div>
+          <div class="field"><label for="provenance.study">Study</label><input id="provenance.study" name="provenance.study" value="{{ form_data.get('provenance.study', '') }}" /></div>
+          <div class="field"><label for="provenance.project">Project</label><input id="provenance.project" name="provenance.project" value="{{ form_data.get('provenance.project', '') }}" /></div>
+          <div class="field"><label for="provenance.accession">Accession</label><input id="provenance.accession" name="provenance.accession" value="{{ form_data.get('provenance.accession', '') }}" /></div>
+          <div class="field"><label for="provenance.attribution">Attribution</label><input id="provenance.attribution" name="provenance.attribution" value="{{ form_data.get('provenance.attribution', '') }}" /></div>
+          <div class="field"><label for="provenance.pubmed_id">PubMed IDs (one per line)</label><textarea id="provenance.pubmed_id" name="provenance.pubmed_id">{{ form_data.get('provenance.pubmed_id', '') }}</textarea></div>
+          <div class="field"><label for="provenance.doi">DOIs (one per line)</label><textarea id="provenance.doi" name="provenance.doi">{{ form_data.get('provenance.doi', '') }}</textarea>{% if errors.get("provenance.doi") %}<div class="error">{{ errors.get("provenance.doi") }}</div>{% endif %}</div>
+          <div class="field"><label for="provenance.consortium">Consortium (one per line)</label><textarea id="provenance.consortium" name="provenance.consortium">{{ form_data.get('provenance.consortium', '') }}</textarea></div>
+        </div>
+
+        <h2>File Properties</h2>
+        <div class="grid">
+          <div class="field"><label for="file_properties.file_name">File Name</label><input id="file_properties.file_name" name="file_properties.file_name" value="{{ form_data.get('file_properties.file_name', '') }}" /></div>
+          <div class="field"><label for="file_properties.url">URL</label><input id="file_properties.url" name="file_properties.url" value="{{ form_data.get('file_properties.url', '') }}" /></div>
+          <div class="field"><label for="file_properties.md5sum">MD5</label><input id="file_properties.md5sum" name="file_properties.md5sum" value="{{ form_data.get('file_properties.md5sum', '') }}" />{% if errors.get("file_properties.md5sum") %}<div class="error">{{ errors.get("file_properties.md5sum") }}</div>{% endif %}</div>
+          <div class="field"><label for="file_properties.file_format">File Format</label><input id="file_properties.file_format" name="file_properties.file_format" value="{{ form_data.get('file_properties.file_format', '') }}" /></div>
+          <div class="field"><label for="file_properties.file_schema">File Schema</label><input id="file_properties.file_schema" name="file_properties.file_schema" value="{{ form_data.get('file_properties.file_schema', '') }}" /></div>
+          <div class="field"><label for="file_properties.release_date">Release Date</label><input id="file_properties.release_date" name="file_properties.release_date" value="{{ form_data.get('file_properties.release_date', '') }}" /></div>
+          <div class="field"><label for="file_properties.bp_covered">BP Covered</label><input id="file_properties.bp_covered" name="file_properties.bp_covered" value="{{ form_data.get('file_properties.bp_covered', '') }}" /></div>
+          <div class="field"><label for="file_properties.num_intervals">Num Intervals</label><input id="file_properties.num_intervals" name="file_properties.num_intervals" value="{{ form_data.get('file_properties.num_intervals', '') }}" /></div>
+          <div class="field"><label for="file_properties.file_size">File Size</label><input id="file_properties.file_size" name="file_properties.file_size" value="{{ form_data.get('file_properties.file_size', '') }}" /></div>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Validate and Download JSON</button>
+        </div>
+      </form>
+    </div>
+  </body>
+</html>
