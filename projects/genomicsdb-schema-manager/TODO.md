@@ -1,5 +1,11 @@
 # TODOs
 
+- need to give name to all enums then try migration again - update `enum_constraint` function
+
+```python
+sa.Enum("SUCCESS", "FAIL", "RUNNING", name="status_enum", native_enum=False)
+```
+
 - get rid of the `schema/{schema}/core.py` files and update register schemas/table classes code.  I don't think it is needed anymore with the root `schema/core.py` file
 
 - for functions, views, triggers, etc use [alembic_utils](https://github.com/olirice/alembic_utils) (already added as depedency)
