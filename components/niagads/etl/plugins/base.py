@@ -590,7 +590,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         if self.affected_tables is None:
             self.__status_report.transactions = {}
 
-        async with self.session_ctx() as session:
+        if self.is_dry_run:
+            return self.__transaction_count
+
+        async with self.session_ctx as session:
             tallies = {
                 f"{table.__table__.schema}.{table.__table__.name}": await table.get_run_transaction_count(
                     session, estimate_only=self.is_large_dataset

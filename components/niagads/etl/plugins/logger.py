@@ -112,12 +112,15 @@ class ETLLogger:
         self,
         line: Optional[int] = None,
         record: Optional[Any] = None,
+        record_id: Optional[str] = None,
         error: Optional[Exception] = None,
     ):
         self.report_section("ETL Resume Checkpoint")
         checkpoint = []
         if line is not None:
             checkpoint.append(f"line={line}")
+        if record_id is not None:
+            checkpoint.append(f"record_id={record_id}")
         if record is not None:
             checkpoint.append(f"record={record}")
         self.info("CHECKPOINT:", ";".join(checkpoint))
@@ -152,13 +155,11 @@ class ETLLogger:
         else:
             self.info(f"{'WROTE':<{keyw}} : {tx_count} records.")
 
-            # log transaction types, iterating over reference
-            # to ensure order is consistent when logging
-
-            for table, record_count in status.transactions.items():
-                self.info(
-                    f"{str(status.operation):<{keyw}} : {record_count} records into {table}"
-                )
+            if len(status.transactions) > 0:
+                for table, record_count in status.transactions.items():
+                    self.info(
+                        f"{str(status.operation):<{keyw}} : {record_count} records into {table}"
+                    )
             else:
                 self.info(f"{str(status.operation):<{keyw}} : 0 records")
 
