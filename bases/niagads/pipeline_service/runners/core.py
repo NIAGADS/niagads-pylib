@@ -5,9 +5,9 @@ from niagads.arg_parser.core import (
     comma_separated_list,
     json_type,
 )
+from niagads.common.types import ProcessStatus
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.pipeline.manager import PipelineManager, ETLMode
-from niagads.enums.common import ProcessStatus
 
 
 class PipelineRunner:

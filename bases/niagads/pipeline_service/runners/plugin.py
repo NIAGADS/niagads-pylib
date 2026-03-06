@@ -9,7 +9,7 @@ from niagads.arg_parser.core import (
     comma_separated_list,
     json_type,
 )
-from niagads.enums.common import ProcessStatus
+from niagads.common.types import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.base import AbstractBasePlugin

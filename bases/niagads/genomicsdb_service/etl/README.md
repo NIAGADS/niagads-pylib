@@ -114,7 +114,7 @@ Below is a simplified example of how to implement a plugin that loads and proces
 ```python
 from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin, ResumeCheckpoint
-from niagads.genomicsdb.models.admin.pipeline import ETLOperation
+from niagads.etl.plugins.types import ETLOperation
 from pydantic import Field
 
 class SimpleTextLoaderParams(BasePluginParams, PathValidatorMixin):

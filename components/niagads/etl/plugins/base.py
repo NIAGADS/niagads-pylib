@@ -1,30 +1,24 @@
 import os
 from abc import ABC, abstractmethod
 from datetime import datetime
-from enum import auto
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 import psutil
 from niagads.common.core import ComponentBaseMixin
+from niagads.common.types import ProcessStatus
 from niagads.database.session import DatabaseSessionManager
-from niagads.enums.common import ProcessStatus
-from niagads.enums.core import CaseInsensitiveEnum
-from niagads.etl.types import ETLMode
 from niagads.etl.pipeline.config import PipelineSettings
-from niagads.etl.plugins.logger import ETLLogger, ETLStatusReport
+from niagads.etl.plugins.logger import ETLLogger
 from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
+from niagads.etl.plugins.types import ETLRunStatus, LoadStrategy
+from niagads.etl.types import ETLMode
 from niagads.genomicsdb.schema.admin.etl import ETLRun
-from niagads.genomicsdb.schema.admin.types import ETLOperation
+from niagads.etl.plugins.types import ETLOperation
 from niagads.utils.asynchronous import null_async_context
 from niagads.utils.list import chunker
 from niagads.utils.logging import FunctionContextLoggerWrapper
 from sqlalchemy.ext.asyncio import AsyncSession
-
-
-class LoadStrategy(CaseInsensitiveEnum):
-    CHUNKED = auto()
-    BULK = auto()
-    BATCH = auto()
+from sqlalchemy.orm import DeclarativeBase
 
 
 class AbstractBasePlugin(ABC, ComponentBaseMixin):
@@ -69,9 +63,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         self._name = name or self.__class__.__name__
         self.__start_time: Optional[datetime] = None
-        self.__status_report: ETLStatusReport = None
+        self.__status_report: ETLRunStatus = None
         self.__checkpoint: ResumeCheckpoint = None
         self.__etl_run: ETLRun = None
+        self.__transaction_count: int = None
 
         # parameter based properties
         self._mode = ETLMode(self._params.mode)
@@ -117,6 +112,30 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             return self.__etl_run.etl_run_id
         else:
             return None
+
+    @property
+    def total_writes(self):
+        # not doing any checks here b/c want to raise errors if used incorrectly
+        return self.__status_report.total_writes()
+
+    @property
+    def tx_count(self):
+        return self.__transaction_count
+
+    @tx_count.setter
+    def tx_count(self, value):
+        self.__transaction_count = value
+
+    def inc_tx_count(self, amount=1):
+        """
+        Increment the transaction (tx) counter
+
+        Args:
+            amount (int, optional): increment amount. Defaults to 1.
+        """
+        if self.__transaction_count is None:
+            self.__transaction_count = 0
+        self.__transaction_count += amount
 
     # -------------------------
     # Initialization helpers
@@ -184,14 +203,19 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
     @property
     @abstractmethod
-    def affected_tables(self) -> List[str]:
+    def affected_tables(self) -> list[Type[DeclarativeBase]]:
         """
         Get the list of database tables this plugin writes to.
 
         Returns:
-            List[str]: List of affected table names.
+            List[Type[DeclarativeBase]]: List of table classes
         """
         ...
+
+    @property
+    @abstractmethod
+    def is_large_dataset(self) -> bool:
+        return False
 
     @property
     @abstractmethod
@@ -243,11 +267,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     async def load(self, session, transformed) -> ResumeCheckpoint:
         """
         Persist transformed data using an async SQLAlchemy session.
-
-        IMPLEMENTER WARNING:
-        You MUST tally all updates and inserts using self.update_transaction_count
-        for every record processed in your load() implementation. This is required
-        for accurate ETL status reporting.
 
         Args:
             session: Async SQLAlchemy session.
@@ -367,8 +386,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         Commit or rollback the session based on ETLMode and commit_after logic.
         """
-        total_transactions = self.__status_report.total_writes()
-        msg = f"{total_transactions} records"
+        msg = f"{self.__transaction_count} records"
         if self._mode == ETLMode.COMMIT:
             await session.commit()
             self.logger.info("COMMITED", msg)
@@ -378,15 +396,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         # if transaction is successful, can update the checkpoint
         self.__checkpoint = checkpoint
-
-    def __handle_dry_run(self, count: int):
-        """
-        Helper for DRY_RUN mode: update transaction count for the correct table.
-        Args:
-            count (int): Number of records to count as processed.
-        """
-        table = self.affected_tables[0] if len(self.affected_tables) == 1 else "DRY.RUN"
-        self.update_transaction_count(self.operation, table, count)
 
     async def __execute_load(self, session, buffer) -> ResumeCheckpoint:
         """
@@ -420,14 +429,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         # basically not checking previous count b/c only care if this
         # fails the first time; if the implemeter forgot to count transactions
         # it should fail with first "batch"
-        transaction_count = (
-            self.__status_report.total_writes() + self.__status_report.total_skips()
-        )
-
-        if transaction_count == 0:
+        if self.__transaction_count is None:
             raise RuntimeError(
-                "Implementation Error: No transaction counts were updated in load(); "
-                "please call self.update_transaction_count to update counts of INSERTS/UPDATES/SKIPS."
+                "Implementation Error: No transactions were tallied.  Implementers "
+                " must call inc_tx_count to track number of transactions."
             )
 
         return checkpoint
@@ -437,10 +442,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         if self.is_dry_run:
             try:
-                count = len(buffer)
+                estimated_tx_count = len(buffer)
             except TypeError:  # handle iterators/generators
-                count = sum(1 for _ in buffer)
-            self.__handle_dry_run(count)
+                estimated_tx_count = sum(1 for _ in buffer)
+            self.inc_tx_count(estimated_tx_count)
         else:
             checkpoint = await self.__execute_load(session, buffer)
 
@@ -494,10 +499,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             # Bulk: load all at once, ignore commit_after
             if self.is_dry_run:
                 try:
-                    count = len(processed_records)
+                    estimated_tx_count = len(processed_records)
                 except TypeError:  # handle iterators/generators
-                    count = sum(1 for _ in processed_records)
-                self.__handle_dry_run(count)
+                    estimated_tx_count = sum(1 for _ in processed_records)
+                self.inc_tx_count(estimated_tx_count)
                 return None
             else:
                 checkpoint = await self.__execute_load(session, processed_records)
@@ -554,23 +559,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         async with self.session_ctx() as session:
             await self.__etl_run.update(session)
 
-    def update_transaction_count(
-        self, transaction_type: ETLOperation, table: str, count: int = 1
-    ):
-        """
-        Increment the count for a given ETLOperation and table in the ETL status report.
-
-        Args:
-            transaction_type (ETLOperation): The ETL operation type
-            table (str): Fully-qualified table name ('schema.table').
-            count (int): Number of transactions to add to the total count. Default = 1.
-
-        Raises:
-            RuntimeError: If ETLStatusReport is not initialized.
-        """
-        self.__status_report.increment_transaction(transaction_type, table, count)
-
-    def generate_checkpoint(self, line=None, record=None) -> ResumeCheckpoint:
+    def set_checkpoint(self, line=None, record=None) -> ResumeCheckpoint:
         """
         Generate a checkpoint for the current ETL state.
 
@@ -588,6 +577,27 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             full_record=record,
             record=self.get_record_id(record) if record is not None else None,
         )
+
+    async def __summarize_transactions(self):
+        """
+        Summarize transaction counts for all affected tables.
+
+        Returns:
+            dict: Mapping of fully qualified table name (schema.table) to row count.
+                Uses estimate_row_count if is_large_dataset is True, otherwise exact count.
+        """
+        if self.affected_tables is None:
+            self.__status_report.transactions = {}
+
+        async with self.session_ctx() as session:
+            tallies = {
+                f"{table.__table__.schema}.{table.__table__.name}": await table.get_run_transaction_count(
+                    session, estimate_only=self.is_large_dataset
+                )
+                for table in self.affected_tables
+            }
+
+        self.__status_report.transactions = tallies
 
     # -------------------------
     # Run orchestration
@@ -645,11 +655,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         try:
             await self.__initialize_etl_run()
             execution_status = ProcessStatus.RUNNING
-            self.__status_report = ETLStatusReport(
+            self.__status_report = ETLRunStatus(
                 status=execution_status,
                 mode=self._mode,
-                test=self.is_dry_run,
                 run_id=self.run_id,
+                operation=self.operation,
             )
 
         except Exception as e:
@@ -709,7 +719,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     datetime.now(),  # end time
                     execution_status,
                     message=f"ETL run failed: {e}",
-                    rows_processed=self.__status_report.total_writes(),
+                    rows_processed=self.__transaction_count,
                 )
         finally:
             self.on_run_complete()
@@ -721,23 +731,22 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.__status_report.runtime = runtime
             self.__status_report.memory = mem_mb
             self.__status_report.status = execution_status
+            self.__summarize_transactions()
             self.logger.status(self.__status_report)
 
-            total_writes = self.__status_report.total_writes()
-
-            if not self.is_dry_run and (
-                total_writes == 0 and self.__status_report.total_skips() == 0
-            ):
+            if not self.is_dry_run and self.__transaction_count is None:
                 self.logger.warning(
                     "WARNING: No transaction counts were updated in load(). "
-                    "Implementers must call `update_transaction_count` after "
-                    "inserts/updates/skips to ensure proper status reporting."
+                    "Implementers must call `inc_tx_count` after "
+                    "inserts/updates to ensure proper status reporting."
                 )
 
             try:
                 if self.run_id:
                     await self.__finalize_etl_run(
-                        end_time, execution_status, rows_processed=total_writes
+                        end_time,
+                        execution_status,
+                        rows_processed=self.__transaction_count,
                     )
 
             except Exception as db_error:

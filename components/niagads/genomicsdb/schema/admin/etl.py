@@ -8,10 +8,10 @@ from datetime import datetime
 from enum import auto
 
 from niagads.database.helpers import datetime_column, enum_column, enum_constraint
-from niagads.enums.common import ProcessStatus
+from niagads.common.types import ProcessStatus
 from niagads.genomicsdb.schema.admin.base import AdminTableBase
 from niagads.genomicsdb.schema.admin.helpers import etlrun_fk_column
-from niagads.genomicsdb.schema.admin.types import ETLOperation
+from niagads.etl.plugins.types import ETLOperation
 from sqlalchemy import String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column

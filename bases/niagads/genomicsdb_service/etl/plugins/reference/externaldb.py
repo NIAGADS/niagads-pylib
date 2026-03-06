@@ -6,7 +6,7 @@ External Database Loader Plugin
 import json
 from typing import Any, Dict, Iterator, List, Optional, Type
 
-from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
+from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     JSONConfigValidatorMixin,
@@ -14,7 +14,8 @@ from niagads.etl.plugins.parameters import (
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.schema.admin.types import ETLOperation
+from niagads.etl.plugins.types import LoadStrategy
+from niagads.etl.plugins.types import ETLOperation
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from pydantic import Field
 

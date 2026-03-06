@@ -13,14 +13,15 @@ from niagads.common.constants.ontologies import (
     RDFPropertyIRI,
 )
 from niagads.common.helpers.ontologies import get_field_iri
-from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
+from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     PathValidatorMixin,
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.schema.admin.types import ETLOperation
+from niagads.etl.plugins.types import LoadStrategy
+from niagads.etl.plugins.types import ETLOperation
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.genomicsdb.schema.reference.ontology import (
     OntologyGraphTermVertex,
@@ -33,7 +34,7 @@ from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
 from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM, NLPModelType
 from pydantic import BaseModel, Field, field_validator
-from rdflib import Graph, Literal, URIRef, BNode
+from rdflib import BNode, Graph, Literal, URIRef
 from sqlalchemy.exc import NoResultFound  # TODO Wrap
 
 

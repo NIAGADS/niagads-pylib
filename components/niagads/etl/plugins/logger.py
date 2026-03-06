@@ -1,63 +1,12 @@
 import logging
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional
 
-from niagads.enums.common import ProcessStatus
+
+from niagads.etl.plugins.types import ETLRunStatus
 from niagads.etl.types import ETLMode
 from niagads.etl.plugins.parameters import BasePluginParams
-from niagads.genomicsdb.schema.admin.types import ETLOperation
+from niagads.etl.plugins.types import ETLOperation
 from niagads.utils.logging import LOG_FORMAT_STR
-from pydantic import BaseModel
-
-
-class ETLStatusReport(BaseModel):
-    """
-    Status report for ETL operations.
-    """
-
-    transactions: Dict[ETLOperation, Dict[str, int]] = {}
-    status: ProcessStatus
-    mode: ETLMode
-    test: bool = False
-    runtime: Optional[float] = None
-    memory: Optional[float] = None
-    task_id: Optional[int] = None
-    run_id: Optional[int] = None
-    plugin: str
-
-    def _validate_key_format(self, key: str):
-        """
-        Ensure key is in 'schema.table' format.
-        """
-        if not isinstance(key, str) or "." not in key or key.count(".") != 1:
-            raise ValueError(
-                "Table must be qualified by a schema (e.g., 'myschema.mytable')."
-            )
-
-    def total_writes(self) -> int:
-        """
-        Return the total number of records written.
-        """
-        total = 0
-        for operation, table_counts in self.transactions.items():
-            if operation not in [ETLOperation.SKIP, ETLOperation.DELETE]:
-                total += sum(table_counts.values())
-        return total
-
-    def total_skips(self) -> int:
-        """
-        Return the total number of skipped records
-        """
-        if ETLOperation.SKIP in self.transactions:
-            return sum(self.transactions[ETLOperation.SKIP].values())
-        return 0
-
-    def total_deletes(self) -> int:
-        """
-        Return the total number of deleted records.
-        """
-        if ETLOperation.DELETE in self.transactions:
-            return sum(self.transactions[ETLOperation.DELETE].values())
-        return 0
 
 
 class ETLLogger:
@@ -177,7 +126,7 @@ class ETLLogger:
         self.report_section_end("ETL Resume Checkpoint")
         self.flush()
 
-    def status(self, status: ETLStatusReport):
+    def status(self, status: ETLRunStatus):
         """
         Log ETL status from an ETLStatusReport model.
         Logs zero if inserts/updates are empty.
@@ -196,23 +145,22 @@ class ETLLogger:
             self.info(f"{'MEMORY':<{keyw}} : {status.memory:.2f}MB")
 
         # log writes
-        count = status.total_writes()
+        tx_count = status.total_writes()
         if status.mode == ETLMode.DRY_RUN:
-            self.info(f"{'PROCESSED':<{keyw}} : {count} records.")
+            self.info(f"{'PROCESSED':<{keyw}} : {tx_count} records.")
 
         else:
-            self.info(f"{'WROTE':<{keyw}} : {count} records.")
+            self.info(f"{'WROTE':<{keyw}} : {tx_count} records.")
 
             # log transaction types, iterating over reference
             # to ensure order is consistent when logging
 
-            for operation in ETLOperation.list():
-                for table, record_count in status.transactions[str(operation)].items():
-                    self.info(
-                        f"{str(operation):<{keyw}} : {record_count} records into {table}"
-                    )
+            for table, record_count in status.transactions.items():
+                self.info(
+                    f"{str(status.operation):<{keyw}} : {record_count} records into {table}"
+                )
             else:
-                self.info(f"{str(operation):<{keyw}} : 0 records")
+                self.info(f"{str(status.operation):<{keyw}} : 0 records")
 
         self.info(f"{'STATUS':<{keyw}} : {str(status.status)}")
         self.report_section_end("Transaction Summary")
