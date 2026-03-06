@@ -11,7 +11,7 @@ from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger
 from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
 from niagads.etl.plugins.registry import PluginMetadata, PluginRegistry
-from niagads.etl.plugins.types import ETLRunStatus, ETLLoadStrategy
+from niagads.etl.plugins.types import ETLLoadResult, ETLRunStatus, ETLLoadStrategy
 from niagads.etl.types import ETLMode
 from niagads.genomicsdb.schema.admin.etl import ETLRun
 from niagads.etl.plugins.types import ETLOperation
@@ -37,7 +37,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         * bulk: extract->transform over entire dataset; load() called once with bulk data.
 
     Note:
-        The `run` method supports runtime parameter overrides, which are applied only for the duration of the run and do not mutate the instance's original parameters.
+        The `run` method supports runtime parameter overrides, which are applied only for the
+        duration of the run and do not mutate the instance's original parameters.
 
     Plugins must implement `load()` using self.session_manager.session() (async).
     Plugins decide when to commit inside load() (per buffer/batch) — pipeline does NOT auto-commit.
@@ -265,7 +266,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         ...
 
     @abstractmethod
-    async def load(self, session, transformed) -> ResumeCheckpoint:
+    async def load(self, session, transformed) -> ETLLoadResult:
         """
         Persist transformed data using an async SQLAlchemy session.
 
@@ -417,23 +418,25 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         if not buffer or len(buffer) == 0:
             raise ValueError("Empty buffer (transformed) passed to load.")
 
-        checkpoint = await self.load(session, buffer)
+        result: ETLLoadResult = await self.load(session, buffer)
+
+        if not isinstance(result, ETLLoadResult):
+            raise TypeError(
+                "Implementation Error: `your plugin's load()` must return an `ETLLoadResult`, including a "
+                "checkpoint (nullable) and transaction_count >= 0"
+            )
+
+        # increment transaction count
+        self.inc_tx_count(result.transaction_count)
+
+        checkpoint = result.checkpoint
 
         # a plugin may not have checkpoint handling so
         # returning None is okay
         if checkpoint and not isinstance(checkpoint, ResumeCheckpoint):
             raise TypeError(
                 "Implementation Error: your plugin's load() must return None or a `ResumeCheckpoint`; "
-                "see `components.niagads.etl.plugins.base.ResumeCheckpoint`."
-            )
-
-        # basically not checking previous count b/c only care if this
-        # fails the first time; if the implemeter forgot to count transactions
-        # it should fail with first "batch"
-        if self.__transaction_count is None:
-            raise RuntimeError(
-                "Implementation Error: No transactions were tallied.  Implementers "
-                " must call inc_tx_count to track number of transactions."
+                "for the checkpoint value"
             )
 
         return checkpoint
@@ -587,21 +590,19 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             dict: Mapping of fully qualified table name (schema.table) to row count.
                 Uses estimate_row_count if is_large_dataset is True, otherwise exact count.
         """
-        if self.affected_tables is None:
+        if self.affected_tables is None or self.is_dry_run:
             self.__status_report.transactions = {}
 
-        if self.is_dry_run:
-            return self.__transaction_count
+        else:
+            async with self.session_ctx() as session:
+                tallies = {
+                    f"{table.__table__.schema}.{table.__table__.name}": await table.get_run_transaction_count(
+                        session, estimate_only=self.is_large_dataset
+                    )
+                    for table in self.affected_tables
+                }
 
-        async with self.session_ctx as session:
-            tallies = {
-                f"{table.__table__.schema}.{table.__table__.name}": await table.get_run_transaction_count(
-                    session, estimate_only=self.is_large_dataset
-                )
-                for table in self.affected_tables
-            }
-
-        self.__status_report.transactions = tallies
+            self.__status_report.transactions = tallies
 
     # -------------------------
     # Run orchestration
@@ -736,15 +737,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.__status_report.runtime = runtime
             self.__status_report.memory = mem_mb
             self.__status_report.status = execution_status
+            if self.is_dry_run:
+                self.__status_report.estimated_transaction_count = (
+                    self.__transaction_count
+                )
             await self.__summarize_transactions()
             self.logger.status(self.__status_report)
-
-            if not self.is_dry_run and self.__transaction_count is None:
-                self.logger.warning(
-                    "WARNING: No transaction counts were updated in load(). "
-                    "Implementers must call `inc_tx_count` after "
-                    "inserts/updates to ensure proper status reporting."
-                )
 
             try:
                 if self.run_id:
