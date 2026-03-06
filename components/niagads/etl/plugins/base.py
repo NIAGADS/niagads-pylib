@@ -10,7 +10,8 @@ from niagads.database.session import DatabaseSessionManager
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger
 from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
-from niagads.etl.plugins.types import ETLRunStatus, LoadStrategy
+from niagads.etl.plugins.registry import PluginMetadata, PluginRegistry
+from niagads.etl.plugins.types import ETLRunStatus, ETLLoadStrategy
 from niagads.etl.types import ETLMode
 from niagads.genomicsdb.schema.admin.etl import ETLRun
 from niagads.etl.plugins.types import ETLOperation
@@ -67,6 +68,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.__checkpoint: ResumeCheckpoint = None
         self.__etl_run: ETLRun = None
         self.__transaction_count: int = None
+        try:
+            self.__metadata: PluginMetadata = PluginRegistry._metadata.get(
+                self.__class__.__name__
+            )
+        except:
+            raise KeyError(
+                "Plugin not found in PluginRegistry; please use the registry decorator"
+            )
 
         # parameter based properties
         self._mode = ETLMode(self._params.mode)
@@ -93,18 +102,69 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # -------------------------
 
     @property
+    def parameter_model(self) -> Type[BasePluginParams]:
+        """
+        Return the Pydantic parameter model for this plugin.
+
+        Returns:
+            Type[BasePluginParams]: The Pydantic model class (must subclass BasePluginParams).
+        """
+        return self.__metadata.parameter_model
+
+    @property
+    def operation(self) -> ETLOperation:
+        """
+        Get the ETLOperation type used for rows created by this plugin run.
+
+        Returns:
+            ETLOperation: The operation type for this plugin's output rows.
+        """
+        return self.__metadata.operation
+
+    @property
+    def affected_tables(self) -> list[Type[DeclarativeBase]]:
+        """
+        Get the list of database tables this plugin writes to.
+
+        Returns:
+            List[Type[DeclarativeBase]]: List of table classes
+        """
+        return self.__metadata.affected_tables
+
+    @property
+    def is_large_dataset(self) -> bool:
+        self.__metadata.is_large_dataset
+
+    @property
+    def load_strategy(self) -> ETLLoadStrategy:
+        """
+        Whether the plugin processes records in chunks, in bulk, or in batch.
+
+        Returns:
+            ETLLoadStrategy
+        """
+        return self.__metadata.load_strategy
+
+    @property
+    def description(self) -> str:
+        """
+        Detail description and usage caveats forthe plugin.
+
+        Returns:
+            str: The description
+        """
+        return self.__metadata.description
+
+    @property
+    def version(self):
+        self.__metadata.version
+
+    @property
     def is_dry_run(self) -> bool:
         """
         Indicates whether the plugin is running in DRY_RUN mode.
         """
         return self._mode == ETLMode.DRY_RUN
-
-    @property
-    def version(self):
-        # Local import to avoid circular import
-        from niagads.etl.plugins.registry import PluginRegistry
-
-        return PluginRegistry.describe(self.__class__.__name__).get("version")
 
     @property
     def run_id(self):
@@ -168,65 +228,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # -------------------------
     # Abstract contract
     # -------------------------
-    @classmethod
-    @abstractmethod
-    def description(cls) -> str:
-        """
-        Detail description and usage caveats forthe plugin.
-
-        Returns:
-            str: The description
-        """
-        ...
-
-    @classmethod
-    @abstractmethod
-    def parameter_model(cls) -> Type[BasePluginParams]:
-        """
-        Return the Pydantic parameter model for this plugin.
-
-        Returns:
-            Type[BasePluginParams]: The Pydantic model class (must subclass BasePluginParams).
-        """
-        ...
-
-    @property
-    @abstractmethod
-    def operation(self) -> ETLOperation:
-        """
-        Get the ETLOperation type used for rows created by this plugin run.
-
-        Returns:
-            ETLOperation: The operation type for this plugin's output rows.
-        """
-        ...
-
-    @property
-    @abstractmethod
-    def affected_tables(self) -> list[Type[DeclarativeBase]]:
-        """
-        Get the list of database tables this plugin writes to.
-
-        Returns:
-            List[Type[DeclarativeBase]]: List of table classes
-        """
-        ...
-
-    @property
-    @abstractmethod
-    def is_large_dataset(self) -> bool:
-        return False
-
-    @property
-    @abstractmethod
-    def load_strategy(self) -> LoadStrategy:
-        """
-        Whether the plugin processes records in chunks, in bulk, or in batch.
-
-        Returns:
-            LoadStrategy
-        """
-        ...
 
     @abstractmethod
     def extract(self):
@@ -620,11 +621,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         merged_params = None
         execution_status = None
-
+        restore_params = None
         if runtime_params:
+            restore_params = self._params.model_dump().copy()
             merged = self._params.model_dump().copy()
             merged.update(runtime_params)
-            merged_params = self.parameter_model()(**merged)
+            merged_params = self.parameter_model(**merged)
             self.logger.info(f"Runtime parameter overrides applied: {runtime_params}")
             self._params = merged_params
             self._commit_after = self._params.commit_after
@@ -670,11 +672,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.log_plugin_configuration(self._params)
             self.logger.log_plugin_run()
 
-            if self.load_strategy == LoadStrategy.CHUNKED:
+            if self.load_strategy == ETLLoadStrategy.CHUNKED:
                 await self.__process_chunked_load()
-            elif self.load_strategy == LoadStrategy.BULK:
+            elif self.load_strategy == ETLLoadStrategy.BULK:
                 await self.__process_bulk_load()
-            elif self.load_strategy == LoadStrategy.BATCH:
+            elif self.load_strategy == ETLLoadStrategy.BATCH:
                 await self.__process_bulk_in_batch_load()
             else:
                 raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
@@ -731,7 +733,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.__status_report.runtime = runtime
             self.__status_report.memory = mem_mb
             self.__status_report.status = execution_status
-            self.__summarize_transactions()
+            await self.__summarize_transactions()
             self.logger.status(self.__status_report)
 
             if not self.is_dry_run and self.__transaction_count is None:
@@ -751,5 +753,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
             except Exception as db_error:
                 self.logger.exception(f"Failed to update plugin task in DB: {db_error}")
+
+            if runtime_params:  # restore plugin parameters
+                self._params = self.parameter_model(**restore_params)
 
         return execution_status

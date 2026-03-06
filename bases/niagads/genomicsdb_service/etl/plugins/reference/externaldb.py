@@ -13,8 +13,8 @@ from niagads.etl.plugins.parameters import (
     PathValidatorMixin,
     ResumeCheckpoint,
 )
-from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import LoadStrategy
+from niagads.etl.plugins.registry import PluginMetadata, PluginRegistry
+from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.etl.plugins.types import ETLOperation
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from pydantic import Field
@@ -31,7 +31,21 @@ class ExternalDatabaseLoaderParams(BasePluginParams, JSONConfigValidatorMixin):
     )
 
 
-@PluginRegistry.register(metadata={"version": 1.0})
+metadata = PluginMetadata(
+    version=1.0,
+    description=(
+        f"ETL Plugin to load an ExternalDatabase record from a JSON"
+        f" configuration file into {ExternalDatabase.table_name()}."
+    ),
+    affected_tables=[ExternalDatabase],
+    load_strategy=ETLLoadStrategy.BULK,
+    operation=ETLOperation.INSERT,
+    is_large_dataset=False,
+    parameter_model=ExternalDatabaseLoaderParams,
+)
+
+
+@PluginRegistry.register(metadata=metadata)
 class ExternalDatabaseLoader(AbstractBasePlugin):
     """
     ETL plugin for loading a single ExternalDatabase record from a JSON configuration file.
@@ -41,29 +55,6 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
 
     def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
         super().__init__(params, name)
-
-    @classmethod
-    def description(cls) -> str:
-        return (
-            f"ETL Plugin to load an ExternalDatabase record from a JSON configuration file "
-            f"into {ExternalDatabase.table_name()}."
-        )
-
-    @classmethod
-    def parameter_model(cls) -> Type[BasePluginParams]:
-        return ExternalDatabaseLoaderParams
-
-    @property
-    def operation(self) -> ETLOperation:
-        return ETLOperation.INSERT
-
-    @property
-    def affected_tables(self) -> List[str]:
-        return [ExternalDatabase.table_name()]
-
-    @property
-    def load_strategy(self) -> LoadStrategy:
-        return LoadStrategy.BULK
 
     def extract(self) -> Iterator[dict]:
         """

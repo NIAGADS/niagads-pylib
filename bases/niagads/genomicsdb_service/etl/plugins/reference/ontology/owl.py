@@ -20,7 +20,7 @@ from niagads.etl.plugins.parameters import (
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import LoadStrategy
+from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.etl.plugins.types import ETLOperation
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.genomicsdb.schema.reference.ontology import (
@@ -243,8 +243,8 @@ class OntologyTermLoader(AbstractBasePlugin):
         return [OntologyTerm.table_name()]
 
     @property
-    def load_strategy(self) -> LoadStrategy:
-        return LoadStrategy.CHUNKED
+    def load_strategy(self) -> ETLLoadStrategy:
+        return ETLLoadStrategy.CHUNKED
 
     def get_record_id(self, record: OntologyTerm) -> str:
         """
@@ -363,8 +363,8 @@ class OntologyGraphLoader(AbstractBasePlugin):
         return ["Reference.Ontology"]
 
     @property
-    def load_strategy(self) -> LoadStrategy:
-        return LoadStrategy.CHUNKED
+    def load_strategy(self) -> ETLLoadStrategy:
+        return ETLLoadStrategy.CHUNKED
 
     def extract(self) -> Iterator[Any]:
         parser = OWLParser(self._params.file)

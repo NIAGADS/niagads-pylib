@@ -1,6 +1,22 @@
 from typing import Callable, Dict, List, Optional, Type, Union
 
+from pydantic import BaseModel
+
 from niagads.etl.plugins.base import AbstractBasePlugin
+from sqlalchemy.orm import DeclarativeBase
+
+from niagads.etl.plugins.parameters import BasePluginParams
+from niagads.etl.plugins.types import ETLLoadStrategy, ETLOperation
+
+
+class PluginMetadata(BaseModel):
+    version: str
+    description: str
+    affected_tables: Optional[List[DeclarativeBase]] = []
+    load_strategy: ETLLoadStrategy
+    operation: ETLOperation
+    is_large_dataset: bool = False
+    parameter_model: Type[BasePluginParams]
 
 
 class PluginRegistry:
@@ -10,29 +26,32 @@ class PluginRegistry:
     """
 
     _registry: Dict[str, Type[AbstractBasePlugin]] = {}
-    _meta: Dict[str, dict] = {}
+    _metadata: Dict[str, dict] = {}
 
     @classmethod
     def register(
         cls,
         plugin_cls: Union[Type[AbstractBasePlugin], None] = None,
         *,
-        metadata: Optional[dict] = None,
+        metadata: PluginMetadata,
     ) -> Callable:
         """
-        Can be used as:
-            @PluginRegistry.register
-            class MyPlugin(AbstractBasePlugin): ...
+        Register a plugin class with required PluginMetadata.
 
-        Or with metadata:
-            @PluginRegistry.register(metadata={"version": "1.0"})
+        Args:
+            plugin_cls (Type[AbstractBasePlugin], optional): The plugin class to register.
+                Used when decorator is applied directly.
+            metadata (PluginMetadata): Required metadata describing the plugin.
+
+        Usage:
+            @PluginRegistry.register(metadata=PluginMetadata(...))
             class MyPlugin(AbstractBasePlugin): ...
         """
 
         def decorator(inner_cls: Type[AbstractBasePlugin]) -> Type[AbstractBasePlugin]:
             key = inner_cls.__name__
             cls._registry[key] = inner_cls
-            cls._meta[key] = metadata or {}
+            cls._metadata[key] = metadata
             return inner_cls
 
         if plugin_cls is None:
@@ -85,7 +104,7 @@ class PluginRegistry:
         if name not in cls._registry:
             raise KeyError(f"Plugin '{name}' not found")
         plugin_cls: AbstractBasePlugin = cls._registry[name]
-        meta = cls._meta.get(name, {}).copy()
+        meta = cls._metadata.get(name, {}).copy()
         meta.setdefault("class", name)
         try:
             params_model = plugin_cls.parameter_model()

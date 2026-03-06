@@ -15,7 +15,7 @@ from niagads.etl.plugins.parameters import (
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import ETLOperation, LoadStrategy
+from niagads.etl.plugins.types import ETLOperation, ETLLoadStrategy
 from pydantic import Field, ConfigDict, BaseModel, computed_field
 from sqlalchemy import text
 import importlib.resources
@@ -181,8 +181,8 @@ class XMLRecordLoader(AbstractBasePlugin):
             raise RuntimeError(msg)
 
     @property
-    def load_strategy(self) -> LoadStrategy:
-        return LoadStrategy.CHUNKED
+    def load_strategy(self) -> ETLLoadStrategy:
+        return ETLLoadStrategy.CHUNKED
 
     @property
     def affected_tables(self) -> List[str]:

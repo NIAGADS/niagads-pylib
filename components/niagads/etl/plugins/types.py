@@ -44,7 +44,7 @@ class ETLRunStatus(BaseModel):
         return sum(self.transactions.values())
 
 
-class LoadStrategy(CaseInsensitiveEnum):
+class ETLLoadStrategy(CaseInsensitiveEnum):
     CHUNKED = auto()
     BULK = auto()
     BATCH = auto()

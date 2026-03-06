@@ -132,7 +132,7 @@ class ETLLogger:
         Logs zero if inserts/updates are empty.
         """
 
-        prefix = "TEST" if status.test else "RUN"
+        prefix = "TEST" if status.mode == ETLMode.DRY_RUN else "RUN"
         self.report_section(f"{prefix} Transaction Summary")
         keyw = 16
         self.info(f"{'MODE':<{keyw}} : {status.mode}")
