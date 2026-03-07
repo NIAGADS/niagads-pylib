@@ -76,7 +76,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.__status_report: ETLRunStatus = None
         self.__checkpoint: ResumeCheckpoint = None
         self.__etl_run: ETLRun = None
-        self.__total_transactions: int = None
         self.__transaction_record: Dict[str, Dict[str, int]] = {}
 
         # parameter based properties
@@ -185,24 +184,17 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         else:
             return None
 
-    @property
-    def tx_count(self):
-        return self.__total_transactions
-
-    @tx_count.setter
-    def tx_count(self, value):
-        self.__total_transactions = value
-
-    def inc_tx_count(self, amount=1):
+    def __get_total_transactions(self) -> int:
         """
-        Increment the transaction (tx) counter
+        Calculate total transaction count from per-table tracking.
 
-        Args:
-            amount (int, optional): increment amount. Defaults to 1.
+        Returns:
+            int: Total count of INSERT, UPDATE, DELETE across all tables.
         """
-        if self.__total_transactions is None:
-            self.__total_transactions = 0
-        self.__total_transactions += amount
+        total = 0
+        for ops in self.__transaction_record.values():
+            total += sum(ops.values())
+        return total
 
     # -------------------------
     # Initialization helpers
@@ -274,7 +266,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         ...
 
     @abstractmethod
-    async def load(self, session, transformed) -> ETLLoadResult:
+    async def load(self, session, transformed) -> Optional[ResumeCheckpoint]:
         """
         Persist transformed data using an async SQLAlchemy session.
 
@@ -284,7 +276,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             (buffer size <= commit_after). For bulk, the entire dataset.
 
         Returns:
-            ResumeCheckpoint: Contains count of rows persisted and checkpoint info (line/id).
+            Optional[ResumeCheckpoint]: Checkpoint info (line/id) for resuming, or None.
         """
         ...
 
@@ -424,7 +416,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         Commit or rollback the session based on ETLMode and commit_after logic.
         """
-        msg = f"{self.__total_transactions} records"
+        tx_total = self.__get_total_transactions()
+        msg = f"{tx_total} records"
         if self._mode == ETLMode.COMMIT:
             await session.commit()
             self.logger.info("COMMITED", msg)
@@ -456,41 +449,23 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         result: ETLLoadResult = await self.load(session, buffer)
 
-        if not isinstance(result, ETLLoadResult):
-            raise TypeError(
-                "Implementation Error: `your plugin's load()` must return an `ETLLoadResult`, including a "
-                "checkpoint (nullable) and transaction_count >= 0"
-            )
+        result: Optional[ResumeCheckpoint] = await self.load(session, buffer)
 
         # Merge per-table transaction tracking from session (if available)
         self.__update_transaction_record(session)
 
-        # increment transaction count (for backward compatibility with plugins
-        # that manually track)
-        self.inc_tx_count(result.transaction_count)
-
-        checkpoint = result.checkpoint
-
-        # a plugin may not have checkpoint handling so
-        # returning None is okay
-        if checkpoint and not isinstance(checkpoint, ResumeCheckpoint):
+        # result should be None or a ResumeCheckpoint
+        if result and not isinstance(result, ResumeCheckpoint):
             raise TypeError(
-                "Implementation Error: your plugin's load() must return None or a `ResumeCheckpoint`; "
-                "for the checkpoint value"
+                "Implementation Error: your plugin's load() must return None or a `ResumeCheckpoint`"
             )
 
-        return checkpoint
+        return result
 
     async def __flush_chunked_buffer(self, buffer, session) -> ResumeCheckpoint:
         checkpoint = None
 
-        if self.is_dry_run:
-            try:
-                estimated_tx_count = len(buffer)
-            except TypeError:  # handle iterators/generators
-                estimated_tx_count = sum(1 for _ in buffer)
-            self.inc_tx_count(estimated_tx_count)
-        else:
+        if not self.is_dry_run:
             checkpoint = await self.__execute_load(session, buffer)
 
         # Clear buffer if it's a list, else set to None to release reference
@@ -541,17 +516,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             # Bulk: load all at once, ignore commit_after
-            if self.is_dry_run:
-                try:
-                    estimated_tx_count = len(processed_records)
-                except TypeError:  # handle iterators/generators
-                    estimated_tx_count = sum(1 for _ in processed_records)
-                self.inc_tx_count(estimated_tx_count)
-                return None
-            else:
+            checkpoint = None
+            if not self.is_dry_run:
                 checkpoint = await self.__execute_load(session, processed_records)
                 await self.__handle_transaction(session, checkpoint)
-                return checkpoint
+            return checkpoint
 
     async def __process_bulk_in_batch_load(self):
         records = self.extract()
@@ -764,10 +733,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     datetime.now(),  # end time
                     execution_status,
                     message=f"ETL run failed: {e}",
-                    rows_processed=self.__total_transactions,
+                    rows_processed=self.__get_total_transactions(),
                 )
         finally:
             self.on_run_complete()
+
+            # Calculate transaction totals once for reuse
+            total_transactions = self.__get_total_transactions()
 
             # log status
             end_time = datetime.now()
@@ -777,9 +749,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.__status_report.memory = mem_mb
             self.__status_report.status = execution_status
             if self.is_dry_run:
-                self.__status_report.estimated_transaction_count = (
-                    self.__total_transactions
-                )
+                self.__status_report.estimated_transaction_count = total_transactions
             await self.__summarize_transactions()
             self.logger.status(self.__status_report)
 
@@ -788,7 +758,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     await self.__finalize_etl_run(
                         end_time,
                         execution_status,
-                        rows_processed=self.__total_transactions,
+                        rows_processed=total_transactions,
                     )
 
             except Exception as db_error:

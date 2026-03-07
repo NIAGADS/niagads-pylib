@@ -31,11 +31,6 @@ class ResumeCheckpoint(BaseModel):
         return self
 
 
-class ETLLoadResult(BaseModel):
-    checkpoint: Optional[ResumeCheckpoint] = None
-    transaction_count: int
-
-
 class ETLOperation(CaseInsensitiveEnum):
     """
     Type of ETL operation:
