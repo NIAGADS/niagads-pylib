@@ -5,7 +5,7 @@ Loads an ontology from an OWL file into the reference ontology graph schema.
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterator, List, Optional, Type, Union
+from typing import Any, Dict, Iterator, Optional, Union
 
 from niagads.common.constants.ontologies import (
     AnnotationPropertyIRI,
@@ -17,7 +17,7 @@ from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import ETLLoadResult, ETLLoadStrategy, ResumeCheckpoint
+from niagads.etl.plugins.types import ETLLoadStrategy, ResumeCheckpoint
 from niagads.etl.plugins.types import ETLOperation
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.genomicsdb.schema.reference.ontology import (
@@ -310,10 +310,7 @@ class OntologyTermLoader(AbstractBasePlugin):
                 ETLOperation.INSERT, OntologyTerm.table_name()
             )
         finally:
-            return ETLLoadStrategy(
-                checkpoint=ResumeCheckpoint(full_record=transformed),
-                transaction_count=1,
-            )
+            return (ResumeCheckpoint(full_record=transformed),)
 
 
 @PluginRegistry.register(
@@ -377,7 +374,7 @@ class OntologyGraphLoader(AbstractBasePlugin):
 
     # FIXME: these are all wrong now
     # NOTE: insert term needs to check against OntologyTerm relational table for ontology_term_id and definition
-    async def load(self, transformed: Any, session) -> ETLLoadResult:
+    async def load(self, transformed: Any, session) -> ResumeCheckpoint:
         """
         Insert a single ontology term or triple record into the database using SQLAlchemy text queries.
         Args:

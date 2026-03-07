@@ -1,5 +1,5 @@
 from enum import auto
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -54,7 +54,7 @@ class ETLRunStatus(BaseModel):
         Format: {table_name: {operation: count}} or flat {table_name: count} for legacy.
     """
 
-    transaction_record: Dict[str, any] = None
+    transaction_record: Dict[str, Any] = None
     estimated_transaction_count: int = None
     operation: ETLOperation = None
     status: ProcessStatus

@@ -15,7 +15,7 @@ from niagads.etl.plugins.parameters import (
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import ETLLoadResult, ETLLoadStrategy
+from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.etl.plugins.types import ETLOperation
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from pydantic import Field
@@ -99,7 +99,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         """
         return record.database_key
 
-    async def load(self, session, transformed: ExternalDatabase) -> ETLLoadResult:
+    async def load(self, session, transformed: ExternalDatabase) -> ResumeCheckpoint:
         """
         Insert a single ExternalDatabase record into the database.
 
@@ -118,7 +118,4 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
             self.logger.warning(
                 f"External Database Reference {transformed.database_key}: {transformed.name}|{transformed.version} already exists"
             )
-        return ETLLoadResult(
-            checkpoint=ResumeCheckpoint(record=self.get_record_id(transformed)),
-            transaction_count=1,
-        )
+        return ResumeCheckpoint(record=self.get_record_id(transformed))
