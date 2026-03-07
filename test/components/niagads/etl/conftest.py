@@ -21,7 +21,8 @@ class TestPluginParams(BasePluginParams):
 
 # Import after params to avoid circular dependency
 from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.registry import PluginMetadata, PluginRegistry
+from niagads.etl.plugins.registry import PluginRegistry
+from niagads.etl.plugins.metadata import PluginMetadata
 
 
 class TestPlugin(AbstractBasePlugin):

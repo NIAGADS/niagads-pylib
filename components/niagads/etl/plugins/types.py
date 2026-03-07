@@ -1,13 +1,11 @@
 from enum import auto
-from typing import Dict, List, Optional, Type
-from niagads.etl.plugins.parameters import BasePluginParams
+from typing import Dict, Optional
+
 from pydantic import BaseModel, Field, model_validator
 
 from niagads.common.types import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.types import ETLMode
-
-from sqlalchemy.orm import DeclarativeBase
 
 
 class ResumeCheckpoint(BaseModel):
@@ -84,13 +82,3 @@ class ETLLoadStrategy(CaseInsensitiveEnum):
     CHUNKED = auto()
     BULK = auto()
     BATCH = auto()
-
-
-class PluginMetadata(BaseModel):
-    version: str
-    description: str
-    affected_tables: Optional[List[DeclarativeBase]] = []
-    load_strategy: ETLLoadStrategy
-    operation: ETLOperation
-    is_large_dataset: bool = False
-    parameter_model: Type[BasePluginParams]

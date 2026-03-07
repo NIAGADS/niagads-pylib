@@ -14,9 +14,10 @@ from niagads.common.constants.ontologies import (
 )
 from niagads.common.helpers.ontologies import get_field_iri
 from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.etl.plugins.types import ETLLoadResult, ETLLoadStrategy, ResumeCheckpoint
 from niagads.etl.plugins.types import ETLOperation
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.genomicsdb.schema.reference.ontology import (
@@ -196,7 +197,20 @@ class OWLParser:
                     #   ..
 
 
-@PluginRegistry.register(metadata={"version": 1.0})
+@PluginRegistry.register(
+    PluginMetadata(
+        version="1.0",
+        description=(
+            f"ETL Plugin to load ontology terms from an OWL file into {OntologyTerm.table_name()}."
+            f"Loads terms, properties, and embeddings."
+        ),
+        affected_tables=[OntologyTerm],
+        load_strategy=ETLLoadStrategy.CHUNKED,
+        operation=ETLOperation.LOAD,
+        is_large_dataset=False,
+        parameter_model=OntologyTermReferenceLoaderParams,
+    )
+)
 class OntologyTermLoader(AbstractBasePlugin):
     """
     ETL plugin for loading ontology terms from an OWL file into the reference ontologyterm table
@@ -206,6 +220,8 @@ class OntologyTermLoader(AbstractBasePlugin):
 
     def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
         super().__init__(params, name)
+        self.__skips = 0
+        self.__updates = 0
 
     async def on_run_start(self, session):
         """on run start hook override"""
@@ -217,29 +233,6 @@ class OntologyTermLoader(AbstractBasePlugin):
         self.__embedding_generator = TextEmbeddingGenerator(
             self._params.embedding_model
         )
-
-    @classmethod
-    def description(cls) -> str:
-        return (
-            f"ETL Plugin to load ontology terms from an OWL file into {OntologyTerm.table_name()}."
-            f"Loads terms, properties, and embeddings."
-        )
-
-    @classmethod
-    def parameter_model(cls) -> Type[BasePluginParams]:
-        return OntologyTermReferenceLoaderParams
-
-    @property
-    def operation(self) -> ETLOperation:
-        return ETLOperation.INSERT
-
-    @property
-    def affected_tables(self) -> List[str]:
-        return [OntologyTerm.table_name()]
-
-    @property
-    def load_strategy(self) -> ETLLoadStrategy:
-        return ETLLoadStrategy.CHUNKED
 
     def get_record_id(self, record: OntologyTerm) -> str:
         """
@@ -288,6 +281,7 @@ class OntologyTermLoader(AbstractBasePlugin):
 
     async def load(self, session, transformed: OntologyTerm):
         # try to retrieve from database
+        transaction_count = 0
         try:
             existing_record: OntologyTerm = await OntologyTerm.fetch_record(
                 session, filters={"curie": transformed.curie}
@@ -303,13 +297,12 @@ class OntologyTermLoader(AbstractBasePlugin):
                 session, transformed.synonyms
             )
             if updated_definitions or updated_synonyms:
-                self.update_transaction_count(
-                    ETLOperation.UPDATE, OntologyTerm.table_name(), 1
+                self.__updates += (
+                    1  # todo handle logging of updates/skips in after_run_complete?
                 )
             else:
-                self.update_transaction_count(
-                    ETLOperation.SKIP, OntologyTerm.table_name(), 1
-                )
+                self.__skips += 1
+                # TODO - verbose/debug log skip?
 
         except NoResultFound:  # not found in DB, submit
             await transformed.submit(session)
@@ -317,10 +310,26 @@ class OntologyTermLoader(AbstractBasePlugin):
                 ETLOperation.INSERT, OntologyTerm.table_name()
             )
         finally:
-            return ResumeCheckpoint(full_record=transformed)
+            return ETLLoadStrategy(
+                checkpoint=ResumeCheckpoint(full_record=transformed),
+                transaction_count=1,
+            )
 
 
-@PluginRegistry.register(metadata={"version": 1.0})
+@PluginRegistry.register(
+    PluginMetadata(
+        version="1.0",
+        description=(
+            f"ETL Plugin to load ontology terms from an OWL file into {OntologyTerm.table_name()}."
+            f"the knowledge graph"
+        ),
+        affected_tables=[OntologyTerm],  # FIXME - this is not the graph model
+        load_strategy=ETLLoadStrategy.CHUNKED,
+        operation=ETLOperation.INSERT,
+        is_large_dataset=False,
+        parameter_model=OWLLoaderParams,
+    )
+)
 class OntologyGraphLoader(AbstractBasePlugin):
     """
     ETL plugin for loading an ontology from an OWL file into the reference ontology graph schema.
@@ -337,29 +346,6 @@ class OntologyGraphLoader(AbstractBasePlugin):
         self._xdbref_id = (
             None if self.is_dry_run else await self._params.resolve_xdbref(session)
         )
-
-    @classmethod
-    def description(cls) -> str:
-        return (
-            "Loads an ontology (terms and relationships) from an OWL file into the "
-            "Reference.Ontology graph schema."
-        )
-
-    @classmethod
-    def parameter_model(cls) -> Type[BasePluginParams]:
-        return OWLLoaderParams
-
-    @property
-    def operation(self) -> ETLOperation:
-        return ETLOperation.INSERT
-
-    @property
-    def affected_tables(self) -> List[str]:
-        return ["Reference.Ontology"]
-
-    @property
-    def load_strategy(self) -> ETLLoadStrategy:
-        return ETLLoadStrategy.CHUNKED
 
     def extract(self) -> Iterator[Any]:
         parser = OWLParser(self._params.file)
@@ -391,13 +377,13 @@ class OntologyGraphLoader(AbstractBasePlugin):
 
     # FIXME: these are all wrong now
     # NOTE: insert term needs to check against OntologyTerm relational table for ontology_term_id and definition
-    async def load(self, transformed: Any, session) -> ResumeCheckpoint:
+    async def load(self, transformed: Any, session) -> ETLLoadResult:
         """
         Insert a single ontology term or triple record into the database using SQLAlchemy text queries.
         Args:
             transformed: OntologyTerm or OntologyTriple record to insert.
         Returns:
-            ResumeCheckpoint
+            ETLLoadResult
         """
         ontology_id = self._params.resolve_xdbref()
         raise NotImplementedError()

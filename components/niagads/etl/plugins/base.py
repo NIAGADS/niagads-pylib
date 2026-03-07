@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, Optional, Type
 
+from niagads.etl.plugins.metadata import PluginMetadata
 import psutil
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.types import ProcessStatus
@@ -16,7 +17,6 @@ from niagads.etl.plugins.types import (
     ETLLoadStrategy,
     ETLOperation,
     ETLRunStatus,
-    PluginMetadata,
     ResumeCheckpoint,
 )
 from niagads.etl.types import ETLMode

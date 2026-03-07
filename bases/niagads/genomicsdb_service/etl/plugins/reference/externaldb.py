@@ -7,17 +7,20 @@ import json
 from typing import Any, Dict, Iterator, List, Optional, Type
 
 from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     JSONConfigValidatorMixin,
     PathValidatorMixin,
     ResumeCheckpoint,
 )
-from niagads.etl.plugins.registry import PluginMetadata, PluginRegistry
-from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.etl.plugins.registry import PluginRegistry
+from niagads.etl.plugins.types import ETLLoadResult, ETLLoadStrategy
 from niagads.etl.plugins.types import ETLOperation
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from pydantic import Field
+
+# FIXME: I'm being silly w/this let's leverage pydantic/sqlalachemy
 
 
 class ExternalDatabaseLoaderParams(BasePluginParams, JSONConfigValidatorMixin):
@@ -26,13 +29,11 @@ class ExternalDatabaseLoaderParams(BasePluginParams, JSONConfigValidatorMixin):
     file: str = Field(..., description="full path to JSON configuration file")
 
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
-    validate_config = JSONConfigValidatorMixin.validator(
-        "file", ExternalDatabase.json_schema()
-    )
+    validate_config = JSONConfigValidatorMixin.validator("file", ExternalDatabase)
 
 
 metadata = PluginMetadata(
-    version=1.0,
+    version="1.0",
     description=(
         f"ETL Plugin to load an ExternalDatabase record from a JSON"
         f" configuration file into {ExternalDatabase.table_name()}."
@@ -45,7 +46,7 @@ metadata = PluginMetadata(
 )
 
 
-@PluginRegistry.register(metadata=metadata)
+@PluginRegistry.register(metadata)
 class ExternalDatabaseLoader(AbstractBasePlugin):
     """
     ETL plugin for loading a single ExternalDatabase record from a JSON configuration file.
@@ -83,7 +84,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
             )
 
         xdbref = ExternalDatabase(**record)
-        xdbref.run_id = self._run_id
+        xdbref.run_id = self.run_id
         return xdbref
 
     def get_record_id(self, record: ExternalDatabase) -> str:
@@ -98,9 +99,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         """
         return record.database_key
 
-    async def load(
-        self, session, transformed: ExternalDatabase
-    ) -> Optional[ResumeCheckpoint]:
+    async def load(self, session, transformed: ExternalDatabase) -> ETLLoadResult:
         """
         Insert a single ExternalDatabase record into the database.
 
@@ -109,18 +108,17 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
             transformed: ExternalDatabase record to insert.
 
         Returns:
-            Optional[ResumeCheckpoint]: Checkpoint info for this record.
+            ETLLoadResult: checkpoint and transaction count
         """
         if not ExternalDatabase.record_exists(
             session, {"name": transformed.name, "version": transformed.version}
         ):
             await transformed.submit(session)
-            self.update_transaction_count(self.operation, ExternalDatabase.table_name())
         else:
-            self.logger.info(
+            self.logger.warning(
                 f"External Database Reference {transformed.database_key}: {transformed.name}|{transformed.version} already exists"
             )
-            self.update_transaction_count(
-                ETLOperation.SKIP, ExternalDatabase.table_name(), 1
-            )
-        return ResumeCheckpoint(record=self.get_record_id(transformed))
+        return ETLLoadResult(
+            checkpoint=ResumeCheckpoint(record=self.get_record_id(transformed)),
+            transaction_count=1,
+        )

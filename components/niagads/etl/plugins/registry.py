@@ -1,7 +1,7 @@
 from typing import Callable, Dict, List, Type, Union
 
 from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.types import PluginMetadata
+from niagads.etl.plugins.metadata import PluginMetadata
 
 
 class PluginRegistry:
@@ -16,20 +16,16 @@ class PluginRegistry:
     @classmethod
     def register(
         cls,
-        plugin_cls: Union[Type[AbstractBasePlugin], None] = None,
-        *,
         metadata: PluginMetadata,
     ) -> Callable:
         """
         Register a plugin class with required PluginMetadata.
 
         Args:
-            plugin_cls (Type[AbstractBasePlugin], optional): The plugin class to register.
-                Used when decorator is applied directly.
             metadata (PluginMetadata): Required metadata describing the plugin.
 
         Usage:
-            @PluginRegistry.register(metadata=PluginMetadata(...))
+            @PluginRegistry.register(PluginMetadata(...))
             class MyPlugin(AbstractBasePlugin): ...
         """
 
@@ -39,9 +35,7 @@ class PluginRegistry:
             cls._metadata[key] = metadata
             return inner_cls
 
-        if plugin_cls is None:
-            return decorator  # used with parentheses
-        return decorator(plugin_cls)  # used directly
+        return decorator  # used with parentheses
 
     @classmethod
     def get(cls, name: str) -> Type[AbstractBasePlugin]:

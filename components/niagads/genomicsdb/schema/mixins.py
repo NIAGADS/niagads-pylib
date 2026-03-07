@@ -4,11 +4,10 @@ from typing import Any, Dict, Union
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
 from niagads.database.mixins.transactions import TransactionTableMixin
-from niagads.etl.plugins.types import ETLOperation
 from sqlalchemy import exists, inspect, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Mapped, DeclarativeBase
+from sqlalchemy.orm import Mapped
 
 
 class HousekeepingMixin:
@@ -336,22 +335,15 @@ class IdAliasMixin:
         return getattr(self, pk_attr)
 
 
-class QualifiedNameMixin(DeclarativeBase):
-    __abstract__ = True
-
-    @classmethod
-    def full_name(cls):
-        return f"{cls.__table__.schema}.{cls.__table__.name}"
-
-
 class GenomicsDBTableMixin(
     ModelDumpMixin,
     LookupTableMixin,
     TransactionTableMixin,
     HousekeepingMixin,
-    QualifiedNameMixin,
-): ...
+):
+    __abstract__ = True
 
 
-class GenomicsDBMVMixin(ModelDumpMixin, LookupTableMixin, QualifiedNameMixin):
+class GenomicsDBMVMixin(ModelDumpMixin, LookupTableMixin):
     _document_primary_key = None  # set to do pk lookups on RAG docs
+    __abstract__ = True
