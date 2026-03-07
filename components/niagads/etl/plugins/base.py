@@ -10,12 +10,13 @@ from niagads.database.session import DatabaseSessionManager
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger
 from niagads.etl.plugins.parameters import BasePluginParams
-from niagads.etl.plugins.registry import PluginMetadata, PluginRegistry
+
 from niagads.etl.plugins.types import (
     ETLLoadResult,
     ETLLoadStrategy,
     ETLOperation,
     ETLRunStatus,
+    PluginMetadata,
     ResumeCheckpoint,
 )
 from niagads.etl.types import ETLMode
@@ -68,20 +69,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         super().__init__(debug=self._params.debug, verbose=self._params.verbose)
 
+        self.__metadata: PluginMetadata = self.__retrieve_plugin_metadata()
+
         self._name = name or self.__class__.__name__
         self.__start_time: Optional[datetime] = None
         self.__status_report: ETLRunStatus = None
         self.__checkpoint: ResumeCheckpoint = None
         self.__etl_run: ETLRun = None
         self.__transaction_count: int = None
-        try:
-            self.__metadata: PluginMetadata = PluginRegistry._metadata.get(
-                self.__class__.__name__
-            )
-        except:
-            raise KeyError(
-                "Plugin not found in PluginRegistry; please use the registry decorator"
-            )
 
         # parameter based properties
         self._mode = ETLMode(self._params.mode)
@@ -106,6 +101,16 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # -------------------------
     # Properties
     # -------------------------
+
+    def __retrieve_plugin_metadata(self) -> PluginMetadata:
+        from niagads.etl.plugins.registry import PluginRegistry
+
+        try:
+            return PluginRegistry._metadata.get(self.__class__.__name__)
+        except:
+            raise KeyError(
+                "Plugin not found in PluginRegistry; please use the registry decorator"
+            )
 
     @property
     def parameter_model(self) -> Type[BasePluginParams]:
