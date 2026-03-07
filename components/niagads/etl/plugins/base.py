@@ -1,19 +1,17 @@
 import os
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type, Union
 
-from niagads.etl.plugins.metadata import PluginMetadata
 import psutil
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.types import ProcessStatus
 from niagads.database.session import DatabaseSessionManager
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger
+from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams
-
 from niagads.etl.plugins.types import (
-    ETLLoadResult,
     ETLLoadStrategy,
     ETLOperation,
     ETLRunStatus,
@@ -24,6 +22,7 @@ from niagads.genomicsdb.schema.admin.etl import ETLRun
 from niagads.utils.asynchronous import null_async_context
 from niagads.utils.list import chunker
 from niagads.utils.logging import FunctionContextLoggerWrapper
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
@@ -33,21 +32,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     Abstract base class for ETL plugins (async).
 
     - Orchestrates ETL (extract -> transform -> load).
-    - JSON logging only, with checkpoint logs discoverable by "message":"CHECKPOINT".
-    - Dry-run by default; --commit flips to actual DB writes.
-    - Resume:
-        * extract() should honor resume_from.line (skip lines before that).
-        * transform() may honor resume_from.id (skip until matching ID).
-    - Chunked loading is a class property (`chunked`).
-        * chunked: records processed in chunks of size determined by the plugin (chunk_size >= 1).
-        * bulk: extract->transform over entire dataset; load() called once with bulk data.
 
-    Note:
-        The `run` method supports runtime parameter overrides, which are applied only for the
-        duration of the run and do not mutate the instance's original parameters.
-
-    Plugins must implement `load()` using self.session_manager.session() (async).
-    Plugins decide when to commit inside load() (per buffer/batch) — pipeline does NOT auto-commit.
     """
 
     def __init__(
@@ -98,10 +83,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.__initialize_database_session() if not self.is_dry_run else None
         )
 
-    # -------------------------
-    # Properties
-    # -------------------------
-
     def __retrieve_plugin_metadata(self) -> PluginMetadata:
         from niagads.etl.plugins.registry import PluginRegistry
 
@@ -111,6 +92,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             raise KeyError(
                 "Plugin not found in PluginRegistry; please use the registry decorator"
             )
+
+    # -------------------------
+    # Properties
+    # -------------------------
 
     @property
     def parameter_model(self) -> Type[BasePluginParams]:
@@ -184,18 +169,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         else:
             return None
 
-    def __get_total_transactions(self) -> int:
-        """
-        Calculate total transaction count from per-table tracking.
-
-        Returns:
-            int: Total count of INSERT, UPDATE, DELETE across all tables.
-        """
-        total = 0
-        for ops in self.__transaction_record.values():
-            total += sum(ops.values())
-        return total
-
     # -------------------------
     # Initialization helpers
     # -------------------------
@@ -223,7 +196,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         return DatabaseSessionManager(
             connection_string=self._connection_string,
             echo=self._debug,
-            enable_etl_tracking=True,
         )
 
     # -------------------------
@@ -333,30 +305,104 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # Transaction Management
     # -------------------------
 
-    def __update_transaction_record(self, session: AsyncSession) -> None:
+    def inc_tx_count(
+        self,
+        table: Union[str, Type[DeclarativeBase]],
+        operation: ETLOperation = ETLOperation.INSERT,
+        amount: int = 1,
+    ):
         """
-        Extract per-table transaction tracking from session and merge into
-        plugin's cumulative transaction tracking dict.
-
-        Accumulates across multiple sessions/flushes. Skips if session does not
-        have _etl_tracking attribute.
+        Manually increment transaction count for explicit statement execution.
 
         Args:
-            session (AsyncSession): The database session with potential _etl_tracking.
+            table: Table name (string) or SQLAlchemy table class.
+            operation: ETLOperation type (INSERT, UPDATE, DELETE). Defaults to INSERT.
+            amount: Number of records to increment by. Defaults to 1.
         """
-        if not hasattr(session, "_etl_tracking"):
-            raise RuntimeError(
-                "For some unexplained reason etl_tracking was not initialized in the session and yet we still reached this point."
-            )
 
-        transaction_record = session._etl_tracking
-        for table_name, operations in transaction_record.items():
+        table_name = (
+            table
+            if isinstance(table, str)
+            else f"{table.__class__.__table__.schema}.{table.__class__.__table__.name}"
+        )
+        if table_name not in self.__transaction_record:
+            self.__transaction_record[table_name] = {}
+
+        self.__transaction_record[table_name][str(ETLOperation(operation))] = (
+            self.__transaction_record[table_name].get(str(ETLOperation(operation)), 0)
+            + amount
+        )
+
+    def __get_total_transactions(self) -> int:
+        """
+        Calculate total transaction count from per-table self.__transaction_record.
+
+        Returns:
+            int: Total count of INSERT, UPDATE, DELETE across all tables.
+        """
+        total = 0
+        for ops in self.__transaction_record.values():
+            total += sum(ops.values())
+        return total
+
+    def __attach_etl_transaction_listener(self, session: AsyncSession) -> None:
+        sync_session = session.sync_session
+        if sync_session.info.get("etl_self.__transaction_record_listener_attached"):
+            return
+
+        sync_session.info["etl_self.__transaction_record_listener_attached"] = True
+
+        event.listen(
+            sync_session,
+            "after_flush",
+            self.__track_etl_transactions,
+        )
+
+    def __track_etl_transactions(self, sync_session) -> None:
+        """
+        SQLAlchemy after_flush listener that tracks per-table inserts, updates, and deletes.
+
+        Tracks across multiple flushes in the same session.
+
+        Args:
+            sync_session: The SQLAlchemy sync session (listeners not attached to async).
+        """
+
+        # Track new (INSERT) objects
+        for obj in sync_session.new:
+            table_name = (
+                f"{obj.__class__.__table__.schema}.{obj.__class__.__table__.name}"
+            )
             if table_name not in self.__transaction_record:
                 self.__transaction_record[table_name] = {}
-            for op, count in operations.items():
-                self.__transaction_record[table_name][op] = (
-                    self.__transaction_record[table_name].get(op, 0) + count
-                )
+            self.__transaction_record[table_name][str(ETLOperation.INSERT)] = (
+                self.__transaction_record[table_name].get(str(ETLOperation.INSERT), 0)
+                + 1
+            )
+
+        # Track modified (UPDATE) objects
+        for obj in sync_session.dirty:
+            table_name = (
+                f"{obj.__class__.__table__.schema}.{obj.__class__.__table__.name}"
+            )
+            if table_name not in self.__transaction_record:
+                self.__transaction_record[table_name] = {}
+            self.__transaction_record[table_name][str(ETLOperation.UPDATE)] = (
+                self.__transaction_record[table_name].get(str(ETLOperation.UPDATE), 0)
+                + 1
+            )
+
+        # Track deleted (DELETE) objects
+        for obj in sync_session.deleted:
+            table_name = (
+                f"{obj.__class__.__table__.schema}.{obj.__class__.__table__.name}"
+            )
+            if table_name not in self.__transaction_record:
+                self.__transaction_record[table_name] = {}
+            self.__transaction_record[table_name][str(ETLOperation.DELETE)] = (
+                self.__transaction_record[table_name].get(str(ETLOperation.DELETE), 0)
+                + 1
+            )
 
     def session_ctx(self, allow_null_if_unintialized: bool = False):
         """
@@ -406,7 +452,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         return DatabaseSessionManager(
             self._connection_string,
             pool_size=pool_size,
-            enable_etl_tracking=True,
             echo=self._debug,
         )
 
@@ -447,12 +492,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         if not buffer or len(buffer) == 0:
             raise ValueError("Empty buffer (transformed) passed to load.")
 
-        result: ETLLoadResult = await self.load(session, buffer)
-
         result: Optional[ResumeCheckpoint] = await self.load(session, buffer)
-
-        # Merge per-table transaction tracking from session (if available)
-        self.__update_transaction_record(session)
 
         # result should be None or a ResumeCheckpoint
         if result and not isinstance(result, ResumeCheckpoint):
@@ -486,6 +526,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         buffer: list = []
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
+            self.__attach_etl_transaction_listener(session)
             for records in self.extract():
                 processed_records = self.transform(records)
                 # chunked can yield one or a list of records
@@ -515,6 +556,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         processed_records = self.transform(records)
 
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
+            self.__attach_etl_transaction_listener(session)
             # Bulk: load all at once, ignore commit_after
             checkpoint = None
             if not self.is_dry_run:
@@ -527,6 +569,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         processed_records = self.transform(records)
         batches = chunker(processed_records, self._commit_after, returnIterator=True)
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
+            self.__attach_etl_transaction_listener(session)
             for batch in batches:
                 checkpoint = await self.__flush_chunked_buffer(batch, session)
                 await self.__handle_transaction(session, checkpoint)
@@ -595,12 +638,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         Summarize transaction counts for all affected tables.
 
-        Uses accumulated per-table transaction tracking from session events if available.
-        Falls back to database queries for affected tables if tracking is empty.
+        Uses accumulated per-table transaction self.__transaction_record from session events if available.
+        Falls back to database queries for affected tables if self.__transaction_record is empty.
 
         Returns:
             dict: Mapping of table name to operation counts.
-                If using auto-tracking: {table_name: {INSERT: N, UPDATE: M, ...}}
+                If using auto-self.__transaction_record: {table_name: {INSERT: N, UPDATE: M, ...}}
                 If using database queries: {schema.table: count}
         """
         # Fallback: query affected tables (legacy behavior)
