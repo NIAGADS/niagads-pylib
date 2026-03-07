@@ -7,7 +7,7 @@ from asyncio import current_task
 import asyncpg
 
 from niagads.exceptions.core import AbstractMethodNotImplemented, ValidationError
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -30,6 +30,7 @@ class DatabaseSessionManager:
         connection_string: str,
         pool_size: int = CONNECTION_POOL_SIZE,
         max_connection_lifetime: int = POOL_RECYCLE,
+        enable_etl_tracking: bool = False,
         echo: bool = False,
     ):
         """Initialize DatabaseSessionManager object.
@@ -51,6 +52,7 @@ class DatabaseSessionManager:
         self.__session: AsyncSession = async_scoped_session(
             self.__sessionMaker, scopefunc=current_task
         )
+        self.__enable_etl_tracking = enable_etl_tracking
         self.logger = logging.getLogger(__name__)
         logging.getLogger("sqlalchemy").setLevel(logging.ERROR)  # turn off INFO logging
         logging.getLogger("sqlalchemy.engine").setLevel(
@@ -134,10 +136,57 @@ class DatabaseSessionManager:
             raw = await conn.get_raw_connection()
             yield raw.driver_connection
 
+    @staticmethod
+    def __track_etl_transactions(session: AsyncSession) -> None:
+        """
+        SQLAlchemy after_flush listener that tracks per-table inserts, updates, and deletes.
+
+        Stores tracking dict on session._etl_tracking as {table_name: {operation: count}}.
+        Tracks across multiple flushes in the same session.
+
+        Args:
+            session (AsyncSession): The SQLAlchemy async session.
+        """
+        if not hasattr(session, "_etl_tracking"):
+            session._etl_tracking = {}
+
+        tracking = session._etl_tracking
+
+        # Track new (INSERT) objects
+        for obj in session.new:
+            table_name = (
+                f"{obj.__class__.__table__.schema}.{obj.__class__.__table__.name}"
+            )
+            if table_name not in tracking:
+                tracking[table_name] = {}
+            tracking[table_name]["INSERT"] = tracking[table_name].get("INSERT", 0) + 1
+
+        # Track modified (UPDATE) objects
+        for obj in session.dirty:
+            table_name = (
+                f"{obj.__class__.__table__.schema}.{obj.__class__.__table__.name}"
+            )
+            if table_name not in tracking:
+                tracking[table_name] = {}
+            tracking[table_name]["UPDATE"] = tracking[table_name].get("UPDATE", 0) + 1
+
+        # Track deleted (DELETE) objects
+        for obj in session.deleted:
+            table_name = (
+                f"{obj.__class__.__table__.schema}.{obj.__class__.__table__.name}"
+            )
+            if table_name not in tracking:
+                tracking[table_name] = {}
+            tracking[table_name]["DELETE"] = tracking[table_name].get("DELETE", 0) + 1
+
     @asynccontextmanager
     async def session_ctx(self):
         """
         Provide an async context manager for a SQLAlchemy async session.
+
+        Attaches an after_flush listener to automatically track per-table inserts,
+        updates, and deletes. Tracking is stored on session._etl_tracking and
+        accumulates across multiple flushes in the same session.
 
         Yields:
             AsyncSession: An active SQLAlchemy async session.
@@ -153,6 +202,13 @@ class DatabaseSessionManager:
         async with self.__session() as session:
             if session is None:
                 raise RuntimeError("DatabaseSessionManager is not initialized")
+
+            # Attach ETL transaction tracking listener
+            if self.__enable_etl_tracking:
+                event.listen(
+                    session.sync_session, "after_flush", self.__track_etl_transactions
+                )
+
             try:
                 yield session
 

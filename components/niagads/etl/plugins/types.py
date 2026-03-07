@@ -54,9 +54,12 @@ class ETLOperation(CaseInsensitiveEnum):
 class ETLRunStatus(BaseModel):
     """
     Status report for ETL operations.
+
+    transactions: Dict mapping table names to operation counts.
+        Format: {table_name: {operation: count}} or flat {table_name: count} for legacy.
     """
 
-    transactions: Dict[str, int] = None
+    transaction_record: Dict[str, any] = None
     estimated_transaction_count: int = None
     operation: ETLOperation = None
     status: ProcessStatus
@@ -66,8 +69,8 @@ class ETLRunStatus(BaseModel):
     task_id: Optional[int] = None
     run_id: Optional[int] = None
 
-    def total_writes(self):
-        if self.transactions is None:
+    def total_transactions(self):
+        if self.transaction_record is None:
             if self.estimated_transaction_count is None:
                 raise RuntimeError(
                     "Cannot calculate total writes - transaction tally not initialized"
@@ -75,7 +78,13 @@ class ETLRunStatus(BaseModel):
             else:
                 return self.estimated_transaction_count
 
-        return sum(self.transactions.values())
+        # expects {table: {op: count}}
+        total = 0
+        for value in self.transaction_record.values():
+            # New format: per-operation counts
+            total += sum(value.values())
+
+        return total
 
 
 class ETLLoadStrategy(CaseInsensitiveEnum):

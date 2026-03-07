@@ -76,7 +76,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.__status_report: ETLRunStatus = None
         self.__checkpoint: ResumeCheckpoint = None
         self.__etl_run: ETLRun = None
-        self.__transaction_count: int = None
+        self.__total_transactions: int = None
+        self.__transaction_record: Dict[str, Dict[str, int]] = {}
 
         # parameter based properties
         self._mode = ETLMode(self._params.mode)
@@ -185,17 +186,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             return None
 
     @property
-    def total_writes(self):
-        # not doing any checks here b/c want to raise errors if used incorrectly
-        return self.__status_report.total_writes()
-
-    @property
     def tx_count(self):
-        return self.__transaction_count
+        return self.__total_transactions
 
     @tx_count.setter
     def tx_count(self, value):
-        self.__transaction_count = value
+        self.__total_transactions = value
 
     def inc_tx_count(self, amount=1):
         """
@@ -204,9 +200,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Args:
             amount (int, optional): increment amount. Defaults to 1.
         """
-        if self.__transaction_count is None:
-            self.__transaction_count = 0
-        self.__transaction_count += amount
+        if self.__total_transactions is None:
+            self.__total_transactions = 0
+        self.__total_transactions += amount
 
     # -------------------------
     # Initialization helpers
@@ -233,7 +229,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             )
 
         return DatabaseSessionManager(
-            connection_string=self._connection_string, echo=self._debug
+            connection_string=self._connection_string,
+            echo=self._debug,
+            enable_etl_tracking=True,
         )
 
     # -------------------------
@@ -343,6 +341,31 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # Transaction Management
     # -------------------------
 
+    def __update_transaction_record(self, session: AsyncSession) -> None:
+        """
+        Extract per-table transaction tracking from session and merge into
+        plugin's cumulative transaction tracking dict.
+
+        Accumulates across multiple sessions/flushes. Skips if session does not
+        have _etl_tracking attribute.
+
+        Args:
+            session (AsyncSession): The database session with potential _etl_tracking.
+        """
+        if not hasattr(session, "_etl_tracking"):
+            raise RuntimeError(
+                "For some unexplained reason etl_tracking was not initialized in the session and yet we still reached this point."
+            )
+
+        transaction_record = session._etl_tracking
+        for table_name, operations in transaction_record.items():
+            if table_name not in self.__transaction_record:
+                self.__transaction_record[table_name] = {}
+            for op, count in operations.items():
+                self.__transaction_record[table_name][op] = (
+                    self.__transaction_record[table_name].get(op, 0) + count
+                )
+
     def session_ctx(self, allow_null_if_unintialized: bool = False):
         """
         Async context manager for obtaining a database session, intended for use
@@ -389,7 +412,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 current connection string and debug settings.
         """
         return DatabaseSessionManager(
-            self._connection_string, pool_size=pool_size, echo=self._debug
+            self._connection_string,
+            pool_size=pool_size,
+            enable_etl_tracking=True,
+            echo=self._debug,
         )
 
     async def __handle_transaction(
@@ -398,7 +424,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         Commit or rollback the session based on ETLMode and commit_after logic.
         """
-        msg = f"{self.__transaction_count} records"
+        msg = f"{self.__total_transactions} records"
         if self._mode == ETLMode.COMMIT:
             await session.commit()
             self.logger.info("COMMITED", msg)
@@ -436,7 +462,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 "checkpoint (nullable) and transaction_count >= 0"
             )
 
-        # increment transaction count
+        # Merge per-table transaction tracking from session (if available)
+        self.__update_transaction_record(session)
+
+        # increment transaction count (for backward compatibility with plugins
+        # that manually track)
         self.inc_tx_count(result.transaction_count)
 
         checkpoint = result.checkpoint
@@ -596,23 +626,22 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         Summarize transaction counts for all affected tables.
 
+        Uses accumulated per-table transaction tracking from session events if available.
+        Falls back to database queries for affected tables if tracking is empty.
+
         Returns:
-            dict: Mapping of fully qualified table name (schema.table) to row count.
-                Uses estimate_row_count if is_large_dataset is True, otherwise exact count.
+            dict: Mapping of table name to operation counts.
+                If using auto-tracking: {table_name: {INSERT: N, UPDATE: M, ...}}
+                If using database queries: {schema.table: count}
         """
+        # Fallback: query affected tables (legacy behavior)
         if self.affected_tables is None or self.is_dry_run:
-            self.__status_report.transactions = {}
+            self.__status_report.transaction_record = {}
 
-        else:
-            async with self.session_ctx() as session:
-                tallies = {
-                    f"{table.__table__.schema}.{table.__table__.name}": await table.get_run_transaction_count(
-                        session, estimate_only=self.is_large_dataset
-                    )
-                    for table in self.affected_tables
-                }
-
-            self.__status_report.transactions = tallies
+        # Use auto-tracked transactions if available
+        if self.__transaction_record:
+            self.__status_report.transaction_record = self.__transaction_record
+            return
 
     # -------------------------
     # Run orchestration
@@ -735,7 +764,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     datetime.now(),  # end time
                     execution_status,
                     message=f"ETL run failed: {e}",
-                    rows_processed=self.__transaction_count,
+                    rows_processed=self.__total_transactions,
                 )
         finally:
             self.on_run_complete()
@@ -749,7 +778,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.__status_report.status = execution_status
             if self.is_dry_run:
                 self.__status_report.estimated_transaction_count = (
-                    self.__transaction_count
+                    self.__total_transactions
                 )
             await self.__summarize_transactions()
             self.logger.status(self.__status_report)
@@ -759,7 +788,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     await self.__finalize_etl_run(
                         end_time,
                         execution_status,
-                        rows_processed=self.__transaction_count,
+                        rows_processed=self.__total_transactions,
                     )
 
             except Exception as db_error:

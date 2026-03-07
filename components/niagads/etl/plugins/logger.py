@@ -146,7 +146,7 @@ class ETLLogger:
         if status.memory is not None:
             self.info(f"{'MEMORY':<{keyw}} : {status.memory:.2f}MB")
 
-        tx_count = status.total_writes()
+        tx_count = status.total_transactions()
         if status.mode == ETLMode.DRY_RUN:
             self.info(f"{'PROCESSED':<{keyw}} : {tx_count}  records.")
 
@@ -155,9 +155,9 @@ class ETLLogger:
 
             self.info(f"{'WROTE':<{keyw}} : {tx_count} records.")
 
-            transactions = status.transactions or {}
+            transactions = status.transaction_record or {}
             if len(transactions) > 0:
-                for table, record_count in status.transactions.items():
+                for table, record_count in status.transaction_record.items():
                     self.info(
                         f"{str(status.operation):<{keyw}} : {record_count} records into {table}"
                     )

@@ -9,6 +9,7 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 from lxml import etree
 from typing import Any, Dict, Iterator, List, Optional, Type
 from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     PathValidatorMixin,
@@ -97,25 +98,15 @@ class XMLRecordLoaderParams(BasePluginParams, PathValidatorMixin):
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
 
-@PluginRegistry.register(metadata={"version": 1.0})
-class XMLRecordLoader(AbstractBasePlugin):
-    _params: XMLRecordLoaderParams  # type annotation
-
-    @classmethod
-    def parameter_model(cls) -> Type[BasePluginParams]:
-        return XMLRecordLoaderParams
-
-    @classmethod
-    def description(self):
-        description = """
+metadata = PluginMetadata(
+    version="1.0",
+    description="""
         XML Record Loader 
         
         Used to load or update small datasets or single records into any existing 
         table without having to write a task-specific plugin. 
         
-        TODO: Can be used in conjuction with planned CSV -> XML converter
-        
-        Inserts or updates data into any table using a simple XML format.  
+        Inserts or updates data into/in any table using a simple XML format.  
         The format is as follows:
         
         The XML format is:
@@ -135,14 +126,17 @@ class XMLRecordLoader(AbstractBasePlugin):
         
         If the row already exists in the table, the plugin will throw an error unless
         the --update flag is specified.
-        """
-        return description
+        """,
+    load_strategy=ETLLoadStrategy.BULK,
+    operation=ETLOperation.LOAD,
+    is_large_dataset=False,
+    parameter_model=XMLRecordLoaderParams,
+)
 
-    @property
-    def operation(self):
-        # Use the appropriate ETLOperation for your use case
 
-        return ETLOperation.LOAD  # insert or update
+@PluginRegistry.register(metadata)
+class XMLRecordLoader(AbstractBasePlugin):
+    _params: XMLRecordLoaderParams  # type annotation
 
     def _parse_and_validate_xml(self) -> "etree._Element":
         """
