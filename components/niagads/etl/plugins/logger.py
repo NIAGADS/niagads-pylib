@@ -5,7 +5,6 @@ from typing import Any, Optional
 from niagads.etl.plugins.types import ETLRunStatus
 from niagads.etl.types import ETLMode
 from niagads.etl.plugins.parameters import BasePluginParams
-from niagads.etl.plugins.types import ETLOperation
 from niagads.utils.logging import LOG_FORMAT_STR
 
 

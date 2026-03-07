@@ -1,11 +1,16 @@
 """Shared fixtures for ETL framework tests."""
 
-import pytest
 from typing import Any, Dict, Type
 
+import pytest
+from niagads.etl.plugins.parameters import BasePluginParams
+from niagads.etl.plugins.types import (
+    ETLLoadResult,
+    ETLLoadStrategy,
+    ETLOperation,
+    ResumeCheckpoint,
+)
 from niagads.etl.types import ETLMode
-from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
-from niagads.etl.plugins.types import ETLLoadResult, ETLLoadStrategy, ETLOperation
 
 
 class TestPluginParams(BasePluginParams):
@@ -16,7 +21,7 @@ class TestPluginParams(BasePluginParams):
 
 # Import after params to avoid circular dependency
 from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.registry import PluginRegistry, PluginMetadata
+from niagads.etl.plugins.registry import PluginMetadata, PluginRegistry
 
 
 class TestPlugin(AbstractBasePlugin):

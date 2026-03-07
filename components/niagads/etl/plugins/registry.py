@@ -1,22 +1,7 @@
-from typing import Callable, Dict, List, Optional, Type, Union
-
-from pydantic import BaseModel
+from typing import Callable, Dict, List, Type, Union
 
 from niagads.etl.plugins.base import AbstractBasePlugin
-from sqlalchemy.orm import DeclarativeBase
-
-from niagads.etl.plugins.parameters import BasePluginParams
-from niagads.etl.plugins.types import ETLLoadStrategy, ETLOperation
-
-
-class PluginMetadata(BaseModel):
-    version: str
-    description: str
-    affected_tables: Optional[List[DeclarativeBase]] = []
-    load_strategy: ETLLoadStrategy
-    operation: ETLOperation
-    is_large_dataset: bool = False
-    parameter_model: Type[BasePluginParams]
+from niagads.etl.plugins.types import PluginMetadata
 
 
 class PluginRegistry:

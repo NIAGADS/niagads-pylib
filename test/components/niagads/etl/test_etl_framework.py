@@ -9,16 +9,15 @@ Tests cover:
 """
 
 import pytest
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
-
-from niagads.etl.plugins.registry import PluginRegistry, PluginMetadata
-from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
-from niagads.etl.plugins.types import ETLLoadResult, ETLLoadStrategy, ETLOperation
-from niagads.etl.types import ETLMode
-from niagads.common.types import ProcessStatus
-
 from conftest import TestPlugin, TestPluginParams
+from niagads.etl.plugins.registry import PluginRegistry
+from niagads.etl.plugins.types import (
+    ETLLoadResult,
+    ETLLoadStrategy,
+    ETLOperation,
+    ResumeCheckpoint,
+)
+from niagads.etl.types import ETLMode
 
 
 class TestRegistryIntrospection:

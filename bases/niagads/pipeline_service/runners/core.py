@@ -7,7 +7,8 @@ from niagads.arg_parser.core import (
 )
 from niagads.common.types import ProcessStatus
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.pipeline.manager import PipelineManager, ETLMode
+from niagads.etl.pipeline.manager import PipelineManager
+from niagads.etl.types import ETLMode
 
 
 class PipelineRunner:

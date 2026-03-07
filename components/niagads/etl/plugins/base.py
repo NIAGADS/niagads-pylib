@@ -9,12 +9,17 @@ from niagads.common.types import ProcessStatus
 from niagads.database.session import DatabaseSessionManager
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger
-from niagads.etl.plugins.parameters import BasePluginParams, ResumeCheckpoint
+from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.etl.plugins.registry import PluginMetadata, PluginRegistry
-from niagads.etl.plugins.types import ETLLoadResult, ETLRunStatus, ETLLoadStrategy
+from niagads.etl.plugins.types import (
+    ETLLoadResult,
+    ETLLoadStrategy,
+    ETLOperation,
+    ETLRunStatus,
+    ResumeCheckpoint,
+)
 from niagads.etl.types import ETLMode
 from niagads.genomicsdb.schema.admin.etl import ETLRun
-from niagads.etl.plugins.types import ETLOperation
 from niagads.utils.asynchronous import null_async_context
 from niagads.utils.list import chunker
 from niagads.utils.logging import FunctionContextLoggerWrapper

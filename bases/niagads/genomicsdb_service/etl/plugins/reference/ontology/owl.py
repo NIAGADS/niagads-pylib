@@ -14,18 +14,13 @@ from niagads.common.constants.ontologies import (
 )
 from niagads.common.helpers.ontologies import get_field_iri
 from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.parameters import (
-    BasePluginParams,
-    PathValidatorMixin,
-    ResumeCheckpoint,
-)
+from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.etl.plugins.types import ETLOperation
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.genomicsdb.schema.reference.ontology import (
     OntologyGraphTermVertex,
-    OntologyGraphTriple,
     OntologyTerm,
 )
 from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
