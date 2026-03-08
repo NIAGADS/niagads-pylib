@@ -268,7 +268,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # Overridable Lifecycle Hooks
     # -------------------------
 
-    def preprocess(self) -> None:
+    async def preprocess(self) -> None:
         """
         Hook for preprocessing stage
 
@@ -283,7 +283,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         pass
 
-    def on_run_complete(self) -> None:
+    async def on_run_complete(self) -> None:
         """
         Hook for plugins to perform custom operations after the end of a run.
         This may include additional logging or intermediary file cleanup.
@@ -702,7 +702,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         if self._mode == ETLMode.PREPROCESS:
             try:
                 self.logger.log_plugin_configuration(self._params)
-                self.preprocess()
+                await self.preprocess()
                 execution_status = ProcessStatus.SUCCESS
             except Exception as e:
                 execution_status = ProcessStatus.FAIL
@@ -781,7 +781,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     rows_processed=self.__get_total_transactions(),
                 )
         finally:
-            self.on_run_complete()
+            await self.on_run_complete()
 
             # Calculate transaction totals once for reuse
             total_transactions = self.__get_total_transactions()
