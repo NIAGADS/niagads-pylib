@@ -138,6 +138,9 @@ metadata = PluginMetadata(
 class XMLRecordLoader(AbstractBasePlugin):
     _params: XMLRecordLoaderParams  # type annotation
 
+    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
+        super().__init__(params, name)
+
     def _parse_and_validate_xml(self) -> "etree._Element":
         """
         Helper to load and validate XML file against XSD, returning the root element.
@@ -173,30 +176,6 @@ class XMLRecordLoader(AbstractBasePlugin):
             msg = f"Unexpected error parsing XML: {str(e)}"
             self.logger.exception(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
             raise RuntimeError(msg)
-
-    @property
-    def load_strategy(self) -> ETLLoadStrategy:
-        return ETLLoadStrategy.CHUNKED
-
-    @property
-    def affected_tables(self) -> List[str]:
-        """
-        Parse the XML file and return all unique schema.table combinations from <Table> tags.
-        This is robust and independent of extract().
-        """
-        tables = set()
-        try:
-            root = self._parse_and_validate_xml()
-            for table_elem in root.findall("Table"):
-                schema_attr = table_elem.attrib.get("schema", "").lower()
-                table_attr = table_elem.attrib.get("name", "").lower()
-                if schema_attr and table_attr:
-                    tables.add(f"{schema_attr}.{table_attr}")
-        except Exception as e:
-            self.logger.warning(
-                f"XMLRecordLoader.affected_tables: Could not parse tables - {e}"
-            )
-        return sorted(tables)
 
     def extract(self) -> Iterator[XMLRecord]:
 
@@ -281,20 +260,20 @@ class XMLRecordLoader(AbstractBasePlugin):
         if exists:
             if self._params.update:
                 await self._update_record(session, transformed)
-                self.update_transaction_count(ETLOperation.UPDATE, table_key)
+                self.inc_tx_count(table_key, ETLOperation.UPDATE)
                 self.logger.debug(f"Updated record {transformed}")
             elif self._params.skip_existing:
                 self.logger.info(
                     f"Skipped existing record in {table_key}: {transformed}"
                 )
-                self.update_transaction_count(ETLOperation.SKIP, table_key)
+                self.inc_tx_count(table_key, ETLOperation.SKIP)
             else:
                 raise RuntimeError(
                     f"Record already exists and update/skip_existing is not enabled: {transformed}"
                 )
         else:
             await self._insert_record(session, transformed)
-            self.update_transaction_count(ETLOperation.INSERT, table_key)
+            self.inc_tx_count(table_key)
             self.logger.debug(f"Inserted record {transformed}")
 
         return self.set_checkpoint(transformed)
