@@ -6,7 +6,7 @@ from urllib.parse import unquote
 from niagads.common.constants.external_resources import ThirdPartyResources
 from niagads.common.constants.ontologies import BiosampleType
 from niagads.common.models.ontologies import OntologyTerm
-from niagads.common.models.composite_attributes.dataset import (
+from niagads.common.models.metadata import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,
@@ -378,7 +378,7 @@ class MetadataEntryParser:
 
             # TODO handle tissue categories, systems to be list
             characteristics = BiosampleCharacteristics(
-                biosample=[OntologyTerm(term=term, term_id=termId)],
+                biosample=[OntologyTerm(term=term, curie=termId)],
                 tissue=[self.get_entry_attribute("tissue_category")],
                 system=[self.get_entry_attribute("system_category")],
                 life_stage=self.get_entry_attribute("life_stage"),

@@ -6,7 +6,7 @@ Defines the RAG document materialized view and related fields for querying gene 
 
 from typing import Optional, Self, cast
 
-from niagads.common.models.composite_attributes.gene import (
+from niagads.common.models.annotations.gene import (
     GOAnnotation,
     PathwayAnnotation,
 )
