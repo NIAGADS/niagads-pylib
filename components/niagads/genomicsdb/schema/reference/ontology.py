@@ -10,7 +10,6 @@ from uuid import uuid4
 
 from niagads.common.constants.ontologies import EntityTypeIRI
 from niagads.database.helpers import enum_column, enum_constraint
-from niagads.database.mixins import EmbeddingMixin
 from niagads.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
@@ -23,13 +22,10 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class OntologyTerm(
-    ReferenceTableBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMixin
-):
+class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
     __tablename__ = "ontologyterm"
     __table_args__ = (
         *ExternalDatabaseMixin.__table_args__,
-        *EmbeddingMixin.get_indexes(ReferenceTableBase._schema, __tablename__),
         UniqueConstraint("source_id", name="uq_ontology_term_id"),
         enum_constraint("entity_type", EntityTypeIRI, use_enum_names=True),
         Index(

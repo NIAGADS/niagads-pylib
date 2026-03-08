@@ -11,7 +11,7 @@ from niagads.common.models.composite_attributes.dataset import (
     Provenance,
 )
 from niagads.database.helpers import enum_column, enum_constraint
-from niagads.database.mixins import EmbeddingMixin, GenomicRegionMixin
+from niagads.database.mixins import GenomicRegionMixin
 from niagads.genomics.sequence.assembly import Assembly, HumanGenome
 from niagads.genomicsdb.schema.dataset.base import DatasetTableBase
 from niagads.genomicsdb.schema.dataset.helpers import track_fk_column
@@ -23,11 +23,10 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class Track(DatasetTableBase, ExternalDatabaseMixin, EmbeddingMixin, IdAliasMixin):
+class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     _stable_id = "source_id"
     __tablename__ = "track"
     __table_args__ = (
-        *EmbeddingMixin.get_indexes(DatasetTableBase._schema, __tablename__),
         *ExternalDatabaseMixin.__table_args__,
         enum_constraint("genome_build", Assembly),
         enum_constraint("data_store", TrackDataStore),
