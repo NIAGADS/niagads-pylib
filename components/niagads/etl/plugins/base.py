@@ -129,7 +129,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
     @property
     def is_large_dataset(self) -> bool:
-        self.__metadata.is_large_dataset
+        return self.__metadata.is_large_dataset
 
     @property
     def load_strategy(self) -> ETLLoadStrategy:
@@ -153,7 +153,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
     @property
     def version(self):
-        self.__metadata.version
+        return self.__metadata.version
 
     @property
     def is_dry_run(self) -> bool:
@@ -268,6 +268,21 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # Overridable Lifecycle Hooks
     # -------------------------
 
+    def preprocess(self) -> None:
+        """
+        Hook for preprocessing stage
+
+        Override in your plugin if preprocess actions are needed;
+        runs preprocss and then exists.
+
+        If you need the DB session, for preprocessing,
+        use self.session_ctx() or self.session_manager() as best fits
+        your application
+
+        Extract expects result from preprocessing.
+        """
+        pass
+
     def on_run_complete(self) -> None:
         """
         Hook for plugins to perform custom operations after the end of a run.
@@ -292,14 +307,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         otherwise, leave as pass.
         """
         pass
-
-    @property
-    def has_preprocess_mode(self) -> bool:
-        """
-        Indicates whether the plugin supports preprocessing mode.
-        Subclasses may override to enable/disable preprocessing.
-        """
-        return False
 
     # -------------------------
     # Transaction Management
@@ -694,13 +701,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         # Preprocess mode - transformers write intermediary data to file
         if self._mode == ETLMode.PREPROCESS:
             try:
-                if not self.has_preprocess_mode:
-                    raise RuntimeError(
-                        "No preprocess method implemented; cannot run in `PREPROCESS` mode."
-                    )
                 self.logger.log_plugin_configuration(self._params)
-                raw_data = self.extract()
-                self.transform(raw_data)
+                self.preprocess()
                 execution_status = ProcessStatus.SUCCESS
             except Exception as e:
                 execution_status = ProcessStatus.FAIL
