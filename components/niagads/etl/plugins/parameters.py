@@ -2,32 +2,9 @@ import json
 from pathlib import Path
 from typing import Optional
 
-import jsonschema
+from niagads.etl.plugins.types import ResumeCheckpoint
 from niagads.etl.types import ETLMode
 from pydantic import BaseModel, Field, field_validator, model_validator
-
-
-class ResumeCheckpoint(BaseModel):
-    """
-    Resume checkpoint.
-    - Use 'line' for source-relative resume (handled in extract()).
-    - Use 'record' for domain resume (handled in extract() or load()).
-    """
-
-    line: Optional[int] = Field(
-        None,
-        description="Line number (1-based) to resume from; header not included in count",
-    )
-    record: Optional[str] = Field(
-        None, description="Natural identifier or full record to resume from"
-    )
-    full_record: Optional[dict]
-
-    @model_validator(mode="after")
-    def validate_checkpoint(self):
-        if not self.line and not self.record:
-            raise ValueError("checkpoint must define either 'line' or 'record'")
-        return self
 
 
 class BasePluginParams(BaseModel):
@@ -113,19 +90,35 @@ class PathValidatorMixin:
 
 class JSONConfigValidatorMixin:
     """
-    Mixin providing schema validation for JSON configuration files.
-    Validates a file path field against a JSONSchema and populates a `config` field.
+    Mixin providing lightweight validation for JSON configuration files.
+
+    Validates a file path field against a SQLAlchemy model's mapped columns and
+    populates a `config` field.
     """
 
     config: Optional[dict] = None
 
     @classmethod
-    def validator(cls, field_name, schema):
+    def validator(cls, field_name, model_class):
         @model_validator(mode="after")
         def validate_config(self):
             file_path = getattr(self, field_name)
             config: dict = json.loads(Path(file_path).read_text(encoding="utf-8"))
-            jsonschema.validate(instance=config, schema=schema)
+
+            if not isinstance(config, dict):
+                raise ValueError(
+                    f"JSON configuration in {file_path} must be a JSON object"
+                )
+
+            allowed_fields = {column.name for column in model_class.__table__.columns}
+            unknown_fields = sorted(set(config.keys()) - allowed_fields)
+
+            if unknown_fields:
+                raise ValueError(
+                    "Unexpected field(s) in JSON configuration for "
+                    f"{model_class.__name__}: {', '.join(unknown_fields)}"
+                )
+
             self.config = config
             return self
 

@@ -2706,41 +2706,20 @@ files = [
 
 [[package]]
 name = "marshmallow"
-version = "4.1.1"
+version = "4.2.2"
 description = "A lightweight library for converting complex datatypes to and from native Python datatypes."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "marshmallow-4.1.1-py3-none-any.whl", hash = "sha256:9038db4cceb849ce2b8676ccf3d8e5b5e634ac499e291397efa260aa796c385a"},
-    {file = "marshmallow-4.1.1.tar.gz", hash = "sha256:550aa14b619072f0a8d8184911b3f1021c5c32587fb27318ddf81ce0d0029c9d"},
+    {file = "marshmallow-4.2.2-py3-none-any.whl", hash = "sha256:084a9466111b7ec7183ca3a65aed758739af919fedc5ebdab60fb39d6b4dc121"},
+    {file = "marshmallow-4.2.2.tar.gz", hash = "sha256:ba40340683a2d1c15103647994ff2f6bc2c8c80da01904cbe5d96ee4baa78d9f"},
 ]
 
 [package.extras]
 dev = ["marshmallow[tests]", "pre-commit (>=3.5,<5.0)", "tox"]
-docs = ["autodocsumm (==0.2.14)", "furo (==2025.9.25)", "sphinx (==8.2.3)", "sphinx-copybutton (==0.5.2)", "sphinx-issues (==5.0.1)", "sphinxext-opengraph (==0.13.0)"]
+docs = ["autodocsumm (==0.2.14)", "furo (==2025.12.19)", "sphinx (==8.2.3)", "sphinx-copybutton (==0.5.2)", "sphinx-issues (==5.0.1)", "sphinxext-opengraph (==0.13.0)"]
 tests = ["pytest", "simplejson"]
-
-[[package]]
-name = "marshmallow-sqlalchemy"
-version = "1.4.2"
-description = "SQLAlchemy integration with the marshmallow (de)serialization library"
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "marshmallow_sqlalchemy-1.4.2-py3-none-any.whl", hash = "sha256:65aee301c4601e76a2fdb02764a65c18913afba2a3506a326c625d13ab405b40"},
-    {file = "marshmallow_sqlalchemy-1.4.2.tar.gz", hash = "sha256:6410304bf98ec26ea35f3f9d3cee82e51fd093c434612add32a0bdcdb5668f7c"},
-]
-
-[package.dependencies]
-marshmallow = ">=3.18.0"
-SQLAlchemy = ">=1.4.40,<3.0"
-
-[package.extras]
-dev = ["marshmallow-sqlalchemy[tests]", "pre-commit (>=3.5,<5.0)", "tox"]
-docs = ["furo (==2024.8.6)", "sphinx (==8.2.3) ; python_version >= \"3.11\"", "sphinx-copybutton (==0.5.2)", "sphinx-design (==0.6.1)", "sphinx-issues (==5.0.0)", "sphinxext-opengraph (==0.10.0)"]
-tests = ["pytest (<9)", "pytest-lazy-fixtures"]
 
 [[package]]
 name = "matplotlib-inline"
@@ -6633,4 +6612,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "dba26bae0cb47458e2bfdc7047d55e1a529b421014523e5882c846b9326a9562"
+content-hash = "a2b027bd2d06948903b0e441802ce1ca3b1b5f415336e5a1a3887bcaf74aec9a"

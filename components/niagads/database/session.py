@@ -139,6 +139,10 @@ class DatabaseSessionManager:
         """
         Provide an async context manager for a SQLAlchemy async session.
 
+        Attaches an after_flush listener to automatically track per-table inserts,
+        updates, and deletes. Tracking is stored on session._etl_tracking and
+        accumulates across multiple flushes in the same session.
+
         Yields:
             AsyncSession: An active SQLAlchemy async session.
 
@@ -153,6 +157,7 @@ class DatabaseSessionManager:
         async with self.__session() as session:
             if session is None:
                 raise RuntimeError("DatabaseSessionManager is not initialized")
+
             try:
                 yield session
 

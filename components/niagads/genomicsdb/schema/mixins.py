@@ -3,7 +3,7 @@ from typing import Any, Dict, Union
 
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
-from niagads.genomicsdb.schema.admin.types import ETLOperation
+from niagads.database.mixins.transactions import TransactionTableMixin
 from sqlalchemy import exists, inspect, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -308,75 +308,6 @@ class LookupTableMixin:
         return rows[0]
 
 
-class TransactionCounter:
-    transactions: Dict[ETLOperation, Dict[str, int]] = {}
-
-
-class TransactionTableMixin:
-    __abstract__ = True
-
-    @classmethod
-    def table_name(cls):
-        return f"{cls.metadata.schema}.{cls.__tablename__}"
-
-    def __increment_transaction(
-        self, operation: ETLOperation, counter: TransactionCounter, increment: int = 1
-    ):
-        """
-        Increment the count for a given ETLOperation and table.
-        """
-
-        if ETLOperation(operation) not in counter:
-            counter[operation] = {}
-
-        table = self.table_name()
-        counter[operation][table] = counter[operation].get(table, 0) + increment
-
-    async def submit(self, session: AsyncSession) -> int:
-        """
-        Insert this table entry into the database and return the primary key value.
-
-        Args:
-            session: SQLAlchemy AsyncSession.
-
-        Returns:
-            int: The primary key value of the inserted record.
-        """
-        await session.add(self)
-        await session.flush()
-
-        pk_name = self.__mapper__.primary_key[0].name
-        return getattr(self, pk_name)
-
-    async def update(self, session: AsyncSession):
-        """
-        Update this table entry in the database. Must include primary key.
-
-        Args:
-            session: SQLAlchemy AsyncSession.
-
-        Raises:
-            ValueError: If the primary key field is not set in this instance
-            or the row does not exist in the database.
-        """
-        pk_name = self.__mapper__.primary_key[0].name
-        pk_value = getattr(self, pk_name, None)
-        if pk_value is None:
-            raise ValueError(
-                f"Primary key field '{pk_name}' must be set to update a record in the database."
-            )
-
-        stmt = select(exists().where(getattr(type(self), pk_name) == pk_value))
-        result = await session.execute(stmt)
-        if not result.scalar():
-            raise ValueError(
-                f"Cannot update record; no row exists in the database with {pk_name}={pk_value}"
-            )
-
-        await session.merge(self)
-        await session.flush()
-
-
 class IdAliasMixin:
     """
     Mixin that provides a generic `id` property for mapped classes to facilitate
@@ -405,9 +336,14 @@ class IdAliasMixin:
 
 
 class GenomicsDBTableMixin(
-    ModelDumpMixin, LookupTableMixin, TransactionTableMixin, HousekeepingMixin
-): ...
+    ModelDumpMixin,
+    LookupTableMixin,
+    TransactionTableMixin,
+    HousekeepingMixin,
+):
+    __abstract__ = True
 
 
 class GenomicsDBMVMixin(ModelDumpMixin, LookupTableMixin):
     _document_primary_key = None  # set to do pk lookups on RAG docs
+    __abstract__ = True
