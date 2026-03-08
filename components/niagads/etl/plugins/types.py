@@ -38,12 +38,14 @@ class ETLOperation(CaseInsensitiveEnum):
     - UPDATE: Update existing records.
     - DELETE: Delete records.
     - INSERT: Insert new records.
+    - SKIP: Skip a record
     """
 
     INSERT = auto()
     UPDATE = auto()
     LOAD = auto()
     DELETE = auto()
+    SKIP = auto()
 
 
 class ETLRunStatus(BaseModel):
