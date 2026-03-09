@@ -28,9 +28,7 @@ class Phenotype(TransformableModel):
         title="Neuropathology",
         description="pathology or classification of the degree of pathology",
     )
-    genotype: Optional[List[OntologyTerm]] = Field(
-        default=None, title="APOE Allele or Carrier Status"
-    )
+    genotype: Optional[List[OntologyTerm]] = Field(default=None, title="Genotype")
     gender: Optional[List[OntologyTerm]] = Field(default=None, title="Gender")
     study_diagnosis: Optional[List[PhenotypeCount]] = Field(
         default=None,

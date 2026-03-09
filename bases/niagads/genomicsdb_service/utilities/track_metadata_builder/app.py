@@ -2,6 +2,7 @@
 
 import json
 import inspect
+from pathlib import Path
 from typing import get_args, get_origin
 from enum import Enum
 
@@ -15,6 +16,39 @@ from niagads.genomicsdb_service.utilities.track_metadata_builder.forms import (
     PydanticFormGenerator,
     CompositeField,
 )
+
+
+# Load ontology reference into memory
+@st.cache_resource
+def load_ontology_reference():
+    """Load ontology reference table into memory.
+
+    Returns:
+        dict mapping field_name -> list of dicts with keys: term, curie
+    """
+    reference_file = Path(__file__).parent / "ontology_reference.txt"
+    reference_by_field = {}
+
+    with open(reference_file) as f:
+        # Skip header
+        next(f)
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("\t")
+            if len(parts) < 3:
+                continue
+            term, curie, field = parts[0], parts[1], parts[2]
+
+            if field not in reference_by_field:
+                reference_by_field[field] = []
+            reference_by_field[field].append({"term": term, "curie": curie})
+
+    return reference_by_field
+
+
+ONTOLOGY_REFERENCE = load_ontology_reference()
 
 
 def get_enum_values(enum_type):
@@ -108,6 +142,39 @@ def get_regular_enum_type(field_type) -> type | None:
     return None
 
 
+def is_ontology_term_list(field_type) -> bool:
+    """Check if a field type is List[OntologyTerm], Optional[List[OntologyTerm]], etc.
+
+    Args:
+        field_type: The field type annotation to check.
+
+    Returns:
+        True if the field is a list of OntologyTerm objects, False otherwise.
+    """
+    origin = get_origin(field_type)
+    args = get_args(field_type)
+
+    # Handle Optional[List[OntologyTerm]] - origin is Union, args are (List[OntologyTerm], type(None))
+    if origin is not None:
+        # For Union types (e.g., Optional), check each arg
+        for arg in args:
+            if arg is type(None):
+                continue
+            # Recursively check if this arg is a List[OntologyTerm]
+            if is_ontology_term_list(arg):
+                return True
+
+    # Handle direct List[OntologyTerm]
+    if origin is list:
+        for arg in args:
+            if arg is type(None):
+                continue
+            if "OntologyTerm" in str(arg):
+                return True
+
+    return False
+
+
 def render_composite_field(
     field_name: str, field_info, composite_form_class, model_class
 ) -> dict:
@@ -176,6 +243,21 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
         value = st.text_area(
             label,
             value="",
+        )
+        return field_name, value
+
+    # Check for List[OntologyTerm] fields - multiselect with ontology reference
+    if is_ontology_term_list(field_info.annotation):
+        # Get reference terms for this field
+        ref_terms = ONTOLOGY_REFERENCE.get(field_name, [])
+        options = [term["term"] for term in ref_terms]
+
+        value = st.multiselect(
+            label,
+            options=options,
+            default=default_value or [],
+            help=help_text,
+            accept_new_options=True,
         )
         return field_name, value
 
