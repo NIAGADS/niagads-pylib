@@ -5,7 +5,7 @@ dynamically mapped from the model's type hints.
 """
 
 from enum import Enum
-from typing import Any, Optional, Type, get_args, get_origin
+from typing import Any, Optional, Type, get_args, get_origin, Annotated
 
 from niagads.common.core import ComponentBaseMixin
 from pydantic import BaseModel
@@ -81,8 +81,15 @@ class PydanticFormGenerator(ComponentBaseMixin):
 
     @staticmethod
     def __get_base_type(field_type: Any) -> Optional[Any]:
-        """Extract base type from Optional or Union wrappers."""
+        """Extract base type from Optional, Union, and Annotated wrappers."""
+        # First unwrap Annotated if present
         origin = get_origin(field_type)
+        if origin is Annotated:
+            args = get_args(field_type)
+            # First arg is the actual type
+            if args:
+                field_type = args[0]
+                origin = get_origin(field_type)
 
         # Handle Optional[T] which is Union[T, None]
         if origin is type(None):  # type: ignore
@@ -92,7 +99,8 @@ class PydanticFormGenerator(ComponentBaseMixin):
             args = get_args(field_type)
             for arg in args:
                 if arg is not type(None):  # type: ignore
-                    return arg
+                    # Recursively unwrap in case of nested Annotated
+                    return PydanticFormGenerator.__get_base_type(arg)
             return None
 
         # Union types - try first non-None arg
@@ -101,7 +109,8 @@ class PydanticFormGenerator(ComponentBaseMixin):
                 args = get_args(field_type)
                 for arg in args:
                     if arg is not type(None):  # type: ignore
-                        return arg
+                        # Recursively unwrap in case of nested Annotated
+                        return PydanticFormGenerator.__get_base_type(arg)
 
         return field_type
 
@@ -140,6 +149,9 @@ class PydanticFormGenerator(ComponentBaseMixin):
             args = get_args(base_type)
             if args:
                 arg_type = args[0]
+                # Unwrap Annotated if present
+                if get_origin(arg_type) is Annotated:
+                    arg_type = get_args(arg_type)[0]
                 # Handle basic types and enums in lists/sets
                 if arg_type in (str, int, float):
                     return StringField

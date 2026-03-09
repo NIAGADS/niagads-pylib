@@ -38,7 +38,7 @@ class Provenance(TransformableModel):
     consortium: Optional[Set[Consortia]] = Field(
         default=None,
         title="Consortium",
-        description=f"collaborative partnership; one or more of {Consortia.list()}",
+        description=f"collaborative partnership",
     )
     study: Optional[str] = Field(default=None, title="Study")
     project: Optional[str] = Field(
