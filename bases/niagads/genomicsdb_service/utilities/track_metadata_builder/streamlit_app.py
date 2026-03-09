@@ -196,8 +196,20 @@ def main():
     )
 
     st.title("Track Metadata Builder")
+    st.markdown("Enter track metadata below.")
+
+    # Center and style the form
     st.markdown(
-        "Enter track metadata below. All required fields must be completed before submission."
+        """
+        <style>
+            [data-testid="stForm"] {
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 0 20px 20px 20px;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
     )
 
     # Generate form from Track model
