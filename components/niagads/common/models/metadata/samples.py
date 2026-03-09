@@ -15,10 +15,7 @@ class BiosampleCharacteristics(TransformableModel):
     biosample_type: Optional[BiosampleType] = Field(
         default=None,
         title="Biosample: Type",
-        description=(
-            "the biological source of a sample used in an experiment; "
-            f"one of {BiosampleType.list()}"
-        ),
+        description="the biological source of a sample used in an experiment",
     )
     biomarker: Optional[List[OntologyTerm]] = Field(default=None, title="Biomarker")
     system: Optional[List[str]] = Field(

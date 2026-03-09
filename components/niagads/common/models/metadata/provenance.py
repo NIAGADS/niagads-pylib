@@ -1,4 +1,4 @@
-from typing import List, Optional, Set
+from typing import Optional, Set
 
 from niagads.common.constants.external_resources import (
     Consortia,
