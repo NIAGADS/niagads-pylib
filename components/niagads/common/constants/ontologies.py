@@ -214,3 +214,7 @@ class BiosampleType(Enum):
 
     def __str__(self):
         return self.value.term
+
+    @classmethod
+    def list(cls):
+        return [member.value.term for member in cls]

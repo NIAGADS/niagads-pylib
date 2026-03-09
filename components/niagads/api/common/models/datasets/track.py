@@ -149,18 +149,6 @@ class Track(ORMCompatibleRowModel):
     )
     # FIXME: exclude cohorts until parsing resolved for FILER
     cohorts: Optional[List[str]] = Field(default=None, title="Cohorts")
-    biosample_characteristics: Optional[BiosampleCharacteristics] = Field(
-        default=None,
-        title="Sample Characteristics",
-    )
-    participant_phenotypes: Optional[Phenotype] = Field(
-        default=None,
-        title="Phenotypes",
-    )
-    experimental_design: Optional[ExperimentalDesign] = Field(
-        default=None,
-        title="Experimental Design",
-    )
     provenance: Provenance = Field(
         title="Provenance",
     )
@@ -168,6 +156,19 @@ class Track(ORMCompatibleRowModel):
         default=None,
         title="File Properties",
     )
+    participant_phenotypes: Optional[Phenotype] = Field(
+        default=None,
+        title="Phenotypes",
+    )
+    biosample_characteristics: Optional[BiosampleCharacteristics] = Field(
+        default=None,
+        title="Sample Characteristics",
+    )
+    experimental_design: Optional[ExperimentalDesign] = Field(
+        default=None,
+        title="Experimental Design",
+    )
+
     curation_history: Optional[list[CurationEvent]] = Field(
         default=None,
         title="Curation History",

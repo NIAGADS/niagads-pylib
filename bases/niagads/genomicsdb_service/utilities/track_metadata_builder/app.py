@@ -2,9 +2,9 @@
 
 import json
 import inspect
-from typing import get_args
+from typing import get_args, get_origin
+from enum import Enum
 
-from niagads.genomics.sequence.assembly import Assembly
 import streamlit as st
 from pydantic import ValidationError
 from pydantic.fields import PydanticUndefined
@@ -13,6 +13,7 @@ from niagads.api.common.models.datasets.track import Track
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomicsdb_service.utilities.track_metadata_builder.forms import (
     PydanticFormGenerator,
+    CompositeField,
 )
 
 
@@ -26,6 +27,8 @@ def get_enum_values(enum_type):
 def get_enum_type(field_type) -> type | None:
     """Extract CaseInsensitiveEnum type from field annotation.
 
+    Recursively unwraps nested generics like Optional[Set[Enum]] to find the enum.
+
     Args:
         field_type: The field type annotation to check.
 
@@ -36,17 +39,69 @@ def get_enum_type(field_type) -> type | None:
     if inspect.isclass(field_type) and issubclass(field_type, CaseInsensitiveEnum):
         return field_type
 
-    # Check if it's Optional[EnumType]
+    # Recursively check nested generics
+    origin = get_origin(field_type)
     args = get_args(field_type)
+
     for arg in args:
-        if (
-            arg is not type(None)
-            and inspect.isclass(arg)
-            and issubclass(arg, CaseInsensitiveEnum)
-        ):
-            return arg
+        if arg is type(None):
+            continue
+
+        # If arg is a direct enum class, return it
+        if inspect.isclass(arg):
+            try:
+                if issubclass(arg, CaseInsensitiveEnum):
+                    return arg
+            except TypeError:
+                pass
+
+        # If arg is another generic type (e.g., Set[Enum]), recurse into it
+        if get_origin(arg) is not None:
+            result = get_enum_type(arg)
+            if result is not None:
+                return result
 
     return None
+
+
+def render_composite_field(
+    field_name: str, field_info, composite_form_class, model_class
+) -> dict:
+    """Render a composite Pydantic model field as an expandable section.
+
+    Args:
+        field_name: Name of the composite field.
+        field_info: Pydantic FieldInfo object.
+        composite_form_class: WTForms form class for the nested model.
+        model_class: The Pydantic model class for the composite field.
+
+    Returns:
+        Dictionary with nested field data.
+    """
+    label = field_info.title or field_name.replace("_", " ").title()
+    is_required = field_info.default is PydanticUndefined
+    if is_required:
+        label = f"{label} *"
+
+    nested_data = {}
+
+    # Create an expandable section for the composite field
+    with st.expander(label, expanded=is_required):
+        if field_info.description:
+            st.caption(field_info.description)
+
+        # Render nested form fields
+        nested_form_instance = composite_form_class()
+        for nested_field_name in nested_form_instance._fields:
+            nested_field_info = model_class.model_fields[nested_field_name]
+            nested_field_type = nested_field_info.annotation
+
+            nested_field_result, nested_value = get_widget_for_field(
+                nested_field_name, nested_field_info, str(nested_field_type)
+            )
+            nested_data[nested_field_result] = nested_value
+
+    return {field_name: nested_data}
 
 
 def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
@@ -80,7 +135,47 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
         )
         return field_name, value
 
-    # Check for enum fields
+    # Check for Set types first (before generic enum check)
+    if "Set" in field_type or "set" in field_type:
+        # Check if this is a Set[EnumType]
+        enum_type = get_enum_type(field_info.annotation)
+        if enum_type is not None:
+            # Checkboxes for enum sets
+            options = get_enum_values(enum_type)
+            default_selected = set()
+            if default_value and isinstance(default_value, set):
+                default_selected = default_value
+
+            # Render checkboxes with label
+            st.markdown(
+                f"<p style='font-size: 14px;'>{label}</p>",
+                unsafe_allow_html=True,
+            )
+
+            selected = []
+            for option in options:
+                if st.checkbox(
+                    option,
+                    value=option in default_selected,
+                    key=f"{field_name}_{option}",
+                ):
+                    selected.append(option)
+
+            return field_name, selected
+        else:
+            # Text area for non-enum sets
+            value = st.text_area(
+                label,
+                value=default_value or "",
+                help=(
+                    f"{help_text} - enter as comma or newline separated values"
+                    if help_text
+                    else "enter as comma or newline separated values"
+                ),
+            )
+            return field_name, value
+
+    # Check for enum fields (but not Set[EnumType] - already handled above)
     enum_type = get_enum_type(field_info.annotation)
     if enum_type is not None:
         options = get_enum_values(enum_type)
@@ -181,6 +276,33 @@ def process_form_data(data: dict) -> dict:
             ]
             continue
 
+        # Handle set - can be list from multiselect or string from text area
+        if "Set" in str(field_type):
+            # If value is already a list (from multiselect), use it directly
+            if isinstance(value, list):
+                items = value
+            else:
+                # Parse comma or newline separated string
+                items = [
+                    v.strip() for v in value.replace("\n", ",").split(",") if v.strip()
+                ]
+
+            # Check if set contains enum types
+            origin = get_origin(field_type)
+            if origin is set:
+                args = get_args(field_type)
+                if args:
+                    item_type = args[0]
+                    # Try to convert to enum if the contained type is an enum
+                    try:
+                        if isinstance(item_type, type) and issubclass(item_type, Enum):
+                            items = [item_type(item.upper()) for item in items]
+                    except (ValueError, TypeError):
+                        # If conversion fails, keep as strings
+                        pass
+            processed[field_name] = set(items)
+            continue
+
         # Default: keep as string
         processed[field_name] = value
 
@@ -213,10 +335,10 @@ def main():
     )
 
     # Generate form from Track model
-    generator = PydanticFormGenerator(exclude_pydantic_models=True)
-    form_class = generator.generate_form_class(Track)
-
-    # Create form
+    generator = PydanticFormGenerator()
+    form_class, composite_fields_metadata = generator.generate_form_class(
+        Track
+    )  # Create form
     with st.form("track_metadata_form", clear_on_submit=True):
         st.subheader("Metadata Fields")
 
@@ -224,13 +346,24 @@ def main():
         form_data = {}
         form_instance = form_class()
         for field_name in form_instance._fields:
+            form_field = form_instance._fields[field_name]
             field_info = Track.model_fields[field_name]
             field_type = field_info.annotation
 
-            field_name_result, value = get_widget_for_field(
-                field_name, field_info, str(field_type)
-            )
-            form_data[field_name_result] = value
+            # Check if this is a composite field
+            if field_name in composite_fields_metadata:
+                composite_info = composite_fields_metadata[field_name]
+                composite_model = composite_info["model"]
+                composite_form_class = composite_info["form_class"]
+                nested_data = render_composite_field(
+                    field_name, field_info, composite_form_class, composite_model
+                )
+                form_data.update(nested_data)
+            else:
+                field_name_result, value = get_widget_for_field(
+                    field_name, field_info, str(field_type)
+                )
+                form_data[field_name_result] = value
 
         col1, col2 = st.columns([1, 4])
         with col1:

@@ -18,14 +18,28 @@ class Provenance(TransformableModel):
         title="Data Source",
         description="original file data source",
     )
-
-    release_version: Optional[str] = Field(default=None, title="Release Version")
+    accession: str = Field(
+        title="Accession",
+        description="accession identifier in original data source; may be parent accession if track is part of a collection (e.g., NIAGADS DSS dataset accession)",
+    )  # FIXME: for FILER set to None or figure out where original accession is?
     release_date: str = Field(title="Release Date")
-    download_date: Optional[str] = Field(default=None, title="Download Date")
-    download_url: Optional[str] = Field(
-        default=None, title="Download URL", exclude=True
+    release_version: Optional[str] = Field(default=None, title="Release Version")
+    download_date: Optional[str] = Field(
+        default=None,
+        title="Download Date",
+        json_schema_extra={"is_filer_annotation": True},
     )
-
+    download_url: Optional[str] = Field(
+        default=None,
+        title="Download URL",
+        exclude=True,
+        json_schema_extra={"is_filer_annotation": True},
+    )
+    consortium: Optional[Set[Consortia]] = Field(
+        default=None,
+        title="Consortium",
+        description=f"collaborative partnership; one or more of {Consortia.list()}",
+    )
     study: Optional[str] = Field(default=None, title="Study")
     project: Optional[str] = Field(
         default=None,
@@ -35,23 +49,13 @@ class Provenance(TransformableModel):
             "under a common goal, funding source, or program. (e.g., ADSP FunGen xQTL)"
         ),
     )
-    accession: str = Field(
-        title="Accession Number in Origianl Data Source; may be parent accession if track is part of a collection",
-    )  # FIXME: for FILER set to None or figure out where original accession is?
-    pubmed_id: Optional[Set[T_PubMedID]] = Field(default=None, title="PubMed ID")
-    doi: Optional[Set[str]] = Field(default=None, title="DOI")
-
-    consortium: Optional[Set[Consortia]] = Field(
-        default=None,
-        title="Consortium",
-        description=f"collaborative partnership; one or more of {Consortia.list()}",
-    )
-    attribution: Optional[str] = Field(
-        default=None,
+    attribution: str = Field(
         pattern=RegularExpressions.ATTRIBUTION,
         title="Attribution",
         description="Human-readable author citation for primary publication (or PI and year if no publication), e.g., Naj et al. 2006",
-    )
+    )  # FIXME: for FILER allow to be None
+    pubmed_id: Optional[Set[T_PubMedID]] = Field(default=None, title="PubMed ID")
+    doi: Optional[Set[str]] = Field(default=None, title="DOI")
 
     def _flat_dump(self, nullFree=False, delimiter="|"):
         obj = {

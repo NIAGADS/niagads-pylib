@@ -13,6 +13,17 @@ from wtforms import BooleanField, FloatField, IntegerField, StringField, validat
 from wtforms.form import Form
 
 
+class CompositeField(StringField):
+    """Marker field type for Pydantic composite models.
+
+    This field type indicates that the field represents a nested Pydantic model
+    that should be rendered as a composite form section, not a simple input.
+    The actual model class is stored in field metadata.
+    """
+
+    pass
+
+
 class PydanticFormGenerator(ComponentBaseMixin):
     """Generate WTForms form classes dynamically from Pydantic models."""
 
@@ -20,7 +31,7 @@ class PydanticFormGenerator(ComponentBaseMixin):
         self,
         debug: bool = False,
         verbose: bool = False,
-        exclude_pydantic_models: bool = True,
+        exclude_pydantic_models: bool = False,
         exclude_filer_annotations: bool = True,
     ):
         """Initialize the form generator.
@@ -41,6 +52,24 @@ class PydanticFormGenerator(ComponentBaseMixin):
             f"verbose={self._verbose}, "
             f"exclude_pydantic_models={self.__exclude_pydantic_models})"
         )
+
+    def generate_nested_form(
+        self,
+        model_class: Type[BaseModel],
+        form_name: Optional[str] = None,
+    ) -> tuple:
+        """Generate a nested form for a composite Pydantic model.
+
+        Recursively calls generate_form_class to create forms for nested models.
+
+        Args:
+            model_class: The Pydantic model class to generate a form for.
+            form_name: Optional custom name for the generated form class.
+
+        Returns:
+            A tuple of (form_class, composite_fields_metadata).
+        """
+        return self.generate_form_class(model_class, form_name)
 
     @staticmethod
     def __is_pydantic_model(field_type: Any) -> bool:
@@ -84,6 +113,10 @@ class PydanticFormGenerator(ComponentBaseMixin):
         if base_type is None:
             return None
 
+        # Check for Pydantic models - return CompositeField marker
+        if isinstance(base_type, type) and issubclass(base_type, BaseModel):
+            return CompositeField
+
         # Handle basic types
         if base_type is str:
             return StringField
@@ -101,12 +134,21 @@ class PydanticFormGenerator(ComponentBaseMixin):
         except TypeError:
             pass
 
-        # Check if it's a list of basic types - treat as StringField, parse later
+        # Check if it's a list or set of basic types - treat as StringField, parse later
         origin = get_origin(base_type)
-        if origin is list:
+        if origin in (list, set):
             args = get_args(base_type)
-            if args and args[0] in (str, int, float):
-                return StringField
+            if args:
+                arg_type = args[0]
+                # Handle basic types and enums in lists/sets
+                if arg_type in (str, int, float):
+                    return StringField
+                # Handle enum types in lists/sets
+                try:
+                    if isinstance(arg_type, type) and issubclass(arg_type, Enum):
+                        return StringField
+                except TypeError:
+                    pass
 
         return None
 
@@ -114,7 +156,7 @@ class PydanticFormGenerator(ComponentBaseMixin):
         self,
         model_class: Type[BaseModel],
         form_name: Optional[str] = None,
-    ) -> Type[Form]:
+    ) -> tuple:
         """Dynamically generate a WTForms Form class from a Pydantic model.
 
         Inspects the Pydantic model's fields and creates corresponding WTForms
@@ -128,13 +170,16 @@ class PydanticFormGenerator(ComponentBaseMixin):
                 Defaults to "{ModelName}Form".
 
         Returns:
-            A dynamically generated WTForms Form class.
+            A tuple of (form_class, composite_fields_metadata) where
+            composite_fields_metadata is a dict mapping field names to their
+            composite model and form class.
         """
 
         if form_name is None:
             form_name = f"{model_class.__name__}Form"
 
         form_fields = {}
+        composite_fields_metadata = {}
 
         for field_name, field_info in model_class.model_fields.items():
             field_type = field_info.annotation
@@ -164,12 +209,33 @@ class PydanticFormGenerator(ComponentBaseMixin):
             # Create field label from field metadata
             label = field_info.title or field_name.replace("_", " ").title()
 
-            # Create field with metadata
-            form_fields[field_name] = wtforms_field_type(
-                label=label,
-                render_kw={"placeholder": field_info.description or ""},
-                validators=field_validators,
-            )
+            # For composite fields, generate nested form and store metadata
+            if wtforms_field_type is CompositeField:
+                base_type = self.__get_base_type(field_type)
+                nested_form_class, nested_composite_metadata = (
+                    self.generate_nested_form(
+                        base_type,
+                        form_name=f"{field_name.title()}Form",
+                    )
+                )
+                form_fields[field_name] = wtforms_field_type(
+                    label=label,
+                    render_kw={"placeholder": field_info.description or ""},
+                    validators=field_validators,
+                )
+                # Store composite metadata separately
+                composite_fields_metadata[field_name] = {
+                    "model": base_type,
+                    "form_class": nested_form_class,
+                }
+            else:
+                # Create field with metadata
+                form_fields[field_name] = wtforms_field_type(
+                    label=label,
+                    render_kw={"placeholder": field_info.description or ""},
+                    validators=field_validators,
+                )
 
         # Dynamically create the Form class
-        return type(form_name, (Form,), form_fields)
+        form_class = type(form_name, (Form,), form_fields)
+        return form_class, composite_fields_metadata

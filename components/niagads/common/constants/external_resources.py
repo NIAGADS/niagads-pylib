@@ -1,3 +1,4 @@
+from typing import List
 from niagads.enums.core import CaseInsensitiveEnum
 
 
@@ -5,6 +6,10 @@ class Consortia(CaseInsensitiveEnum):
     IGAP = "International Genomics of Alzheimer's Project"
     ADGC = "Alzheimer's Disease Genetics Consortium"
     ADSP = "Alzheimer's Disease Sequencing Project"
+
+    @classmethod
+    def list(cls, to_lower: bool = False, return_enum_names: bool = True) -> List[str]:
+        return super().list(to_lower=False, return_enum_names=return_enum_names)
 
 
 class NIAGADSResources(CaseInsensitiveEnum):
