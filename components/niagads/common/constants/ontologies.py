@@ -79,45 +79,18 @@ class AnnotationPropertyIRI(CaseInsensitiveEnum):
 
 
 class BiosampleType(Enum):
-    EXPERIMENTALLY_MODIFIED_CELL = OntologyTerm(
-        term="experimentally modified cell in vitro",
-        curie="CL_0000578",
-        term_iri="http://purl.obolibrary.org/obo/CL_0000578",
-        ontology="Cell Ontology",
+    TISSUE = OntologyTerm(
+        term="tissue",
+        curie="UBERON_0000479",
+        term_iri="http://purl.obolibrary.org/obo/UBERON_0000479",
+        ontology="UBERON",
         definition=(
-            f"A cell in vitro that has undergone physical changes "
-            f"as a consequence of a deliberate and specific experimental procedure"
+            f"Multicellular anatomical structure that consists "
+            f"of many cells of one or a few types, arranged in an "
+            f"extracellular matrix such that their long-range "
+            f"organisation is at least partly a repetition of their "
+            f"short-range organisation."
         ),
-    )
-    CELL_LINE = OntologyTerm(
-        term="cell line",
-        curie="CLO_0000031",
-        term_iri="http://purl.obolibrary.org/obo/CLO_0000031",
-        ontology="Cell Line Ontology",
-        definition=(
-            f"A cultured cell population that represents a "
-            f"genetically stable and homogenous population of "
-            f"cultured cells that shares a common propagation "
-            f"history."
-        ),
-    )
-    ESC_CELL_LINE = OntologyTerm(
-        term="embryonic stem cell line cell",
-        curie="CLO_0037279",
-        term_iri="http://purl.obolibrary.org/obo/CLO_0037279",
-        ontology="Cell Line Ontology",
-        definition=(
-            f"A stem cell line cell that is dervied from an embryotic stem cell, "
-            f" a pluripotent stem cell derived from the inner cell mass "
-            f"of a blastocyst, an early-stage perimplantation embryo."
-        ),
-    )
-    IPSC_CELL_LINE = OntologyTerm(
-        term="induced pluripotent stem cell line cell",
-        curie="CLO_0037307",
-        term_iri="http://purl.obolibrary.org/obo/CLO_0037307",
-        ontology="Cell Line Ontology",
-        definition="A stem cell line cell that is pluripotent and is generated from an adult somatic cell.",
     )
     CELL = OntologyTerm(
         term="cell",
@@ -160,19 +133,48 @@ class BiosampleType(Enum):
             f"Covers cells actively being cultured or stored in a quiescent state for future use."
         ),
     )
-    TISSUE = OntologyTerm(
-        term="tissue",
-        curie="UBERON_0000479",
-        term_iri="http://purl.obolibrary.org/obo/UBERON_0000479",
-        ontology="UBERON",
+
+    EXPERIMENTALLY_MODIFIED_CELL = OntologyTerm(
+        term="experimentally modified cell in vitro",
+        curie="CL_0000578",
+        term_iri="http://purl.obolibrary.org/obo/CL_0000578",
+        ontology="Cell Ontology",
         definition=(
-            f"Multicellular anatomical structure that consists "
-            f"of many cells of one or a few types, arranged in an "
-            f"extracellular matrix such that their long-range "
-            f"organisation is at least partly a repetition of their "
-            f"short-range organisation."
+            f"A cell in vitro that has undergone physical changes "
+            f"as a consequence of a deliberate and specific experimental procedure"
         ),
     )
+    CELL_LINE = OntologyTerm(
+        term="cell line",
+        curie="CLO_0000031",
+        term_iri="http://purl.obolibrary.org/obo/CLO_0000031",
+        ontology="Cell Line Ontology",
+        definition=(
+            f"A cultured cell population that represents a "
+            f"genetically stable and homogenous population of "
+            f"cultured cells that shares a common propagation "
+            f"history."
+        ),
+    )
+    ESC_CELL_LINE = OntologyTerm(
+        term="embryonic stem cell line cell",
+        curie="CLO_0037279",
+        term_iri="http://purl.obolibrary.org/obo/CLO_0037279",
+        ontology="Cell Line Ontology",
+        definition=(
+            f"A stem cell line cell that is dervied from an embryotic stem cell, "
+            f" a pluripotent stem cell derived from the inner cell mass "
+            f"of a blastocyst, an early-stage perimplantation embryo."
+        ),
+    )
+    IPSC_CELL_LINE = OntologyTerm(
+        term="induced pluripotent stem cell line cell",
+        curie="CLO_0037307",
+        term_iri="http://purl.obolibrary.org/obo/CLO_0037307",
+        ontology="Cell Line Ontology",
+        definition="A stem cell line cell that is pluripotent and is generated from an adult somatic cell.",
+    )
+
     ORGANOID = OntologyTerm(
         term="organoid",
         curie="NCIT_C172259",

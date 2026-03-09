@@ -64,6 +64,50 @@ def get_enum_type(field_type) -> type | None:
     return None
 
 
+def get_regular_enum_type(field_type) -> type | None:
+    """Extract any Enum type from field annotation (including OntologyTerm and CaseInsensitiveEnum).
+
+    Recursively unwraps nested generics to find the enum.
+
+    Args:
+        field_type: The field type annotation to check.
+
+    Returns:
+        The enum type if found, None otherwise.
+    """
+    # Check if it's a direct enum type
+    if inspect.isclass(field_type):
+        try:
+            if issubclass(field_type, Enum):
+                return field_type
+        except TypeError:
+            pass
+
+    # Recursively check nested generics
+    origin = get_origin(field_type)
+    args = get_args(field_type)
+
+    for arg in args:
+        if arg is type(None):
+            continue
+
+        # If arg is a direct enum class, return it
+        if inspect.isclass(arg):
+            try:
+                if issubclass(arg, Enum):
+                    return arg
+            except TypeError:
+                pass
+
+        # If arg is another generic type, recurse into it
+        if get_origin(arg) is not None:
+            result = get_regular_enum_type(arg)
+            if result is not None:
+                return result
+
+    return None
+
+
 def render_composite_field(
     field_name: str, field_info, composite_form_class, model_class
 ) -> dict:
@@ -175,18 +219,46 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
             )
             return field_name, value
 
-    # Check for enum fields (but not Set[EnumType] - already handled above)
-    enum_type = get_enum_type(field_info.annotation)
-    if enum_type is not None:
-        options = get_enum_values(enum_type)
+    # Check for CaseInsensitiveEnum fields first
+    case_insensitive_enum_type = get_enum_type(field_info.annotation)
+    if case_insensitive_enum_type is not None:
+        options = get_enum_values(case_insensitive_enum_type)
+        default_index = None
+        if default_value is not None:
+            try:
+                # For CaseInsensitiveEnum, value is already lowercase
+                default_index = options.index(default_value.value.lower())
+            except (ValueError, IndexError, AttributeError):
+                pass
+
         value = st.selectbox(
             label,
             options=options,
-            index=(
-                None
-                if default_value is None
-                else options.index(default_value) if default_value in options else None
-            ),
+            index=default_index,
+            help=help_text,
+        )
+        return field_name, value
+
+    # Check for other Enum types (OntologyTerm enums, etc.)
+    regular_enum_type = get_regular_enum_type(field_info.annotation)
+    if regular_enum_type is not None:
+        # Get the options from the enum's list() method
+        options = regular_enum_type.list()
+
+        # Find the default option if value exists
+        default_index = None
+        if default_value is not None:
+            # Check if this is an OntologyTerm enum (has .term attribute)
+            if hasattr(default_value, "term"):
+                try:
+                    default_index = options.index(default_value.term)
+                except (ValueError, IndexError):
+                    pass
+
+        value = st.selectbox(
+            label,
+            options=options,
+            index=default_index,
             help=help_text,
         )
         return field_name, value
@@ -257,6 +329,16 @@ def process_form_data(data: dict) -> dict:
         # Skip empty/None values
         if value is None or value == "":
             processed[field_name] = None
+            continue
+
+        # Handle regular Enum types (OntologyTerm enums) - convert term string to enum member
+        regular_enum_type = get_regular_enum_type(field_type)
+        if regular_enum_type is not None:
+            # Find the enum member with the matching term value
+            for member in regular_enum_type:
+                if member.value.term == value:
+                    processed[field_name] = member.value
+                    break
             continue
 
         # Handle int

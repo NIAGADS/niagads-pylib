@@ -35,7 +35,7 @@ class CurationEvent(TransformableModel):
     records if required later.
     """
 
-    event_date: datetime = Field(title="Event date")
+    event_date: str = Field(title="Event date")
     event_type: CurationEventType = Field(
         default=CurationEventType.STANDARDIZE, title="Event type"
     )
@@ -43,7 +43,7 @@ class CurationEvent(TransformableModel):
         default="NIAGADS", title="Agent performing the event (user or service)"
     )
     actor_type: Optional[CurationActorType] = Field(
-        default=None, description="user|service|pipeline"
+        default=CurationActorType.USER, description="user|service|pipeline"
     )
     tool: Optional[str] = Field(default=None, title="Software or pipeline name")
     tool_version: Optional[str] = Field(default=None)
