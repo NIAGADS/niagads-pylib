@@ -12,16 +12,14 @@ tau	NIAGADS_undefined	biomarker
 Aβ₄₂	NIAGADS_undefined	biomarker
 cohort indicators	NIAGADS_undefined	covariates
 sequencing center	NIAGADS_undefined	covariates
-sex	NIAGADS_undefined	covariates
+gender	NCIT_C17357	covariates
 population stratification	NIAGADS_undefined	covariates
+PCA	NIAGADS_undefined	covariates
 age	NIAGADS_undefined	covariates
 platform	NIAGADS_undefined	covariates
 site	NIAGADS_undefined	covariates
 APOε4 carrier status or allele number	NIAGADS_undefined	covariates
-sex population stratification	NIAGADS_undefined	covariates
-adjusted for age	NIAGADS_undefined	covariates
 country of origin	NIAGADS_undefined	covariates
-adjusted for population stratification	NIAGADS_undefined	covariates
 Alzheimer's disease	EFO_1001870	disease
 Lewy body dementia	EFO_0006792	disease
 Progressive supranuclear palsy	Orphanet_683	disease

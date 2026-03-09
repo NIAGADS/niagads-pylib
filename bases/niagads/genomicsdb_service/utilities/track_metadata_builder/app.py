@@ -1,21 +1,23 @@
 """Streamlit application for track metadata form intake and serialization."""
 
-import json
 import inspect
+import json
+from enum import Enum
 from pathlib import Path
 from typing import get_args, get_origin
-from enum import Enum
 
 import streamlit as st
-from pydantic import ValidationError
-from pydantic.fields import PydanticUndefined
-
 from niagads.api.common.models.datasets.track import Track
+from niagads.common.models.ontologies import OntologyTerm
 from niagads.enums.core import CaseInsensitiveEnum
+from niagads.genomics.sequence.assembly import Assembly
 from niagads.genomicsdb_service.utilities.track_metadata_builder.forms import (
     PydanticFormGenerator,
-    CompositeField,
 )
+from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import matches
+from pydantic import ValidationError
+from pydantic.fields import PydanticUndefined
 
 
 # Load ontology reference into memory
@@ -49,6 +51,55 @@ def load_ontology_reference():
 
 
 ONTOLOGY_REFERENCE = load_ontology_reference()
+
+
+def validate_ontology_term(input_value: str, field_name: str) -> dict:
+    """Validate and convert user input to OntologyTerm dict.
+
+    Handles term names, CURIEs, and creates placeholder terms as needed.
+
+    Args:
+        input_value: User input (term name or CURIE).
+        field_name: Field name for reference table lookup.
+
+    Returns:
+        Dictionary with term and curie ready for OntologyTerm instantiation.
+
+    Raises:
+        ValueError: If validation fails.
+    """
+    input_value = input_value.strip()
+
+    # Step 1: Detect term vs CURIE
+    is_curie = matches(input_value, RegularExpressions.ONTOLOGY_TERM_CURIE)
+
+    # Step 2: Lookup in reference table (only if it's a term, not a CURIE)
+    if not is_curie:
+        # Get reference terms for this field
+        ref_terms = ONTOLOGY_REFERENCE.get(field_name, [])
+        for ref_term in ref_terms:
+            if ref_term["term"].lower() == input_value.lower():
+                # Found in reference - return term and curie
+                return {
+                    "term": ref_term["term"],
+                    "curie": ref_term["curie"],
+                }
+
+    # Step 3: Handle not-in-reference
+    if is_curie:
+        # Input is a CURIE - create OntologyTerm with curie only
+        try:
+            ontology_term = OntologyTerm(curie=input_value)
+            return ontology_term.model_dump()
+        except ValidationError as e:
+            raise ValueError(f"Invalid CURIE '{input_value}': {str(e)}")
+    else:
+        # Input is a term not in reference - create placeholder entry
+        return {
+            "term": input_value,
+            "curie": "INTAKE:needs_review",
+            "is_placeholder": True,
+        }
 
 
 def get_enum_values(enum_type):
@@ -98,22 +149,29 @@ def get_enum_type(field_type) -> type | None:
     return None
 
 
-def get_regular_enum_type(field_type) -> type | None:
-    """Extract any Enum type from field annotation (including OntologyTerm and CaseInsensitiveEnum).
+def get_ontology_term_enum_type(field_type) -> type | None:
+    """Extract OntologyTerm enum type from field annotation.
 
-    Recursively unwraps nested generics to find the enum.
+    Recursively unwraps nested generics to find OntologyTerm enums specifically.
+    Filters out CaseInsensitiveEnum and other non-OntologyTerm enums.
 
     Args:
         field_type: The field type annotation to check.
 
     Returns:
-        The enum type if found, None otherwise.
+        The OntologyTerm enum type if found, None otherwise.
     """
     # Check if it's a direct enum type
     if inspect.isclass(field_type):
         try:
-            if issubclass(field_type, Enum):
-                return field_type
+            if issubclass(field_type, Enum) and not issubclass(
+                field_type, CaseInsensitiveEnum
+            ):
+                # Check if it's an OntologyTerm enum by verifying values have .term attribute
+                if len(list(field_type)) > 0 and hasattr(
+                    list(field_type)[0].value, "term"
+                ):
+                    return field_type
         except TypeError:
             pass
 
@@ -128,14 +186,16 @@ def get_regular_enum_type(field_type) -> type | None:
         # If arg is a direct enum class, return it
         if inspect.isclass(arg):
             try:
-                if issubclass(arg, Enum):
-                    return arg
+                if issubclass(arg, Enum) and not issubclass(arg, CaseInsensitiveEnum):
+                    # Check if it's an OntologyTerm enum
+                    if len(list(arg)) > 0 and hasattr(list(arg)[0].value, "term"):
+                        return arg
             except TypeError:
                 pass
 
         # If arg is another generic type, recurse into it
         if get_origin(arg) is not None:
-            result = get_regular_enum_type(arg)
+            result = get_ontology_term_enum_type(arg)
             if result is not None:
                 return result
 
@@ -308,8 +368,13 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
         default_index = None
         if default_value is not None:
             try:
-                # For CaseInsensitiveEnum, value is already lowercase
-                default_index = options.index(default_value.value.lower())
+
+                if case_insensitive_enum_type is Assembly:
+                    # Assembly values are already the correct case
+                    default_index = options.index(default_value.value)
+                else:
+                    # Other CaseInsensitiveEnum types may use lowercase
+                    default_index = options.index(default_value.value.lower())
             except (ValueError, IndexError, AttributeError):
                 pass
 
@@ -321,11 +386,11 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
         )
         return field_name, value
 
-    # Check for other Enum types (OntologyTerm enums, etc.)
-    regular_enum_type = get_regular_enum_type(field_info.annotation)
-    if regular_enum_type is not None:
+    # Check for OntologyTerm Enum types
+    ontology_term_enum_type = get_ontology_term_enum_type(field_info.annotation)
+    if ontology_term_enum_type is not None:
         # Get the options from the enum's list() method
-        options = regular_enum_type.list()
+        options = ontology_term_enum_type.list()
 
         # Find the default option if value exists
         default_index = None
@@ -362,7 +427,7 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
         value = st.number_input(
             label,
             value=default_value,
-            step=0.01,
+            step=None,
             help=help_text,
         )
         return field_name, value
@@ -442,11 +507,11 @@ def process_form_data(data: dict, model_class=Track) -> dict:
                 processed[field_name] = value
             continue
 
-        # Handle regular Enum types (OntologyTerm enums) - convert term string to enum member
-        regular_enum_type = get_regular_enum_type(field_type)
-        if regular_enum_type is not None:
+        # Handle OntologyTerm Enum types - convert term string to enum member
+        ontology_term_enum_type = get_ontology_term_enum_type(field_type)
+        if ontology_term_enum_type is not None:
             # Find the enum member with the matching term value
-            for member in regular_enum_type:
+            for member in ontology_term_enum_type:
                 if member.value.term == value:
                     processed[field_name] = member.value
                     break
@@ -460,6 +525,24 @@ def process_form_data(data: dict, model_class=Track) -> dict:
         # Handle float
         if "float" in str(field_type):
             processed[field_name] = float(value)
+            continue
+
+        # Handle List[OntologyTerm] - convert each term/CURIE to OntologyTerm dict
+        if is_ontology_term_list(field_type):
+            # Value should be a list from multiselect or empty
+            if not value or (isinstance(value, list) and len(value) == 0):
+                processed[field_name] = None
+                continue
+
+            ontology_terms = []
+            for item in value:
+                try:
+                    term_dict = validate_ontology_term(item, field_name)
+                    ontology_terms.append(term_dict)
+                except ValueError as e:
+                    raise ValueError(f"Field '{field_name}', item '{item}': {str(e)}")
+
+            processed[field_name] = ontology_terms
             continue
 
         # Handle list - parse comma or newline separated
