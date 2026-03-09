@@ -21,6 +21,7 @@ class PydanticFormGenerator(ComponentBaseMixin):
         debug: bool = False,
         verbose: bool = False,
         exclude_pydantic_models: bool = True,
+        exclude_filer_annotations: bool = True,
     ):
         """Initialize the form generator.
 
@@ -32,6 +33,7 @@ class PydanticFormGenerator(ComponentBaseMixin):
         """
         super().__init__(debug=debug, verbose=verbose)
         self.__exclude_pydantic_models = exclude_pydantic_models
+        self.__exclude_filer_annotations = exclude_filer_annotations
 
     def __repr__(self) -> str:
         return (
@@ -142,6 +144,12 @@ class PydanticFormGenerator(ComponentBaseMixin):
                 self.__get_base_type(field_type)
             ):
                 continue
+
+            # Skip fields with json_schema_extra['is_filer_annotation'] if requested
+            if self.__exclude_filer_annotations:
+                extra = getattr(field_info, "json_schema_extra", None)
+                if extra and extra.get("is_filer_annotation", False):
+                    continue
 
             # Map Pydantic type to WTForms field type
             wtforms_field_type = self.__map_pydantic_type_to_wtforms(field_type)

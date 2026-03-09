@@ -67,3 +67,6 @@ class RegularExpressions(StrEnum):
 
     # e.g. GO:1234567 or chebi:15377; but will match with _ as the separator as well
     ONTOLOGY_TERM_ID = r"^[A-Za-z][A-Za-z0-9_]+[:_][A-Za-z0-9_]+$"
+
+    # Matches citations like 'Naj et al. 2006', 'Smith-Jones 2021', 'Doe 1999'
+    ATTRIBUTION = r"^[A-Z][a-zA-Z'-]+(?: et al\.)? \d{4}$"

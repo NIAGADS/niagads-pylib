@@ -31,9 +31,7 @@ class Phenotype(TransformableModel):
     genotype: Optional[List[OntologyTerm]] = Field(
         default=None, title="APOE Allele or Carrier Status"
     )
-    biological_sex: Optional[List[OntologyTerm]] = Field(
-        default=None, title="Biological Sex"
-    )
+    gender: Optional[List[OntologyTerm]] = Field(default=None, title="Gender")
     study_diagnosis: Optional[List[PhenotypeCount]] = Field(
         default=None,
         title="Study Diagnosis",
@@ -51,8 +49,7 @@ class Phenotype(TransformableModel):
         """Extract all ontology terms from phenotype fields.
 
         Iterates over all model fields and collects OntologyTerm instances
-        from list fields (disease, ethnicity, race, neuropathology, genotype,
-        biological_sex).
+        from list fields.
 
         Returns:
             List of OntologyTerm objects from all phenotype categories.

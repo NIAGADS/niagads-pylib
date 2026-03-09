@@ -138,11 +138,13 @@ class Track(ORMCompatibleRowModel):
         default=False,
         title="Download Only",
         description="File is available for download only; data cannot be queried using the NIAGADS Open Access API.",
+        json_schema_extra={"is_filer_annotation": True},
     )
     is_shard: Optional[bool] = Field(
         default=False,
         title="Is Shard?",
         description="Flag indicating whether track is part of a result set sharded by chromosome.",
+        json_schema_extra={"is_filer_annotation": True},
         exclude=True,
     )
     # FIXME: exclude cohorts until parsing resolved for FILER

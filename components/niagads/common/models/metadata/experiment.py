@@ -1,20 +1,32 @@
 from typing import List, Optional, Set
 
-from niagads.common.constants.external_resources import (
-    NIAGADSResources,
-    ThirdPartyResources,
-)
 from niagads.common.models.core import TransformableModel
 from pydantic import Field
 
 
 class ExperimentalDesign(TransformableModel):
-    antibody_target: Optional[str] = Field(default=None, title="Antibody Target")
-    assay: Optional[str] = Field(default=None, title="Assay")
+    antibody_target: Optional[str] = Field(
+        default=None,
+        title="Antibody Target",
+        json_schema_extra={"is_filer_annotation": True},
+    )
+    assay: Optional[str] = Field(
+        default=None,
+        title="Assay",
+        json_schema_extra={"is_filer_annotation": True},
+    )
     analysis: Optional[str] = Field(default=None, title="Analysis")
-    classification: Optional[str] = Field(default=None, title="Classification")
+    classification: Optional[str] = Field(
+        default=None,
+        title="Classification",
+        json_schema_extra={"is_filer_annotation": True},
+    )
     data_category: Optional[str] = Field(default=None, title="Data Category")
-    output_type: Optional[str] = Field(default=None, title="Output Type")
+    output_type: Optional[str] = Field(
+        default=None,
+        title="Output Type",
+        json_schema_extra={"is_filer_annotation": True},
+    )
     is_lifted: Optional[bool] = Field(
         default=None,
         title="Is Lifted?",

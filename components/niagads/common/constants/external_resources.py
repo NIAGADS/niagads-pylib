@@ -1,6 +1,12 @@
 from niagads.enums.core import CaseInsensitiveEnum
 
 
+class Consortia(CaseInsensitiveEnum):
+    IGAP = "International Genomics of Alzheimer's Project"
+    ADGC = "Alzheimer's Disease Genetics Consortium"
+    ADSP = "Alzheimer's Disease Sequencing Project"
+
+
 class NIAGADSResources(CaseInsensitiveEnum):
     NIAGADS = "https://www.niagads.org"
     NIAGADS_DSS = "https://dss.niagads.org"
