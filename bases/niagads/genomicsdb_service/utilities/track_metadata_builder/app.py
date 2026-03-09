@@ -302,18 +302,22 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
     return field_name, value
 
 
-def process_form_data(data: dict) -> dict:
+def process_form_data(data: dict, model_class=Track) -> dict:
     """Process form data to convert string values to appropriate types.
+
+    Recursively processes nested dicts by passing the appropriate model class context.
 
     Args:
         data: Dictionary of form field names to values.
+        model_class: Pydantic model class to validate fields against (defaults to Track).
 
     Returns:
-        Dictionary with values converted to appropriate types for Track model.
+        Dictionary with values converted to appropriate types for the model.
     """
+
     processed = {}
 
-    for field_name, field_info in Track.model_fields.items():
+    for field_name, field_info in model_class.model_fields.items():
         field_type = field_info.annotation
 
         if field_name not in data:
@@ -329,6 +333,31 @@ def process_form_data(data: dict) -> dict:
         # Skip empty/None values
         if value is None or value == "":
             processed[field_name] = None
+            continue
+
+        # Handle nested dicts (composite fields) - recursively process them
+        if isinstance(value, dict):
+            # Get the nested model class from the field type
+            nested_model_class = None
+            origin = get_origin(field_type)
+
+            # Handle Optional[Model] or Model directly
+            if origin is not None:
+                # For Optional[Model], get the non-None type
+                args = get_args(field_type)
+                for arg in args:
+                    if arg is not type(None) and hasattr(arg, "model_fields"):
+                        nested_model_class = arg
+                        break
+            elif hasattr(field_type, "model_fields"):
+                # Direct model type
+                nested_model_class = field_type
+
+            if nested_model_class:
+                processed[field_name] = process_form_data(value, nested_model_class)
+            else:
+                # Fallback: just pass through the dict
+                processed[field_name] = value
             continue
 
         # Handle regular Enum types (OntologyTerm enums) - convert term string to enum member
