@@ -9,7 +9,7 @@ from niagads.common.models.metadata import (
     Phenotype,
 )
 from niagads.api.common.models.core import RowModel
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.parameters.enums import EnumParameter
 from pydantic import Field, field_serializer, model_validator
 
@@ -70,7 +70,7 @@ class VariantAssociation(RowModel):
         default=None, title="Publication", order=8
     )
 
-    subject_phenotypes: Optional[Phenotype] = Field(default=None, exclude=True)
+    participant_phenotypes: Optional[Phenotype] = Field(default=None, exclude=True)
     biosample_characterisitics: Optional[BiosampleCharacteristics] = Field(
         default=None, exclude=True
     )
@@ -95,7 +95,7 @@ class VariantAssociation(RowModel):
     @classmethod
     def process_trait(cls, data: dict):
         """
-        promote subject_phenotypes to get trait if trait is
+        promote participant_phenotypes to get trait if trait is
         not already in the response
         """
 
@@ -113,7 +113,7 @@ class VariantAssociation(RowModel):
         if data.get("trait") is not None:
             return data
 
-        phenotypes: dict = data.get("subject_phenotypes")
+        phenotypes: dict = data.get("participant_phenotypes")
         biosample: dict = data.get("biosample_characteristics")
 
         if phenotypes is None and biosample is None:

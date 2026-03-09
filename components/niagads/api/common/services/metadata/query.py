@@ -204,7 +204,7 @@ class MetadataQueryService:
             if triple.field == "biosample_type":
                 column = Track.biosample_characteristics[triple.field].astext
             elif triple.field in Phenotype.model_fields:
-                column = Track.subject_phenotypes[triple.field].astext
+                column = Track.participant_phenotypes[triple.field].astext
             elif triple.field in Provenance.model_fields:
                 column = Track.provenance[triple.field].astext
             elif triple.field in ExperimentalDesign.model_fields:

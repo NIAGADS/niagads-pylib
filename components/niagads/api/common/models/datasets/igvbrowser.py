@@ -9,7 +9,7 @@ from niagads.common.models.metadata import (
 )
 from niagads.api.common.config import Settings
 from niagads.api.common.models.core import RowModel
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.parameters.response import (
     ResponseFormat,
     ResponseView,
@@ -23,7 +23,7 @@ EXCLUDE_FROM_METADATA = [
     "definition",
     "biosample",
     "biosample_characteristics",
-    "subject_phenotypes",
+    "participant_phenotypes",
     "experimental_design",
     "provenance",
     "file_properties",
@@ -129,7 +129,7 @@ class IGVBrowserTrackMetadata(RowModel):
     feature_type: str = Field(title="Feature Type")
     biosample_characteristics: Optional[BiosampleCharacteristics] = None
     experimental_design: Optional[ExperimentalDesign] = None
-    subject_phenotypes: Optional[Phenotype] = None
+    participant_phenotypes: Optional[Phenotype] = None
 
     # should allow to fill from SQLAlchemy ORM model
     model_config = ConfigDict(from_attributes=True)

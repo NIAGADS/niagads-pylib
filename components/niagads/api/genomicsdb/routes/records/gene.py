@@ -14,7 +14,7 @@ from niagads.api.common.models.features.gene import (
 )
 from niagads.genomics.features.core import GenomicFeature
 from niagads.api.common.models.records import Entity
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.models.services.query import QueryFilter
 from niagads.api.common.parameters.associations import (
     association_source_param,

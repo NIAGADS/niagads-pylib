@@ -7,7 +7,7 @@ from niagads.api.common.models.datasets.track import (
     AbridgedTrackResponse,
     TrackResponse,
 )
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.parameters.pagination import page_param
 from niagads.api.common.parameters.record.path import collection_param
 from niagads.api.common.parameters.record.query import track_param

@@ -2,7 +2,7 @@ from typing import Union
 
 from fastapi import APIRouter, Depends
 from niagads.api.common.constants import SharedOpenAPITags
-from niagads.api.common.models.response.core import ListResponse, RecordResponse
+from niagads.api.common.models.response.base import ListResponse, RecordResponse
 from niagads.api.filer.dependencies import (
     InternalRequestParameters,
     TextSearchFilterFields,

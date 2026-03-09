@@ -15,13 +15,15 @@ from niagads.api.common.models.core import (
     ORMCompatibleRowModel,
     ResultSize,
 )
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
+from niagads.genomics.features.core import GenomicFeatureType
+from niagads.genomics.sequence.assembly import Assembly
 from niagads.utils.dict import promote_nested
 from pydantic import Field, model_validator
 
 COMPOSITE_ATTRIBUTES: Dict[str, T_TransformableModel] = {
     "biosample_characteristics": BiosampleCharacteristics,
-    "subject_phenotypes": Phenotype,
+    "participant_phenotypes": Phenotype,
     "experimental_design": ExperimentalDesign,
     "provenance": Provenance,
     "file_properties": FileProperties,
@@ -30,11 +32,26 @@ COMPOSITE_ATTRIBUTES: Dict[str, T_TransformableModel] = {
 
 
 class AbridgedTrack(ORMCompatibleDynamicRowModel):
-    track_id: str = Field(title="Track", serialization_alias="id")
+    track_id: str = Field(
+        title="Track ID",
+        serialization_alias="id",
+        description="stable track identifier",
+    )
     name: str = Field(title="Name")
     description: Optional[str] = Field(default=None, title="Description")
-    genome_build: str = Field(title="Genome Build")
-    feature_type: Optional[str] = Field(default=None, title="Feature")
+    genome_build: Assembly = Field(
+        default=Assembly.GRCh38,
+        title="Genome Build",
+        description=f"one of {Assembly.list()}",
+    )
+    feature_type: Optional[GenomicFeatureType] = Field(
+        default=None,
+        title="Feature",
+        description=(
+            f"primary type of genomic feature being annotated. "
+            f"One of {GenomicFeatureType.list()}"
+        ),
+    )
     is_download_only: Optional[bool] = Field(
         default=False,
         title="Download Only",
@@ -43,7 +60,7 @@ class AbridgedTrack(ORMCompatibleDynamicRowModel):
     is_shard: Optional[bool] = Field(
         default=False,
         title="Is Shard?",
-        description="Flag indicateing whether track is part of a result set sharded by chromosome.",
+        description="Flag indicating whether track is part of a result set sharded by chromosome.",
         exclude=True,
     )
     data_source: Optional[str] = Field(
@@ -95,30 +112,63 @@ class AbridgedTrack(ORMCompatibleDynamicRowModel):
 
 
 class Track(ORMCompatibleRowModel):
-    track_id: str = Field(title="Track", serialization_alias="id")
+
+    track_id: str = Field(
+        title="Track ID",
+        serialization_alias="id",
+        description="stable track identifier",
+    )
     name: str = Field(title="Name")
     description: Optional[str] = Field(default=None, title="Description")
-    genome_build: str = Field(title="Genome Build")
-    feature_type: Optional[str] = Field(default=None, title="Feature")
+    genome_build: Assembly = Field(
+        default=Assembly.GRCh38,
+        title="Genome Build",
+        description=f"one of {Assembly.list()}",
+    )
+    feature_type: Optional[GenomicFeatureType] = Field(
+        default=None,
+        title="Feature",
+        description=(
+            f"priamry type of genomic feature being annotated. "
+            f"One of {GenomicFeatureType.list()}"
+        ),
+    )
+
     is_download_only: Optional[bool] = Field(
+        default=False,
         title="Download Only",
         description="File is available for download only; data cannot be queried using the NIAGADS Open Access API.",
     )
     is_shard: Optional[bool] = Field(
+        default=False,
         title="Is Shard?",
         description="Flag indicating whether track is part of a result set sharded by chromosome.",
         exclude=True,
     )
     # FIXME: exclude cohorts until parsing resolved for FILER
     cohorts: Optional[List[str]] = Field(default=None, title="Cohorts")
-    biosample_characteristics: Optional[BiosampleCharacteristics]
-    subject_phenotypes: Optional[Phenotype]
-    experimental_design: Optional[ExperimentalDesign]
-    provenance: Provenance
-    file_properties: Optional[FileProperties]
+    biosample_characteristics: Optional[BiosampleCharacteristics] = Field(
+        default=None,
+        title="Sample Characteristics",
+    )
+    participant_phenotypes: Optional[Phenotype] = Field(
+        default=None,
+        title="Phenotypes",
+    )
+    experimental_design: Optional[ExperimentalDesign] = Field(
+        default=None,
+        title="Experimental Design",
+    )
+    provenance: Provenance = Field(
+        title="Provenance",
+    )
+    file_properties: Optional[FileProperties] = Field(
+        default=None,
+        title="File Properties",
+    )
     curation_history: Optional[list[CurationEvent]] = Field(
         default=None,
-        title="Curation history",
+        title="Curation History",
         description="Chronological list of curation events applied to this track",
     )
 
@@ -217,8 +267,8 @@ class Track(ORMCompatibleRowModel):
         ]
 
         subjects = []
-        if self.subject_phenotypes:
-            for term in self.subject_phenotypes.get_ontology_terms():
+        if self.participant_phenotypes:
+            for term in self.participant_phenotypes.get_ontology_terms():
                 subjects.append({"subject": term.term})
         if self.feature_type:
             subjects.append({"subject": self.feature_type})

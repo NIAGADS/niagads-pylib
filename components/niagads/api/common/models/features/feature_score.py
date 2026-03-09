@@ -9,7 +9,7 @@ from niagads.api.common.models.features.variant import (
     Variant,
     VariantFeature,
 )
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
 
 from niagads.api.common.parameters.response import ResponseView
 from pydantic import Field, field_serializer

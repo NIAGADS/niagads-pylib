@@ -5,7 +5,7 @@ from niagads.common.models.annotations.gene import (
     PathwayAnnotation,
 )
 from niagads.api.common.models.core import RowModel
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
 from pydantic import Field
 from niagads.api.common.models.features.region import GenomicRegion
 

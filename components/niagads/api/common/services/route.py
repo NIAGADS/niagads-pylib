@@ -5,8 +5,8 @@ from niagads.genomics.features.core import GenomicFeature
 from niagads.common.models.structures import Range
 from niagads.exceptions.core import ValidationError
 from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
-from niagads.api.common.models.response.core import (
-    AbstractResponse,
+from niagads.api.common.models.response.base import (
+    AbstractBaseResponse,
     T_RecordResponse,
     T_Response,
 )
@@ -69,7 +69,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     # allows ensurance that model is always a child of RecordResponse
     @field_validator("model")
     def validate_model(cls, model):
-        if issubclass(model, AbstractResponse):
+        if issubclass(model, AbstractBaseResponse):
             return model
         raise RuntimeError(
             f"Wrong type for `model` : `{model}`; must be subclass of `AbstractResponse`"
