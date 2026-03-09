@@ -81,7 +81,7 @@ class AnnotationPropertyIRI(CaseInsensitiveEnum):
 class BiosampleType(Enum):
     EXPERIMENTALLY_MODIFIED_CELL = OntologyTerm(
         term="experimentally modified cell in vitro",
-        term_id="CL_0000578",
+        curie="CL_0000578",
         term_iri="http://purl.obolibrary.org/obo/CL_0000578",
         ontology="Cell Ontology",
         definition=(
@@ -91,7 +91,7 @@ class BiosampleType(Enum):
     )
     CELL_LINE = OntologyTerm(
         term="cell line",
-        term_id="CLO_0000031",
+        curie="CLO_0000031",
         term_iri="http://purl.obolibrary.org/obo/CLO_0000031",
         ontology="Cell Line Ontology",
         definition=(
@@ -103,7 +103,7 @@ class BiosampleType(Enum):
     )
     ESC_CELL_LINE = OntologyTerm(
         term="embryonic stem cell line cell",
-        term_id="CLO_0037279",
+        curie="CLO_0037279",
         term_iri="http://purl.obolibrary.org/obo/CLO_0037279",
         ontology="Cell Line Ontology",
         definition=(
@@ -114,14 +114,14 @@ class BiosampleType(Enum):
     )
     IPSC_CELL_LINE = OntologyTerm(
         term="induced pluripotent stem cell line cell",
-        term_id="CLO_0037307",
+        curie="CLO_0037307",
         term_iri="http://purl.obolibrary.org/obo/CLO_0037307",
         ontology="Cell Line Ontology",
         definition="A stem cell line cell that is pluripotent and is generated from an adult somatic cell.",
     )
     CELL = OntologyTerm(
         term="cell",
-        term_id="CL:0000000",
+        curie="CL:0000000",
         term_iri="http://purl.obolibrary.org/obo/CL_0000000",
         ontology="Cell Ontology",
         definition=(
@@ -133,14 +133,14 @@ class BiosampleType(Enum):
     )
     PRIMARY_CELL = OntologyTerm(
         term="primary cell",
-        term_id="EFO_0002660",
+        curie="EFO_0002660",
         term_irl="http://www.ebi.ac.uk/efo/EFO_0002660",
         ontology="Experimental Factor Ontology",
         defintion="A cell taken directly from a living organism, which is not immortalized.",
     )
     STEM_CELL = OntologyTerm(
         term="stem cell",
-        term_id="CL_0000034",
+        curie="CL_0000034",
         term_iri="http://purl.obolibrary.org/obo/CL_0000034",
         ontology="Cell Ontology",
         definition=(
@@ -151,7 +151,7 @@ class BiosampleType(Enum):
     )
     PRIMARY_CULTURE = OntologyTerm(
         term="primary cell culture",
-        term_id="CL_0000001",
+        curie="CL_0000001",
         term_iri="http://purl.obolibrary.org/obo/CL_0000001",
         ontology="Cell Ontology",
         defintion=(
@@ -162,7 +162,7 @@ class BiosampleType(Enum):
     )
     TISSUE = OntologyTerm(
         term="tissue",
-        term_id="UBERON_0000479",
+        curie="UBERON_0000479",
         term_iri="http://purl.obolibrary.org/obo/UBERON_0000479",
         ontology="UBERON",
         definition=(
@@ -175,7 +175,7 @@ class BiosampleType(Enum):
     )
     ORGANOID = OntologyTerm(
         term="organoid",
-        term_id="NCIT_C172259",
+        curie="NCIT_C172259",
         term_iri="http://purl.obolibrary.org/obo/NCIT_C172259",
         ontology="NCIT",
         definition=(

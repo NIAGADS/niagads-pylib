@@ -1,3 +1,5 @@
+import importlib
+import pkgutil
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
@@ -36,3 +38,12 @@ class GenomicsDBSchemaBase(DeclarativeBase):
             return True
         else:
             raise ValueError(f"Schema {schema} is invalid for the GenomicsDB")
+
+    @classmethod
+    def register_table_classes(cls, package_root="niagads.genomicsdb.schema"):
+        package = importlib.import_module(package_root)
+        for _, modname, ispkg in pkgutil.walk_packages(
+            package.__path__, package.__name__ + "."
+        ):
+            if not ispkg and modname.endswith(".core"):
+                importlib.import_module(modname)

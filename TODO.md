@@ -1,5 +1,17 @@
 # TODOs
 
+* check into circular import w/registry before proceeding w/tests
+
+## ETL
+
+Add a small test matrix around the framework itself, not individual plugins:
+
+* dry-run chunked/bulk status logging
+* non-dry-run tally summarization
+* registry introspection
+* checkpoint logging on failure
+* runtime param override and restore
+
 ## OWL ETL
 
 * add flag to include objectproperties (e.g., for loading the relation ontology)

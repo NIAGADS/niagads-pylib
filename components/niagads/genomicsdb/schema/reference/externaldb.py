@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from niagads.database.helpers import datetime_column, enum_column, enum_constraint
+from niagads.database.helpers import datetime_column
 from niagads.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.genomicsdb.schema.reference.base import ReferenceTableBase
 from sqlalchemy import String, Text, UniqueConstraint

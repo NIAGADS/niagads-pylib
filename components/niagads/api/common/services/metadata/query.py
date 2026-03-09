@@ -5,7 +5,7 @@ from niagads.api.common.constants import SHARD_PATTERN
 from niagads.api.common.models.response.request import RequestDataModel
 from niagads.api.common.parameters.expression_filter import Triple
 from niagads.api.common.parameters.response import ResponseContent
-from niagads.common.models.composite_attributes.dataset import (
+from niagads.common.models.metadata import (
     ExperimentalDesign,
     Phenotype,
     Provenance,

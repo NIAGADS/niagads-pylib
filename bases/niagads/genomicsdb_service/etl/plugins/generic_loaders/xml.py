@@ -8,14 +8,15 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 
 from lxml import etree
 from typing import Any, Dict, Iterator, List, Optional, Type
-from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
+from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     PathValidatorMixin,
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.schema.admin.types import ETLOperation
+from niagads.etl.plugins.types import ETLOperation, ETLLoadStrategy
 from pydantic import Field, ConfigDict, BaseModel, computed_field
 from sqlalchemy import text
 import importlib.resources
@@ -97,25 +98,15 @@ class XMLRecordLoaderParams(BasePluginParams, PathValidatorMixin):
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
 
-@PluginRegistry.register(metadata={"version": 1.0})
-class XMLRecordLoader(AbstractBasePlugin):
-    _params: XMLRecordLoaderParams  # type annotation
-
-    @classmethod
-    def parameter_model(cls) -> Type[BasePluginParams]:
-        return XMLRecordLoaderParams
-
-    @classmethod
-    def description(self):
-        description = """
+metadata = PluginMetadata(
+    version="1.0",
+    description="""
         XML Record Loader 
         
         Used to load or update small datasets or single records into any existing 
         table without having to write a task-specific plugin. 
         
-        TODO: Can be used in conjuction with planned CSV -> XML converter
-        
-        Inserts or updates data into any table using a simple XML format.  
+        Inserts or updates data into/in any table using a simple XML format.  
         The format is as follows:
         
         The XML format is:
@@ -135,14 +126,20 @@ class XMLRecordLoader(AbstractBasePlugin):
         
         If the row already exists in the table, the plugin will throw an error unless
         the --update flag is specified.
-        """
-        return description
+        """,
+    load_strategy=ETLLoadStrategy.BULK,
+    operation=ETLOperation.LOAD,
+    is_large_dataset=False,
+    parameter_model=XMLRecordLoaderParams,
+)
 
-    @property
-    def operation(self):
-        # Use the appropriate ETLOperation for your use case
 
-        return ETLOperation.LOAD  # insert or update
+@PluginRegistry.register(metadata)
+class XMLRecordLoader(AbstractBasePlugin):
+    _params: XMLRecordLoaderParams  # type annotation
+
+    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
+        super().__init__(params, name)
 
     def _parse_and_validate_xml(self) -> "etree._Element":
         """
@@ -179,30 +176,6 @@ class XMLRecordLoader(AbstractBasePlugin):
             msg = f"Unexpected error parsing XML: {str(e)}"
             self.logger.exception(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
             raise RuntimeError(msg)
-
-    @property
-    def load_strategy(self) -> LoadStrategy:
-        return LoadStrategy.CHUNKED
-
-    @property
-    def affected_tables(self) -> List[str]:
-        """
-        Parse the XML file and return all unique schema.table combinations from <Table> tags.
-        This is robust and independent of extract().
-        """
-        tables = set()
-        try:
-            root = self._parse_and_validate_xml()
-            for table_elem in root.findall("Table"):
-                schema_attr = table_elem.attrib.get("schema", "").lower()
-                table_attr = table_elem.attrib.get("name", "").lower()
-                if schema_attr and table_attr:
-                    tables.add(f"{schema_attr}.{table_attr}")
-        except Exception as e:
-            self.logger.warning(
-                f"XMLRecordLoader.affected_tables: Could not parse tables - {e}"
-            )
-        return sorted(tables)
 
     def extract(self) -> Iterator[XMLRecord]:
 
@@ -287,23 +260,23 @@ class XMLRecordLoader(AbstractBasePlugin):
         if exists:
             if self._params.update:
                 await self._update_record(session, transformed)
-                self.update_transaction_count(ETLOperation.UPDATE, table_key)
+                self.inc_tx_count(table_key, ETLOperation.UPDATE)
                 self.logger.debug(f"Updated record {transformed}")
             elif self._params.skip_existing:
                 self.logger.info(
                     f"Skipped existing record in {table_key}: {transformed}"
                 )
-                self.update_transaction_count(ETLOperation.SKIP, table_key)
+                self.inc_tx_count(table_key, ETLOperation.SKIP)
             else:
                 raise RuntimeError(
                     f"Record already exists and update/skip_existing is not enabled: {transformed}"
                 )
         else:
             await self._insert_record(session, transformed)
-            self.update_transaction_count(ETLOperation.INSERT, table_key)
+            self.inc_tx_count(table_key)
             self.logger.debug(f"Inserted record {transformed}")
 
-        return self.generate_checkpoint(transformed)
+        return self.set_checkpoint(transformed)
 
     def get_record_id(self, record: Dict[str, Any]) -> Optional[str]:
         # no way to know

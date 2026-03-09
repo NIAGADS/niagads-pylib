@@ -5,8 +5,11 @@ Defines table mapping, chunk metadata, and embedding tables for chunked
 retrieval-augmented generation (RAG) workflows in the genomicsdb ragdoc schema.
 """
 
+from niagads.database.helpers import enum_column, enum_constraint
+from niagads.database.mixins.embeddings import EmbeddingMixin
 from niagads.genomicsdb.schema.admin.mixins import TableRefMixin
 from niagads.genomicsdb.schema.ragdoc.base import RAGDocTableBase
+from niagads.genomicsdb.schema.ragdoc.types import RAGDocTypes
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     TEXT,
@@ -16,9 +19,9 @@ from sqlalchemy import (
     LargeBinary,
     String,
     UniqueConstraint,
+    event,
 )
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class ChunkMetadata(RAGDocTableBase, TableRefMixin):
@@ -31,64 +34,72 @@ class ChunkMetadata(RAGDocTableBase, TableRefMixin):
         UniqueConstraint(
             "table_id",
             "row_id",
-            "section",
+            "document_section",
             "chunk_index",
             "chunk_hash",
             name="uq_chunk_metadata",
         ),
         Index("ix_chunkmetadata_table_doc", "table_id", "row_id"),
         Index("ix_chunkmetadata_chunk_hash", "chunk_hash"),  # for checking staleness
+        enum_constraint("document_type", RAGDocTypes),
         RAGDocTableBase.__table_args__,
     )
 
     chunk_metadata_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    chunk_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)
-
-    section: Mapped[str] = mapped_column(
+    document_type: Mapped[str] = enum_column(RAGDocTypes, nullable=False, index=True)
+    document_section: Mapped[str] = mapped_column(
         String(64), nullable=False, server_default="FULL"
     )
+    document_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=True)
+    chunk_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)
+    chunk_text: Mapped[str] = mapped_column(TEXT, nullable=True)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=True)
     start_offset: Mapped[int] = mapped_column(Integer, nullable=True)
     end_offset: Mapped[int] = mapped_column(Integer, nullable=True)
-    chunk_text: Mapped[str] = mapped_column(TEXT, nullable=True)
-    doc_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=True)
-
-    @hybrid_property
-    def chunk_id(self):
-        return f"{self.section}_{self.chunk_index}"
-
-    @chunk_id.expression
-    def chunk_id(cls):
-        return f"{cls.section}_{cls.chunk_index}"
+    chunk_id: Mapped[str] = mapped_column(
+        String(128), nullable=False, unique=False, index=True
+    )
 
 
-class ChunkEmbedding(RAGDocTableBase):
+@event.listens_for(ChunkMetadata, "before_insert")
+def generate_chunk_id(mapper, connection, target: ChunkMetadata):
+    """
+    SQLAlchemy event listener that generates chunk_id before inserting a ChunkMetadata record.
+
+    This listener constructs a composite chunk_id from document_type, document_section,
+    and chunk_index.
+    """
+    if not target.chunk_id:
+        target.chunk_id = (
+            f"{target.document_type}_{target.document_section}_{target.chunk_index}"
+        )
+
+
+class ChunkEmbedding(RAGDocTableBase, EmbeddingMixin):
     """
     Stores vector embeddings for document chunks, linked to chunk metadata.
     """
 
     __tablename__ = "chunkembedding"
     __table_args__ = (
+        *EmbeddingMixin.get_indexes(RAGDocTableBase._schema, __tablename__),
         UniqueConstraint(
             "chunk_metadata_id",
             "model_id",
             "chunk_hash",
             name="uq_embedding_chunk",
         ),
-        Index(
-            "ix_embedding_vector_hnsw",
-            "embedding",
-            postgresql_using="hnsw",
-            postgresql_ops={"embedding": "vector_cosine_ops"},
-        ),
         Index("ix_chunkembedding_chunk_hash", "chunk_hash"),  # for checking staleness
         RAGDocTableBase.__table_args__,
     )
 
-    embedding_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    chunk_embedding_id: Mapped[int] = mapped_column(
+        primary_key=True, autoincrement=True
+    )
     chunk_metadata_id: Mapped[int] = mapped_column(
         ForeignKey("ragdoc.chunkmetadata.chunk_metadata_id"), nullable=False, index=True
     )
-    model_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    chunk_id: Mapped[str] = mapped_column(
+        ForeignKey("ragdoc.chunkmetadata.chunk_id"), nullable=False, index=True
+    )
     chunk_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)
-    embedding: Mapped[list[float]] = mapped_column(Vector(384), nullable=False)

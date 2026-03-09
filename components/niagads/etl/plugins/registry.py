@@ -1,6 +1,7 @@
-from typing import Callable, Dict, List, Optional, Type, Union
+from typing import Callable, Dict, List, Type, Union
 
 from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.metadata import PluginMetadata
 
 
 class PluginRegistry:
@@ -10,34 +11,31 @@ class PluginRegistry:
     """
 
     _registry: Dict[str, Type[AbstractBasePlugin]] = {}
-    _meta: Dict[str, dict] = {}
+    _metadata: Dict[str, dict] = {}
 
     @classmethod
     def register(
         cls,
-        plugin_cls: Union[Type[AbstractBasePlugin], None] = None,
-        *,
-        metadata: Optional[dict] = None,
+        metadata: PluginMetadata,
     ) -> Callable:
         """
-        Can be used as:
-            @PluginRegistry.register
-            class MyPlugin(AbstractBasePlugin): ...
+        Register a plugin class with required PluginMetadata.
 
-        Or with metadata:
-            @PluginRegistry.register(metadata={"version": "1.0"})
+        Args:
+            metadata (PluginMetadata): Required metadata describing the plugin.
+
+        Usage:
+            @PluginRegistry.register(PluginMetadata(...))
             class MyPlugin(AbstractBasePlugin): ...
         """
 
         def decorator(inner_cls: Type[AbstractBasePlugin]) -> Type[AbstractBasePlugin]:
             key = inner_cls.__name__
             cls._registry[key] = inner_cls
-            cls._meta[key] = metadata or {}
+            cls._metadata[key] = metadata
             return inner_cls
 
-        if plugin_cls is None:
-            return decorator  # used with parentheses
-        return decorator(plugin_cls)  # used directly
+        return decorator  # used with parentheses
 
     @classmethod
     def get(cls, name: str) -> Type[AbstractBasePlugin]:
@@ -85,7 +83,7 @@ class PluginRegistry:
         if name not in cls._registry:
             raise KeyError(f"Plugin '{name}' not found")
         plugin_cls: AbstractBasePlugin = cls._registry[name]
-        meta = cls._meta.get(name, {}).copy()
+        meta = cls._metadata.get(name, {}).copy()
         meta.setdefault("class", name)
         try:
             params_model = plugin_cls.parameter_model()

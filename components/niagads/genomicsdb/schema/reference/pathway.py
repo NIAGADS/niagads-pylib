@@ -1,22 +1,19 @@
 """`Pathway` database model"""
 
 from typing import Optional
-from niagads.database.mixins import EmbeddingMixin
-
 from niagads.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 
-class Pathway(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin, EmbeddingMixin):
+class Pathway(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
 
     __tablename__ = "pathway"
     _stable_id = "source_id"  # from the ExternalDBMixin
 
     __table_args__ = (
-        *EmbeddingMixin.get_indexes(ReferenceTableBase._schema, __tablename__),
         *ExternalDatabaseMixin.__table_args__,
         ReferenceTableBase.__table_args__,
     )
