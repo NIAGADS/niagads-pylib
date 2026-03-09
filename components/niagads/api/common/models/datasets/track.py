@@ -41,7 +41,7 @@ class AbridgedTrack(ORMCompatibleDynamicRowModel):
     description: Optional[str] = Field(default=None, title="Description")
     genome_build: Assembly = Field(
         default=Assembly.GRCh38,
-        title="Genome Build",
+        title="Assembly",
         description=f"one of {Assembly.list()}",
     )
     feature_type: Optional[GenomicFeatureType] = Field(
@@ -49,7 +49,7 @@ class AbridgedTrack(ORMCompatibleDynamicRowModel):
         title="Feature",
         description=(
             f"primary type of genomic feature being annotated. "
-            f"One of {GenomicFeatureType.list()}"
+            f"One of {GenomicFeatureType.list(to_lower=True)}"
         ),
     )
     is_download_only: Optional[bool] = Field(
@@ -122,15 +122,15 @@ class Track(ORMCompatibleRowModel):
     description: Optional[str] = Field(default=None, title="Description")
     genome_build: Assembly = Field(
         default=Assembly.GRCh38,
-        title="Genome Build",
-        description=f"one of {Assembly.list()}",
+        title="Assembly",
+        description=f"Reference genome build; one of {Assembly.list()}",
     )
     feature_type: Optional[GenomicFeatureType] = Field(
         default=None,
         title="Feature",
         description=(
-            f"priamry type of genomic feature being annotated. "
-            f"One of {GenomicFeatureType.list()}"
+            f"Primary type of genomic feature being annotated; "
+            f"one of {GenomicFeatureType.list(to_lower=True)}"
         ),
     )
 

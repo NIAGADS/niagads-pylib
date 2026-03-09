@@ -1,15 +1,52 @@
 """Streamlit application for track metadata form intake and serialization."""
 
 import json
+import inspect
+from typing import get_args
 
+from niagads.genomics.sequence.assembly import Assembly
 import streamlit as st
 from pydantic import ValidationError
 from pydantic.fields import PydanticUndefined
 
 from niagads.api.common.models.datasets.track import Track
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomicsdb_service.utilities.track_metadata_builder.forms import (
     PydanticFormGenerator,
 )
+
+
+def get_enum_values(enum_type):
+    try:
+        return enum_type.list(to_lower=True)
+    except:
+        return enum_type.list()
+
+
+def get_enum_type(field_type) -> type | None:
+    """Extract CaseInsensitiveEnum type from field annotation.
+
+    Args:
+        field_type: The field type annotation to check.
+
+    Returns:
+        The enum type if found, None otherwise.
+    """
+    # Check if it's a direct enum type
+    if inspect.isclass(field_type) and issubclass(field_type, CaseInsensitiveEnum):
+        return field_type
+
+    # Check if it's Optional[EnumType]
+    args = get_args(field_type)
+    for arg in args:
+        if (
+            arg is not type(None)
+            and inspect.isclass(arg)
+            and issubclass(arg, CaseInsensitiveEnum)
+        ):
+            return arg
+
+    return None
 
 
 def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
@@ -40,6 +77,22 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
         value = st.text_area(
             label,
             value="",
+        )
+        return field_name, value
+
+    # Check for enum fields
+    enum_type = get_enum_type(field_info.annotation)
+    if enum_type is not None:
+        options = get_enum_values(enum_type)
+        value = st.selectbox(
+            label,
+            options=options,
+            index=(
+                None
+                if default_value is None
+                else options.index(default_value) if default_value in options else None
+            ),
+            help=help_text,
         )
         return field_name, value
 
