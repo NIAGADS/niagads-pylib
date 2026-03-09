@@ -25,9 +25,7 @@ class OntologyTerm(TransformableModel):
         default=None,
         description="globally unique identifier for the ontology term (URI)",
     )
-    term_id: Optional[str] = Field(
-        default=None, description="unique, stable local identifier"
-    )
+    curie: Optional[str] = Field(default=None, description="unique, stable identifier")
     term: str = Field(..., description="the ontology term")
 
     label: Optional[str] = Field(
@@ -97,6 +95,6 @@ class OntologyTerm(TransformableModel):
 
     def as_info_string(self) -> str:
         info: dict = {"term": self.term}
-        if self.term_id:
-            info.update({"term_id": self.term_id})
+        if self.curie:
+            info.update({"term_id": self.curie})
         return dict_to_info_string(info)
