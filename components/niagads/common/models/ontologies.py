@@ -77,7 +77,7 @@ class OntologyTerm(TransformableModel):
         # if trying to serialize a string as an ontology term, assume
         # it is the term or curie
         if isinstance(values, str):
-            if matches(values, RegularExpressions.ONTOLOGY_TERM_ID):
+            if matches(values, RegularExpressions.ONTOLOGY_TERM_CURIE):
                 curie = values.replace("_", ":")
                 return cls(curie=curie, term=curie)
             return cls(term=values)

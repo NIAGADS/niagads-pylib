@@ -1,6 +1,7 @@
 from typing import List, Optional, Set
 
 from niagads.common.models.core import TransformableModel
+from niagads.common.models.ontologies import OntologyTerm
 from pydantic import Field
 
 
@@ -32,7 +33,7 @@ class ExperimentalDesign(TransformableModel):
         title="Is Lifted?",
         description="data are lifted from earlier genome build",
     )
-    covariates: Optional[List[str]] = Field(default=None, title="Covariates")
+    covariates: Optional[List[OntologyTerm]] = Field(default=None, title="Covariates")
 
     def __str__(self):
         return self.as_info_string()
