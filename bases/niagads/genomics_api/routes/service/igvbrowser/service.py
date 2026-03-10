@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import Depends, Query, APIRouter
 from fastapi.responses import JSONResponse
 from niagads.api_common.constants import SharedOpenAPITags
@@ -22,7 +23,7 @@ router = APIRouter(
 
 @router.get(
     "/feature",
-    response_model=GenomicRegion,
+    response_model=List[GenomicRegion],
     response_model_exclude_none=True,
     summary="genome-browser-feature-lookup",
     description="retrieve genomic location (variants) or footprint (genes) feature in the format required by the NIAGADS Genome Browser",
@@ -34,7 +35,7 @@ async def get_browser_feature_region(
         description="add flanking region +/- `flank` kb up- and downstream to the returned feature location",
     ),
     internal: InternalRequestParameters = Depends(),
-) -> GenomicRegion:
+) -> List[GenomicRegion]:
 
     helper = GenomicsRouteHelper(
         internal,
@@ -51,11 +52,11 @@ async def get_browser_feature_region(
     result: dict = await helper.get_query_response(opts=QueryOptions(raw_response=True))
 
     if len(result) == 0:
-        return JSONResponse({})  # result.response
+        return JSONResponse([])  # result.response
 
     # add the flank
     region = GenomicRegion(**result[0])
     region.start -= flank
     region.end += flank
 
-    return region
+    return [region]
