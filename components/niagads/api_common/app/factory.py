@@ -122,7 +122,7 @@ class AppFactory:
             allow_origins=["*"],
             # allow_origin_regex=r"https://.*\.niagads\.org",
             allow_credentials=False,
-            allow_methods=["GET"],
+            allow_methods=["GET", "OPTIONS"],
             allow_headers=["*"],  # probably don't need b/c there are default ones
         )
 
