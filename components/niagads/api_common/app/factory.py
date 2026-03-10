@@ -119,12 +119,8 @@ class AppFactory:
         self.__app.add_middleware(
             CORSMiddleware,
             # allow_origins=[Settings.from_env().API_PUBLIC_URL],
-            allow_origins=(
-                ["*"]
-                if serviceEnv in [ServiceEnvironment.DEV, ServiceEnvironment.TEST]
-                else []
-            ),
-            allow_origin_regex=r"https://.*\.niagads\.org",
+            allow_origins=["*"],
+            # allow_origin_regex=r"https://.*\.niagads\.org",
             # allow_credentials=False,
             allow_methods=["GET"],
             # allow_headers=["*"] # probably don't need b/c there are default ones
