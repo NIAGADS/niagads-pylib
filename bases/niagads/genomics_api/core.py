@@ -10,6 +10,7 @@ from niagads.genomics_api.routes.records.track import router as TrackRouter
 from niagads.genomics_api.routes.records.gene import router as GeneRouter
 from niagads.genomics_api.routes.records.region import router as RegionRouter
 from niagads.genomics_api.routes.search import router as SearchRouter
+from niagads.genomics_api.routes.legacy import router as LegacyRouter
 from niagads.genomics_api.routes.records.variant import (
     router as VariantRouter,
 )
@@ -41,6 +42,8 @@ app_factory.add_router(ServiceRouter)
 
 app_factory.add_router(IGVServiceRouter)
 # app_factory.add_router(IGVVariantTrackRouter)
+
+app_factory.add_router(LegacyRouter)
 
 # get the application object
 app = app_factory.get_app()
