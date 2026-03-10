@@ -31,11 +31,6 @@ class Phenotype(TransformableModel):
 
     genotype: Optional[List[OntologyTerm]] = Field(default=None, title="Genotype")
     gender: Optional[List[OntologyTerm]] = Field(default=None, title="Gender")
-    study_diagnosis: Optional[List[PhenotypeCount]] = Field(
-        default=None,
-        title="Study Diagnosis",
-        description="number of cases and controls",
-    )
 
     def _flat_dump(self, nullFree=False, delimiter="|"):
         obj = {

@@ -16,6 +16,7 @@ from niagads.api.common.models.core import (
     ResultSize,
 )
 from niagads.api.common.models.response.record import RecordResponse
+from niagads.common.models.metadata.phenotypes import PhenotypeCount
 from niagads.genomics.features.core import GenomicFeatureType
 from niagads.genomics.sequence.assembly import Assembly
 from niagads.utils.dict import promote_nested
@@ -150,6 +151,11 @@ class Track(ORMCompatibleRowModel):
     participant_phenotypes: Optional[Phenotype] = Field(
         default=None,
         title="Phenotypes",
+    )
+    study_diagnosis: Optional[List[PhenotypeCount]] = Field(
+        default=None,
+        title="Study Diagnosis",
+        description="number of cases and controls",
     )
     biosample_characteristics: Optional[BiosampleCharacteristics] = Field(
         default=None,
