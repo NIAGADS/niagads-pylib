@@ -41,6 +41,11 @@ async def legacy_service(
             k: v for k, v in resp.headers.items() if k.lower() not in EXCLUDED_HEADERS
         }
 
+        # Add CORS headers
+        headers["Access-Control-Allow-Origin"] = "*"
+        headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        headers["Access-Control-Allow-Headers"] = "*"
+
         return Response(
             content=body,
             status_code=resp.status,
