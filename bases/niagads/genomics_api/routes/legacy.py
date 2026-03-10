@@ -10,7 +10,7 @@ router = APIRouter(
 
 # Shared client manager that creates a pooled ClientSession with base URL
 LEGACY_CLIENT = HttpClientSessionManager(
-    "https://www.niagads.org/genomics/service", timeout=60
+    "https://www.niagads.org/genomics/service/", timeout=60
 )
 
 
