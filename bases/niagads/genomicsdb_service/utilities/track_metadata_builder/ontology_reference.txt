@@ -48,3 +48,4 @@ Hispanic Or Latino	NCIT:C17459	ethnicity
 Not Hispanic Or Latino	NCIT:C41222	ethnicity
 cerebrospinal fluid	UBERON_0001359	biosample
 blood	UBERON_0000178	biosample
+GWAS Summary Statistics NIAGADS_undefined   data_category

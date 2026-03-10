@@ -54,13 +54,24 @@ def load_ontology_reference():
 ONTOLOGY_REFERENCE = load_ontology_reference()
 
 
-def get_non_covariate_ontology_terms() -> dict:
-    """Get all ontology terms excluding covariates from the loaded reference.
+def is_list(field_type) -> bool:
+    """returns true if the field type is a list"""
+    origin = get_origin(field_type)
+    return origin is list
 
-    Returns:
-        Dictionary mapping field_name -> list of term dicts, excluding covariates.
-    """
-    return {k: v for k, v in ONTOLOGY_REFERENCE.items() if k != "covariates"}
+
+def is_set(field_type) -> bool:
+    """returns true if the field type is a set"""
+    origin = get_origin(field_type)
+    return origin is set
+
+
+def get_reference_terms(field_name: str):
+    """get reference ontology terms for a field"""
+    if field_name == "phenotype":
+        return {k: v for k, v in ONTOLOGY_REFERENCE.items() if k != "covariates"}
+
+    return ONTOLOGY_REFERENCE.get(field_name, {})
 
 
 def validate_ontology_term(input_value: str, field_name: str) -> dict:
@@ -86,7 +97,7 @@ def validate_ontology_term(input_value: str, field_name: str) -> dict:
     # Step 2: Lookup in reference table (only if it's a term, not a CURIE)
     if not is_curie:
         # Get reference terms for this field
-        ref_terms = ONTOLOGY_REFERENCE.get(field_name, [])
+        ref_terms = get_reference_terms(field_name)
         for ref_term in ref_terms:
             if ref_term["term"].lower() == input_value.lower():
                 # Found in reference - return term and curie
@@ -425,11 +436,7 @@ def get_widget_for_field(
     # Check for OntologyTerm fields (single or list) - use multiselect or selectbox
     if is_ontology_term_field(field_info.annotation):
         # Get reference terms for this field
-        ref_terms = (
-            get_non_covariate_ontology_terms()
-            if field_name == "phenotype"
-            else ONTOLOGY_REFERENCE.get(field_name, {})
-        )
+        ref_terms = get_reference_terms(field_name)
         # Handle both dict (field -> terms) and list (for non-covariate terms)
         if isinstance(ref_terms, dict):
             options = [term["term"] for terms in ref_terms.values() for term in terms]
@@ -465,7 +472,7 @@ def get_widget_for_field(
         return field_name, value
 
     # Check for Set types first (before generic enum check)
-    if "Set" in field_type or "set" in field_type:
+    if is_set(field_type):
         # Check if this is a Set[EnumType]
         enum_type = get_enum_type(field_info.annotation)
         if enum_type is not None:
@@ -594,7 +601,7 @@ def get_widget_for_field(
         )
         return field_name, value
 
-    if "List" in field_type or "list" in field_type:
+    if is_list(field_type):
         value = st.text_area(
             label,
             value=default_value or "",
@@ -730,6 +737,7 @@ def process_form_data(data: dict, model_class=Track) -> dict:
         # Handle List[Model] types (e.g., curation_history: List[CurationEvent])
         list_model_type = get_list_model_type(field_type)
         if list_model_type is not None and isinstance(value, list):
+            print(f"LIST_MODEL = {field_name} - {list_model_type}")
             if not value or len(value) == 0:
                 processed[field_name] = None
                 continue
@@ -739,6 +747,8 @@ def process_form_data(data: dict, model_class=Track) -> dict:
             for item in value:
                 if isinstance(item, dict):
                     processed_item = process_form_data(item, list_model_type)
+
+                    # FIXME - I think this is wrong
                     # Only include non-empty items
                     if not is_nested_form_empty(processed_item, list_model_type):
                         processed_items.append(processed_item)
@@ -796,14 +806,14 @@ def process_form_data(data: dict, model_class=Track) -> dict:
             continue
 
         # Handle list - parse comma or newline separated
-        if "List" in str(field_type):
+        if is_list(field_type):
             processed[field_name] = [
                 v.strip() for v in value.replace("\n", ",").split(",") if v.strip()
             ]
             continue
 
         # Handle set - can be list from multiselect or string from text area
-        if "Set" in str(field_type):
+        if is_set(field_type):
             # If value is already a list (from multiselect), use it directly
             if isinstance(value, list):
                 items = value
@@ -832,6 +842,7 @@ def process_form_data(data: dict, model_class=Track) -> dict:
         # Default: keep as string
         processed[field_name] = value
 
+    # print(processed)
     return processed
 
 

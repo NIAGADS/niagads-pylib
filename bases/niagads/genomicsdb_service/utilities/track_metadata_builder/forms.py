@@ -185,7 +185,7 @@ class PydanticFormGenerator(ComponentBaseMixin):
             else:
                 return CompositeField
 
-        # Handle basic types
+        # Handle basic typesm
         if base_type is str:
             return StringField
         elif base_type is bool:
