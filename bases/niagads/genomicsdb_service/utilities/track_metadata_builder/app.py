@@ -54,6 +54,15 @@ def load_ontology_reference():
 ONTOLOGY_REFERENCE = load_ontology_reference()
 
 
+def get_non_covariate_ontology_terms() -> dict:
+    """Get all ontology terms excluding covariates from the loaded reference.
+
+    Returns:
+        Dictionary mapping field_name -> list of term dicts, excluding covariates.
+    """
+    return {k: v for k, v in ONTOLOGY_REFERENCE.items() if k != "covariates"}
+
+
 def validate_ontology_term(input_value: str, field_name: str) -> dict:
     """Validate and convert user input to OntologyTerm dict.
 
@@ -236,6 +245,39 @@ def is_ontology_term_list(field_type) -> bool:
     return False
 
 
+def is_ontology_term_field(field_type) -> bool:
+    """Check if a field type is OntologyTerm or List[OntologyTerm] (including Optional variants).
+
+    Args:
+        field_type: The field type annotation to check.
+
+    Returns:
+        True if the field is OntologyTerm or a list of OntologyTerm objects, False otherwise.
+    """
+    # First check if it's already a list
+    if is_ontology_term_list(field_type):
+        return True
+
+    # Unwrap Optional/Union to check for direct OntologyTerm
+    origin = get_origin(field_type)
+    args = get_args(field_type)
+
+    # Handle Optional[OntologyTerm]
+    if origin is not None:
+        for arg in args:
+            if arg is type(None):
+                continue
+            # Recursively check the non-None arg
+            if is_ontology_term_field(arg):
+                return True
+
+    # Handle direct OntologyTerm
+    if "OntologyTerm" in str(field_type):
+        return True
+
+    return False
+
+
 def render_composite_field(
     field_name: str, field_info, composite_form_class, model_class
 ) -> dict:
@@ -380,20 +422,46 @@ def get_widget_for_field(
         )
         return field_name, value
 
-    # Check for List[OntologyTerm] fields - multiselect with ontology reference
-    if is_ontology_term_list(field_info.annotation):
+    # Check for OntologyTerm fields (single or list) - use multiselect or selectbox
+    if is_ontology_term_field(field_info.annotation):
         # Get reference terms for this field
-        ref_terms = ONTOLOGY_REFERENCE.get(field_name, [])
-        options = [term["term"] for term in ref_terms]
-
-        value = st.multiselect(
-            label,
-            options=options,
-            default=default_value or [],
-            help=help_text,
-            accept_new_options=True,
-            key=f"{field_name}{widget_key}" if widget_key else None,
+        ref_terms = (
+            get_non_covariate_ontology_terms()
+            if field_name == "phenotype"
+            else ONTOLOGY_REFERENCE.get(field_name, {})
         )
+        # Handle both dict (field -> terms) and list (for non-covariate terms)
+        if isinstance(ref_terms, dict):
+            options = [term["term"] for terms in ref_terms.values() for term in terms]
+        else:
+            options = [term["term"] for term in ref_terms]
+
+        # Use multiselect for lists, selectbox for single values
+        if is_ontology_term_list(field_info.annotation):
+            value = st.multiselect(
+                label,
+                options=options,
+                default=default_value or [],
+                help=help_text,
+                accept_new_options=True,
+                key=f"{field_name}{widget_key}" if widget_key else None,
+            )
+        else:
+            # Single OntologyTerm - use selectbox
+            default_index = None
+            if default_value and hasattr(default_value, "term"):
+                try:
+                    default_index = options.index(default_value.term)
+                except (ValueError, IndexError):
+                    pass
+
+            value = st.selectbox(
+                label,
+                options=options,
+                index=default_index,
+                help=help_text,
+                key=f"{field_name}{widget_key}" if widget_key else None,
+            )
         return field_name, value
 
     # Check for Set types first (before generic enum check)
@@ -699,22 +767,32 @@ def process_form_data(data: dict, model_class=Track) -> dict:
             processed[field_name] = float(value)
             continue
 
-        # Handle List[OntologyTerm] - convert each term/CURIE to OntologyTerm dict
-        if is_ontology_term_list(field_type):
-            # Value should be a list from multiselect or empty
+        # Handle OntologyTerm fields (single or list) - convert term/CURIE to OntologyTerm dict(s)
+        if is_ontology_term_field(field_type):
+            # Skip empty/None values
             if not value or (isinstance(value, list) and len(value) == 0):
                 processed[field_name] = None
                 continue
 
-            ontology_terms = []
-            for item in value:
+            # Handle List[OntologyTerm]
+            if is_ontology_term_list(field_type):
+                ontology_terms = []
+                for item in value:
+                    try:
+                        term_dict = validate_ontology_term(item, field_name)
+                        ontology_terms.append(term_dict)
+                    except ValueError as e:
+                        raise ValueError(
+                            f"Field '{field_name}', item '{item}': {str(e)}"
+                        )
+                processed[field_name] = ontology_terms
+            else:
+                # Handle single OntologyTerm
                 try:
-                    term_dict = validate_ontology_term(item, field_name)
-                    ontology_terms.append(term_dict)
+                    term_dict = validate_ontology_term(value, field_name)
+                    processed[field_name] = term_dict
                 except ValueError as e:
-                    raise ValueError(f"Field '{field_name}', item '{item}': {str(e)}")
-
-            processed[field_name] = ontology_terms
+                    raise ValueError(f"Field '{field_name}': {str(e)}")
             continue
 
         # Handle list - parse comma or newline separated
