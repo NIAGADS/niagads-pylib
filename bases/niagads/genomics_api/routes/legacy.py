@@ -33,7 +33,7 @@ async def legacy_service(
     request: Request,
     api_client_session: ClientSession = Depends(LEGACY_CLIENT),
 ) -> Response:
-    endpoint = f"/{path}"
+    endpoint = f"{path}"
 
     async with api_client_session.get(endpoint, params=request.query_params) as resp:
         body = await resp.read()
