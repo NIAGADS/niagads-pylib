@@ -121,9 +121,9 @@ class AppFactory:
             # allow_origins=[Settings.from_env().API_PUBLIC_URL],
             allow_origins=["*"],
             # allow_origin_regex=r"https://.*\.niagads\.org",
-            # allow_credentials=False,
+            allow_credentials=False,
             allow_methods=["GET"],
-            # allow_headers=["*"] # probably don't need b/c there are default ones
+            allow_headers=["*"],  # probably don't need b/c there are default ones
         )
 
     def __add_exception_handlers(self):
