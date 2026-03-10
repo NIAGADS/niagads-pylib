@@ -275,13 +275,83 @@ def render_composite_field(
     return {field_name: nested_data}
 
 
-def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
+def render_repeatable_composite_field(
+    field_name: str, field_info, composite_form_class, model_class
+) -> dict:
+    """Render a repeatable composite field (List[Model]) with add/remove buttons.
+
+    Uses st.session_state to manage list of entries.
+
+    Args:
+        field_name: Name of the composite field (e.g., 'curation_history').
+        field_info: Pydantic FieldInfo object.
+        composite_form_class: WTForms form class for individual items.
+        model_class: The Pydantic model class for list items.
+
+    Returns:
+        Dictionary with field_name mapped to list of nested dicts.
+    """
+    label = field_info.title or field_name.replace("_", " ").title()
+    is_required = field_info.default is PydanticUndefined
+    if is_required:
+        label = f"{label} *"
+
+    # Initialize session state for this list field if not exists
+    session_key = f"_list_{field_name}_entries"
+    if session_key not in st.session_state:
+        # Start with one empty entry by default
+        st.session_state[session_key] = [{}]
+        st.session_state[f"_list_{field_name}_counter"] = 0
+
+    # Create an expandable section for the repeatable field
+    with st.expander(label, expanded=is_required):
+        if field_info.description:
+            st.caption(field_info.description)
+
+        # Display each entry
+        entries_data = []
+        for idx, entry in enumerate(st.session_state[session_key]):
+            with st.container(border=True):
+                # Render fields for this entry (no remove button here - handled outside form)
+                entry_data = {}
+                nested_form_instance = composite_form_class()
+                for nested_field_name in nested_form_instance._fields:
+                    nested_field_info = model_class.model_fields[nested_field_name]
+                    nested_field_type = nested_field_info.annotation
+
+                    # Get default value from existing entry if available
+                    default_val = entry.get(nested_field_name)
+
+                    nested_field_result, nested_value = get_widget_for_field(
+                        nested_field_name,
+                        nested_field_info,
+                        str(nested_field_type),
+                        default_value=default_val,
+                        widget_key=f"_{field_name}_{idx}",
+                    )
+                    entry_data[nested_field_result] = nested_value
+
+                entries_data.append(entry_data)
+
+        # Return collected entries
+        return {field_name: entries_data}
+
+
+def get_widget_for_field(
+    field_name: str,
+    field_info,
+    field_type: str,
+    default_value=None,
+    widget_key: str = "",
+) -> tuple:
     """Get Streamlit widget and return user input for a given field.
 
     Args:
         field_name: Name of the field.
         field_info: Pydantic FieldInfo object.
         field_type: String representation of the field type.
+        default_value: Default value for the widget.
+        widget_key: Optional unique key suffix for widgets (e.g., for repeatable fields).
 
     Returns:
         Tuple of (field_name, user_input_value).
@@ -295,14 +365,17 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
         label = f"{label} *"
 
     # Get default value, avoiding PydanticUndefined
-    default_value = (
-        None if field_info.default is PydanticUndefined else field_info.default
-    )
+    # Use passed default_value if provided, otherwise use field_info.default
+    if default_value is None:
+        default_value = (
+            None if field_info.default is PydanticUndefined else field_info.default
+        )
 
     if field_name == "description":
         value = st.text_area(
             label,
             value="",
+            key=f"{field_name}{widget_key}" if widget_key else None,
         )
         return field_name, value
 
@@ -318,6 +391,7 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
             default=default_value or [],
             help=help_text,
             accept_new_options=True,
+            key=f"{field_name}{widget_key}" if widget_key else None,
         )
         return field_name, value
 
@@ -343,7 +417,7 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
                 if st.checkbox(
                     option,
                     value=option in default_selected,
-                    key=f"{field_name}_{option}",
+                    key=f"{field_name}_{option}{widget_key}",
                 ):
                     selected.append(option)
 
@@ -358,6 +432,7 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
                     if help_text
                     else "enter as comma or newline separated values"
                 ),
+                key=f"{field_name}{widget_key}" if widget_key else None,
             )
             return field_name, value
 
@@ -383,6 +458,7 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
             options=options,
             index=default_index,
             help=help_text,
+            key=f"{field_name}{widget_key}" if widget_key else None,
         )
         return field_name, value
 
@@ -407,11 +483,17 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
             options=options,
             index=default_index,
             help=help_text,
+            key=f"{field_name}{widget_key}" if widget_key else None,
         )
         return field_name, value
 
     if "bool" in field_type:
-        value = st.checkbox(label, value=default_value or False, help=help_text)
+        value = st.checkbox(
+            label,
+            value=default_value or False,
+            help=help_text,
+            key=f"{field_name}{widget_key}" if widget_key else None,
+        )
         return field_name, value
 
     if "int" in field_type:
@@ -420,6 +502,7 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
             value=default_value,
             step=1,
             help=help_text,
+            key=f"{field_name}{widget_key}" if widget_key else None,
         )
         return field_name, value
 
@@ -429,6 +512,7 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
             value=default_value,
             step=None,
             help=help_text,
+            key=f"{field_name}{widget_key}" if widget_key else None,
         )
         return field_name, value
 
@@ -441,12 +525,61 @@ def get_widget_for_field(field_name: str, field_info, field_type: str) -> tuple:
                 if help_text
                 else "enter as comma or newline separated list"
             ),
+            key=f"{field_name}{widget_key}" if widget_key else None,
         )
         return field_name, value
 
     # Default: StringField
-    value = st.text_input(label, value=default_value or "", help=help_text)
+    value = st.text_input(
+        label,
+        value=default_value or "",
+        help=help_text,
+        key=f"{field_name}{widget_key}" if widget_key else None,
+    )
     return field_name, value
+
+
+def is_nested_form_empty(nested_data: dict, nested_model_class) -> bool:
+    """Check if a nested form has all null or default values.
+
+    Args:
+        nested_data: Dictionary of processed nested field values.
+        nested_model_class: Pydantic model class for the nested structure.
+
+    Returns:
+        True if all fields are None or only contain default values, False otherwise.
+    """
+    if not nested_data:
+        return True
+
+    for field_name, field_info in nested_model_class.model_fields.items():
+        if field_name not in nested_data:
+            continue
+
+        value = nested_data[field_name]
+
+        # Check if value is not None and not empty
+        if value is not None and value != "" and value != []:
+            return False
+
+    return True
+
+
+def get_list_model_type(field_type) -> type | None:
+    """Extract the model type from a List[Model] annotation.
+
+    Args:
+        field_type: The field type annotation.
+
+    Returns:
+        The model class if field is List[Model], None otherwise.
+    """
+    origin = get_origin(field_type)
+    if origin is list:
+        args = get_args(field_type)
+        if args and hasattr(args[0], "model_fields"):
+            return args[0]
+    return None
 
 
 def process_form_data(data: dict, model_class=Track) -> dict:
@@ -501,10 +634,39 @@ def process_form_data(data: dict, model_class=Track) -> dict:
                 nested_model_class = field_type
 
             if nested_model_class:
-                processed[field_name] = process_form_data(value, nested_model_class)
+                processed_nested = process_form_data(value, nested_model_class)
+                # For optional nested forms, check if empty and set to None
+                if is_nested_form_empty(processed_nested, nested_model_class):
+                    # Only set to None if this is an optional field (provenance is required)
+                    if field_name != "provenance":
+                        processed[field_name] = None
+                    else:
+                        processed[field_name] = processed_nested
+                else:
+                    processed[field_name] = processed_nested
             else:
                 # Fallback: just pass through the dict
                 processed[field_name] = value
+            continue
+
+        # Handle List[Model] types (e.g., curation_history: List[CurationEvent])
+        list_model_type = get_list_model_type(field_type)
+        if list_model_type is not None and isinstance(value, list):
+            if not value or len(value) == 0:
+                processed[field_name] = None
+                continue
+
+            # Process each item in the list
+            processed_items = []
+            for item in value:
+                if isinstance(item, dict):
+                    processed_item = process_form_data(item, list_model_type)
+                    # Only include non-empty items
+                    if not is_nested_form_empty(processed_item, list_model_type):
+                        processed_items.append(processed_item)
+
+            # Set to None if no valid items remain, otherwise keep the list
+            processed[field_name] = processed_items if processed_items else None
             continue
 
         # Handle OntologyTerm Enum types - convert term string to enum member
@@ -615,7 +777,7 @@ def main():
     form_class, composite_fields_metadata = generator.generate_form_class(
         Track
     )  # Create form
-    with st.form("track_metadata_form", clear_on_submit=True):
+    with st.form("track_metadata_form", enter_to_submit=False):
         st.subheader("Metadata Fields")
 
         # Dynamically render fields - use form_class._fields to get filtered fields
@@ -631,9 +793,16 @@ def main():
                 composite_info = composite_fields_metadata[field_name]
                 composite_model = composite_info["model"]
                 composite_form_class = composite_info["form_class"]
-                nested_data = render_composite_field(
-                    field_name, field_info, composite_form_class, composite_model
-                )
+
+                # Check if this is a repeatable field (List[Model])
+                if composite_info.get("is_repeatable", False):
+                    nested_data = render_repeatable_composite_field(
+                        field_name, field_info, composite_form_class, composite_model
+                    )
+                else:
+                    nested_data = render_composite_field(
+                        field_name, field_info, composite_form_class, composite_model
+                    )
                 form_data.update(nested_data)
             else:
                 field_name_result, value = get_widget_for_field(
@@ -646,6 +815,41 @@ def main():
             submitted = st.form_submit_button("Submit", type="primary")
         with col2:
             st.form_submit_button("Reset", type="secondary")
+
+    # Render "Add" and "Remove" buttons for repeatable fields outside form context
+    st.divider()
+    for field_name, composite_info in composite_fields_metadata.items():
+        if composite_info.get("is_repeatable", False):
+            composite_model = composite_info["model"]
+            session_key = f"_list_{field_name}_entries"
+            field_info = Track.model_fields[field_name]
+            field_label = field_info.title or field_name.replace("_", " ").title()
+
+            # Create a section for this repeatable field's controls
+            with st.expander(
+                f"🛠️ Manage {field_label}",
+                expanded=False,
+            ):
+                # Add button
+                if st.button(
+                    f"➕ Add {composite_model.__name__}",
+                    key=f"add_{field_name}",
+                    help=f"Add a new {composite_model.__name__}",
+                ):
+                    st.session_state[session_key].append({})
+                    st.rerun()
+
+                # Render remove buttons for each entry in this field
+                if st.session_state[session_key]:
+                    st.markdown(f"**Remove {composite_model.__name__}:**")
+                    for idx in range(len(st.session_state[session_key])):
+                        if st.button(
+                            f"🗑️ Remove entry #{idx + 1}",
+                            key=f"remove_{field_name}_{idx}",
+                            help=f"Remove {composite_model.__name__} entry #{idx + 1}",
+                        ):
+                            st.session_state[session_key].pop(idx)
+                            st.rerun()
 
     # Handle form submission
     if submitted:
@@ -693,7 +897,8 @@ def main():
         except ValidationError as e:
             st.error("❌ Validation failed:")
             for error in e.errors():
-                st.error(f"  - **{error['loc'][0]}**: {error['msg']}")
+                field_path = ".".join(str(loc) for loc in error["loc"])
+                st.error(f"  - **{field_path}**: {error['msg']}")
 
         except Exception as e:
             st.error(f"❌ Error: {str(e)}")

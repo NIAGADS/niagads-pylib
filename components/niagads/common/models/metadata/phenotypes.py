@@ -21,13 +21,14 @@ class PhenotypeCount(TransformableModel):
 
 class Phenotype(TransformableModel):
     disease: Optional[List[OntologyTerm]] = Field(default=None, title="Disease")
-    ethnicity: Optional[List[OntologyTerm]] = Field(default=None, title="Ethnicity")
-    race: Optional[List[OntologyTerm]] = Field(default=None, title="Race")
     neuropathology: Optional[List[OntologyTerm]] = Field(
         default=None,
         title="Neuropathology",
         description="pathology or classification of the degree of pathology",
     )
+    ethnicity: Optional[List[OntologyTerm]] = Field(default=None, title="Ethnicity")
+    race: Optional[List[OntologyTerm]] = Field(default=None, title="Race")
+
     genotype: Optional[List[OntologyTerm]] = Field(default=None, title="Genotype")
     gender: Optional[List[OntologyTerm]] = Field(default=None, title="Gender")
     study_diagnosis: Optional[List[PhenotypeCount]] = Field(

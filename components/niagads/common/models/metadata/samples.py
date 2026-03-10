@@ -6,13 +6,17 @@ from niagads.common.models.ontologies import OntologyTerm
 from pydantic import Field
 
 
+# TODO - how to handle biosample/biosample_type pairing, should we make another model?
+# impact on metadata intake?
+
+
 class BiosampleCharacteristics(TransformableModel):
-    biosample: Optional[List[OntologyTerm]] = Field(
+    biosample: List[OntologyTerm] = Field(
         default=None,
         title="Biosample",
         description="ontology term describing the biosample",
     )
-    biosample_type: Optional[BiosampleType] = Field(
+    biosample_type: List[BiosampleType] = Field(
         default=None,
         title="Biosample: Type",
         description="the biological source of a sample used in an experiment",

@@ -24,6 +24,18 @@ class CompositeField(StringField):
     pass
 
 
+class RepeatableCompositeField(StringField):
+    """Marker field type for lists of Pydantic composite models.
+
+    This field type indicates that the field represents a list of nested
+    Pydantic models (e.g., List[CurationEvent]) that should be rendered as
+    a repeatable form section with add/remove buttons.
+    The item model class is stored in field metadata.
+    """
+
+    pass
+
+
 class PydanticFormGenerator(ComponentBaseMixin):
     """Generate WTForms form classes dynamically from Pydantic models."""
 
@@ -81,15 +93,19 @@ class PydanticFormGenerator(ComponentBaseMixin):
 
     @staticmethod
     def __get_base_type(field_type: Any) -> Optional[Any]:
-        """Extract base type from Optional, Union, and Annotated wrappers."""
+        """Extract base type from Optional, Union, and Annotated wrappers.
+
+        Recursively unwraps Annotated, Optional, and Union types to reach the
+        innermost type.
+        """
         # First unwrap Annotated if present
         origin = get_origin(field_type)
         if origin is Annotated:
             args = get_args(field_type)
-            # First arg is the actual type
+            # First arg is the actual type, recurse to unwrap further
             if args:
-                field_type = args[0]
-                origin = get_origin(field_type)
+                return PydanticFormGenerator.__get_base_type(args[0])
+            return None
 
         # Handle Optional[T] which is Union[T, None]
         if origin is type(None):  # type: ignore
@@ -99,7 +115,7 @@ class PydanticFormGenerator(ComponentBaseMixin):
             args = get_args(field_type)
             for arg in args:
                 if arg is not type(None):  # type: ignore
-                    # Recursively unwrap in case of nested Annotated
+                    # Recurse to unwrap further
                     return PydanticFormGenerator.__get_base_type(arg)
             return None
 
@@ -109,22 +125,52 @@ class PydanticFormGenerator(ComponentBaseMixin):
                 args = get_args(field_type)
                 for arg in args:
                     if arg is not type(None):  # type: ignore
-                        # Recursively unwrap in case of nested Annotated
+                        # Recurse to unwrap further
                         return PydanticFormGenerator.__get_base_type(arg)
 
         return field_type
 
     @staticmethod
-    def __map_pydantic_type_to_wtforms(pydantic_type: Any) -> Optional[Type]:
+    def __is_list_of_pydantic_model(pydantic_type: Any, base_type: Any) -> bool:
+        """Check if a type is a list of Pydantic models (excluding OntologyTerm).
+
+        Args:
+            model: The model class to check for list origin.
+            base_type: The already-unwrapped type to check (a Pydantic model).
+
+        Returns:
+            True if model is List[PydanticModel] and base_type is not OntologyTerm,
+            False otherwise.
+        """
+        # Return False if base_type is OntologyTerm
+        if isinstance(base_type, type) and base_type.__name__ == "OntologyTerm":
+            return False
+
+        # Get the original model from pydantic_type if available
+        origin = get_origin(pydantic_type)
+        if origin is list or (
+            hasattr(pydantic_type, "__origin__") and pydantic_type.__origin__ is list
+        ):
+            return True
+        return False
+
+    def __map_pydantic_type_to_wtforms(self, pydantic_type: Any) -> Optional[Type]:
         """Map a Pydantic field type to a WTForms field type."""
+        # Extract base type once
         base_type = PydanticFormGenerator.__get_base_type(pydantic_type)
 
         if base_type is None:
-            return None
+            raise ValueError(f"base type is `None` {pydantic_type}")
 
         # Check for Pydantic models - return CompositeField marker
         if isinstance(base_type, type) and issubclass(base_type, BaseModel):
-            return CompositeField
+            # Check if it's a list of Pydantic models (excludes OntologyTerm)
+            if PydanticFormGenerator.__is_list_of_pydantic_model(
+                pydantic_type, base_type
+            ):
+                return RepeatableCompositeField
+            else:
+                return CompositeField
 
         # Handle basic types
         if base_type is str:
@@ -240,6 +286,29 @@ class PydanticFormGenerator(ComponentBaseMixin):
                     "model": base_type,
                     "form_class": nested_form_class,
                 }
+            # For repeatable composite fields (List[Model]), store item model metadata
+            elif wtforms_field_type is RepeatableCompositeField:
+                # unwrapped is already List[Model] from __map_pydantic_type_to_wtforms
+                args = get_args(self.__get_base_type(field_type))
+                if args:
+                    item_model_type = args[0]
+                    nested_form_class, nested_composite_metadata = (
+                        self.generate_nested_form(
+                            item_model_type,
+                            form_name=f"{field_name.title()}ItemForm",
+                        )
+                    )
+                    form_fields[field_name] = wtforms_field_type(
+                        label=label,
+                        render_kw={"placeholder": field_info.description or ""},
+                        validators=field_validators,
+                    )
+                    # Store repeatable field metadata with item model
+                    composite_fields_metadata[field_name] = {
+                        "model": item_model_type,
+                        "form_class": nested_form_class,
+                        "is_repeatable": True,
+                    }
             else:
                 # Create field with metadata
                 form_fields[field_name] = wtforms_field_type(

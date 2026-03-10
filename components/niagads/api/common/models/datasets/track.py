@@ -144,8 +144,7 @@ class Track(ORMCompatibleRowModel):
     provenance: Provenance = Field(
         title="Provenance",
     )
-    file_properties: Optional[FileProperties] = Field(
-        default=None,
+    file_properties: FileProperties = Field(
         title="File Properties",
     )
     participant_phenotypes: Optional[Phenotype] = Field(
@@ -161,7 +160,7 @@ class Track(ORMCompatibleRowModel):
         title="Experimental Design",
     )
 
-    curation_history: Optional[list[CurationEvent]] = Field(
+    curation_history: Optional[List[CurationEvent]] = Field(
         default=None,
         title="Curation History",
         description="Chronological list of curation events applied to this track",
