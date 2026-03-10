@@ -18,7 +18,7 @@ from pydantic import (
 class GenomicRegion(RowModel, Range):
     chromosome: Human = Field(title="Chromosome", serialization_alias="chr")
     length: Optional[int] = Field(default=None, title="Length")
-    strand: Optional[Strand] = Field(default=Strand.SENSE, title="Strand")
+    strand: Optional[Strand] = Field(default=Strand.SENSE, title="Strand", exclude=True)
     max_range_size: Optional[int] = Field(default=None, exclude=True)
 
     @classmethod
