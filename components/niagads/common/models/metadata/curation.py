@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import auto
 from typing import Optional
 
@@ -35,7 +35,7 @@ class CurationEvent(TransformableModel):
     records if required later.
     """
 
-    event_date: str = Field(title="Event date")
+    event_date: date = Field(title="Event date")
     event_type: CurationEventType = Field(
         default=CurationEventType.STANDARDIZE, title="Event type"
     )

@@ -4,12 +4,20 @@ Inspects a Pydantic model and generates a WTForms form class with fields
 dynamically mapped from the model's type hints.
 """
 
+from datetime import date
 from enum import Enum
 from typing import Any, Optional, Type, get_args, get_origin, Annotated
 
 from niagads.common.core import ComponentBaseMixin
 from pydantic import BaseModel
-from wtforms import BooleanField, FloatField, IntegerField, StringField, validators
+from wtforms import (
+    BooleanField,
+    FloatField,
+    IntegerField,
+    StringField,
+    validators,
+    DateField,
+)
 from wtforms.form import Form
 
 
@@ -186,6 +194,8 @@ class PydanticFormGenerator(ComponentBaseMixin):
             return IntegerField
         elif base_type is float:
             return FloatField
+        elif base_type is date:
+            return DateField
 
         # Handle Enum types (including str-based enums)
         try:

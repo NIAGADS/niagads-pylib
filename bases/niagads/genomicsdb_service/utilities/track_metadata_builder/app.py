@@ -2,6 +2,7 @@
 
 import inspect
 import json
+from datetime import date
 from enum import Enum
 from pathlib import Path
 from typing import get_args, get_origin
@@ -511,6 +512,15 @@ def get_widget_for_field(
             label,
             value=default_value,
             step=None,
+            help=help_text,
+            key=f"{field_name}{widget_key}" if widget_key else None,
+        )
+        return field_name, value
+
+    if "date" in field_type.lower():
+        value = st.date_input(
+            label,
+            value=default_value,
             help=help_text,
             key=f"{field_name}{widget_key}" if widget_key else None,
         )
