@@ -1,6 +1,4 @@
-from typing import Union
 from fastapi import APIRouter, Request, Response, Depends
-from starlette.responses import StreamingResponse
 from aiohttp import ClientSession
 from niagads.requests.core import HttpClientSessionManager
 
