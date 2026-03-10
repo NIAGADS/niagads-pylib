@@ -39,7 +39,7 @@ app_factory.add_router(RegionRouter)
 # app_factory.add_router(SearchRouter)
 app_factory.add_router(ServiceRouter)
 
-# app_factory.add_router(IGVServiceRouter)
+app_factory.add_router(IGVServiceRouter)
 # app_factory.add_router(IGVVariantTrackRouter)
 
 # get the application object
