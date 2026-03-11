@@ -76,6 +76,47 @@ class FormRenderer(ComponentBaseMixin):
             f"verbose={self._verbose})"
         )
 
+    @staticmethod
+    def __generate_session_keys(field_name: str) -> tuple[str, str]:
+        return (
+            f"_list_{field_name}_entries",
+            f"_list_{field_name}_counter",
+        )
+
+    @staticmethod
+    def ensure_repeatable_entries(field_name: str):
+        """Ensure repeatable entries are initialized with stable IDs."""
+        session_key, counter_key = FormRenderer.__generate_session_keys(field_name)
+
+        if session_key not in st.session_state:
+            st.session_state[session_key] = [{"_entry_id": 0}]
+            st.session_state[counter_key] = 1
+            return
+
+        if counter_key not in st.session_state:
+            existing_ids = [
+                entry.get("_entry_id", index)
+                for index, entry in enumerate(st.session_state[session_key])
+            ]
+            st.session_state[counter_key] = (
+                (max(existing_ids) + 1) if existing_ids else 0
+            )
+
+        for entry in st.session_state[session_key]:
+            if "_entry_id" not in entry:
+                entry["_entry_id"] = st.session_state[counter_key]
+                st.session_state[counter_key] += 1
+
+    @staticmethod
+    def append_repeatable_entry(field_name: str):
+        """Append a repeatable entry with a stable ID."""
+        session_key, counter_key = FormRenderer.__generate_session_keys(field_name)
+        FormRenderer.ensure_repeatable_entries(field_name)
+        st.session_state[session_key].append(
+            {"_entry_id": st.session_state[counter_key]}
+        )
+        st.session_state[counter_key] += 1
+
     def __render_ontology_term_field(
         self, field_name: str, field_meta: FormMetadata, key: int = 0
     ) -> tuple:
@@ -182,11 +223,8 @@ class FormRenderer(ComponentBaseMixin):
             label = f"{label} *"
 
         # Initialize session state for this list field if not exists
-        session_key = f"_list_{field_name}_entries"
-        if session_key not in st.session_state:
-            # Start with one empty entry by default
-            st.session_state[session_key] = [{}]
-            st.session_state[f"_list_{field_name}_counter"] = 0
+        session_key, _ = self.__generate_session_keys(field_name)
+        self.ensure_repeatable_entries(field_name)
 
         with st.expander(label, expanded=is_required):
             if help_text:
@@ -199,7 +237,7 @@ class FormRenderer(ComponentBaseMixin):
                         field_meta.child_form_class,
                         field_meta.child_form_metadata,
                     )
-                    nested_data = nested_renderer.render_form(key=idx)
+                    nested_data = nested_renderer.render_form(key=entry["_entry_id"])
                     entries_data.append(nested_data)
 
             # Return collected entries as tuple (field_name, value)
@@ -390,8 +428,9 @@ def main():
     for field_name, field_metadata in form_metadata.items():
         if field_metadata.is_repeatable:
             form_model = field_metadata.child_form_class
-            session_key = f"_list_{field_name}_entries"
+            session_key, _ = renderer.__generate_session_keys(field_name)
             field_label = field_metadata.title
+            renderer.ensure_repeatable_entries(field_name)
 
             # Create a section for this repeatable field's controls
             with st.expander(
@@ -404,17 +443,17 @@ def main():
                     key=f"add_{field_name}",
                     help=f"Add a new {field_label}",
                 ):
-                    st.session_state[session_key].append({})
+                    renderer.append_repeatable_entry(field_name)
                     st.rerun()
 
                 # Render remove buttons for each entry in this field
                 if st.session_state[session_key]:
                     st.markdown(f"**Remove {form_model.__name__}:**")
 
-                    for idx in range(len(st.session_state[session_key])):
+                    for idx, entry in enumerate(st.session_state[session_key]):
                         st.button(
                             f"🗑️ Remove entry #{idx + 1}",
-                            key=f"remove_{field_name}_{idx}",
+                            key=f"remove_{field_name}_{entry['_entry_id']}",
                             help=f"Remove {form_model.__name__} entry #{idx + 1}",
                             on_click=remove_entry,
                             args=(idx, session_key),
