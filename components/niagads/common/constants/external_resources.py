@@ -1,11 +1,12 @@
+from enum import auto
 from typing import List
 from niagads.enums.core import CaseInsensitiveEnum
 
 
 class Consortia(CaseInsensitiveEnum):
-    IGAP = "International Genomics of Alzheimer's Project"
-    ADGC = "Alzheimer's Disease Genetics Consortium"
-    ADSP = "Alzheimer's Disease Sequencing Project"
+    IGAP = auto()  # "International Genomics of Alzheimer's Project"
+    ADGC = auto()  # "Alzheimer's Disease Genetics Consortium"
+    ADSP = auto()  # "Alzheimer's Disease Sequencing Project"
 
     def __str__(self):
         return self.name

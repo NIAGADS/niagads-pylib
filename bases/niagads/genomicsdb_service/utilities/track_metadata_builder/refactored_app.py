@@ -72,7 +72,7 @@ class OntologyMap(ComponentBaseMixin):
         for field_grouped_terms in self.__map.values():
             for t in field_grouped_terms:
                 if value == t["term"] or value == t["curie"]:
-                    return OntologyTerm(term=t["term"], curie=t["curie"])
+                    return OntologyTerm(term=t["value"], curie=t["curie"])
         return None
 
 
@@ -183,10 +183,10 @@ class MetadataBuilderApp(ComponentBaseMixin):
             return None
         if matches(value, RegularExpressions.ONTOLOGY_TERM_CURIE):
             return OntologyTerm(value)
-
-        matched_term = self.__ontology_map.get_ontology_term(value)
-        if matched_term is not None:
-            return matched_term
+        else:
+            matched_term = self.__ontology_map.get_field_terms(value)
+            if matched_term is not None:
+                return matched_term
 
         return OntologyTerm(term=value, curie="NIAGADS:needs_review")
 
@@ -438,6 +438,9 @@ class MetadataBuilderApp(ComponentBaseMixin):
                     json_output = result.model_dump(
                         mode="json",
                         exclude=None,
+                        encoder=lambda v: (
+                            str(v) if isinstance(v, CaseInsensitiveEnum) else v
+                        ),
                     )
 
                     # Download button
