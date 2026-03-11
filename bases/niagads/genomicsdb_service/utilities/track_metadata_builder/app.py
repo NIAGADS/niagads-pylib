@@ -77,7 +77,7 @@ class FormRenderer(ComponentBaseMixin):
         )
 
     def __render_ontology_term_field(
-        self, field_name: str, field_meta: FormMetadata
+        self, field_name: str, field_meta: FormMetadata, key: int = 0
     ) -> tuple:
         # print(field_name)
         label = field_meta.title
@@ -98,7 +98,7 @@ class FormRenderer(ComponentBaseMixin):
                 default=default_value or [],
                 help=help_text,
                 accept_new_options=True,
-                key=field_name,
+                key=f"{field_name}_{key}",
             )
         else:
             default_index = None
@@ -113,11 +113,13 @@ class FormRenderer(ComponentBaseMixin):
                 options=options,
                 index=default_index,
                 help=help_text,
-                key=field_name,
+                key=f"{field_name}_{key}",
             )
         return field_name, value
 
-    def __render_enum_field(self, field_name: str, field_meta: FormMetadata) -> tuple:
+    def __render_enum_field(
+        self, field_name: str, field_meta: FormMetadata, key: int = 0
+    ) -> tuple:
         label = field_meta.title
         help_text = field_meta.description
         is_required: bool = field_meta.is_required
@@ -148,7 +150,7 @@ class FormRenderer(ComponentBaseMixin):
                 if st.checkbox(
                     option,
                     value=option in default_selected,
-                    key=f"{field_name}_{index}",
+                    key=f"{field_name}_{key}_{index}",
                 ):
                     selected.append(option)
 
@@ -164,11 +166,48 @@ class FormRenderer(ComponentBaseMixin):
                 options=options,
                 index=default_index,
                 help=help_text,
-                key=field_name,
+                key=f"{field_name}_{key}",
             )
             return field_name, value
 
-    def render_field(self, field_name: str, field_meta: FormMetadata) -> tuple:
+    def __render_repeatable_composite_field(
+        self, field_name: str, field_meta: FormMetadata
+    ) -> tuple:
+        """ """
+        label = field_meta.title
+        help_text = field_meta.description
+        is_required: bool = field_meta.is_required
+
+        if is_required:
+            label = f"{label} *"
+
+        # Initialize session state for this list field if not exists
+        session_key = f"_list_{field_name}_entries"
+        if session_key not in st.session_state:
+            # Start with one empty entry by default
+            st.session_state[session_key] = [{}]
+            st.session_state[f"_list_{field_name}_counter"] = 0
+
+        with st.expander(label, expanded=is_required):
+            if help_text:
+                st.caption(help_text)
+
+            entries_data = []
+            for idx, entry in enumerate(st.session_state[session_key]):
+                with st.container(border=True):
+                    nested_renderer = FormRenderer(
+                        field_meta.child_form_class,
+                        field_meta.child_form_metadata,
+                    )
+                    nested_data = nested_renderer.render_form(key=idx)
+                    entries_data.append(nested_data)
+
+            # Return collected entries as tuple (field_name, value)
+            return field_name, entries_data
+
+    def render_field(
+        self, field_name: str, field_meta: FormMetadata, key: int = 0
+    ) -> tuple:
         """Render appropriate Streamlit widget based on field metadata.
 
         Args:
@@ -182,10 +221,10 @@ class FormRenderer(ComponentBaseMixin):
             print(f"{field_meta}")
 
         if field_meta.is_ontology_term:
-            return self.__render_ontology_term_field(field_name, field_meta)
+            return self.__render_ontology_term_field(field_name, field_meta, key=key)
 
         if field_meta.is_enum:
-            return self.__render_enum_field(field_name, field_meta)
+            return self.__render_enum_field(field_name, field_meta, key=key)
 
         label = field_meta.title
         is_required = field_meta.is_required
@@ -195,6 +234,8 @@ class FormRenderer(ComponentBaseMixin):
 
         # Handle composite fields with expander
         if field_meta.is_composite:
+            if field_meta.is_repeatable:
+                return self.__render_repeatable_composite_field(field_name, field_meta)
             with st.expander(label, expanded=is_required):
                 if help_text:
                     st.caption(help_text)
@@ -202,7 +243,7 @@ class FormRenderer(ComponentBaseMixin):
                     field_meta.child_form_class,
                     field_meta.child_form_metadata,
                 )
-                nested_data = nested_renderer.render_form()
+                nested_data = nested_renderer.render_form(key=key)
             return field_name, nested_data
 
         default_value = field_meta.default
@@ -216,7 +257,7 @@ class FormRenderer(ComponentBaseMixin):
                 label,
                 value=default_value,
                 help=help_text,
-                key=field_name,
+                key=f"{field_name}_{key}",
             )
             return field_name, value
 
@@ -225,7 +266,7 @@ class FormRenderer(ComponentBaseMixin):
                 label,
                 value=default_value or False,
                 help=help_text,
-                key=field_name,
+                key=f"{field_name}_{key}",
             )
             return field_name, value
 
@@ -235,7 +276,7 @@ class FormRenderer(ComponentBaseMixin):
                 value=default_value,
                 step=1,
                 help=help_text,
-                key=field_name,
+                key=f"{field_name}_{key}",
             )
             return field_name, value
 
@@ -245,7 +286,7 @@ class FormRenderer(ComponentBaseMixin):
                 value=default_value,
                 step=None,
                 help=help_text,
-                key=field_name,
+                key=f"{field_name}_{key}",
             )
             return field_name, value
 
@@ -259,12 +300,14 @@ class FormRenderer(ComponentBaseMixin):
                     if help_text
                     else "can enter one or more values as comma or newline separated values"
                 ),
-                key=field_name,
+                key=f"{field_name}_{key}",
             )
             return field_name, value
 
         if field_name == "description":
-            value = st.text_area(label, value="", help=help_text, key=field_name)
+            value = st.text_area(
+                label, value="", help=help_text, key=f"{field_name}_{key}"
+            )
             return field_name, value
 
         # Default: text input for strings and other types
@@ -272,11 +315,11 @@ class FormRenderer(ComponentBaseMixin):
             label,
             value=default_value or "",
             help=help_text,
-            key=field_name,
+            key=f"{field_name}_{key}",
         )
         return field_name, value
 
-    def render_form(self) -> dict:
+    def render_form(self, key: int = 0) -> dict:
         """Render all fields from form metadata.
 
         Args:
@@ -286,13 +329,20 @@ class FormRenderer(ComponentBaseMixin):
         Returns:
             Dictionary of field_name -> user_input_value.
         """
-        form = {}
+        form_data = {}
         for field_name in self.__instance._fields:
-            field_meta = self.__metadata[field_name]
-            field_name_result, value = self.render_field(field_name, field_meta)
-            form[field_name_result] = value
+            field_meta: FormMetadata = self.__metadata[field_name]
+            field_name_result, value = self.render_field(
+                field_name, field_meta, key=key
+            )
+            form_data[field_name_result] = value
 
-        return form
+        return form_data
+
+
+def remove_entry(idx: int, session_key: str):
+    """Callback to remove an entry at the specified index."""
+    st.session_state[session_key].pop(idx)
 
 
 def main():
@@ -321,6 +371,7 @@ def main():
 
     # Generate form from Track model (exclude composite fields for now)
     generator = PydanticFormGenerator(exclude_pydantic_models=False)
+    form_metadata: dict[str, FormMetadata]
     form_class, form_metadata = generator.generate_form_class(Track)
     # Create renderer
     renderer = FormRenderer(form_class, form_metadata, debug=False)
@@ -332,6 +383,42 @@ def main():
             submitted = st.form_submit_button("Submit", type="primary")
         with col2:
             st.form_submit_button("Reset", type="secondary")
+
+    # Render "Add" and "Remove" buttons for repeatable fields outside form context
+    st.divider()
+    field_metadata: FormMetadata
+    for field_name, field_metadata in form_metadata.items():
+        if field_metadata.is_repeatable:
+            form_model = field_metadata.child_form_class
+            session_key = f"_list_{field_name}_entries"
+            field_label = field_metadata.title
+
+            # Create a section for this repeatable field's controls
+            with st.expander(
+                f"🛠️ Manage {field_label}",
+                expanded=False,
+            ):
+                # Add button
+                if st.button(
+                    f"➕ Add {field_label}",
+                    key=f"add_{field_name}",
+                    help=f"Add a new {field_label}",
+                ):
+                    st.session_state[session_key].append({})
+                    st.rerun()
+
+                # Render remove buttons for each entry in this field
+                if st.session_state[session_key]:
+                    st.markdown(f"**Remove {form_model.__name__}:**")
+
+                    for idx in range(len(st.session_state[session_key])):
+                        st.button(
+                            f"🗑️ Remove entry #{idx + 1}",
+                            key=f"remove_{field_name}_{idx}",
+                            help=f"Remove {form_model.__name__} entry #{idx + 1}",
+                            on_click=remove_entry,
+                            args=(idx, session_key),
+                        )
 
     # Handle form submission
     if submitted:
