@@ -1,5 +1,6 @@
 """Streamlit application for track metadata form intake and serialization."""
 
+import json
 from datetime import date
 from pathlib import Path
 from niagads.genomicsdb.schema.reference.ontology import OntologyTerm
@@ -423,6 +424,95 @@ def remove_entry(idx: int, session_key: str):
     st.session_state[session_key].pop(idx)
 
 
+def process_form_data(
+    form_data: dict,
+    form_metadata: dict[str, FormMetadata],
+    parent_field: str = "",
+) -> tuple[dict, list[str]]:
+    """Process and deserialize form data using deserializers from metadata.
+
+    Recursively applies deserializers to fields and validates required fields.
+    Handles nested composite fields and repeatable fields.
+
+    Args:
+        form_data: Dictionary of raw form field values from render_form().
+        form_metadata: Form metadata dict containing field info and deserializers.
+        parent_field: Parent field name for error messages (e.g., "file_properties").
+
+    Returns:
+        Tuple of (processed_data_dict, validation_errors_list).
+        processed_data_dict contains deserialized values (may have None for failed fields).
+        validation_errors_list contains all validation error messages with parent.field paths.
+    """
+    processed = {}
+    validation_errors = []
+
+    for field_name, field_meta in form_metadata.items():
+        value = form_data.get(field_name)
+
+        # Build full field path for error messages
+        full_field_path = f"{parent_field}.{field_name}" if parent_field else field_name
+
+        # Check required fields
+        if field_meta.is_required and (value is None or value == ""):
+            validation_errors.append(f"Required field missing: {full_field_path}")
+            continue
+
+        # Skip None/empty values for optional fields
+        if value is None or value == "":
+            processed[field_name] = None
+            continue
+
+        # Handle composite (nested) fields
+        if field_meta.is_composite:
+            if field_meta.is_repeatable:
+                # Handle repeatable composite fields (List[Model])
+                if isinstance(value, list):
+                    processed_list = []
+                    for idx, item in enumerate(value):
+                        if isinstance(item, dict):
+                            processed_item, nested_errors = process_form_data(
+                                item,
+                                field_meta.child_form_metadata,
+                                parent_field=full_field_path,
+                            )
+                            if nested_errors:
+                                validation_errors.extend(nested_errors)
+                            processed_list.append(processed_item)
+                    processed[field_name] = processed_list if processed_list else None
+                else:
+                    processed[field_name] = None
+            else:
+                # Handle single composite field
+                if isinstance(value, dict):
+                    processed_item, nested_errors = process_form_data(
+                        value,
+                        field_meta.child_form_metadata,
+                        parent_field=full_field_path,
+                    )
+                    if nested_errors:
+                        validation_errors.extend(nested_errors)
+                    processed[field_name] = processed_item
+                else:
+                    processed[field_name] = None
+        else:
+            # Handle regular fields - apply deserializer if available
+            if field_meta.deserializer is not None:
+                try:
+                    processed[field_name] = field_meta.deserializer(value)
+                except Exception as e:
+                    validation_errors.append(
+                        f"Failed to deserialize {full_field_path}: {str(e)}"
+                    )
+                    processed[field_name] = None
+                    continue
+            else:
+                # No deserializer - pass through as-is
+                processed[field_name] = value
+
+    return processed, validation_errors
+
+
 def main():
     """Main Streamlit application."""
     st.set_page_config(
@@ -507,8 +597,40 @@ def main():
 
     # Handle form submission
     if submitted:
-        st.write("Form data received:")
-        st.json(form_data)
+        try:
+            # Process and deserialize form data using metadata
+            processed_data, validation_errors = process_form_data(
+                form_data, form_metadata
+            )
+
+            # Check for validation errors
+            if validation_errors:
+                st.error("❌ Validation failed:")
+                for error in validation_errors:
+                    st.error(error)
+            else:
+                # Validate by instantiating the Track model
+                track = Track(**processed_data)
+
+                # Success
+                st.success("✓ Track metadata validated successfully!")
+
+                # Show JSON preview
+                st.subheader("Generated JSON")
+                json_output = track.model_dump(mode="json")
+                st.json(json_output)
+
+                # Download button
+                file_name = f"{json_output.get('track_id', 'track')}-metadata.json"
+                st.download_button(
+                    label="Download as JSON",
+                    data=json.dumps(json_output, indent=2),
+                    file_name=file_name,
+                    mime="application/json",
+                )
+
+        except Exception as e:
+            st.error(f"❌ Error: {str(e)}")
 
 
 if __name__ == "__main__":
