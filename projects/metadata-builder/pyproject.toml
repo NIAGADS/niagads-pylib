@@ -1,5 +1,16 @@
 [tool.poetry]
-packages = []
+packages = [
+    { from = "../../bases", include = "niagads/genomicsdb_service/" },
+    { include = "niagads/enums", from = "../../components" },
+    { include = "niagads/common", from = "../../components" },
+    { include = "niagads/settings", from = "../../components" },
+    { include = "niagads/requests", from = "../../components" },
+    { include = "niagads/arg_parser", from = "../../components" },
+    { include = "niagads/exceptions", from = "../../components" },
+    { include = "niagads/genomics", from = "../../components" },
+    { include = "niagads/api", from = "../../components" },
+    { include = "niagads/utils", from = "../../components" },
+]
 
 [project]
 name = "metadata-builder"
@@ -11,8 +22,11 @@ authors = [
 
 requires-python = ">=3.11,<3.14"
 
-dependencies = []
+dependencies = [
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = [
+    "poetry-core>=1.0.0",
+]
 build-backend = "poetry.core.masonry.api"
