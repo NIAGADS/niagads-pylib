@@ -148,6 +148,10 @@ class Track(ORMCompatibleRowModel):
     file_properties: FileProperties = Field(
         title="File Properties",
     )
+    experimental_design: ExperimentalDesign = Field(
+        default=None,
+        title="Experimental Design",
+    )
     participant_phenotypes: Optional[Phenotype] = Field(
         default=None,
         title="Phenotypes",
@@ -160,10 +164,6 @@ class Track(ORMCompatibleRowModel):
     biosample_characteristics: Optional[BiosampleCharacteristics] = Field(
         default=None,
         title="Sample Characteristics",
-    )
-    experimental_design: Optional[ExperimentalDesign] = Field(
-        default=None,
-        title="Experimental Design",
     )
 
     curation_history: Optional[List[CurationEvent]] = Field(

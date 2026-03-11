@@ -325,8 +325,10 @@ class PydanticFormGenerator(ComponentBaseMixin):
         Returns:
             A deserializer function, or None if no deserializer is registered.
         """
+
         if base_type is not None and base_type in self.__deserializers:
             return self.__deserializers[base_type]
+
         return None
 
     def __map_pydantic_type_to_wtforms(self, pydantic_type: Any) -> Optional[Type]:

@@ -3,7 +3,8 @@
 import json
 from datetime import date
 from pathlib import Path
-from niagads.genomicsdb.schema.reference.ontology import OntologyTerm
+from typing import Callable, Union
+from niagads.common.models.ontologies import OntologyTerm
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 import streamlit as st
@@ -87,11 +88,26 @@ def deserialize_ontology_term(value: str) -> str:
     if matches(value, RegularExpressions.ONTOLOGY_TERM_CURIE):
         return OntologyTerm(value)
     else:
-        for k, v in ONTOLOGY_REFERENCE.items():
-            if value == v["term"]:
-                return OntologyTerm(term=value, curie=v["curie"])
+        for field, terms in ONTOLOGY_REFERENCE.items():
+            for t in terms:
+                if value == t["term"]:
+                    return OntologyTerm(term=value, curie=t["curie"])
 
     return OntologyTerm(term=value, curie="NIAGADS:needs_review")
+
+
+def deserialize_list(
+    values: Union[str, list[str]], deserializer: Callable = None, is_set: bool = False
+) -> list:
+
+    list_values = (
+        [v.strip() for v in values.replace("\n", ",").split(",") if v.strip()]
+        if isinstance(values, str)
+        else values
+    )
+    if deserializer is not None:
+        list_values = [deserializer(lv) for lv in list_values]
+    return set(list_values) if is_set else list_values
 
 
 def is_nested_form_empty(nested_data: dict, child_form_metadata: dict) -> bool:
@@ -116,15 +132,16 @@ def is_nested_form_empty(nested_data: dict, child_form_metadata: dict) -> bool:
 
         # Check if value is not None and not empty
         if value is not None and value != "" and value != []:
-            if field_meta.is_enum:
-                default = str(field_meta.default)
-            if field_meta.is_ontology_term:
-                default = field_meta.default.term
-            else:
-                default = field_meta.default
-            # If value matches the default, it's still considered empty
-            if value == default:
-                continue
+            if field_meta.default:
+                if field_meta.is_enum:
+                    default = str(field_meta.default)
+                if field_meta.is_ontology_term:
+                    default = field_meta.default.term
+                else:
+                    default = field_meta.default
+                # If value matches the default, it's still considered empty
+                if value == default:
+                    continue
             return False
 
     return True
@@ -333,7 +350,7 @@ class FormRenderer(ComponentBaseMixin):
         Returns:
             Tuple of (field_name, user_input_value).
         """
-        if field_meta.field_name.endswith("_date"):
+        if self._debug:
             print(f"{field_meta}")
 
         if field_meta.is_ontology_term:
@@ -493,15 +510,13 @@ def process_form_data(
         # Check required fields
         if field_meta.is_required and (value is None or value == ""):
             validation_errors.append(f"Required field missing: {full_field_path}")
-            continue
 
         # Skip None/empty values for optional fields
-        if value is None or value == "":
+        elif value is None or value == "":
             processed[field_name] = None
-            continue
 
         # Handle composite (nested) fields
-        if field_meta.is_composite:
+        elif field_meta.is_composite:
             if field_meta.is_repeatable:
                 processed_list = []
                 processed_errors = []
@@ -523,7 +538,7 @@ def process_form_data(
                         validation_errors.extend(processed_errors)
 
             else:
-                if is_nested_form_empty(item, field_meta.child_form_metadata):
+                if is_nested_form_empty(value, field_meta.child_form_metadata):
                     processed[field_name] = None
                 else:
                     processed_item, nested_errors = process_form_data(
@@ -535,20 +550,24 @@ def process_form_data(
                     if nested_errors:
                         validation_errors.extend(nested_errors)
 
+        elif field_meta.is_list:
+            processed[field_name] = deserialize_list(value, field_meta.deserializer)
+        elif field_meta.is_set:
+            processed[field_name] = deserialize_list(
+                value, field_meta.deserializer, is_set=True
+            )
+        # Handle regular fields - apply deserializer if available
+        elif field_meta.deserializer is not None:
+            try:
+                processed[field_name] = field_meta.deserializer(value)
+            except Exception as e:
+                validation_errors.append(
+                    f"Failed to deserialize {full_field_path}: {str(e)}"
+                )
+                processed[field_name] = None
         else:
-            # Handle regular fields - apply deserializer if available
-            if field_meta.deserializer is not None:
-                try:
-                    processed[field_name] = field_meta.deserializer(value)
-                except Exception as e:
-                    validation_errors.append(
-                        f"Failed to deserialize {full_field_path}: {str(e)}"
-                    )
-                    processed[field_name] = None
-                    continue
-            else:
-                # No deserializer - pass through as-is
-                processed[field_name] = value
+            # No deserializer - pass through as-is
+            processed[field_name] = value
 
     return processed, validation_errors
 
@@ -578,7 +597,10 @@ def main():
     st.markdown("Enter track metadata below.")
 
     # Define deserializers for form fields
-    deserializers = {date: deserialize_date, OntologyTerm: deserialize_ontology_term}
+    deserializers = {
+        date: deserialize_date,
+        OntologyTerm: deserialize_ontology_term,
+    }
 
     # Generate form from Track model (exclude composite fields for now)
     generator = PydanticFormGenerator(
@@ -655,10 +677,7 @@ def main():
                 # Success
                 st.success("✓ Track metadata validated successfully!")
 
-                # Show JSON preview
-                st.subheader("Generated JSON")
                 json_output = track.model_dump(mode="json")
-                st.json(json_output)
 
                 # Download button
                 file_name = f"{json_output.get('track_id', 'track')}-metadata.json"
@@ -669,6 +688,10 @@ def main():
                     mime="application/json",
                 )
 
+                # Show JSON preview
+                st.subheader("Generated JSON")
+                st.json(json_output)
+
         except ValidationError as e:
             st.error("❌ Validation failed:")
             for error in e.errors():
@@ -677,6 +700,7 @@ def main():
 
         except Exception as e:
             st.error(f"❌ Error: {str(e)}")
+            raise
 
 
 if __name__ == "__main__":

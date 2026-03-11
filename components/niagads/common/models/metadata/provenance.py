@@ -52,7 +52,7 @@ class Provenance(TransformableModel):
     attribution: str = Field(
         pattern=RegularExpressions.ATTRIBUTION,
         title="Attribution",
-        description="Human-readable author citation for primary publication (or PI and year if no publication), e.g., Naj et al. 2006",
+        description="Human-readable author citation for primary publication (or PI and year if no publication).  Must match author-date citation format, e.g., Smith 2006 or Smith et al. 2006",
     )  # FIXME: for FILER allow to be None
     pubmed_id: Optional[Set[T_PubMedID]] = Field(default=None, title="PubMed ID")
     doi: Optional[Set[str]] = Field(default=None, title="DOI")
