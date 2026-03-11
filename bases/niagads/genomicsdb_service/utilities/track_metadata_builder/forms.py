@@ -316,20 +316,17 @@ class PydanticFormGenerator(ComponentBaseMixin):
 
         return False
 
-    def __determine_deserializer(self, field_type: Any) -> Optional[Callable]:
-        """Determine the appropriate deserializer function for a field type.
-
-        Inspects the field type and returns the corresponding deserializer function
-        from the deserializers dict.
+    def __determine_deserializer(self, base_type: Any) -> Optional[Callable]:
+        """Determine the appropriate deserializer function for a base type.
 
         Args:
-            field_type: The Pydantic field type annotation.
+            base_type: The extracted base type (not wrapped in Optional/Union).
 
         Returns:
-            A deserializer function, or None if no deserializer can be determined.
+            A deserializer function, or None if no deserializer is registered.
         """
-        # This method will be implemented in Phase 2
-        # For now, return None as placeholder
+        if base_type is not None and base_type in self.__deserializers:
+            return self.__deserializers[base_type]
         return None
 
     def __map_pydantic_type_to_wtforms(self, pydantic_type: Any) -> Optional[Type]:
@@ -434,11 +431,13 @@ class PydanticFormGenerator(ComponentBaseMixin):
             # Create field label from field metadata
             label = field_info.title or field_name.replace("_", " ").title()
 
-            # Determine deserializer for this field
-            deserializer = self.__determine_deserializer(field_type)
-
             # Get base type for model_type in metadata
             base_type = self.__get_base_type(field_type)
+            if field_name.endswith("_date") and base_type is str:
+                base_type = date
+                wtforms_field_type = DateField
+
+            deserializer = self.__determine_deserializer(base_type)
 
             # Check if this is a list or set
             is_list_field = self.__is_list(field_type)

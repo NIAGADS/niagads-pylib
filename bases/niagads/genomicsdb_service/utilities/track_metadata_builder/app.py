@@ -3,6 +3,8 @@
 from datetime import date
 from pathlib import Path
 from niagads.genomicsdb.schema.reference.ontology import OntologyTerm
+from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import matches
 import streamlit as st
 from niagads.api.common.models.datasets.track import Track
 from niagads.common.core import ComponentBaseMixin
@@ -39,6 +41,57 @@ def load_ontology_reference():
     return reference_by_field
 
 
+ONTOLOGY_REFERENCE = load_ontology_reference()
+
+
+def get_reference_ontology_terms(
+    ontology_map, field_name: str, terms_only: bool = False
+):
+    """get reference ontology terms for a field"""
+    if field_name == "phenotype":
+        complete_reference = []
+        for field in ontology_map.keys():
+            complete_reference.extend(ontology_map.get(field, {}))
+        reference = [v for v in complete_reference if v["is_phenotype"]]
+
+    else:
+        reference = ontology_map.get(field_name, {})
+
+    if terms_only:
+        return [item["term"] for item in reference]
+    else:
+        return reference
+
+
+def deserialize_date(value: date) -> str:
+    """Deserialize a date object to MM-DD-YYYY format.
+
+    Args:
+        value: A date object to deserialize.
+
+    Returns:
+        A string representation of the date in MM-DD-YYYY format.
+    """
+    if value is None:
+        return None
+    if isinstance(value, date):
+        return value.strftime("%m-%d-%Y")
+    return value
+
+
+def deserialize_ontology_term(value: str) -> str:
+    if value is None:
+        return None
+    if matches(value, RegularExpressions.ONTOLOGY_TERM_CURIE):
+        return OntologyTerm(value)
+    else:
+        for k, v in ONTOLOGY_REFERENCE.items():
+            if value == v["term"]:
+                return OntologyTerm(term=value, curie=v["curie"])
+
+    return OntologyTerm(term=value, curie="NIAGADS:needs_review")
+
+
 class FormRenderer(ComponentBaseMixin):
     """Renders form widgets based on field metadata."""
 
@@ -54,30 +107,17 @@ class FormRenderer(ComponentBaseMixin):
         self.__metadata = form_metadata
         self.__ontology_map = load_ontology_reference()
 
-    def get_reference_terms(self, field_name: str, terms_only: bool = False):
-        """get reference ontology terms for a field"""
-        if field_name == "phenotype":
-            complete_reference = []
-            for field in self.__ontology_map.keys():
-                complete_reference.extend(self.__ontology_map.get(field, {}))
-            reference = [v for v in complete_reference if v["is_phenotype"]]
-
-        else:
-            reference = self.__ontology_map.get(field_name, {})
-
-        if terms_only:
-            return [item["term"] for item in reference]
-        else:
-            return reference
-
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}(debug={self._debug}, "
             f"verbose={self._verbose})"
         )
 
+    def get_reference_terms(self, field_name: str, terms_only: bool = False):
+        return get_reference_ontology_terms(self.__ontology_map, field_name, terms_only)
+
     @staticmethod
-    def __generate_session_keys(field_name: str) -> tuple[str, str]:
+    def _generate_session_keys(field_name: str) -> tuple[str, str]:
         return (
             f"_list_{field_name}_entries",
             f"_list_{field_name}_counter",
@@ -86,7 +126,7 @@ class FormRenderer(ComponentBaseMixin):
     @staticmethod
     def ensure_repeatable_entries(field_name: str):
         """Ensure repeatable entries are initialized with stable IDs."""
-        session_key, counter_key = FormRenderer.__generate_session_keys(field_name)
+        session_key, counter_key = FormRenderer._generate_session_keys(field_name)
 
         if session_key not in st.session_state:
             st.session_state[session_key] = [{"_entry_id": 0}]
@@ -110,7 +150,7 @@ class FormRenderer(ComponentBaseMixin):
     @staticmethod
     def append_repeatable_entry(field_name: str):
         """Append a repeatable entry with a stable ID."""
-        session_key, counter_key = FormRenderer.__generate_session_keys(field_name)
+        session_key, counter_key = FormRenderer._generate_session_keys(field_name)
         FormRenderer.ensure_repeatable_entries(field_name)
         st.session_state[session_key].append(
             {"_entry_id": st.session_state[counter_key]}
@@ -223,7 +263,7 @@ class FormRenderer(ComponentBaseMixin):
             label = f"{label} *"
 
         # Initialize session state for this list field if not exists
-        session_key, _ = self.__generate_session_keys(field_name)
+        session_key, _ = self._generate_session_keys(field_name)
         self.ensure_repeatable_entries(field_name)
 
         with st.expander(label, expanded=is_required):
@@ -255,7 +295,7 @@ class FormRenderer(ComponentBaseMixin):
         Returns:
             Tuple of (field_name, user_input_value).
         """
-        if self._debug:
+        if field_meta.field_name.endswith("_date"):
             print(f"{field_meta}")
 
         if field_meta.is_ontology_term:
@@ -407,8 +447,14 @@ def main():
     st.title("Track Metadata Builder")
     st.markdown("Enter track metadata below.")
 
+    # Define deserializers for form fields
+    deserializers = {date: deserialize_date, OntologyTerm: deserialize_ontology_term}
+
     # Generate form from Track model (exclude composite fields for now)
-    generator = PydanticFormGenerator(exclude_pydantic_models=False)
+    generator = PydanticFormGenerator(
+        exclude_pydantic_models=False,
+        deserializers=deserializers,
+    )
     form_metadata: dict[str, FormMetadata]
     form_class, form_metadata = generator.generate_form_class(Track)
     # Create renderer
@@ -428,7 +474,7 @@ def main():
     for field_name, field_metadata in form_metadata.items():
         if field_metadata.is_repeatable:
             form_model = field_metadata.child_form_class
-            session_key, _ = renderer.__generate_session_keys(field_name)
+            session_key, _ = renderer._generate_session_keys(field_name)
             field_label = field_metadata.title
             renderer.ensure_repeatable_entries(field_name)
 
