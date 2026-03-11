@@ -1,4 +1,3 @@
-from datetime import date
 from typing import Optional, Set
 
 from niagads.common.constants.external_resources import (
@@ -23,9 +22,9 @@ class Provenance(TransformableModel):
         title="Accession",
         description="accession identifier in original data source; may be parent accession if track is part of a collection (e.g., NIAGADS DSS dataset accession)",
     )  # FIXME: for FILER set to None or figure out where original accession is?
-    release_date: date = Field(title="Release Date")
+    release_date: str = Field(title="Release Date")
     release_version: Optional[str] = Field(default=None, title="Release Version")
-    download_date: Optional[date] = Field(
+    download_date: Optional[str] = Field(
         default=None,
         title="Download Date",
         json_schema_extra={"is_filer_annotation": True},
