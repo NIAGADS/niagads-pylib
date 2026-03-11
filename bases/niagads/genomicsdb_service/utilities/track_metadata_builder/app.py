@@ -94,6 +94,42 @@ def deserialize_ontology_term(value: str) -> str:
     return OntologyTerm(term=value, curie="NIAGADS:needs_review")
 
 
+def is_nested_form_empty(nested_data: dict, child_form_metadata: dict) -> bool:
+    """Check if a nested form has all null or default values.
+
+    Args:
+        nested_data: Dictionary of processed nested field values.
+        child_form_metadata: Mapping of child field name -> FormMetadata.
+
+    Returns:
+        True if all fields are None, empty string, empty list, or match their default,
+        False otherwise.
+    """
+    if not nested_data:
+        return True
+    field_meta: FormMetadata
+    for field_name, field_meta in child_form_metadata.items():
+        if field_name not in nested_data:
+            continue
+
+        value = nested_data[field_name]
+
+        # Check if value is not None and not empty
+        if value is not None and value != "" and value != []:
+            if field_meta.is_enum:
+                default = str(field_meta.default)
+            if field_meta.is_ontology_term:
+                default = field_meta.default.term
+            else:
+                default = field_meta.default
+            # If value matches the default, it's still considered empty
+            if value == default:
+                continue
+            return False
+
+    return True
+
+
 class FormRenderer(ComponentBaseMixin):
     """Renders form widgets based on field metadata."""
 
@@ -467,35 +503,38 @@ def process_form_data(
         # Handle composite (nested) fields
         if field_meta.is_composite:
             if field_meta.is_repeatable:
-                # Handle repeatable composite fields (List[Model])
-                if isinstance(value, list):
-                    processed_list = []
-                    for idx, item in enumerate(value):
-                        if isinstance(item, dict):
-                            processed_item, nested_errors = process_form_data(
-                                item,
-                                field_meta.child_form_metadata,
-                                parent_field=full_field_path,
-                            )
-                            if nested_errors:
-                                validation_errors.extend(nested_errors)
-                            processed_list.append(processed_item)
-                    processed[field_name] = processed_list if processed_list else None
-                else:
+                processed_list = []
+                processed_errors = []
+                for idx, item in enumerate(value):
+                    if not is_nested_form_empty(item, field_meta.child_form_metadata):
+                        processed_item, nested_errors = process_form_data(
+                            item,
+                            field_meta.child_form_metadata,
+                            parent_field=f"{full_field_path}[{idx}]",
+                        )
+                        if nested_errors:
+                            processed_errors.extend(nested_errors)
+                        processed_list.append(processed_item)
+                if len(processed_list) == 0:
                     processed[field_name] = None
+                else:
+                    processed[field_name] = processed_list
+                    if len(processed_errors) > 0:
+                        validation_errors.extend(processed_errors)
+
             else:
-                # Handle single composite field
-                if isinstance(value, dict):
+                if is_nested_form_empty(item, field_meta.child_form_metadata):
+                    processed[field_name] = None
+                else:
                     processed_item, nested_errors = process_form_data(
                         value,
                         field_meta.child_form_metadata,
                         parent_field=full_field_path,
                     )
+                    processed[field_name] = processed_item
                     if nested_errors:
                         validation_errors.extend(nested_errors)
-                    processed[field_name] = processed_item
-                else:
-                    processed[field_name] = None
+
         else:
             # Handle regular fields - apply deserializer if available
             if field_meta.deserializer is not None:
