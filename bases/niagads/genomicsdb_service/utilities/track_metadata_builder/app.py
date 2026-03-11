@@ -242,6 +242,34 @@ class MetadataBuilderApp(ComponentBaseMixin):
 
         return True
 
+    def __load_json_upload(self) -> dict | None:
+        """
+        Handle JSON file upload and validation.
+
+        Returns:
+            dict: Parsed JSON data if valid, else None.
+        """
+        uploaded_file = st.file_uploader(
+            "Upload previously downloaded metadata JSON",
+            type=["json"],
+            key="json_upload",
+            help="Select a JSON file previously downloaded from this app.",
+        )
+        if uploaded_file is not None:
+            try:
+                json_data = json.load(uploaded_file)
+                # Validate against the pydantic model
+                validated = self.__pydantic_model(**json_data)
+                st.success("✓ JSON file loaded and validated successfully.")
+                return json_data
+            except ValidationError as e:
+                st.error("❌ JSON validation failed:")
+                for error in e.errors():
+                    field_path = ".".join(str(loc) for loc in error["loc"])
+                    st.error(f"  - **{field_path}**: {error['msg']}")
+            except Exception as e:
+                st.err
+
     def __process_form_data(
         self,
         form_data: dict,
@@ -377,6 +405,12 @@ class MetadataBuilderApp(ComponentBaseMixin):
                 submitted = st.form_submit_button("Submit", type="primary")
             with col2:
                 st.form_submit_button("Reset", type="secondary")
+
+        # Handle JSON file upload
+        st.divider()
+        st.subheader("📤 Load from JSON")
+        uploaded_json = self.__load_json_upload()
+        # TODO: after upload
 
         # Render "Add" and "Remove" buttons for repeatable fields outside form context
         st.divider()
