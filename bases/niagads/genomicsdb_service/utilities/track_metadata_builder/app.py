@@ -13,6 +13,7 @@ from niagads.genomicsdb_service.utilities.track_metadata_builder.forms import (
     FormMetadata,
     PydanticFormGenerator,
 )
+from pydantic import ValidationError
 
 
 # Load ontology reference into memory
@@ -628,6 +629,12 @@ def main():
                     file_name=file_name,
                     mime="application/json",
                 )
+
+        except ValidationError as e:
+            st.error("❌ Validation failed:")
+            for error in e.errors():
+                field_path = ".".join(str(loc) for loc in error["loc"])
+                st.error(f"  - **{field_path}**: {error['msg']}")
 
         except Exception as e:
             st.error(f"❌ Error: {str(e)}")
