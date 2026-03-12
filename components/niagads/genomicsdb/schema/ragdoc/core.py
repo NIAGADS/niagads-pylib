@@ -2,7 +2,7 @@
 # see https://stackoverflow.com/a/77767002
 #  FIXME: can I just use __init__.py?
 
-from niagads.genomicsdb.schema.ragdoc.documents import (
+from niagads.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )

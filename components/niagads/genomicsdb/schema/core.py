@@ -29,7 +29,7 @@ from niagads.genomicsdb.schema.gene.xrefs import GeneXRef
 
 # RagDoc Schema
 
-from niagads.genomicsdb.schema.ragdoc.documents import (
+from niagads.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )

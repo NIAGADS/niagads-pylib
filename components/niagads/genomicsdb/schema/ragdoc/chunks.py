@@ -85,7 +85,7 @@ class ChunkEmbedding(RAGDocTableBase, EmbeddingMixin):
         *EmbeddingMixin.get_indexes(RAGDocTableBase._schema, __tablename__),
         UniqueConstraint(
             "chunk_metadata_id",
-            "model_id",
+            "embedding_model",
             "chunk_hash",
             name="uq_embedding_chunk",
         ),
@@ -98,8 +98,5 @@ class ChunkEmbedding(RAGDocTableBase, EmbeddingMixin):
     )
     chunk_metadata_id: Mapped[int] = mapped_column(
         ForeignKey("ragdoc.chunkmetadata.chunk_metadata_id"), nullable=False, index=True
-    )
-    chunk_id: Mapped[str] = mapped_column(
-        ForeignKey("ragdoc.chunkmetadata.chunk_id"), nullable=False, index=True
     )
     chunk_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)
