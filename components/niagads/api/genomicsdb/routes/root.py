@@ -6,7 +6,7 @@ from niagads.api.common.constants import SharedOpenAPITags
 
 
 from niagads.api.common.models.records import Entity, RecordSummary
-from niagads.api.common.models.response.core import (
+from niagads.api.common.models.response.base import (
     MessageResponse,
     RecordResponse,
 )

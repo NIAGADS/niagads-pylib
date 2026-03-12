@@ -2,12 +2,12 @@ GWAS_TRACK_CTE = """--sql
     SELECT track_id, name AS track_name,
         provenance->>'data_source' AS data_source,
         provenance->'pubmed_id' AS pubmed_id,
-        subject_phenotypes,
+        participant_phenotypes,
         biosample_characteristics,
-        CASE WHEN (subject_phenotypes->'disease')::text LIKE '%Alzh%' THEN 'AD'
+        CASE WHEN (participant_phenotypes->'disease')::text LIKE '%Alzh%' THEN 'AD'
         WHEN biosample_characteristics IS NOT NULL THEN 'Biomarker'
-        WHEN (subject_phenotypes->'disease')::text 
-        NOT LIKE '%Alzh%' OR subject_phenotypes->'neuropathology' IS NOT NULL THEN 'ADRD'
+        WHEN (participant_phenotypes->'disease')::text 
+        NOT LIKE '%Alzh%' OR participant_phenotypes->'neuropathology' IS NOT NULL THEN 'ADRD'
         ELSE NULL END AS category
     FROM Dataset.Track
     WHERE 
@@ -27,7 +27,7 @@ GWAS_COMMON_FIELDS = """--sql
         ELSE t.track_name 
     END AS track_name,
     t.data_source,
-    t.subject_phenotypes,
+    t.participant_phenotypes,
     t.biosample_characteristics,
     CASE WHEN t.category IS NOT NULL 
         THEN t.category 

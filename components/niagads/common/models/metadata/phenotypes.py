@@ -21,24 +21,16 @@ class PhenotypeCount(TransformableModel):
 
 class Phenotype(TransformableModel):
     disease: Optional[List[OntologyTerm]] = Field(default=None, title="Disease")
-    ethnicity: Optional[List[OntologyTerm]] = Field(default=None, title="Ethnicity")
-    race: Optional[List[OntologyTerm]] = Field(default=None, title="Race")
     neuropathology: Optional[List[OntologyTerm]] = Field(
         default=None,
         title="Neuropathology",
         description="pathology or classification of the degree of pathology",
     )
-    genotype: Optional[List[OntologyTerm]] = Field(
-        default=None, title="APOE Allele or Carrier Status"
-    )
-    biological_sex: Optional[List[OntologyTerm]] = Field(
-        default=None, title="Biological Sex"
-    )
-    study_diagnosis: Optional[List[PhenotypeCount]] = Field(
-        default=None,
-        title="Study Diagnosis",
-        description="number of cases and controls",
-    )
+    ethnicity: Optional[List[OntologyTerm]] = Field(default=None, title="Ethnicity")
+    race: Optional[List[OntologyTerm]] = Field(default=None, title="Race")
+
+    genotype: Optional[List[OntologyTerm]] = Field(default=None, title="Genotype")
+    gender: Optional[List[OntologyTerm]] = Field(default=None, title="Gender")
 
     def _flat_dump(self, nullFree=False, delimiter="|"):
         obj = {
@@ -51,8 +43,7 @@ class Phenotype(TransformableModel):
         """Extract all ontology terms from phenotype fields.
 
         Iterates over all model fields and collects OntologyTerm instances
-        from list fields (disease, ethnicity, race, neuropathology, genotype,
-        biological_sex).
+        from list fields.
 
         Returns:
             List of OntologyTerm objects from all phenotype categories.

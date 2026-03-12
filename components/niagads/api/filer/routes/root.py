@@ -5,7 +5,7 @@ from niagads.api.common.app.factory import AppFactory
 from niagads.api.common.constants import SharedOpenAPITags
 
 from niagads.api.common.models.records import Entity, RecordSummary
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.models.routes import RouteDescription
 from niagads.api.common.services.metadata.query import MetadataQueryService
 

@@ -1,6 +1,7 @@
-from typing import List, Optional, Set
+from typing import Optional, Set
 
 from niagads.common.constants.external_resources import (
+    Consortia,
     NIAGADSResources,
     ThirdPartyResources,
 )
@@ -11,52 +12,50 @@ from niagads.utils.string import matches
 from pydantic import Field, computed_field, field_validator
 
 
-class ExperimentalDesign(TransformableModel):
-    antibody_target: Optional[str] = Field(default=None, title="Antibody Target")
-    assay: Optional[str] = Field(default=None, title="Assay")
-    analysis: Optional[str] = Field(default=None, title="Analysis")
-    classification: Optional[str] = Field(default=None, title="Classification")
-    data_category: Optional[str] = Field(default=None, title="Data Category")
-    output_type: Optional[str] = Field(default=None, title="Output Type")
-    is_lifted: Optional[bool] = Field(
-        default=None,
-        title="Is Lifted?",
-        description="data are lifted from earlier genome build",
-    )
-    covariates: Optional[List[str]] = Field(default=None, title="Covariates")
-
-    def __str__(self):
-        return self.as_info_string()
-
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
-        if self.covariates is not None:
-            obj["covarites"] = self._list_to_string(
-                self.covariates, delimiter=delimiter
-            )
-        return obj
-
-
-# TODO: document provenance and file properties
 class Provenance(TransformableModel):
     data_source: str = Field(
-        title="Data Source", description="original file data source"
+        default=NIAGADSResources.NIAGADS_DSS.name,
+        title="Data Source",
+        description="original file data source",
     )
-
-    release_version: Optional[str] = None
-    release_date: Optional[str] = None
-    download_date: Optional[str] = None
-    download_url: Optional[str] = None  # Field(exclude=True)
-
-    study: Optional[str] = None
-    project: Optional[str] = None
-    accession: Optional[str] = None  # really shouldn't be optional, but FILER
-
-    pubmed_id: Optional[Set[T_PubMedID]] = None
-    doi: Optional[Set[str]] = None
-
-    consortium: Optional[Set[str]] = None
-    attribution: Optional[str] = None
+    accession: str = Field(
+        title="Accession",
+        description="accession identifier in original data source; may be parent accession if track is part of a collection (e.g., NIAGADS DSS dataset accession)",
+    )  # FIXME: for FILER set to None or figure out where original accession is?
+    release_date: str = Field(title="Release Date")
+    release_version: Optional[str] = Field(default=None, title="Release Version")
+    download_date: Optional[str] = Field(
+        default=None,
+        title="Download Date",
+        json_schema_extra={"is_filer_annotation": True},
+    )
+    download_url: Optional[str] = Field(
+        default=None,
+        title="Download URL",
+        exclude=True,
+        json_schema_extra={"is_filer_annotation": True},
+    )
+    consortium: Optional[Set[Consortia]] = Field(
+        default=None,
+        title="Consortium",
+        description=f"collaborative partnership",
+    )
+    study: Optional[str] = Field(default=None, title="Study")
+    project: Optional[str] = Field(
+        default=None,
+        title="Project",
+        description=(
+            "organizational unit that may include multiple studies and datasets "
+            "under a common goal, funding source, or program. (e.g., ADSP FunGen xQTL)"
+        ),
+    )
+    attribution: str = Field(
+        pattern=RegularExpressions.ATTRIBUTION,
+        title="Attribution",
+        description="Human-readable author citation for primary publication (or PI and year if no publication).  Must match author-date citation format, e.g., Smith 2006 or Smith et al. 2006",
+    )  # FIXME: for FILER allow to be None
+    pubmed_id: Optional[Set[T_PubMedID]] = Field(default=None, title="PubMed ID")
+    doi: Optional[Set[str]] = Field(default=None, title="DOI")
 
     def _flat_dump(self, nullFree=False, delimiter="|"):
         obj = {
@@ -102,14 +101,38 @@ class Provenance(TransformableModel):
 
 
 class FileProperties(TransformableModel):
-    file_name: Optional[str] = None
-    url: Optional[str] = None
-    md5sum: Optional[str] = Field(pattern=RegularExpressions.MD5SUM, default=None)
+    file_name: str = Field(title="File Name")
+    url: Optional[str] = Field(
+        default=None,
+        title="URL",
+        json_schema_extra={"is_filer_annotation": True},
+    )
+    md5sum: str = Field(pattern=RegularExpressions.MD5SUM, title="MD5 Sum")
 
-    bp_covered: Optional[int] = None
-    num_intervals: Optional[int] = None
-    file_size: Optional[int] = None
+    bp_covered: Optional[int] = Field(
+        default=None,
+        title="Base Pairs Covered",
+        json_schema_extra={"is_filer_annotation": True},
+    )
+    num_intervals: Optional[int] = Field(
+        default=None,
+        title="Number of Intervals",
+        json_schema_extra={"is_filer_annotation": True},
+    )
+    file_size: int = Field(title="File Size")
 
-    file_format: Optional[str] = None
-    file_schema: Optional[str] = None
-    release_date: Optional[str] = None  # Field(exclude=True)
+    file_format: Optional[str] = Field(
+        default=None,
+        title="File Format",
+        json_schema_extra={"is_filer_annotation": True},
+    )
+    file_schema: Optional[str] = Field(
+        default=None,
+        title="File Schema",
+        json_schema_extra={"is_filer_annotation": True},
+    )
+    release_date: Optional[str] = Field(
+        default=None,
+        title="Release Date",
+        json_schema_extra={"is_filer_annotation": True},
+    )  # Field(exclude=True)

@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.records import Entity
 from niagads.api.common.models.search.records import RecordSearchResult
-from niagads.api.common.models.response.core import (
+from niagads.api.common.models.response.base import (
     RecordResponse,
 )
 from niagads.api.common.parameters.pagination import limit_param

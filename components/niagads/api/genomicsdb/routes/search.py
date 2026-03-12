@@ -8,7 +8,7 @@ from niagads.api.common.models.features.variant import (
     AbridgedVariantResponse,
     VariantResponse,
 )
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.parameters.location import loc_param
 from niagads.api.common.parameters.record.filters import (
     VariantType,

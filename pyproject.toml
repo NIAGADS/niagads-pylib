@@ -104,6 +104,8 @@ strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
+wtforms = "^3.2.1"
+streamlit = "^1.55.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"

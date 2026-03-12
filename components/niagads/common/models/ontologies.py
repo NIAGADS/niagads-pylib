@@ -43,23 +43,23 @@ class OntologyTerm(TransformableModel):
     is_placeholder: bool = Field(default=False, description="True if palceholder term")
 
     @staticmethod
-    def extract_term_id(iri: str) -> str:
+    def extract_curie(iri: str) -> str:
         return iri.rsplit("/", 1)[-1].replace("_", ":")
 
-    @field_validator("term_id", mode="before")
-    def validate_term_id(cls, v, data: dict):
+    @field_validator("curie", mode="before")
+    def validate_curie(cls, v, data: dict):
         """
-        Validate ID for the ontology term. If term_id is None,
+        Validate ID for the ontology term. If curie is None,
         extracts it from the URI. Raises a validation error if both are None.
         """
         if v is not None:
             return v
-        term_iri: str = data.get("term_iri")
+        term_iri: str = data.get("curie")
         if term_iri:
-            return cls.extract_term_id(term_iri)
+            return cls.extract_curie(term_iri)
 
         raise ValueError(
-            "Either 'term_id' or 'term_iri' must be provided for OntologyTerm."
+            "Either 'curie' or 'term_iri' must be provided for OntologyTerm."
         )
 
     @model_validator(mode="before")
@@ -75,16 +75,16 @@ class OntologyTerm(TransformableModel):
         """
 
         # if trying to serialize a string as an ontology term, assume
-        # it is the term or term_id
+        # it is the term or curie
         if isinstance(values, str):
-            if matches(values, RegularExpressions.ONTOLOGY_TERM_ID):
-                term_id = values.replace("_", ":")
-                return cls(term_id=term_id, term=term_id)
+            if matches(values, RegularExpressions.ONTOLOGY_TERM_CURIE):
+                curie = values.replace("_", ":")
+                return cls(curie=curie, term=curie)
             return cls(term=values)
 
         for field, v in values.items():
             if v is not None and not isinstance(v, bool):
-                if field == "term_id":
+                if field == "curie":
                     values[field] = str(v).replace("_", ":")
                 else:
                     values[field] = str(v)
@@ -96,5 +96,5 @@ class OntologyTerm(TransformableModel):
     def as_info_string(self) -> str:
         info: dict = {"term": self.term}
         if self.curie:
-            info.update({"term_id": self.curie})
+            info.update({"curie": self.curie})
         return dict_to_info_string(info)

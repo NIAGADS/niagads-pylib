@@ -1,6 +1,6 @@
 # TODOs
 
-* check into circular import w/registry before proceeding w/tests
+* update schema dataset model to reflect new api model
 
 ## ETL
 

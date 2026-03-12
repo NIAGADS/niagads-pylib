@@ -73,7 +73,7 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     biosample_characteristics: Mapped[Optional[BiosampleCharacteristics]] = (
         mapped_column(JSONB(none_as_null=True))
     )
-    subject_phenotypes: Mapped[Optional[Phenotype]] = mapped_column(
+    participant_phenotypes: Mapped[Optional[Phenotype]] = mapped_column(
         JSONB(none_as_null=True)
     )
     experimental_design: Mapped[Optional[ExperimentalDesign]] = mapped_column(

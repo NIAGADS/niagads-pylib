@@ -1,6 +1,6 @@
 import logging
 
-from niagads.utils.logging import FunctionContextLoggerWrapper
+from niagads.utils.logging import FunctionContextLoggerWrapper, LOG_FORMAT_STR
 
 
 class ComponentBaseMixin:
@@ -11,9 +11,13 @@ class ComponentBaseMixin:
     def __init__(self, debug: bool = False, verbose: bool = False):
         self._debug: bool = debug
         self._verbose: bool = verbose
-        self.logger: logging.Logger = FunctionContextLoggerWrapper(
-            logger=logging.getLogger(self.__class__.__module__)
-        )
+
+        logger = logging.getLogger(self.__class__.__module__)
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter(LOG_FORMAT_STR))
+        logger.addHandler(handler)
+
+        self.logger: logging.Logger = FunctionContextLoggerWrapper(logger=logger)
 
         if self._debug:
             self.logger.setLevel(logging.DEBUG)

@@ -3,7 +3,7 @@ from typing import Any, List, Optional, Union
 from niagads.api.common.views.table import TableRow
 from niagads.api.common.constants import DEFAULT_NULL_STRING
 from niagads.api.common.models.core import DynamicRowModel
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.views.table import Table
 from niagads.utils.string import dict_to_info_string
 from pydantic import Field

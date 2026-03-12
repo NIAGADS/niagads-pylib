@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.datasets.track import AbridgedTrackResponse
 from niagads.api.common.models.features.bed import BEDResponse
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.parameters.location import assembly_param, loc_param
 from niagads.api.common.parameters.pagination import page_param
 from niagads.api.common.parameters.record.query import track_list_param

@@ -3,7 +3,7 @@ from typing import Union
 from fastapi import APIRouter, Depends, Query
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.features.bed import BEDResponse
-from niagads.api.common.models.response.core import (
+from niagads.api.common.models.response.base import (
     RecordResponse,
     ListResponse,
 )

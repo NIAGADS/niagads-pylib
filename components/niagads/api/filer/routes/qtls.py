@@ -3,7 +3,7 @@ from typing import Union
 
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.records.features.bed import BEDResponse
-from niagads.api.common.models.response.core import RecordResponse
+from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.views.table import TableViewResponse
 from niagads.api.common.parameters.location import loc_param
 from niagads.api.common.parameters.pagination import page_param
