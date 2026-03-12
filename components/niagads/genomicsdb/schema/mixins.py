@@ -9,7 +9,6 @@ from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped
 
-
 class HousekeepingMixin:
     """
     Mixin providing common housekeeping fields for database models:
@@ -43,7 +42,7 @@ class LookupTableMixin:
 
     @classmethod
     def table_name(cls):
-        return f"{cls.metadata.schema}.{cls.__tablename__}"
+        return f"{cls._schema}.{cls.__tablename__}"
 
     @classmethod
     def stable_id_column(cls):

@@ -3,13 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.exc import ProgrammingError
 
-
 class TransactionTableMixin(DeclarativeBase):
     __abstract__ = True
 
     @classmethod
     def table_name(cls):
-        return f"{cls.metadata.schema}.{cls.__tablename__}"
+        return f"{cls._schema}.{cls.__tablename__}"
 
     async def submit(self, session: AsyncSession) -> int:
         """
