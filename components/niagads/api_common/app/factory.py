@@ -123,7 +123,7 @@ class AppFactory:
             # allow_origin_regex=r"https://.*\.niagads\.org",
             allow_credentials=False,
             allow_methods=["GET", "OPTIONS"],
-            allow_headers=["*"],  # probably don't need b/c there are default ones
+            allow_headers=["*"],
         )
 
     def __add_exception_handlers(self):
