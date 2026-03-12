@@ -35,6 +35,7 @@ COMPOSITE_ATTRIBUTES: Dict[str, T_TransformableModel] = {
 class AbridgedTrack(ORMCompatibleDynamicRowModel):
     track_id: str = Field(
         title="Track ID",
+        alias="id",
         serialization_alias="id",
         description="stable track identifier",
     )
@@ -113,6 +114,7 @@ class Track(ORMCompatibleRowModel):
 
     track_id: str = Field(
         title="Track ID",
+        alias="id",
         serialization_alias="id",
         description="stable track identifier",
     )
