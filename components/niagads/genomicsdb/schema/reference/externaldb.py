@@ -9,6 +9,7 @@ from sqlalchemy import String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 
+
 class ExternalDatabase(ReferenceTableBase, IdAliasMixin):
     __tablename__ = "externaldatabase"
     __table_args__ = (
@@ -26,3 +27,4 @@ class ExternalDatabase(ReferenceTableBase, IdAliasMixin):
     version: Mapped[str] = mapped_column(String(50), nullable=True)
     download_url: Mapped[str] = mapped_column(String(300), nullable=True)
     download_date: Mapped[datetime] = datetime_column(nullable=True)
+    release_date: Mapped[datetime] = datetime_column(nullable=True)
