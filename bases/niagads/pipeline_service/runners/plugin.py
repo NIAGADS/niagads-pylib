@@ -9,10 +9,12 @@ from niagads.arg_parser.core import (
     comma_separated_list,
     json_type,
 )
+from niagads.common.core import ComponentBaseMixin
 from niagads.common.types import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.utils import register_plugins
 from pydantic import BaseModel, ValidationError
@@ -32,43 +34,67 @@ class PluginArgDef(BaseModel):
     required: Optional[bool]
 
 
-class PluginRunner:
+class PluginRunner(ComponentBaseMixin):
     """
     Encapsulates logic for running a single ETL plugin from the command line.
     Dynamically adds plugin params to the argument parser.
     """
 
-    def __init__(self, plugin_name, parser):
+    def __init__(
+        self,
+        plugin_name,
+        argument_parser,
+        list_only: bool = False,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(debug=debug, verbose=verbose)
         try:
             register_plugins(
                 project=PipelineSettings.from_env().PROJECT,
                 packages=PipelineSettings.from_env().PLUGIN_PACKAGES,
             )
+            if list_only:
+                available_plugins = "\n".join(PluginRegistry.list_plugins())
+                print(
+                
+                    f"Available plugins:\n{available_plugins}"
+                )
+                sys.exit(1)        
             self._plugin_cls = PluginRegistry.get(plugin_name)
         except ValidationError as err:
-            print(err)
+            if self._debug:
+                self.logger.exception("ValidationError loading plugins")
+            else:
+                self.logger.error(f"ValidationError loading plugins: {err}")
             sys.exit(1)
         except KeyError:
             available_plugins = "\n".join(PluginRegistry.list_plugins())
-            print(
-                f"Error: Plugin '{plugin_name}' not found in registry.\n"
-                f"Available plugins:\n {available_plugins}"
+            msg = (
+                f"Plugin '{plugin_name}' not found in registry.\n"
+                f"Available plugins:\n{available_plugins}"
             )
+            self.logger.error(msg)
             sys.exit(1)
         try:
-            self._param_fields = self._plugin_cls.parameter_model().model_fields
+            self.__plugin_metadata = PluginRegistry.get_metadata(plugin_name)
+            self._param_fields = self.__plugin_metadata.parameter_model.model_fields
         except Exception as e:
-            print(f"Error accessing parameter model for plugin '{plugin_name}': {e}")
+            msg = f"Error accessing parameter model for plugin '{plugin_name}'"
+            if self._debug:
+                self.logger.exception(msg)
+            else:
+                self.logger.error(f"{msg}: {e}")
             sys.exit(1)
 
         self._params = {}
-        self._parser = parser  # store parser for usage printing
+        self._argument_parser = argument_parser  # store parser for usage printing
         self._register_plugin_args()
 
     def print_plugin_help(self):
         print(f"\nPLUGIN: '{self._plugin_cls.__name__}'")
-        print(f"\nDESCRIPTION:\n {self._plugin_cls.description()}\n")
-        self._parser.print_help()
+        print(f"\nDESCRIPTION:\n {self.__plugin_metadata.description}\n")
+        self._argument_parser.print_help()
 
     @staticmethod
     def _resolve_arg_type(arg_type):
@@ -104,7 +130,7 @@ class PluginRunner:
         # Use description to select custom types for
         # parameters that expect to do conversions from strings
         if "comma-separated" in arg.help.lower():
-            self._parser.add_argument(
+            self._argument_parser.add_argument(
                 arg.arg_name,
                 type=comma_separated_list,
                 default=arg.default,
@@ -112,7 +138,7 @@ class PluginRunner:
                 help=arg.help,
             )
         elif "json" in arg.help.lower():
-            self._parser.add_argument(
+            self._argument_parser.add_argument(
                 arg.arg_name,
                 type=json_type,
                 default=arg.default,
@@ -120,7 +146,7 @@ class PluginRunner:
                 help=arg.help,
             )
         elif issubclass(arg.arg_type, CaseInsensitiveEnum):
-            self._parser.add_argument(
+            self._argument_parser.add_argument(
                 arg.arg_name,
                 type=case_insensitive_enum_type(arg.arg_type),
                 default=arg.default,
@@ -129,15 +155,15 @@ class PluginRunner:
             )
         elif arg.arg_type is bool:
             if arg.default is True:
-                self._parser.add_argument(
+                self._argument_parser.add_argument(
                     arg.arg_name, action="store_false", help=arg.help
                 )
             else:
-                self._parser.add_argument(
+                self._argument_parser.add_argument(
                     arg.arg_name, action="store_true", help=arg.help
                 )
         else:
-            self._parser.add_argument(
+            self._argument_parser.add_argument(
                 arg.arg_name,
                 type=arg.arg_type,
                 default=arg.default,
@@ -167,7 +193,7 @@ class PluginRunner:
         Iterates over all parameter fields, extracting their values from the parsed
         arguments and storing them in the internal params dictionary for plugin execution.
         """
-        args = self._parser.parse_args()
+        args = self._argument_parser.parse_args()
         for field_name in self._param_fields:
             value = getattr(args, field_name, None)
             if value is not None:
@@ -179,23 +205,25 @@ class PluginRunner:
         try:
             plugin: AbstractBasePlugin = self._plugin_cls(params=self._params)
         except Exception as e:
-            print(f"Error instantiating plugin '{self._plugin_cls.__name__}': {e}")
+            msg = f"Error instantiating plugin '{self._plugin_cls.__name__}'"
             if debug:
-                traceback.print_exc()
+                self.logger.exception(msg)
+            else:
+                self.logger.error(f"{msg}: {e}")
             sys.exit(1)
         try:
             status = await plugin.run()
         except Exception as e:
-            print(f"Error running plugin '{self._plugin_cls.__name__}': {e}")
+            msg = f"Error running plugin '{self._plugin_cls.__name__}'"
             if debug:
-                traceback.print_exc()
+                self.logger.exception(msg)
+            else:
+                self.logger.error(f"{msg}: {e}")
             sys.exit(1)
         if status == ProcessStatus.SUCCESS:
-            print(f"Plugin '{self._plugin_cls.__name__}' completed successfully.")
+            self.logger.info(f"Plugin '{self._plugin_cls.__name__}' completed successfully.")
         else:
-            print(f"Plugin '{self._plugin_cls.__name__}' failed.")
-            if debug:
-                traceback.print_exc()
+            self.logger.error(f"Plugin '{self._plugin_cls.__name__}' failed.")
             sys.exit(1)
 
 
@@ -208,6 +236,9 @@ async def main():
         allow_abbrev=False,
     )
     parser.add_argument("--plugin", type=str, help="Plugin name to run")
+    parser.add_argument("--list", action="store_true", help="List registered plugins")
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
     parser.add_argument(
         "--help", action="store_true", help="Show help message and exit"
     )
@@ -219,7 +250,13 @@ async def main():
         sys.exit(0)
 
     # Instantiate runner and dynamically add plugin params
-    runner = PluginRunner(known_args.plugin, parser)
+    runner = PluginRunner(
+        known_args.plugin,
+        parser,
+        known_args.list,
+        debug=known_args.debug,
+        verbose=known_args.verbose,
+    )
     if known_args.help:  # print plugin help
         # parser.print_help()
         runner.print_plugin_help()

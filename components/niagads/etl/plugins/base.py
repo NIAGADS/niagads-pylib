@@ -87,7 +87,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         from niagads.etl.plugins.registry import PluginRegistry
 
         try:
-            return PluginRegistry._metadata.get(self.__class__.__name__)
+            return PluginRegistry.get_metadata(self.__class__.__name__)
         except:
             raise KeyError(
                 "Plugin not found in PluginRegistry; please use the registry decorator"

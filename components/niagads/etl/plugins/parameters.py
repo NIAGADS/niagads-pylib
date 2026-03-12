@@ -1,5 +1,3 @@
-import json
-from pathlib import Path
 from typing import Optional
 
 from niagads.etl.plugins.types import ResumeCheckpoint
@@ -40,8 +38,6 @@ class BasePluginParams(BaseModel):
         default=None,
         description="database connection string; if not provided, the plugin will try to assign from `DATABASE_URI` property in an `.env` file",
     )
-    verbose: Optional[bool] = Field(default=False, description="run in verbose mode")
-    debug: Optional[bool] = Field(default=False, description="run in debug mode")
 
     # this shouldn't happen BTW b/c ge validator already set
     @model_validator(mode="after")
@@ -88,38 +84,3 @@ class PathValidatorMixin:
         return file_exists
 
 
-class JSONConfigValidatorMixin:
-    """
-    Mixin providing lightweight validation for JSON configuration files.
-
-    Validates a file path field against a SQLAlchemy model's mapped columns and
-    populates a `config` field.
-    """
-
-    config: Optional[dict] = None
-
-    @classmethod
-    def validator(cls, field_name, model_class):
-        @model_validator(mode="after")
-        def validate_config(self):
-            file_path = getattr(self, field_name)
-            config: dict = json.loads(Path(file_path).read_text(encoding="utf-8"))
-
-            if not isinstance(config, dict):
-                raise ValueError(
-                    f"JSON configuration in {file_path} must be a JSON object"
-                )
-
-            allowed_fields = {column.name for column in model_class.__table__.columns}
-            unknown_fields = sorted(set(config.keys()) - allowed_fields)
-
-            if unknown_fields:
-                raise ValueError(
-                    "Unexpected field(s) in JSON configuration for "
-                    f"{model_class.__name__}: {', '.join(unknown_fields)}"
-                )
-
-            self.config = config
-            return self
-
-        return validate_config
