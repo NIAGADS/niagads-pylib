@@ -4,6 +4,11 @@
 
 ## ETL
 
+### Bugs
+
+* logging is not working from the abstract base plugin (eg debug, info, exception)
+* dry mode works, need to move on
+
 Add a small test matrix around the framework itself, not individual plugins:
 
 * dry-run chunked/bulk status logging
