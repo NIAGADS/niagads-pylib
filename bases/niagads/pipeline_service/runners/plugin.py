@@ -56,18 +56,15 @@ class PluginRunner(ComponentBaseMixin):
             )
             if list_only:
                 available_plugins = "\n".join(PluginRegistry.list_plugins())
-                print(
-                
-                    f"Available plugins:\n{available_plugins}"
-                )
-                sys.exit(1)        
+                print(f"Available plugins:\n{available_plugins}")
+                sys.exit(0) 
+                       
             self._plugin_cls = PluginRegistry.get(plugin_name)
         except ValidationError as err:
             if self._debug:
                 self.logger.exception("ValidationError loading plugins")
             else:
                 self.logger.error(f"ValidationError loading plugins: {err}")
-            sys.exit(1)
         except KeyError:
             available_plugins = "\n".join(PluginRegistry.list_plugins())
             msg = (
@@ -75,7 +72,6 @@ class PluginRunner(ComponentBaseMixin):
                 f"Available plugins:\n{available_plugins}"
             )
             self.logger.error(msg)
-            sys.exit(1)
         try:
             self.__plugin_metadata = PluginRegistry.get_metadata(plugin_name)
             self._param_fields = self.__plugin_metadata.parameter_model.model_fields
@@ -85,8 +81,7 @@ class PluginRunner(ComponentBaseMixin):
                 self.logger.exception(msg)
             else:
                 self.logger.error(f"{msg}: {e}")
-            sys.exit(1)
-
+                
         self._params = {}
         self._argument_parser = argument_parser  # store parser for usage printing
         self._register_plugin_args()
@@ -201,30 +196,32 @@ class PluginRunner(ComponentBaseMixin):
 
     async def run(self):
         self._set_runtime_parameters()
-        debug = self._params.get("debug", False)
         try:
             plugin: AbstractBasePlugin = self._plugin_cls(params=self._params)
         except Exception as e:
             msg = f"Error instantiating plugin '{self._plugin_cls.__name__}'"
-            if debug:
+            if self._debug:
                 self.logger.exception(msg)
             else:
                 self.logger.error(f"{msg}: {e}")
-            sys.exit(1)
         try:
             status = await plugin.run()
         except Exception as e:
             msg = f"Error running plugin '{self._plugin_cls.__name__}'"
-            if debug:
+            if self._debug:
                 self.logger.exception(msg)
             else:
                 self.logger.error(f"{msg}: {e}")
-            sys.exit(1)
         if status == ProcessStatus.SUCCESS:
             self.logger.info(f"Plugin '{self._plugin_cls.__name__}' completed successfully.")
         else:
-            self.logger.error(f"Plugin '{self._plugin_cls.__name__}' failed.")
-            sys.exit(1)
+            msg = f"Plugin '{self._plugin_cls.__name__}' failed."
+            if self._debug:
+                self.logger.exception(msg)
+            else:
+                self.logger.error(f"{msg}: {e}")
+            
+   
 
 
 async def main():

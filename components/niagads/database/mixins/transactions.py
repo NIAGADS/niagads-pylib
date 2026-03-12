@@ -20,7 +20,7 @@ class TransactionTableMixin(DeclarativeBase):
         Returns:
             int: The primary key value of the inserted record.
         """
-        await session.add(self)
+        session.add(self)
         await session.flush()
 
         pk_name = self.__mapper__.primary_key[0].name
@@ -51,7 +51,7 @@ class TransactionTableMixin(DeclarativeBase):
                 f"Cannot update record; no row exists in the database with {pk_name}={pk_value}"
             )
 
-        await session.merge(self)
+        session.merge(self)
         await session.flush()
 
     @classmethod
