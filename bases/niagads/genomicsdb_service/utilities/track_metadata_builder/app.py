@@ -175,7 +175,7 @@ class MetadataBuilderApp(ComponentBaseMixin):
         if value is None:
             return None
         if isinstance(value, date):
-            return value.strftime("%m-%d-%Y")
+            return value.isoformat()
         return value
 
     def _deserialize_ontology_term(self, value: str) -> OntologyTerm:
