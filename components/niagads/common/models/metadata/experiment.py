@@ -38,8 +38,8 @@ class ExperimentalDesign(TransformableModel):
     def __str__(self):
         return self.as_info_string()
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+    def _flat_dump(self, null_free=False, delimiter="|"):
+        obj = super()._flat_dump(null_free, delimiter=delimiter)
         if self.covariates is not None:
             obj["covarites"] = self._list_to_string(
                 self.covariates, delimiter=delimiter

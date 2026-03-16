@@ -26,16 +26,29 @@ class Phenotype(TransformableModel):
         title="Neuropathology",
         description="pathology or classification of the degree of pathology",
     )
-    ethnicity: Optional[List[OntologyTerm]] = Field(default=None, title="Ethnicity")
-    race: Optional[List[OntologyTerm]] = Field(default=None, title="Race")
+    ethnicity: Optional[List[OntologyTerm]] = Field(
+        default=None,
+        title="Ethnicity",
+        description="cultural or linguistic/national origin",
+    )
+    race: Optional[List[OntologyTerm]] = Field(
+        default=None,
+        title="Race",
+        description="broad social/historyical classification, may be self-identified",
+    )
+    population: Optional[List[OntologyTerm]] = Field(
+        default=None,
+        title="Population",
+        description="defined by genetic ancestry, geography, or shared evolutionary history (mapped to Human Ancestry Ontology)",
+    )
 
     genotype: Optional[List[OntologyTerm]] = Field(default=None, title="Genotype")
     gender: Optional[List[OntologyTerm]] = Field(default=None, title="Gender")
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
+    def _flat_dump(self, null_free=False, delimiter="|"):
         obj = {
             k: self._list_to_string(v, delimiter=delimiter)
-            for k, v in super()._flat_dump(null_free=nullFree)
+            for k, v in super()._flat_dump(null_free=null_free)
         }
         return obj
 

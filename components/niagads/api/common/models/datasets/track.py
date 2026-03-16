@@ -174,8 +174,8 @@ class Track(ORMCompatibleRowModel):
         description="Chronological list of curation events applied to this track",
     )
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter)
+    def _flat_dump(self, null_free=False, delimiter="|"):
+        obj = super()._flat_dump(null_free, delimiter)
         for field, value in self:
             if field in COMPOSITE_ATTRIBUTES.keys():
                 del obj[field]

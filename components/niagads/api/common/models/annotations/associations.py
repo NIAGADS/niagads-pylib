@@ -77,8 +77,8 @@ class VariantAssociation(RowModel):
 
     neg_log10_pvalue: float = Field(title="-log10pValue")
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+    def _flat_dump(self, null_free=False, delimiter="|"):
+        obj = super()._flat_dump(null_free, delimiter=delimiter)
 
         if self.pubmed_id is not None:
             obj["pubmed_id"] = self._list_to_string(self.pubmed_id, delimiter=delimiter)
