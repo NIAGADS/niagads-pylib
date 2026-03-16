@@ -243,7 +243,7 @@ class MetadataBuilderApp(ComponentBaseMixin):
 
         return True
 
-    def __load_json_upload(self) -> dict | None:
+    def __load_from_json_upload(self) -> dict | None:
         """
         Handle JSON file upload and validation.
 
@@ -373,48 +373,7 @@ class MetadataBuilderApp(ComponentBaseMixin):
 
         return processed, validation_errors
 
-    def run(self):
-        """Run the Streamlit application."""
-        st.set_page_config(
-            page_title=self.__app_name,
-            layout="centered",
-            initial_sidebar_state="collapsed",
-        )
-
-        # Add custom CSS to center content and style buttons
-        st.markdown(
-            """
-            <style>
-            .main {
-                max-width: 900px;
-                margin: 0 auto;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        st.title("Track Metadata Builder")
-        st.markdown("Enter track metadata below.")
-
-        # Define deserializers for form fields
-
-        with st.form("track_metadata_form", enter_to_submit=False):
-            form_data = self.__renderer.render_form()
-            col1, col2 = st.columns([1, 4])
-            with col1:
-                submitted = st.form_submit_button("Submit", type="primary")
-            with col2:
-                st.form_submit_button("Reset", type="secondary")
-
-        # Handle JSON file upload
-        st.divider()
-        st.subheader("📤 Load from JSON")
-        uploaded_json = self.__load_json_upload()
-        # TODO: after upload
-
-        # Render "Add" and "Remove" buttons for repeatable fields outside form context
-        st.divider()
+    def __render_manage_nested_fields(self):
         field_metadata: FormMetadata
         for field_name, field_metadata in self.__form_metadata.items():
             if field_metadata.is_repeatable:
@@ -450,58 +409,114 @@ class MetadataBuilderApp(ComponentBaseMixin):
                                 args=(idx, session_key),
                             )
 
-        # Handle form submission
-        if submitted:
-            try:
-                # Process and deserialize form data using metadata
-                processed_data, validation_errors = self.__process_form_data(
-                    form_data, self.__form_metadata
+    def __handle_form_submission(self, form_data):
+        try:
+            # Process and deserialize form data using metadata
+            processed_data, validation_errors = self.__process_form_data(
+                form_data, self.__form_metadata
+            )
+
+            # Check for validation errors
+            if validation_errors:
+                st.error("❌ Validation failed:")
+                for error in validation_errors:
+                    st.error(error)
+            else:
+                # Validate by instantiating the Track model
+                result: BaseModel = self.__pydantic_model(**processed_data)
+
+                # Success
+                st.success("✓ Metadata validated successfully!")
+
+                json_output = result.model_dump(
+                    mode="json",
+                    exclude=None,
+                    exclude_none=True,
+                    exclude_unset=True,
+                    context={"enums_as_names": True},
                 )
 
-                # Check for validation errors
-                if validation_errors:
-                    st.error("❌ Validation failed:")
-                    for error in validation_errors:
-                        st.error(error)
-                else:
-                    # Validate by instantiating the Track model
-                    result: BaseModel = self.__pydantic_model(**processed_data)
+                # Download button
+                file_name = f"{json_output.get('id')}-{self.__download_qualifier}.json"
+                st.download_button(
+                    label="Download as JSON",
+                    data=json.dumps(json_output, indent=2),
+                    file_name=file_name,
+                    mime="application/json",
+                )
 
-                    # Success
-                    st.success("✓ Metadata validated successfully!")
+                # Show JSON preview
+                st.subheader("Generated JSON")
+                st.json(json_output)
 
-                    json_output = result.model_dump(
-                        mode="json",
-                        exclude=None,
-                        exclude_none=True,
-                        exclude_unset=True,
-                        context={"enums_as_names": True},
-                    )
+        except ValidationError as e:
+            st.error("❌ Validation failed:")
+            for error in e.errors():
+                field_path = ".".join(str(loc) for loc in error["loc"])
+                st.error(f"  - **{field_path}**: {error['msg']}")
 
-                    # Download button
-                    file_name = (
-                        f"{json_output.get('id')}-{self.__download_qualifier}.json"
-                    )
-                    st.download_button(
-                        label="Download as JSON",
-                        data=json.dumps(json_output, indent=2),
-                        file_name=file_name,
-                        mime="application/json",
-                    )
+        except Exception as e:
+            st.error(f"❌ Error: {str(e)}")
+            raise
 
-                    # Show JSON preview
-                    st.subheader("Generated JSON")
-                    st.json(json_output)
+    def run(self):
+        """Run the Streamlit application."""
+        st.set_page_config(
+            page_title=self.__app_name,
+            layout="centered",
+            initial_sidebar_state="collapsed",
+        )
 
-            except ValidationError as e:
-                st.error("❌ Validation failed:")
-                for error in e.errors():
-                    field_path = ".".join(str(loc) for loc in error["loc"])
-                    st.error(f"  - **{field_path}**: {error['msg']}")
+        # Add custom CSS to center content and style buttons
+        st.markdown(
+            """
+            <style>
+            .main {
+                max-width: 900px;
+                margin: 0 auto;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
-            except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
-                raise
+        st.title("Track Metadata Builder")
+        st.markdown("Enter track metadata below.")
+
+        # Define deserializers for form fields
+
+        # Handle JSON file upload
+        uploaded_json = self.__load_from_json_upload()
+        # TODO: after upload
+
+        st.divider()
+
+        if "form_version" not in st.session_state:
+            st.session_state["form_version"] = 0
+        self.__renderer.form_version = st.session_state["form_version"]
+
+        with st.form("track_metadata_form", enter_to_submit=False):
+            form_data = self.__renderer.render_form()
+            col1, col2 = st.columns([1, 4])
+            with col1:
+                submitted = st.form_submit_button("Submit", type="primary")
+            with col2:
+                reset = st.form_submit_button("Reset", type="secondary")
+
+        # Render "Add" and "Remove" buttons for repeatable fields outside form context
+        st.divider()
+        self.__render_manage_nested_fields()
+
+        # st.divider()
+        # if st.button("Reset", help="reset form", type="primary"):
+        if reset:
+            st.session_state.clear()
+            st.session_state["form_version"] = self.__renderer.form_version + 1
+            st.rerun()
+
+        # Handle form submission
+        if submitted:
+            self.__handle_form_submission(form_data)
 
 
 class FormRenderer(ComponentBaseMixin):
@@ -519,6 +534,15 @@ class FormRenderer(ComponentBaseMixin):
         self.__instance = form_class()
         self.__metadata = form_metadata
         self.__ontology_map = ontology_map
+        self.__form_version = 0
+
+    @property
+    def form_version(self):
+        return self.__form_version
+
+    @form_version.setter
+    def form_version(self, value):
+        self.__form_version = value
 
     def __repr__(self) -> str:
         return (
@@ -529,7 +553,6 @@ class FormRenderer(ComponentBaseMixin):
     def __render_ontology_term_field(
         self, field_name: str, field_meta: FormMetadata, key: int = 0
     ) -> tuple:
-        # print(field_name)
         label = field_meta.title
         help_text = field_meta.description
         is_required: bool = field_meta.is_required
@@ -548,7 +571,7 @@ class FormRenderer(ComponentBaseMixin):
                 default=default_value or [],
                 help=help_text,
                 accept_new_options=True,
-                key=f"{field_name}_{key}",
+                key=f"{field_name}_{key}_{self.__form_version}",
             )
         else:
             default_index = None
@@ -563,7 +586,7 @@ class FormRenderer(ComponentBaseMixin):
                 options=options,
                 index=default_index,
                 help=help_text,
-                key=f"{field_name}_{key}",
+                key=f"{field_name}_{key}_{self.__form_version}",
             )
         return field_name, value
 
@@ -600,7 +623,7 @@ class FormRenderer(ComponentBaseMixin):
                 if st.checkbox(
                     option,
                     value=option in default_selected,
-                    key=f"{field_name}_{key}_{index}",
+                    key=f"{field_name}_{key}_{index}_{self.__form_version}",
                 ):
                     selected.append(option)
 
@@ -616,7 +639,7 @@ class FormRenderer(ComponentBaseMixin):
                 options=options,
                 index=default_index,
                 help=help_text,
-                key=f"{field_name}_{key}",
+                key=f"{field_name}_{key}_{self.__form_version}",
             )
             return field_name, value
 
@@ -647,6 +670,7 @@ class FormRenderer(ComponentBaseMixin):
                         field_meta.child_form_metadata,
                         ontology_map=self.__ontology_map,
                     )
+                    nested_renderer.form_version = self.form_version
                     nested_data = nested_renderer.render_form(key=entry["_entry_id"])
                     entries_data.append(nested_data)
 
@@ -692,6 +716,7 @@ class FormRenderer(ComponentBaseMixin):
                     field_meta.child_form_metadata,
                     ontology_map=self.__ontology_map,
                 )
+                nested_renderer.form_version = st.session_state["form_version"]
                 nested_data = nested_renderer.render_form(key=key)
             return field_name, nested_data
 
@@ -706,7 +731,7 @@ class FormRenderer(ComponentBaseMixin):
                 label,
                 value=default_value,
                 help=help_text,
-                key=f"{field_name}_{key}",
+                key=f"{field_name}_{key}_{self.__form_version}",
             )
             return field_name, value
 
@@ -715,7 +740,7 @@ class FormRenderer(ComponentBaseMixin):
                 label,
                 value=default_value or False,
                 help=help_text,
-                key=f"{field_name}_{key}",
+                key=f"{field_name}_{key}_{self.__form_version}",
             )
             return field_name, value
 
@@ -725,7 +750,7 @@ class FormRenderer(ComponentBaseMixin):
                 value=default_value,
                 step=1,
                 help=help_text,
-                key=f"{field_name}_{key}",
+                key=f"{field_name}_{key}_{self.__form_version}",
             )
             return field_name, value
 
@@ -735,7 +760,7 @@ class FormRenderer(ComponentBaseMixin):
                 value=default_value,
                 step=None,
                 help=help_text,
-                key=f"{field_name}_{key}",
+                key=f"{field_name}_{key}_{self.__form_version}",
             )
             return field_name, value
 
@@ -749,13 +774,16 @@ class FormRenderer(ComponentBaseMixin):
                     if help_text
                     else "can enter one or more values as comma or newline separated values"
                 ),
-                key=f"{field_name}_{key}",
+                key=f"{field_name}_{key}_{self.__form_version}",
             )
             return field_name, value
 
         if field_name.endswith("description"):
             value = st.text_area(
-                label, value="", help=help_text, key=f"{field_name}_{key}"
+                label,
+                value="",
+                help=help_text,
+                key=f"{field_name}_{key}_{self.__form_version}",
             )
             return field_name, value
 
@@ -764,7 +792,7 @@ class FormRenderer(ComponentBaseMixin):
             label,
             value=default_value or "",
             help=help_text,
-            key=f"{field_name}_{key}",
+            key=f"{field_name}_{key}_{self.__form_version}",
         )
         return field_name, value
 
