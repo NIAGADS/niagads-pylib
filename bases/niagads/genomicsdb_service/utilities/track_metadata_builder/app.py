@@ -5,7 +5,6 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Callable, Union
 from niagads.common.models.ontologies import OntologyTerm
-from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 import streamlit as st
@@ -15,7 +14,7 @@ from niagads.genomicsdb_service.utilities.track_metadata_builder.forms import (
     FormMetadata,
     PydanticFormGenerator,
 )
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 
 class OntologyMap(ComponentBaseMixin):
@@ -84,6 +83,7 @@ class MetadataBuilderApp(ComponentBaseMixin):
         pydantic_model: Any,
         application_name: str,
         ontology_reference_file: str,
+        download_qualifier: str = "metadata",
         debug: bool = False,
         verbose: bool = False,
     ):
@@ -95,6 +95,7 @@ class MetadataBuilderApp(ComponentBaseMixin):
         self.__form_metadata: dict = None
         self.__form_class = None
         self.__renderer: FormRenderer = None
+        self.__download_qualifier: str = download_qualifier
 
         self.__deserializers: dict = {
             date: self._deserialize_date,
@@ -464,7 +465,7 @@ class MetadataBuilderApp(ComponentBaseMixin):
                         st.error(error)
                 else:
                     # Validate by instantiating the Track model
-                    result = self.__pydantic_model(**processed_data)
+                    result: BaseModel = self.__pydantic_model(**processed_data)
 
                     # Success
                     st.success("✓ Metadata validated successfully!")
@@ -472,10 +473,15 @@ class MetadataBuilderApp(ComponentBaseMixin):
                     json_output = result.model_dump(
                         mode="json",
                         exclude=None,
+                        exclude_none=True,
+                        exclude_unset=True,
+                        context={"enums_as_names": True},
                     )
 
                     # Download button
-                    file_name = f"{json_output.get('track_id', 'track')}-metadata.json"
+                    file_name = (
+                        f"{json_output.get('id')}-{self.__download_qualifier}.json"
+                    )
                     st.download_button(
                         label="Download as JSON",
                         data=json.dumps(json_output, indent=2),
@@ -747,7 +753,7 @@ class FormRenderer(ComponentBaseMixin):
             )
             return field_name, value
 
-        if field_name == "description":
+        if field_name.endswith("description"):
             value = st.text_area(
                 label, value="", help=help_text, key=f"{field_name}_{key}"
             )
@@ -789,6 +795,7 @@ def main():
         pydantic_model=Track,
         application_name="GenomicsDB Track Metadata Builder",
         ontology_reference_file=ontology_reference_file,
+        download_qualifier="track-metadata",
         debug=False,
     )
     app.run()
