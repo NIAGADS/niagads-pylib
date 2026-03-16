@@ -16,6 +16,8 @@ from niagads.genomicsdb_service.utilities.track_metadata_builder.forms import (
 )
 from pydantic import BaseModel, ValidationError
 
+_UNSET = object()
+
 
 class OntologyMap(ComponentBaseMixin):
     def __init__(
@@ -256,13 +258,27 @@ class MetadataBuilderApp(ComponentBaseMixin):
             key="json_upload",
             help="Select a JSON file previously downloaded from this app.",
         )
-        if uploaded_file is not None:
+
+        current_file_id = uploaded_file.name if uploaded_file else None
+        last_file_id = st.session_state.get("last_uploaded_file")
+
+        if current_file_id != last_file_id:
+            st.session_state["upload_processed"] = False
+
+        if uploaded_file is not None and not st.session_state.get(
+            "upload_processed", False
+        ):
             try:
                 json_data = json.load(uploaded_file)
+
                 # Validate against the pydantic model
                 validated = self.__pydantic_model(**json_data)
                 st.success("✓ JSON file loaded and validated successfully.")
-                return json_data
+                st.session_state["uploaded_form_data"] = validated
+                st.session_state["upload_processed"] = True
+                st.session_state["last_uploaded_file"] = uploaded_file.name
+                st.rerun()
+
             except ValidationError as e:
                 st.error("❌ JSON validation failed:")
                 for error in e.errors():
@@ -270,6 +286,17 @@ class MetadataBuilderApp(ComponentBaseMixin):
                     st.error(f"  - **{field_path}**: {error['msg']}")
             except Exception as e:
                 st.err
+
+    def __populate_form_from_json(self, json_data: dict) -> None:
+        """
+        Populate form from uploaded JSON data.
+
+        Iterates through each field in JSON and dispatches to appropriate
+        populate helper based on field metadata type.
+
+        Args:
+            json_data: Parsed JSON data from upload.
+        """
 
     def __process_form_data(
         self,
@@ -493,10 +520,19 @@ class MetadataBuilderApp(ComponentBaseMixin):
 
         if "form_version" not in st.session_state:
             st.session_state["form_version"] = 0
+
+        loaded_form_data = st.session_state.get("uploaded_form_data", None)
+        if loaded_form_data is not None:
+            # Increment form_version to force widget key changes and rebuild form state
+            st.session_state["form_version"] += 1
+
         self.__renderer.form_version = st.session_state["form_version"]
 
         with st.form("track_metadata_form", enter_to_submit=False):
-            form_data = self.__renderer.render_form()
+            form_data = self.__renderer.render_form(initial_form_data=loaded_form_data)
+            # clear after use
+            if "initial_form_data" in st.session_state:
+                del st.session_state["initial_form_data"]
             col1, col2 = st.columns([1, 4])
             with col1:
                 submitted = st.form_submit_button("Submit", type="primary")
@@ -551,7 +587,11 @@ class FormRenderer(ComponentBaseMixin):
         )
 
     def __render_ontology_term_field(
-        self, field_name: str, field_meta: FormMetadata, key: int = 0
+        self,
+        field_name: str,
+        field_meta: FormMetadata,
+        key: int = 0,
+        initial_data=_UNSET,
     ) -> tuple:
         label = field_meta.title
         help_text = field_meta.description
@@ -565,6 +605,8 @@ class FormRenderer(ComponentBaseMixin):
 
         options = self.__ontology_map.get_field_terms(field_name, terms_only=True)
         if field_meta.is_list:
+            if initial_data is not _UNSET and initial_data is not None:
+                default_value = [ot.term for ot in initial_data]
             value = st.multiselect(
                 label,
                 options=options,
@@ -574,6 +616,8 @@ class FormRenderer(ComponentBaseMixin):
                 key=f"{field_name}_{key}_{self.__form_version}",
             )
         else:
+            if initial_data is not _UNSET and initial_data is not None:
+                default_value = initial_data.term
             default_index = None
             if default_value:
                 try:
@@ -591,7 +635,11 @@ class FormRenderer(ComponentBaseMixin):
         return field_name, value
 
     def __render_enum_field(
-        self, field_name: str, field_meta: FormMetadata, key: int = 0
+        self,
+        field_name: str,
+        field_meta: FormMetadata,
+        key: int = 0,
+        initial_data=_UNSET,
     ) -> tuple:
         label = field_meta.title
         help_text = field_meta.description
@@ -609,6 +657,8 @@ class FormRenderer(ComponentBaseMixin):
         if is_set:
             options = enum_type.list()
             default_selected = set()
+            if initial_data is not _UNSET:
+                default_value = set(initial_data)
             if default_value and isinstance(default_value, set):
                 default_selected = default_value
 
@@ -630,6 +680,8 @@ class FormRenderer(ComponentBaseMixin):
             return field_name, selected
 
         else:
+            if initial_data is not _UNSET:
+                default_value = initial_data
             default_index = None
             if default_value is not None:
                 default_index = options.index(default_value.value)
@@ -644,7 +696,7 @@ class FormRenderer(ComponentBaseMixin):
             return field_name, value
 
     def __render_repeatable_composite_field(
-        self, field_name: str, field_meta: FormMetadata
+        self, field_name: str, field_meta: FormMetadata, initial_data=_UNSET
     ) -> tuple:
         """ """
         label = field_meta.title
@@ -654,9 +706,13 @@ class FormRenderer(ComponentBaseMixin):
         if is_required:
             label = f"{label} *"
 
-        # Initialize session state for this list field if not exists
-        session_key, _ = MetadataBuilderApp.generate_session_keys(field_name)
+        session_key, counter_key = MetadataBuilderApp.generate_session_keys(field_name)
         MetadataBuilderApp.ensure_repeatable_entries(field_name)
+        if initial_data is not _UNSET:
+            st.session_state[session_key] = [
+                {"_entry_id": idx} for idx in range(len(initial_data))
+            ]
+            st.session_state[counter_key] = len(initial_data)
 
         with st.expander(label, expanded=is_required):
             if help_text:
@@ -671,14 +727,25 @@ class FormRenderer(ComponentBaseMixin):
                         ontology_map=self.__ontology_map,
                     )
                     nested_renderer.form_version = self.form_version
-                    nested_data = nested_renderer.render_form(key=entry["_entry_id"])
+
+                    initial_form_data = (
+                        initial_data[idx] if initial_data is not _UNSET else None
+                    )
+
+                    nested_data = nested_renderer.render_form(
+                        key=entry["_entry_id"], initial_form_data=initial_form_data
+                    )
                     entries_data.append(nested_data)
 
             # Return collected entries as tuple (field_name, value)
             return field_name, entries_data
 
     def render_field(
-        self, field_name: str, field_meta: FormMetadata, key: int = 0
+        self,
+        field_name: str,
+        field_meta: FormMetadata,
+        key: int = 0,
+        initial_data=_UNSET,
     ) -> tuple:
         """Render appropriate Streamlit widget based on field metadata.
 
@@ -693,10 +760,14 @@ class FormRenderer(ComponentBaseMixin):
             print(f"{field_meta}")
 
         if field_meta.is_ontology_term:
-            return self.__render_ontology_term_field(field_name, field_meta, key=key)
+            return self.__render_ontology_term_field(
+                field_name, field_meta, key=key, initial_data=initial_data
+            )
 
         if field_meta.is_enum:
-            return self.__render_enum_field(field_name, field_meta, key=key)
+            return self.__render_enum_field(
+                field_name, field_meta, key=key, initial_data=initial_data
+            )
 
         label = field_meta.title
         is_required = field_meta.is_required
@@ -707,7 +778,9 @@ class FormRenderer(ComponentBaseMixin):
         # Handle composite fields with expander
         if field_meta.is_composite:
             if field_meta.is_repeatable:
-                return self.__render_repeatable_composite_field(field_name, field_meta)
+                return self.__render_repeatable_composite_field(
+                    field_name, field_meta, initial_data
+                )
             with st.expander(label, expanded=is_required):
                 if help_text:
                     st.caption(help_text)
@@ -717,7 +790,9 @@ class FormRenderer(ComponentBaseMixin):
                     ontology_map=self.__ontology_map,
                 )
                 nested_renderer.form_version = st.session_state["form_version"]
-                nested_data = nested_renderer.render_form(key=key)
+                nested_data = nested_renderer.render_form(
+                    key=key, initial_form_data=initial_data
+                )
             return field_name, nested_data
 
         default_value = field_meta.default
@@ -725,6 +800,9 @@ class FormRenderer(ComponentBaseMixin):
         is_list = field_meta.is_list or field_meta.is_set
 
         # Handle basic types based on model_type
+        if initial_data is not _UNSET and not is_list:
+            # print(f"{field_name} - {initial_data}")
+            default_value = initial_data
 
         if model_type is date:
             value = st.date_input(
@@ -765,6 +843,9 @@ class FormRenderer(ComponentBaseMixin):
             return field_name, value
 
         if is_list:
+            if initial_data is not _UNSET and initial_data is not None:
+                default_value = "\n".join(initial_data)
+
             list_label = f"{label} (L)"
             value = st.text_area(
                 list_label,
@@ -781,7 +862,7 @@ class FormRenderer(ComponentBaseMixin):
         if field_name.endswith("description"):
             value = st.text_area(
                 label,
-                value="",
+                value=default_value or "",
                 help=help_text,
                 key=f"{field_name}_{key}_{self.__form_version}",
             )
@@ -796,7 +877,7 @@ class FormRenderer(ComponentBaseMixin):
         )
         return field_name, value
 
-    def render_form(self, key: int = 0) -> dict:
+    def render_form(self, key: int = 0, initial_form_data: BaseModel = None) -> dict:
         """Render all fields from form metadata.
 
         Args:
@@ -809,8 +890,15 @@ class FormRenderer(ComponentBaseMixin):
         form_data = {}
         for field_name in self.__instance._fields:
             field_meta: FormMetadata = self.__metadata[field_name]
+            initial_value = (
+                _UNSET
+                if initial_form_data is None
+                else getattr(initial_form_data, field_name)
+            )
+            # print(f"{field_name} - {initial_value}")
+
             field_name_result, value = self.render_field(
-                field_name, field_meta, key=key
+                field_name, field_meta, key=key, initial_data=initial_value
             )
             form_data[field_name_result] = value
 

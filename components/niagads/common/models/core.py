@@ -33,7 +33,7 @@ class TransformableModel(BaseModel):
 
     @field_serializer("*")
     def serialize_types(self, v, _info):
-        if _info.context.get("enums_as_name") == True:
+        if _info.context is not None and _info.context.get("enums_as_name") == True:
             if isinstance(v, Enum):
                 return v.name
             if isinstance(v, CaseInsensitiveEnum):
