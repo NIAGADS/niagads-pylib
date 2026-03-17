@@ -906,7 +906,7 @@ class FormRenderer(ComponentBaseMixin):
 
 
 def main():
-    ontology_reference_file = Path(__file__).parent / "ontology_reference.txt"
+    ontology_reference_file = Path(__file__).resolve().parent / "ontology_reference.txt"
     app = MetadataBuilderApp(
         pydantic_model=Track,
         application_name="GenomicsDB Track Metadata Builder",
