@@ -2,14 +2,17 @@
 Base Pydantic model classes for NIAGADS data models.
 """
 
+from datetime import date, datetime
+from enum import Enum
 from typing import TypeVar
 
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.dict import prune
 from niagads.utils.string import dict_to_info_string
-from pydantic import BaseModel, ConfigDict, model_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer, model_serializer
 
 
-class NullFreeModel(BaseModel):
+class null_freeModel(BaseModel):
     """a pydantic base model where attributes with NULL values
     (e.g., None, 'NULL') are removed during serialization
     """
@@ -28,7 +31,19 @@ class TransformableModel(BaseModel):
 
     model_config = ConfigDict(serialize_by_alias=True)
 
+    @field_serializer("*")
+    def serialize_types(self, v, _info):
+        if _info.context is not None and _info.context.get("enums_as_name") == True:
+            if isinstance(v, Enum):
+                return v.name
+            if isinstance(v, CaseInsensitiveEnum):
+                return v.name
+        if isinstance(v, (date, datetime)):
+            return v.isoformat()
+        return v
+
     def null_free_dump(self):
+        # FIXME: why not just self.model_dump(exclude_unset=True, exclude_none=True)
         return prune(self.model_dump(), removeNulls=True)
 
     @staticmethod

@@ -15,8 +15,8 @@ class RegionVariant(RowModel):
         description="indicates location of gene relative to the queries region",
     )
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+    def _flat_dump(self, null_free=False, delimiter="|"):
+        obj = super()._flat_dump(null_free, delimiter=delimiter)
 
         # promote the location fields
         del obj["location"]

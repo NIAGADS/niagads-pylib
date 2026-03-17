@@ -35,6 +35,7 @@ COMPOSITE_ATTRIBUTES: Dict[str, T_TransformableModel] = {
 class AbridgedTrack(ORMCompatibleDynamicRowModel):
     track_id: str = Field(
         title="Track ID",
+        alias="id",
         serialization_alias="id",
         description="stable track identifier",
     )
@@ -113,6 +114,7 @@ class Track(ORMCompatibleRowModel):
 
     track_id: str = Field(
         title="Track ID",
+        alias="id",
         serialization_alias="id",
         description="stable track identifier",
     )
@@ -172,8 +174,8 @@ class Track(ORMCompatibleRowModel):
         description="Chronological list of curation events applied to this track",
     )
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter)
+    def _flat_dump(self, null_free=False, delimiter="|"):
+        obj = super()._flat_dump(null_free, delimiter)
         for field, value in self:
             if field in COMPOSITE_ATTRIBUTES.keys():
                 del obj[field]

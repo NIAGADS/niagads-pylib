@@ -40,14 +40,14 @@ class BiosampleCharacteristics(TransformableModel):
         json_schema_extra={"is_filer_annotation": True},
     )
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
+    def _flat_dump(self, null_free=False, delimiter="|"):
         obj = {
             k: (
                 self._list_to_string(v, delimiter=delimiter)
                 if isinstance(v, list) and k != "biosample"
                 else v
             )
-            for k, v in super()._flat_dump(null_free=nullFree).items()
+            for k, v in super()._flat_dump(null_free=null_free).items()
         }
         if self.biosample is not None:
             # have to redo b/c its been serialized above

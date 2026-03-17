@@ -40,7 +40,12 @@ class Provenance(TransformableModel):
         title="Consortium",
         description=f"collaborative partnership",
     )
-    study: Optional[str] = Field(default=None, title="Study")
+    study: Optional[str] = Field(
+        default=None,
+        title="Study",
+        json_schema_extra={"is_filer_annotation": True},
+    )
+
     project: Optional[str] = Field(
         default=None,
         title="Project",
@@ -57,14 +62,14 @@ class Provenance(TransformableModel):
     pubmed_id: Optional[Set[T_PubMedID]] = Field(default=None, title="PubMed ID")
     doi: Optional[Set[str]] = Field(default=None, title="DOI")
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
+    def _flat_dump(self, null_free=False, delimiter="|"):
         obj = {
             k: (
                 self._list_to_string(list(v), delimiter=delimiter)
                 if isinstance(v, set)
                 else str(v) if v is not None else v
             )
-            for k, v in super()._flat_dump(null_free=nullFree).items()
+            for k, v in super()._flat_dump(null_free=null_free).items()
         }
         return obj
 

@@ -82,7 +82,7 @@ T_RowModel = TypeVar("T_RowModel", bound=RowModel)
 
 class ORMCompatibleRowModel(RowModel):
     # should allow to fill from SQLAlchemy ORM model
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class DynamicRowModel(RowModel):

@@ -48,8 +48,8 @@ class Gene(GeneFeature):
     def __str__(self):
         return self.as_info_string()
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+    def _flat_dump(self, null_free=False, delimiter="|"):
+        obj = super()._flat_dump(null_free, delimiter=delimiter)
         if self.synonyms is not None:
             obj["synonyms"] = self._list_to_string(self.synonyms, delimiter=delimiter)
 
@@ -86,8 +86,8 @@ class GeneFunction(GOAnnotation, RowModel):
     def __str__(self):
         return self.as_info_string()
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+    def _flat_dump(self, null_free=False, delimiter="|"):
+        obj = super()._flat_dump(null_free, delimiter=delimiter)
         if self.evidence is not None:
             obj["evidence"] = self._list_to_string(self.evidence, delimiter=delimiter)
         return obj
@@ -131,8 +131,8 @@ class RegionGene(RowModel):
         description="indicates location of gene relative to the queries region",
     )
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+    def _flat_dump(self, null_free=False, delimiter="|"):
+        obj = super()._flat_dump(null_free, delimiter=delimiter)
 
         # promote the location fields
         del obj["location"]

@@ -33,8 +33,8 @@ class AbridgedVariant(VariantFeature):
         description="most severe consequence predicted by VEP",
     )
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+    def _flat_dump(self, null_free=False, delimiter="|"):
+        obj = super()._flat_dump(null_free, delimiter=delimiter)
 
         # promote the location fields
         del obj["most_severe_consequence"]
@@ -90,8 +90,8 @@ class Variant(AbridgedVariant):
         description="flag indicating whether the variant is a structural variant",
     )
 
-    def _flat_dump(self, nullFree=False, delimiter="|"):
-        obj = super()._flat_dump(nullFree, delimiter=delimiter)
+    def _flat_dump(self, null_free=False, delimiter="|"):
+        obj = super()._flat_dump(null_free, delimiter=delimiter)
 
         # promote the location fields
         del obj["location"]

@@ -6,12 +6,13 @@ from niagads.database.helpers import enum_column, enum_constraint
 from niagads.genomicsdb.schema.dataset.base import DatasetTableBase
 from niagads.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.genomicsdb.schema.mixins import IdAliasMixin
+from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 
 # this just adds housekeeping, etc to these schemas
-class Collection(DatasetTableBase, IdAliasMixin):
+class Collection(DatasetTableBase, IdAliasMixin, ExternalDatabaseMixin):
     _stable_id = "collection_key"
     __tablename__ = "collection"
     __table_args__ = (
