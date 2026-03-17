@@ -1,7 +1,7 @@
 from enum import auto
 from typing import Optional
 
-from niagads.common.models.core import TransformableModel
+from niagads.common.models.base import TransformableModel
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import Field
 

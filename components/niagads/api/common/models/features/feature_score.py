@@ -3,7 +3,7 @@ from niagads.common.models.annotations.variant import (
     PredictedConsequenceSummary,
 )
 from niagads.genomics.sequence.assembly import HumanGenome
-from niagads.api.common.models.core import RowModel
+from niagads.api.common.models.base import RowModel
 from niagads.api.common.models.features.gene import GeneFeature
 from niagads.api.common.models.features.variant import (
     Variant,

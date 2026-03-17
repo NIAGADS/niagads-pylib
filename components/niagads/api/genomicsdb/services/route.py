@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import HTTPException
 from niagads.api.common.config import Settings
-from niagads.api.common.models.core import ResultSize
+from niagads.api.common.models.search.records import ResultSize
 from niagads.api.common.models.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,

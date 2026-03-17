@@ -5,11 +5,11 @@ from niagads.common.models.annotations.variant import (
     PredictedConsequenceSummary,
     QCStatus,
 )
-from niagads.common.models.core import TransformableModel
+from niagads.common.models.base import TransformableModel
 from niagads.api.common.views.table import TableRow
 from niagads.api.common.models.features.region import GenomicRegion
 
-from niagads.api.common.models.core import RowModel
+from niagads.api.common.models.base import RowModel
 from niagads.api.common.models.response.record import RecordResponse
 from pydantic import Field, field_validator
 
@@ -33,8 +33,8 @@ class AbridgedVariant(VariantFeature):
         description="most severe consequence predicted by VEP",
     )
 
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = super()._flat_dump(null_free, delimiter=delimiter)
+    def flat_dump(self, null_free=False, delimiter="|"):
+        obj = super().flat_dump(null_free, delimiter=delimiter)
 
         # promote the location fields
         del obj["most_severe_consequence"]
@@ -51,8 +51,8 @@ class AbridgedVariant(VariantFeature):
         return obj
 
     @classmethod
-    def get_model_fields(cls, as_str=False):
-        fields = super().get_model_fields()
+    def list_model_fields(cls, as_str=False):
+        fields = super().list_model_fields()
 
         del fields["most_severe_consequence"]
         fields.update(PredictedConsequenceSummary.get_model_fields())
@@ -90,21 +90,21 @@ class Variant(AbridgedVariant):
         description="flag indicating whether the variant is a structural variant",
     )
 
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = super()._flat_dump(null_free, delimiter=delimiter)
+    def flat_dump(self, null_free=False, delimiter="|"):
+        obj = super().flat_dump(null_free, delimiter=delimiter)
 
         # promote the location fields
         del obj["location"]
-        obj.update(self.location._flat_dump())
+        obj.update(self.location.flat_dump())
 
         return obj
 
     @classmethod
-    def get_model_fields(cls, as_str=False):
-        fields = super().get_model_fields()
+    def list_model_fields(cls, as_str=False):
+        fields = super().list_model_fields()
 
         del fields["location"]
-        fields.update(GenomicRegion.get_model_fields())
+        fields.update(GenomicRegion.list_model_fields())
 
         return list(fields.keys()) if as_str else fields
 
@@ -196,7 +196,7 @@ class AlleleFrequencies(RowModel):
     frequency: str = Field(title="Frequency", order=4)
 
     def as_table_row(self, **kwargs):
-        row = self._flat_dump(delimiter=" // ")
+        row = self.flat_dump(delimiter=" // ")
         population = {"value": self.population.population}
         if self.population.description is not None:
             population.update({"info": self.population.description})

@@ -5,7 +5,7 @@ from niagads.common.constants.external_resources import (
     NIAGADSResources,
     ThirdPartyResources,
 )
-from niagads.common.models.core import TransformableModel
+from niagads.common.models.base import TransformableModel
 from niagads.common.types import T_PubMedID
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches

@@ -8,7 +8,7 @@ from niagads.common.models.metadata import (
     BiosampleCharacteristics,
     Phenotype,
 )
-from niagads.api.common.models.core import RowModel
+from niagads.api.common.models.base import RowModel
 from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.parameters.enums import EnumParameter
 from pydantic import Field, field_serializer, model_validator
@@ -77,15 +77,17 @@ class VariantAssociation(RowModel):
 
     neg_log10_pvalue: float = Field(title="-log10pValue")
 
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = super()._flat_dump(null_free, delimiter=delimiter)
+    def flat_dump(self, null_free=False, delimiter="|"):
+        obj = super().flat_dump(null_free, delimiter=delimiter)
 
         if self.pubmed_id is not None:
-            obj["pubmed_id"] = self._list_to_string(self.pubmed_id, delimiter=delimiter)
+            obj["pubmed_id"] = self._flatten_list_to_string(
+                self.pubmed_id, delimiter=delimiter
+            )
 
         # promote the variant fields
         del obj["variant"]
-        obj.update(self.variant._flat_dump())
+        obj.update(self.variant.flat_dump())
 
         del obj["trait"]
         obj.update(self.trait._flat_dump())
@@ -141,11 +143,11 @@ class VariantAssociation(RowModel):
         return data
 
     @classmethod
-    def get_model_fields(cls, as_str=False):
-        fields = super().get_model_fields()
+    def list_model_fields(cls, as_str=False):
+        fields = super().list_model_fields()
 
         del fields["variant"]
-        fields.update(Variant.get_model_fields())
+        fields.update(Variant.list_model_fields())
 
         for k, info in OntologyTerm.get_model_fields().items():
             title = "Trait" if k == "term" else "Mapped Term ID"

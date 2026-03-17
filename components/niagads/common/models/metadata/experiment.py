@@ -1,6 +1,6 @@
 from typing import List, Optional, Set
 
-from niagads.common.models.core import TransformableModel
+from niagads.common.models.base import TransformableModel
 from niagads.common.models.ontologies import OntologyTerm
 from pydantic import Field
 

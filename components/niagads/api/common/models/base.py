@@ -1,34 +1,94 @@
-"""Common Pydantic `Models` for the Open Access API services
-
-includes the following:
-
-* core: foundational models for most data
-* responses: response models and models defining response model properities or configuration
-* record: core representation of API entity records
-* query: sql query objects
-
-"""
-
-""" `RowModel`
+"""`RowModel`
 Most API responses are tables represented as lists of objects,
 wherein each item in the list is a row in the table.
 
 A Row Model is the data hash (key-value pairs) defining the table row.
+ORM compatible Row Models can be insantiated from SQLAlchemy results
 """
 
-from typing import Any, Dict, List, Self, TypeVar
+from typing import Any, Dict, List, TypeVar
 
-from niagads.common.models.core import TransformableModel
 from niagads.api.common.views.table import TableCellType, TableColumn, TableRow
-from pydantic import ConfigDict, Field
+from niagads.utils.list import list_to_string
+from niagads.utils.string import dict_to_info_string
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class RowModel(TransformableModel):
+class RowModel(BaseModel):
     """
     The RowModel base class defines class methods
     expected for these objects to generate standardized API responses
     and adds member functions for generating table responses
     """
+
+    model_config = ConfigDict(serialize_by_alias=True)
+
+    @staticmethod
+    def boolean_null_check(v):
+        # FIXME: is this really needed?
+        if v is None:
+            return False
+        else:
+            return v
+
+    def flat_dump(self, null_free: bool = False, delimiter="|"):
+        """function for creating a flat dump; i.e., flattens nested models, lists to strings
+        for table views, etc"""
+        for k, v in self.__dict__.items():
+            if isinstance(v, (dict, BaseModel)):
+                raise NotImplementedError(
+                    f"Field '{k}' in '{self.__class__.__name__}' is complex (type: {type(v).__name__}). "
+                    "Please override the _flat_dump method in your subclass "
+                    "to flatten nested structures."
+                )
+        return (
+            self.model_dump(exclude_none=True, exclude_unset=True)
+            if null_free
+            else self.model_dump()
+        )
+
+    @staticmethod
+    def _flatten_list_to_string(arr: list, delimiter="|"):
+        """flat dump helper; flattens a list to a string"""
+        return (
+            list_to_string(arr, delim=delimiter, as_set=True)
+            if arr is not None
+            else None
+        )
+
+    def as_info_string(self):
+        return dict_to_info_string(self.flat_dump(null_free=True))
+
+    def as_list(self, fields=None):
+        if fields is None:
+            return list(self.flat_dump().values())
+        else:
+            obj = self.flat_dump()
+            return [obj.get(k) for k in fields]
+
+    @classmethod
+    def list_model_fields(cls, as_str: bool = False):
+        """classmethod for getting model fields either as name: FieldInfo pairs or as a list of names if as_str is True
+        again for views"""
+        return (
+            [
+                (v.serialization_alias if v.serialization_alias is not None else k)
+                for k, v in cls.model_fields.items()
+                if not v.exclude
+            ]
+            if as_str
+            else {
+                v.serialization_alias if v.serialization_alias is not None else k: v
+                for k, v in cls.model_fields.items()
+                if not v.exclude
+            }
+        )
+
+    def __str__(self):
+        return self.as_info_string()
+
+    def __repr__(self):
+        return self.as_info_string()
 
     def as_text(self, fields=None, null_str="NA", **kwargs):
         """return row as tab-delimited plain text"""
@@ -114,19 +174,3 @@ class DynamicRowModel(RowModel):
 class ORMCompatibleDynamicRowModel(DynamicRowModel):
     # should allow to fill from SQLAlchemy ORM model
     model_config = ConfigDict(from_attributes=True)
-
-
-# FIXME: move this - but where?
-class ResultSize(ORMCompatibleDynamicRowModel):
-    num_results: int = Field(
-        title="Num. Results",
-        description="number of search results",
-    )
-
-    def __str__(self):
-        return self.as_info_string()
-
-    @staticmethod
-    def sort(results: List[Self], reverse=True) -> List[Self]:
-        """sorts a list of track results"""
-        return sorted(results, key=lambda item: item.num_results, reverse=reverse)

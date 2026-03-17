@@ -7,7 +7,14 @@ from collections import abc
 from types import SimpleNamespace
 from copy import deepcopy
 
-from niagads.utils.string import is_bool, is_null, is_numeric, to_bool, to_json, to_number
+from niagads.utils.string import (
+    is_bool,
+    is_null,
+    is_numeric,
+    to_bool,
+    to_json,
+    to_number,
+)
 from niagads.utils.list import all_elements_are_none as __list_is_none
 
 
@@ -94,7 +101,7 @@ def __prune(value, prune):
     return False
 
 
-def prune(dictObj: dict, removeNulls: bool = True, prune: list = []):
+def prune(dictObj: dict, remove_nulls: bool = True, prune: list = []):
     """
     remove null entries from dict and entries whose value matches items in `prune`
 
@@ -109,7 +116,7 @@ def prune(dictObj: dict, removeNulls: bool = True, prune: list = []):
     return {
         key: value
         for key, value in dictObj.items()
-        if (removeNulls and value is not None and not __prune(value, prune))
+        if (remove_nulls and value is not None and not __prune(value, prune))
     }
 
 

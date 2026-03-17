@@ -1,7 +1,7 @@
 from typing import List, Optional, Set
 
 from niagads.common.types import T_PubMedID
-from niagads.api.common.models.core import RowModel
+from niagads.api.common.models.base import RowModel
 from niagads.api.common.models.records import RecordSummary
 
 

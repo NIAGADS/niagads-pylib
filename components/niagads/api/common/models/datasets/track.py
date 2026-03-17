@@ -1,21 +1,21 @@
 from typing import Any, Dict, List, Optional, Self, Union
 
-from niagads.common.models.core import T_TransformableModel
+from niagads.api.common.constants import DEFAULT_NULL_STRING
+from niagads.api.common.models.base import (
+    ORMCompatibleDynamicRowModel,
+    ORMCompatibleRowModel,
+)
+from niagads.api.common.models.response.record import RecordResponse
+from niagads.api.common.models.search.records import ResultSize
+from niagads.common.models.base import T_TransformableModel
 from niagads.common.models.metadata import (
     BiosampleCharacteristics,
+    CurationEvent,
     ExperimentalDesign,
     FileProperties,
     Phenotype,
     Provenance,
-    CurationEvent,
 )
-from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.models.core import (
-    ORMCompatibleDynamicRowModel,
-    ORMCompatibleRowModel,
-    ResultSize,
-)
-from niagads.api.common.models.response.record import RecordResponse
 from niagads.common.models.metadata.phenotypes import PhenotypeCount
 from niagads.genomics.features.core import GenomicFeatureType
 from niagads.genomics.sequence.assembly import Assembly
@@ -174,8 +174,8 @@ class Track(ORMCompatibleRowModel):
         description="Chronological list of curation events applied to this track",
     )
 
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = super()._flat_dump(null_free, delimiter)
+    def flat_dump(self, null_free=False, delimiter="|"):
+        obj = super().flat_dump(null_free, delimiter)
         for field, value in self:
             if field in COMPOSITE_ATTRIBUTES.keys():
                 del obj[field]
@@ -195,8 +195,8 @@ class Track(ORMCompatibleRowModel):
         return obj
 
     @classmethod
-    def get_model_fields(cls, as_str=False):
-        fields = super().get_model_fields()
+    def list_model_fields(cls, as_str=False):
+        fields = super().list_model_fields()
         model: T_TransformableModel
         for fieldId, model in COMPOSITE_ATTRIBUTES.items():
             fields.update(model.get_model_fields())

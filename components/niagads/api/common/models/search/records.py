@@ -1,9 +1,27 @@
-from typing import List
+from typing import List, Self
 
-from niagads.api.common.models.core import ORMCompatibleRowModel
+from niagads.api.common.models.base import (
+    ORMCompatibleDynamicRowModel,
+    ORMCompatibleRowModel,
+)
 from niagads.api.common.models.records import Entity
 from niagads.api.common.models.response.record import RecordResponse
 from pydantic import Field
+
+
+class ResultSize(ORMCompatibleDynamicRowModel):
+    num_results: int = Field(
+        title="Num. Results",
+        description="number of search results",
+    )
+
+    def __str__(self):
+        return self.as_info_string()
+
+    @staticmethod
+    def sort(results: List[Self], reverse=True) -> List[Self]:
+        """sorts a list of track results"""
+        return sorted(results, key=lambda item: item.num_results, reverse=reverse)
 
 
 class RecordSearchResult(ORMCompatibleRowModel):

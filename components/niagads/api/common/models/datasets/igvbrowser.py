@@ -8,7 +8,7 @@ from niagads.common.models.metadata import (
     Provenance,
 )
 from niagads.api.common.config import Settings
-from niagads.api.common.models.core import RowModel
+from niagads.api.common.models.base import RowModel
 from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.parameters.response import (
     ResponseFormat,

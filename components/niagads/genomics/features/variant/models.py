@@ -2,7 +2,7 @@
 
 from typing import Optional
 from ga4gh.vrs.models import Allele
-from niagads.common.models.core import TransformableModel
+from niagads.common.models.base import TransformableModel
 from niagads.genomics.features.region.core import GenomicRegion
 from niagads.genomics.features.variant.types import VariantClass
 from niagads.genomics.sequence.assembly import HumanGenome

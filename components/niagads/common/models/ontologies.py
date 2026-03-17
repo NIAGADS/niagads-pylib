@@ -7,7 +7,7 @@ validation, and graph construction in ontology loader plugins.
 """
 
 from typing import Optional, Union
-from niagads.common.models.core import TransformableModel
+from niagads.common.models.base import TransformableModel
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import dict_to_info_string, matches, to_snake_case
 from pydantic import BaseModel, Field, field_validator, model_validator

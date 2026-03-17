@@ -1,7 +1,7 @@
 from copy import deepcopy
 from enum import auto
 from typing import List, Optional
-from niagads.common.models.core import TransformableModel
+from niagads.common.models.base import TransformableModel
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomics.features.gene.models import GeneDescriptor
 from pydantic import BaseModel, Field

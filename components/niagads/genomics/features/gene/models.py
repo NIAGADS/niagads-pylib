@@ -1,5 +1,5 @@
 from typing import Optional
-from niagads.common.models.core import TransformableModel
+from niagads.common.models.base import TransformableModel
 from pydantic import Field
 
 

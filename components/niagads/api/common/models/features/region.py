@@ -1,5 +1,5 @@
 from typing import Optional
-from niagads.api.common.models.core import RowModel
+from niagads.api.common.models.base import RowModel
 from niagads.genomics.features.region.core import GenomicRegion as __BaseGenomicRegion
 from pydantic import Field
 
@@ -18,8 +18,8 @@ class GenomicRegion(RowModel, __BaseGenomicRegion):
         return span
 
     @classmethod
-    def get_model_fields(cls, as_str=False):
-        fields = super().get_model_fields()
+    def list_model_fields(cls, as_str=False):
+        fields = super().list_model_fields()
         order = [
             "chr",  # have to use serialization alias
             "start",
