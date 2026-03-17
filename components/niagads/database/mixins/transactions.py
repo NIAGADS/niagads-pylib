@@ -3,13 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.exc import ProgrammingError
 
-
 class TransactionTableMixin(DeclarativeBase):
     __abstract__ = True
 
     @classmethod
     def table_name(cls):
-        return f"{cls.metadata.schema}.{cls.__tablename__}"
+        return f"{cls._schema}.{cls.__tablename__}"
 
     async def submit(self, session: AsyncSession) -> int:
         """
@@ -21,7 +20,7 @@ class TransactionTableMixin(DeclarativeBase):
         Returns:
             int: The primary key value of the inserted record.
         """
-        await session.add(self)
+        session.add(self)
         await session.flush()
 
         pk_name = self.__mapper__.primary_key[0].name
@@ -52,7 +51,7 @@ class TransactionTableMixin(DeclarativeBase):
                 f"Cannot update record; no row exists in the database with {pk_name}={pk_value}"
             )
 
-        await session.merge(self)
+        session.merge(self)
         await session.flush()
 
     @classmethod

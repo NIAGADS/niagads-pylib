@@ -39,6 +39,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self,
         params: Dict[str, Any],
         name: Optional[str] = None,
+        debug: bool = False,
+        verbose: bool = False
     ):
         """
         Initialize the ETL plugin base class.
@@ -47,14 +49,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             params (BasePluginParams): Validated parameters for the plugin instance.
             name (Optional[str]): Optional name for the plugin instance (used for logging and identification).
         """
-        # parameter model enforcement
-        # allow subclasses to add fields via their own model; we validate here
-        model: Type[BasePluginParams] = self.parameter_model()
-        self._params = model(**params)
-
-        super().__init__(debug=self._params.debug, verbose=self._params.verbose)
-
+  
+        super().__init__(debug=debug, verbose=verbose)
         self.__metadata: PluginMetadata = self.__retrieve_plugin_metadata()
+
+        self._params = self.parameter_model(**params)
 
         self._name = name or self.__class__.__name__
         self.__start_time: Optional[datetime] = None
@@ -87,7 +86,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         from niagads.etl.plugins.registry import PluginRegistry
 
         try:
-            return PluginRegistry._metadata.get(self.__class__.__name__)
+            return PluginRegistry.get_metadata(self.__class__.__name__)
         except:
             raise KeyError(
                 "Plugin not found in PluginRegistry; please use the registry decorator"
@@ -533,53 +532,56 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         buffer: list = []
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            self.__attach_etl_transaction_listener(session)
-            for records in self.extract():
-                processed_records = self.transform(records)
-                # chunked can yield one or a list of records
-                if isinstance(processed_records, list):
-                    buffer.extend(processed_records)
-                else:
-                    buffer.append(processed_records)
+            if session is not None:
+                self.__attach_etl_transaction_listener(session)
+                for records in self.extract():
+                    processed_records = self.transform(records)
+                    # chunked can yield one or a list of records
+                    if isinstance(processed_records, list):
+                        buffer.extend(processed_records)
+                    else:
+                        buffer.append(processed_records)
 
-                if len(buffer) >= self._commit_after:
-                    batches = chunker(buffer, self._commit_after, returnIterator=True)
-                    for batch in batches:
-                        if len(batch) == self._commit_after:
-                            checkpoint = await self.__flush_chunked_buffer(
-                                batch, session
-                            )
-                            await self.__handle_transaction(session, checkpoint)
-                        else:
-                            buffer = batch  # residuals
+                    if len(buffer) >= self._commit_after:
+                        batches = chunker(buffer, self._commit_after, returnIterator=True)
+                        for batch in batches:
+                            if len(batch) == self._commit_after:
+                                checkpoint = await self.__flush_chunked_buffer(
+                                    batch, session
+                                )
+                                await self.__handle_transaction(session, checkpoint)
+                            else:
+                                buffer = batch  # residuals
 
-            # residuals
-            if buffer:
-                checkpoint = await self.__flush_chunked_buffer(buffer, session)
-                await self.__handle_transaction(session, checkpoint)
+                # residuals
+                if buffer:
+                    checkpoint = await self.__flush_chunked_buffer(buffer, session)
+                    await self.__handle_transaction(session, checkpoint)
 
     async def __process_bulk_load(self) -> ResumeCheckpoint:
         records = self.extract()
         processed_records = self.transform(records)
 
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            self.__attach_etl_transaction_listener(session)
-            # Bulk: load all at once, ignore commit_after
-            checkpoint = None
-            if not self.is_dry_run:
-                checkpoint = await self.__execute_load(session, processed_records)
-                await self.__handle_transaction(session, checkpoint)
-            return checkpoint
+            if session is not None:
+                self.__attach_etl_transaction_listener(session)
+                # Bulk: load all at once, ignore commit_after
+                checkpoint = None
+                if not self.is_dry_run:
+                    checkpoint = await self.__execute_load(session, processed_records)
+                    await self.__handle_transaction(session, checkpoint)
+                return checkpoint
 
     async def __process_bulk_in_batch_load(self):
         records = self.extract()
         processed_records = self.transform(records)
         batches = chunker(processed_records, self._commit_after, returnIterator=True)
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            self.__attach_etl_transaction_listener(session)
-            for batch in batches:
-                checkpoint = await self.__flush_chunked_buffer(batch, session)
-                await self.__handle_transaction(session, checkpoint)
+            if session is not None:
+                self.__attach_etl_transaction_listener(session)
+                for batch in batches:
+                    checkpoint = await self.__flush_chunked_buffer(batch, session)
+                    await self.__handle_transaction(session, checkpoint)
 
     async def __initialize_etl_run(self) -> Optional[int]:
         """
@@ -598,9 +600,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         )
 
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            run_id = self.__etl_run.submit(session)
-
-        self.__etl_run.run_id = run_id
+            if session is not None:
+                self.__etl_run.run_id = await self.__etl_run.submit(session)
 
     async def __finalize_etl_run(
         self,
@@ -620,7 +621,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.__etl_run.message = message
 
         async with self.session_ctx() as session:
-            await self.__etl_run.update(session)
+            if session is not None:
+                await self.__etl_run.update(session)
 
     def set_checkpoint(self, line=None, record=None) -> ResumeCheckpoint:
         """
@@ -696,7 +698,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.__start_time = datetime.now()
 
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            await self.on_run_start(session)
+            if session is not None:
+                await self.on_run_start(session)
 
         # Preprocess mode - transformers write intermediary data to file
         if self._mode == ETLMode.PREPROCESS:

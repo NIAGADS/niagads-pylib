@@ -11,7 +11,7 @@ class PluginRegistry:
     """
 
     _registry: Dict[str, Type[AbstractBasePlugin]] = {}
-    _metadata: Dict[str, dict] = {}
+    _metadata: Dict[str, PluginMetadata] = {}
 
     @classmethod
     def register(
@@ -36,6 +36,24 @@ class PluginRegistry:
             return inner_cls
 
         return decorator  # used with parentheses
+
+    @classmethod
+    def get_metadata(cls, name: str) -> PluginMetadata:
+        """
+        Retrieve the metadata for a registered plugin class by name.
+
+        Args:
+            name (str): The name of the plugin class.
+
+        Returns:
+            dict: plugin metadata
+
+        Raises:
+            KeyError: If the plugin is not found in the registry.
+        """
+        if name not in cls._metadata:
+            raise KeyError(f"Plugin '{name}' not found")
+        return cls._metadata[name]
 
     @classmethod
     def get(cls, name: str) -> Type[AbstractBasePlugin]:

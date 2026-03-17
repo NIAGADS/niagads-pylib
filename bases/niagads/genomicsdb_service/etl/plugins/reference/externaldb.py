@@ -4,13 +4,11 @@ External Database Loader Plugin
 """
 
 import json
-from typing import Any, Dict, Iterator, List, Optional, Type
-
+from typing import Any, Dict, Iterator,  Optional
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
-    JSONConfigValidatorMixin,
     PathValidatorMixin,
     ResumeCheckpoint,
 )
@@ -20,16 +18,13 @@ from niagads.etl.plugins.types import ETLOperation
 from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from pydantic import Field
 
-# FIXME: I'm being silly w/this let's leverage pydantic/sqlalachemy
 
-
-class ExternalDatabaseLoaderParams(BasePluginParams, JSONConfigValidatorMixin):
+class ExternalDatabaseLoaderParams(BasePluginParams):
     """Parameters for ExternalDatabaseLoader plugin."""
 
-    file: str = Field(..., description="full path to JSON configuration file")
+    file: str = Field(..., description="full path to external database configuration file")
 
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
-    validate_config = JSONConfigValidatorMixin.validator("file", ExternalDatabase)
 
 
 metadata = PluginMetadata(
@@ -64,6 +59,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         Returns:
             Iterator[dict]: Single dictionary containing external database configuration.
         """
+        self.logger.debug("entering extract")
         with open(self._params.file, "r") as f:
             config = json.load(f)
         return config
@@ -110,7 +106,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         Returns:
             ETLLoadResult: checkpoint and transaction count
         """
-        if not ExternalDatabase.record_exists(
+        if not await ExternalDatabase.record_exists(
             session, {"name": transformed.name, "version": transformed.version}
         ):
             await transformed.submit(session)

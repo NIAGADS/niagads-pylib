@@ -20,7 +20,7 @@ def json_type(value: str) -> dict:
         dict: decoded JSON
     """
     try:
-        return json.decodes(value)
+        return json.loads(value)
     except:
         raise ArgumentTypeError("Invalid JSON: " + value)
 
