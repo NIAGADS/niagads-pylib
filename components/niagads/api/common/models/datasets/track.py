@@ -8,7 +8,7 @@ from niagads.api.common.models.base import (
 from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.models.search.records import ResultSize
 from niagads.common.models.base import T_BaseModel
-from niagads.common.tracks.models import (
+from niagads.common.track.models import (
     BiosampleCharacteristics,
     CurationEvent,
     ExperimentalDesign,
@@ -17,7 +17,7 @@ from niagads.common.tracks.models import (
     Provenance,
     BaseTrack,
 )
-from niagads.common.tracks.models.phenotypes import PhenotypeCount
+from niagads.common.track.models.phenotypes import PhenotypeCount
 from niagads.genomics.features.core import GenomicFeatureType
 from niagads.genomics.sequence.assembly import Assembly
 from niagads.utils.dict import promote_nested

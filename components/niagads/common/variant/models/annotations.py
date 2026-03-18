@@ -2,7 +2,7 @@ from copy import deepcopy
 from enum import auto
 from typing import List, Optional
 from niagads.common.models.base import CustomBaseModel
-from niagads.common.variants.types import ConsequenceImpact
+from niagads.common.variant.types import ConsequenceImpact
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomics.features.gene.models import GeneDescriptor
 from pydantic import BaseModel, Field

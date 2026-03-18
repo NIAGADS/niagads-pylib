@@ -1,13 +1,12 @@
 """core defines the `Collection` and link between tracks and collections (metadata) database models"""
 
 from typing import Optional
-from niagads.common.constants.track import TrackDataStore
-from niagads.database.helpers import enum_column, enum_constraint
+
 from niagads.genomicsdb.schema.dataset.base import DatasetTableBase
 from niagads.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
-from sqlalchemy import ForeignKey, Index, String
+from sqlalchemy import Column, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 
@@ -16,7 +15,6 @@ class Collection(DatasetTableBase, IdAliasMixin, ExternalDatabaseMixin):
     _stable_id = "collection_key"
     __tablename__ = "collection"
     __table_args__ = (
-        enum_constraint("data_store", TrackDataStore),
         Index(
             "ix_metadata_collection_data_store",
             "data_store",
@@ -27,6 +25,11 @@ class Collection(DatasetTableBase, IdAliasMixin, ExternalDatabaseMixin):
             "collection_key",
             unique=True,
         ),
+        Index(
+            "ix_metadata_collection_is_filer_collection_true",
+            "is_filer_collection",
+            postgresql_where=(Column("is_filer_track") == True),
+        ),
         DatasetTableBase.__table_args__,
     )
 
@@ -35,7 +38,7 @@ class Collection(DatasetTableBase, IdAliasMixin, ExternalDatabaseMixin):
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
     tracks_are_sharded: Mapped[Optional[bool]] = mapped_column(default=False)
-    data_store: Mapped[str] = enum_column(TrackDataStore)
+    is_filer_collection: Mapped[bool] = mapped_column(default=False)
 
 
 class TrackCollectionLink(DatasetTableBase):

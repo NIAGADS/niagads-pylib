@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Self, Union
 
 from niagads.common.reference.ontologies.models import OntologyTerm
-from niagads.common.tracks.models import (
+from niagads.common.track.models import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     Phenotype,

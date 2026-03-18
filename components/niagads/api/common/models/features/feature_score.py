@@ -1,5 +1,5 @@
 from niagads.api.common.views.table import TableColumn
-from niagads.common.models.variants.annotations import (
+from niagads.common.variant.models.annotations import (
     PredictedConsequenceSummary,
 )
 from niagads.genomics.sequence.assembly import HumanGenome

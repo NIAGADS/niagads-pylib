@@ -5,7 +5,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Callable, Union
 from niagads.common.reference.ontologies.models import OntologyTerm
-from niagads.common.tracks.models.track import BaseTrack
+from niagads.common.track.models.track import BaseTrack
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 import streamlit as st

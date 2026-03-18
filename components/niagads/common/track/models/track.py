@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from niagads.common.models.base import CustomBaseModel
-from niagads.common.tracks.models import (
+from niagads.common.track.models import (
     BiosampleCharacteristics,
     CurationEvent,
     ExperimentalDesign,
@@ -9,7 +9,7 @@ from niagads.common.tracks.models import (
     Phenotype,
     Provenance,
 )
-from niagads.common.tracks.models.phenotypes import PhenotypeCount
+from niagads.common.track.models.phenotypes import PhenotypeCount
 from niagads.genomics.features.core import GenomicFeatureType
 from niagads.genomics.sequence.assembly import Assembly
 from pydantic import Field

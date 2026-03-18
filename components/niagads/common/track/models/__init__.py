@@ -1,22 +1,22 @@
 # Re-export commonly used metadata models for convenient imports.
-# Example: from niagads.common.tracks.models import Provenance, Phenotype
+# Example: from niagads.common.track.models import Provenance, Phenotype
 
-from niagads.common.tracks.models.curation import (
+from niagads.common.track.models.curation import (
     CurationActorType,
     CurationEvent,
     CurationEventType,
 )
-from niagads.common.tracks.models.experiment import ExperimentalDesign
-from niagads.common.tracks.models.phenotypes import (
+from niagads.common.track.models.experiment import ExperimentalDesign
+from niagads.common.track.models.phenotypes import (
     Phenotype,
     PhenotypeCount,
 )
-from niagads.common.tracks.models.provenance import (
+from niagads.common.track.models.provenance import (
     Provenance,
     FileProperties,
 )
-from niagads.common.tracks.models.samples import BiosampleCharacteristics
-from niagads.common.tracks.models.track import BaseTrack
+from niagads.common.track.models.samples import BiosampleCharacteristics
+from niagads.common.track.models.track import BaseTrack
 
 __all__ = [
     "CurationActorType",

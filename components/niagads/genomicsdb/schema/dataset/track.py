@@ -2,8 +2,7 @@
 
 from typing import List, Optional
 
-from niagads.common.constants.track import TrackDataStore
-from niagads.common.tracks.models import (
+from niagads.common.track.models import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,
@@ -29,7 +28,6 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     __table_args__ = (
         *ExternalDatabaseMixin.__table_args__,
         enum_constraint("genome_build", Assembly),
-        enum_constraint("data_store", TrackDataStore),
         enum_constraint("shard_chromosome", HumanGenome),
         Index(
             "ix_metadata_track_shard_root_track_id",
@@ -44,12 +42,17 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
                 "searchable_text": "gin_trgm_ops",
             },
         ),
+        Index(
+            "ix_metadata_track_is_filer_track_true",
+            "is_filer_track",
+            postgresql_where=(Column("is_filer_track") == True),
+        ),
         DatasetTableBase.__table_args__,
     )
 
     track_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    data_store: Mapped[str] = enum_column(TrackDataStore)
+    is_filer_track: Mapped[bool] = mapped_column(default=False)
     dataset_type_id: Mapped[int] = ontology_term_fk_column()
 
     name: Mapped[str]
