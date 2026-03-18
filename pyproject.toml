@@ -20,6 +20,7 @@ repository = "https://github.com/NIAGADS/niagads-pylib"
 packages = [
     { from = "bases", include = "niagads/advp_service" },
     { from = "bases", include = "niagads/filer_service" },
+    { from = "bases", include = "niagads/genomicsdb_etl" },
     { from = "bases", include = "niagads/genomicsdb_service" },
     { from = "bases", include = "niagads/loaders" },
     { from = "bases", include = "niagads/metadata_validator_tool" },
@@ -57,8 +58,8 @@ packages = [
     { from = "components", include = "niagads/vep_json_parser" },
 ]
 include = [
-    { path = "bases/niagads/genomicsdb_service/etl/plugins/validation_schemas/*.json" },
-    { path = "bases/niagads/genomicsdb_service/etl/plugins/validation_schemas/*.xsd" },
+    { path = "bases/niagads/genomicsdb_etl/plugins/validation_schemas/*.json" },
+    { path = "bases/niagads/genomicsdb_etl/plugins/validation_schemas/*.xsd" },
 ]
 
 [tool.poetry.dependencies]
@@ -118,7 +119,7 @@ pydocstyle = "^6.3.0"
 pytest = "^8.2.2"
 
 [tool.poetry.scripts]
-migrate-gwas = "niagads.genomicsdb_service.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
+migrate-gwas = "niagads.genomicsdb_etl.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
 runpipe = "niagads.pipeline_service.runners.core:run_main"
 runpipe-plugin = "niagads.pipeline_service.runners.plugin:run_main"
 

@@ -15,7 +15,7 @@ class RegisteredETLProject(Enum):
 
     """
 
-    GENOMICSDB = "niagads.genomicsdb_service.etl.plugins"
+    GENOMICSDB = "niagads.genomicsdb_etl.plugins"
 
     # after  https://stackoverflow.com/a/76131490
     @classmethod

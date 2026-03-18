@@ -4,7 +4,7 @@ This guide explains how to create a new ETL plugin for the GenomicsDB ETL framew
 
 ## Required Plugin Methods
 
-All ETL plugins are Python classes that inherit from [`AbstractBasePlugin`](../../../../components/niagads/etl/plugins/base.py) and implement its required (abstract) methods.
+All ETL plugins are Python classes that inherit from [`AbstractBasePlugin`](../../../components/niagads/etl/plugins/base.py) and implement its required (abstract) methods.
 
 > **Note:** An abstract class defines methods and properties that must be implemented by subclasses. Abstract methods are placeholders—your plugin must provide concrete implementations for them, or Python will raise an error.
 
@@ -21,7 +21,7 @@ All ETL plugins are Python classes that inherit from [`AbstractBasePlugin`](../.
 
 ## Plugin Registry and Metadata
 
-All ETL plugins must be registered with the [`PluginRegistry`](../../../../components/niagads/etl/plugins/registry.py). The registry is a central catalog that tracks available plugins, their metadata, and their configuration. This enables the pipeline to discover, orchestrate, and manage plugins dynamically, without hardcoding plugin classes or paths. By registering plugins, users can run a plugin or add it to the pipeline simply by specifying its name, without needing to reference its implementation directly.
+All ETL plugins must be registered with the [`PluginRegistry`](../../../components/niagads/etl/plugins/registry.py). The registry is a central catalog that tracks available plugins, their metadata, and their configuration. This enables the pipeline to discover, orchestrate, and manage plugins dynamically, without hardcoding plugin classes or paths. By registering plugins, users can run a plugin or add it to the pipeline simply by specifying its name, without needing to reference its implementation directly.
 
 **Required plugin metadata:**
 
@@ -32,7 +32,7 @@ All ETL plugins must be registered with the [`PluginRegistry`](../../../../compo
 - `load_strategy`: An `ETLLoadStrategy` enum value (chunked, bulk, batch) specifying how records are loaded. See [Load Strategies](#load-strategies).
 - `version`: A string indicating the plugin version.
 
-See [`PluginMetadata`](../../../../components/niagads/etl/plugins/metadata.py) for the metadata structure.
+See [`PluginMetadata`](../../../components/niagads/etl/plugins/metadata.py) for the metadata structure.
 
 An [example plugin](#example-simple-text-loader-plugin) scaffold is provided in this README. Please also refer to existing implementations in `etl/plugins` for reference and inspiration.
 
@@ -42,7 +42,7 @@ An [example plugin](#example-simple-text-loader-plugin) scaffold is provided in 
 
 ### Parameter Model
 
-Define a Pydantic model for plugin parameters. Inherit from [`BasePluginParams`](../../../../components/niagads/etl/plugins/parameters.py) and add plugin-specific fields.
+Define a Pydantic model for plugin parameters. Inherit from [`BasePluginParams`](../../../components/niagads/etl/plugins/parameters.py) and add plugin-specific fields.
 
 #### Parameter Validation
 
@@ -91,7 +91,7 @@ async def load(session, transformed: OntologyTerm):
 
 ### Lookup Mixins
 
-Lookup mixins are provided to facilitate efficient and reusable lookup operations within plugins. These mixins encapsulate common patterns for querying and mapping data, reducing boilerplate and improving maintainability.  All GenomicsDB table classes inherit from this mixin. Use lookup mixins when you need to fetch or map reference data during ETL processing. See [`mixins.py`](../../../../components/niagads/etl/plugins/mixins.py) for available mixins and usage patterns.
+Lookup mixins are provided to facilitate efficient and reusable lookup operations within plugins. These mixins encapsulate common patterns for querying and mapping data, reducing boilerplate and improving maintainability.  All GenomicsDB table classes inherit from this mixin. Use lookup mixins when you need to fetch or map reference data during ETL processing. See [`mixins.py`](../../../components/niagads/etl/plugins/mixins.py) for available mixins and usage patterns.
 
 The following lookup mixins are provided:
 
@@ -171,7 +171,7 @@ async with manager.session_ctx() as session:
     # perform parallel database operations
 ```
 
-Refer to [`AbstractBasePlugin`](../../../../components/niagads/etl/plugins/base.py) for implementation details.
+Refer to [`AbstractBasePlugin`](../../../components/niagads/etl/plugins/base.py) for implementation details.
 
 ### Transaction Counting
 
@@ -189,7 +189,7 @@ A checkpoint is an object that records the current progress of an ETL plugin run
 
 Plugins generate by returning them from the `load` method. The pipeline uses these checkpoints to support resume, recovery, and robust error handling.
 
-See [`ResumeCheckpoint`](../../../../components/niagads/etl/plugins/parameters.py) for the checkpoint structure.
+See [`ResumeCheckpoint`](../../../components/niagads/etl/plugins/parameters.py) for the checkpoint structure.
 
 ## Plugin Execution and Operation Types
 
@@ -201,7 +201,7 @@ Plugins must specify a load strategy in their metadata:
 - **BULK**: All records are extracted and transformed, then loaded in a single call to `load()`.
 - **BATCH**: Records are bulk extracted and transformed.  The transformed dataset is split into batches of size `commit_after` before loading. Each batch is passed to `load()` in turn.
 
-Refer to [`AbstractBasePlugin`](../../../../components/niagads/etl/plugins/base.py) for orchestration details.
+Refer to [`AbstractBasePlugin`](../../../components/niagads/etl/plugins/base.py) for orchestration details.
 
 ### ETL Operations
 
@@ -213,7 +213,7 @@ Plugins must specify the type of ETL operation in their metadata (`operation`). 
 
 ### ETL Modes
 
-The ETL framework supports several modes of operation, controlled by the `mode` parameter (see [`ETLMode`](../../../../components/niagads/etl/types.py)).
+The ETL framework supports several modes of operation, controlled by the `mode` parameter (see [`ETLMode`](../../../components/niagads/etl/types.py)).
 
 - **DRY_RUN**: No database writes are performed. The pipeline counts records and simulates processing. Use this for testing and validation of `extract` and `transform` steps.
 - **COMMIT**: Records are written to the database. The pipeline commits transactions according to the plugin's logic and the `commit_after` parameter.
@@ -329,7 +329,7 @@ To get plugin usage specify the `--help` option:
 runpipe-plugin XMLRecordLoader --help
 ```
 
-For more details, see inline documentation in [`AbstractBasePlugin`](../../../../components/niagads/etl/plugins/base.py), [`PluginRegistry`](../../../../components/niagads/etl/plugins/registry.py), and existing plugins in [`bases/niagads/genomicsdb_service/etl/plugins`](./).
+For more details, see inline documentation in [`AbstractBasePlugin`](../../../components/niagads/etl/plugins/base.py), [`PluginRegistry`](../../../components/niagads/etl/plugins/registry.py), and existing plugins in [`bases/niagads/genomicsdb_service/etl/plugins`](../genomicsdb_service/etl).
 
 ## Instructions for AI Assistants Writing Plugins
 

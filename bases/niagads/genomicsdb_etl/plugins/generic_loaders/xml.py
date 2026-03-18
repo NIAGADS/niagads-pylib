@@ -151,7 +151,7 @@ class XMLRecordLoader(AbstractBasePlugin):
                 xml_content = xml_file.read()
             # Use importlib.resources to load records.xsd from the package
             with importlib.resources.open_binary(
-                "niagads.genomicsdb_service.etl.plugins.validation_schemas",
+                "niagads.genomicsdb_etl.plugins.validation_schemas",
                 "records.xsd",
             ) as xsd_file:
                 schema_root = etree.XML(xsd_file.read())

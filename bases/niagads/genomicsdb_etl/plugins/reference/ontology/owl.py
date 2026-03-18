@@ -24,7 +24,7 @@ from niagads.database.genomicsdb.schema.reference.ontology import (
     OntologyGraphTermVertex,
     OntologyTerm,
 )
-from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
+from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
 from niagads.nlp.embeddings import TextEmbeddingGenerator
