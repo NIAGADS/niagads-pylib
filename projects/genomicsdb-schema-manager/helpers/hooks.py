@@ -116,7 +116,7 @@ def register_catalog_hooks():
     Register global events to catalog schemas and tables in admin.schemacatalog
     and admin.tablecatalog after creation.
     """
-    from niagads.genomicsdb.schema.admin.catalog import (
+    from niagads.database.genomicsdb.schema.admin.catalog import (
         SchemaCatalog,
         TableCatalog,
     )

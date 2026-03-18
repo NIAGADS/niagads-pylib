@@ -8,7 +8,7 @@ using pgvector and HNSW indexes. Includes embedding metadata, model tracking, an
 from datetime import datetime
 
 from niagads.database.helpers import datetime_column
-from niagads.genomicsdb.schema.admin.helpers import etlrun_fk_column
+from niagads.database.genomicsdb.schema.admin.helpers import etlrun_fk_column
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Index, LargeBinary, String
 from sqlalchemy.orm import Mapped, mapped_column

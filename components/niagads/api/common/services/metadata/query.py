@@ -11,8 +11,11 @@ from niagads.common.track.models import (
     Provenance,
 )
 from niagads.common.constants.track import TrackDataStore
-from niagads.genomicsdb.schema.dataset.collection import Collection, TrackCollectionLink
-from niagads.genomicsdb.schema.dataset.track import Track
+from niagads.database.genomicsdb.schema.dataset.collection import (
+    Collection,
+    TrackCollectionLink,
+)
+from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.utils.list import list_to_string
 from niagads.utils.string import regex_replace
 from sqlalchemy import Column, String, Values, column, distinct, func, select

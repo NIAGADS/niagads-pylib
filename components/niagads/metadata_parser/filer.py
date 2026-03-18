@@ -12,7 +12,7 @@ from niagads.common.track.models import (
     FileProperties,
     Provenance,
 )
-from niagads.genomicsdb.schema.dataset.track import Track
+from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.utils.dict import print_dict
 from niagads.utils.list import remove_duplicates
 from niagads.utils.logging import FunctionContextAdapter

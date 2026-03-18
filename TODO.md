@@ -2,6 +2,7 @@
 
 * update schema dataset model to reflect new api model
 * replace flat_dump w/context based serialization (will get passed to all children)
+* can we move casesensitiveenum to common.types ? circular imports?!
 
 ## ETL
 

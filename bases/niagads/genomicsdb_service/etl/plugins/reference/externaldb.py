@@ -4,7 +4,7 @@ External Database Loader Plugin
 """
 
 import json
-from typing import Any, Dict, Iterator,  Optional
+from typing import Any, Dict, Iterator, Optional
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
@@ -15,14 +15,16 @@ from niagads.etl.plugins.parameters import (
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.etl.plugins.types import ETLOperation
-from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
+from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from pydantic import Field
 
 
 class ExternalDatabaseLoaderParams(BasePluginParams):
     """Parameters for ExternalDatabaseLoader plugin."""
 
-    file: str = Field(..., description="full path to external database configuration file")
+    file: str = Field(
+        ..., description="full path to external database configuration file"
+    )
 
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 

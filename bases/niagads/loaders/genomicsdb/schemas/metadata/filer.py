@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from niagads.arg_parser.core import case_insensitive_enum_type
 
-# from niagads.genomicsdb.schema.dataset.track import Track
+# from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.common.reference.xrefs.data_sources import NIAGADSResources
 from niagads.common.track.models import (
     BiosampleCharacteristics,
@@ -16,7 +16,7 @@ from niagads.common.track.models import (
 )
 
 from niagads.common.constants.track import TrackDataStore
-from niagads.genomicsdb.schema.dataset.track import Track
+from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.genomics.sequence.assembly import Assembly, HumanGenome
 from niagads.database.helpers import enum_column
 from niagads.loaders.core import AbstractDataLoader

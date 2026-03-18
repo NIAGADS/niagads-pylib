@@ -19,8 +19,8 @@ from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy, ResumeCheckpoint
 from niagads.etl.plugins.types import ETLOperation
-from niagads.genomicsdb.schema.reference.externaldb import ExternalDatabase
-from niagads.genomicsdb.schema.reference.ontology import (
+from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
+from niagads.database.genomicsdb.schema.reference.ontology import (
     OntologyGraphTermVertex,
     OntologyTerm,
 )

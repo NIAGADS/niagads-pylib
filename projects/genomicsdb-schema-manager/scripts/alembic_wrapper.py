@@ -10,7 +10,7 @@ import argparse
 from os import path
 
 from helpers.config import Settings
-from niagads.genomicsdb.schema.base import GenomicsDBSchemaBase
+from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.utils.logging import setup_root_logger
 from niagads.common.core import ComponentBaseMixin
 from niagads.enums.core import CaseInsensitiveEnum
