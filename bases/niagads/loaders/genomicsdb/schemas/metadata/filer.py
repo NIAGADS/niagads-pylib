@@ -15,7 +15,6 @@ from niagads.common.track.models import (
     Provenance,
 )
 
-from niagads.common.constants.track import TrackDataStore
 from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.genomics.sequence.assembly import Assembly, HumanGenome
 from niagads.database.helpers import enum_column
@@ -45,8 +44,6 @@ class Track(Base):
     )
 
     track_id: Mapped[str] = mapped_column(unique=True, index=True)
-    data_store: Mapped[str] = enum_column(TrackDataStore)
-
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
 

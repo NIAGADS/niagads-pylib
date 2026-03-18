@@ -5,21 +5,15 @@ from typing import Optional
 from niagads.database.genomicsdb.schema.dataset.base import DatasetTableBase
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
-from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from sqlalchemy import Column, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 
 # this just adds housekeeping, etc to these schemas
-class Collection(DatasetTableBase, IdAliasMixin, ExternalDatabaseMixin):
+class Collection(DatasetTableBase, IdAliasMixin):
     _stable_id = "collection_key"
     __tablename__ = "collection"
     __table_args__ = (
-        Index(
-            "ix_metadata_collection_data_store",
-            "data_store",
-            postgresql_include=["name", "description", "tracks_are_sharded"],
-        ),
         Index(
             "ix_metadata_collection_key_unique",
             "collection_key",
@@ -28,7 +22,7 @@ class Collection(DatasetTableBase, IdAliasMixin, ExternalDatabaseMixin):
         Index(
             "ix_metadata_collection_is_filer_collection_true",
             "is_filer_collection",
-            postgresql_where=(Column("is_filer_track") == True),
+            postgresql_where=(Column("is_filer_collection") == True),
         ),
         DatasetTableBase.__table_args__,
     )
@@ -39,6 +33,15 @@ class Collection(DatasetTableBase, IdAliasMixin, ExternalDatabaseMixin):
     description: Mapped[str] = mapped_column(String(2000))
     tracks_are_sharded: Mapped[Optional[bool]] = mapped_column(default=False)
     is_filer_collection: Mapped[bool] = mapped_column(default=False)
+
+    # not using ExternalDatabaseMixin here b/c these can be nullable
+    # as not all collections will have an xdbref
+    external_database_id: Mapped[int] = mapped_column(
+        ForeignKey("reference.externaldatabase.external_database_id"),
+        nullable=True,
+        index=True,
+    )
+    source_id: Mapped[str] = mapped_column(String(50), index=True, nullable=True)
 
 
 class TrackCollectionLink(DatasetTableBase):
