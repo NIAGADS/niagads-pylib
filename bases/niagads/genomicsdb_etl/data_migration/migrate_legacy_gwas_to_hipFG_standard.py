@@ -23,7 +23,7 @@ from niagads.database.session import DatabaseSessionManager
 from niagads.exceptions.core import ValidationError
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.ga4gh.annotators import GA4GHVRSService
-from niagads.common.variant.models.record import Variant as _BaseVariant
+from niagads.ga4gh.models import GA4GHVariantRecord
 
 from niagads.utils.list import qw
 from niagads.utils.logging import ExitOnExceptionHandler, async_timed
@@ -58,7 +58,7 @@ class AlleleValidationStatus(Enum):
     VALID_IF_SWAPPED = auto()
 
 
-class Variant(_BaseVariant):
+class Variant(GA4GHVariantRecord):
     test: str
     effect_sign_change: bool = False
     unverified: bool = False

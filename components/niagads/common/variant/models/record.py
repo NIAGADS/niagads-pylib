@@ -2,31 +2,32 @@
 
 from typing import Optional
 
-from ga4gh.vrs.models import Allele
 from niagads.common.genomic.regions.models import GenomicRegion
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.variant.types import VariantClass
 from niagads.genome_reference.human import HumanGenome
+from niagads.utils.regular_expressions import RegularExpressions
 from pydantic import Field, model_validator
 
 
-class Variant(CustomBaseModel):
+class VariantRecord(CustomBaseModel):
     location: GenomicRegion
     ref: str
     alt: str
-    variant_class: VariantClass
+    variant_class: VariantClass = Field(default=VariantClass.SNV)
 
-    ref_snp_id: Optional[str] = None
-    positional_id: Optional[str] = None
-    normalized_positional_id: Optional[str] = None
-    niagads_unique_id: Optional[str] = Field(
-        default=None, description="unique variant identifier in NIAGADS resources"
+    ref_snp_id: Optional[str] = Field(default=None, pattern=RegularExpressions.REFSNP)
+    positional_id: str = Field(pattern=RegularExpressions.POSITIONAL_VARIANT_ID)
+    normalized_positional_id: Optional[str] = Field(
+        default=None, pattern=RegularExpressions.POSITIONAL_VARIANT_ID
     )
-    ga4gh_vrs_allele: Optional[Allele] = None
+
+    # positional ID or SV/long INDEL ID
+    id: str = Field(title="Variant ID", description="stable NIAGADS variant ID")
 
     def __str__(self):
-        if self.niagads_unique_id is not None:
-            return self.niagads_unique_id
+        if self.id is not None:
+            return self.id
         else:
             if self.variant_class.is_structural_variant():
                 return (

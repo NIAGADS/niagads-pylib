@@ -1,4 +1,5 @@
 from typing import Optional
+from niagads.common.genomic.regions.models import GenomicRegion
 from niagads.common.models.base import CustomBaseModel
 from pydantic import Field
 
@@ -11,6 +12,13 @@ class GeneIdentifier(CustomBaseModel):
         description="official gene symbol",
         serialization_alias="symbol",
     )
+
+    def __str__(self):
+        return self.id
+
+
+class GeneRecord(GeneIdentifier):
+    location: GenomicRegion
 
     def __str__(self):
         return self.id

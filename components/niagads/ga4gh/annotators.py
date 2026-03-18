@@ -10,8 +10,8 @@ from ga4gh.vrs.models import Allele, SequenceLocation, SequenceReference
 from ga4gh.vrs.normalize import normalize as vrs_normalize
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.genomic.regions.models import GenomicRegion
-from niagads.common.variant.models.record import Variant
 from niagads.exceptions.core import ValidationError
+from niagads.ga4gh.models import GA4GHVariantRecord
 from niagads.ga4gh.types import VariantNomenclature
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
 
@@ -34,7 +34,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             genome_build, seqrepo_service_url, debug=debug, verbose=verbose
         )
 
-    def primary_key(self, variant: Variant, require_validation: bool = True):
+    def primary_key(self, variant: GA4GHVariantRecord, require_validation: bool = True):
         if variant.variant_class.is_structural_variant():
             return self.sv_primary_key(variant)
 
@@ -45,7 +45,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         else:  # SNV / MNV - no normalization necessary
             return variant.positional_id
 
-    def sv_primary_key(self, variant: Variant):
+    def sv_primary_key(self, variant: GA4GHVariantRecord):
         """
         Generate a unique primary key for a structural variant (SV) using a hashed
         GA4GH VRS SequenceLocation.
@@ -98,7 +98,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         return primary_key
 
     def short_indel_primary_key(
-        self, variant: Variant, require_validation: bool = True
+        self, variant: GA4GHVariantRecord, require_validation: bool = True
     ):
         """
         Generate a primary key for a short indel variant.
