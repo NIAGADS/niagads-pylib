@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 from typing import Union
 
 from ga4gh.core import ga4gh_identify
@@ -8,70 +9,16 @@ from ga4gh.vrs.extras.translator import AlleleTranslator
 from ga4gh.vrs.models import Allele, SequenceLocation, SequenceReference
 from ga4gh.vrs.normalize import normalize as vrs_normalize
 from niagads.common.core import ComponentBaseMixin
-from niagads.enums.core import CaseInsensitiveEnum
+from niagads.common.genomic.regions.models import GenomicRegion
+from niagads.common.variant.models.record import Variant
 from niagads.exceptions.core import ValidationError
-from niagads.common.region.models import GenomicRegion
-from niagads.genomics.features.variant.models import Variant
-from niagads.genome_reference.human import HumanGenome
-from niagads.genome_reference.human import GenomeBuild
-from niagads.utils.regular_expressions import RegularExpressions
-from niagads.utils.string import matches
+from niagads.ga4gh.types import VariantNomenclature
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 
-
-# hopefull disable seqrepo INFO notices for each request to the service
-import logging
-
+# hopefullu disable seqrepo INFO notices for each request to the service
 logging.getLogger("ga4gh.vrs").setLevel(logging.WARNING)
 logging.getLogger("seqrepo").setLevel(logging.WARNING)
 # logging.getLogger("requests").setLevel(logging.WARNING)
-
-
-class VariantNomenclature(CaseInsensitiveEnum):
-    HGVS = "hgvs"
-    SPDI = "spdi"
-    BEACON = "beacon"
-    GNOMAD = "gnomad"
-    POSITIONAL = "positional"
-
-    def regexp_map(self):
-        match self.name:
-            case "HGVS":
-                return RegularExpressions.HGVS
-            case "SPDI":
-                return RegularExpressions.SPDI
-            case "BEACON":
-                return RegularExpressions.BEACON_VARIANT_ID
-            case "GNOMAD":
-                return RegularExpressions.GNOMAD_VARIANT_ID
-            case "POSITIONAL":
-                return RegularExpressions.POSITIONAL_VARIANT_ID
-            case _:
-                raise ValueError(f"Unknown variant nomenclature: {self.name}")
-
-    def is_valid(self, variant_id: str, fail_on_error: bool = False) -> bool:
-        is_valid = matches(self.regexp_map(), variant_id)
-        if not is_valid and fail_on_error:
-            raise ValueError(f"Invalid '{self.name}' variant: {variant_id}.")
-        else:
-            return is_valid
-
-    @classmethod
-    def convert_positional_to_gnomad(cls, variant_id: str):
-        if cls.POSITIONAL.is_valid(variant_id):
-            return variant_id.replace(":", "-")
-        else:
-            raise ValueError(
-                f"Cannot convert: '{variant_id}' is not a valid 'POSITIONAL' variant identifier."
-            )
-
-    @classmethod
-    def convert_gnomad_to_positional(cls, variant_id: str):
-        if cls.GNOMAD.is_valid(variant_id):
-            return variant_id.replace("-", ":")
-        else:
-            raise ValueError(
-                f"Cannot convert: '{variant_id}' is not a valid 'GNOMAD' variant identifier."
-            )
 
 
 class PrimaryKeyGenerator(ComponentBaseMixin):

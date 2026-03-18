@@ -5,8 +5,8 @@ from typing import Optional
 from ga4gh.vrs.models import Allele
 from niagads.common.genomic.regions.models import GenomicRegion
 from niagads.common.models.base import CustomBaseModel
+from niagads.common.variant.types import VariantClass
 from niagads.genome_reference.human import HumanGenome
-from niagads.genomics.features.variant.types import VariantClass
 from pydantic import Field, model_validator
 
 
