@@ -18,7 +18,7 @@ from niagads.common.track.models import (
     BaseTrack,
 )
 from niagads.common.track.models.phenotypes import PhenotypeCount
-from niagads.genomics.features.core import GenomicFeatureType
+from niagads.common.genomic.features.models import GenomicFeatureType
 from niagads.genome_reference.human import GenomeBuild
 from niagads.utils.dict import promote_nested
 from pydantic import Field, model_validator

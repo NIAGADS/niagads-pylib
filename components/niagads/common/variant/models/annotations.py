@@ -1,10 +1,8 @@
-from copy import deepcopy
-from enum import auto
 from typing import List, Optional
+
+from niagads.common.gene.models.record import GeneIdentifier
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.variant.types import ConsequenceImpact
-from niagads.enums.core import CaseInsensitiveEnum
-from niagads.genomics.features.gene.models import GeneDescriptor
 from pydantic import BaseModel, Field
 
 
@@ -53,7 +51,7 @@ class PredictedConsequenceSummary(CustomBaseModel):
     is_coding: Optional[bool] = Field(
         default=False, serialization_alias="is_coding", title="Is Coding?"
     )
-    impacted_gene: Optional[GeneDescriptor] = Field(default=None, title="Impacted Gene")
+    impacted_gene: Optional[GeneIdentifier] = Field(default=None, title="Impacted Gene")
     impacted_transcript: Optional[str] = Field(
         default=None, title="Impacted Transcript"
     )
@@ -75,7 +73,7 @@ class PredictedConsequenceSummary(CustomBaseModel):
             impact=ConsequenceImpact(v["impact"]),
             is_coding=v.get("consequence_is_coding", False),
             impacted_gene=(
-                GeneDescriptor(**impactedGene) if impactedGene is not None else None
+                GeneIdentifier(**impactedGene) if impactedGene is not None else None
             ),
             impacted_transcript=v.get("transcript_id"),
             codon_change=v.get("codons"),

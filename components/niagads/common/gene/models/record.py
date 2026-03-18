@@ -3,7 +3,7 @@ from niagads.common.models.base import CustomBaseModel
 from pydantic import Field
 
 
-class GeneDescriptor(CustomBaseModel):
+class GeneIdentifier(CustomBaseModel):
     id: str = Field(title="Ensembl ID", description="Ensembl gene identifier")
     gene_symbol: Optional[str] = Field(
         default=None,

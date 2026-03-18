@@ -1,18 +1,9 @@
-from enum import auto
-
+from niagads.common.genomic.features.types import GenomicFeatureType
 from niagads.common.models.types import Range
-from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome_reference.human import HumanGenome
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 from pydantic import BaseModel, model_validator
-
-
-class GenomicFeatureType(CaseInsensitiveEnum):
-    GENE = auto()
-    VARIANT = auto()
-    STRUCTURAL_VARIANT = auto()
-    REGION = auto()
 
 
 class GenomicFeature(BaseModel):

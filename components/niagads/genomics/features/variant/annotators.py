@@ -10,7 +10,7 @@ from ga4gh.vrs.normalize import normalize as vrs_normalize
 from niagads.common.core import ComponentBaseMixin
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError
-from niagads.genomics.features.region.core import GenomicRegion
+from niagads.common.region.models import GenomicRegion
 from niagads.genomics.features.variant.models import Variant
 from niagads.genome_reference.human import HumanGenome
 from niagads.genome_reference.human import GenomeBuild

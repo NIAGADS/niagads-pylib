@@ -7,7 +7,6 @@ from niagads.api.common.models.annotations.associations import (
     AssociationTrait,
     GeneticAssociationResponse,
 )
-from niagads.genomics.features.core import GenomicFeature
 from niagads.api.common.models.features.variant import (
     AbridgedVariantResponse,
     VariantAnnotationResponse,
@@ -40,6 +39,7 @@ from niagads.api.genomicsdb.queries.records.variant import (
     VariantRecordQuery,
 )
 from niagads.api.genomicsdb.services.route import GenomicsRouteHelper, QueryOptions
+from niagads.common.genomic.features.models import GenomicFeature
 
 router = APIRouter(
     prefix="/record/variant",

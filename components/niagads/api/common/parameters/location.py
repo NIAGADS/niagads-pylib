@@ -1,9 +1,9 @@
 from fastapi import Query
-from niagads.exceptions.core import ValidationError
-from niagads.genome_reference.human import GenomeBuild
-from niagads.genomics.features.core import GenomicFeature, GenomicFeatureType
-from niagads.genome_reference.human import HumanGenome
 from niagads.api.common.utils import sanitize
+from niagads.common.genomic.features.models import GenomicFeature
+from niagads.common.genomic.features.types import GenomicFeatureType
+from niagads.exceptions.core import ValidationError
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 
 
 async def assembly_param(

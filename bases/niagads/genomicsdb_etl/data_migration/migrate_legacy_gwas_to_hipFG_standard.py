@@ -9,22 +9,21 @@ that will not be valid for future instantiations of the database.
 
 import argparse
 import asyncio
-from enum import Enum, auto
 import logging
 import os
+from enum import Enum, auto
 from typing import AsyncGenerator
 
 from niagads.arg_parser.core import comma_separated_list
 from niagads.bed.utils import bed_file_sort
 from niagads.common.core import ComponentBaseMixin
-
+from niagads.common.genomic.regions.models import GenomicRegion
+from niagads.database.session import DatabaseSessionManager
 from niagads.exceptions.core import ValidationError
-from niagads.genomics.features.region.core import GenomicRegion
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.genomics.features.variant.annotators import GA4GHVRSService
 from niagads.genomics.features.variant.models import Variant as _BaseVariant
 from niagads.genomics.features.variant.types import VariantClass
-from niagads.genome_reference.human import GenomeBuild, HumanGenome
-from niagads.database.session import DatabaseSessionManager
 from niagads.utils.list import qw
 from niagads.utils.logging import ExitOnExceptionHandler, async_timed
 from niagads.utils.string import dict_to_info_string, xstr

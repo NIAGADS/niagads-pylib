@@ -1,6 +1,6 @@
 from typing import Optional
 from niagads.api.common.models.base import RowModel
-from niagads.genomics.features.region.core import GenomicRegion as __BaseGenomicRegion
+from niagads.common.region.models import GenomicRegion as __BaseGenomicRegion
 from pydantic import Field
 
 
