@@ -16,3 +16,21 @@ class ProcessStatus(CaseInsensitiveEnum):
     SUCCESS = auto()
     FAIL = auto()
     RUNNING = auto()
+
+
+# placed here to avoid creating a dependency in the `database` component on the `etl` component
+class ETLOperation(CaseInsensitiveEnum):
+    """
+    Type of ETL operation:
+    - LOAD: Insert new or Update existing records.
+    - UPDATE: Update existing records.
+    - DELETE: Delete records.
+    - INSERT: Insert new records.
+    - SKIP: Skip a record
+    """
+
+    INSERT = auto()
+    UPDATE = auto()
+    LOAD = auto()
+    DELETE = auto()
+    SKIP = auto()

@@ -6,8 +6,11 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 
 """
 
-from lxml import etree
+import importlib.resources
 from typing import Any, Dict, Iterator, List, Optional, Type
+
+from lxml import etree
+from niagads.common.types import ETLOperation
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
@@ -16,10 +19,9 @@ from niagads.etl.plugins.parameters import (
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import ETLOperation, ETLLoadStrategy
-from pydantic import Field, ConfigDict, BaseModel, computed_field
+from niagads.etl.plugins.types import ETLLoadStrategy
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy import text
-import importlib.resources
 
 
 class SQLClauses(BaseModel):

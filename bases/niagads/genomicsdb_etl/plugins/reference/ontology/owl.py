@@ -7,23 +7,23 @@ Loads an ontology from an OWL file into the reference ontology graph schema.
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, Optional, Union
 
+from niagads.common.reference.ontologies.helpers import get_field_iri
 from niagads.common.reference.ontologies.types import (
     AnnotationPropertyIRI,
     EntityTypeIRI,
     RDFPropertyIRI,
 )
-from niagads.common.reference.ontologies.helpers import get_field_iri
-from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
-from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import ETLLoadStrategy, ResumeCheckpoint
-from niagads.etl.plugins.types import ETLOperation
+from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.ontology import (
     OntologyGraphTermVertex,
     OntologyTerm,
 )
+from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.metadata import PluginMetadata
+from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.registry import PluginRegistry
+from niagads.etl.plugins.types import ETLLoadStrategy, ResumeCheckpoint
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )

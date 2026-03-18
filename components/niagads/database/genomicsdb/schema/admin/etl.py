@@ -7,11 +7,10 @@ These models support auditing, monitoring, and debugging of ETL processes in the
 from datetime import datetime
 from enum import auto
 
-from niagads.database.helpers import datetime_column, enum_column, enum_constraint
-from niagads.common.types import ProcessStatus
+from niagads.common.types import ETLOperation, ProcessStatus
 from niagads.database.genomicsdb.schema.admin.base import AdminTableBase
 from niagads.database.genomicsdb.schema.admin.helpers import etlrun_fk_column
-from niagads.etl.plugins.types import ETLOperation
+from niagads.database.helpers import datetime_column, enum_column, enum_constraint
 from sqlalchemy import String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column

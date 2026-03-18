@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Type, Union
 
 import psutil
 from niagads.common.core import ComponentBaseMixin
-from niagads.common.types import ProcessStatus
+from niagads.common.types import ProcessStatus, ETLOperation
 from niagads.database.session import DatabaseSessionManager
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger
@@ -13,7 +13,6 @@ from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.etl.plugins.types import (
     ETLLoadStrategy,
-    ETLOperation,
     ETLRunStatus,
     ResumeCheckpoint,
 )
