@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from niagads.common.models.variants.annotations import (
+from niagads.common.variant.models.annotations import (
     CADDScore,
     PredictedConsequenceSummary,
     QCStatus,
