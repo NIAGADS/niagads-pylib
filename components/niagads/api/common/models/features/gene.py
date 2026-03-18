@@ -1,8 +1,8 @@
 from typing import Dict, List, Optional, Union
 
-from niagads.common.models.annotations.gene import (
-    GOAnnotation,
-    PathwayAnnotation,
+from niagads.common.models.genes.annotation import (
+    GOAssociation,
+    PathwayMembership,
 )
 from niagads.api.common.models.base import RowModel
 from niagads.api.common.models.response.record import RecordResponse
@@ -71,8 +71,8 @@ class Gene(GeneFeature):
 
 class AnnotatedGene(Gene):
     nomenclature: Optional[Dict[str, Union[str, int]]] = None
-    go_annotation: Optional[List[GOAnnotation]] = None
-    pathway_membership: Optional[List[PathwayAnnotation]] = None
+    go_annotation: Optional[List[GOAssociation]] = None
+    pathway_membership: Optional[List[PathwayMembership]] = None
 
     def as_info_string(self):
         raise NotImplementedError("Not implemented for Annotated Genes")
@@ -84,7 +84,7 @@ class AnnotatedGene(Gene):
         raise NotImplementedError("Not implemented for Annotated Genes")
 
 
-class GeneFunction(GOAnnotation, RowModel):
+class GeneFunction(GOAssociation, RowModel):
     def __str__(self):
         return self.as_info_string()
 
@@ -97,7 +97,7 @@ class GeneFunction(GOAnnotation, RowModel):
         return obj
 
 
-class GenePathwayMembership(PathwayAnnotation, RowModel):
+class GenePathwayMembership(PathwayMembership, RowModel):
     def __str__(self):
         return self.as_info_string()
 

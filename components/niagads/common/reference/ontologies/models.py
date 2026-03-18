@@ -1,19 +1,11 @@
-"""
-Ontology term and relationship models for GenomicsDB ETL plugins.
-
-Defines Pydantic models for representing ontology terms and RDF relationships
-in the reference ontology graph schema. Used for metadata extraction,
-validation, and graph construction in ontology loader plugins.
-"""
-
 from typing import Optional, Union
-from niagads.common.models.base import TransformableModel
+from niagads.common.models.base import CustomBaseModel
 from niagads.utils.regular_expressions import RegularExpressions
-from niagads.utils.string import dict_to_info_string, matches, to_snake_case
-from pydantic import BaseModel, Field, field_validator, model_validator
+from niagads.utils.string import dict_to_info_string, matches
+from pydantic import Field, field_validator, model_validator
 
 
-class OntologyTerm(TransformableModel):
+class OntologyTerm(CustomBaseModel):
     """
     Pydantic model representing a term in an ontology graph.
 

@@ -1,6 +1,7 @@
 # TODOs
 
 * get_field_iri is in a helper, move to an OntologyTerm object/model
+* get rid of `TrackDataStore` add `is_filer_track` to track & track collection, exclude from serialization
 
 ## API
 

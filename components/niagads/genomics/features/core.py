@@ -1,6 +1,6 @@
 from enum import auto
 
-from niagads.common.models.structures import Range
+from niagads.common.models.types import Range
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.utils.regular_expressions import RegularExpressions

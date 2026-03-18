@@ -8,7 +8,7 @@ Intended for use alongside the ontology graph schema for comprehensive ontology 
 from typing import Optional
 from uuid import uuid4
 
-from niagads.common.constants.ontologies import EntityTypeIRI
+from niagads.common.reference.ontologies.types import EntityTypeIRI
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.genomicsdb.schema.reference.base import ReferenceTableBase

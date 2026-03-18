@@ -3,10 +3,10 @@ from os.path import basename
 from typing import List, Union
 from urllib.parse import unquote
 
-from niagads.common.constants.external_resources import ThirdPartyResources
-from niagads.common.constants.ontologies import BiosampleType
-from niagads.common.models.ontologies import OntologyTerm
-from niagads.common.models.metadata import (
+from niagads.common.models.reference.xrefs.data_sources import ThirdPartyResources
+from niagads.common.reference.ontologies.types import BiosampleType
+from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.tracks.models import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,

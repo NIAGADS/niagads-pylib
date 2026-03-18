@@ -1,11 +1,11 @@
 from typing import List, Optional, Set
 
-from niagads.common.models.base import TransformableModel
-from niagads.common.models.ontologies import OntologyTerm
+from niagads.common.models.base import CustomBaseModel
+from niagads.common.reference.ontologies.models import OntologyTerm
 from pydantic import Field
 
 
-class ExperimentalDesign(TransformableModel):
+class ExperimentalDesign(CustomBaseModel):
     antibody_target: Optional[str] = Field(
         default=None,
         title="Antibody Target",
@@ -34,14 +34,3 @@ class ExperimentalDesign(TransformableModel):
         description="data are lifted from earlier genome build",
     )
     covariates: Optional[List[OntologyTerm]] = Field(default=None, title="Covariates")
-
-    def __str__(self):
-        return self.as_info_string()
-
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = super()._flat_dump(null_free, delimiter=delimiter)
-        if self.covariates is not None:
-            obj["covarites"] = self._list_to_string(
-                self.covariates, delimiter=delimiter
-            )
-        return obj

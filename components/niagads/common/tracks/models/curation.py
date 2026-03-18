@@ -1,7 +1,7 @@
 from enum import auto
 from typing import Optional
 
-from niagads.common.models.base import TransformableModel
+from niagads.common.models.base import CustomBaseModel
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import Field
 
@@ -26,7 +26,7 @@ class CurationActorType(CaseInsensitiveEnum):
     PIPELINE = auto()
 
 
-class CurationEvent(TransformableModel):
+class CurationEvent(CustomBaseModel):
     """Record of a single curation/processing action applied to a Track.
 
     Minimal, user-facing fields only. Designed to be serialised as part of

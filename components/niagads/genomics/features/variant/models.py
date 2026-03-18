@@ -2,14 +2,14 @@
 
 from typing import Optional
 from ga4gh.vrs.models import Allele
-from niagads.common.models.base import TransformableModel
+from niagads.common.models.base import CustomBaseModel
 from niagads.genomics.features.region.core import GenomicRegion
 from niagads.genomics.features.variant.types import VariantClass
 from niagads.genomics.sequence.assembly import HumanGenome
 from pydantic import Field, model_validator
 
 
-class Variant(TransformableModel):
+class Variant(CustomBaseModel):
     location: GenomicRegion
     ref: str
     alt: str

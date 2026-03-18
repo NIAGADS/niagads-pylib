@@ -1,16 +1,15 @@
 from typing import List, Optional, Union
 
-from niagads.common.constants.ontologies import BiosampleType
-from niagads.common.models.base import TransformableModel
-from niagads.common.models.ontologies import OntologyTerm
+from niagads.common.models.base import CustomBaseModel
+from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.types import BiosampleType
 from pydantic import Field
-
 
 # TODO - how to handle biosample/biosample_type pairing, should we make another model?
 # impact on metadata intake?
 
 
-class BiosampleCharacteristics(TransformableModel):
+class BiosampleCharacteristics(CustomBaseModel):
     biosample: List[OntologyTerm] = Field(
         default=None,
         title="Biosample",
@@ -39,18 +38,3 @@ class BiosampleCharacteristics(TransformableModel):
         description="donor or sample life stage",
         json_schema_extra={"is_filer_annotation": True},
     )
-
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = {
-            k: (
-                self._list_to_string(v, delimiter=delimiter)
-                if isinstance(v, list) and k != "biosample"
-                else v
-            )
-            for k, v in super()._flat_dump(null_free=null_free).items()
-        }
-        if self.biosample is not None:
-            # have to redo b/c its been serialized above
-            obj["biosample"] = self._list_to_string(self.biosample, delimiter=delimiter)
-
-        return obj

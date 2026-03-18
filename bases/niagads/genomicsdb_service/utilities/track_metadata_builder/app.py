@@ -4,11 +4,11 @@ import json
 from datetime import date
 from pathlib import Path
 from typing import Any, Callable, Union
-from niagads.common.models.ontologies import OntologyTerm
+from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.tracks.models.track import BaseTrack
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 import streamlit as st
-from niagads.api.common.models.datasets.track import Track
 from niagads.common.core import ComponentBaseMixin
 from niagads.genomicsdb_service.utilities.track_metadata_builder.forms import (
     FormMetadata,
@@ -78,7 +78,7 @@ class OntologyMap(ComponentBaseMixin):
 
 
 class MetadataBuilderApp(ComponentBaseMixin):
-    """Streamlit application for track metadata form intake and serialization."""
+    """Streamlit application for metadata form intake and serialization."""
 
     def __init__(
         self,
@@ -449,7 +449,7 @@ class MetadataBuilderApp(ComponentBaseMixin):
                 for error in validation_errors:
                     st.error(error)
             else:
-                # Validate by instantiating the Track model
+                # Validate by instantiating the model
                 result: BaseModel = self.__pydantic_model(**processed_data)
 
                 # Success
@@ -507,8 +507,8 @@ class MetadataBuilderApp(ComponentBaseMixin):
             unsafe_allow_html=True,
         )
 
-        st.title("Track Metadata Builder")
-        st.markdown("Enter track metadata below.")
+        st.title(f"{self.__app_name}")
+        st.markdown("Enter metadata below.")
 
         # Define deserializers for form fields
 
@@ -528,7 +528,7 @@ class MetadataBuilderApp(ComponentBaseMixin):
 
         self.__renderer.form_version = st.session_state["form_version"]
 
-        with st.form("track_metadata_form", enter_to_submit=False):
+        with st.form("metadata_form", enter_to_submit=False):
             form_data = self.__renderer.render_form(initial_form_data=loaded_form_data)
             # clear after use
             if "initial_form_data" in st.session_state:
@@ -908,7 +908,7 @@ class FormRenderer(ComponentBaseMixin):
 def main():
     ontology_reference_file = Path(__file__).resolve().parent / "ontology_reference.txt"
     app = MetadataBuilderApp(
-        pydantic_model=Track,
+        pydantic_model=BaseTrack,
         application_name="GenomicsDB Track Metadata Builder",
         ontology_reference_file=ontology_reference_file,
         download_qualifier="track-metadata",

@@ -1,9 +1,9 @@
 from typing import Optional
-from niagads.common.models.base import TransformableModel
+from niagads.common.models.base import CustomBaseModel
 from pydantic import Field
 
 
-class GeneDescriptor(TransformableModel):
+class GeneDescriptor(CustomBaseModel):
     id: str = Field(title="Ensembl ID", description="Ensembl gene identifier")
     gene_symbol: Optional[str] = Field(
         default=None,

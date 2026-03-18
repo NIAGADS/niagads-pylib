@@ -7,12 +7,12 @@ Loads an ontology from an OWL file into the reference ontology graph schema.
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, Optional, Union
 
-from niagads.common.constants.ontologies import (
+from niagads.common.reference.ontologies.types import (
     AnnotationPropertyIRI,
     EntityTypeIRI,
     RDFPropertyIRI,
 )
-from niagads.common.helpers.ontologies import get_field_iri
+from niagads.common.reference.ontologies.helpers import get_field_iri
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin

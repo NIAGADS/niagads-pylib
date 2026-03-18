@@ -9,12 +9,13 @@ ORM compatible Row Models can be insantiated from SQLAlchemy results
 from typing import Any, Dict, List, TypeVar
 
 from niagads.api.common.views.table import TableCellType, TableColumn, TableRow
+from niagads.common.models.base import CustomBaseModel
 from niagads.utils.list import list_to_string
 from niagads.utils.string import dict_to_info_string
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class RowModel(BaseModel):
+class RowModel(CustomBaseModel):
     """
     The RowModel base class defines class methods
     expected for these objects to generate standardized API responses
@@ -35,6 +36,7 @@ class RowModel(BaseModel):
         """function for creating a flat dump; i.e., flattens nested models, lists to strings
         for table views, etc"""
         for k, v in self.__dict__.items():
+            # FIXME  - this typing might be wrong - CustomBaseModel? T_BaseModel?
             if isinstance(v, (dict, BaseModel)):
                 raise NotImplementedError(
                     f"Field '{k}' in '{self.__class__.__name__}' is complex (type: {type(v).__name__}). "

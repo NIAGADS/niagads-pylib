@@ -5,7 +5,7 @@ This module provides utilities for working with ontology field/property mappings
 especially for use in ETL and graph schema construction.
 """
 
-from niagads.common.constants.ontologies import AnnotationPropertyIRI
+from niagads.common.reference.ontologies.types import AnnotationPropertyIRI
 
 
 def get_field_iri(field: str, preferred=True) -> str:

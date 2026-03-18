@@ -27,7 +27,7 @@ from niagads.api.genomicsdb.queries.track_data import (
     TrackGWASSumStatQuery,
     TrackQTLGeneQuery,
 )
-from niagads.common.models.structures import Range
+from niagads.common.models.types import Range
 from niagads.common.constants.track import TrackDataStore
 from niagads.exceptions.core import ValidationError
 from niagads.genomicsdb.schema.dataset.track import Track

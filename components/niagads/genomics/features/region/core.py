@@ -1,6 +1,6 @@
 from typing import Optional
 
-from niagads.common.models.structures import Range
+from niagads.common.models.types import Range
 from niagads.genomics.sequence.assembly import HumanGenome
 from niagads.genomics.sequence.core import Strand
 from pydantic import Field, field_serializer

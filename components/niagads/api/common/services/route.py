@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional, Type, Union
 
 from fastapi import Response
 from niagads.genomics.features.core import GenomicFeature
-from niagads.common.models.structures import Range
+from niagads.common.models.types import Range
 from niagads.exceptions.core import ValidationError
 from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from niagads.api.common.models.response.base import (

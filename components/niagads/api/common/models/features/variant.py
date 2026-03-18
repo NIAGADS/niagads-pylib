@@ -1,11 +1,11 @@
 from typing import List, Optional, Union
 
-from niagads.common.models.annotations.variant import (
+from niagads.common.models.variants.annotations import (
     CADDScore,
     PredictedConsequenceSummary,
     QCStatus,
 )
-from niagads.common.models.base import TransformableModel
+from niagads.common.models.base import CustomBaseModel
 from niagads.api.common.views.table import TableRow
 from niagads.api.common.models.features.region import GenomicRegion
 
@@ -175,7 +175,7 @@ class AnnotatedVariant(Variant):
             raise RuntimeError("Unexpected value returned for `adsp_qc` status")
 
 
-class FrequencyPopulation(TransformableModel):
+class FrequencyPopulation(CustomBaseModel):
     abbreviation: str = Field(title="Population")
     population: str = Field(title="Population")
     description: Optional[str] = None

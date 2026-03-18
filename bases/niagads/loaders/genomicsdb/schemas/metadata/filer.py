@@ -6,8 +6,8 @@ from typing import List, Optional
 from niagads.arg_parser.core import case_insensitive_enum_type
 
 # from niagads.genomicsdb.schema.dataset.track import Track
-from niagads.common.constants.external_resources import NIAGADSResources
-from niagads.common.models.metadata import (
+from niagads.common.models.reference.xrefs.data_sources import NIAGADSResources
+from niagads.common.tracks.models import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,

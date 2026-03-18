@@ -1,12 +1,12 @@
 import json
 from typing import List, Optional
 
-from niagads.common.models.base import TransformableModel
-from niagads.common.models.ontologies import OntologyTerm
+from niagads.common.models.base import CustomBaseModel
+from niagads.common.reference.ontologies.models import OntologyTerm
 from pydantic import Field, field_serializer
 
 
-class PhenotypeCount(TransformableModel):
+class PhenotypeCount(CustomBaseModel):
     phenotype: Optional[OntologyTerm] = None
     num_cases: int
     num_controls: Optional[int] = None
@@ -19,7 +19,7 @@ class PhenotypeCount(TransformableModel):
         return str(self.phenotype) if self.phenotype is not None else None
 
 
-class Phenotype(TransformableModel):
+class Phenotype(CustomBaseModel):
     disease: Optional[List[OntologyTerm]] = Field(default=None, title="Disease")
     neuropathology: Optional[List[OntologyTerm]] = Field(
         default=None,
@@ -45,13 +45,6 @@ class Phenotype(TransformableModel):
     genotype: Optional[List[OntologyTerm]] = Field(default=None, title="Genotype")
     gender: Optional[List[OntologyTerm]] = Field(default=None, title="Gender")
 
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = {
-            k: self._list_to_string(v, delimiter=delimiter)
-            for k, v in super()._flat_dump(null_free=null_free)
-        }
-        return obj
-
     def get_ontology_terms(self) -> List[OntologyTerm]:
         """Extract all ontology terms from phenotype fields.
 
@@ -69,11 +62,3 @@ class Phenotype(TransformableModel):
             if field_value and isinstance(field_value, list):
                 terms.extend(field_value)
         return terms
-
-    def as_table_row(self, **kwargs):
-        row = super().as_table_row(**kwargs)
-        if self.study_diagnosis is not None:
-            row.update(
-                "study_diagnosis",
-                {"value": json.dumps([d.model_dump() for d in self.study_diagnosis])},
-            )

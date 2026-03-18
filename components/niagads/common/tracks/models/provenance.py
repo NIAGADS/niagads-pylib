@@ -1,18 +1,18 @@
 from typing import Optional, Set
 
-from niagads.common.constants.external_resources import (
+from niagads.common.models.base import CustomBaseModel
+from niagads.common.reference.xrefs.data_sources import (
     Consortia,
     NIAGADSResources,
     ThirdPartyResources,
 )
-from niagads.common.models.base import TransformableModel
 from niagads.common.types import T_PubMedID
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 from pydantic import Field, computed_field, field_validator
 
 
-class Provenance(TransformableModel):
+class Provenance(CustomBaseModel):
     data_source: str = Field(
         default=NIAGADSResources.NIAGADS_DSS.name,
         title="Data Source",
@@ -62,17 +62,6 @@ class Provenance(TransformableModel):
     pubmed_id: Optional[Set[T_PubMedID]] = Field(default=None, title="PubMed ID")
     doi: Optional[Set[str]] = Field(default=None, title="DOI")
 
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = {
-            k: (
-                self._list_to_string(list(v), delimiter=delimiter)
-                if isinstance(v, set)
-                else str(v) if v is not None else v
-            )
-            for k, v in super()._flat_dump(null_free=null_free).items()
-        }
-        return obj
-
     @field_validator("doi", mode="after")
     def validate_doi(cls, values: Set[str]):
         """create validator b/c Pydantic does not support patterns w/lookaheads"""
@@ -101,11 +90,11 @@ class Provenance(TransformableModel):
                 return NIAGADSResources(dsKey).value
             except:
                 raise ValueError(
-                    f"Data source URL not found for {dsKey}. Please add to external_resources.ThirdParty."
+                    f"Data source URL not found for {dsKey}. Please add to data_sources.ThirdParty."
                 )
 
 
-class FileProperties(TransformableModel):
+class FileProperties(CustomBaseModel):
     file_name: str = Field(title="File Name")
     url: Optional[str] = Field(
         default=None,

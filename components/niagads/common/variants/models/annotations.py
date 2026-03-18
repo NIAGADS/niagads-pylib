@@ -1,34 +1,14 @@
 from copy import deepcopy
 from enum import auto
 from typing import List, Optional
-from niagads.common.models.base import TransformableModel
+from niagads.common.models.base import CustomBaseModel
+from niagads.common.variants.types import ConsequenceImpact
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genomics.features.gene.models import GeneDescriptor
 from pydantic import BaseModel, Field
 
 
-class ConsequenceImpact(CaseInsensitiveEnum):
-    HIGH = auto()
-    MODERATE = auto()
-    LOW = auto()
-    MODIFIER = auto()
-
-    @classmethod
-    def color(self):
-        match self.name:
-            case "HIGH" | "high":
-                return "#ff00ff"
-            case "MODERATE" | "moderate":
-                return "#f59300"
-            case "MODIFIER" | "modifier":
-                return "#377eb8"
-            case "LOW" | "low":
-                return "#377eb8"
-            case _:
-                raise ValueError(f"Invalid consequence impact: {str(self)}")
-
-
-class QCStatus(TransformableModel):
+class QCStatus(CustomBaseModel):
     status_code: str = Field(
         title="QC Status Code",
         description="specific QC status indicator; may vary with ADSP release",
@@ -49,7 +29,7 @@ class QCStatus(TransformableModel):
     # format: Optional[str]
 
 
-class CADDScore(TransformableModel):
+class CADDScore(CustomBaseModel):
     CADD_phred: float = Field(
         serialization_alias="phred",
         alias_priority=2,
@@ -67,7 +47,7 @@ class CADDScore(TransformableModel):
     )
 
 
-class PredictedConsequenceSummary(TransformableModel):
+class PredictedConsequenceSummary(CustomBaseModel):
     consequence_terms: List[str] = Field(title="Predicted Consequence(s)")
     impact: ConsequenceImpact = Field(title="Impact")
     is_coding: Optional[bool] = Field(
@@ -101,50 +81,6 @@ class PredictedConsequenceSummary(TransformableModel):
             codon_change=v.get("codons"),
             amino_acid_chnge=v.get("amino_acids"),
         )
-
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = super()._flat_dump(null_free, delimiter=delimiter)
-
-        # promote the gene fields
-        del obj["impacted_gene"]
-        geneObj = {}
-        if self.impacted_gene is not None:
-            geneObj.update(self.impacted_gene._flat_dump())
-        else:
-            geneObj.update(
-                {k: None for k in GeneDescriptor.get_model_fields(as_str=True)}
-            )
-        obj.update(
-            {
-                "impacted_gene_id": geneObj["id"],
-                "impacted_gene_symbol": geneObj["symbol"],
-            }
-        )
-
-        obj["consequence_terms"] = self._list_to_string(
-            self.consequence_terms, delimiter=delimiter
-        )
-        return obj
-
-    @classmethod
-    def get_model_fields(cls, as_str=False):
-        fields = super().get_model_fields()
-
-        del fields["impacted_gene"]
-        geneFields = deepcopy(GeneDescriptor.get_model_fields())
-
-        for k, info in geneFields.items():
-            fields.update(
-                {
-                    "impacted_gene" if k == "id" else "imaged_gene_symbo": Field(
-                        default=None,
-                        type=str,
-                        title=f"Impacted {info.title if k != 'id' else 'Gene'}",
-                    )
-                }
-            )
-
-        return list(fields.keys()) if as_str else fields
 
 
 class RankedPredictedConsequence(PredictedConsequenceSummary):

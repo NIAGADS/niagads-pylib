@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 from niagads.common.constants.track import TrackDataStore
-from niagads.common.models.metadata import (
+from niagads.common.tracks.models import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,

@@ -6,9 +6,9 @@ Defines the RAG document materialized view and related fields for querying gene 
 
 from typing import Optional, Self, cast
 
-from niagads.common.models.annotations.gene import (
-    GOAnnotation,
-    PathwayAnnotation,
+from niagads.common.models.genes.annotation import (
+    GOAssociation,
+    PathwayMembership,
 )
 from niagads.database.mixins import GenomicRegionMixin
 from niagads.genomicsdb.schema.gene.base import GeneMaterializedViewBase
@@ -39,10 +39,10 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
     synonyms: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=True)
     cytogenic_location: Mapped[str] = mapped_column(String(100), index=True)
     xrefs: Mapped[dict] = mapped_column(JSONB)
-    go_annotation: Mapped[Optional[GOAnnotation]] = mapped_column(
+    go_annotation: Mapped[Optional[GOAssociation]] = mapped_column(
         JSONB(none_as_null=True)
     )
-    pathway_membership: Mapped[Optional[PathwayAnnotation]] = mapped_column(
+    pathway_membership: Mapped[Optional[PathwayMembership]] = mapped_column(
         JSONB(none_as_null=True)
     )
     data_sources: Mapped[dict] = mapped_column(JSONB(none_as_null=True))
