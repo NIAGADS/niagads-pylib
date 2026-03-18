@@ -42,9 +42,9 @@ packages = [
     { from = "components", include = "niagads/excel_parser" },
     { from = "components", include = "niagads/exceptions" },
     { from = "components", include = "niagads/genomics" },
-    { from = "components", include = "niagads/genomicsdb" },
     { from = "components", include = "niagads/json_validator" },
     { from = "components", include = "niagads/metadata_parser" },
+    { from = "components", include = "niagads/metadata_serializer" },
     { from = "components", include = "niagads/metadata_validator" },
     { from = "components", include = "niagads/nlp" },
     { from = "components", include = "niagads/objects" },
@@ -100,12 +100,12 @@ sentence-transformers = "^5.2.2"
 spacy = "^3.8.11"
 sqlalchemy = "^2.0.40"
 sqlalchemy-utils = "^0.41.2"
+streamlit = "^1.55.0"
 strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
 wtforms = "^3.2.1"
-streamlit = "^1.55.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"

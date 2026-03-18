@@ -21,27 +21,25 @@ dependencies = [
 requires-python = ">=3.11,<4.0"
 version = "0.1.0"
 
+[project.scripts]
+gdb_add_user = "scripts.create_db_user:main"
+gdb_alembic = "scripts.alembic_wrapper:main"
+gdb_drop_user = "scripts.remove_db_user:main"
+gdb_metadata_diff = "scripts.metadata_diff:main"
+gdb_run_sql = "niagads.sql_runner.core:main"
+
 [tool.poetry]
 packages = [
     { from = ".", include = "helpers" },
+    { from = "../../bases", include = "niagads/sql_runner" },
     { from = "../../components", include = "niagads/common" },
     { from = "../../components", include = "niagads/database" },
     { from = "../../components", include = "niagads/enums" },
     { from = "../../components", include = "niagads/exceptions" },
     { from = "../../components", include = "niagads/genomics" },
-    { from = "../../components", include = "niagads/genomicsdb" },
     { from = "../../components", include = "niagads/settings" },
     { from = "../../components", include = "niagads/utils" },
-    { from = "../../bases", include = "niagads/sql_runner" },
 ]
-
-[project.scripts]
-gdb_run_sql = "niagads.sql_runner.core:main"
-gdb_add_user = "scripts.create_db_user:main"
-gdb_drop_user = "scripts.remove_db_user:main"
-gdb_alembic = "scripts.alembic_wrapper:main"
-gdb_metadata_diff = "scripts.metadata_diff:main"
-
 
 [tool.tomlsort]
 all = true

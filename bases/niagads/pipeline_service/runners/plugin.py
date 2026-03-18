@@ -1,7 +1,6 @@
 import asyncio
 import os
 import sys
-import traceback
 from typing import Any, Optional, Union, get_args, get_origin
 
 from niagads.arg_parser.core import (
@@ -14,7 +13,6 @@ from niagads.common.types import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.utils import register_plugins
 from pydantic import BaseModel, ValidationError
@@ -57,8 +55,8 @@ class PluginRunner(ComponentBaseMixin):
             if list_only:
                 available_plugins = "\n".join(PluginRegistry.list_plugins())
                 print(f"Available plugins:\n{available_plugins}")
-                sys.exit(0) 
-                       
+                sys.exit(0)
+
             self._plugin_cls = PluginRegistry.get(plugin_name)
         except ValidationError as err:
             if self._debug:
@@ -81,7 +79,7 @@ class PluginRunner(ComponentBaseMixin):
                 self.logger.exception(msg)
             else:
                 self.logger.error(f"{msg}: {e}")
-                
+
         self._params = {}
         self._argument_parser = argument_parser  # store parser for usage printing
         self._register_plugin_args()
@@ -213,15 +211,15 @@ class PluginRunner(ComponentBaseMixin):
             else:
                 self.logger.error(f"{msg}: {e}")
         if status == ProcessStatus.SUCCESS:
-            self.logger.info(f"Plugin '{self._plugin_cls.__name__}' completed successfully.")
+            self.logger.info(
+                f"Plugin '{self._plugin_cls.__name__}' completed successfully."
+            )
         else:
             msg = f"Plugin '{self._plugin_cls.__name__}' failed."
             if self._debug:
                 self.logger.exception(msg)
             else:
                 self.logger.error(f"{msg}: {e}")
-            
-   
 
 
 async def main():
