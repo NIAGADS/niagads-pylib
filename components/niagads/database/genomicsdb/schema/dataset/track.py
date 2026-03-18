@@ -11,7 +11,7 @@ from niagads.common.track.models import (
 )
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.database.mixins import GenomicRegionMixin
-from niagads.genomics.sequence.assembly import Assembly, HumanGenome
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.database.genomicsdb.schema.dataset.base import DatasetTableBase
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
@@ -27,7 +27,7 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     __tablename__ = "track"
     __table_args__ = (
         *ExternalDatabaseMixin.__table_args__,
-        enum_constraint("genome_build", Assembly),
+        enum_constraint("genome_build", GenomeBuild),
         enum_constraint("shard_chromosome", HumanGenome),
         Index(
             "ix_metadata_track_shard_root_track_id",
@@ -58,7 +58,7 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
 
-    genome_build: Mapped[str] = enum_column(Assembly)
+    genome_build: Mapped[str] = enum_column(GenomeBuild)
 
     feature_type: Mapped[str] = mapped_column(String(50), index=True)
     is_download_only: Mapped[bool] = mapped_column(default=False, index=True)

@@ -25,7 +25,7 @@ from niagads.api.filer.dependencies import (
 from niagads.api.filer.documentation import BASE_TAGS
 from niagads.api.filer.services.route import FILERRouteHelper
 from niagads.exceptions.core import ValidationError
-from niagads.genomics.sequence.assembly import Assembly
+from niagads.genome_reference.human import GenomeBuild
 
 router = APIRouter(
     prefix="/search",
@@ -49,7 +49,7 @@ router = APIRouter(
 async def search_track_metadata(
     filter=Depends(TEXT_FILTER_PARAMETER),
     keyword: str = Depends(keyword_param),
-    assembly: Assembly = Depends(assembly_param),
+    genome_build: GenomeBuild = Depends(assembly_param),
     page: int = Depends(page_param),
     content: str = Query(
         ResponseContent.FULL, description=ResponseContent.get_description(True)
@@ -85,7 +85,9 @@ async def search_track_metadata(
                 )
             ),
         ),
-        Parameters(page=page, assembly=assembly, filter=filter, keyword=keyword),
+        Parameters(
+            page=page, genome_build=genome_build, filter=filter, keyword=keyword
+        ),
     )
 
     return await helper.search_track_metadata()

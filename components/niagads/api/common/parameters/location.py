@@ -1,17 +1,17 @@
 from fastapi import Query
 from niagads.exceptions.core import ValidationError
-from niagads.genomics.sequence.assembly import Assembly
+from niagads.genome_reference.human import GenomeBuild
 from niagads.genomics.features.core import GenomicFeature, GenomicFeatureType
-from niagads.genomics.sequence.assembly import HumanGenome
+from niagads.genome_reference.human import HumanGenome
 from niagads.api.common.utils import sanitize
 
 
 async def assembly_param(
-    assembly: Assembly = Query(
-        Assembly.GRCh38, description="reference genome build (assembly)"
+    genome_build: GenomeBuild = Query(
+        GenomeBuild.GRCh38, description="reference genome build"
     )
 ):
-    return Assembly.validate(assembly, "Genome Build", Assembly)
+    return GenomeBuild.validate(genome_build, "Genome Build", GenomeBuild)
 
 
 async def chromosome_param(

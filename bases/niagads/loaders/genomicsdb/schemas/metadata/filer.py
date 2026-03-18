@@ -16,7 +16,7 @@ from niagads.common.track.models import (
 )
 
 from niagads.database.genomicsdb.schema.dataset.track import Track
-from niagads.genomics.sequence.assembly import Assembly, HumanGenome
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.database.helpers import enum_column
 from niagads.loaders.core import AbstractDataLoader
 from niagads.metadata_parser.filer import MetadataTemplateParser
@@ -47,7 +47,7 @@ class Track(Base):
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
 
-    genome_build: Mapped[str] = enum_column(Assembly)
+    genome_build: Mapped[str] = enum_column(GenomeBuild)
 
     feature_type: Mapped[str] = mapped_column(String(50), index=True)
     is_download_only: Mapped[bool] = mapped_column(default=False, index=True)
@@ -101,7 +101,7 @@ class TrackMetadataLoader(AbstractDataLoader):
         template: str,
         databaseUri: str,
         dataStore: TrackDataStore,
-        genomeBuild: Assembly = Assembly.GRCh38,
+        genomeBuild: GenomeBuild = GenomeBuild.GRCh38,
         apiUrl: str = NIAGADSResources.FILER_API,
         downloadUrl: str = NIAGADSResources.FILER_DOWNLOADS,
         commit: bool = False,
@@ -118,7 +118,7 @@ class TrackMetadataLoader(AbstractDataLoader):
         self.__parser = MetadataTemplateParser(
             template, self.__downloadUrl, debug=self._debug, verbose=self._verbose
         )
-        self.__genomeBuild: Assembly = genomeBuild
+        self.__genomeBuild: GenomeBuild = genomeBuild
 
         self.__parsedTracks: List[Track] = None
         self.__shardedTracks: dict = {}
@@ -340,10 +340,10 @@ async def main():
     )
     parser.add_argument(
         "--genomeBuild",
-        type=case_insensitive_enum_type(Assembly),
-        choices=Assembly.list(),
+        type=case_insensitive_enum_type(GenomeBuild),
+        choices=GenomeBuild.list(),
         default="GRCh38",
-        help="assembly (genome build)",
+        help="reference genome build",
     )
     parser.add_argument(
         "--databaseUri",
@@ -379,7 +379,7 @@ async def main():
             args.template,
             args.databaseUri,
             TrackDataStore(args.dataStore),
-            Assembly(args.genomeBuild),
+            GenomeBuild(args.genomeBuild),
             test=args.test,
             commit=args.commit,
             debug=args.debug,

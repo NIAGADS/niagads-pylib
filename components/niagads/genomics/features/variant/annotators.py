@@ -12,8 +12,8 @@ from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError
 from niagads.genomics.features.region.core import GenomicRegion
 from niagads.genomics.features.variant.models import Variant
-from niagads.genomics.sequence.assembly import HumanGenome
-from niagads.genomics.sequence.assembly import Assembly
+from niagads.genome_reference.human import HumanGenome
+from niagads.genome_reference.human import GenomeBuild
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 
@@ -77,7 +77,7 @@ class VariantNomenclature(CaseInsensitiveEnum):
 class PrimaryKeyGenerator(ComponentBaseMixin):
     def __init__(
         self,
-        genome_build: Assembly,
+        genome_build: GenomeBuild,
         seqrepo_service_url: str,
         debug: bool = False,
         verbose: bool = False,
@@ -191,14 +191,14 @@ class GA4GHVRSService(ComponentBaseMixin):
 
     def __init__(
         self,
-        assembly: Assembly,
+        genome_build: GenomeBuild,
         seqrepo_service_url: str,
         debug: bool = False,
         verbose: bool = False,
     ):
         super().__init__(debug=debug, verbose=verbose)
         self._seqrepo_data_proxy = create_dataproxy(f"seqrepo+{seqrepo_service_url}")
-        self._assembly: Assembly = assembly
+        self._assembly: GenomeBuild = genome_build
 
         self._allele_translator = AlleleTranslator(
             data_proxy=self._seqrepo_data_proxy,

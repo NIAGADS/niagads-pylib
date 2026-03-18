@@ -1,5 +1,5 @@
 from niagads.database.helpers import enum_column, enum_constraint
-from niagads.genomics.sequence.assembly import HumanGenome
+from niagads.genome_reference.human import HumanGenome
 from niagads.common.models.types import Range
 from niagads.database import RangeType
 from sqlalchemy import Index

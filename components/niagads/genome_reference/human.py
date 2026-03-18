@@ -1,11 +1,7 @@
-import csv
-import logging
-
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.utils.string import xstr
 
 
-class Assembly(CaseInsensitiveEnum):
+class GenomeBuild(CaseInsensitiveEnum):
     """enum for genome builds"""
 
     GRCh37 = "GRCh37"
@@ -19,7 +15,7 @@ class Assembly(CaseInsensitiveEnum):
             return cls.GRCh37
         if value.lower() == "hg38":
             return cls.GRCh38
-        return super(Assembly, cls)._missing_(value)
+        return super(GenomeBuild, cls)._missing_(value)
 
     @classmethod
     def list(cls, return_enum_names: bool = False):
@@ -119,61 +115,3 @@ class HumanGenome(CaseInsensitiveEnum):
             return "chr" + cv if inclPrefix else cv
         else:
             raise KeyError(f"Invalid chromosome: {value}")
-
-
-class ChromosomeMapParser(object):
-    """Generator for chromosome map parser/object
-    parses mappings of third party chromosome sequence ids (e.g., refseq) to chromosome number
-    may also include chromosome length
-    - for now assumes the tab-delim with at least the following columns:
-    > source_id       chromosome     length
-    """
-
-    def __init__(self, fileName: str, verbose: bool = False, debug: bool = False):
-        """ChromosomeMap base class initializer.
-        Args:
-            fileName (_type_): full path to chromosome mapping file
-            verbose (bool, optional): verbose output flag. Defaults to False.
-            debug (bool, optional): debug flag. Defaults to False.
-
-        Returns:
-            An instance of a ChromosomeMap with initialized mapping dict
-        """
-        self._verbose = verbose
-        self._debug = debug
-        self.logger = logging.getLogger(__name__)
-
-        self.__file = fileName
-        self.__map = {}
-        self.__parse_mapping()
-
-    def __parse_mapping(self):
-        """parse chromosome map"""
-
-        if self._verbose:
-            self.logger.info("Loading chromosome map from:", self.__file)
-
-        with open(self.__file, "r") as fh:
-            reader = csv.DictReader(fh, delimiter="\t")
-            for row in reader:
-                # source_id	chromosome	chromosome_order_num	length
-                key = row["source_id"]
-                value = row["chromosome"].replace("chr", "")
-                self.__map[key] = value
-
-    def chromosome_map(self):
-        "Get the chromosome map."
-        return self.__map
-
-    def get_sequence_id(self, chrmNum):
-        """Given a chromosome number, tries to find matching sequence id."""
-        for sequenceId, cn in self.__map.items():
-            if cn == chrmNum or cn == "chr" + xstr(chrmNum):
-                return sequenceId
-
-        return None
-
-    def get(self, sequenceId):
-        """Return chromosome number mapped to the provided sequence ID."""
-        # want to raise AttributeError if not in the map, so not checking
-        return self.__map[sequenceId]

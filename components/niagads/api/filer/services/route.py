@@ -215,7 +215,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         self, tracks: List[str], assembly: str, span: str, countsOnly: bool
     ):
         cache_key = CacheKeyDataModel.encrypt_key(
-            f"/{FILERApiEndpoint.OVERLAPS}?assembly={assembly}&countsOnly={countsOnly}"
+            f"/{FILERApiEndpoint.OVERLAPS}?genome_build={assembly}&countsOnly={countsOnly}"
             + f"&span={span}&tracks={','.join(tracks)}"
         )
         result = await self._managers.cache.get(
@@ -271,7 +271,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             trackResultSummary
         )
 
-        assembly = self._parameters.get("assembly")
+        assembly = self._parameters.get("genome_build")
         if (
             validate or assembly is None
         ):  # for internal helper calls, don't always need to validate; already done
@@ -307,7 +307,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         tracks = tracks.split(",") if isinstance(tracks, str) else tracks
         tracks = sorted(tracks)  # best for caching
 
-        assembly = self._parameters.get("assembly")
+        assembly = self._parameters.get("genome_build")
         if (
             validate or assembly is None
         ):  # for internal helper calls, don't always need to validate; already done
@@ -410,7 +410,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         span = await self.get_feature_location(self._parameters.get("span"))
 
         # get informative tracks from the FILER API & cache
-        cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?assembly={self._parameters.get('assembly')}&span={span}"
+        cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?genome_build={self._parameters.get('assembly')}&span={span}"
         cache_key = CacheKeyDataModel.encrypt_key(cache_key.replace(":", "_"))
 
         informativeTrackOverlaps: List[TrackResultSize] = (
@@ -421,7 +421,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         if informativeTrackOverlaps is None:
             informativeTrackOverlaps = await ApiWrapperService(
                 self._managers.api_client_session
-            ).get_informative_tracks(span, self._parameters.get("assembly"))
+            ).get_informative_tracks(span, self._parameters.get("genome_build"))
             await self._managers.cache.set(
                 cache_key,
                 informativeTrackOverlaps,
@@ -525,12 +525,12 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 # chr:pos:ref-alt -> chr:pos-1:pos
                 [chr, pos, ref, alt] = feature.feature_id.split(":")
                 span = f"{chr}:{int(pos) - 1}-{pos}"
-                self._parameters.update("assembly", assembly)
+                self._parameters.update("genome_build", assembly)
                 self._parameters.update("span", span)
                 return await self.get_track_data(validate=False)
 
             case GenomicFeatureType.REGION:
-                self._parameters.update("assembly", assembly)
+                self._parameters.update("genome_build", assembly)
                 self._parameters.update("span", feature.feature_id)
                 return await self.get_track_data(validate=False)
 

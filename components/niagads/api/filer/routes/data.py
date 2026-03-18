@@ -22,7 +22,7 @@ from niagads.api.filer.dependencies import (
 )
 from niagads.api.filer.documentation import BASE_TAGS
 from niagads.api.filer.services.route import FILERRouteHelper
-from niagads.genomics.sequence.assembly import Assembly
+from niagads.genome_reference.human import GenomeBuild
 
 router = APIRouter(
     prefix="/data",
@@ -96,7 +96,7 @@ tags = [str(SharedOpenAPITags.SEARCH)]
     ),
 )
 async def get_track_data_by_metadata_search(
-    assembly: Assembly = Depends(assembly_param),
+    genome_build: GenomeBuild = Depends(assembly_param),
     loc: str = Depends(loc_param),
     filter=Depends(TEXT_FILTER_PARAMETER),
     keyword: str = Depends(keyword_param),
@@ -134,7 +134,11 @@ async def get_track_data_by_metadata_search(
             ),
         ),
         Parameters(
-            assembly=assembly, filter=filter, keyword=keyword, span=loc, page=page
+            genome_build=genome_build,
+            filter=filter,
+            keyword=keyword,
+            span=loc,
+            page=page,
         ),
     )
 

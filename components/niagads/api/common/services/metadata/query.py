@@ -276,7 +276,7 @@ class MetadataQueryService:
 
     async def query_track_metadata(
         self,
-        assembly: str,
+        genome_build: str,
         filters: Optional[List[str]],
         keyword: Optional[str],
         response_type: ResponseContent,
@@ -287,7 +287,7 @@ class MetadataQueryService:
         target = self.__set_query_target(response_type)
         statement = (
             select(target)
-            .filter(Track.genome_build == assembly)
+            .filter(Track.genome_build == genome_build)
             .filter(Track.data_store.in_(self.__data_store))
         )
 

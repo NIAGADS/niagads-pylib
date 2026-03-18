@@ -11,7 +11,7 @@ from niagads.common.track.models import (
 )
 from niagads.common.track.models.phenotypes import PhenotypeCount
 from niagads.genomics.features.core import GenomicFeatureType
-from niagads.genomics.sequence.assembly import Assembly
+from niagads.genome_reference.human import GenomeBuild
 from pydantic import Field
 
 
@@ -25,8 +25,10 @@ class BaseTrack(CustomBaseModel):
     )
     name: str = Field(title="Name")
     description: Optional[str] = Field(default=None, title="Description")
-    genome_build: Assembly = Field(
-        default=Assembly.GRCh38, title="Assembly", description="reference genome build"
+    genome_build: GenomeBuild = Field(
+        default=GenomeBuild.GRCh38,
+        title="Genome Build",
+        description="reference genome build",
     )
     feature_type: Optional[GenomicFeatureType] = Field(
         default=None,

@@ -19,7 +19,7 @@ from niagads.common.track.models import (
 )
 from niagads.common.track.models.phenotypes import PhenotypeCount
 from niagads.genomics.features.core import GenomicFeatureType
-from niagads.genomics.sequence.assembly import Assembly
+from niagads.genome_reference.human import GenomeBuild
 from niagads.utils.dict import promote_nested
 from pydantic import Field, model_validator
 
@@ -42,9 +42,9 @@ class AbridgedTrack(ORMCompatibleDynamicRowModel):
     )
     name: str = Field(title="Name")
     description: Optional[str] = Field(default=None, title="Description")
-    genome_build: Assembly = Field(
-        default=Assembly.GRCh38,
-        title="Assembly",
+    genome_build: GenomeBuild = Field(
+        default=GenomeBuild.GRCh38,
+        title="Genome Build",
         description=f"reference genome build",
     )
     feature_type: Optional[GenomicFeatureType] = Field(

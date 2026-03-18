@@ -23,7 +23,7 @@ from niagads.genomics.features.region.core import GenomicRegion
 from niagads.genomics.features.variant.annotators import GA4GHVRSService
 from niagads.genomics.features.variant.models import Variant as _BaseVariant
 from niagads.genomics.features.variant.types import VariantClass
-from niagads.genomics.sequence.assembly import Assembly, HumanGenome
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.database.session import DatabaseSessionManager
 from niagads.utils.list import qw
 from niagads.utils.logging import ExitOnExceptionHandler, async_timed
@@ -161,8 +161,7 @@ class GWASDataMigrator(ComponentBaseMixin):
         await session.execute(
             text("SET statement_timeout = 86400000")
         )  # 24 hours in ms
-        
-        
+
         row_count = 0
         try:
             result = await session.stream(
@@ -360,7 +359,8 @@ class GWASDataMigrator(ComponentBaseMixin):
         pvalue_file_name = f"{file_prefix}_pvalue.txt"
 
         vrs_service: GA4GHVRSService = GA4GHVRSService(
-            assembly=Assembly.GRCh38, seqrepo_service_url=self._seqrepo_service_url
+            genome_build=GenomeBuild.GRCh38,
+            seqrepo_service_url=self._seqrepo_service_url,
         )
         # not ideal, but hope solves dropped connection issue
         session_manager = DatabaseSessionManager(

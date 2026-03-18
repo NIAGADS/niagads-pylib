@@ -1,8 +1,8 @@
 from typing import Optional
 
 from niagads.common.models.types import Range
-from niagads.genomics.sequence.assembly import HumanGenome
-from niagads.genomics.sequence.core import Strand
+from niagads.genome_reference.human import HumanGenome
+from niagads.genome_reference.types import Strand
 from pydantic import Field, field_serializer
 
 

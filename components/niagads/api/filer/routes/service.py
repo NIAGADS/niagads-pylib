@@ -19,7 +19,7 @@ from niagads.api.filer.dependencies import InternalRequestParameters
 from niagads.api.filer.documentation import BASE_TAGS
 from niagads.api.filer.services.route import FILERRouteHelper
 from niagads.exceptions.core import ValidationError
-from niagads.genomics.sequence.assembly import Assembly
+from niagads.genome_reference.human import GenomeBuild
 
 router = APIRouter(prefix="/service", tags=BASE_TAGS)
 
@@ -39,7 +39,7 @@ tags = [str(SharedOpenAPITags.SERVICE)]
 # , or keyword search")
 async def get_track_browser_config_bulk(
     track=Depends(optional_track_list_param),
-    assembly: Assembly = Depends(assembly_param),
+    genome_build: GenomeBuild = Depends(assembly_param),
     collection: str = Depends(optional_collection_param),
     # keyword: str = Depends(keyword_param),
     internal: InternalRequestParameters = Depends(),
@@ -53,7 +53,7 @@ async def get_track_browser_config_bulk(
         ),
         Parameters(
             track=track,
-            assembly=assembly,
+            genome_build=genome_build,
             collection=collection,
         ),  # , keyword=keyword)
     )
@@ -89,7 +89,7 @@ async def get_track_browser_config_bulk(
 )  # , or keyword")
 async def get_track_selector(
     track=Depends(optional_track_list_param),
-    assembly: Assembly = Depends(assembly_param),
+    genome_build: GenomeBuild = Depends(assembly_param),
     collection: str = Depends(optional_collection_param),
     # keyword: str = Depends(keyword_param),
     internal: InternalRequestParameters = Depends(),
@@ -101,7 +101,7 @@ async def get_track_selector(
             content=ResponseContent.FULL, model=IGVBrowserTrackSelectorResponse
         ),
         Parameters(
-            track=track, assembly=assembly, collection=collection
+            track=track, genome_build=genome_build, collection=collection
         ),  #  keyword=keyword)
     )
 

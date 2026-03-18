@@ -1,15 +1,12 @@
 # Settings for Open Access API microservices
 from typing import Optional
 
-from niagads.common.constants.track import TrackDataStore
 from niagads.settings.core import CustomSettings
 
 
 class Settings(CustomSettings):
     APP_DB_URI: str  # application db (e.g., GenomicsDB or FILER metadata cache)
     CACHE_DB_URI: str  # in memory cache db
-
-    DATA_STORE: TrackDataStore
 
     API_PUBLIC_URL: str = "http://localhost:8000"  # public facing URL for the API
 
