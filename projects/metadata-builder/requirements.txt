@@ -119,9 +119,3 @@ watchdog==6.0.0
 wtforms==3.2.1
     # via metadata-builder-streamlit-app (pyproject.toml)
 
--e ../../components/niagads/common
--e ../../components/niagads/enums
--e ../../components/niagads/genome_reference
--e ../../components/niagads/metadata_serializer
--e ../../components/niagads/settings
--e ../../components/niagads/utils

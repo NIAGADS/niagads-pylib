@@ -4,6 +4,7 @@ import json
 from datetime import date
 from typing import Any, Callable, Union
 
+from niagads.common.models.base import SerializationOptions
 import streamlit as st
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.models import OntologyTerm
@@ -189,7 +190,7 @@ class MetadataSerializationApp(ComponentBaseMixin):
         if matched_term is not None:
             return matched_term
 
-        return OntologyTerm(term=value, curie="NIAGADS:needs_review")
+        return OntologyTerm(term=value, curie="NIAGADS:needs-review")
 
     def _deserialize_list(
         self,
@@ -452,13 +453,15 @@ class MetadataSerializationApp(ComponentBaseMixin):
 
                 # Success
                 st.success("✓ Metadata validated successfully!")
-
                 json_output = result.model_dump(
                     mode="json",
                     exclude=None,
                     exclude_none=True,
                     exclude_unset=True,
-                    context={"enums_as_name": True},
+                    context={
+                        SerializationOptions.ENUMS_AS_NAME: True,
+                        SerializationOptions.EXCLUDE_EMPTY_OBJECTS: True,
+                    },
                 )
 
                 # Download button
@@ -528,9 +531,13 @@ class MetadataSerializationApp(ComponentBaseMixin):
 
         with st.form("metadata_form", enter_to_submit=False):
             form_data = self.__renderer.render_form(initial_form_data=loaded_form_data)
-            # clear after use
+
+            # clear initial state after populating
             if "initial_form_data" in st.session_state:
                 del st.session_state["initial_form_data"]
+            if "uploaded_form_data" in st.session_state:
+                del st.session_state["uploaded_form_data"]
+
             col1, col2 = st.columns([1, 4])
             with col1:
                 submitted = st.form_submit_button("Submit", type="primary")
