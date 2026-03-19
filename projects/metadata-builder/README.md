@@ -9,7 +9,7 @@ This project provides a Streamlit-based Track Metadata builder app for NIAGADS.
 
 ## Installation
 
-Use sparse checkout to clone only this project from the monorepo. There are two common approaches depending on your Git version.
+Use sparse checkout to clone only this project from the monorepo. 
 
 ```bash
 git clone --filter=blob:none --sparse https://github.com/NIAGADS/niagads-pylib.git
