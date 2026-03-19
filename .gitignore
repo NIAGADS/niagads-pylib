@@ -1,6 +1,7 @@
 # allow select dist directories
 **/dist
 !/projects/open-access-api/dist/
+!/projects/metadata-builder/dist/
 
 # env files
 db.env
