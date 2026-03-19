@@ -458,7 +458,7 @@ class MetadataSerializationApp(ComponentBaseMixin):
                     exclude=None,
                     exclude_none=True,
                     exclude_unset=True,
-                    context={"enums_as_names": True},
+                    context={"enums_as_name": True},
                 )
 
                 # Download button
@@ -892,7 +892,7 @@ class FormRenderer(ComponentBaseMixin):
             field_meta: FormMetadata = self.__metadata[field_name]
             initial_value = (
                 _UNSET
-                if initial_form_data is None
+                if initial_form_data is None or initial_form_data is _UNSET
                 else getattr(initial_form_data, field_name)
             )
             # print(f"{field_name} - {initial_value}")

@@ -1,5 +1,5 @@
 [project]
-name = "metadata-builder"
+name = "metadata-builder-streamlit-app"
 authors = [
     { name = "fossilfriend", email = "egreenfest@gmail.com" },
 ]
@@ -21,6 +21,7 @@ packages = [
     { from = "../../components", include = "niagads/enums" },
     { from = "../../components", include = "niagads/exceptions" },
     { from = "../../components", include = "niagads/genome_reference" },
+    { from = "../../components", include = "niagads/metadata_serializer" },
     { from = "../../components", include = "niagads/settings" },
     { from = "../../components", include = "niagads/utils" },
 ]

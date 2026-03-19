@@ -15,7 +15,7 @@ from niagads.common.track.models import (
     FileProperties,
     Phenotype,
     Provenance,
-    BaseTrack,
+    TrackRecord,
 )
 from niagads.common.track.models.phenotypes import PhenotypeCount
 from niagads.common.genomic.features.models import GenomicFeatureType
@@ -111,7 +111,7 @@ class AbridgedTrack(ORMCompatibleDynamicRowModel):
         }
 
 
-class Track(ORMCompatibleRowModel, BaseTrack):
+class Track(ORMCompatibleRowModel, TrackRecord):
 
     def flat_dump(self, null_free=False, delimiter="|"):
         obj = super().flat_dump(null_free, delimiter)

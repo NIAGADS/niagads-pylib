@@ -16,7 +16,7 @@ class CustomBaseModel(BaseModel):
     custom base model for all model types
     """
 
-    model_config = ConfigDict(serialize_by_alias=True)
+    model_config = ConfigDict(serialize_by_alias=True, populate_by_name=True)
 
     @field_serializer("*")
     def serialize_types(self, v, _info):

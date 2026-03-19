@@ -15,7 +15,7 @@ from niagads.genome_reference.human import GenomeBuild
 from pydantic import Field
 
 
-class BaseTrack(CustomBaseModel):
+class TrackRecord(CustomBaseModel):
 
     track_id: str = Field(
         title="Track ID",
