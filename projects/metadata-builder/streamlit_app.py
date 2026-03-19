@@ -1,7 +1,16 @@
 from pathlib import Path
+import sys
 
-from niagads.common.track.models.record import TrackRecord
-from niagads.metadata_serializer.app import MetadataSerializationApp
+try:
+    from niagads.common.track.models.record import TrackRecord
+    from niagads.metadata_serializer.app import MetadataSerializationApp
+except ModuleNotFoundError:
+    # expose monorepo components for Streamlit common cloud deployment
+    ROOT = Path(__file__).resolve().parents[2]  # niagads-pylib
+    sys.path.append(str(ROOT / "components"))
+
+    from niagads.common.track.models.record import TrackRecord
+    from niagads.metadata_serializer.app import MetadataSerializationApp
 
 
 def main():
