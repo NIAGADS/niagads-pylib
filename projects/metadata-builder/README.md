@@ -14,7 +14,9 @@ Use sparse checkout to clone only this project from the monorepo. There are two 
 ```bash
 git clone --filter=blob:none --sparse https://github.com/NIAGADS/niagads-pylib.git
 cd niagads-pylib
-git sparse-checkout set projects/metadata-builder
+git sparse-checkout init --cone
+git sparse-checkout set --no-cone projects/metadata-builder
+cd projects/metadata-builder
 ```
 
 ## Deploy with Docker
@@ -22,8 +24,10 @@ git sparse-checkout set projects/metadata-builder
 Use `docker compose` (**recommended**)
 
 ```bash
-docker compose up --build
+docker compose up
 ```
+
+> **HINT**: add `-d` option to run in detached mode
 
 or, build the image and run the container:
 
