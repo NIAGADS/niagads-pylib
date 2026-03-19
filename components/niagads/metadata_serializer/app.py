@@ -591,6 +591,10 @@ class FormRenderer(ComponentBaseMixin):
             f"verbose={self._verbose})"
         )
 
+    @staticmethod
+    def __is_value_initialized(value: Any):
+        return value is not _UNSET and value is not None
+
     def __render_ontology_term_field(
         self,
         field_name: str,
@@ -610,7 +614,7 @@ class FormRenderer(ComponentBaseMixin):
 
         options = self.__ontology_map.get_field_terms(field_name, terms_only=True)
         if field_meta.is_list:
-            if initial_data is not _UNSET and initial_data is not None:
+            if self.__is_value_initialized(initial_data):
                 default_value = [ot.term for ot in initial_data]
             value = st.multiselect(
                 label,
@@ -621,7 +625,7 @@ class FormRenderer(ComponentBaseMixin):
                 key=f"{field_name}_{key}_{self.__form_version}",
             )
         else:
-            if initial_data is not _UNSET and initial_data is not None:
+            if self.__is_value_initialized(initial_data):
                 default_value = initial_data.term
             default_index = None
             if default_value:
@@ -662,7 +666,7 @@ class FormRenderer(ComponentBaseMixin):
         if is_set:
             options = enum_type.list()
             default_selected = set()
-            if initial_data is not _UNSET:
+            if self.__is_value_initialized(initial_data):
                 default_value = set(initial_data)
             if default_value and isinstance(default_value, set):
                 default_selected = default_value
@@ -685,7 +689,7 @@ class FormRenderer(ComponentBaseMixin):
             return field_name, selected
 
         else:
-            if initial_data is not _UNSET:
+            if self.__is_value_initialized(initial_data):
                 default_value = initial_data
             default_index = None
             if default_value is not None:
@@ -715,7 +719,7 @@ class FormRenderer(ComponentBaseMixin):
             field_name
         )
         MetadataSerializationApp.ensure_repeatable_entries(field_name)
-        if initial_data is not _UNSET:
+        if self.__is_value_initialized(initial_data):
             st.session_state[session_key] = [
                 {"_entry_id": idx} for idx in range(len(initial_data))
             ]
@@ -807,7 +811,7 @@ class FormRenderer(ComponentBaseMixin):
         is_list = field_meta.is_list or field_meta.is_set
 
         # Handle basic types based on model_type
-        if initial_data is not _UNSET and not is_list:
+        if self.__is_value_initialized(initial_data) and not is_list:
             # print(f"{field_name} - {initial_data}")
             default_value = initial_data
 
@@ -850,7 +854,7 @@ class FormRenderer(ComponentBaseMixin):
             return field_name, value
 
         if is_list:
-            if initial_data is not _UNSET and initial_data is not None:
+            if self.__is_value_initialized(initial_data):
                 default_value = "\n".join(initial_data)
 
             list_label = f"{label} (L)"
