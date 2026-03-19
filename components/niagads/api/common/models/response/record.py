@@ -1,7 +1,7 @@
 from typing import Any, List, TypeVar
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.models.core import DynamicRowModel, T_RowModel
+from niagads.api.common.models.base import DynamicRowModel, T_RowModel
 from niagads.api.common.models.response.base import AbstractBaseResponse
 from niagads.api.common.views.table import Table
 from pydantic import Field, model_validator
@@ -70,7 +70,7 @@ class RecordResponse(AbstractBaseResponse):
 
     def _get_empty_header(self):
         model: T_RowModel = self.row_model()
-        fields = model.get_model_fields(as_str=True)
+        fields = model.list_model_fields(as_str=True)
         return "\t".join(fields) + "\n"
 
     def to_text(self, incl_header=False, null_str: str = DEFAULT_NULL_STRING):

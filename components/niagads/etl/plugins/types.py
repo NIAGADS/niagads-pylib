@@ -1,11 +1,10 @@
 from enum import auto
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field, model_validator
-
-from niagads.common.types import ProcessStatus
+from niagads.common.types import ETLOperation, ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.types import ETLMode
+from pydantic import BaseModel, Field, model_validator
 
 
 class ResumeCheckpoint(BaseModel):
@@ -29,23 +28,6 @@ class ResumeCheckpoint(BaseModel):
         if not self.line and not self.record:
             raise ValueError("checkpoint must define either 'line' or 'record'")
         return self
-
-
-class ETLOperation(CaseInsensitiveEnum):
-    """
-    Type of ETL operation:
-    - LOAD: Insert new or Update existing records.
-    - UPDATE: Update existing records.
-    - DELETE: Delete records.
-    - INSERT: Insert new records.
-    - SKIP: Skip a record
-    """
-
-    INSERT = auto()
-    UPDATE = auto()
-    LOAD = auto()
-    DELETE = auto()
-    SKIP = auto()
 
 
 class ETLRunStatus(BaseModel):

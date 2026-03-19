@@ -1,0 +1,92 @@
+from typing import Optional, Union
+from niagads.common.models.base import CustomBaseModel
+from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import dict_to_info_string, matches
+from pydantic import Field, field_validator, model_validator
+
+
+class OntologyTerm(CustomBaseModel):
+    """
+    Pydantic model representing a term in an ontology graph.
+
+    Used for storing ontology term metadata, including category, label,
+    definition, synonyms, and obsolescence information.
+    """
+
+    term_iri: Optional[str] = Field(
+        default=None,
+        description="globally unique identifier for the ontology term (URI)",
+    )
+    curie: Optional[str] = Field(default=None, description="unique, stable identifier")
+    term: str = Field(..., description="the ontology term")
+
+    label: Optional[str] = Field(
+        default=None, description="Human-readable label for the term"
+    )
+    definition: Optional[str] = Field(
+        default=None, description="Textual definition of the term"
+    )
+    synonyms: list[str] = Field(
+        default_factory=list, description="List of synonyms for the term"
+    )
+    is_deprecated: bool = Field(
+        default=False, description="True if the term is deprecated"
+    )
+    is_placeholder: bool = Field(default=False, description="True if palceholder term")
+
+    @staticmethod
+    def extract_curie(iri: str) -> str:
+        return iri.rsplit("/", 1)[-1].replace("_", ":")
+
+    @field_validator("curie", mode="before")
+    def validate_curie(cls, v, data: dict):
+        """
+        Validate ID for the ontology term. If curie is None,
+        extracts it from the URI. Raises a validation error if both are None.
+        """
+        if v is not None:
+            return v
+        term_iri: str = data.get("curie")
+        if term_iri:
+            return cls.extract_curie(term_iri)
+
+        raise ValueError(
+            "Either 'curie' or 'term_iri' must be provided for OntologyTerm."
+        )
+
+    @model_validator(mode="before")
+    def normalize_field_values(cls, values: Union[str, dict]):
+        """
+        Converts all non-boolean field values to strings before model validation.
+
+        Args:
+            values (dict): Dictionary of field values.
+
+        Returns:
+            dict: Updated field values with non-boolean values converted to strings.
+        """
+
+        # if trying to serialize a string as an ontology term, assume
+        # it is the term or curie
+        if isinstance(values, str):
+            if matches(values, RegularExpressions.ONTOLOGY_TERM_CURIE):
+                curie = values.replace("_", ":")
+                return cls(curie=curie, term=curie)
+            return cls(term=values)
+
+        for field, v in values.items():
+            if v is not None and not isinstance(v, bool):
+                if field == "curie":
+                    values[field] = str(v).replace("_", ":")
+                else:
+                    values[field] = str(v)
+        return values
+
+    def __str__(self):
+        return self.term
+
+    def as_info_string(self) -> str:
+        info: dict = {"term": self.term}
+        if self.curie:
+            info.update({"curie": self.curie})
+        return dict_to_info_string(info)

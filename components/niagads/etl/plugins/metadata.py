@@ -1,6 +1,8 @@
 from typing import List, Optional, Type
+
+from niagads.common.types import ETLOperation
 from niagads.etl.plugins.parameters import BasePluginParams
-from niagads.etl.plugins.types import ETLLoadStrategy, ETLOperation
+from niagads.etl.plugins.types import ETLLoadStrategy
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase
 

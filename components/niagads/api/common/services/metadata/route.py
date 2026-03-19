@@ -134,7 +134,7 @@ class MetadataRouteHelperService(RouteHelperService):
             result = await MetadataQueryService(
                 self._managers.session, data_store=self._data_store
             ).query_track_metadata(
-                self._parameters.get("assembly"),
+                self._parameters.get("genome_build"),
                 self._parameters.get("filter", None),
                 self._parameters.get("keyword", None),
                 ResponseContent.COUNTS,
@@ -152,7 +152,7 @@ class MetadataRouteHelperService(RouteHelperService):
         result = await MetadataQueryService(
             self._managers.session, data_store=self._data_store
         ).query_track_metadata(
-            self._parameters.get("assembly"),
+            self._parameters.get("genome_build"),
             self._parameters.get("filter", None),
             self._parameters.get("keyword", None),
             content,

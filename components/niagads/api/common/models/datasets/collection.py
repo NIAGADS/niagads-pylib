@@ -1,6 +1,6 @@
 from typing import List
 
-from niagads.api.common.models.core import RowModel
+from niagads.api.common.models.base import RowModel
 from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.parameters.response import ResponseView
 from pydantic import Field

@@ -22,8 +22,7 @@ class ComponentBaseMixin:
 
         if self._debug:
             self.logger: logging.Logger = FunctionContextLoggerWrapper(logger=logger)
+            self.logger.setLevel(logging.DEBUG)
+
         else:
             self.logger = logger
-
-        if self._debug:
-            self.logger.setLevel(logging.DEBUG)

@@ -194,7 +194,7 @@ class GFF3Parser:
                 )
                 records[chrom] = gene_trees
 
-        return {"assembly": "GRCh38", "source": "Ensembl", "records": records}
+        return {"genome_build": "GRCh38", "source": "Ensembl", "records": records}
 
 
 # -------------------------- Example usage -----------------------------------

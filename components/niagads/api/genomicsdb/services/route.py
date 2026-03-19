@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import HTTPException
 from niagads.api.common.config import Settings
-from niagads.api.common.models.core import ResultSize
+from niagads.api.common.models.search.records import ResultSize
 from niagads.api.common.models.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,
@@ -27,10 +27,10 @@ from niagads.api.genomicsdb.queries.track_data import (
     TrackGWASSumStatQuery,
     TrackQTLGeneQuery,
 )
-from niagads.common.models.structures import Range
+from niagads.common.models.types import Range
 from niagads.common.constants.track import TrackDataStore
 from niagads.exceptions.core import ValidationError
-from niagads.genomicsdb.schema.dataset.track import Track
+from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.utils.dict import all_values_are_none
 from pydantic import BaseModel
 from sqlalchemy.exc import NoResultFound

@@ -4,7 +4,7 @@ from aiohttp import ClientSession
 from niagads.api.common.models.datasets.track import TrackResultSize
 from niagads.api.common.models.features.bed import BEDFeature
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.genomics.sequence.assembly import Assembly
+from niagads.genome_reference.human import GenomeBuild
 from pydantic import BaseModel
 
 
@@ -27,7 +27,7 @@ class ApiWrapperService:
     def __init__(self, session):
         self.__session: ClientSession = session
 
-    def __map_genome_build(self, assembly: Assembly):
+    def __map_genome_build(self, assembly: GenomeBuild):
         """return genome build value FILER expects"""
         return assembly.hg_label()
 
@@ -35,9 +35,9 @@ class ApiWrapperService:
         """map request params to format expected by FILER"""
         requestParams = {"outputFormat": "json"}
 
-        if "assembly" in parameters:
+        if "genome_build" in parameters:
             requestParams["genomeBuild"] = self.__map_genome_build(
-                parameters["assembly"]
+                parameters["genome_build"]
             )
 
         if "track" in parameters:
@@ -139,7 +139,8 @@ class ApiWrapperService:
         self, span: str, assembly: str, sort=False
     ) -> List[TrackResultSize]:
         result = await self.__fetch(
-            FILERApiEndpoint.INFORMATIVE_TRACKS, {"span": span, "assembly": assembly}
+            FILERApiEndpoint.INFORMATIVE_TRACKS,
+            {"span": span, "genome_build": assembly},
         )
         result = [
             TrackResultSize(track_id=t["Identifier"], num_results=t["numOverlaps"])

@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Type, Union
+from typing import Callable, Dict, List, Type
 
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata

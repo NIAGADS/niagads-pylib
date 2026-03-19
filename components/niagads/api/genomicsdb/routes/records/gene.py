@@ -12,7 +12,6 @@ from niagads.api.common.models.features.gene import (
     GeneAnnotationResponse,
     GeneResponse,
 )
-from niagads.genomics.features.core import GenomicFeature
 from niagads.api.common.models.records import Entity
 from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.models.services.query import QueryFilter
@@ -29,10 +28,7 @@ from niagads.api.common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
-from niagads.api.common.services.route import (
-    Parameters,
-    ResponseConfiguration,
-)
+from niagads.api.common.services.route import Parameters, ResponseConfiguration
 from niagads.api.common.views.table import TableViewResponse
 from niagads.api.genomicsdb.dependencies import InternalRequestParameters
 from niagads.api.genomicsdb.documentation import APP_NAME
@@ -42,10 +38,8 @@ from niagads.api.genomicsdb.queries.records.gene import (
     GenePathwayQuery,
     GeneRecordQuery,
 )
-from niagads.api.genomicsdb.services.route import (
-    GenomicsRouteHelper,
-    QueryOptions,
-)
+from niagads.api.genomicsdb.services.route import GenomicsRouteHelper, QueryOptions
+from niagads.common.genomic.features.models import GenomicFeature
 
 router = APIRouter(
     prefix="/record/gene",

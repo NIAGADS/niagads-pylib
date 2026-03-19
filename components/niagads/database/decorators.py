@@ -1,6 +1,6 @@
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.dialects.postgresql import INT4RANGE
-from niagads.common.models.structures import Range
+from niagads.common.models.types import Range
 
 
 class RangeType(TypeDecorator):

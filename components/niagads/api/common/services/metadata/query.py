@@ -5,14 +5,17 @@ from niagads.api.common.constants import SHARD_PATTERN
 from niagads.api.common.models.response.request import RequestDataModel
 from niagads.api.common.parameters.expression_filter import Triple
 from niagads.api.common.parameters.response import ResponseContent
-from niagads.common.models.metadata import (
+from niagads.common.track.models import (
     ExperimentalDesign,
     Phenotype,
     Provenance,
 )
 from niagads.common.constants.track import TrackDataStore
-from niagads.genomicsdb.schema.dataset.collection import Collection, TrackCollectionLink
-from niagads.genomicsdb.schema.dataset.track import Track
+from niagads.database.genomicsdb.schema.dataset.collection import (
+    Collection,
+    TrackCollectionLink,
+)
+from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.utils.list import list_to_string
 from niagads.utils.string import regex_replace
 from sqlalchemy import Column, String, Values, column, distinct, func, select
@@ -273,7 +276,7 @@ class MetadataQueryService:
 
     async def query_track_metadata(
         self,
-        assembly: str,
+        genome_build: str,
         filters: Optional[List[str]],
         keyword: Optional[str],
         response_type: ResponseContent,
@@ -284,7 +287,7 @@ class MetadataQueryService:
         target = self.__set_query_target(response_type)
         statement = (
             select(target)
-            .filter(Track.genome_build == assembly)
+            .filter(Track.genome_build == genome_build)
             .filter(Track.data_store.in_(self.__data_store))
         )
 

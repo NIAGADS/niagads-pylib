@@ -1,0 +1,11 @@
+services:
+  streamlit-app:
+    image: gdb-track-builder
+    restart: always
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        WHEEL: "metadata_builder_streamlit_app-0.1.0-py3-none-any.whl"
+    ports:
+      - "8501:8501"

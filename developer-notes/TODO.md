@@ -1,10 +1,15 @@
-# API TODOS
+# TODOs
 
-## Bugs
+* get_field_iri is in a helper, move to an OntologyTerm object/model
+* get rid of `TrackDataStore` add `is_filer_track` to track & track collection, exclude from serialization
+
+## API
+
+### Bugs
 
 `variant_id` (aliased as id) is not showing in table/text view (see recent email about SVs to Fanny)
 
-## other
+### other
 
 * revisit GenomicRegion -> zero vs one-based especially for variants
 * Pipe SQL Alchemy Echo to log for non-api

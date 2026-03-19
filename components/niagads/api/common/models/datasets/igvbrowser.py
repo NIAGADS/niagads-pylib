@@ -1,14 +1,14 @@
 from typing import Any, Dict, List, Optional, Self, Union
 
-from niagads.common.models.ontologies import OntologyTerm
-from niagads.common.models.metadata import (
+from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.track.models import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     Phenotype,
     Provenance,
 )
 from niagads.api.common.config import Settings
-from niagads.api.common.models.core import RowModel
+from niagads.api.common.models.base import RowModel
 from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.parameters.response import (
     ResponseFormat,

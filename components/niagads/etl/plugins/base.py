@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Type, Union
 
 import psutil
 from niagads.common.core import ComponentBaseMixin
-from niagads.common.types import ProcessStatus
+from niagads.common.types import ProcessStatus, ETLOperation
 from niagads.database.session import DatabaseSessionManager
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger
@@ -13,12 +13,11 @@ from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.etl.plugins.types import (
     ETLLoadStrategy,
-    ETLOperation,
     ETLRunStatus,
     ResumeCheckpoint,
 )
 from niagads.etl.types import ETLMode
-from niagads.genomicsdb.schema.admin.etl import ETLRun
+from niagads.database.genomicsdb.schema.admin.etl import ETLRun
 from niagads.utils.asynchronous import null_async_context
 from niagads.utils.list import chunker
 from niagads.utils.logging import FunctionContextLoggerWrapper
@@ -40,7 +39,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         params: Dict[str, Any],
         name: Optional[str] = None,
         debug: bool = False,
-        verbose: bool = False
+        verbose: bool = False,
     ):
         """
         Initialize the ETL plugin base class.
@@ -49,7 +48,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             params (BasePluginParams): Validated parameters for the plugin instance.
             name (Optional[str]): Optional name for the plugin instance (used for logging and identification).
         """
-  
+
         super().__init__(debug=debug, verbose=verbose)
         self.__metadata: PluginMetadata = self.__retrieve_plugin_metadata()
 
@@ -543,7 +542,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                         buffer.append(processed_records)
 
                     if len(buffer) >= self._commit_after:
-                        batches = chunker(buffer, self._commit_after, returnIterator=True)
+                        batches = chunker(
+                            buffer, self._commit_after, returnIterator=True
+                        )
                         for batch in batches:
                             if len(batch) == self._commit_after:
                                 checkpoint = await self.__flush_chunked_buffer(

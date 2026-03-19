@@ -7,7 +7,7 @@ from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from helpers.config import Settings
 from helpers.hooks import register_schemas
-from niagads.genomicsdb.schema.core import GenomicsDBSchemaBase
+from niagads.database.genomicsdb.schema.core import GenomicsDBSchemaBase
 from sqlalchemy import create_engine
 
 

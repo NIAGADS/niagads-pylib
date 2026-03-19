@@ -6,7 +6,7 @@ from niagads.common.types import T_PubMedID
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.config import Settings
 from niagads.api.common.app.openapi import OpenAPISpec, OpenAPITag
-from niagads.common.constants.external_resources import NIAGADSResources
+from niagads.common.reference.xrefs.data_sources import NIAGADSResources
 
 APP_NAMESPACE = "Genomics"
 

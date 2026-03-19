@@ -1,9 +1,9 @@
 from niagads.api.common.views.table import TableColumn
-from niagads.common.models.annotations.variant import (
+from niagads.common.variant.models.annotations import (
     PredictedConsequenceSummary,
 )
-from niagads.genomics.sequence.assembly import HumanGenome
-from niagads.api.common.models.core import RowModel
+from niagads.genome_reference.human import HumanGenome
+from niagads.api.common.models.base import RowModel
 from niagads.api.common.models.features.gene import GeneFeature
 from niagads.api.common.models.features.variant import (
     Variant,

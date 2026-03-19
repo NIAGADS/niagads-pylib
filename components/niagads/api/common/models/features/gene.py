@@ -1,10 +1,10 @@
 from typing import Dict, List, Optional, Union
 
-from niagads.common.models.annotations.gene import (
-    GOAnnotation,
-    PathwayAnnotation,
+from niagads.common.gene.models.annotation import (
+    GOAssociation,
+    PathwayMembership,
 )
-from niagads.api.common.models.core import RowModel
+from niagads.api.common.models.base import RowModel
 from niagads.api.common.models.response.record import RecordResponse
 from pydantic import Field
 from niagads.api.common.models.features.region import GenomicRegion
@@ -48,29 +48,31 @@ class Gene(GeneFeature):
     def __str__(self):
         return self.as_info_string()
 
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = super()._flat_dump(null_free, delimiter=delimiter)
+    def flat_dump(self, null_free=False, delimiter="|"):
+        obj = super().flat_dump(null_free, delimiter=delimiter)
         if self.synonyms is not None:
-            obj["synonyms"] = self._list_to_string(self.synonyms, delimiter=delimiter)
+            obj["synonyms"] = self._flatten_list_to_string(
+                self.synonyms, delimiter=delimiter
+            )
 
         # promote the location fields
         del obj["location"]
-        obj.update(self.location._flat_dump())
+        obj.update(self.location.flat_dump())
         return obj
 
     @classmethod
-    def get_model_fields(cls, as_str=False):
-        fields = super().get_model_fields()
+    def list_model_fields(cls, as_str=False):
+        fields = super().list_model_fields()
         del fields["location"]
-        fields.update(GenomicRegion.get_model_fields())
+        fields.update(GenomicRegion.list_model_fields())
 
         return list(fields.keys()) if as_str else fields
 
 
 class AnnotatedGene(Gene):
     nomenclature: Optional[Dict[str, Union[str, int]]] = None
-    go_annotation: Optional[List[GOAnnotation]] = None
-    pathway_membership: Optional[List[PathwayAnnotation]] = None
+    go_annotation: Optional[List[GOAssociation]] = None
+    pathway_membership: Optional[List[PathwayMembership]] = None
 
     def as_info_string(self):
         raise NotImplementedError("Not implemented for Annotated Genes")
@@ -82,18 +84,20 @@ class AnnotatedGene(Gene):
         raise NotImplementedError("Not implemented for Annotated Genes")
 
 
-class GeneFunction(GOAnnotation, RowModel):
+class GeneFunction(GOAssociation, RowModel):
     def __str__(self):
         return self.as_info_string()
 
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = super()._flat_dump(null_free, delimiter=delimiter)
+    def flat_dump(self, null_free=False, delimiter="|"):
+        obj = super().flat_dump(null_free, delimiter=delimiter)
         if self.evidence is not None:
-            obj["evidence"] = self._list_to_string(self.evidence, delimiter=delimiter)
+            obj["evidence"] = self._flatten_list_to_string(
+                self.evidence, delimiter=delimiter
+            )
         return obj
 
 
-class GenePathwayMembership(PathwayAnnotation, RowModel):
+class GenePathwayMembership(PathwayMembership, RowModel):
     def __str__(self):
         return self.as_info_string()
 
@@ -131,24 +135,24 @@ class RegionGene(RowModel):
         description="indicates location of gene relative to the queries region",
     )
 
-    def _flat_dump(self, null_free=False, delimiter="|"):
-        obj = super()._flat_dump(null_free, delimiter=delimiter)
+    def flat_dump(self, null_free=False, delimiter="|"):
+        obj = super().flat_dump(null_free, delimiter=delimiter)
 
         # promote the location fields
         del obj["location"]
-        obj.update(self.location._flat_dump())
+        obj.update(self.location.flat_dump())
 
         del obj["gene"]
-        obj.update(self.gene._flat_dump())
+        obj.update(self.gene.flat_dump())
 
         return obj
 
     @classmethod
-    def get_model_fields(cls, as_str=False):
-        fields = super().get_model_fields()
+    def list_model_fields(cls, as_str=False):
+        fields = super().list_model_fields()
         del fields["location"]
-        fields.update(GenomicRegion.get_model_fields())
+        fields.update(GenomicRegion.list_model_fields())
         del fields["gene"]
-        fields.update(GeneFeature.get_model_fields())
+        fields.update(GeneFeature.list_model_fields())
 
         return list(fields.keys()) if as_str else fields

@@ -161,7 +161,9 @@ def find_in_list(value: str, arr: List[str], ignore_case=False):
     return False
 
 
-def list_to_string(arr: list, null_str="NULL", delim=",", quote: bool = False):
+def list_to_string(
+    arr: list, null_str="NULL", delim=",", quote: bool = False, as_set: bool = False
+):
     """converts a list to string
 
     Args:
@@ -177,9 +179,13 @@ def list_to_string(arr: list, null_str="NULL", delim=",", quote: bool = False):
     if arr is None or len(arr) == 0:
         return null_str
 
+    str_list = [xstr(v, null_str=null_str) for v in arr]
+    if as_set:
+        str_list = set(as_set)
+
     if quote:
-        return delim.join(["'" + xstr(v, null_str=null_str) + "'" for v in arr])
-    return delim.join([xstr(v, null_str=null_str) for v in arr])
+        return delim.join(["'" + xstr(v, null_str=null_str) + "'" for v in str_list])
+    return delim.join(str_list)
 
 
 def drop_nulls(arr):

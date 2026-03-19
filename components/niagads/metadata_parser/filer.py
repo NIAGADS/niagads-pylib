@@ -3,18 +3,18 @@ from os.path import basename
 from typing import List, Union
 from urllib.parse import unquote
 
-from niagads.common.constants.external_resources import ThirdPartyResources
-from niagads.common.constants.ontologies import BiosampleType
-from niagads.common.models.ontologies import OntologyTerm
-from niagads.common.models.metadata import (
+from niagads.common.reference.xrefs.data_sources import ThirdPartyResources
+from niagads.common.reference.ontologies.types import BiosampleType
+from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.track.models import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,
     Provenance,
 )
-from niagads.genomicsdb.schema.dataset.track import Track
+from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.utils.dict import print_dict
-from niagads.utils.list import array_in_string, remove_duplicates
+from niagads.utils.list import remove_duplicates
 from niagads.utils.logging import FunctionContextAdapter
 from niagads.utils.string import (
     is_bool,

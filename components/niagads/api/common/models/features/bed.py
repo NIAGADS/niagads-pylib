@@ -2,7 +2,7 @@ from typing import Any, List, Optional, Union
 
 from niagads.api.common.views.table import TableRow
 from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.models.core import DynamicRowModel
+from niagads.api.common.models.base import DynamicRowModel
 from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.views.table import Table
 from niagads.utils.string import dict_to_info_string
@@ -35,7 +35,7 @@ class BEDFeature(DynamicRowModel):
         self.model_extra["track_id"] = trackId
 
     def get_table_fields(self, as_str=False, **kwargs):
-        fields = self.get_model_fields(as_str)
+        fields = self.list_model_fields(as_str)
         # FIXME: add _sort_fields?
         if self.has_extras():
             if getattr(kwargs, "extrasAsInfoStr", False):
