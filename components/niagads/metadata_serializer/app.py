@@ -4,6 +4,7 @@ import json
 from datetime import date
 from typing import Any, Callable, Union
 
+from niagads.common.models.base import SerializationOptions
 import streamlit as st
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.models import OntologyTerm
@@ -457,7 +458,10 @@ class MetadataSerializationApp(ComponentBaseMixin):
                     exclude=None,
                     exclude_none=True,
                     exclude_unset=True,
-                    context={"enums_as_name": True},
+                    context={
+                        SerializationOptions.ENUMS_AS_NAME: True,
+                        SerializationOptions.EXCLUDE_EMPTY_OBJECTS: True,
+                    },
                 )
 
                 # Download button
