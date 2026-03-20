@@ -8,7 +8,7 @@ from niagads.arg_parser.core import (
 from niagads.common.types import ProcessStatus
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.pipeline.manager import PipelineManager
-from niagads.etl.types import ETLMode
+from niagads.etl.types import ETLExecutionMode
 
 
 class PipelineRunner:
@@ -79,8 +79,8 @@ async def main():
     parser.add_argument("config", help="Path to pipeline config JSON")
     parser.add_argument(
         "--mode",
-        type=case_insensitive_enum_type(ETLMode),
-        default=ETLMode.DRY_RUN,
+        type=case_insensitive_enum_type(ETLExecutionMode),
+        default=ETLExecutionMode.DRY_RUN,
         help="ETL execution mode: COMMIT (commit changes), NON_COMMIT (rollback at end), DRY_RUN (simulate only)",
     )
     parser.add_argument(

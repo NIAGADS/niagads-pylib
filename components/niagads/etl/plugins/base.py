@@ -16,7 +16,7 @@ from niagads.etl.plugins.types import (
     ETLRunStatus,
     ResumeCheckpoint,
 )
-from niagads.etl.types import ETLMode
+from niagads.etl.types import ETLExecutionMode
 from niagads.database.genomicsdb.schema.admin.etl import ETLRun
 from niagads.utils.asynchronous import null_async_context
 from niagads.utils.list import chunker
@@ -69,7 +69,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.__transaction_record: Dict[str, Dict[str, int]] = {}
 
         # parameter based properties
-        self._mode = ETLMode(self._params.mode)
+        self._mode = ETLExecutionMode(self._params.mode)
         self._commit_after: int = self._params.commit_after
 
         self._connection_string = (
@@ -157,11 +157,18 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         Indicates whether the plugin is running in DRY_RUN mode.
         """
-        return self._mode == ETLMode.DRY_RUN
+        return self._mode == ETLExecutionMode.DRY_RUN
+
+    @property
+    def commit(self) -> bool:
+        """
+        Indicates whether plugin is running in `COMMIT` mode
+        """
+        return self._params.commit
 
     @property
     def run_id(self):
-        if not self.is_dry_run:
+        if not self.is_dry_run and not self._mode == ETLExecutionMode.PREPROCESS:
             return self.__etl_run.etl_run_id
         else:
             return None
@@ -467,10 +474,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         tx_total = self.__get_total_transactions()
         msg = f"{tx_total} records"
-        if self._mode == ETLMode.COMMIT:
+        if self._mode == self.commit:
             await session.commit()
             self.logger.info("COMMITED", msg)
-        elif self._mode == ETLMode.NON_COMMIT:
+        elif self._mode == self.commit:
             await session.rollback()
             self.logger.info("ROLLED BACK", msg)
 
@@ -493,7 +500,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             RuntimeError: If no transaction counts were updated during a non-empty transaction.
         """
 
-        if not buffer or len(buffer) == 0:
+        if not buffer or (isinstance(buffer, list) and len(buffer) == 0):
             raise ValueError("Empty buffer (transformed) passed to load.")
 
         result: Optional[ResumeCheckpoint] = await self.load(session, buffer)
@@ -586,8 +593,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     async def __initialize_etl_run(self) -> Optional[int]:
         """
         Log the start of a plugin run in the database.
-        No log entry is created if ETLMode is DRY_RUN.
+        No log entry is created if ETLMode is DRY_RUN or PREPROCESS
+
         """
+
+        if self.is_dry_run:
+            self.logger.info("ETL Execution Mode = `DRY_RUN` - skipping DB Logging.")
+            return
+
         self.__etl_run = ETLRun(
             plugin_name=self._name,
             plugin_version=self.version,
@@ -597,11 +610,20 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             operation=str(self.operation),
             start_time=self.__start_time,
             rows_processed=0,
+            is_rest_run=self.commit,
         )
 
-        async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            if session is not None:
-                self.__etl_run.run_id = await self.__etl_run.submit(session)
+        # no if session is not None check here b/c I want to throw an error,
+        # we should only reach this point if the session pool exists
+        async with self.session_ctx() as session:
+            self.__etl_run.run_id = await self.__etl_run.submit(session)
+
+            # need to commit the etl run regardless of mode, otherwise it will
+            # be rolled back at the first session rollback during load
+            # causing the next load to fail b/c etl_run_id won't exist
+            # possible FIXME: in non-commit mode, remove created entry at end of plugin
+            # run as a clean up
+            session.commit()
 
     async def __finalize_etl_run(
         self,
@@ -623,6 +645,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         async with self.session_ctx() as session:
             if session is not None:
                 await self.__etl_run.update(session)
+                session.commit()
 
     def set_checkpoint(self, line=None, record=None) -> ResumeCheckpoint:
         """
@@ -702,7 +725,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 await self.on_run_start(session)
 
         # Preprocess mode - transformers write intermediary data to file
-        if self._mode == ETLMode.PREPROCESS:
+        if self._mode == ETLExecutionMode.PREPROCESS:
             try:
                 self.logger.log_plugin_configuration(self._params)
                 await self.preprocess()
@@ -713,6 +736,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
             return execution_status
 
+        if self.mode == ETLExecutionMode.UNDO:
+            raise NotImplementedError("UNDO not yet implemented")
+
         # Regular ETL modes
         try:
             await self.__initialize_etl_run()
@@ -722,6 +748,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 mode=self._mode,
                 run_id=self.run_id,
                 operation=self.operation,
+                commit=self.commit,
             )
 
         except Exception as e:
@@ -775,7 +802,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.checkpoint(**checkpoint_kwargs)
             self.logger.exception(f"Plugin failed: {e}")
 
-            # --- Finalize plugin run log on error (except DRY_RUN) ---
+            # --- Finalize plugin run log on error (except DRY_RUN/PREPROCESS) ---
             if self.run_id:
                 await self.__finalize_etl_run(
                     datetime.now(),  # end time

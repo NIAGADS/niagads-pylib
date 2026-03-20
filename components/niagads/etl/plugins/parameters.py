@@ -1,7 +1,7 @@
 from typing import Optional
 
 from niagads.etl.plugins.types import ResumeCheckpoint
-from niagads.etl.types import ETLMode
+from niagads.etl.types import ETLExecutionMode
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -20,9 +20,11 @@ class BasePluginParams(BaseModel):
         Commit behavior is controlled by the pipeline/CLI via --commit. Plugins should not auto-commit unless instructed.
     """
 
-    mode: ETLMode = Field(
-        default=ETLMode.DRY_RUN, description=f"The ETL mode; one of {ETLMode.list()}"
+    mode: ETLExecutionMode = Field(
+        default=ETLExecutionMode.DRY_RUN,
+        description=f"The ETL mode; one of {ETLExecutionMode.list()}",
     )
+    commit: Optional[bool] = Field(default=False, description="run in commit mode ")
     commit_after: Optional[int] = Field(
         default=10000, ge=1, description="records to buffer per commit"
     )
@@ -82,5 +84,3 @@ class PathValidatorMixin:
             return value
 
         return file_exists
-
-

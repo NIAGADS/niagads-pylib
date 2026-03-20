@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 
 from niagads.etl.plugins.types import ETLRunStatus
-from niagads.etl.types import ETLMode
+from niagads.etl.types import ETLExecutionMode
 from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.loaders.core import Settings
 from niagads.utils.logging import (
@@ -149,10 +149,11 @@ class ETLLogger:
         Logs zero if inserts/updates are empty.
         """
 
-        prefix = "TEST" if status.mode == ETLMode.DRY_RUN else "RUN"
+        prefix = "TEST" if status.mode == ETLExecutionMode.DRY_RUN else "RUN"
         self.report_section(f"{prefix} Transaction Summary")
         keyw = 16
         self.info(f"{'MODE':<{keyw}} : {status.mode}")
+        self.info(f"{'COMMIT':<{keyw}} : {status.commit}")
         self.info(f"{'TASK ID':<{keyw}} : {status.task_id}")
 
         if status.runtime is not None:
@@ -162,7 +163,7 @@ class ETLLogger:
             self.info(f"{'MEMORY':<{keyw}} : {status.memory:.2f}MB")
 
         tx_count = status.total_transactions()
-        if status.mode == ETLMode.DRY_RUN:
+        if status.mode == ETLExecutionMode.DRY_RUN:
             self.info(f"{'PROCESSED':<{keyw}} : {tx_count}  records.")
 
         else:

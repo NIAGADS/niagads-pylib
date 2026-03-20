@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 
 from niagads.common.types import ETLOperation, ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.etl.types import ETLMode
+from niagads.etl.types import ETLExecutionMode
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -42,7 +42,8 @@ class ETLRunStatus(BaseModel):
     estimated_transaction_count: int = None
     operation: ETLOperation = None
     status: ProcessStatus
-    mode: ETLMode
+    mode: ETLExecutionMode
+    commit: bool
     runtime: Optional[float] = None
     memory: Optional[float] = None
     task_id: Optional[int] = None
@@ -51,9 +52,12 @@ class ETLRunStatus(BaseModel):
     def total_transactions(self):
         if self.transaction_record is None:
             if self.estimated_transaction_count is None:
-                raise RuntimeError(
-                    "Cannot calculate total writes - transaction tally not initialized"
-                )
+                if self.status is not ProcessStatus.FAIL:
+                    raise RuntimeError(
+                        "Cannot calculate total writes - transaction tally not initialized"
+                    )
+                else:
+                    return 0
             else:
                 return self.estimated_transaction_count
 

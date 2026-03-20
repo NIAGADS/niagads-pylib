@@ -32,6 +32,7 @@ class ETLRun(AdminTableBase):
     message: Mapped[str] = mapped_column(Text)  # free-text errors/info
     status: Mapped[str] = enum_column(ProcessStatus, nullable=False)
     operation: Mapped[str] = enum_column(ETLOperation, nullable=False)
+    is_test_run: Mapped[bool] = mapped_column(default=False)  # python default only
 
     # Timing + metrics
     start_time: Mapped[datetime] = datetime_column()
