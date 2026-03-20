@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.exc import ProgrammingError
 
+
 class TransactionTableMixin(DeclarativeBase):
     __abstract__ = True
 
@@ -25,6 +26,19 @@ class TransactionTableMixin(DeclarativeBase):
 
         pk_name = self.__mapper__.primary_key[0].name
         return getattr(self, pk_name)
+
+    async def detach_from_session(self, session: AsyncSession):
+        """
+        Expunge this instance from the SQLAlchemy session so that all currently loaded attributes
+        remain accessible after the session is closed. This prevents DetachedInstanceError when
+        accessing attributes that were loaded before expunging, but disables lazy loading of any
+        unloaded attributes.
+
+        Args:
+            session (AsyncSession): The SQLAlchemy async session from which to expunge this instance.
+        """
+        await session.flush()
+        session.expunge(self)
 
     async def update(self, session: AsyncSession):
         """
@@ -51,7 +65,7 @@ class TransactionTableMixin(DeclarativeBase):
                 f"Cannot update record; no row exists in the database with {pk_name}={pk_value}"
             )
 
-        session.merge(self)
+        await session.merge(self)
         await session.flush()
 
     @classmethod
