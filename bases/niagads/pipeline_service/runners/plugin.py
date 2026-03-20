@@ -195,7 +195,9 @@ class PluginRunner(ComponentBaseMixin):
     async def run(self):
         self._set_runtime_parameters()
         try:
-            plugin: AbstractBasePlugin = self._plugin_cls(params=self._params)
+            plugin: AbstractBasePlugin = self._plugin_cls(
+                params=self._params, debug=self._debug, verbose=self._verbose
+            )
         except Exception as e:
             msg = f"Error instantiating plugin '{self._plugin_cls.__name__}'"
             if self._debug:

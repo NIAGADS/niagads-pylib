@@ -48,13 +48,20 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             params (BasePluginParams): Validated parameters for the plugin instance.
             name (Optional[str]): Optional name for the plugin instance (used for logging and identification).
         """
-
-        super().__init__(debug=debug, verbose=verbose)
+        super().__init__(debug=debug, verbose=verbose, initialize_logger=False)
         self.__metadata: PluginMetadata = self.__retrieve_plugin_metadata()
 
         self._params = self.parameter_model(**params)
-
         self._name = name or self.__class__.__name__
+
+        self.logger: ETLLogger = FunctionContextLoggerWrapper(
+            ETLLogger(
+                name=self._name,
+                log_file=self.__resolve_log_file_path(),
+                debug=self._debug,
+            )
+        )
+
         self.__start_time: Optional[datetime] = None
         self.__status_report: ETLRunStatus = None
         self.__checkpoint: ResumeCheckpoint = None
@@ -64,14 +71,6 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         # parameter based properties
         self._mode = ETLMode(self._params.mode)
         self._commit_after: int = self._params.commit_after
-
-        self.logger: ETLLogger = FunctionContextLoggerWrapper(
-            ETLLogger(
-                name=self._name,
-                log_file=self.__resolve_log_file_path(),
-                debug=self._debug,
-            )
-        )
 
         self._connection_string = (
             self._params.connection_string or PipelineSettings.from_env().DATABASE_URI

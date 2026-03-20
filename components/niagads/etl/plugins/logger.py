@@ -5,7 +5,12 @@ from typing import Any, Optional
 from niagads.etl.plugins.types import ETLRunStatus
 from niagads.etl.types import ETLMode
 from niagads.etl.plugins.parameters import BasePluginParams
-from niagads.utils.logging import LOG_FORMAT_STR
+from niagads.loaders.core import Settings
+from niagads.utils.logging import (
+    LOG_FORMAT_STR,
+    ExitOnExceptionHandler,
+    FunctionContextLoggerWrapper,
+)
 
 
 class ETLLogger:
@@ -20,13 +25,21 @@ class ETLLogger:
         log_file: str,
         debug: bool = False,
     ):
-        self.__logger = logging.getLogger(name)  # , run_id=run_id)# , plugin, task_id)
-        self.__logger.setLevel(logging.DEBUG if debug else logging.INFO)
+        logger = logging.getLogger(name)  # , run_id=run_id)# , plugin, task_id)
         handler = logging.FileHandler(log_file, mode="w")
         handler.setFormatter(logging.Formatter(LOG_FORMAT_STR))
-        self.__logger.handlers.clear()
-        self.__logger.addHandler(handler)
+
+        logger.addHandler(handler)
+
         self._debug = debug
+
+        if self._debug:
+            self.__logger: logging.Logger = FunctionContextLoggerWrapper(logger=logger)
+            self.__logger.setLevel(logging.DEBUG)
+
+        else:
+            self.__logger = logger
+            self.__logger.setLevel(logging.INFO)
 
     def flush(self):
         for h in self.__logger.handlers:
@@ -101,6 +114,8 @@ class ETLLogger:
         config = params.model_dump()
         max_key_len = max(len(str(k)) for k in config.keys()) if config else 12
         for key, value in config.items():
+            if key == "connection_string" and value is None:
+                value = Settings.from_env().DATABASE_URI
             self.info(f"{key.upper():<{max_key_len}} : {value}")
         self.report_section_end("ETL Plugin Config")
 

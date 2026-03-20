@@ -52,8 +52,14 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
 
     _params: ExternalDatabaseLoaderParams  # type annotation
 
-    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
-        super().__init__(params, name)
+    def __init__(
+        self,
+        params: Dict[str, Any],
+        name: Optional[str] = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(params, name, debug, verbose)
 
     def extract(self) -> Iterator[dict]:
         """
@@ -109,6 +115,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         Returns:
             ETLLoadResult: checkpoint and transaction count
         """
+        self.logger.debug(f"{transformed}")
         if not await ExternalDatabase.record_exists(
             session, {"name": transformed.name, "version": transformed.version}
         ):
