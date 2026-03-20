@@ -68,9 +68,9 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         Returns:
             Iterator[dict]: Single dictionary containing external database configuration.
         """
-        self.logger.debug("entering extract")
         with open(self._params.file, "r") as f:
             config = json.load(f)
+        self.logger.debug(f"Extracted: {config}")
         return config
 
     def transform(self, record: dict) -> ExternalDatabase:
@@ -90,6 +90,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
 
         xdbref = ExternalDatabase(**record)
         xdbref.run_id = self.run_id
+        self.logger.debug(f"transformed = {xdbref}")
         return xdbref
 
     def get_record_id(self, record: ExternalDatabase) -> str:
@@ -124,4 +125,5 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
             self.logger.warning(
                 f"External Database Reference {transformed.database_key}: {transformed.name}|{transformed.version} already exists"
             )
+            self.inc_tx_count(ExternalDatabase, ETLOperation.SKIP)
         return ResumeCheckpoint(record=self.get_record_id(transformed))

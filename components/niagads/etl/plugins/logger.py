@@ -2,6 +2,7 @@ import logging
 from typing import Any, Optional
 
 
+from niagads.common.types import ETLOperation
 from niagads.etl.plugins.types import ETLRunStatus
 from niagads.etl.types import ETLExecutionMode
 from niagads.etl.plugins.parameters import BasePluginParams
@@ -12,6 +13,8 @@ from niagads.utils.logging import (
     FunctionContextLoggerWrapper,
 )
 
+import sqlalchemy.log
+
 
 class ETLLogger:
     """
@@ -19,21 +22,19 @@ class ETLLogger:
     Always logs in human-readable text format and includes run_id, plugin, and task_id in all logs automatically.
     """
 
-    def __init__(
-        self,
-        name: str,
-        log_file: str,
-        debug: bool = False,
-    ):
+    def __init__(self, name: str, log_file: str, debug: bool = False):
         self._debug = debug
         logger = logging.getLogger(name)  # , run_id=run_id)# , plugin, task_id)
         handler = logging.FileHandler(log_file, mode="w")
         handler.setFormatter(logging.Formatter(LOG_FORMAT_STR))
         logger.addHandler(handler)
 
+        sqlalchemy.log._add_default_handler = lambda x: None
+
         sqlalchemy_logger = logging.getLogger("sqlalchemy.engine")
-        if handler not in sqlalchemy_logger.handlers:
-            sqlalchemy_logger.addHandler(handler)
+        sqlalchemy_logger.handlers.clear()  # Remove all existing handlers
+        sqlalchemy_logger.addHandler(handler)
+        sqlalchemy_logger.propagate = False  # Prevent propagation to root logger
 
         if self._debug:
             self.__logger: logging.Logger = FunctionContextLoggerWrapper(logger=logger)
@@ -178,7 +179,7 @@ class ETLLogger:
             if len(transactions) > 0:
                 for table, table_transactions in status.transaction_record.items():
                     for operation, count in table_transactions.items():
-                        op = f"{operation}ED" if str(operation) != "SKIP" else "SKIPPED"
+                        op = f"{ETLOperation(operation).past_tense()}"
                         self.info(f"{str(op):<{keyw}} : {count} records in {table}")
             else:
                 self.info(f"{str(status.operation):<{keyw}} : 0 records")

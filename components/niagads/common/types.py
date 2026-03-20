@@ -34,3 +34,13 @@ class ETLOperation(CaseInsensitiveEnum):
     LOAD = auto()
     DELETE = auto()
     SKIP = auto()
+
+
+    def past_tense(self):
+        if self == ETLOperation.SKIP:
+            return "SKIPPED"
+        
+        if self.name.endswith('E'):
+            return f"{self.name}D"
+
+        return f"{self.name}ED"

@@ -218,10 +218,8 @@ class PluginRunner(ComponentBaseMixin):
             )
         else:
             msg = f"Plugin '{self._plugin_cls.__name__}' failed."
-            if self._debug:
-                self.logger.exception(msg)
-            else:
-                self.logger.error(f"{msg}: {e}")
+            self.logger.info(msg)
+
 
 
 async def main():

@@ -20,8 +20,8 @@ class BasePluginParams(BaseModel):
         Commit behavior is controlled by the pipeline/CLI via --commit. Plugins should not auto-commit unless instructed.
     """
 
-    mode: ETLExecutionMode = Field(
-        default=ETLExecutionMode.DRY_RUN,
+    mode: Optional[ETLExecutionMode] = Field(
+        default=ETLExecutionMode.RUN,
         description=f"The ETL mode; one of {ETLExecutionMode.list()}",
     )
     commit: Optional[bool] = Field(default=False, description="run in commit mode ")

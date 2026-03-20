@@ -21,7 +21,7 @@ class ResumeCheckpoint(BaseModel):
     record: Optional[str] = Field(
         None, description="Natural identifier or full record to resume from"
     )
-    full_record: Optional[dict]
+    full_record: Optional[dict] = None
 
     @model_validator(mode="after")
     def validate_checkpoint(self):
