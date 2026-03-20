@@ -1,6 +1,9 @@
-from sqlalchemy.types import TypeDecorator
-from sqlalchemy.dialects.postgresql import INT4RANGE
+from datetime import datetime
+
+from dateutil import parser
 from niagads.common.models.types import Range
+from sqlalchemy.dialects.postgresql import INT4RANGE
+from sqlalchemy.types import DateTime, TypeDecorator
 
 
 class RangeType(TypeDecorator):
@@ -10,7 +13,8 @@ class RangeType(TypeDecorator):
     """
 
     impl = INT4RANGE
-
+    cache_ok = True
+    
     def process_bind_param(self, value: Range, dialect):
         """
         Convert a Range object to PostgreSQL INT4RANGE string format for storage.
@@ -55,3 +59,18 @@ class RangeType(TypeDecorator):
                 inclusiveEnd = False
             return Range(start=start, end=end, inclusive_end=inclusiveEnd)
         return value
+
+
+class AutoDateTime(TypeDecorator):
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None or isinstance(value, datetime):
+            return value
+        if isinstance(value, str):
+            try:
+                return parser.parse(value)
+            except (ValueError, TypeError) as e:
+                raise ValueError(f"Could not parse datetime string: {value}") from e
+        raise TypeError(f"Expected datetime or str, got {type(value)}")
