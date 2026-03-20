@@ -25,21 +25,25 @@ class ETLLogger:
         log_file: str,
         debug: bool = False,
     ):
+        self._debug = debug
         logger = logging.getLogger(name)  # , run_id=run_id)# , plugin, task_id)
         handler = logging.FileHandler(log_file, mode="w")
         handler.setFormatter(logging.Formatter(LOG_FORMAT_STR))
-
         logger.addHandler(handler)
 
-        self._debug = debug
+        sqlalchemy_logger = logging.getLogger("sqlalchemy.engine")
+        if handler not in sqlalchemy_logger.handlers:
+            sqlalchemy_logger.addHandler(handler)
 
         if self._debug:
             self.__logger: logging.Logger = FunctionContextLoggerWrapper(logger=logger)
             self.__logger.setLevel(logging.DEBUG)
+            sqlalchemy_logger.setLevel(logging.DEBUG)
 
         else:
             self.__logger = logger
             self.__logger.setLevel(logging.INFO)
+            sqlalchemy_logger.setLevel(logging.INFO)
 
     def flush(self):
         for h in self.__logger.handlers:
@@ -119,8 +123,12 @@ class ETLLogger:
             self.info(f"{key.upper():<{max_key_len}} : {value}")
         self.report_section_end("ETL Plugin Config")
 
-    def log_plugin_run(self):
+    def log_plugin_run_start(self):
         self.report_section("ETL Plugin Run")
+
+    def log_plugin_run_id(self, run_id):
+        keyw = 16
+        self.info(f"{'RUN ID':<{keyw}} : {run_id}")
 
     def checkpoint(
         self,
@@ -152,9 +160,28 @@ class ETLLogger:
         prefix = "TEST" if status.mode == ETLExecutionMode.DRY_RUN else "RUN"
         self.report_section(f"{prefix} Transaction Summary")
         keyw = 16
+
+        self.info(f"{'STATUS':<{keyw}} : {str(status.status)}")
         self.info(f"{'MODE':<{keyw}} : {status.mode}")
         self.info(f"{'COMMIT':<{keyw}} : {status.commit}")
-        self.info(f"{'TASK ID':<{keyw}} : {status.task_id}")
+        self.info(f"{'RUN ID':<{keyw}} : {status.run_id}")
+
+        tx_count = status.total_transactions()
+        if status.mode == ETLExecutionMode.DRY_RUN:
+            self.info(f"{'PROCESSED':<{keyw}} : {tx_count}  records.")
+        else:
+            # log writes
+
+            self.info(f"{'TOTAL TRANSACTIONS':<{keyw}} : {tx_count}")
+
+            transactions = status.transaction_record or {}
+            if len(transactions) > 0:
+                for table, table_transactions in status.transaction_record.items():
+                    for operation, count in table_transactions.items():
+                        op = f"{operation}ED" if str(operation) != "SKIP" else "SKIPPED"
+                        self.info(f"{str(op):<{keyw}} : {count} records in {table}")
+            else:
+                self.info(f"{str(status.operation):<{keyw}} : 0 records")
 
         if status.runtime is not None:
             self.info(f"{'RUNTIME':<{keyw}} : {status.runtime:.2f}s")
@@ -162,25 +189,6 @@ class ETLLogger:
         if status.memory is not None:
             self.info(f"{'MEMORY':<{keyw}} : {status.memory:.2f}MB")
 
-        tx_count = status.total_transactions()
-        if status.mode == ETLExecutionMode.DRY_RUN:
-            self.info(f"{'PROCESSED':<{keyw}} : {tx_count}  records.")
-
-        else:
-            # log writes
-
-            self.info(f"{'WROTE':<{keyw}} : {tx_count} records.")
-
-            transactions = status.transaction_record or {}
-            if len(transactions) > 0:
-                for table, record_count in status.transaction_record.items():
-                    self.info(
-                        f"{str(status.operation):<{keyw}} : {record_count} records into {table}"
-                    )
-            else:
-                self.info(f"{str(status.operation):<{keyw}} : 0 records")
-
-        self.info(f"{'STATUS':<{keyw}} : {str(status.status)}")
         self.report_section_end("Transaction Summary")
 
     @property
