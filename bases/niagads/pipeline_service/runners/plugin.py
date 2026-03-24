@@ -13,7 +13,9 @@ from niagads.common.types import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.etl.plugins.registry import PluginRegistry
+from niagads.etl.types import ETLExecutionMode
 from niagads.etl.utils import register_plugins
 from pydantic import BaseModel, ValidationError
 
@@ -43,10 +45,15 @@ class PluginRunner(ComponentBaseMixin):
         plugin_name,
         argument_parser,
         list_only: bool = False,
+        undo: bool = False,
+        run_id: int = None,
         debug: bool = False,
         verbose: bool = False,
     ):
         super().__init__(debug=debug, verbose=verbose)
+        self._undo = undo
+        self._run_id = run_id
+        
         try:
             register_plugins(
                 project=PipelineSettings.from_env().PROJECT,
@@ -72,7 +79,12 @@ class PluginRunner(ComponentBaseMixin):
             self.logger.error(msg)
         try:
             self.__plugin_metadata = PluginRegistry.get_metadata(plugin_name)
-            self._param_fields = self.__plugin_metadata.parameter_model.model_fields
+            if self._undo:
+                # this way we can handle mode, run_id, custom logging, and commit
+                # but not worry about required plugin commands
+                self._param_fields = BasePluginParams.model_fields
+            else:
+                self._param_fields = self.__plugin_metadata.parameter_model.model_fields
         except Exception as e:
             msg = f"Error accessing parameter model for plugin '{plugin_name}'"
             if self._debug:
@@ -82,6 +94,7 @@ class PluginRunner(ComponentBaseMixin):
 
         self._params = {}
         self._argument_parser = argument_parser  # store parser for usage printing
+
         self._register_plugin_args()
 
     def print_plugin_help(self):
@@ -191,6 +204,10 @@ class PluginRunner(ComponentBaseMixin):
             value = getattr(args, field_name, None)
             if value is not None:
                 self._params[field_name] = value
+                
+        if self._undo:
+            self._params['mode'] = ETLExecutionMode.UNDO
+            self._params['run_id'] = self._run_id
 
     async def run(self):
         self._set_runtime_parameters()
@@ -234,6 +251,8 @@ async def main():
     parser.add_argument("--list", action="store_true", help="List registered plugins")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
+    parser.add_argument("--undo", action="store_true", help="Run in UNDO mode")
+    parser.add_argument("--run_id", type=int, help="ETL run_id; required for UNDO mode")
     parser.add_argument(
         "--help", action="store_true", help="Show help message and exit"
     )
@@ -249,8 +268,11 @@ async def main():
         known_args.plugin,
         parser,
         known_args.list,
+        known_args.undo,
+        known_args.run_id,
         debug=known_args.debug,
         verbose=known_args.verbose,
+    
     )
     if known_args.help:  # print plugin help
         # parser.print_help()

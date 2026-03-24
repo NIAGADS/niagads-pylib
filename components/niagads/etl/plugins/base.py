@@ -20,11 +20,11 @@ from niagads.etl.types import ETLExecutionMode
 from niagads.database.genomicsdb.schema.admin.etl import ETLRun
 from niagads.utils.asynchronous import null_async_context
 from niagads.utils.list import chunker
-from niagads.utils.logging import FunctionContextLoggerWrapper
 from pydantic import ValidationError
-from sqlalchemy import event
+from sqlalchemy import delete, event
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.exc import IntegrityError
 
 
 class AbstractBasePlugin(ABC, ComponentBaseMixin):
@@ -52,7 +52,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         super().__init__(debug=debug, verbose=verbose, initialize_logger=False)
         self.__metadata: PluginMetadata = self.__retrieve_plugin_metadata()
 
-        self._params = self.parameter_model(**params)
+        if params['mode'] == ETLExecutionMode.UNDO:
+            self._params = BasePluginParams(**params)
+        else:
+            self._params = self.parameter_model(**params)
         self._name = name or self.__class__.__name__
 
         self.logger: ETLLogger = ETLLogger(
@@ -61,15 +64,15 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 debug=self._debug,
             )
         
+        # parameter based properties
+        self._mode = ETLExecutionMode(self._params.mode)
+        self._commit_after: int = self._params.commit_after
+                
         self.__start_time: Optional[datetime] = None
         self.__status_report: ETLRunStatus = None
         self.__checkpoint: ResumeCheckpoint = None
         self.__etl_run: ETLRun = None
         self.__transaction_record: Dict[str, Dict[str, int]] = {}
-
-        # parameter based properties
-        self._mode = ETLExecutionMode(self._params.mode)
-        self._commit_after: int = self._params.commit_after
 
         self._connection_string = (
             self._params.connection_string or PipelineSettings.from_env().DATABASE_URI
@@ -157,6 +160,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Indicates whether the plugin is running in DRY_RUN mode.
         """
         return self._mode == ETLExecutionMode.DRY_RUN
+    
+    @property 
+    def is_etl_run(self) -> bool:
+        """ 
+        Indicates whether plugin is doing a full RUN
+        """
+        return self._mode == ETLExecutionMode.RUN
 
     @property
     def commit(self) -> bool:
@@ -167,7 +177,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
     @property
     def run_id(self):
-        if not self.is_dry_run and not self._mode == ETLExecutionMode.PREPROCESS:
+        if self.is_etl_run:
             return self.__etl_run.run_id
         else:
             return None
@@ -311,6 +321,43 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         otherwise, leave as pass.
         """
         pass
+    
+    async def undo(self) -> None:
+        """
+        Hook for undo method
+
+        Override in your plugin if additional undo actions are needed;
+        runs undo and then exists. 
+
+        If you need the DB session, for undo,
+        use self.session_ctx() or self.session_manager() as best fits
+        your application
+        """
+
+        async with self.session_ctx() as session:
+            for table in self.affected_tables:
+                try:
+                    result = await session.execute(
+                        delete(table).where(table.run_id == self._params.run_id)
+                    )
+                    self.inc_tx_count(table, ETLOperation.DELETE, result.rowcount)
+                except IntegrityError:
+                    raise IntegrityError(f"Foreign key contraint violation."
+                        f" Attempted to delete rows from {table.table_name()} before"
+                        f" all child rows were removed. Order `affected_tables` in the "
+                        f" plugin metadata so that they delete child records first.")
+            try:
+                result = await session.execute(delete(ETLRun).where(ETLRun.run_id == self._params.run_id))
+                self.inc_tx_count(ETLRun, ETLOperation.DELETE, result.rowcount)
+            except IntegrityError:
+                raise IntegrityError("Foreign key constraint violation. Child records for"
+                    f" run_id = {self._params.run_id} still exist."
+                    " Check `affected_tables` list.")
+            if self.commit:
+                await session.commit()
+            else:
+                await session.rollback()
+
 
     # -------------------------
     # Transaction Management
@@ -741,6 +788,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             if session is not None:
                 await self.on_run_start(session)
+                
 
         # Preprocess mode - transformers write intermediary data to file
         if self._mode == ETLExecutionMode.PREPROCESS:
@@ -753,82 +801,97 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
             return execution_status
 
-        if self._mode == ETLExecutionMode.UNDO:
-            raise NotImplementedError("UNDO not yet implemented")
-
-        # Regular ETL modes
-
         try:
-            await self.__initialize_etl_run()
-            execution_status = ProcessStatus.RUNNING
-            self.__status_report = ETLRunStatus(
-                status=execution_status,
-                mode=self._mode,
-                run_id=self.run_id,
-                operation=self.operation,
-                commit=self.commit,
-            )
+            error_message = None
+            
+            if self._mode == ETLExecutionMode.UNDO:
+                execution_status = ProcessStatus.RUNNING
+                self.__status_report = ETLRunStatus(
+                    status=execution_status,
+                    mode=self._mode,
+                    run_id=self._params.run_id,
+                    operation=ETLOperation.DELETE,
+                    commit=self.commit,
+                )
+                
+                # checks here in case plugin overrides UNDO method
+                if self.is_large_dataset:
+                    raise NotImplementedError("Batch UNDO for large datasets not yet implemented")
+                if self.affected_tables is None or len(self.affected_tables) == 0:
+                    self.logger.exception("No `affected tables` specified for this plugin.  Cannot UNDO.")
+                if self._params.run_id is None:
+                    raise ValueError("Must specify ETL run_id to perform UNDO.")
+                
+                await self.undo()
 
-        except Exception as plugin_error:
-            self.logger.exception(f"Failed to initialize plugin: {plugin_error}")
-            raise RuntimeError(f"Failed to initialize plugin: {plugin_error}")
+                # If we reach here, ETL completed successfully
+                execution_status = ProcessStatus.SUCCESS
 
-        try:
+            else:  # RUN modes
+                try:
+                    await self.__initialize_etl_run()
+                    execution_status = ProcessStatus.RUNNING
+                    self.__status_report = ETLRunStatus(
+                        status=execution_status,
+                        mode=self._mode,
+                        run_id=self.run_id,
+                        operation=self.operation,
+                        commit=self.commit,
+                    )
 
-            if self.load_strategy == ETLLoadStrategy.CHUNKED:
-                await self.__process_chunked_load()
-            elif self.load_strategy == ETLLoadStrategy.BULK:
-                await self.__process_bulk_load()
-            elif self.load_strategy == ETLLoadStrategy.BATCH:
-                await self.__process_bulk_in_batch_load()
-            else:
-                raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
+                except Exception as plugin_error:
+                    self.logger.exception(f"Failed to initialize plugin: {plugin_error}")
+                    raise RuntimeError(f"Failed to initialize plugin: {plugin_error}")
 
-            # If we reach here, ETL completed successfully
-            execution_status = ProcessStatus.SUCCESS
+                
+                if self.load_strategy == ETLLoadStrategy.CHUNKED:
+                    await self.__process_chunked_load()
+                elif self.load_strategy == ETLLoadStrategy.BULK:
+                    await self.__process_bulk_load()
+                elif self.load_strategy == ETLLoadStrategy.BATCH:
+                    await self.__process_bulk_in_batch_load()
+                else:
+                    raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
+
+                # If we reach here, ETL completed successfully
+                execution_status = ProcessStatus.SUCCESS
 
         except Exception as plugin_error:
             # ETL failed
             execution_status = ProcessStatus.FAIL
+            
+            if self.is_etl_run:
+                try:
+                    # checkpoint for resume (line + record snapshot)
+                    checkpoint_kwargs = {
+                        "error": str(plugin_error),
+                    }
 
-            try:
-                # checkpoint for resume (line + record snapshot)
-                checkpoint_kwargs = {
-                    "error": str(plugin_error),
-                }
+                    if self.__checkpoint is not None:
+                        if self.__checkpoint.line is not None:
+                            checkpoint_kwargs["line"] = self.__checkpoint.line
+                        if self.__checkpoint.full_record is not None:
+                            record_obj = self.__checkpoint.full_record
+                            # Use model_dump if record is a Pydantic model
+                            if hasattr(record_obj, "model_dump") and callable(
+                                record_obj.model_dump
+                            ):
+                                checkpoint_kwargs["record"] = record_obj.model_dump()
+                            else:
+                                checkpoint_kwargs["record"] = record_obj
+                        if self.__checkpoint.record is not None:
+                            checkpoint_kwargs["record_id"] = self.__checkpoint.record
+                        elif self.__checkpoint.full_record is not None:
+                            checkpoint_kwargs["record_id"] = self.get_record_id(
+                                self.__checkpoint.full_record
+                            )
 
-                if self.__checkpoint is not None:
-                    if self.__checkpoint.line is not None:
-                        checkpoint_kwargs["line"] = self.__checkpoint.line
-                    if self.__checkpoint.full_record is not None:
-                        record_obj = self.__checkpoint.full_record
-                        # Use model_dump if record is a Pydantic model
-                        if hasattr(record_obj, "model_dump") and callable(
-                            record_obj.model_dump
-                        ):
-                            checkpoint_kwargs["record"] = record_obj.model_dump()
-                        else:
-                            checkpoint_kwargs["record"] = record_obj
-                    if self.__checkpoint.record is not None:
-                        checkpoint_kwargs["record_id"] = self.__checkpoint.record
-                    elif self.__checkpoint.full_record is not None:
-                        checkpoint_kwargs["record_id"] = self.get_record_id(
-                            self.__checkpoint.full_record
-                        )
-
-                self.logger.checkpoint(**checkpoint_kwargs)
-            except Exception as checkpoint_error:
-                self.logger.exception(f"Failed to build checkpoint: {checkpoint_error}")
-            finally:
-                self.logger.exception(f"Plugin failed: {plugin_error}")
-                # --- Finalize plugin run log on error (except DRY_RUN/PREPROCESS) ---
-                if self.run_id:
-                    await self.__finalize_etl_run(
-                        datetime.now(),  # end time
-                        execution_status,
-                        message=f"ETL Plugin Run Failed: {plugin_error}",
-                        rows_processed=self.__get_total_transactions(),
-                    )
+                    self.logger.checkpoint(**checkpoint_kwargs)
+                except Exception as checkpoint_error:
+                    self.logger.exception(f"Failed to build checkpoint: {checkpoint_error}")
+            else:
+                error_message = self.logger.exception(f"ETL Plugin Run Failed: {plugin_error}")
+    
         finally:
             await self.on_run_complete()
 
@@ -853,6 +916,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                         end_time,
                         execution_status,
                         rows_processed=total_transactions,
+                        message = error_message
                     )
 
             except Exception as db_error:
