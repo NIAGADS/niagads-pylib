@@ -10,7 +10,7 @@ class BasePluginParams(BaseModel):
     Base parameter model for all ETL plugins.
 
     Attributes:
-        commit_after (int): Number of records to buffer before each load/commit in streaming mode.
+        batch_size (int): Number of records to buffer before each load/commit in streaming mode.
         log_file (str): Path to the JSON log file for this plugin invocation.
         checkpoint (Optional[ResumeFrom]): Resume checkpoint hints, interpreted by plugins (extract/transform).
         run_id (Optional[str]): Pipeline run identifier, provided by the pipeline.
@@ -25,8 +25,8 @@ class BasePluginParams(BaseModel):
         description=f"The ETL mode; one of {ETLExecutionMode.list()}",
     )
     commit: Optional[bool] = Field(default=False, description="run in commit mode ")
-    commit_after: Optional[int] = Field(
-        default=10000, ge=1, description="records to buffer per commit"
+    batch_size: Optional[int] = Field(
+        default=5000, ge=1, description="records to buffer per commit"
     )
     log_path: Optional[str] = Field(
         default=None,
@@ -40,13 +40,15 @@ class BasePluginParams(BaseModel):
         default=None,
         description="database connection string; if not provided, the plugin will try to assign from `DATABASE_URI` property in an `.env` file",
     )
-    run_id: Optional[int] = Field(default=None, description="ETL run ID  (required for UNDO)")
+    run_id: Optional[int] = Field(
+        default=None, description="ETL run ID  (required for UNDO)"
+    )
 
     # this shouldn't happen BTW b/c ge validator already set
     @model_validator(mode="after")
-    def set_commit_after_none_if_zero(self):
-        if self.commit_after == 0:
-            self.commit_after = None
+    def set_batch_size_none_if_zero(self):
+        if self.batch_size == 0:
+            self.batch_size = None
         return self
 
 

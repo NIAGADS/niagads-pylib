@@ -66,7 +66,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         # parameter based properties
         self._mode = ETLExecutionMode(self._params.mode)
-        self._commit_after: int = self._params.commit_after
+        self._batch_size: int = self._params.batch_size
 
         self.__start_time: Optional[datetime] = None
         self.__status_report: ETLRunStatus = None
@@ -259,7 +259,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Args:
             session: Async SQLAlchemy session.
             transformed: The data to persist. For streaming, a list of records
-            (buffer size <= commit_after). For bulk, the entire dataset.
+            (buffer size <= batch_size). For bulk, the entire dataset.
 
         Returns:
             Optional[ResumeCheckpoint]: Checkpoint info (line/id) for resuming, or None.
@@ -521,7 +521,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self, session: AsyncSession, checkpoint: ResumeCheckpoint
     ) -> None:
         """
-        Commit or rollback the session based on ETLMode and commit_after logic.
+        Commit or rollback the session based on ETLMode and batch size logic.
         """
         tx_total = self.__get_total_transactions()
         msg = f"{tx_total} records"
@@ -592,7 +592,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Process records in chunks and load them into the database.
 
         Chunks are processed with size determined by extract. Each chunk
-        is loaded, but commits and roll-backs happen according to `commit_after` parameter
+        is loaded, but commits and roll-backs happen according to `batch_size` parameter
         and according to ETL mode.
         """
 
@@ -608,12 +608,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     else:
                         buffer.append(processed_records)
 
-                    if len(buffer) >= self._commit_after:
+                    if len(buffer) >= self._batch_size:
                         batches = chunker(
-                            buffer, self._commit_after, return_iterator=True
+                            buffer, self._batch_size, return_iterator=True
                         )
                         for batch in batches:
-                            if len(batch) == self._commit_after:
+                            if len(batch) == self._batch_size:
                                 checkpoint = await self.__flush_chunked_buffer(
                                     batch, session
                                 )
@@ -633,7 +633,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             if session is not None:
                 self.__attach_etl_transaction_listener(session)
-                # Bulk: load all at once, ignore commit_after
+                # Bulk: load all at once, ignore batch_size
                 checkpoint = None
                 if not self.is_dry_run:
                     checkpoint = await self.__execute_load(session, processed_records)
@@ -643,7 +643,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     async def __process_bulk_in_batch_load(self):
         records = self.extract()
         processed_records = self.transform(records)
-        batches = chunker(processed_records, self._commit_after, return_iterator=True)
+        batches = chunker(processed_records, self._batch_size, return_iterator=True)
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             if session is not None:
                 self.__attach_etl_transaction_listener(session)
@@ -781,7 +781,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             merged_params = self.parameter_model(**merged)
             self.logger.info(f"Runtime parameter overrides applied: {runtime_params}")
             self._params = merged_params
-            self._commit_after = self._params.commit_after
+            self._batch_size = self._params.batch_size
 
         self.__start_time = datetime.now()
 
