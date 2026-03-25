@@ -17,7 +17,8 @@ All ETL plugins are Python classes that inherit from [`AbstractBasePlugin`](../.
 
 - `preprocess`: Called in PREPROCESS mode. Override to implement preprocessing logic (e.g., generate intermediate files, validation).
 - `on_run_complete`: Called automatically after every run (success or failure). Override to perform custom cleanup, logging, or post-processing.
-- `on_run_star`: Called at the start of a run. Override for custom initialization or validation.
+- `on_run_start`: Called at the start of a run. Override for custom initialization or validation, or one-off database fetches for foreign key links.
+- `undo`: Called in `UNDO` mode. Fully implmented in base, but there maybe unique cases where `undo` needs to be customized; override if necessary.
 
 ## Plugin Registry and Metadata
 
@@ -79,8 +80,8 @@ The ETL framework provides transaction wrappers to simplify and standardize data
 
 ```python
 # Transaction Wrappers: Use submit/update methods from TransactionTableMixin
-from niagads.genomicsdb.schema.reference import OntologyTerm
-from niagads.genomicsdb.schema.reference import ExternalDatabase
+from niagads.database.genomicsdb.schema.reference import OntologyTerm
+from niagads.database.genomicsdb.schema.reference import ExternalDatabase
 
 async def load(session, transformed: OntologyTerm):
     externaldb = ExternalDatabase(...) # fill in properties
@@ -116,9 +117,11 @@ In addition, the mixin also provides the following helpers:
 
 **Example usage:**
 
+> Example assumes `session` exists
+
 ```python
 # Lookup Wrappers: Use LookupTableMixin methods for existence and PK lookup
-from niagads.genomicsdb.schema.reference import OntologyTerm
+from niagads.database.genomicsdb.schema.reference import OntologyTerm
 
 # check if a record matching this term exists using the class method
 exists = await OntologyTerm.record_exists(session, {"term": term})
@@ -132,6 +135,25 @@ pk = await OntologyTerm.find_primary_key(session, {"curie": 'GO:12345'})
 term: OntologyTerm = await OntologyTerm.fetch_record(session, {"curie": 'GO:12345'})
 
 ```
+
+### TableRef (Catalog) Mixinx
+
+Some tables include a generic `table_id`, `row_id` pair (e.g., [Gene.AnnotationEvidence](../../../components/niagads/database/genomicsdb/schema/gene/annotation.py)) that references a specific record in any cataloged table, so that the same reference pattern can work across many tables.  This relies on a table catalog, which is located in the `Admin` schema.  The [Admin.TableCatalog](../../../components/niagads/database/genomicsdb/schema/admin/catalog.py) provides a classmethod `get_table_ref` that takes a table class and returns the table reference in the catalog as [TableRef](../../../components/niagads/database/genomicsdb/schema/admin/types.py) object (providing: schema name and id, table name and id, and the table primary key field)
+
+**Example usage:**
+
+> Example assumes `session` exists
+
+```python
+from niagads.database.genomicsdb.schema.reference import OntologyTerm
+from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
+from niagads.database.genomicsdb.schema.admin.types import TableRef
+
+my_table_ref: TableRef = TableRef.get_table_ref(session, OntologyTerm)
+my_table_id = my_table_ref.table_id
+```
+
+see [OntologyTermLoader](./plugins/reference/ontology/owl.py) plugin for full usage example.
 
 ### Logging
 
@@ -211,16 +233,27 @@ Plugins must specify the type of ETL operation in their metadata (`operation`). 
 - **UPDATE**: Update existing records.
 - **LOAD**: Insert new or update existing records.
 
-### ETL Modes
+### ETL Execution Modes
 
-The ETL framework supports several modes of operation, controlled by the `mode` parameter (see [`ETLMode`](../../../components/niagads/etl/types.py)).
+The ETL framework supports several modes of operation, controlled by the `mode` parameter (see `ETLExecutionMode` in [`components/niagads/etl/types.py`](../../../components/niagads/etl/types.py)).
 
-- **DRY_RUN**: No database writes are performed. The pipeline counts records and simulates processing. Use this for testing and validation of `extract` and `transform` steps.
-- **COMMIT**: Records are written to the database. The pipeline commits transactions according to the plugin's logic and the `commit_after` parameter.
-- **NON_COMMIT**: Records are processed and written, but the transaction is rolled back at the end. Useful for testing full pipeline execution without persisting changes.
-- **PREPROCESS**: If the plugin implements `preprocess`, a preprocessing step can be run. The pipeline will call `preprocess()` and exit. No database writes occur. **Plugins with a preprocess mode should override `on_run_complete` to clean up intermediary files if needed.**
+- **DRY_RUN**: Simulate the run without performing any database writes. Useful for validating `extract` and `transform` logic and for quick checks.
+- **RUN**: Execute the full ETL flow and persist changes according to the plugin's commit strategy.
+- **UNDO**: Perform the plugin's undo logic to revert a previous run (plugins that support undo should implement this behavior and list tables in cascading order in `affected_tables`).
+- **PREPROCESS**: Run only the plugin's `preprocess` step (if implemented) to generate intermediary artifacts, then exit. No database writes occur. Plugins that produce temporary files in this mode should implement `on_run_complete` to clean up.
 
-**Important:** Plugins should never call `commit()` or `rollback()` on the session directly. The base plugin handles all transaction management. Only use the provided session for database operations within `load()`.
+> **Important:**: there should be no need to run the plugin with `--mode UNDO`.  There is a wrapper option in the plugin runner (`--undo`) that sets the mode to `UNDO` and manages related configuration settings.
+---
+
+### Transaction Management
+
+The ETL runner supports both *non-persistent* (test) and *persistent* data loads. By default (no flag) a run is non-persistent: transactions are rolled back at the end so no changes are saved to the database, which is useful for verifying load logic and identify potential errors in data sources.  In general, it is good practice to run each data load in non-commit mode first.
+
+Add the `--commit` option to your command to persist changes to the database; the runner will commit transactions according to the plugin's commit strategy. Use non-persistent runs for validation and `--commit` when you are ready to apply changes.
+
+> **Developer Hint**: If extract and transform stages involve a lot of processing, please consider a preprocess stage for your plugin, to facilitate non-commit load testing.
+
+**Important:** Plugins should never call `commit()` or `rollback()` on the session directly in `load` or load-helper functions. The base plugin handles all transaction management. Use the provided session for database operations within `load()` and rely on the plugin framework to manage commit/rollback behavior.
 
 ---
 
@@ -234,7 +267,7 @@ from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLOperation, ETLLoadStrategy, ResumeCheckpoint
-from niagads.genomicsdb.schema.toy import ToyTable # made up schema & table for this example
+from niagads.database.genomicsdb.schema.toy import ToyTable # made up schema & table for this example
 from pydantic import Field
 
 class SimpleTextLoaderParams(BasePluginParams, PathValidatorMixin):
@@ -292,6 +325,10 @@ Plugins can be run via the CLI, programmatically, or through the ETL Pipeline Ma
 > **For a plugin to run, it must be added to plugin registry.**
 
 To register a plugin, use the `@PluginRegistry` decorator as illustrated in the [example plugin](#example-simple-text-loader-plugin).
+
+### Plugin Runner: `runpipe-plugin`
+
+#### Usage Examples
 
 Command line usage is illustrated below using the `XMLRecordLoader` plugin:
 
