@@ -42,7 +42,7 @@ from sqlalchemy.exc import NoResultFound  # TODO Wrap
 class EmbeddedOntologyTerm(BaseModel, arbitrary_types_allowed=True):
     term: OntologyTerm
     chunk_text: str
-    chunk_hash: str
+    chunk_hash: bytes
     embedding: list
 
 
@@ -66,7 +66,7 @@ class OWLLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefM
 
 
 class OntologyTermReferenceLoaderParams(OWLLoaderParams):
-    embedding_model: LLM = Field(
+    embedding_model: Optional[LLM] = Field(
         LLM.ALL_MINILM_L6_V2,
         description="LLM model for generating text embeddings",
     )
@@ -75,24 +75,33 @@ class OntologyTermReferenceLoaderParams(OWLLoaderParams):
     @classmethod
     def validate_embedding_model(cls, v: LLM) -> LLM:
         """Validate that embedding_model is in allowed embedding models list."""
-        LLM(v).validate(NLPModelType.EMBEDDING)
-        return v
+        LLM.validate(v, NLPModelType.EMBEDDING)
+        return LLM(v)
 
 
 class OWLParser(ComponentBaseMixin):
-    def __init__(self, owl_file: str, debug: bool = False, verbose: bool = False):
+    def __init__(
+        self, owl_file: str, logger=None, debug: bool = False, verbose: bool = False
+    ):
         super().__init__(debug=debug, verbose=verbose)
+        if logger is not None:
+            self.logger = logger
         self._graph = Graph()
+        self.logger.info("Initializing parser")
         self._graph.parse(owl_file, format="xml")
 
     def __resolve_entity_type(self, node) -> EntityTypeIRI:
         assigned_types = [
-            str(obj) for obj in self._graph.objects(node, RDFPropertyIRI.ENTITY_TYPE)
+            str(obj)
+            for obj in self._graph.objects(
+                node, URIRef(str(RDFPropertyIRI.ENTITY_TYPE))
+            )
         ]
         return EntityTypeIRI.resolve_entity_type(assigned_types)
 
-    @staticmethod
-    def __build_term(entity_iri, entity_type: EntityTypeIRI, entity_properties: dict):
+    def __build_term(
+        self, entity_iri, entity_type: EntityTypeIRI, entity_properties: dict
+    ):
         label = entity_properties.get(get_field_iri("term", preferred=True), [None])[0]
         if label is None:  # no editor preffered label
             label = entity_properties.get(
@@ -234,10 +243,18 @@ class OntologyTermLoader(AbstractBasePlugin):
 
     _params: OntologyTermReferenceLoaderParams  # type annotation
 
-    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
-        super().__init__(params, name)
+    def __init__(
+        self,
+        params: Dict[str, Any],
+        name: Optional[str] = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(params, name, debug, verbose)
         self.__embedding_generator = None
         self.__external_database = None
+        self.__table_ref = None
+        self.__processed_record_count = 0
 
     async def on_run_start(self, session):
         """on run start hook override"""
@@ -253,23 +270,35 @@ class OntologyTermLoader(AbstractBasePlugin):
             await self._params.fetch_xdbref(session) if self.is_etl_run else None
         )
 
+        self.logger.debug(
+            f"external_database_id = {self.__external_database.external_database_id}"
+        )
+
         # for table_id in chunmk_metadata
-        self.__table_ref: TableRef = TableCatalog.get_table_ref(session, OntologyTerm)
+        self.__table_ref: TableRef = await TableCatalog.get_table_ref(
+            session, OntologyTerm
+        )
 
     def get_record_id(self, record: OntologyTerm) -> str:
         """
         Returns a unique identifier for a record (subject URI).
         """
-        return record.curie
+        return record.source_id
 
     def extract(self) -> Iterator[Any]:
-        parser = OWLParser(self._params.file, debug=self._debug, verbose=self._verbose)
+        self.logger.debug("Entering Extract")
+        parser = OWLParser(
+            self._params.file,
+            logger=self.logger,
+            debug=self._debug,
+            verbose=self._verbose,
+        )
         yield from parser.extract_terms()
 
     def __generate_chunk_text(self, term: OntologyTerm):
         chunk_text: str = (
             f"Term: {term.term}\nLabel: {term.label}"
-            f"\nCURIE: {term.curie}\nDefinition: {term.definition}"
+            f"\nCURIE: {term.source_id}\nDefinition: {term.definition}"
         )
         for s in term.synonyms:
             chunk_text += f"\nSynonym: {s}"
@@ -283,7 +312,8 @@ class OntologyTermLoader(AbstractBasePlugin):
         chunk_hash = self.__embedding_generator.hash_text(chunk_text)
         embedding = self.__embedding_generator.generate(chunk_text)
 
-        self.logger.debug(f"Embedding: {chunk_hash} - {embedding}")
+        if self._verbose:
+            self.logger.debug(f"Embedding: {chunk_hash} - {embedding}")
 
         return EmbeddedOntologyTerm(
             term=term, chunk_text=chunk_text, chunk_hash=chunk_hash, embedding=embedding
@@ -303,9 +333,16 @@ class OntologyTermLoader(AbstractBasePlugin):
         term.run_id = self.run_id
         term.external_database_id = self.__external_database.external_database_id
 
-        self.logger.debug(f"Term: {term.model_dump()}")
+        if self._verbose:
+            self.logger.debug(f"Term: {term.model_dump()}")
 
-        return self.__generate_embedding(term)
+        embedded_term = self.__generate_embedding(term)
+        self.__processed_record_count += 1
+        if self.__processed_record_count % 500 == 0:
+            self.logger.info(
+                f"Processed {self.__processed_record_count} ontology terms."
+            )
+        return embedded_term
 
     async def __load_embedding(
         self,
@@ -354,7 +391,7 @@ class OntologyTermLoader(AbstractBasePlugin):
 
         try:
             existing_record: OntologyTerm = await OntologyTerm.fetch_record(
-                session, filters={"curie": term.curie}
+                session, filters={"source_id": term.source_id}
             )
 
             if self._params.update_existing:
