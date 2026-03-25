@@ -1,8 +1,16 @@
 from niagads.database.genomicsdb.schema.admin.base import AdminTableBase
-from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint, select
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint, literal, select
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncSession
 
+class TableRef(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    table: str
+    schema: str
+    table_id: int
+    schema_id: int
+    table_primary_key: str
 
 class SchemaCatalog(AdminTableBase):
     """
@@ -10,7 +18,7 @@ class SchemaCatalog(AdminTableBase):
     """
 
     __tablename__ = "schemacatalog"
-    __table_args = AdminTableBase.__table_args__
+    __table_args__ = AdminTableBase.__table_args__
 
     schema_id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True
@@ -68,3 +76,27 @@ class TableCatalog(AdminTableBase):
                 raise ValueError(f"Schema with id {self.schema_id} not found.")
 
         return f"{self._schema}.{self.name}"
+    
+    async def get_table_ref(self, session: AsyncSession, table_class) -> TableRef:
+        schema_name, table_name = table_class.table_name(session).split(".")
+    
+        result = (await session.execute(
+            select(
+                SchemaCatalog.name,
+                TableCatalog.name,
+                TableCatalog.table_id,
+                TableCatalog.table_primary_key,
+                SchemaCatalog.schema_id
+            )
+            .join(SchemaCatalog, TableCatalog.schema_id == SchemaCatalog.schema_id)
+            .where(
+                SchemaCatalog.name == schema_name,
+                TableCatalog.name == table_name,
+            )
+        )).first()
+        
+        if result is None:
+            raise ValueError(f"Table '{schema_name}.{table_name}' not found in DB catalog.")
+
+        return TableRef(**result)
+
