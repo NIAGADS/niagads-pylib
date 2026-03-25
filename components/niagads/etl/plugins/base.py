@@ -610,7 +610,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
                     if len(buffer) >= self._commit_after:
                         batches = chunker(
-                            buffer, self._commit_after, returnIterator=True
+                            buffer, self._commit_after, return_iterator=True
                         )
                         for batch in batches:
                             if len(batch) == self._commit_after:
@@ -643,7 +643,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     async def __process_bulk_in_batch_load(self):
         records = self.extract()
         processed_records = self.transform(records)
-        batches = chunker(processed_records, self._commit_after, returnIterator=True)
+        batches = chunker(processed_records, self._commit_after, return_iterator=True)
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             if session is not None:
                 self.__attach_etl_transaction_listener(session)
@@ -685,7 +685,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             # possible FIXME: in non-commit mode, remove created entry at end of plugin
             # run as a clean up
             await session.commit()
-            await self.__etl_run.detach_from_session(session)
+            await self.__etl_run.detach(session)
 
         self.logger.log_plugin_run_id(self.run_id)
 
@@ -866,7 +866,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         except Exception as plugin_error:
             # ETL failed
             execution_status = ProcessStatus.FAIL
-
+            error_message = f"ETL Plugin Run Failed: {plugin_error}"
             if self.is_etl_run:
                 try:
                     if self.__checkpoint is not None:
@@ -895,13 +895,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
                         self.logger.checkpoint(**checkpoint_kwargs)
                 except Exception as checkpoint_error:
-                    self.logger.exception(
+                    self.logger.warning(
                         f"Failed to build checkpoint: {checkpoint_error}"
                     )
-            else:
-                error_message = self.logger.exception(
-                    f"ETL Plugin Run Failed: {plugin_error}"
-                )
+
+            self.logger.exception(error_message)
 
         finally:
             await self.on_run_complete()
