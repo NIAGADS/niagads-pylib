@@ -20,6 +20,8 @@ All ETL plugins are Python classes that inherit from [`AbstractBasePlugin`](../.
 - `on_run_start`: Called at the start of a run. Override for custom initialization or validation, or one-off database fetches for foreign key links.
 - `undo`: Called in `UNDO` mode. Fully implmented in base, but there maybe unique cases where `undo` needs to be customized; override if necessary.
 
+> **Important:**: The default `undo` implementation `DELETES` only! It will not rollback updates.  If your plugin provides updates, you must implement a custom UNDO that at the very least, just provides a warning to the user that UNDO is not possible or conditions deletes based on differences between modification and creation date.
+
 ## Plugin Registry and Metadata
 
 All ETL plugins must be registered with the [`PluginRegistry`](../../../components/niagads/etl/plugins/registry.py). The registry is a central catalog that tracks available plugins, their metadata, and their configuration. This enables the pipeline to discover, orchestrate, and manage plugins dynamically, without hardcoding plugin classes or paths. By registering plugins, users can run a plugin or add it to the pipeline simply by specifying its name, without needing to reference its implementation directly.
@@ -243,6 +245,7 @@ The ETL framework supports several modes of operation, controlled by the `mode` 
 - **PREPROCESS**: Run only the plugin's `preprocess` step (if implemented) to generate intermediary artifacts, then exit. No database writes occur. Plugins that produce temporary files in this mode should implement `on_run_complete` to clean up.
 
 > **Important:**: there should be no need to run the plugin with `--mode UNDO`.  There is a wrapper option in the plugin runner (`--undo`) that sets the mode to `UNDO` and manages related configuration settings.
+
 ---
 
 ### Transaction Management
@@ -328,33 +331,58 @@ To register a plugin, use the `@PluginRegistry` decorator as illustrated in the 
 
 ### Plugin Runner: `runpipe-plugin`
 
-#### Usage Examples
+`runpipe-plugin` runs a single registered ETL plugin from the command line and automatically exposes that plugin's parameter model as CLI arguments.
+
+Common runner options:
+
+- `--plugin`: plugin name to run
+- `--list`: list registered plugins and exit
+- `--help`: show runner or plugin-specific help
+- `--debug`: enable debug logging
+- `--verbose`: enable verbose logging
+- `--undo`: run the plugin in `UNDO` mode
+- `--run_id`: ETL run ID required with `--undo`
+
+Shared plugin parameters from `BasePluginParams` are also added automatically for every plugin:
+
+- `--mode`: execution mode (`RUN`, `DRY_RUN`, or `PREPROCESS`); defaults to `RUN`
+- `--commit`: enable database writes
+- `--commit-after`: number of records to buffer per commit
+- `--log-path`: log file path or output directory for plugin logs
+- `--resume-checkpoint`: resume from a saved line number or record ID
+- `--connection-string`: database connection string override
+  
+#### Plugin Runner Usage
+
+##### Plugin System Environment
+
+Before running plugins outside the project root, you will need to load the shell environment and set some environmental variables.  If you have access to the [ad-genomicsdb-etl-pipeline](https://github.com/NIAGADS/ad-genomicsdb-etl-pipeline) repository, a template `setEnv.bash` script is provided to simplify this for you.  This template sets the core paths used by the ETL workflow (`PROJECT_DIR`, `DATA_DIR`, and `CONFIG_DIR`), provides `DATABASE_URI` for database access, and activates the project virtual environment.
+
+A typical setup looks like:
+
+```bash
+export PROJECT_DIR=/path/to/project-root
+export DATA_DIR=/path/to/data
+export CONFIG_DIR=$PROJECT_DIR/ad-genomicsdb-etl-pipeline/pipeline
+export DATABASE_URI=postgresql://<user>:<pwd>@<host>:<port>/<database>
+source $PROJECT_DIR/niagads-pylib/.venv/bin/activate
+```
+
+If `DATABASE_URI` is not set, plugins may also accept `--connection-string` to override it for a single run.
+
+##### Plugin Runner Usage Examples
 
 Command line usage is illustrated below using the `XMLRecordLoader` plugin:
 
-From within the project (or root `niagads-pylib` directory):
+During plugin development you can test your plugin without configuring the system environment, by running using Poetry.
 
 ```bash
 poetry run runpipe-plugin XMLRecordLoader --file test.xml --mode DRY_RUN
 ```
 
-To run outside the project, simply activate the project virtual environment.  First find the path to the virtual environment by executing:
+In production, set up your environment as described above.  You should then be able to execute your plugin as follows:
 
-```bash
-poetry env activate
-```
-
-This will display the command for activating the environment, such as:
-
-```bash
-source /projects/genomicsdb/niagads-pylib/.venv/bin/activate
-```
-
-**Do not copy and run the above statement**, the path will vary depending on your local directory structure.
-
-To activate the environment, copy that command **in your terminal** and run it.
-
-You should then be able to execute the plugin runner script directly, as follows:
+To perform a `DRY_RUN` to test extract and transform:
 
 ```bash
 runpipe-plugin XMLRecordLoader --file test.xml --mode DRY_RUN
@@ -366,14 +394,41 @@ To get plugin usage specify the `--help` option:
 runpipe-plugin XMLRecordLoader --help
 ```
 
-For more details, see inline documentation in [`AbstractBasePlugin`](../../../components/niagads/etl/plugins/base.py), [`PluginRegistry`](../../../components/niagads/etl/plugins/registry.py), and existing plugins in [`bases/niagads/genomicsdb_service/etl/plugins`](../genomicsdb_service/etl).
+To perform a full `RUN` (extract, transform, load) - default mode is `RUN`, without committing:
+
+```bash
+runpipe-plugin XMLRecordLoader --file test.xml
+```
+
+To commit changes to the database:
+
+```bash
+runpipe-plugin XMLRecordLoader --file test.xml --commit
+```
+
+To run in `PREPROCESS` mode, if implemented:
+
+```bash
+runpipe-plugin XMLRecordLoader --file test.xml --mode PREPROCESS
+```
+
+To run in `UNDO` mode.
+
+```bash
+runpipe-plugin XMLRecordLoader --file test.xml --undo --run_id <run_id>
+```
+
+> **Note**: `UNDO` requires the specific run to be cleared from the database.  Check log files or query the Admin.ETLRun table to identify.
+> **Important**: UNDO deletes, it cannot rollback updates.  Please use with caution if your load involves updates.
+
+For more details, see inline documentation in [`AbstractBasePlugin`](../../../components/niagads/etl/plugins/base.py), [`PluginRegistry`](../../../components/niagads/etl/plugins/registry.py), and existing plugins in [`bases/niagads/genomicsdb_etl/etl/plugins`](../genomicsdb_etl).
 
 ## Instructions for AI Assistants Writing Plugins
 
 When assisting in writing an ETL plugin, follow these steps:
 
 1. **Review this README**: Understand the plugin architecture, required methods, metadata, wrappers, and lifecycle hooks before writing code.
-2. **Review current implementations**: Examine existing plugins in `bases/niagads/genomicsdb_service/etl/plugins` to understand patterns, conventions, and how to structure your plugin.
+2. **Review current implementations**: Examine existing plugins in `bases/niagads/genomicsdb_etl/plugins` to understand patterns, conventions, and how to structure your plugin.
 3. **Define the parameter model**: Create a Pydantic class inheriting from `BasePluginParams` with all required plugin parameters and validation.
 4. **Implement required methods**: Provide `extract`, `transform`, `load`, and `get_record_id` methods following the patterns in this README.
 5. **Create metadata**: Define `PluginMetadata` with description, operation type, affected tables, load strategy, and version.
