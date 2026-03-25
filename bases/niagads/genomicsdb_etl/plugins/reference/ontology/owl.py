@@ -5,7 +5,7 @@ Loads an ontology from an OWL file into the reference ontology graph schema.
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.helpers import get_field_iri
@@ -43,7 +43,7 @@ class EmbeddedOntologyTerm(BaseModel, arbitrary_types_allowed=True):
     term: OntologyTerm
     chunk_text: str
     chunk_hash: bytes
-    embedding: list
+    embedding: Optional[list] = None  # so it can be set in batch
 
 
 # FIXME - just use ontologygraphtriple
@@ -69,6 +69,9 @@ class OntologyTermReferenceLoaderParams(OWLLoaderParams):
     embedding_model: Optional[LLM] = Field(
         LLM.ALL_MINILM_L6_V2,
         description="LLM model for generating text embeddings",
+    )
+    embedding_batch_size: Optional[int] = Field(
+        default=128, description="batch size for calculating embeddings"
     )
 
     @field_validator("embedding_model")
@@ -262,6 +265,15 @@ class OntologyTermLoader(AbstractBasePlugin):
         self.__embedding_generator = TextEmbeddingGenerator(
             self._params.embedding_model
         )
+        if self.__embedding_generator.is_cpu_limited:
+            if self._params.embedding_batch_size > 128:
+                self.logger.warning(
+                    "CPU detected; batch sizes > 128 may cause slowdowns or high memory use when calculating embeddings."
+                )
+        elif self._params.embedding_batch_size > 512:
+            self.logger.warning(
+                "GPU detected; batch sizes > 512 may cause slowdowns or high memory use when calculating embeddings."
+            )
 
         # one-off-lookups
 
@@ -286,6 +298,7 @@ class OntologyTermLoader(AbstractBasePlugin):
         return record.source_id
 
     def extract(self) -> Iterator[Any]:
+
         self.logger.debug("Entering Extract")
         parser = OWLParser(
             self._params.file,
@@ -293,9 +306,18 @@ class OntologyTermLoader(AbstractBasePlugin):
             debug=self._debug,
             verbose=self._verbose,
         )
-        yield from parser.extract_terms()
 
-    def __generate_chunk_text(self, term: OntologyTerm):
+        # split into "embedding" batch-sized batches to pass to transform
+        batch = []
+        for term in parser.extract_terms():
+            batch.append(term)
+            if len(batch) >= self._params.embedding_batch_size:
+                yield batch
+                batch = []
+        if len(batch) > 0:  # residuals
+            yield batch
+
+    def __generate_chunk_text(self, term: OntologyTerm) -> EmbeddedOntologyTerm:
         chunk_text: str = (
             f"Term: {term.term}\nLabel: {term.label}"
             f"\nCURIE: {term.source_id}\nDefinition: {term.definition}"
@@ -305,44 +327,58 @@ class OntologyTermLoader(AbstractBasePlugin):
 
         if self._verbose:
             self.logger.debug(f"Chunk Text: {chunk_text}")
-        return chunk_text
-
-    def __generate_embedding(self, term: OntologyTerm) -> EmbeddedOntologyTerm:
-        chunk_text = self.__generate_chunk_text(term)
-        chunk_hash = self.__embedding_generator.hash_text(chunk_text)
-        embedding = self.__embedding_generator.generate(chunk_text)
-
-        if self._verbose:
-            self.logger.debug(f"Embedding: {chunk_hash} - {embedding}")
 
         return EmbeddedOntologyTerm(
-            term=term, chunk_text=chunk_text, chunk_hash=chunk_hash, embedding=embedding
+            term=term,
+            chunk_text=chunk_text,
+            chunk_hash=self.__embedding_generator.hash_text(chunk_text),
         )
 
-    def transform(self, record: dict) -> EmbeddedOntologyTerm:
+    def __generate_embedded_term(self, term: OntologyTerm) -> EmbeddedOntologyTerm:
+        """generate embeddings for a single term"""
+        embedded_term = self.__generate_chunk_text(term)
+        embedded_term.embedding = self.__embedding_generator.generate(
+            embedded_term.chunk_text, as_list=True
+        )
+        return embedded_term
+
+    def transform(self, records: list[dict]) -> EmbeddedOntologyTerm:
         """
-        Convert a record (OWL entity) dict to an OntologyTerm and generate embedding.
+        Convert a list of record (OWL entity) dicts to an OntologyTerms and generate embeddings
+        in batches
         """
-        if record is None:
+        if records is None or (isinstance(records, list) and len(records) == 0):
             raise RuntimeError(
                 "No records provided to transform(). At least one record is required."
             )
 
-        record["source_id"] = record.pop("curie")
-        term = OntologyTerm(**record)
-        term.run_id = self.run_id
-        term.external_database_id = self.__external_database.external_database_id
+        embedded_ontology_terms = []
+        text = []
+        for record in records:
+            record["source_id"] = record.pop("curie")
+            term = OntologyTerm(**record)
+            term.run_id = self.run_id
+            term.external_database_id = self.__external_database.external_database_id
 
-        if self._verbose:
-            self.logger.debug(f"Term: {term.model_dump()}")
+            if self._verbose:
+                self.logger.debug(f"Term: {term.model_dump()}")
 
-        embedded_term = self.__generate_embedding(term)
-        self.__processed_record_count += 1
-        if self.__processed_record_count % 500 == 0:
-            self.logger.info(
-                f"Processed {self.__processed_record_count} ontology terms."
-            )
-        return embedded_term
+            embedded_term = self.__generate_chunk_text(term)
+            embedded_ontology_terms.append(embedded_term)
+            text.append(embedded_term.chunk_text)
+
+        embeddings = self.__embedding_generator.generate(text, as_list=False)
+
+        term: EmbeddedOntologyTerm
+        for index, term in enumerate(embedded_ontology_terms):
+            term.embedding = embeddings[index].tolist()
+
+        self.__processed_record_count += self._params.embedding_batch_size
+        self.logger.info(
+            f"Calcualted embeddings for {self.__processed_record_count} ontology terms."
+        )
+
+        return embedded_ontology_terms
 
     async def __load_embedding(
         self,
@@ -352,6 +388,7 @@ class OntologyTermLoader(AbstractBasePlugin):
     ):
 
         if is_updated_record:
+            # pull records to update from the database
             chunk_metadata = ChunkMetadata.fetch_record(
                 session,
                 filters={
@@ -359,11 +396,29 @@ class OntologyTermLoader(AbstractBasePlugin):
                     "row_id": embedded_term.term.ontology_term_id,
                 },
             )
+
+            chunk_embedding = ChunkEmbedding.fetch_record(
+                session,
+                filters={
+                    "chunk_metadata_id": chunk_metadata.chunk_metadata_id,
+                    "chunk_hash": chunk_metadata.chunk_hash,
+                },
+            )
+
+            # update
             chunk_metadata.document_hash = embedded_term.chunk_hash
             chunk_metadata.chunk_hash = embedded_term.chunk_hash
             chunk_metadata.chunk_text = embedded_term.chunk_text
             chunk_metadata.update(session)
-        else:
+
+            chunk_embedding.chunk_hash = embedded_term.chunk_hash
+            chunk_embedding.embedding = embedded_term.embedding
+            chunk_embedding.embedding_model = str(self._params.embedding_model)
+            chunk_embedding.embedding_date = datetime.now(tz=timezone.utc).isoformat()
+            chunk_embedding.embedding_run_id = self.run_id
+            chunk_embedding.update(session)
+
+        else:  # build fresh and submit
             chunk_metadata: ChunkMetadata = ChunkMetadata(
                 table_id=self.__table_ref.table_id,
                 row_id=embedded_term.term.ontology_term_id,
@@ -371,67 +426,71 @@ class OntologyTermLoader(AbstractBasePlugin):
                 document_hash=embedded_term.chunk_hash,
                 chunk_hash=embedded_term.chunk_hash,
                 chunk_text=embedded_term.chunk_text,
+                run_id=self.run_id,
             )
 
             await chunk_metadata.submit(session)
 
-        chunk_embedding: ChunkEmbedding = ChunkEmbedding(
-            chunk_metadata_id=chunk_metadata.chunk_metadata_id,
-            chunk_hash=embedded_term.chunk_hash,
-            embedding_model=str(self._params.embedding_model),
-            embedding=embedded_term.embedding,
-            embedding_date=datetime.now(tz=timezone.utc).isoformat(),
-            embedding_run_id=self.run_id,
-        )
-
-        await chunk_embedding.submit(session)
-
-    async def load(self, session, embedded_term: EmbeddedOntologyTerm):
-        term = embedded_term.term
-
-        try:
-            existing_record: OntologyTerm = await OntologyTerm.fetch_record(
-                session, filters={"source_id": term.source_id}
+            chunk_embedding: ChunkEmbedding = ChunkEmbedding(
+                chunk_metadata_id=chunk_metadata.chunk_metadata_id,
+                chunk_hash=embedded_term.chunk_hash,
+                embedding_model=str(self._params.embedding_model),
+                embedding=embedded_term.embedding,
+                embedding_date=datetime.now(tz=timezone.utc).isoformat(),
+                embedding_run_id=self.run_id,
             )
 
-            if self._params.update_existing:
-                # if exists, update defintion, synonyms if need be
-                updated_definitions = await existing_record.resolve_definition(
-                    session,
-                    term.definition,
-                    namespace=self.__external_database.database_key,
+            await chunk_embedding.submit(session)
+
+    async def load(self, session, embedded_terms: List[EmbeddedOntologyTerm]):
+        # Developers Note: ecords coming in are list b/c this is a chunked load -
+        # the base buffers them until `batch_size`` is reached
+
+        for e_term in embedded_terms:
+            term = e_term.term
+
+            try:
+                existing_record: OntologyTerm = await OntologyTerm.fetch_record(
+                    session, filters={"source_id": term.source_id}
                 )
 
-                updated_synonyms = await existing_record.resolve_synonyms(
-                    session, term.synonyms
-                )
-
-                if updated_definitions or updated_synonyms:
-                    self.inc_tx_count(OntologyTerm, ETLOperation.UPDATE)
-
-                    # if the term was defined in the current namespace, update
-                    # the external db reference as well
-                    if await existing_record.in_namespace(
-                        session, self.__external_database.database_key
-                    ):
-                        existing_record.external_database_id = (
-                            self.__external_database.external_database_id
-                        )
-                        await existing_record.update(session)
-
-                    await self.__load_embedding(
-                        self.__generate_embedding(existing_record),
-                        is_updated_record=True,
+                if self._params.update_existing:
+                    # if exists, update defintion, synonyms if need be
+                    updated_definitions = await existing_record.resolve_definition(
+                        session,
+                        term.definition,
+                        namespace=self.__external_database.database_key,
                     )
+
+                    updated_synonyms = await existing_record.resolve_synonyms(
+                        session, term.synonyms
+                    )
+
+                    if updated_definitions or updated_synonyms:
+                        self.inc_tx_count(OntologyTerm, ETLOperation.UPDATE)
+
+                        # if the term was defined in the current namespace, update
+                        # the external db reference as well
+                        if await existing_record.in_namespace(
+                            session, self.__external_database.database_key
+                        ):
+                            existing_record.external_database_id = (
+                                self.__external_database.external_database_id
+                            )
+                            await existing_record.update(session)
+
+                        await self.__load_embedding(
+                            session,
+                            self.__generate_embedded_term(existing_record),
+                            is_updated_record=True,
+                        )
+                    else:
+                        self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
                 else:
                     self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
-            else:
-                self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
-                return ResumeCheckpoint(full_record=term)
 
-        except NoResultFound:  # not found in DB, submit
-            await term.submit(session)
-            await self.__load_embedding(embedded_term)
+            except NoResultFound:  # not found in DB, submit
+                await term.submit(session)
+                await self.__load_embedding(session, e_term)
 
-        finally:
-            return ResumeCheckpoint(full_record=term)
+        return ResumeCheckpoint(full_record=embedded_terms[-1].term)

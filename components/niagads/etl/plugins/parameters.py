@@ -26,7 +26,9 @@ class BasePluginParams(BaseModel):
     )
     commit: Optional[bool] = Field(default=False, description="run in commit mode ")
     batch_size: Optional[int] = Field(
-        default=5000, ge=1, description="records to buffer per commit"
+        default=5000,
+        ge=1,
+        description="load batch size; indicates number of records to buffer or bulk insert per commit",
     )
     log_path: Optional[str] = Field(
         default=None,
