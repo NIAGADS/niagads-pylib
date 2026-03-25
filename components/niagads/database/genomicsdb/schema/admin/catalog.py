@@ -70,25 +70,32 @@ class TableCatalog(AdminTableBase):
 
         return f"{self._schema}.{self.name}"
 
-    async def get_table_ref(self, session: AsyncSession, table_class) -> TableRef:
-        schema_name, table_name = table_class.table_name(session).split(".")
+    @classmethod
+    async def get_table_ref(cls, session: AsyncSession, table_class) -> TableRef:
+        schema_name, table_name = table_class.table_name().split(".")
 
         result = (
-            await session.execute(
-                select(
-                    TableCatalog.name.label("table_name"),
-                    TableCatalog.table_id,
-                    TableCatalog.table_primary_key,
-                    SchemaCatalog.name.label("schema_name"),
-                    SchemaCatalog.schema_id,
-                )
-                .join(SchemaCatalog, TableCatalog.schema_id == SchemaCatalog.schema_id)
-                .where(
-                    SchemaCatalog.name == schema_name,
-                    TableCatalog.name == table_name,
+            (
+                await session.execute(
+                    select(
+                        TableCatalog.name.label("table_name"),
+                        TableCatalog.table_id,
+                        TableCatalog.table_primary_key,
+                        SchemaCatalog.name.label("schema_name"),
+                        SchemaCatalog.schema_id,
+                    )
+                    .join(
+                        SchemaCatalog, TableCatalog.schema_id == SchemaCatalog.schema_id
+                    )
+                    .where(
+                        SchemaCatalog.name == schema_name,
+                        TableCatalog.name == table_name,
+                    )
                 )
             )
-        ).first()
+            .mappings()
+            .first()
+        )
 
         if result is None:
             raise ValueError(
