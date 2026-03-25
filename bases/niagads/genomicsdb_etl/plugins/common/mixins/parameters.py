@@ -91,5 +91,9 @@ class ExternalDatabaseRefMixin:
         """
         return ExternalDatabase.find_primary_key(session, self.xdbref_to_dict())
 
-    def fetch_xdbref(self, session):
-        return ExternalDatabase.fetch_record(session, self.xdbref_to_dict())
+    async def fetch_xdbref(self, session):
+        record: ExternalDatabase = await ExternalDatabase.fetch_record(
+            session, self.xdbref_to_dict()
+        )
+        await record.detach(session)
+        return record

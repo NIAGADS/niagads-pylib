@@ -28,7 +28,7 @@ class TransactionTableMixin(DeclarativeBase):
         pk_name = self.__mapper__.primary_key[0].name
         return getattr(self, pk_name)
 
-    async def detach_from_session(self, session: AsyncSession):
+    async def detach(self, session: AsyncSession):
         """
         Expunge this instance from the SQLAlchemy session so that all currently loaded attributes
         remain accessible after the session is closed. This prevents DetachedInstanceError when

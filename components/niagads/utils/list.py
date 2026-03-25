@@ -83,7 +83,7 @@ def chunker(seq, size, return_iterator=True):
     Args:
         seq (list): list to be chunked
         size (int): page or chunk size
-        returnIterator (boolean, optional): return an iterator; if false, returns a nested list. Defaults to True
+        return_iterator (boolean, optional): return an iterator; if false, returns a nested list. Defaults to True
 
     Returns:
         iterator for chunked list of lists
