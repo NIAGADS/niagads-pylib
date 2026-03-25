@@ -31,6 +31,32 @@ class FunctionContextLoggerWrapper:
                     continue
                 frame = frame_info.frame
                 func = frame.f_code.co_name
+
+                # Skip intermediate logger facade/wrapper methods so we report
+                # the application caller rather than helper logger methods.
+                if frame.f_locals and "self" in frame.f_locals:
+                    try:
+                        caller_self = frame.f_locals["self"]
+                        cls_name = caller_self.__class__.__name__
+                        if (
+                            func
+                            in {
+                                "debug",
+                                "info",
+                                "warning",
+                                "error",
+                                "exception",
+                                "critical",
+                                "log",
+                            }
+                            and cls_name.endswith(
+                                ("Logger", "Wrapper", "Adapter", "Handler")
+                            )
+                        ):
+                            continue
+                    except Exception:
+                        pass
+
                 lineno = frame.f_lineno
                 cls = None
                 if frame.f_locals and "self" in frame.f_locals:
