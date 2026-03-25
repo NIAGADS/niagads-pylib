@@ -150,6 +150,9 @@ class LLM(CaseInsensitiveEnum):
             )
         return model_enum
 
+    def is_valid(self, model_type: NLPModelType):
+        return self.validate(self, model_type)
+
     @classmethod
     def _missing_(cls, value=None):
         """
