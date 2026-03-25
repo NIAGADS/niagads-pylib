@@ -9,7 +9,7 @@ from niagads.database.helpers import enum_column, enum_constraint
 from niagads.database.mixins.embeddings import EmbeddingMixin
 from niagads.database.genomicsdb.schema.admin.mixins import TableRefMixin
 from niagads.database.genomicsdb.schema.ragdoc.base import RAGDocTableBase
-from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocTypes
+from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     TEXT,
@@ -41,12 +41,12 @@ class ChunkMetadata(RAGDocTableBase, TableRefMixin):
         ),
         Index("ix_chunkmetadata_table_doc", "table_id", "row_id"),
         Index("ix_chunkmetadata_chunk_hash", "chunk_hash"),  # for checking staleness
-        enum_constraint("document_type", RAGDocTypes),
+        enum_constraint("document_type", RAGDocType),
         RAGDocTableBase.__table_args__,
     )
 
     chunk_metadata_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    document_type: Mapped[str] = enum_column(RAGDocTypes, nullable=False, index=True)
+    document_type: Mapped[str] = enum_column(RAGDocType, nullable=False, index=True)
     document_section: Mapped[str] = mapped_column(
         String(64), nullable=False, server_default="FULL"
     )
