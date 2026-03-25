@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
@@ -64,6 +65,9 @@ class TransactionTableMixin(DeclarativeBase):
             raise ValueError(
                 f"Cannot update record; no row exists in the database with {pk_name}={pk_value}"
             )
+
+        if hasattr(self, "modification_date"):
+            self.modification_date = (datetime.now(tz=timezone.utc).isoformat(),)
 
         await session.merge(self)
         await session.flush()
