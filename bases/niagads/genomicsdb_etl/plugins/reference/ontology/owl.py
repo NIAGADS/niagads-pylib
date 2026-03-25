@@ -5,8 +5,9 @@ Loads an ontology from an OWL file into the reference ontology graph schema.
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterator, Optional, Union
+from typing import Any, Dict, Iterator, Optional
 
+from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.helpers import get_field_iri
 from niagads.common.reference.ontologies.types import (
     AnnotationPropertyIRI,
@@ -14,11 +15,15 @@ from niagads.common.reference.ontologies.types import (
     RDFPropertyIRI,
 )
 from niagads.common.types import ETLOperation
-from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
-from niagads.database.genomicsdb.schema.reference.ontology import (
-    OntologyGraphTermVertex,
-    OntologyTerm,
+from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
+from niagads.database.genomicsdb.schema.admin.types import TableRef
+from niagads.database.genomicsdb.schema.ragdoc.chunks import (
+    ChunkEmbedding,
+    ChunkMetadata,
 )
+from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
+from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
+from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
@@ -34,6 +39,13 @@ from rdflib import BNode, Graph, Literal, URIRef
 from sqlalchemy.exc import NoResultFound  # TODO Wrap
 
 
+class EmbeddedOntologyTerm(BaseModel, arbitrary_types_allowed=True):
+    term: OntologyTerm
+    chunk_text: str
+    chunk_hash: str
+    embedding: list
+
+
 # FIXME - just use ontologygraphtriple
 class Triple(BaseModel):
     subject: str
@@ -46,7 +58,10 @@ class Triple(BaseModel):
 
 class OWLLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin):
     file: str = Field(..., description="full path to OWL file")
-
+    update_existing: Optional[bool] = Field(
+        default=False,
+        description="if term already exists in the table, attempts to update defintion and synonyms if necessary; if set to false, just skips existing terms",
+    )
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
 
@@ -64,8 +79,9 @@ class OntologyTermReferenceLoaderParams(OWLLoaderParams):
         return v
 
 
-class OWLParser:
-    def __init__(self, owl_file: str):
+class OWLParser(ComponentBaseMixin):
+    def __init__(self, owl_file: str, debug: bool = False, verbose: bool = False):
+        super().__init__(debug=debug, verbose=verbose)
         self._graph = Graph()
         self._graph.parse(owl_file, format="xml")
 
@@ -204,7 +220,7 @@ class OWLParser:
             f"ETL Plugin to load ontology terms from an OWL file into {OntologyTerm.table_name()}."
             f"Loads terms, properties, and embeddings."
         ),
-        affected_tables=[OntologyTerm],
+        affected_tables=[ChunkEmbedding, ChunkMetadata, OntologyTerm],
         load_strategy=ETLLoadStrategy.CHUNKED,
         operation=ETLOperation.LOAD,
         is_large_dataset=False,
@@ -220,43 +236,60 @@ class OntologyTermLoader(AbstractBasePlugin):
 
     def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
         super().__init__(params, name)
-        self.__skips = 0
-        self.__updates = 0
+        self.__embedding_generator = None
+        self.__external_database = None
 
     async def on_run_start(self, session):
         """on run start hook override"""
-        # validate the xdbref against the database
-        self.__external_database: ExternalDatabase = (
-            None if self.is_dry_run else await self._params.fetch_xdbref(session)
-        )
 
         self.__embedding_generator = TextEmbeddingGenerator(
             self._params.embedding_model
         )
 
+        # one-off-lookups
+
+        # validate the xdbref against the database
+        self.__external_database: ExternalDatabase = (
+            await self._params.fetch_xdbref(session) if self.is_etl_run else None
+        )
+
+        # for table_id in chunmk_metadata
+        self.__table_ref: TableRef = TableCatalog.get_table_ref(session, OntologyTerm)
+
     def get_record_id(self, record: OntologyTerm) -> str:
         """
         Returns a unique identifier for a record (subject URI).
         """
-        return record.source_id
+        return record.curie
 
     def extract(self) -> Iterator[Any]:
-        parser = OWLParser(self._params.file)
+        parser = OWLParser(self._params.file, debug=self._debug, verbose=self._verbose)
         yield from parser.extract_terms()
 
-    def __generate_term_embedding(self, term: OntologyTerm):
-        term.embedding_date = datetime.now(tz=timezone.utc)
-        term.embedding_model = str(self._params.embedding_model)
-        term.embedding_run_id = self._run_id
-
-        values = [term.term, term.label, term.definition, term.curie] + (
-            term.synonyms or []
+    def __generate_chunk_text(self, term: OntologyTerm):
+        chunk_text: str = (
+            f"Term: {term.term}\nLabel: {term.label}"
+            f"\nCURIE: {term.curie}\nDefinition: {term.definition}"
         )
-        embedding_text = "|".join([v for v in values if v])
-        term.embedding_hash = self.__embedding_generator.hash_text(embedding_text)
-        term.embedding = self.__embedding_generator.generate(embedding_text)
+        for s in term.synonyms:
+            chunk_text += f"\nSynonym: {s}"
 
-    def transform(self, record: dict) -> OntologyTerm:
+        if self._verbose:
+            self.logger.debug(f"Chunk Text: {chunk_text}")
+        return chunk_text
+
+    def __generate_embedding(self, term: OntologyTerm) -> EmbeddedOntologyTerm:
+        chunk_text = self.__generate_chunk_text(term)
+        chunk_hash = self.__embedding_generator.hash_text(chunk_text)
+        embedding = self.__embedding_generator.generate(chunk_text)
+
+        self.logger.debug(f"Embedding: {chunk_hash} - {embedding}")
+
+        return EmbeddedOntologyTerm(
+            term=term, chunk_text=chunk_text, chunk_hash=chunk_hash, embedding=embedding
+        )
+
+    def transform(self, record: dict) -> EmbeddedOntologyTerm:
         """
         Convert a record (OWL entity) dict to an OntologyTerm and generate embedding.
         """
@@ -267,123 +300,101 @@ class OntologyTermLoader(AbstractBasePlugin):
 
         record["source_id"] = record.pop("curie")
         term = OntologyTerm(**record)
-        term.run_id = self._run_id
+        term.run_id = self.run_id
         term.external_database_id = self.__external_database.external_database_id
 
-        try:
-            self.__generate_term_embedding(term)
-        except Exception as err:
-            raise RuntimeError(
-                f"Error generating embeddings for OntologyTerm: {term.source_id}"
-            ) from err
+        self.logger.debug(f"Term: {term.model_dump()}")
 
-        return term
+        return self.__generate_embedding(term)
 
-    async def load(self, session, transformed: OntologyTerm):
-        # try to retrieve from database
-        transaction_count = 0
-        try:
-            existing_record: OntologyTerm = await OntologyTerm.fetch_record(
-                session, filters={"curie": transformed.curie}
-            )
+    async def __load_embedding(
+        self,
+        session,
+        embedded_term: EmbeddedOntologyTerm,
+        is_updated_record: bool = False,
+    ):
 
-            # if exists, update defintion, synonyms if need be
-            updated_definitions = await existing_record.resolve_definition(
+        if is_updated_record:
+            chunk_metadata = ChunkMetadata.fetch_record(
                 session,
-                transformed.definition,
-                namespace=self.__external_database.database_key,
+                filters={
+                    "table_id": self.__table_ref.table_id,
+                    "row_id": embedded_term.term.ontology_term_id,
+                },
             )
-            updated_synonyms = await existing_record.resolve_synonyms(
-                session, transformed.synonyms
+            chunk_metadata.document_hash = embedded_term.chunk_hash
+            chunk_metadata.chunk_hash = embedded_term.chunk_hash
+            chunk_metadata.chunk_text = embedded_term.chunk_text
+            chunk_metadata.update(session)
+        else:
+            chunk_metadata: ChunkMetadata = ChunkMetadata(
+                table_id=self.__table_ref.table_id,
+                row_id=embedded_term.term.ontology_term_id,
+                document_type=str(RAGDocType.ONTOLOGY),
+                document_hash=embedded_term.chunk_hash,
+                chunk_hash=embedded_term.chunk_hash,
+                chunk_text=embedded_term.chunk_text,
             )
-            if updated_definitions or updated_synonyms:
-                self.__updates += (
-                    1  # todo handle logging of updates/skips in after_run_complete?
-                )
-            else:
-                self.__skips += 1
-                # TODO - verbose/debug log skip?
 
-        except NoResultFound:  # not found in DB, submit
-            await transformed.submit(session)
-            self.update_transaction_count(
-                ETLOperation.INSERT, OntologyTerm.table_name()
-            )
-        finally:
-            return (ResumeCheckpoint(full_record=transformed),)
+            await chunk_metadata.submit(session)
 
-
-@PluginRegistry.register(
-    PluginMetadata(
-        version="1.0",
-        description=(
-            f"ETL Plugin to load ontology terms from an OWL file into {OntologyTerm.table_name()}."
-            f"the knowledge graph"
-        ),
-        affected_tables=[OntologyTerm],  # FIXME - this is not the graph model
-        load_strategy=ETLLoadStrategy.CHUNKED,
-        operation=ETLOperation.INSERT,
-        is_large_dataset=False,
-        parameter_model=OWLLoaderParams,
-    )
-)
-class OntologyGraphLoader(AbstractBasePlugin):
-    """
-    ETL plugin for loading an ontology from an OWL file into the reference ontology graph schema.
-    """
-
-    _params: OWLLoaderParams  # type annotation
-
-    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
-        super().__init__(params, name)
-
-    async def on_run_start(self, session):
-        """on run start hook override"""
-        # validate the xdbref against the database
-        self._xdbref_id = (
-            None if self.is_dry_run else await self._params.resolve_xdbref(session)
+        chunk_embedding: ChunkEmbedding = ChunkEmbedding(
+            chunk_metadata_id=chunk_metadata.chunk_metadata_id,
+            chunk_hash=embedded_term.chunk_hash,
+            embedding_model=str(self._params.embedding_model),
+            embedding=embedded_term.embedding,
+            embedding_date=datetime.now(tz=timezone.utc).isoformat(),
+            embedding_run_id=self.run_id,
         )
 
-    def extract(self) -> Iterator[Any]:
-        parser = OWLParser(self._params.file)
-        yield from parser.extract_terms()
-        yield from parser.extract_triples()
-        # yield from parser.extract_restrictions()
+        await chunk_embedding.submit(session)
 
-    def transform(
-        self, record: Union[dict, Triple]
-    ) -> Union[OntologyGraphTermVertex, Triple]:
+    async def load(self, session, embedded_term: EmbeddedOntologyTerm):
+        term = embedded_term.term
 
-        if record is None:
-            raise RuntimeError(
-                "No records provided to transform(). At least one record is required."
+        try:
+            existing_record: OntologyTerm = await OntologyTerm.fetch_record(
+                session, filters={"curie": term.curie}
             )
-        if isinstance(record, Triple):
-            return record
 
-        return OntologyGraphTermVertex(**record)
+            if self._params.update_existing:
+                # if exists, update defintion, synonyms if need be
+                updated_definitions = await existing_record.resolve_definition(
+                    session,
+                    term.definition,
+                    namespace=self.__external_database.database_key,
+                )
 
-    def get_record_id(self, record) -> str:
-        """
-        Returns a unique identifier for a record (subject URI).
-        """
-        if isinstance(record, Triple):
-            return str(Triple)
-        else:
-            return record.term_id
+                updated_synonyms = await existing_record.resolve_synonyms(
+                    session, term.synonyms
+                )
 
-    # FIXME: these are all wrong now
-    # NOTE: insert term needs to check against OntologyTerm relational table for ontology_term_id and definition
-    async def load(self, transformed: Any, session) -> ResumeCheckpoint:
-        """
-        Insert a single ontology term or triple record into the database using SQLAlchemy text queries.
-        Args:
-            transformed: OntologyTerm or OntologyTriple record to insert.
-        Returns:
-            ETLLoadResult
-        """
-        ontology_id = self._params.resolve_xdbref()
-        raise NotImplementedError()
+                if updated_definitions or updated_synonyms:
+                    self.inc_tx_count(OntologyTerm, ETLOperation.UPDATE)
 
-    def on_run_complete(self) -> None:
-        return None
+                    # if the term was defined in the current namespace, update
+                    # the external db reference as well
+                    if await existing_record.in_namespace(
+                        session, self.__external_database.database_key
+                    ):
+                        existing_record.external_database_id = (
+                            self.__external_database.external_database_id
+                        )
+                        await existing_record.update(session)
+
+                    await self.__load_embedding(
+                        self.__generate_embedding(existing_record),
+                        is_updated_record=True,
+                    )
+                else:
+                    self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
+            else:
+                self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
+                return ResumeCheckpoint(full_record=term)
+
+        except NoResultFound:  # not found in DB, submit
+            await term.submit(session)
+            await self.__load_embedding(embedded_term)
+
+        finally:
+            return ResumeCheckpoint(full_record=term)
