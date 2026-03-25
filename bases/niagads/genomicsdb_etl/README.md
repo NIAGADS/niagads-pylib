@@ -291,6 +291,16 @@ metadata = PluginMetadata(
 @PluginRegistry.register(metadata)
 class SimpleTextLoader(AbstractBasePlugin):
     _params: SimpleTextLoaderParams # type annotation
+    
+    def __init__(
+        self,
+        params: Dict[str, Any],
+        name: Optional[str] = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(params, name, debug, verbose)
+
 
     def extract(self):
         # Parse header and yield each line as a dict mapping header to values
