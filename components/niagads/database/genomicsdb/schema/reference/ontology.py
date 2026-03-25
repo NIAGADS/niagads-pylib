@@ -79,7 +79,7 @@ class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
 
     async def _update_definition(self, session: AsyncSession, definition: str) -> bool:
         self.definition = definition
-        await session.flush()
+        await self.update(session)
         return True
 
     async def resolve_synonyms(
@@ -102,7 +102,7 @@ class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
         else:
             self.synonyms = sorted(list(set(self.synonyms) | set(new_synonyms)))
 
-        await session.flush()
+        await self.update(session)
         return True
 
     async def resolve_definition(
