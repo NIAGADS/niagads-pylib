@@ -14,7 +14,7 @@ class RangeType(TypeDecorator):
 
     impl = INT4RANGE
     cache_ok = True
-    
+
     def process_bind_param(self, value: Range, dialect):
         """
         Convert a Range object to PostgreSQL INT4RANGE string format for storage.

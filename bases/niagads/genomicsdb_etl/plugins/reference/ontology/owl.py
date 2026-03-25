@@ -4,7 +4,7 @@ Ontology Loader Plugins
 Loads an ontology from an OWL file into the reference ontology graph schema.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional
 
 from niagads.common.core import ComponentBaseMixin
@@ -436,8 +436,9 @@ class OntologyTermLoader(AbstractBasePlugin):
                 chunk_hash=embedded_term.chunk_hash,
                 embedding_model=str(self._params.embedding_model),
                 embedding=embedded_term.embedding,
-                embedding_date=datetime.now(tz=timezone.utc).isoformat(),
+                embedding_date=datetime.now().isoformat(),
                 embedding_run_id=self.run_id,
+                run_id=self.run_id,
             )
 
             await chunk_embedding.submit(session)

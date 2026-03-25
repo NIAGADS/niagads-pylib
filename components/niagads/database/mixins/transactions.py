@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
@@ -67,7 +67,7 @@ class TransactionTableMixin(DeclarativeBase):
             )
 
         if hasattr(self, "modification_date"):
-            self.modification_date = (datetime.now(tz=timezone.utc).isoformat(),)
+            self.modification_date = datetime.now().isoformat()
 
         await session.merge(self)
         await session.flush()
