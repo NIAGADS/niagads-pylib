@@ -52,7 +52,12 @@ class ETLRunStatus(BaseModel):
     def total_transactions(self):
         if self.transaction_record is None:
             if self.estimated_transaction_count is None:
-                if self.status is not ProcessStatus.FAIL:
+                # when a developer exits during debugging on purpose, the status
+                # will still be RUNNING
+                if (
+                    self.status is not ProcessStatus.FAIL
+                    and self.status is not ProcessStatus.RUNNING
+                ):
                     raise RuntimeError(
                         "Cannot calculate total writes - transaction tally not initialized"
                     )

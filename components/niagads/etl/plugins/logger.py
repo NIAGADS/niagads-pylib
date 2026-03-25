@@ -25,12 +25,13 @@ class ETLLogger:
     def __init__(self, name: str, log_file: str, debug: bool = False):
         self._debug = debug
         logger = logging.getLogger(name)  # , run_id=run_id)# , plugin, task_id)
-        handler = logging.FileHandler(log_file, mode="w")
-        handler.setFormatter(logging.Formatter(LOG_FORMAT_STR))
+        handler = ExitOnExceptionHandler(
+            filename=log_file, mode="w", format=LOG_FORMAT_STR
+        )
         logger.addHandler(handler)
 
+        # deal with sqlalchemy echo in debug+verbose mode
         sqlalchemy.log._add_default_handler = lambda x: None
-
         sqlalchemy_logger = logging.getLogger("sqlalchemy.engine")
         sqlalchemy_logger.handlers.clear()  # Remove all existing handlers
         sqlalchemy_logger.addHandler(handler)
@@ -64,6 +65,9 @@ class ETLLogger:
 
     def error(self, *args):
         self.__logger.error(self._format_message(*args))
+
+    def critical(self, *args):
+        self.__logger.critical(self._format_message(*args))
 
     def exception(self, *args):
         if self._debug:
