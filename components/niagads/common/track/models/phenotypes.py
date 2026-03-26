@@ -2,7 +2,7 @@ import json
 from typing import List, Optional
 
 from niagads.common.models.base import CustomBaseModel
-from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.ontologies.models import OntologyTerm
 from pydantic import Field, field_serializer
 
 

@@ -4,8 +4,8 @@ from typing import List, Union
 from urllib.parse import unquote
 
 from niagads.common.reference.xrefs.data_sources import ThirdPartyResources
-from niagads.common.reference.ontologies.types import BiosampleType
-from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.ontologies.types import BiosampleType
+from niagads.common.ontologies.models import OntologyTerm
 from niagads.common.track.models import (
     BiosampleCharacteristics,
     ExperimentalDesign,

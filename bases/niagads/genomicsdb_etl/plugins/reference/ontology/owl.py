@@ -4,16 +4,9 @@ Ontology Loader Plugins
 Loads an ontology from an OWL file into the reference ontology graph schema.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, List, Optional
 
-from niagads.common.core import ComponentBaseMixin
-from niagads.common.reference.ontologies.helpers import get_field_iri
-from niagads.common.reference.ontologies.types import (
-    AnnotationPropertyIRI,
-    EntityTypeIRI,
-    RDFPropertyIRI,
-)
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
 from niagads.database.genomicsdb.schema.admin.types import TableRef
@@ -35,8 +28,7 @@ from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
 from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM, NLPModelType
 from pydantic import BaseModel, Field, field_validator
-from rdflib import BNode, Graph, Literal, URIRef
-from sqlalchemy.exc import NoResultFound  # TODO Wrap
+from sqlalchemy.exc import NoResultFound
 
 
 class EmbeddedOntologyTerm(BaseModel, arbitrary_types_allowed=True):
@@ -82,149 +74,6 @@ class OntologyTermReferenceLoaderParams(OWLLoaderParams):
         return LLM(v)
 
 
-class OWLParser(ComponentBaseMixin):
-    def __init__(
-        self, owl_file: str, logger=None, debug: bool = False, verbose: bool = False
-    ):
-        super().__init__(debug=debug, verbose=verbose)
-        if logger is not None:
-            self.logger = logger
-        self._graph = Graph()
-        self.logger.info("Initializing parser")
-        self._graph.parse(owl_file, format="xml")
-
-    def __resolve_entity_type(self, node) -> EntityTypeIRI:
-        assigned_types = [
-            str(obj)
-            for obj in self._graph.objects(
-                node, URIRef(str(RDFPropertyIRI.ENTITY_TYPE))
-            )
-        ]
-        return EntityTypeIRI.resolve_entity_type(assigned_types)
-
-    def __build_term(
-        self, entity_iri, entity_type: EntityTypeIRI, entity_properties: dict
-    ):
-        label = entity_properties.get(get_field_iri("term", preferred=True), [None])[0]
-        if label is None:  # no editor preffered label
-            label = entity_properties.get(
-                get_field_iri("term", preferred=False), [None]
-            )[0]
-
-        term_id = entity_properties.get(get_field_iri("term_id"), [None])[0]
-        definition = entity_properties.get(get_field_iri("definition"), [None])[0]
-        synonyms = entity_properties.get(get_field_iri("synonym"), [])
-        is_deprecated = bool(
-            entity_properties.get(get_field_iri("is_deprecated"), [False])[0]
-        )
-
-        return {
-            "term_iri": entity_iri,
-            "entity_type": str(entity_type),
-            "curie": term_id,
-            "term": label,
-            "definition": definition,
-            "synonyms": synonyms,
-            "is_deprecated": is_deprecated,
-        }
-
-    def extract_terms(self) -> Iterator[dict]:
-        """
-        Extracts ontology term entities from the RDF graph.
-
-        Iterates over all subjects in the RDF graph, resolves their entity type,
-        and collects annotation properties. Yields a dictionary for each term
-        with its IRI, type, and properties (label, definition, synonyms, etc.).
-
-        Returns:
-            Iterator[dict]: dict with fields that can be used to build OntologyTerm
-                or OntologyTermVertex object as required by Plugin
-        """
-        for subject in self._graph.subjects():
-            subject_iri = str(subject)
-
-            try:
-                subject_type: EntityTypeIRI = self.__resolve_entity_type(subject)
-            except ValueError:
-                continue  # skip the node
-
-            subject_properties = {}
-            for predicate, obj in self._graph.predicate_objects(subject):
-                predicate_iri = str(predicate)
-                object_iri = str(obj)
-
-                if isinstance(obj, Literal):
-                    if AnnotationPropertyIRI.is_stored_property(predicate_iri):
-                        subject_properties.setdefault(predicate_iri, []).append(
-                            object_iri
-                        )
-
-            yield self.__build_term(subject_iri, subject_type, subject_properties)
-
-    def extract_triples(self) -> Iterator[Triple]:
-        """
-        Extracts ontology relationship triples from the RDF graph.
-
-        Iterates over all subjects and their predicate-object pairs in the RDF graph.
-        For each predicate that is an object property or entity type, yields a Triple
-        object with subject, predicate, and object IRIs. Skips annotation properties
-        and unsupported predicate types.
-
-        Returns:
-            Iterator[Triple]: Each Triple contains subject, predicate, and object IRIs.
-        """
-        for subject in self._graph.subjects():
-            subject_iri = str(subject)
-
-            try:
-                self.__resolve_entity_type(subject)
-            except ValueError:
-                continue  # skip the node
-
-            for predicate, obj in self._graph.predicate_objects(subject):
-                predicate_iri = str(predicate)
-                object_iri = str(obj)
-
-                if isinstance(obj, URIRef):  # relation prop
-                    # get the type of the predicate
-                    try:
-                        predicate_type = self.__resolve_entity_type(predicate)
-                    except ValueError:
-                        continue  # not a supported predicate type
-
-                    # only keep triples that are not annotations
-                    if (
-                        predicate_type == EntityTypeIRI.OBJECT_PROPERTY
-                        or predicate_iri == RDFPropertyIRI.ENTITY_TYPE
-                    ):
-                        yield Triple(
-                            subject=subject_iri,
-                            predicate=predicate_iri,
-                            object=object_iri,
-                        )
-
-    def extract_restrictions(self):
-        raise NotImplementedError()
-        for subject in self._graph.subjects():
-            subject_iri = str(subject)
-
-            try:
-                self.__resolve_entity_type(subject)
-            except ValueError:
-                continue  # skip the node
-
-            subject_properties = {}
-            for predicate, obj in self._graph.predicate_objects(subject):
-                predicate_iri = str(predicate)
-                object_iri = str(obj)
-
-                if isinstance(obj, BNode):
-                    continue
-                    # Check if this BNode is an OWL restriction
-                    # if (obj, RDF.type, OWL.Restriction) in self._graph:
-                    #   ..
-
-
 @PluginRegistry.register(
     PluginMetadata(
         version="1.0",
@@ -258,6 +107,14 @@ class OntologyTermLoader(AbstractBasePlugin):
         self.__external_database = None
         self.__table_ref = None
         self.__processed_record_count = 0
+
+    async def __fetch_existing_term(
+        self, session, source_id: str
+    ) -> Optional[OntologyTerm]:
+        try:
+            return await OntologyTerm.fetch_record(session, filters={"source_id": source_id})
+        except NoResultFound:
+            return None
 
     async def on_run_start(self, session):
         """on run start hook override"""
@@ -449,49 +306,46 @@ class OntologyTermLoader(AbstractBasePlugin):
 
         for e_term in embedded_terms:
             term = e_term.term
+            existing_record = await self.__fetch_existing_term(session, term.source_id)
 
-            try:
-                existing_record: OntologyTerm = await OntologyTerm.fetch_record(
-                    session, filters={"source_id": term.source_id}
-                )
-
-                if self._params.update_existing:
-                    # if exists, update defintion, synonyms if need be
-                    updated_definitions = await existing_record.resolve_definition(
-                        session,
-                        term.definition,
-                        namespace=self.__external_database.database_key,
-                    )
-
-                    updated_synonyms = await existing_record.resolve_synonyms(
-                        session, term.synonyms
-                    )
-
-                    if updated_definitions or updated_synonyms:
-                        self.inc_tx_count(OntologyTerm, ETLOperation.UPDATE)
-
-                        # if the term was defined in the current namespace, update
-                        # the external db reference as well
-                        if await existing_record.in_namespace(
-                            session, self.__external_database.database_key
-                        ):
-                            existing_record.external_database_id = (
-                                self.__external_database.external_database_id
-                            )
-                            await existing_record.update(session)
-
-                        await self.__load_embedding(
-                            session,
-                            self.__generate_embedded_term(existing_record),
-                            is_updated_record=True,
-                        )
-                    else:
-                        self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
-                else:
-                    self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
-
-            except NoResultFound:  # not found in DB, submit
+            if existing_record is None:
                 await term.submit(session)
                 await self.__load_embedding(session, e_term)
+                continue
+
+            if self._params.update_existing:
+                # if exists, update defintion, synonyms if need be
+                updated_definitions = await existing_record.resolve_definition(
+                    session,
+                    term.definition,
+                    namespace=self.__external_database.database_key,
+                )
+
+                updated_synonyms = await existing_record.resolve_synonyms(
+                    session, term.synonyms
+                )
+
+                if updated_definitions or updated_synonyms:
+                    self.inc_tx_count(OntologyTerm, ETLOperation.UPDATE)
+
+                    # if the term was defined in the current namespace, update
+                    # the external db reference as well
+                    if await existing_record.in_namespace(
+                        session, self.__external_database.database_key
+                    ):
+                        existing_record.external_database_id = (
+                            self.__external_database.external_database_id
+                        )
+                        await existing_record.update(session)
+
+                    await self.__load_embedding(
+                        session,
+                        self.__generate_embedded_term(existing_record),
+                        is_updated_record=True,
+                    )
+                else:
+                    self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
+            else:
+                self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
 
         return ResumeCheckpoint(full_record=embedded_terms[-1].term)
