@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 from niagads.common.types import ETLOperation, ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.types import ETLExecutionMode
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ResumeCheckpoint(BaseModel):
@@ -18,15 +18,26 @@ class ResumeCheckpoint(BaseModel):
         None,
         description="Line number (1-based) to resume from; header not included in count",
     )
-    record: Optional[str] = Field(
+    record_id: Optional[str] = Field(
         None, description="Natural identifier or full record to resume from"
     )
-    full_record: Optional[dict] = None
+    record: Optional[dict] = None
+
+    @field_validator("record", mode="before")
+    @classmethod
+    def normalize_record(cls, v):
+        if v is None or isinstance(v, dict):
+            return v
+        if hasattr(v, "model_dump"):
+            return v.model_dump()
+        return v
 
     @model_validator(mode="after")
     def validate_checkpoint(self):
-        if not self.line and not self.record:
-            raise ValueError("checkpoint must define either 'line' or 'record'")
+        if not self.line and not self.record_id and not self.record:
+            raise ValueError(
+                "Empty checkpoint, please specify line, record_id or record"
+            )
         return self
 
 

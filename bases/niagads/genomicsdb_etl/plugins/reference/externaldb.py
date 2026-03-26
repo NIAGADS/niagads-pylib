@@ -13,7 +13,6 @@ from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     PathValidatorMixin,
-    ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
@@ -105,7 +104,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         """
         return record.database_key
 
-    async def load(self, session, transformed: ExternalDatabase) -> ResumeCheckpoint:
+    async def load(self, session, transformed: ExternalDatabase):
         """
         Insert a single ExternalDatabase record into the database.
 
@@ -116,7 +115,6 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         Returns:
             ETLLoadResult: checkpoint and transaction count
         """
-        self.logger.debug(f"{transformed}")
         if not await ExternalDatabase.record_exists(
             session, {"name": transformed.name, "version": transformed.version}
         ):
@@ -126,4 +124,5 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
                 f"External Database Reference {transformed.database_key}: {transformed.name}|{transformed.version} already exists"
             )
             self.inc_tx_count(ExternalDatabase, ETLOperation.SKIP)
-        return ResumeCheckpoint(record=self.get_record_id(transformed))
+
+        return self.create_checkpoint(record=transformed)

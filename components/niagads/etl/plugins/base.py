@@ -561,7 +561,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 self.logger.warning(
                     f"Unable to generate resume checkpoint: {validation_error}"
                 )
-                result = ResumeCheckpoint(record="INVALID")
+                result = ResumeCheckpoint(record_id="INVALID")
             raise validation_error
         except Exception:
             raise
@@ -712,7 +712,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 await session.commit()
                 # await self.__etl_run.detach_from_session(session)
 
-    def set_checkpoint(self, line=None, record=None) -> ResumeCheckpoint:
+    def create_checkpoint(self, line=None, record=None) -> ResumeCheckpoint:
         """
         Generate a checkpoint for the current ETL state.
 
@@ -727,8 +727,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             raise ValueError("Must set either line or record to non-None")
         return ResumeCheckpoint(
             line=line,
-            full_record=record,
-            record=self.get_record_id(record) if record is not None else None,
+            record=record,
+            record_id=self.get_record_id(record) if record is not None else None,
         )
 
     async def __summarize_transactions(self):
@@ -877,8 +877,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
                         if self.__checkpoint.line is not None:
                             checkpoint_kwargs["line"] = self.__checkpoint.line
-                        if self.__checkpoint.full_record is not None:
-                            record_obj = self.__checkpoint.full_record
+                        if self.__checkpoint.record is not None:
+                            record_obj = self.__checkpoint.record
                             # Use model_dump if record is a Pydantic model
                             if hasattr(record_obj, "model_dump") and callable(
                                 record_obj.model_dump
@@ -886,11 +886,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                                 checkpoint_kwargs["record"] = record_obj.model_dump()
                             else:
                                 checkpoint_kwargs["record"] = record_obj
-                        if self.__checkpoint.record is not None:
-                            checkpoint_kwargs["record_id"] = self.__checkpoint.record
-                        elif self.__checkpoint.full_record is not None:
+                        if self.__checkpoint.record_id is not None:
+                            checkpoint_kwargs["record_id"] = self.__checkpoint.record_id
+                        elif self.__checkpoint.record is not None:
                             checkpoint_kwargs["record_id"] = self.get_record_id(
-                                self.__checkpoint.full_record
+                                self.__checkpoint.record
                             )
 
                         self.logger.checkpoint(**checkpoint_kwargs)

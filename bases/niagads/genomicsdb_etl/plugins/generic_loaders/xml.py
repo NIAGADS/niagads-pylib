@@ -273,7 +273,7 @@ class XMLRecordLoader(AbstractBasePlugin):
             self.inc_tx_count(table_key)
             self.logger.debug(f"Inserted record {transformed}")
 
-        return self.set_checkpoint(transformed)
+        return self.create_checkpoint(transformed)
 
     def get_record_id(self, record: Dict[str, Any]) -> Optional[str]:
         # no way to know
