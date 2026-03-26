@@ -5,7 +5,7 @@ Pydantic models for gene annotations
 from typing import List, Optional
 
 from niagads.common.models.base import CustomBaseModel
-from niagads.common.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.reference.xrefs.models import Pathway
 from pydantic import Field
 

@@ -1,8 +1,8 @@
 from typing import Iterator
 
 from niagads.common.core import ComponentBaseMixin
-from niagads.common.ontologies.helpers import get_field_iri
-from niagads.common.ontologies.types import (
+from niagads.common.reference.ontologies.helpers import get_field_iri
+from niagads.common.reference.ontologies.types import (
     AnnotationPropertyIRI,
     EntityTypeIRI,
     RDFPropertyIRI,

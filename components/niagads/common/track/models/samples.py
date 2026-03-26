@@ -1,8 +1,8 @@
 from typing import List, Optional, Union
 
 from niagads.common.models.base import CustomBaseModel
-from niagads.common.ontologies.models import OntologyTerm
-from niagads.common.ontologies.types import BiosampleType
+from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.types import BiosampleType
 from pydantic import Field
 
 # TODO - how to handle biosample/biosample_type pairing, should we make another model?

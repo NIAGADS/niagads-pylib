@@ -19,7 +19,7 @@ from typing import (
 )
 
 from niagads.common.core import ComponentBaseMixin
-from niagads.common.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.models import OntologyTerm
 from pydantic import BaseModel
 from pydantic_core import PydanticUndefined
 from wtforms import (
