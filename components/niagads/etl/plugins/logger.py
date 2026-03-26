@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 
 from niagads.common.types import ETLOperation
-from niagads.etl.plugins.types import ETLRunStatus
+from niagads.etl.plugins.types import ETLRunStatus, ResumeCheckpoint
 from niagads.etl.types import ETLExecutionMode
 from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.loaders.core import Settings
@@ -135,24 +135,9 @@ class ETLLogger:
         keyw = 16
         self.info(f"{'RUN ID':<{keyw}} : {run_id}")
 
-    def checkpoint(
-        self,
-        line: Optional[int] = None,
-        record: Optional[Any] = None,
-        record_id: Optional[str] = None,
-        error: Optional[Exception] = None,
-    ):
+    def checkpoint(self, checkpoint: ResumeCheckpoint):
         self.report_section("ETL Resume Checkpoint")
-        checkpoint = []
-        if line is not None:
-            checkpoint.append(f"line={line}")
-        if record_id is not None:
-            checkpoint.append(f"record_id={record_id}")
-        if record is not None:
-            checkpoint.append(f"record={record}")
-        self.info("CHECKPOINT:", ";".join(checkpoint))
-        if error is not None:
-            self.error(f"ERROR: {error}")
+        self.info(f"CHECKPOINT: {checkpoint.as_info_string(self._debug)}")
         self.report_section_end("ETL Resume Checkpoint")
         self.flush()
 

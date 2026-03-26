@@ -6,6 +6,8 @@ from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.types import ETLExecutionMode
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from niagads.utils.string import dict_to_info_string
+
 
 class ResumeCheckpoint(BaseModel):
     """
@@ -39,6 +41,17 @@ class ResumeCheckpoint(BaseModel):
                 "Empty checkpoint, please specify line, record_id or record"
             )
         return self
+
+    def as_info_string(self, debug: bool = False):
+        if debug:  # debug -> return all not nulls
+            values = self.model_dump(exclude_none=True)
+        else:  # not debug, only include record if others are null
+            if self.line is None and self.record_id is None:
+                values = self.model_dump(exclude_none=True)
+            else:
+                values = self.model_dump(exclude_none=True, exclude=["record"])
+
+        return dict_to_info_string(values)
 
 
 class ETLRunStatus(BaseModel):

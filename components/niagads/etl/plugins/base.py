@@ -73,6 +73,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.__checkpoint: ResumeCheckpoint = None
         self.__etl_run: ETLRun = None
         self.__transaction_record: Dict[str, Dict[str, int]] = {}
+        self.__execution_status: ProcessStatus = None
 
         self._connection_string = (
             self._params.connection_string or PipelineSettings.from_env().DATABASE_URI
@@ -527,13 +528,16 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         msg = f"{tx_total} records"
         if self.commit:
             await session.commit()
-            self.logger.info("COMMITED", msg)
+            msg = f"COMMITTED {msg}"
         else:
             await session.rollback()
-            self.logger.info("ROLLED BACK", msg)
+            msg = f"ROLLED BACK {msg}"
 
         # if transaction is successful, can update the checkpoint
         self.__checkpoint = checkpoint
+        self.logger.info(
+            f"msg - CHECKPOINT: {self.__checkpoint.as_info_string(self._debug)}"
+        )
 
     async def __execute_load(self, session, buffer) -> ResumeCheckpoint:
         """
@@ -658,8 +662,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         """
 
-        if self.is_dry_run:
-            self.logger.info("ETL Execution Mode = `DRY_RUN` - skipping DB Logging.")
+        if not self.is_etl_run:
             return
 
         self.__etl_run = ETLRun(
@@ -756,6 +759,87 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # Run orchestration
     # -------------------------
 
+    def __set_runtime_params(self, runtime_params):
+        restore_params = None
+        if runtime_params:
+            restore_params = self._params.model_dump().copy()
+            merged = self._params.model_dump().copy()
+            merged.update(runtime_params)
+            merged_params = self.parameter_model(**merged)
+            self.logger.info(f"Runtime parameter overrides applied: {runtime_params}")
+            self._params = merged_params
+            self._batch_size = self._params.batch_size
+        return restore_params
+
+    async def __preprocess(self):
+        # Preprocess mode - transformers write intermediary data to file
+        if self._mode == ETLExecutionMode.PREPROCESS:
+            try:
+                self.__execution_status = ProcessStatus.RUNNING
+                await self.preprocess()
+                self.__execution_status = ProcessStatus.SUCCESS
+            except Exception as plugin_error:
+                self.__execution_status = ProcessStatus.FAIL
+                self.logger.exception(f"Preprocess failed: {plugin_error}")
+
+    async def __undo(self):
+        if self._mode == ETLExecutionMode.UNDO:
+            # checks here in case plugin overrides UNDO method
+            if self.is_large_dataset:
+                raise NotImplementedError(
+                    "Batch UNDO for large datasets not yet implemented"
+                )
+            if self.affected_tables is None or len(self.affected_tables) == 0:
+                self.logger.exception(
+                    "No `affected tables` specified for this plugin.  Cannot UNDO."
+                )
+            if self._params.run_id is None:
+                raise ValueError("Must specify ETL run_id to perform UNDO.")
+
+            await self.undo()
+            await self.__summarize_transactions()
+
+            # If we reach here, ETL completed successfully
+            self.__execution_status = ProcessStatus.SUCCESS
+
+    async def __run(self):
+        async with self.session_ctx(allow_null_if_unintialized=True) as session:
+            if session is not None:
+                await self.on_run_start(session)
+
+        if self.load_strategy == ETLLoadStrategy.CHUNKED:
+            await self.__process_chunked_load()
+        elif self.load_strategy == ETLLoadStrategy.BULK:
+            await self.__process_bulk_load()
+        elif self.load_strategy == ETLLoadStrategy.BATCH:
+            await self.__process_bulk_in_batch_load()
+        else:
+            raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
+
+        await self.__summarize_transactions()
+        await self.on_run_complete()
+
+        # If we reach here, ETL completed successfully
+        self.__execution_status = ProcessStatus.SUCCESS
+
+    def __summarize_and_log_run(self):
+        total_transactions = self.__get_total_transactions()
+
+        end_time = datetime.now()
+        runtime = (end_time - self.__start_time).total_seconds()
+        mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
+
+        self.__status_report.runtime = runtime
+        self.__status_report.memory = mem_mb
+        self.__status_report.status = self.__execution_status
+
+        if self.is_dry_run:
+            self.__status_report.estimated_transaction_count = total_transactions
+
+        self.logger.status(self.__status_report)
+
+        return end_time, total_transactions
+
     async def run(
         self,
         runtime_params: Optional[Dict[str, Any]] = None,
@@ -771,159 +855,58 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Returns:
             ProcessStatus: SUCCESS if ETL completed, FAIL otherwise.
         """
-        merged_params = None
-        execution_status = None
-        restore_params = None
-        if runtime_params:
-            restore_params = self._params.model_dump().copy()
-            merged = self._params.model_dump().copy()
-            merged.update(runtime_params)
-            merged_params = self.parameter_model(**merged)
-            self.logger.info(f"Runtime parameter overrides applied: {runtime_params}")
-            self._params = merged_params
-            self._batch_size = self._params.batch_size
 
+        self.__execution_status = None
+        restore_params = self.__set_runtime_params(runtime_params)
         self.__start_time = datetime.now()
 
         self.logger.log_plugin_configuration(self._params)
         self.logger.log_plugin_run_start()
 
-        # Preprocess mode - transformers write intermediary data to file
-        if self._mode == ETLExecutionMode.PREPROCESS:
-            try:
-                await self.preprocess()
-                execution_status = ProcessStatus.SUCCESS
-            except Exception as plugin_error:
-                execution_status = ProcessStatus.FAIL
-                self.logger.exception(f"Preprocess failed: {plugin_error}")
-
-            return execution_status
-
         try:
-            error_message = None
+            await self.__initialize_etl_run()
+        except Exception as err:
+            self.logger.exception(f"Failed to initialize plugin run in database: {err}")
 
-            if self._mode == ETLExecutionMode.UNDO:
-                execution_status = ProcessStatus.RUNNING
-                self.__status_report = ETLRunStatus(
-                    status=execution_status,
-                    mode=self._mode,
-                    run_id=self._params.run_id,
-                    operation=ETLOperation.DELETE,
-                    commit=self.commit,
-                )
+        self.__execution_status = ProcessStatus.RUNNING
+        self.__status_report = ETLRunStatus(
+            status=self.__execution_status,
+            mode=self._mode,
+            run_id=self.run_id,
+            operation=(
+                ETLOperation.DELETE
+                if self._mode == ETLExecutionMode.UNDO
+                else self.operation
+            ),
+            commit=self.commit,
+        )
 
-                # checks here in case plugin overrides UNDO method
-                if self.is_large_dataset:
-                    raise NotImplementedError(
-                        "Batch UNDO for large datasets not yet implemented"
-                    )
-                if self.affected_tables is None or len(self.affected_tables) == 0:
-                    self.logger.exception(
-                        "No `affected tables` specified for this plugin.  Cannot UNDO."
-                    )
-                if self._params.run_id is None:
-                    raise ValueError("Must specify ETL run_id to perform UNDO.")
+        error_message = None
+        try:
+            await self.__preprocess()
+            await self.__undo()
 
-                await self.undo()
-
-                # If we reach here, ETL completed successfully
-                execution_status = ProcessStatus.SUCCESS
-
-            else:  # RUN modes
-                try:
-                    await self.__initialize_etl_run()
-                    execution_status = ProcessStatus.RUNNING
-                    self.__status_report = ETLRunStatus(
-                        status=execution_status,
-                        mode=self._mode,
-                        run_id=self.run_id,
-                        operation=self.operation,
-                        commit=self.commit,
-                    )
-
-                except Exception as plugin_error:
-                    self.logger.exception(
-                        f"Failed to initialize plugin: {plugin_error}"
-                    )
-                    raise RuntimeError(f"Failed to initialize plugin: {plugin_error}")
-
-                async with self.session_ctx(allow_null_if_unintialized=True) as session:
-                    if session is not None:
-                        await self.on_run_start(session)
-
-                if self.load_strategy == ETLLoadStrategy.CHUNKED:
-                    await self.__process_chunked_load()
-                elif self.load_strategy == ETLLoadStrategy.BULK:
-                    await self.__process_bulk_load()
-                elif self.load_strategy == ETLLoadStrategy.BATCH:
-                    await self.__process_bulk_in_batch_load()
-                else:
-                    raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
-
-                # If we reach here, ETL completed successfully
-                execution_status = ProcessStatus.SUCCESS
-
-        except Exception as plugin_error:
-            # ETL failed
-            execution_status = ProcessStatus.FAIL
-            error_message = f"ETL Plugin Run Failed: {plugin_error}"
             if self.is_etl_run:
-                try:
-                    if self.__checkpoint is not None:
-                        # checkpoint for resume (line + record snapshot)
-                        checkpoint_kwargs = {
-                            "error": str(plugin_error),
-                        }
+                await self.__run()
 
-                        if self.__checkpoint.line is not None:
-                            checkpoint_kwargs["line"] = self.__checkpoint.line
-                        if self.__checkpoint.record is not None:
-                            record_obj = self.__checkpoint.record
-                            # Use model_dump if record is a Pydantic model
-                            if hasattr(record_obj, "model_dump") and callable(
-                                record_obj.model_dump
-                            ):
-                                checkpoint_kwargs["record"] = record_obj.model_dump()
-                            else:
-                                checkpoint_kwargs["record"] = record_obj
-                        if self.__checkpoint.record_id is not None:
-                            checkpoint_kwargs["record_id"] = self.__checkpoint.record_id
-                        elif self.__checkpoint.record is not None:
-                            checkpoint_kwargs["record_id"] = self.get_record_id(
-                                self.__checkpoint.record
-                            )
-
-                        self.logger.checkpoint(**checkpoint_kwargs)
-                except Exception as checkpoint_error:
-                    self.logger.warning(
-                        f"Failed to build checkpoint: {checkpoint_error}"
-                    )
+        except Exception as err:
+            # ETL failed
+            self.__execution_status = ProcessStatus.FAIL
+            error_message = f"ETL Plugin Run Failed: {err}"
+            if self.is_etl_run:
+                if self.__checkpoint is not None:
+                    self.logger.checkpoint(self.__checkpoint)
 
             self.logger.exception(error_message)
 
         finally:
-            await self.on_run_complete()
-
-            # Calculate transaction totals once for reuse
-            total_transactions = self.__get_total_transactions()
-
-            # log status
-            end_time = datetime.now()
-            runtime = (end_time - self.__start_time).total_seconds()
-            mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
-            self.__status_report.runtime = runtime
-            self.__status_report.memory = mem_mb
-            self.__status_report.status = execution_status
-            if self.is_dry_run:
-                self.__status_report.estimated_transaction_count = total_transactions
-            await self.__summarize_transactions()
-            self.logger.status(self.__status_report)
+            end_time, total_transactions = self.__summarize_and_log_run()
 
             try:
                 if self.run_id:
                     await self.__finalize_etl_run(
                         end_time,
-                        execution_status,
+                        self.__execution_status,
                         rows_processed=total_transactions,
                         message=error_message,
                     )
@@ -934,4 +917,4 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             if runtime_params:  # restore plugin parameters
                 self._params = self.parameter_model(**restore_params)
 
-        return execution_status
+        return self.__execution_status
