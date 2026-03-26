@@ -21,7 +21,7 @@ from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import ETLLoadStrategy, ResumeCheckpoint
+from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
@@ -158,8 +158,6 @@ class OntologyTermLoader(AbstractBasePlugin):
         return record.source_id
 
     def extract(self) -> Iterator[Any]:
-
-        self.logger.debug("Entering Extract")
         parser = OWLParser(
             self._params.file,
             logger=self.logger,
@@ -351,4 +349,4 @@ class OntologyTermLoader(AbstractBasePlugin):
             else:
                 self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
 
-        return ResumeCheckpoint(full_record=embedded_terms[-1].term)
+        return self.create_checkpoint(record=embedded_terms[-1].term)

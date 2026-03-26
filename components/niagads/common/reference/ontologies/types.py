@@ -59,6 +59,7 @@ class AnnotationPropertyIRI(CaseInsensitiveEnum):
     ID = "http://www.geneontology.org/formats/oboInOwl#id"
     HAS_EXACT_SYNONYM = "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym"
     DEPRECATED = "http://www.w3.org/2002/07/owl#deprecated"
+    COMMENT = "http://www.w3.org/2000/01/rdf-schema#comment"
 
     @classmethod
     def is_stored_property(cls, iri: str):

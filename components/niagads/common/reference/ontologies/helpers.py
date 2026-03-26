@@ -24,18 +24,20 @@ def get_field_iri(field: str, preferred=True) -> str:
     """
 
     match field:
-        case "term":
+        case "label":
             if preferred:
                 return AnnotationPropertyIRI.EDITOR_PREFERRED_LABEL
             else:
                 return AnnotationPropertyIRI.LABEL
         case "definition":
             return AnnotationPropertyIRI.DEFINITION
-        case "term_id":
+        case "curie":
             return AnnotationPropertyIRI.ID
         case "synonym":
             return AnnotationPropertyIRI.HAS_EXACT_SYNONYM
         case "is_deprecated":
             return AnnotationPropertyIRI.DEPRECATED
+        case "comment":
+            return AnnotationPropertyIRI.COMMENT
         case _:
             raise ValueError(f"No property IRI mapping required for '{field}'.")

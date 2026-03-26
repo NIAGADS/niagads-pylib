@@ -2,6 +2,7 @@ from typing import Iterator
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.helpers import get_field_iri
+from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.reference.ontologies.types import (
     AnnotationPropertyIRI,
     EntityTypeIRI,
@@ -18,7 +19,8 @@ class OWLParser(ComponentBaseMixin):
         if logger is not None:
             self.logger = logger
         self._graph = Graph()
-        self.logger.info("Initializing parser")
+        if self._verbose:
+            self.logger.info("Parsing Ontology Graph")
         self._graph.parse(owl_file, format="xml")
 
     def __resolve_entity_type(self, node) -> EntityTypeIRI:
@@ -30,27 +32,59 @@ class OWLParser(ComponentBaseMixin):
         ]
         return EntityTypeIRI.resolve_entity_type(assigned_types)
 
-    def __build_term(
-        self, entity_iri, entity_type: EntityTypeIRI, entity_properties: dict
-    ):
-        label = entity_properties.get(get_field_iri("term", preferred=True), [None])[0]
-        if label is None:  # no editor preffered label
-            label = entity_properties.get(
-                get_field_iri("term", preferred=False), [None]
+    def __get_term_value(
+        self, entity_properties: dict, curie: str, is_deprecated: bool
+    ) -> str:
+
+        # get label, checking preferred first
+        term = entity_properties.get(get_field_iri("label", preferred=True), [None])[0]
+        if term is None:  # no editor preffered label
+            term = entity_properties.get(
+                get_field_iri("label", preferred=False), [None]
             )[0]
 
-        term_id = entity_properties.get(get_field_iri("term_id"), [None])[0]
-        definition = entity_properties.get(get_field_iri("definition"), [None])[0]
-        synonyms = entity_properties.get(get_field_iri("synonym"), [])
+        if term is None:
+            term = entity_properties.get(get_field_iri("comment"))[0]
+
+        # if still no term, then entity has no label, extract from curie
+        # (expecting property, e.g., oboInOwl#saved-by - where label = 'saved-by')
+        if term is None and "#" in curie:
+            term = curie.split("#")[1]
+
+        if term is None:
+            if is_deprecated:  # sometimes no label is provided for deprecated CURIEs
+                return None
+            else:  # still none?
+                raise ValueError(
+                    f"Cannot extract term from entity: {entity_properties}"
+                )
+        return term
+
+    def __build_ontology_term(
+        self, entity_iri, entity_type: EntityTypeIRI, entity_properties: dict
+    ):
+        if not entity_properties:
+            # not a labelled term or validly annotated term
+            return None
+
+        curie = entity_properties.get(get_field_iri("curie"), [None])[0]
+        if curie is None:  # then extract from iri, e.g, for AnnotationProperty
+            curie = OntologyTerm.extract_curie(entity_iri)
         is_deprecated = bool(
             entity_properties.get(get_field_iri("is_deprecated"), [False])[0]
         )
+        term = self.__get_term_value(entity_properties, curie, is_deprecated)
+        if term is None:
+            return None
+
+        definition = entity_properties.get(get_field_iri("definition"), [None])[0]
+        synonyms = entity_properties.get(get_field_iri("synonym"), [])
 
         return {
             "term_iri": entity_iri,
             "entity_type": str(entity_type),
-            "curie": term_id,
-            "term": label,
+            "curie": curie,
+            "term": term,
             "definition": definition,
             "synonyms": synonyms,
             "is_deprecated": is_deprecated,
@@ -87,9 +121,16 @@ class OWLParser(ComponentBaseMixin):
                             object_iri
                         )
 
-            yield self.__build_term(subject_iri, subject_type, subject_properties)
+            ontology_term = self.__build_ontology_term(
+                subject_iri, subject_type, subject_properties
+            )
+            if ontology_term is not None:
+                yield ontology_term
+            else:
+                if self._verbose:
+                    self.logger.warning(f"Skipped deprecated term: {subject_iri}")
 
-    def extract_triples(self) -> Iterator[Triple]:
+    def extract_triples(self) -> Iterator[dict]:
         """
         Extracts ontology relationship triples from the RDF graph.
 
