@@ -213,7 +213,9 @@ A checkpoint is an object that records the current progress of an ETL plugin run
 
 Plugins generate by returning them from the `load` method. The pipeline uses these checkpoints to support resume, recovery, and robust error handling.
 
-See [`ResumeCheckpoint`](../../../components/niagads/etl/plugins/parameters.py) for the checkpoint structure.
+The base plugin provides a helper function `create_checkpoint` that takes `line` and/or `record` and generates a resume checkpoint object which can then be returned by your load function.  See [example plugin](#example-simple-text-loader-plugin) implementation below for usage.
+
+See [`ResumeCheckpoint`](../../../components/niagads/etl/plugins/parameters.py) for more details on the checkpoint structure.
 
 ## Plugin Execution and Operation Types
 
@@ -269,7 +271,7 @@ from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import ETLOperation, ETLLoadStrategy, ResumeCheckpoint
+from niagads.etl.plugins.types import ETLOperation, ETLLoadStrategy
 from niagads.database.genomicsdb.schema.toy import ToyTable # made up schema & table for this example
 from pydantic import Field
 
@@ -319,12 +321,12 @@ class SimpleTextLoader(AbstractBasePlugin):
         transformed_record.run_id = self.run_id # need to add the run id 
         return transformed_record
 
-    async def load(self, transformed, session) -> ResumeCheckpoint:
+    async def load(self, transformed, session):
         """
         Example: pretend to load records into DB. Replace with actual DB logic as needed.
         """
         await transformed.submit(session) # transformed is of type "ToyTable"
-        return ResumeCheckpoint(record_id=self.get_record_id(record))
+        return self.create_checkpoint(record=transformed)
 
     def get_record_id(self, record):
         # assume data had an id field for demonstration
