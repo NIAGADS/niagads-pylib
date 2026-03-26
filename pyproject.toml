@@ -50,6 +50,7 @@ packages = [
     {from = "components", include = "niagads/metadata_validator"},
     {from = "components", include = "niagads/nlp"},
     {from = "components", include = "niagads/objects"},
+    {from = "components", include = "niagads/ontology_parsers"},
     {from = "components", include = "niagads/postgres_dbi"},
     {from = "components", include = "niagads/requests"},
     {from = "components", include = "niagads/s3"},

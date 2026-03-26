@@ -27,6 +27,7 @@ from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
 )
 from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM, NLPModelType
+from niagads.ontology_parsers import OWLParser
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import NoResultFound
 
@@ -112,7 +113,9 @@ class OntologyTermLoader(AbstractBasePlugin):
         self, session, source_id: str
     ) -> Optional[OntologyTerm]:
         try:
-            return await OntologyTerm.fetch_record(session, filters={"source_id": source_id})
+            return await OntologyTerm.fetch_record(
+                session, filters={"source_id": source_id}
+            )
         except NoResultFound:
             return None
 
