@@ -48,12 +48,14 @@ class ChunkMetadata(RAGDocTableBase, TableRefMixin):
     chunk_metadata_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     document_type: Mapped[str] = enum_column(RAGDocType, nullable=False, index=True)
     document_section: Mapped[str] = mapped_column(
-        String(64), nullable=False, server_default="FULL"
+        String(64), nullable=False, server_default="FULL", default="FULL"
     )
     document_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=True)
     chunk_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)
     chunk_text: Mapped[str] = mapped_column(TEXT, nullable=True)
-    chunk_index: Mapped[int] = mapped_column(Integer, nullable=True)
+    chunk_index: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default="0"
+    )
     start_offset: Mapped[int] = mapped_column(Integer, nullable=True)
     end_offset: Mapped[int] = mapped_column(Integer, nullable=True)
     chunk_id: Mapped[str] = mapped_column(
