@@ -102,7 +102,7 @@ class OWLParser(ComponentBaseMixin):
             Iterator[dict]: dict with fields that can be used to build OntologyTerm
                 or OntologyTermVertex object as required by Plugin
         """
-        for subject in self._graph.subjects():
+        for subject in self._graph.subjects(unique=True):
             subject_iri = str(subject)
 
             try:

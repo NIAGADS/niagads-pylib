@@ -247,6 +247,8 @@ class OntologyTermLoader(AbstractBasePlugin):
                 document_type=str(RAGDocType.ONTOLOGY),
                 document_hash=embedded_term.chunk_hash,
                 chunk_hash=embedded_term.chunk_hash,
+                chunk_index=0,
+                document_section="FULL",
                 chunk_text=embedded_term.chunk_text,
                 run_id=self.run_id,
             )
@@ -302,9 +304,6 @@ class OntologyTermLoader(AbstractBasePlugin):
         await chunk_embedding.update(session)
 
     async def load(self, session, embedded_terms: List[EmbeddedOntologyTerm]):
-        # Developers Note: ecords coming in are list b/c this is a chunked load -
-        # the base buffers them until `batch_size`` is reached
-
         new_term_records: list[EmbeddedOntologyTerm] = []
         for e_term in embedded_terms:
             term: OntologyTerm = e_term.term
