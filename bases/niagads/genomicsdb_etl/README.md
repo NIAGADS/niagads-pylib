@@ -347,20 +347,20 @@ To register a plugin, use the `@PluginRegistry` decorator as illustrated in the 
 
 Common runner options:
 
+- `--help`: show runner or plugin-specific help
 - `--plugin`: plugin name to run
 - `--list`: list registered plugins and exit
-- `--help`: show runner or plugin-specific help
 - `--debug`: enable debug logging
 - `--verbose`: enable verbose logging
 - `--undo`: run the plugin in `UNDO` mode
 - `--run_id`: ETL run ID required with `--undo`
+- `--log-path`: specify custom log file path
 
 Shared plugin parameters from `BasePluginParams` (or the plugin/pipeline runners) are also added automatically for every plugin:
 
 - `--mode`: execution mode (`RUN`, `DRY_RUN`, or `PREPROCESS`); defaults to `RUN`
 - `--commit`: enable database writes
 - `--batch-size`: number of records to buffer per commit
-- `--log-path`: log file path or output directory for plugin logs
 - `--resume-checkpoint`: resume from a saved line number or record ID
 - `--connection-string`: database connection string override
   

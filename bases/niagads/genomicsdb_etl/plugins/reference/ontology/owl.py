@@ -100,10 +100,11 @@ class OntologyTermLoader(AbstractBasePlugin):
         self,
         params: Dict[str, Any],
         name: Optional[str] = None,
+        log_path: str = None,
         debug: bool = False,
         verbose: bool = False,
     ):
-        super().__init__(params, name, debug, verbose)
+        super().__init__(params, name, log_path, debug, verbose)
         self.__embedding_generator = None
         self.__external_database = None
         self.__table_ref = None

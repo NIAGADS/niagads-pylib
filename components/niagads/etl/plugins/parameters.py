@@ -2,7 +2,7 @@ from typing import Optional
 
 from niagads.etl.plugins.types import ResumeCheckpoint
 from niagads.etl.types import ETLExecutionMode
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 
 class BasePluginParams(BaseModel):
@@ -30,10 +30,6 @@ class BasePluginParams(BaseModel):
         ge=1,
         description="load batch size; indicates number of records to buffer or bulk insert per commit",
     )
-    log_path: Optional[str] = Field(
-        default=None,
-        description="Path to log file for the plugin.  If does not end in `.log`, assumes `log-path` is a directory and will write to `{log-path}/{plugin-name}.log",
-    )
     resume_checkpoint: Optional[ResumeCheckpoint] = Field(
         default=None,
         description="resume checkpoint, a line number or record ID.  Indicate as line=<N> or id=<record ID>",
@@ -52,6 +48,14 @@ class BasePluginParams(BaseModel):
         if self.batch_size == 0:
             self.batch_size = None
         return self
+
+    @staticmethod
+    def log_validation_errors(validation_error: ValidationError, logger) -> str:
+        errors = [f"--{e['loc'][0]} - {e["msg"]}" for e in validation_error.errors()]
+        logger.warning("Invalid parameter values found:")
+        for e in validation_error.errors():
+            logger.warning(f"--{e['loc'][0]}: {e["msg"]}")
+        logger.exception("Failed to initializing plugin.")
 
 
 class PathValidatorMixin:

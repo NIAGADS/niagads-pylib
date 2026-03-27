@@ -39,6 +39,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self,
         params: Dict[str, Any],
         name: Optional[str] = None,
+        log_path: str = None,
         debug: bool = False,
         verbose: bool = False,
     ):
@@ -52,17 +53,21 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         super().__init__(debug=debug, verbose=verbose, initialize_logger=False)
         self.__metadata: PluginMetadata = self.__retrieve_plugin_metadata()
 
-        if params["mode"] == ETLExecutionMode.UNDO:
-            self._params = BasePluginParams(**params)
-        else:
-            self._params = self.parameter_model(**params)
         self._name = name or self.__class__.__name__
 
         self.logger: ETLLogger = ETLLogger(
             name=self._name,
-            log_file=self.__resolve_log_file_path(),
+            log_file=self.__resolve_log_file_path(log_path),
             debug=self._debug,
         )
+
+        try:
+            if params["mode"] == ETLExecutionMode.UNDO:
+                self._params = BasePluginParams(**params)
+            else:
+                self._params = self.parameter_model(**params)
+        except ValidationError as err:
+            BasePluginParams.log_validation_errors(err, self.logger)
 
         # parameter based properties
         self._mode = ETLExecutionMode(self._params.mode)
@@ -186,20 +191,20 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # -------------------------
     # Initialization helpers
     # -------------------------
-    def __resolve_log_file_path(self):
+    def __resolve_log_file_path(self, log_path: str):
         """
         Resolve the log file path for the plugin.
 
         If no path is specified, returns a standardized log file name in the
         current working directory.
         """
-        if not self._params.log_path:
+        if not log_path:
             return f"{self._name}.log"
 
-        if ".log" in self._params.log_path:
-            return self._params.log_path
+        if ".log" in log_path:
+            return log_path
 
-        return os.path.join(self._params.log_path, f"{self._name}.log")
+        return os.path.join(log_path, f"{self._name}.log")
 
     def __initialize_database_session(self):
         if self._connection_string is None:

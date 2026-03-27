@@ -16,6 +16,9 @@ from niagads.utils.logging import (
 
 import sqlalchemy.log
 
+from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import matches
+
 KEYW = 16
 
 
@@ -61,7 +64,8 @@ class ETLLogger:
         """
         Simple string formatting for all arguments. No pretty-printing of complex objects.
         """
-        return " ".join(str(arg) for arg in args)
+        msg = " ".join(str(arg) for arg in args)
+        return self.__log_safe_reporter(msg)
 
     def info(self, *args):
         self.__logger.info(self._format_message(*args))
@@ -122,25 +126,24 @@ class ETLLogger:
         else:
             return full_cstring.split("@")[1]
 
-    def __log_safe_reporter(self, key, value):
+    def __log_safe_reporter(self, value):
         """Strip credentials and file paths from logs if non-debug mode"""
-        if key == "connection_string":
-            return self.__connection_string_reporter(value)
-        else:
-            if self._debug:
-                return value
 
-            if isinstance(value, str):
-                data_dir = os.environ.get("DATA_DIR", None)
-                if data_dir and value.startswith(data_dir):
-                    return value.replace(data_dir, "$DATA_DIR")
+        if self._debug:
+            return value
 
-                config_dir = os.environ.get("CONFIG_DIR", None)
-                if config_dir and value.startswith(config_dir):
-                    return value.replace(config_dir, "$CONFIG_DIR")
+        if isinstance(value, str):
+            if value.startswith("postgres://") or value.startswith("postgresql://"):
+                return self.__connection_string_reporter(value)
+            data_dir = os.environ.get("DATA_DIR", None)
+            if data_dir and data_dir in value:
+                return value.replace(data_dir, "$DATA_DIR")
 
-            else:
-                return value
+            config_dir = os.environ.get("CONFIG_DIR", None)
+            if config_dir and config_dir in value:
+                return value.replace(config_dir, "$CONFIG_DIR")
+
+        return value
 
     def log_plugin_configuration(self, params: BasePluginParams):
         """
@@ -154,7 +157,7 @@ class ETLLogger:
         config = params.model_dump()
         max_key_len = max(len(str(k)) for k in config.keys()) if config else 12
         for key, value in config.items():
-            display_value = self.__log_safe_reporter(key, value)
+            display_value = self.__log_safe_reporter(value)
             self.info(f"{key.upper():<{max_key_len}} : {display_value}")
         self.report_section_end("ETL Plugin Config")
 
