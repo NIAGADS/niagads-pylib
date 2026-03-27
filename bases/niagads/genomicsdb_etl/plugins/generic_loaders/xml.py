@@ -82,12 +82,7 @@ class XMLRecord(BaseModel):
 
 class XMLRecordLoaderParams(BasePluginParams, PathValidatorMixin):
     file: str = Field(description="Full path to the XML file to load.")
-    commit_after: int = Field(
-        default=100,
-        ge=1,
-        description="records to buffer per commit",
-        exclude=True,  # line-by-line streaming loader
-    )
+
     update: Optional[bool] = Field(
         default=False,
         description="If True, plugin will update existing records; otherwise will handle duplicates according to value of `--skip-existing` option",
@@ -278,7 +273,7 @@ class XMLRecordLoader(AbstractBasePlugin):
             self.inc_tx_count(table_key)
             self.logger.debug(f"Inserted record {transformed}")
 
-        return self.set_checkpoint(transformed)
+        return self.create_checkpoint(transformed)
 
     def get_record_id(self, record: Dict[str, Any]) -> Optional[str]:
         # no way to know

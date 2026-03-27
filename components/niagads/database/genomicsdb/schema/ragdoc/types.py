@@ -2,7 +2,7 @@ from enum import auto
 from niagads.enums.core import CaseInsensitiveEnum
 
 
-class RAGDocTypes(CaseInsensitiveEnum):
+class RAGDocType(CaseInsensitiveEnum):
     REFERENCE = auto()
     ONTOLOGY = auto()
     GENE = auto()

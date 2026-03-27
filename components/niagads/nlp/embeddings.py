@@ -1,5 +1,6 @@
 from functools import lru_cache
 from hashlib import sha256
+from typing import Union
 
 from niagads.nlp.llm_types import LLM, NLPModelType
 from sentence_transformers import SentenceTransformer
@@ -10,6 +11,10 @@ class TextEmbeddingGenerator:
 
     def __init__(self, model: LLM = LLM.ALL_MINILM_L6_V2):
         self.__model = self.__initialize_model(model)
+
+    @property
+    def is_cpu_limited(self):
+        return str(self.__model.device).startswith("cpu")
 
     @staticmethod
     @lru_cache(maxsize=1)
@@ -32,7 +37,7 @@ class TextEmbeddingGenerator:
 
     def generate(
         self,
-        text: str,
+        text: Union[str, list[str]],
         normalize: bool = True,
         as_list: bool = True,
     ) -> list[float]:
@@ -40,7 +45,7 @@ class TextEmbeddingGenerator:
         Calculate a text embedding using SentenceTransformer.
 
         Args:
-            text (str): The input text to embed.
+            text (str, list[str]): The input text or a list of input texts to embed.
             normalize (bool): Whether to normalize the embedding to unit length. Defaults to True.
                 Set to True for cosine similarity operations (e.g., pgvector cosine_distance),
                 as normalized vectors ensure fair comparison regardless of text length and enable
@@ -59,7 +64,10 @@ class TextEmbeddingGenerator:
         """
 
         embedding = self.__model.encode(text, normalize_embeddings=normalize)
-        return embedding.tolist() if as_list else embedding
+        if isinstance(text, str):
+            return embedding.tolist() if as_list else embedding
+        else:
+            return [e.tolist() for e in embedding] if as_list else embedding
 
     @staticmethod
     def hash_text(text: str) -> bytes:

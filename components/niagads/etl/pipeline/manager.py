@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.types import ProcessStatus
-from niagads.etl.types import ETLMode
+from niagads.etl.types import ETLExecutionMode
 from niagads.etl.pipeline.config import (
     ParallelMode,
     PipelineConfig,
@@ -142,7 +142,7 @@ class PipelineManager(ComponentBaseMixin):
     async def _run_plugin_task(
         self,
         task: TaskConfig,
-        mode: ETLMode,
+        mode: ETLExecutionMode,
         pipeline_scope: Dict[str, Any],
     ) -> ProcessStatus:
         from niagads.etl.plugins.registry import PluginRegistry
@@ -226,7 +226,7 @@ class PipelineManager(ComponentBaseMixin):
         self,
         stage: StageConfig,
         tasks: List[TaskConfig],
-        mode: ETLMode,
+        mode: ETLExecutionMode,
         pipeline_scope: Dict[str, Any],
     ) -> ProcessStatus:
         """
@@ -276,7 +276,7 @@ class PipelineManager(ComponentBaseMixin):
         self,
         stage: StageConfig,
         tasks: list[TaskConfig],
-        mode: ETLMode,
+        mode: ETLExecutionMode,
         pipeline_scope: dict,
     ) -> ProcessStatus:
 
@@ -305,7 +305,7 @@ class PipelineManager(ComponentBaseMixin):
         self,
         stage: StageConfig,
         tasks: List[TaskConfig],
-        mode: ETLMode,
+        mode: ETLExecutionMode,
         pipeline_scope: Dict[str, Any],
     ) -> ProcessStatus:
         for t in tasks:
@@ -320,7 +320,7 @@ class PipelineManager(ComponentBaseMixin):
         self,
         stage: StageConfig,
         task: TaskConfig,
-        mode: ETLMode,
+        mode: ETLExecutionMode,
         pipeline_scope: Dict[str, Any],
     ) -> ProcessStatus:
         self.logger.info(f"[Task] {task.name} started (type={task.type})")
@@ -355,7 +355,7 @@ class PipelineManager(ComponentBaseMixin):
     async def run(
         self,
         *,
-        mode: ETLMode = ETLMode.DRY_RUN,
+        mode: ETLExecutionMode = ETLExecutionMode.DRY_RUN,
         parameter_overrides: Optional[
             Dict[str, Any]
         ] = None,  # pipeline param overrides
@@ -401,7 +401,7 @@ class PipelineManager(ComponentBaseMixin):
             self.logger.error("Pipeline failed.")
             return ProcessStatus.FAIL
 
-    def _log_pipeline_start(self, mode: ETLMode):
+    def _log_pipeline_start(self, mode: ETLExecutionMode):
         self.logger.info(f"Pipeline started. Mode: {mode.name}")
         if self.__filters.only:
             self.logger.info(

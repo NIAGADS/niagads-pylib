@@ -31,6 +31,7 @@ class DatabaseSessionManager:
         pool_size: int = CONNECTION_POOL_SIZE,
         max_connection_lifetime: int = POOL_RECYCLE,
         echo: bool = False,
+        expire_on_commit: bool = True,
     ):
         """Initialize DatabaseSessionManager object.
 
@@ -47,7 +48,9 @@ class DatabaseSessionManager:
             pool_recycle=max_connection_lifetime,  # Maximum lifetime (in seconds) of a connection before it is closed and replaced (prevents stale connections)
         )
 
-        self.__sessionMaker: async_sessionmaker = async_sessionmaker(bind=self.__engine)
+        self.__sessionMaker: async_sessionmaker = async_sessionmaker(
+            bind=self.__engine, expire_on_commit=expire_on_commit
+        )
         self.__session: AsyncSession = async_scoped_session(
             self.__sessionMaker, scopefunc=current_task
         )

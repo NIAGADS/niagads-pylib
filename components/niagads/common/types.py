@@ -13,9 +13,17 @@ T_RefSNP = Annotated[str, Field(pattern=RegularExpressions.REFSNP)]
 
 
 class ProcessStatus(CaseInsensitiveEnum):
+    """
+    Enum representing the overall outcome of a process or workflow step.
+
+    - SUCCESS: Process completed successfully.
+    - FAIL: Process failed.
+    - IN_PROGRESS: Process is currently running.
+    """
+
     SUCCESS = auto()
     FAIL = auto()
-    RUNNING = auto()
+    IN_PROGRESS = auto()
 
 
 # placed here to avoid creating a dependency in the `database` component on the `etl` component
@@ -34,3 +42,12 @@ class ETLOperation(CaseInsensitiveEnum):
     LOAD = auto()
     DELETE = auto()
     SKIP = auto()
+
+    def past_tense(self):
+        if self == ETLOperation.SKIP:
+            return "SKIPPED"
+
+        if self.name.endswith("E"):
+            return f"{self.name}D"
+
+        return f"{self.name}ED"

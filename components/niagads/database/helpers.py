@@ -1,3 +1,4 @@
+from niagads.database.decorators import AutoDateTime
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.list import list_to_string
 from sqlalchemy import TIMESTAMP, CheckConstraint, Column, Enum, func
@@ -15,7 +16,7 @@ def datetime_column(nullable: bool = False):
         sqlalchemy.orm.MappedColumn: Configured mapped_column instance.
     """
     return mapped_column(
-        TIMESTAMP,
+        AutoDateTime,
         server_default=None if nullable else func.now(),
         nullable=nullable,
     )

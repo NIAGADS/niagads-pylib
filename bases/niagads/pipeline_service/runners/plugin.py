@@ -13,7 +13,9 @@ from niagads.common.types import ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.etl.plugins.registry import PluginRegistry
+from niagads.etl.types import ETLExecutionMode
 from niagads.etl.utils import register_plugins
 from pydantic import BaseModel, ValidationError
 
@@ -43,10 +45,17 @@ class PluginRunner(ComponentBaseMixin):
         plugin_name,
         argument_parser,
         list_only: bool = False,
+        undo: bool = False,
+        run_id: int = None,
+        log_path: str = None,
         debug: bool = False,
         verbose: bool = False,
     ):
         super().__init__(debug=debug, verbose=verbose)
+        self._undo = undo
+        self._run_id = run_id
+        self._log_path = log_path
+
         try:
             register_plugins(
                 project=PipelineSettings.from_env().PROJECT,
@@ -60,9 +69,9 @@ class PluginRunner(ComponentBaseMixin):
             self._plugin_cls = PluginRegistry.get(plugin_name)
         except ValidationError as err:
             if self._debug:
-                self.logger.exception("ValidationError loading plugins")
+                self.logger.exception("Error while registering plugins")
             else:
-                self.logger.error(f"ValidationError loading plugins: {err}")
+                self.logger.error(f"Error while registering plugins: {err}")
         except KeyError:
             available_plugins = "\n".join(PluginRegistry.list_plugins())
             msg = (
@@ -72,7 +81,12 @@ class PluginRunner(ComponentBaseMixin):
             self.logger.error(msg)
         try:
             self.__plugin_metadata = PluginRegistry.get_metadata(plugin_name)
-            self._param_fields = self.__plugin_metadata.parameter_model.model_fields
+            if self._undo:
+                # this way we can handle mode, run_id, custom logging, and commit
+                # but not worry about required plugin commands
+                self._param_fields = BasePluginParams.model_fields
+            else:
+                self._param_fields = self.__plugin_metadata.parameter_model.model_fields
         except Exception as e:
             msg = f"Error accessing parameter model for plugin '{plugin_name}'"
             if self._debug:
@@ -82,6 +96,7 @@ class PluginRunner(ComponentBaseMixin):
 
         self._params = {}
         self._argument_parser = argument_parser  # store parser for usage printing
+
         self._register_plugin_args()
 
     def print_plugin_help(self):
@@ -192,10 +207,19 @@ class PluginRunner(ComponentBaseMixin):
             if value is not None:
                 self._params[field_name] = value
 
+        if self._undo:
+            self._params["mode"] = ETLExecutionMode.UNDO
+            self._params["run_id"] = self._run_id
+
     async def run(self):
         self._set_runtime_parameters()
         try:
-            plugin: AbstractBasePlugin = self._plugin_cls(params=self._params)
+            plugin: AbstractBasePlugin = self._plugin_cls(
+                params=self._params,
+                log_path=self._log_path,
+                debug=self._debug,
+                verbose=self._verbose,
+            )
         except Exception as e:
             msg = f"Error instantiating plugin '{self._plugin_cls.__name__}'"
             if self._debug:
@@ -216,10 +240,7 @@ class PluginRunner(ComponentBaseMixin):
             )
         else:
             msg = f"Plugin '{self._plugin_cls.__name__}' failed."
-            if self._debug:
-                self.logger.exception(msg)
-            else:
-                self.logger.error(f"{msg}: {e}")
+            self.logger.info(msg)
 
 
 async def main():
@@ -234,8 +255,21 @@ async def main():
     parser.add_argument("--list", action="store_true", help="List registered plugins")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
+    parser.add_argument("--undo", action="store_true", help="Run in UNDO mode")
+    parser.add_argument("--run_id", type=int, help="ETL run_id; required for UNDO mode")
     parser.add_argument(
         "--help", action="store_true", help="Show help message and exit"
+    )
+    parser.add_argument(
+        "--log-path",
+        type=str,
+        default=None,
+        help=(
+            "Path to the plugin log file. If provided path does not end with `.log`, "
+            "path is assumed to be a directory and the log will be written "
+            "to `{log-path}/{plugin-name}.log`. If no log path is provided, plugin will log "
+            "to `$PWD/{plugin-name}.log`"
+        ),
     )
 
     # Parse known args to get plugin name and help
@@ -247,8 +281,11 @@ async def main():
     # Instantiate runner and dynamically add plugin params
     runner = PluginRunner(
         known_args.plugin,
-        parser,
-        known_args.list,
+        argument_parser=parser,
+        list_only=known_args.list,
+        undo=known_args.undo,
+        run_id=known_args.run_id,
+        log_path=known_args.log_path,
         debug=known_args.debug,
         verbose=known_args.verbose,
     )
