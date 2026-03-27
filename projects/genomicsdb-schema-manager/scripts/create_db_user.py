@@ -76,6 +76,9 @@ async def run():
         grant_role_sql = f'GRANT {role} TO "{args.user}";'
         await conn.execute(grant_role_sql)
 
+        # commit
+        await conn.commit()
+
     await session_manager.close()
 
     print(f"Done - created {str(role).upper()} user `{args.user}` : {password}")
