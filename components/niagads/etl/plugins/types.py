@@ -3,8 +3,10 @@ from typing import Any, Dict, Optional
 
 from niagads.common.types import ETLOperation, ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.etl.types import ETLMode
-from pydantic import BaseModel, Field, model_validator
+from niagads.etl.types import ETLExecutionMode
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from niagads.utils.string import dict_to_info_string
 
 
 class ResumeCheckpoint(BaseModel):
@@ -18,16 +20,38 @@ class ResumeCheckpoint(BaseModel):
         None,
         description="Line number (1-based) to resume from; header not included in count",
     )
-    record: Optional[str] = Field(
+    record_id: Optional[str] = Field(
         None, description="Natural identifier or full record to resume from"
     )
-    full_record: Optional[dict]
+    record: Optional[dict] = None
+
+    @field_validator("record", mode="before")
+    @classmethod
+    def normalize_record(cls, v):
+        if v is None or isinstance(v, dict):
+            return v
+        if hasattr(v, "model_dump"):
+            return v.model_dump()
+        return v
 
     @model_validator(mode="after")
     def validate_checkpoint(self):
-        if not self.line and not self.record:
-            raise ValueError("checkpoint must define either 'line' or 'record'")
+        if not self.line and not self.record_id and not self.record:
+            raise ValueError(
+                "Empty checkpoint, please specify line, record_id or record"
+            )
         return self
+
+    def as_info_string(self, debug: bool = False):
+        if debug:  # debug -> return all not nulls
+            values = self.model_dump(exclude_none=True)
+        else:  # not debug, only include record if others are null
+            if self.line is None and self.record_id is None:
+                values = self.model_dump(exclude_none=True)
+            else:
+                values = self.model_dump(exclude_none=True, exclude=["record"])
+
+        return dict_to_info_string(values)
 
 
 class ETLRunStatus(BaseModel):
@@ -42,7 +66,8 @@ class ETLRunStatus(BaseModel):
     estimated_transaction_count: int = None
     operation: ETLOperation = None
     status: ProcessStatus
-    mode: ETLMode
+    mode: ETLExecutionMode
+    commit: bool
     runtime: Optional[float] = None
     memory: Optional[float] = None
     task_id: Optional[int] = None
@@ -51,9 +76,17 @@ class ETLRunStatus(BaseModel):
     def total_transactions(self):
         if self.transaction_record is None:
             if self.estimated_transaction_count is None:
-                raise RuntimeError(
-                    "Cannot calculate total writes - transaction tally not initialized"
-                )
+                # when a developer exits during debugging on purpose, the status
+                # will still be RUNNING
+                if (
+                    self.status is not ProcessStatus.FAIL
+                    and self.status is not ProcessStatus.IN_PROGRESS
+                ):
+                    raise RuntimeError(
+                        "Cannot calculate total writes - transaction tally not initialized"
+                    )
+                else:
+                    return 0
             else:
                 return self.estimated_transaction_count
 

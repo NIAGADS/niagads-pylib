@@ -16,14 +16,15 @@ from niagads.etl.plugins.types import (
     ETLRunStatus,
     ResumeCheckpoint,
 )
-from niagads.etl.types import ETLMode
+from niagads.etl.types import ETLExecutionMode
 from niagads.database.genomicsdb.schema.admin.etl import ETLRun
 from niagads.utils.asynchronous import null_async_context
 from niagads.utils.list import chunker
-from niagads.utils.logging import FunctionContextLoggerWrapper
-from sqlalchemy import event
+from pydantic import ValidationError
+from sqlalchemy import delete, event
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.exc import IntegrityError
 
 
 class AbstractBasePlugin(ABC, ComponentBaseMixin):
@@ -38,6 +39,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self,
         params: Dict[str, Any],
         name: Optional[str] = None,
+        log_path: str = None,
         debug: bool = False,
         verbose: bool = False,
     ):
@@ -48,30 +50,35 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             params (BasePluginParams): Validated parameters for the plugin instance.
             name (Optional[str]): Optional name for the plugin instance (used for logging and identification).
         """
-
-        super().__init__(debug=debug, verbose=verbose)
+        super().__init__(debug=debug, verbose=verbose, initialize_logger=False)
         self.__metadata: PluginMetadata = self.__retrieve_plugin_metadata()
 
-        self._params = self.parameter_model(**params)
-
         self._name = name or self.__class__.__name__
+
+        self.logger: ETLLogger = ETLLogger(
+            name=self._name,
+            log_file=self.__resolve_log_file_path(log_path),
+            debug=self._debug,
+        )
+
+        try:
+            if params["mode"] == ETLExecutionMode.UNDO:
+                self._params = BasePluginParams(**params)
+            else:
+                self._params = self.parameter_model(**params)
+        except ValidationError as err:
+            BasePluginParams.log_validation_errors(err, self.logger)
+
+        # parameter based properties
+        self._mode = ETLExecutionMode(self._params.mode)
+        self._batch_size: int = self._params.batch_size
+
         self.__start_time: Optional[datetime] = None
         self.__status_report: ETLRunStatus = None
         self.__checkpoint: ResumeCheckpoint = None
         self.__etl_run: ETLRun = None
         self.__transaction_record: Dict[str, Dict[str, int]] = {}
-
-        # parameter based properties
-        self._mode = ETLMode(self._params.mode)
-        self._commit_after: int = self._params.commit_after
-
-        self.logger: ETLLogger = FunctionContextLoggerWrapper(
-            ETLLogger(
-                name=self._name,
-                log_file=self.__resolve_log_file_path(),
-                debug=self._debug,
-            )
-        )
+        self.__execution_status: ProcessStatus = None
 
         self._connection_string = (
             self._params.connection_string or PipelineSettings.from_env().DATABASE_URI
@@ -158,32 +165,46 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         Indicates whether the plugin is running in DRY_RUN mode.
         """
-        return self._mode == ETLMode.DRY_RUN
+        return self._mode == ETLExecutionMode.DRY_RUN
+
+    @property
+    def is_etl_run(self) -> bool:
+        """
+        Indicates whether plugin is doing a full RUN
+        """
+        return self._mode == ETLExecutionMode.RUN
+
+    @property
+    def commit(self) -> bool:
+        """
+        Indicates whether plugin is running in `COMMIT` mode
+        """
+        return self._params.commit
 
     @property
     def run_id(self):
-        if not self.is_dry_run:
-            return self.__etl_run.etl_run_id
+        if self.is_etl_run:
+            return self.__etl_run.run_id
         else:
             return None
 
     # -------------------------
     # Initialization helpers
     # -------------------------
-    def __resolve_log_file_path(self):
+    def __resolve_log_file_path(self, log_path: str):
         """
         Resolve the log file path for the plugin.
 
         If no path is specified, returns a standardized log file name in the
         current working directory.
         """
-        if not self._params.log_path:
+        if not log_path:
             return f"{self._name}.log"
 
-        if ".log" in self._params.log_path:
-            return self._params.log_path
+        if ".log" in log_path:
+            return log_path
 
-        return os.path.join(self._params.log_path, f"{self._name}.log")
+        return os.path.join(log_path, f"{self._name}.log")
 
     def __initialize_database_session(self):
         if self._connection_string is None:
@@ -193,7 +214,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         return DatabaseSessionManager(
             connection_string=self._connection_string,
-            echo=self._debug,
+            echo=self._debug and self._verbose,
+            expire_on_commit=False,
         )
 
     # -------------------------
@@ -243,7 +265,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Args:
             session: Async SQLAlchemy session.
             transformed: The data to persist. For streaming, a list of records
-            (buffer size <= commit_after). For bulk, the entire dataset.
+            (buffer size <= batch_size). For bulk, the entire dataset.
 
         Returns:
             Optional[ResumeCheckpoint]: Checkpoint info (line/id) for resuming, or None.
@@ -306,6 +328,48 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         pass
 
+    async def undo(self) -> None:
+        """
+        Hook for undo method
+
+        Override in your plugin if additional undo actions are needed;
+        runs undo and then exists.
+
+        If you need the DB session, for undo,
+        use self.session_ctx() or self.session_manager() as best fits
+        your application
+        """
+
+        async with self.session_ctx() as session:
+            for table in self.affected_tables:
+                try:
+                    result = await session.execute(
+                        delete(table).where(table.run_id == self._params.run_id)
+                    )
+                    self.inc_tx_count(table, ETLOperation.DELETE, result.rowcount)
+                except IntegrityError:
+                    raise IntegrityError(
+                        f"Foreign key contraint violation."
+                        f" Attempted to delete rows from {table.table_name()} before"
+                        f" all child rows were removed. Order `affected_tables` in the "
+                        f" plugin metadata so that they delete child records first."
+                    )
+            try:
+                result = await session.execute(
+                    delete(ETLRun).where(ETLRun.run_id == self._params.run_id)
+                )
+                self.inc_tx_count(ETLRun, ETLOperation.DELETE, result.rowcount)
+            except IntegrityError:
+                raise IntegrityError(
+                    "Foreign key constraint violation. Child records for"
+                    f" run_id = {self._params.run_id} still exist."
+                    " Check `affected_tables` list."
+                )
+            if self.commit:
+                await session.commit()
+            else:
+                await session.rollback()
+
     # -------------------------
     # Transaction Management
     # -------------------------
@@ -325,11 +389,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             amount: Number of records to increment by. Defaults to 1.
         """
 
-        table_name = (
-            table
-            if isinstance(table, str)
-            else f"{table.__class__.__table__.schema}.{table.__class__.__table__.name}"
-        )
+        table_name = table if isinstance(table, str) else f"{table.table_name()}"
         if table_name not in self.__transaction_record:
             self.__transaction_record[table_name] = {}
 
@@ -347,7 +407,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         total = 0
         for ops in self.__transaction_record.values():
-            total += sum(ops.values())
+            # Exclude SKIP operations from the total
+            total += sum(
+                count for op, count in ops.items() if op != str(ETLOperation.SKIP)
+            )
         return total
 
     def __attach_etl_transaction_listener(self, session: AsyncSession) -> None:
@@ -363,7 +426,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.__track_etl_transactions,
         )
 
-    def __track_etl_transactions(self, sync_session) -> None:
+    def __track_etl_transactions(self, sync_session, flush_context) -> None:
         """
         SQLAlchemy after_flush listener that tracks per-table inserts, updates, and deletes.
 
@@ -464,19 +527,22 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self, session: AsyncSession, checkpoint: ResumeCheckpoint
     ) -> None:
         """
-        Commit or rollback the session based on ETLMode and commit_after logic.
+        Commit or rollback the session based on ETLMode and batch size logic.
         """
         tx_total = self.__get_total_transactions()
         msg = f"{tx_total} records"
-        if self._mode == ETLMode.COMMIT:
+        if self.commit:
             await session.commit()
-            self.logger.info("COMMITED", msg)
-        elif self._mode == ETLMode.NON_COMMIT:
+            msg = f"COMMITTED {msg}"
+        else:
             await session.rollback()
-            self.logger.info("ROLLED BACK", msg)
+            msg = f"ROLLED BACK {msg}"
 
         # if transaction is successful, can update the checkpoint
         self.__checkpoint = checkpoint
+        self.logger.info(
+            f"{msg} - CHECKPOINT: {self.__checkpoint.as_info_string(self._debug)}"
+        )
 
     async def __execute_load(self, session, buffer) -> ResumeCheckpoint:
         """
@@ -494,10 +560,20 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             RuntimeError: If no transaction counts were updated during a non-empty transaction.
         """
 
-        if not buffer or len(buffer) == 0:
+        if not buffer or (isinstance(buffer, list) and len(buffer) == 0):
             raise ValueError("Empty buffer (transformed) passed to load.")
 
-        result: Optional[ResumeCheckpoint] = await self.load(session, buffer)
+        try:
+            result: Optional[ResumeCheckpoint] = await self.load(session, buffer)
+        except ValidationError as validation_error:
+            if "ResumeCheckpoint" in str(validation_error):
+                self.logger.warning(
+                    f"Unable to generate resume checkpoint: {validation_error}"
+                )
+                result = ResumeCheckpoint(record_id="INVALID")
+            raise validation_error
+        except Exception:
+            raise
 
         # result should be None or a ResumeCheckpoint
         if result and not isinstance(result, ResumeCheckpoint):
@@ -525,7 +601,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Process records in chunks and load them into the database.
 
         Chunks are processed with size determined by extract. Each chunk
-        is loaded, but commits and roll-backs happen according to `commit_after` parameter
+        is loaded, but commits and roll-backs happen according to `batch_size` parameter
         and according to ETL mode.
         """
 
@@ -541,12 +617,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     else:
                         buffer.append(processed_records)
 
-                    if len(buffer) >= self._commit_after:
+                    if len(buffer) >= self._batch_size:
                         batches = chunker(
-                            buffer, self._commit_after, returnIterator=True
+                            buffer, self._batch_size, return_iterator=True
                         )
                         for batch in batches:
-                            if len(batch) == self._commit_after:
+                            if len(batch) == self._batch_size:
                                 checkpoint = await self.__flush_chunked_buffer(
                                     batch, session
                                 )
@@ -566,7 +642,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             if session is not None:
                 self.__attach_etl_transaction_listener(session)
-                # Bulk: load all at once, ignore commit_after
+                # Bulk: load all at once, ignore batch_size
                 checkpoint = None
                 if not self.is_dry_run:
                     checkpoint = await self.__execute_load(session, processed_records)
@@ -576,7 +652,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     async def __process_bulk_in_batch_load(self):
         records = self.extract()
         processed_records = self.transform(records)
-        batches = chunker(processed_records, self._commit_after, returnIterator=True)
+        batches = chunker(processed_records, self._batch_size, return_iterator=True)
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             if session is not None:
                 self.__attach_etl_transaction_listener(session)
@@ -584,48 +660,92 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     checkpoint = await self.__flush_chunked_buffer(batch, session)
                     await self.__handle_transaction(session, checkpoint)
 
-    async def __initialize_etl_run(self) -> Optional[int]:
+    async def __register_etl_run(self) -> Optional[int]:
         """
-        Log the start of a plugin run in the database.
-        No log entry is created if ETLMode is DRY_RUN.
+        Create plugin status trackers (internal status report) and ETLRun entry
+        (if is_etl_run) in the database.
+        No log entry if mode is other than `RUN`
         """
-        self.__etl_run = ETLRun(
-            plugin_name=self._name,
-            plugin_version=self.version,
-            params=self._params.model_dump(),
-            message="plugin run initiated",
-            status=ProcessStatus.RUNNING,
-            operation=str(self.operation),
-            start_time=self.__start_time,
-            rows_processed=0,
-        )
+        if self.is_etl_run:
+            try:
+                self.__etl_run = ETLRun(
+                    plugin_name=self._name,
+                    plugin_version=self.version,
+                    params=self._params.model_dump(
+                        exclude_none=True, exclude_unset=True
+                    ),
+                    message="plugin run initiated",
+                    status=self.__execution_status,
+                    operation=str(self.operation),
+                    start_time=self.__start_time,
+                    rows_processed=0,
+                    is_test_run=not self.commit,
+                )
 
-        async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            if session is not None:
-                self.__etl_run.run_id = await self.__etl_run.submit(session)
+                # no if session is not None check here b/c I want to throw an error,
+                # we should only reach this point if the session pool exists
+                async with self.session_ctx() as session:
+                    self.__etl_run.run_id = await self.__etl_run.submit(session)
+
+                    # need to commit the etl run, regardless of commit mode
+                    # to avoid roll back
+                    await session.commit()
+                    await self.__etl_run.detach(session)
+
+            except Exception as err:
+                self.logger.exception(
+                    f"Failed to initialize ETL status trackers: {err}"
+                )
+
+        # do this second so can assign run_id correctly
+        self.__status_report = ETLRunStatus(
+            status=self.__execution_status,
+            mode=self._mode,
+            run_id=self.run_id,
+            operation=(
+                ETLOperation.DELETE
+                if self._mode == ETLExecutionMode.UNDO
+                else self.operation
+            ),
+            commit=self.commit,
+        )
 
     async def __finalize_etl_run(
         self,
-        end_time,
-        status: ProcessStatus,
-        rows_processed: int = None,
         message: str = None,
     ):
         """
-        Update the plugin task in the database at plugin completion.
-        Sets rows_processed, end_time, status, and message.
+        Update the plugin status trackers
         """
 
-        self.__etl_run.rows_processed = rows_processed
-        self.__etl_run.end_time = end_time
-        self.__etl_run.status = status
-        self.__etl_run.message = message
+        total_transactions = self.__get_total_transactions()
 
-        async with self.session_ctx() as session:
-            if session is not None:
-                await self.__etl_run.update(session)
+        end_time = datetime.now()
+        runtime = (end_time - self.__start_time).total_seconds()
+        mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
 
-    def set_checkpoint(self, line=None, record=None) -> ResumeCheckpoint:
+        self.__status_report.runtime = runtime
+        self.__status_report.memory = mem_mb
+        self.__status_report.status = self.__execution_status
+
+        if self.is_dry_run:
+            self.__status_report.estimated_transaction_count = total_transactions
+
+        if self.is_etl_run:
+            self.__etl_run.rows_processed = total_transactions
+            self.__etl_run.end_time = end_time
+            self.__etl_run.status = self.__execution_status
+            self.__etl_run.message = message
+
+            try:
+                async with self.session_ctx() as session:
+                    if session is not None:
+                        await self.__etl_run.update(session)
+                        await session.commit()
+            except Exception as db_error:
+                self.logger.exception(f"Failed to update ETLRun entry: {db_error}")
+
+    def create_checkpoint(self, line=None, record=None) -> ResumeCheckpoint:
         """
         Generate a checkpoint for the current ETL state.
 
@@ -640,8 +760,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             raise ValueError("Must set either line or record to non-None")
         return ResumeCheckpoint(
             line=line,
-            full_record=record,
-            record=self.get_record_id(record) if record is not None else None,
+            record=record,
+            record_id=self.get_record_id(record) if record is not None else None,
         )
 
     async def __summarize_transactions(self):
@@ -669,6 +789,65 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     # Run orchestration
     # -------------------------
 
+    def __set_runtime_params(self, runtime_params):
+        restore_params = None
+        if runtime_params:
+            restore_params = self._params.model_dump().copy()
+            merged = self._params.model_dump().copy()
+            merged.update(runtime_params)
+            merged_params = self.parameter_model(**merged)
+            self.logger.info(f"Runtime parameter overrides applied: {runtime_params}")
+            self._params = merged_params
+            self._batch_size = self._params.batch_size
+        return restore_params
+
+    async def __preprocess(self):
+        # Preprocess mode - transformers write intermediary data to file
+        if self._mode == ETLExecutionMode.PREPROCESS:
+            await self.preprocess()
+            self.__execution_status = ProcessStatus.SUCCESS
+
+    async def __undo(self):
+        if self._mode == ETLExecutionMode.UNDO:
+            # checks here in case plugin overrides UNDO method
+            if self.is_large_dataset:
+                raise NotImplementedError(
+                    "Batch UNDO for large datasets not yet implemented"
+                )
+            if self.affected_tables is None or len(self.affected_tables) == 0:
+                self.logger.exception(
+                    "No `affected tables` specified for this plugin.  Cannot UNDO."
+                )
+            if self._params.run_id is None:
+                raise ValueError("Must specify ETL run_id to perform UNDO.")
+
+            await self.undo()
+            await self.__summarize_transactions()
+
+            # If we reach here, ETL completed successfully
+            self.__execution_status = ProcessStatus.SUCCESS
+
+    async def __run(self):
+        if self.is_etl_run or self.is_dry_run:
+            async with self.session_ctx(allow_null_if_unintialized=True) as session:
+                if session is not None:
+                    await self.on_run_start(session)
+
+            if self.load_strategy == ETLLoadStrategy.CHUNKED:
+                await self.__process_chunked_load()
+            elif self.load_strategy == ETLLoadStrategy.BULK:
+                await self.__process_bulk_load()
+            elif self.load_strategy == ETLLoadStrategy.BATCH:
+                await self.__process_bulk_in_batch_load()
+            else:
+                raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
+
+            await self.__summarize_transactions()
+            await self.on_run_complete()
+
+            # If we reach here, ETL completed successfully
+            self.__execution_status = ProcessStatus.SUCCESS
+
     async def run(
         self,
         runtime_params: Optional[Dict[str, Any]] = None,
@@ -684,136 +863,37 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         Returns:
             ProcessStatus: SUCCESS if ETL completed, FAIL otherwise.
         """
-        merged_params = None
-        execution_status = None
-        restore_params = None
-        if runtime_params:
-            restore_params = self._params.model_dump().copy()
-            merged = self._params.model_dump().copy()
-            merged.update(runtime_params)
-            merged_params = self.parameter_model(**merged)
-            self.logger.info(f"Runtime parameter overrides applied: {runtime_params}")
-            self._params = merged_params
-            self._commit_after = self._params.commit_after
 
+        restore_params = self.__set_runtime_params(runtime_params)
+        self.__execution_status = ProcessStatus.IN_PROGRESS
         self.__start_time = datetime.now()
 
-        async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            if session is not None:
-                await self.on_run_start(session)
+        await self.__register_etl_run()
 
-        # Preprocess mode - transformers write intermediary data to file
-        if self._mode == ETLMode.PREPROCESS:
-            try:
-                self.logger.log_plugin_configuration(self._params)
-                await self.preprocess()
-                execution_status = ProcessStatus.SUCCESS
-            except Exception as e:
-                execution_status = ProcessStatus.FAIL
-                self.logger.exception(f"Preprocess failed: {e}")
+        self.logger.log_plugin_configuration(self._params)
+        self.logger.log_plugin_run_start(self.run_id)
 
-            return execution_status
-
-        # Regular ETL modes
+        error_message = None
         try:
-            await self.__initialize_etl_run()
-            execution_status = ProcessStatus.RUNNING
-            self.__status_report = ETLRunStatus(
-                status=execution_status,
-                mode=self._mode,
-                run_id=self.run_id,
-                operation=self.operation,
-            )
+            await self.__preprocess()
+            await self.__undo()
+            await self.__run()
 
-        except Exception as e:
-            self.logger.exception(f"Failed to initialize plugin: {e}")
-            raise RuntimeError(f"Failed to initialize plugin: {e}")
-
-        try:
-            self.logger.log_plugin_configuration(self._params)
-            self.logger.log_plugin_run()
-
-            if self.load_strategy == ETLLoadStrategy.CHUNKED:
-                await self.__process_chunked_load()
-            elif self.load_strategy == ETLLoadStrategy.BULK:
-                await self.__process_bulk_load()
-            elif self.load_strategy == ETLLoadStrategy.BATCH:
-                await self.__process_bulk_in_batch_load()
-            else:
-                raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
-
-            # If we reach here, ETL completed successfully
-            execution_status = ProcessStatus.SUCCESS
-
-        except Exception as e:
+        except Exception as err:
             # ETL failed
-            execution_status = ProcessStatus.FAIL
+            self.__execution_status = ProcessStatus.FAIL
+            error_message = f"ETL Plugin Run Failed: {err}"
+            if self.is_etl_run:
+                if self.__checkpoint is not None:
+                    self.logger.checkpoint(self.__checkpoint)
 
-            # checkpoint for resume (line + record snapshot)
-            checkpoint_kwargs = {
-                "error": e,
-            }
+            self.logger.exception(error_message)
 
-            if self.__checkpoint is not None:
-                if self.__checkpoint.line is not None:
-                    checkpoint_kwargs["line"] = self.__checkpoint.line
-                if self.__checkpoint.full_record is not None:
-                    record_obj = self.__checkpoint.full_record
-                    # Use model_dump if record is a Pydantic model
-                    if hasattr(record_obj, "model_dump") and callable(
-                        record_obj.model_dump
-                    ):
-                        checkpoint_kwargs["record"] = record_obj.model_dump()
-                    else:
-                        checkpoint_kwargs["record"] = record_obj
-                if self.__checkpoint.record is not None:
-                    checkpoint_kwargs["record_id"] = self.__checkpoint.record
-                elif self.__checkpoint.full_record is not None:
-                    checkpoint_kwargs["record_id"] = self.get_record_id(
-                        self.__checkpoint.full_record
-                    )
-
-            self.logger.checkpoint(**checkpoint_kwargs)
-            self.logger.exception(f"Plugin failed: {e}")
-
-            # --- Finalize plugin run log on error (except DRY_RUN) ---
-            if self.run_id:
-                await self.__finalize_etl_run(
-                    datetime.now(),  # end time
-                    execution_status,
-                    message=f"ETL run failed: {e}",
-                    rows_processed=self.__get_total_transactions(),
-                )
         finally:
-            await self.on_run_complete()
-
-            # Calculate transaction totals once for reuse
-            total_transactions = self.__get_total_transactions()
-
-            # log status
-            end_time = datetime.now()
-            runtime = (end_time - self.__start_time).total_seconds()
-            mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
-            self.__status_report.runtime = runtime
-            self.__status_report.memory = mem_mb
-            self.__status_report.status = execution_status
-            if self.is_dry_run:
-                self.__status_report.estimated_transaction_count = total_transactions
-            await self.__summarize_transactions()
+            await self.__finalize_etl_run(error_message)
             self.logger.status(self.__status_report)
-
-            try:
-                if self.run_id:
-                    await self.__finalize_etl_run(
-                        end_time,
-                        execution_status,
-                        rows_processed=total_transactions,
-                    )
-
-            except Exception as db_error:
-                self.logger.exception(f"Failed to update plugin task in DB: {db_error}")
 
             if runtime_params:  # restore plugin parameters
                 self._params = self.parameter_model(**restore_params)
 
-        return execution_status
+            return self.__execution_status

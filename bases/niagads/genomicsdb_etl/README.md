@@ -17,7 +17,10 @@ All ETL plugins are Python classes that inherit from [`AbstractBasePlugin`](../.
 
 - `preprocess`: Called in PREPROCESS mode. Override to implement preprocessing logic (e.g., generate intermediate files, validation).
 - `on_run_complete`: Called automatically after every run (success or failure). Override to perform custom cleanup, logging, or post-processing.
-- `on_run_star`: Called at the start of a run. Override for custom initialization or validation.
+- `on_run_start`: Called at the start of a run. Override for custom initialization or validation, or one-off database fetches for foreign key links.
+- `undo`: Called in `UNDO` mode. Fully implmented in base, but there maybe unique cases where `undo` needs to be customized; override if necessary.
+
+> **Important:**: The default `undo` implementation `DELETES` only! It will not rollback updates.  If your plugin provides updates, you must implement a custom UNDO that at the very least, just provides a warning to the user that UNDO is not possible or conditions deletes based on differences between modification and creation date.
 
 ## Plugin Registry and Metadata
 
@@ -79,8 +82,8 @@ The ETL framework provides transaction wrappers to simplify and standardize data
 
 ```python
 # Transaction Wrappers: Use submit/update methods from TransactionTableMixin
-from niagads.genomicsdb.schema.reference import OntologyTerm
-from niagads.genomicsdb.schema.reference import ExternalDatabase
+from niagads.database.genomicsdb.schema.reference import OntologyTerm
+from niagads.database.genomicsdb.schema.reference import ExternalDatabase
 
 async def load(session, transformed: OntologyTerm):
     externaldb = ExternalDatabase(...) # fill in properties
@@ -116,9 +119,11 @@ In addition, the mixin also provides the following helpers:
 
 **Example usage:**
 
+> Example assumes `session` exists
+
 ```python
 # Lookup Wrappers: Use LookupTableMixin methods for existence and PK lookup
-from niagads.genomicsdb.schema.reference import OntologyTerm
+from niagads.database.genomicsdb.schema.reference import OntologyTerm
 
 # check if a record matching this term exists using the class method
 exists = await OntologyTerm.record_exists(session, {"term": term})
@@ -132,6 +137,25 @@ pk = await OntologyTerm.find_primary_key(session, {"curie": 'GO:12345'})
 term: OntologyTerm = await OntologyTerm.fetch_record(session, {"curie": 'GO:12345'})
 
 ```
+
+### TableRef (Catalog) Mixinx
+
+Some tables include a generic `table_id`, `row_id` pair (e.g., [Gene.AnnotationEvidence](../../../components/niagads/database/genomicsdb/schema/gene/annotation.py)) that references a specific record in any cataloged table, so that the same reference pattern can work across many tables.  This relies on a table catalog, which is located in the `Admin` schema.  The [Admin.TableCatalog](../../../components/niagads/database/genomicsdb/schema/admin/catalog.py) provides a classmethod `get_table_ref` that takes a table class and returns the table reference in the catalog as [TableRef](../../../components/niagads/database/genomicsdb/schema/admin/types.py) object (providing: schema name and id, table name and id, and the table primary key field)
+
+**Example usage:**
+
+> Example assumes `session` exists
+
+```python
+from niagads.database.genomicsdb.schema.reference import OntologyTerm
+from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
+from niagads.database.genomicsdb.schema.admin.types import TableRef
+
+my_table_ref: TableRef = TableRef.get_table_ref(session, OntologyTerm)
+my_table_id = my_table_ref.table_id
+```
+
+see [OntologyTermLoader](./plugins/reference/ontology/owl.py) plugin for full usage example.
 
 ### Logging
 
@@ -189,7 +213,9 @@ A checkpoint is an object that records the current progress of an ETL plugin run
 
 Plugins generate by returning them from the `load` method. The pipeline uses these checkpoints to support resume, recovery, and robust error handling.
 
-See [`ResumeCheckpoint`](../../../components/niagads/etl/plugins/parameters.py) for the checkpoint structure.
+The base plugin provides a helper function `create_checkpoint` that takes `line` and/or `record` and generates a resume checkpoint object which can then be returned by your load function.  See [example plugin](#example-simple-text-loader-plugin) implementation below for usage.
+
+See [`ResumeCheckpoint`](../../../components/niagads/etl/plugins/parameters.py) for more details on the checkpoint structure.
 
 ## Plugin Execution and Operation Types
 
@@ -211,16 +237,28 @@ Plugins must specify the type of ETL operation in their metadata (`operation`). 
 - **UPDATE**: Update existing records.
 - **LOAD**: Insert new or update existing records.
 
-### ETL Modes
+### ETL Execution Modes
 
-The ETL framework supports several modes of operation, controlled by the `mode` parameter (see [`ETLMode`](../../../components/niagads/etl/types.py)).
+The ETL framework supports several modes of operation, controlled by the `mode` parameter (see `ETLExecutionMode` in [`components/niagads/etl/types.py`](../../../components/niagads/etl/types.py)).
 
-- **DRY_RUN**: No database writes are performed. The pipeline counts records and simulates processing. Use this for testing and validation of `extract` and `transform` steps.
-- **COMMIT**: Records are written to the database. The pipeline commits transactions according to the plugin's logic and the `commit_after` parameter.
-- **NON_COMMIT**: Records are processed and written, but the transaction is rolled back at the end. Useful for testing full pipeline execution without persisting changes.
-- **PREPROCESS**: If the plugin implements `preprocess`, a preprocessing step can be run. The pipeline will call `preprocess()` and exit. No database writes occur. **Plugins with a preprocess mode should override `on_run_complete` to clean up intermediary files if needed.**
+- **DRY_RUN**: Simulate the run without performing any database writes. Useful for validating `extract` and `transform` logic and for quick checks.
+- **RUN**: Execute the full ETL flow and persist changes according to the plugin's commit strategy.
+- **UNDO**: Perform the plugin's undo logic to revert a previous run (plugins that support undo should implement this behavior and list tables in cascading order in `affected_tables`).
+- **PREPROCESS**: Run only the plugin's `preprocess` step (if implemented) to generate intermediary artifacts, then exit. No database writes occur. Plugins that produce temporary files in this mode should implement `on_run_complete` to clean up.
 
-**Important:** Plugins should never call `commit()` or `rollback()` on the session directly. The base plugin handles all transaction management. Only use the provided session for database operations within `load()`.
+> **Important:**: there should be no need to run the plugin with `--mode UNDO`.  There is a wrapper option in the plugin runner (`--undo`) that sets the mode to `UNDO` and manages related configuration settings.
+
+---
+
+### Transaction Management
+
+The ETL runner supports both *non-persistent* (test) and *persistent* data loads. By default (no flag) a run is non-persistent: transactions are rolled back at the end so no changes are saved to the database, which is useful for verifying load logic and identify potential errors in data sources.  In general, it is good practice to run each data load in non-commit mode first.
+
+Add the `--commit` option to your command to persist changes to the database; the runner will commit transactions according to the plugin's commit strategy. Use non-persistent runs for validation and `--commit` when you are ready to apply changes.
+
+> **Developer Hint**: If extract and transform stages involve a lot of processing, please consider a preprocess stage for your plugin, to facilitate non-commit load testing.
+
+**Important:** Plugins should never call `commit()` or `rollback()` on the session directly in `load` or load-helper functions. The base plugin handles all transaction management. Use the provided session for database operations within `load()` and rely on the plugin framework to manage commit/rollback behavior.
 
 ---
 
@@ -233,8 +271,8 @@ from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import ETLOperation, ETLLoadStrategy, ResumeCheckpoint
-from niagads.genomicsdb.schema.toy import ToyTable # made up schema & table for this example
+from niagads.etl.plugins.types import ETLOperation, ETLLoadStrategy
+from niagads.database.genomicsdb.schema.toy import ToyTable # made up schema & table for this example
 from pydantic import Field
 
 class SimpleTextLoaderParams(BasePluginParams, PathValidatorMixin):
@@ -255,6 +293,16 @@ metadata = PluginMetadata(
 @PluginRegistry.register(metadata)
 class SimpleTextLoader(AbstractBasePlugin):
     _params: SimpleTextLoaderParams # type annotation
+    
+    def __init__(
+        self,
+        params: Dict[str, Any],
+        name: Optional[str] = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(params, name, debug, verbose)
+
 
     def extract(self):
         # Parse header and yield each line as a dict mapping header to values
@@ -273,12 +321,12 @@ class SimpleTextLoader(AbstractBasePlugin):
         transformed_record.run_id = self.run_id # need to add the run id 
         return transformed_record
 
-    async def load(self, transformed, session) -> ResumeCheckpoint:
+    async def load(self, transformed, session):
         """
         Example: pretend to load records into DB. Replace with actual DB logic as needed.
         """
         await transformed.submit(session) # transformed is of type "ToyTable"
-        return ResumeCheckpoint(record_id=self.get_record_id(record))
+        return self.create_checkpoint(record=transformed)
 
     def get_record_id(self, record):
         # assume data had an id field for demonstration
@@ -293,31 +341,60 @@ Plugins can be run via the CLI, programmatically, or through the ETL Pipeline Ma
 
 To register a plugin, use the `@PluginRegistry` decorator as illustrated in the [example plugin](#example-simple-text-loader-plugin).
 
+### Plugin Runner: `runpipe-plugin`
+
+`runpipe-plugin` runs a single registered ETL plugin from the command line and automatically exposes that plugin's parameter model as CLI arguments.
+
+Common runner options:
+
+- `--help`: show runner or plugin-specific help
+- `--plugin`: plugin name to run
+- `--list`: list registered plugins and exit
+- `--debug`: enable debug logging
+- `--verbose`: enable verbose logging
+- `--undo`: run the plugin in `UNDO` mode
+- `--run_id`: ETL run ID required with `--undo`
+- `--log-path`: specify custom log file path
+
+Shared plugin parameters from `BasePluginParams` (or the plugin/pipeline runners) are also added automatically for every plugin:
+
+- `--mode`: execution mode (`RUN`, `DRY_RUN`, or `PREPROCESS`); defaults to `RUN`
+- `--commit`: enable database writes
+- `--batch-size`: number of records to buffer per commit
+- `--resume-checkpoint`: resume from a saved line number or record ID
+- `--connection-string`: database connection string override
+  
+#### Plugin Runner Usage
+
+##### Plugin System Environment
+
+Before running plugins outside the project root, you will need to load the shell environment and set some environmental variables.  If you have access to the [ad-genomicsdb-etl-pipeline](https://github.com/NIAGADS/ad-genomicsdb-etl-pipeline) repository, a template `setEnv.bash` script is provided to simplify this for you.  This template sets the core paths used by the ETL workflow (`PROJECT_DIR`, `DATA_DIR`, and `CONFIG_DIR`), provides `DATABASE_URI` for database access, and activates the project virtual environment.
+
+A typical setup looks like:
+
+```bash
+export PROJECT_DIR=/path/to/project-root
+export DATA_DIR=/path/to/data
+export CONFIG_DIR=$PROJECT_DIR/ad-genomicsdb-etl-pipeline/pipeline
+export DATABASE_URI=postgresql://<user>:<pwd>@<host>:<port>/<database>
+source $PROJECT_DIR/niagads-pylib/.venv/bin/activate
+```
+
+If `DATABASE_URI` is not set, plugins may also accept `--connection-string` to override it for a single run.
+
+##### Plugin Runner Usage Examples
+
 Command line usage is illustrated below using the `XMLRecordLoader` plugin:
 
-From within the project (or root `niagads-pylib` directory):
+During plugin development you can test your plugin without configuring the system environment, by running using Poetry.
 
 ```bash
 poetry run runpipe-plugin XMLRecordLoader --file test.xml --mode DRY_RUN
 ```
 
-To run outside the project, simply activate the project virtual environment.  First find the path to the virtual environment by executing:
+In production, set up your environment as described above.  You should then be able to execute your plugin as follows:
 
-```bash
-poetry env activate
-```
-
-This will display the command for activating the environment, such as:
-
-```bash
-source /projects/genomicsdb/niagads-pylib/.venv/bin/activate
-```
-
-**Do not copy and run the above statement**, the path will vary depending on your local directory structure.
-
-To activate the environment, copy that command **in your terminal** and run it.
-
-You should then be able to execute the plugin runner script directly, as follows:
+To perform a `DRY_RUN` to test extract and transform:
 
 ```bash
 runpipe-plugin XMLRecordLoader --file test.xml --mode DRY_RUN
@@ -329,14 +406,41 @@ To get plugin usage specify the `--help` option:
 runpipe-plugin XMLRecordLoader --help
 ```
 
-For more details, see inline documentation in [`AbstractBasePlugin`](../../../components/niagads/etl/plugins/base.py), [`PluginRegistry`](../../../components/niagads/etl/plugins/registry.py), and existing plugins in [`bases/niagads/genomicsdb_service/etl/plugins`](../genomicsdb_service/etl).
+To perform a full `RUN` (extract, transform, load) - default mode is `RUN`, without committing:
+
+```bash
+runpipe-plugin XMLRecordLoader --file test.xml
+```
+
+To commit changes to the database:
+
+```bash
+runpipe-plugin XMLRecordLoader --file test.xml --commit
+```
+
+To run in `PREPROCESS` mode, if implemented:
+
+```bash
+runpipe-plugin XMLRecordLoader --file test.xml --mode PREPROCESS
+```
+
+To run in `UNDO` mode.
+
+```bash
+runpipe-plugin XMLRecordLoader --file test.xml --undo --run_id <run_id>
+```
+
+> **Note**: `UNDO` requires the specific run to be cleared from the database.  Check log files or query the Admin.ETLRun table to identify.
+> **Important**: UNDO deletes, it cannot rollback updates.  Please use with caution if your load involves updates.
+
+For more details, see inline documentation in [`AbstractBasePlugin`](../../../components/niagads/etl/plugins/base.py), [`PluginRegistry`](../../../components/niagads/etl/plugins/registry.py), and existing plugins in [`bases/niagads/genomicsdb_etl/etl/plugins`](../genomicsdb_etl).
 
 ## Instructions for AI Assistants Writing Plugins
 
 When assisting in writing an ETL plugin, follow these steps:
 
 1. **Review this README**: Understand the plugin architecture, required methods, metadata, wrappers, and lifecycle hooks before writing code.
-2. **Review current implementations**: Examine existing plugins in `bases/niagads/genomicsdb_service/etl/plugins` to understand patterns, conventions, and how to structure your plugin.
+2. **Review current implementations**: Examine existing plugins in `bases/niagads/genomicsdb_etl/plugins` to understand patterns, conventions, and how to structure your plugin.
 3. **Define the parameter model**: Create a Pydantic class inheriting from `BasePluginParams` with all required plugin parameters and validation.
 4. **Implement required methods**: Provide `extract`, `transform`, `load`, and `get_record_id` methods following the patterns in this README.
 5. **Create metadata**: Define `PluginMetadata` with description, operation type, affected tables, load strategy, and version.

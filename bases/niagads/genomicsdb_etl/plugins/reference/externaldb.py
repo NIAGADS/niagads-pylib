@@ -13,7 +13,6 @@ from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     PathValidatorMixin,
-    ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
@@ -52,8 +51,15 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
 
     _params: ExternalDatabaseLoaderParams  # type annotation
 
-    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
-        super().__init__(params, name)
+    def __init__(
+        self,
+        params: Dict[str, Any],
+        name: Optional[str] = None,
+        log_path: str = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(params, name, log_path, debug, verbose)
 
     def extract(self) -> Iterator[dict]:
         """
@@ -62,9 +68,9 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         Returns:
             Iterator[dict]: Single dictionary containing external database configuration.
         """
-        self.logger.debug("entering extract")
         with open(self._params.file, "r") as f:
             config = json.load(f)
+        self.logger.debug(f"Extracted: {config}")
         return config
 
     def transform(self, record: dict) -> ExternalDatabase:
@@ -84,6 +90,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
 
         xdbref = ExternalDatabase(**record)
         xdbref.run_id = self.run_id
+        self.logger.debug(f"transformed = {xdbref}")
         return xdbref
 
     def get_record_id(self, record: ExternalDatabase) -> str:
@@ -98,7 +105,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         """
         return record.database_key
 
-    async def load(self, session, transformed: ExternalDatabase) -> ResumeCheckpoint:
+    async def load(self, session, transformed: ExternalDatabase):
         """
         Insert a single ExternalDatabase record into the database.
 
@@ -117,4 +124,6 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
             self.logger.warning(
                 f"External Database Reference {transformed.database_key}: {transformed.name}|{transformed.version} already exists"
             )
-        return ResumeCheckpoint(record=self.get_record_id(transformed))
+            self.inc_tx_count(ExternalDatabase, ETLOperation.SKIP)
+
+        return self.create_checkpoint(record=transformed)

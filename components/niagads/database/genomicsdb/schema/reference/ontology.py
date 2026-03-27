@@ -42,7 +42,7 @@ class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
     term: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
     term_iri: Mapped[str] = mapped_column(String(250), index=False, nullable=False)
     entity_type: Mapped[str] = enum_column(EntityTypeIRI, use_enum_names=True)
-    label: Mapped[str] = mapped_column(String(100), nullable=True)
+    label: Mapped[str] = mapped_column(String(512), nullable=True)
     definition: Mapped[str] = mapped_column(TEXT, nullable=True)
     synonyms: Mapped[list[str]] = mapped_column(ARRAY(String(250)), nullable=True)
     is_deprecated: Mapped[bool] = mapped_column(Boolean, nullable=True)
@@ -79,7 +79,7 @@ class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
 
     async def _update_definition(self, session: AsyncSession, definition: str) -> bool:
         self.definition = definition
-        await session.flush()
+        await self.update(session)
         return True
 
     async def resolve_synonyms(
@@ -102,7 +102,7 @@ class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
         else:
             self.synonyms = sorted(list(set(self.synonyms) | set(new_synonyms)))
 
-        await session.flush()
+        await self.update(session)
         return True
 
     async def resolve_definition(
