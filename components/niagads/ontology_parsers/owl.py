@@ -44,7 +44,7 @@ class OWLParser(ComponentBaseMixin):
             )[0]
 
         if term is None:
-            term = entity_properties.get(get_field_iri("comment"))[0]
+            term = entity_properties.get(get_field_iri("comment"), [None])[0]
 
         # if still no term, then entity has no label, extract from curie
         # (expecting property, e.g., oboInOwl#saved-by - where label = 'saved-by')
@@ -78,7 +78,7 @@ class OWLParser(ComponentBaseMixin):
             return None
 
         definition = entity_properties.get(get_field_iri("definition"), [None])[0]
-        synonyms = entity_properties.get(get_field_iri("synonym"), [])
+        synonyms = entity_properties.get(get_field_iri("synonym"), None)
 
         return {
             "term_iri": entity_iri,
