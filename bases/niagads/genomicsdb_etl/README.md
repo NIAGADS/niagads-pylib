@@ -355,11 +355,11 @@ Common runner options:
 - `--undo`: run the plugin in `UNDO` mode
 - `--run_id`: ETL run ID required with `--undo`
 
-Shared plugin parameters from `BasePluginParams` are also added automatically for every plugin:
+Shared plugin parameters from `BasePluginParams` (or the plugin/pipeline runners) are also added automatically for every plugin:
 
 - `--mode`: execution mode (`RUN`, `DRY_RUN`, or `PREPROCESS`); defaults to `RUN`
 - `--commit`: enable database writes
-- `--commit-after`: number of records to buffer per commit
+- `--batch-size`: number of records to buffer per commit
 - `--log-path`: log file path or output directory for plugin logs
 - `--resume-checkpoint`: resume from a saved line number or record ID
 - `--connection-string`: database connection string override
