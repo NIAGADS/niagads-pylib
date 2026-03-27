@@ -536,7 +536,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         # if transaction is successful, can update the checkpoint
         self.__checkpoint = checkpoint
         self.logger.info(
-            f"msg - CHECKPOINT: {self.__checkpoint.as_info_string(self._debug)}"
+            f"{msg} - CHECKPOINT: {self.__checkpoint.as_info_string(self._debug)}"
         )
 
     async def __execute_load(self, session, buffer) -> ResumeCheckpoint:
@@ -655,65 +655,90 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                     checkpoint = await self.__flush_chunked_buffer(batch, session)
                     await self.__handle_transaction(session, checkpoint)
 
-    async def __initialize_etl_run(self) -> Optional[int]:
+    async def __register_etl_run(self) -> Optional[int]:
         """
-        Log the start of a plugin run in the database.
-        No log entry is created if ETLMode is DRY_RUN or PREPROCESS
-
+        Create plugin status trackers (internal status report) and ETLRun entry
+        (if is_etl_run) in the database.
+        No log entry if mode is other than `RUN`
         """
+        if self.is_etl_run:
+            try:
+                self.__etl_run = ETLRun(
+                    plugin_name=self._name,
+                    plugin_version=self.version,
+                    params=self._params.model_dump(
+                        exclude_none=True, exclude_unset=True
+                    ),
+                    message="plugin run initiated",
+                    status=self.__execution_status,
+                    operation=str(self.operation),
+                    start_time=self.__start_time,
+                    rows_processed=0,
+                    is_test_run=not self.commit,
+                )
 
-        if not self.is_etl_run:
-            return
+                # no if session is not None check here b/c I want to throw an error,
+                # we should only reach this point if the session pool exists
+                async with self.session_ctx() as session:
+                    self.__etl_run.run_id = await self.__etl_run.submit(session)
 
-        self.__etl_run = ETLRun(
-            plugin_name=self._name,
-            plugin_version=self.version,
-            params=self._params.model_dump(exclude_none=True, exclude_unset=True),
-            message="plugin run initiated",
-            status=ProcessStatus.RUNNING,
-            operation=str(self.operation),
-            start_time=self.__start_time,
-            rows_processed=0,
-            is_test_run=not self.commit,
+                    # need to commit the etl run, regardless of commit mode
+                    # to avoid roll back
+                    await session.commit()
+                    await self.__etl_run.detach(session)
+
+            except Exception as err:
+                self.logger.exception(
+                    f"Failed to initialize ETL status trackers: {err}"
+                )
+
+        # do this second so can assign run_id correctly
+        self.__status_report = ETLRunStatus(
+            status=self.__execution_status,
+            mode=self._mode,
+            run_id=self.run_id,
+            operation=(
+                ETLOperation.DELETE
+                if self._mode == ETLExecutionMode.UNDO
+                else self.operation
+            ),
+            commit=self.commit,
         )
-
-        # no if session is not None check here b/c I want to throw an error,
-        # we should only reach this point if the session pool exists
-        async with self.session_ctx() as session:
-            self.__etl_run.run_id = await self.__etl_run.submit(session)
-
-            # need to commit the etl run regardless of mode, otherwise it will
-            # be rolled back at the first session rollback during load
-            # causing the next load to fail b/c etl_run_id won't exist
-            # possible FIXME: in non-commit mode, remove created entry at end of plugin
-            # run as a clean up
-            await session.commit()
-            await self.__etl_run.detach(session)
-
-        self.logger.log_plugin_run_id(self.run_id)
 
     async def __finalize_etl_run(
         self,
-        end_time,
-        status: ProcessStatus,
-        rows_processed: int = None,
         message: str = None,
     ):
         """
-        Update the plugin task in the database at plugin completion.
-        Sets rows_processed, end_time, status, and message.
+        Update the plugin status trackers
         """
 
-        self.__etl_run.rows_processed = rows_processed
-        self.__etl_run.end_time = end_time
-        self.__etl_run.status = status
-        self.__etl_run.message = message
+        total_transactions = self.__get_total_transactions()
 
-        async with self.session_ctx() as session:
-            if session is not None:
-                await self.__etl_run.update(session)
-                await session.commit()
-                # await self.__etl_run.detach_from_session(session)
+        end_time = datetime.now()
+        runtime = (end_time - self.__start_time).total_seconds()
+        mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
+
+        self.__status_report.runtime = runtime
+        self.__status_report.memory = mem_mb
+        self.__status_report.status = self.__execution_status
+
+        if self.is_dry_run:
+            self.__status_report.estimated_transaction_count = total_transactions
+
+        if self.is_etl_run:
+            self.__etl_run.rows_processed = total_transactions
+            self.__etl_run.end_time = end_time
+            self.__etl_run.status = self.__execution_status
+            self.__etl_run.message = message
+
+            try:
+                async with self.session_ctx() as session:
+                    if session is not None:
+                        await self.__etl_run.update(session)
+                        await session.commit()
+            except Exception as db_error:
+                self.logger.exception(f"Failed to update ETLRun entry: {db_error}")
 
     def create_checkpoint(self, line=None, record=None) -> ResumeCheckpoint:
         """
@@ -774,13 +799,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     async def __preprocess(self):
         # Preprocess mode - transformers write intermediary data to file
         if self._mode == ETLExecutionMode.PREPROCESS:
-            try:
-                self.__execution_status = ProcessStatus.RUNNING
-                await self.preprocess()
-                self.__execution_status = ProcessStatus.SUCCESS
-            except Exception as plugin_error:
-                self.__execution_status = ProcessStatus.FAIL
-                self.logger.exception(f"Preprocess failed: {plugin_error}")
+            await self.preprocess()
+            self.__execution_status = ProcessStatus.SUCCESS
 
     async def __undo(self):
         if self._mode == ETLExecutionMode.UNDO:
@@ -803,42 +823,25 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.__execution_status = ProcessStatus.SUCCESS
 
     async def __run(self):
-        async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            if session is not None:
-                await self.on_run_start(session)
+        if self.is_etl_run or self.is_dry_run:
+            async with self.session_ctx(allow_null_if_unintialized=True) as session:
+                if session is not None:
+                    await self.on_run_start(session)
 
-        if self.load_strategy == ETLLoadStrategy.CHUNKED:
-            await self.__process_chunked_load()
-        elif self.load_strategy == ETLLoadStrategy.BULK:
-            await self.__process_bulk_load()
-        elif self.load_strategy == ETLLoadStrategy.BATCH:
-            await self.__process_bulk_in_batch_load()
-        else:
-            raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
+            if self.load_strategy == ETLLoadStrategy.CHUNKED:
+                await self.__process_chunked_load()
+            elif self.load_strategy == ETLLoadStrategy.BULK:
+                await self.__process_bulk_load()
+            elif self.load_strategy == ETLLoadStrategy.BATCH:
+                await self.__process_bulk_in_batch_load()
+            else:
+                raise RuntimeError(f"Unknown load strategy: {self.load_strategy}")
 
-        await self.__summarize_transactions()
-        await self.on_run_complete()
+            await self.__summarize_transactions()
+            await self.on_run_complete()
 
-        # If we reach here, ETL completed successfully
-        self.__execution_status = ProcessStatus.SUCCESS
-
-    def __summarize_and_log_run(self):
-        total_transactions = self.__get_total_transactions()
-
-        end_time = datetime.now()
-        runtime = (end_time - self.__start_time).total_seconds()
-        mem_mb = psutil.Process().memory_info().rss / (1024 * 1024)
-
-        self.__status_report.runtime = runtime
-        self.__status_report.memory = mem_mb
-        self.__status_report.status = self.__execution_status
-
-        if self.is_dry_run:
-            self.__status_report.estimated_transaction_count = total_transactions
-
-        self.logger.status(self.__status_report)
-
-        return end_time, total_transactions
+            # If we reach here, ETL completed successfully
+            self.__execution_status = ProcessStatus.SUCCESS
 
     async def run(
         self,
@@ -856,38 +859,20 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             ProcessStatus: SUCCESS if ETL completed, FAIL otherwise.
         """
 
-        self.__execution_status = None
         restore_params = self.__set_runtime_params(runtime_params)
+        self.__execution_status = ProcessStatus.IN_PROGRESS
         self.__start_time = datetime.now()
 
+        await self.__register_etl_run()
+
         self.logger.log_plugin_configuration(self._params)
-        self.logger.log_plugin_run_start()
-
-        try:
-            await self.__initialize_etl_run()
-        except Exception as err:
-            self.logger.exception(f"Failed to initialize plugin run in database: {err}")
-
-        self.__execution_status = ProcessStatus.RUNNING
-        self.__status_report = ETLRunStatus(
-            status=self.__execution_status,
-            mode=self._mode,
-            run_id=self.run_id,
-            operation=(
-                ETLOperation.DELETE
-                if self._mode == ETLExecutionMode.UNDO
-                else self.operation
-            ),
-            commit=self.commit,
-        )
+        self.logger.log_plugin_run_start(self.run_id)
 
         error_message = None
         try:
             await self.__preprocess()
             await self.__undo()
-
-            if self.is_etl_run:
-                await self.__run()
+            await self.__run()
 
         except Exception as err:
             # ETL failed
@@ -900,21 +885,10 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.exception(error_message)
 
         finally:
-            end_time, total_transactions = self.__summarize_and_log_run()
-
-            try:
-                if self.run_id:
-                    await self.__finalize_etl_run(
-                        end_time,
-                        self.__execution_status,
-                        rows_processed=total_transactions,
-                        message=error_message,
-                    )
-
-            except Exception as db_error:
-                self.logger.exception(f"Failed to update plugin task in DB: {db_error}")
+            await self.__finalize_etl_run(error_message)
+            self.logger.status(self.__status_report)
 
             if runtime_params:  # restore plugin parameters
                 self._params = self.parameter_model(**restore_params)
 
-        return self.__execution_status
+            return self.__execution_status

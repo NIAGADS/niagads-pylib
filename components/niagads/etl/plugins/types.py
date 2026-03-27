@@ -80,7 +80,7 @@ class ETLRunStatus(BaseModel):
                 # will still be RUNNING
                 if (
                     self.status is not ProcessStatus.FAIL
-                    and self.status is not ProcessStatus.RUNNING
+                    and self.status is not ProcessStatus.IN_PROGRESS
                 ):
                     raise RuntimeError(
                         "Cannot calculate total writes - transaction tally not initialized"

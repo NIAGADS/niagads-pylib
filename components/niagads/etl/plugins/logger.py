@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Any, Optional
 
 
@@ -14,6 +15,8 @@ from niagads.utils.logging import (
 )
 
 import sqlalchemy.log
+
+KEYW = 16
 
 
 class ETLLogger:
@@ -111,6 +114,34 @@ class ETLLogger:
         for key, value in fields.items():
             self.info(f"{key}: {value}")
 
+    def __connection_string_reporter(self, cstring):
+        """Return a log-safe DB connection string (credentials redacted unless debug mode)."""
+        full_cstring = Settings.from_env().DATABASE_URI if cstring is None else cstring
+        if self._debug:
+            return full_cstring
+        else:
+            return full_cstring.split("@")[1]
+
+    def __log_safe_reporter(self, key, value):
+        """Strip credentials and file paths from logs if non-debug mode"""
+        if key == "connection_string":
+            return self.__connection_string_reporter(value)
+        else:
+            if self._debug:
+                return value
+
+            if isinstance(value, str):
+                data_dir = os.environ.get("DATA_DIR", None)
+                if data_dir and value.startswith(data_dir):
+                    return value.replace(data_dir, "$DATA_DIR")
+
+                config_dir = os.environ.get("CONFIG_DIR", None)
+                if config_dir and value.startswith(config_dir):
+                    return value.replace(config_dir, "$CONFIG_DIR")
+
+            else:
+                return value
+
     def log_plugin_configuration(self, params: BasePluginParams):
         """
         Log the configuration for the plugin run from a Pydantic parameter object.
@@ -123,17 +154,14 @@ class ETLLogger:
         config = params.model_dump()
         max_key_len = max(len(str(k)) for k in config.keys()) if config else 12
         for key, value in config.items():
-            if key == "connection_string" and value is None:
-                value = Settings.from_env().DATABASE_URI
-            self.info(f"{key.upper():<{max_key_len}} : {value}")
+            display_value = self.__log_safe_reporter(key, value)
+            self.info(f"{key.upper():<{max_key_len}} : {display_value}")
         self.report_section_end("ETL Plugin Config")
 
-    def log_plugin_run_start(self):
+    def log_plugin_run_start(self, run_id):
         self.report_section("ETL Plugin Run")
-
-    def log_plugin_run_id(self, run_id):
-        keyw = 16
-        self.info(f"{'RUN ID':<{keyw}} : {run_id}")
+        if run_id:
+            self.info(f"{'RUN ID':<{KEYW}} : {run_id}")
 
     def checkpoint(self, checkpoint: ResumeCheckpoint):
         self.report_section("ETL Resume Checkpoint")
@@ -149,35 +177,34 @@ class ETLLogger:
 
         prefix = "TEST" if status.mode == ETLExecutionMode.DRY_RUN else "RUN"
         self.report_section(f"{prefix} Transaction Summary")
-        keyw = 16
 
-        self.info(f"{'STATUS':<{keyw}} : {str(status.status)}")
-        self.info(f"{'MODE':<{keyw}} : {status.mode}")
-        self.info(f"{'COMMIT':<{keyw}} : {status.commit}")
-        self.info(f"{'RUN ID':<{keyw}} : {status.run_id}")
+        self.info(f"{'STATUS':<{KEYW}} : {str(status.status)}")
+        self.info(f"{'MODE':<{KEYW}} : {status.mode}")
+        self.info(f"{'COMMIT':<{KEYW}} : {status.commit}")
+        self.info(f"{'RUN ID':<{KEYW}} : {status.run_id}")
 
         tx_count = status.total_transactions()
         if status.mode == ETLExecutionMode.DRY_RUN:
-            self.info(f"{'PROCESSED':<{keyw}} : {tx_count}  records.")
+            self.info(f"{'PROCESSED':<{KEYW}} : {tx_count}  records.")
         else:
             # log writes
 
-            self.info(f"{'TOTAL TRANSACTIONS':<{keyw}} : {tx_count}")
+            self.info(f"{'TOTAL TRANSACTIONS':<{KEYW}} : {tx_count}")
 
             transactions = status.transaction_record or {}
             if len(transactions) > 0:
                 for table, table_transactions in status.transaction_record.items():
                     for operation, count in table_transactions.items():
                         op = f"{ETLOperation(operation).past_tense()}"
-                        self.info(f"{str(op):<{keyw}} : {count} records in {table}")
+                        self.info(f"{str(op):<{KEYW}} : {count} records in {table}")
             else:
-                self.info(f"{str(status.operation):<{keyw}} : 0 records")
+                self.info(f"{str(status.operation):<{KEYW}} : 0 records")
 
         if status.runtime is not None:
-            self.info(f"{'RUNTIME':<{keyw}} : {status.runtime:.2f}s")
+            self.info(f"{'RUNTIME':<{KEYW}} : {status.runtime:.2f}s")
 
         if status.memory is not None:
-            self.info(f"{'MEMORY':<{keyw}} : {status.memory:.2f}MB")
+            self.info(f"{'MEMORY':<{KEYW}} : {status.memory:.2f}MB")
 
         self.report_section_end("Transaction Summary")
 
