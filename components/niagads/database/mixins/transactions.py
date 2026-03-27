@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Self
 from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
@@ -27,6 +28,39 @@ class TransactionTableMixin(DeclarativeBase):
 
         pk_name = self.__mapper__.primary_key[0].name
         return getattr(self, pk_name)
+
+    @classmethod
+    def verify_record_type(cls, records: list[Self]):
+        for record in records:
+            if not isinstance(record, cls):
+                raise TypeError(
+                    f"expected instances of {cls.__name__}; "
+                    f"got {type(record).__name__}"
+                )
+
+    @classmethod
+    async def submit_many(cls, session: AsyncSession, records: list[Self]):
+        """batch insert tables into the database"""
+        if not records:
+            raise ValueError("Record list is empty; nothing to submit")
+
+        cls.verify_record_type(records)
+        session.add_all(records)
+        await session.flush()
+
+    @classmethod
+    async def detach_many(cls, session: AsyncSession, records: list[Self]):
+        """
+        Expunge list of instances from the SQLAlchmey session; serves mainly to lower
+        session memory usage and identity mapping overhead as flushes increase
+        """
+        if not records:
+            raise ValueError("Record list is empty; nothing to detach")
+
+        cls.verify_record_type(records)
+        await session.flush()
+        for record in records:
+            session.expunge(record)
 
     async def detach(self, session: AsyncSession):
         """
