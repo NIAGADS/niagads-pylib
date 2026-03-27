@@ -180,8 +180,9 @@ class OntologyTermLoader(AbstractBasePlugin):
             f"Term: {term.term}\nLabel: {term.label}"
             f"\nCURIE: {term.source_id}\nDefinition: {term.definition}"
         )
-        for s in term.synonyms:
-            chunk_text += f"\nSynonym: {s}"
+        if term.synonyms:
+            for s in term.synonyms:
+                chunk_text += f"\nSynonym: {s}"
 
         if self._verbose:
             self.logger.debug(f"Chunk Text: {chunk_text}")
@@ -238,46 +239,9 @@ class OntologyTermLoader(AbstractBasePlugin):
 
         return embedded_ontology_terms
 
-    async def __load_embedding(
-        self,
-        session,
-        embedded_term: EmbeddedOntologyTerm,
-        is_updated_record: bool = False,
-    ):
-
-        if is_updated_record:
-            # pull records to update from the database
-            chunk_metadata = ChunkMetadata.fetch_record(
-                session,
-                filters={
-                    "table_id": self.__table_ref.table_id,
-                    "row_id": embedded_term.term.ontology_term_id,
-                },
-            )
-
-            chunk_embedding = ChunkEmbedding.fetch_record(
-                session,
-                filters={
-                    "chunk_metadata_id": chunk_metadata.chunk_metadata_id,
-                    "chunk_hash": chunk_metadata.chunk_hash,
-                },
-            )
-
-            # update
-            chunk_metadata.document_hash = embedded_term.chunk_hash
-            chunk_metadata.chunk_hash = embedded_term.chunk_hash
-            chunk_metadata.chunk_text = embedded_term.chunk_text
-            chunk_metadata.update(session)
-
-            chunk_embedding.chunk_hash = embedded_term.chunk_hash
-            chunk_embedding.embedding = embedded_term.embedding
-            chunk_embedding.embedding_model = str(self._params.embedding_model)
-            chunk_embedding.embedding_date = datetime.now(tz=timezone.utc).isoformat()
-            chunk_embedding.embedding_run_id = self.run_id
-            chunk_embedding.update(session)
-
-        else:  # build fresh and submit
-            chunk_metadata: ChunkMetadata = ChunkMetadata(
+    def __generate_chunk_metadata(self, term_records: list[EmbeddedOntologyTerm]):
+        return [
+            ChunkMetadata(
                 table_id=self.__table_ref.table_id,
                 row_id=embedded_term.term.ontology_term_id,
                 document_type=str(RAGDocType.ONTOLOGY),
@@ -286,32 +250,71 @@ class OntologyTermLoader(AbstractBasePlugin):
                 chunk_text=embedded_term.chunk_text,
                 run_id=self.run_id,
             )
+            for embedded_term in term_records
+        ]
 
-            await chunk_metadata.submit(session)
-
-            chunk_embedding: ChunkEmbedding = ChunkEmbedding(
+    def __generate_chunk_embeddings(
+        self, metadata: list[ChunkMetadata], term_records: list[EmbeddedOntologyTerm]
+    ):
+        return [
+            ChunkEmbedding(
                 chunk_metadata_id=chunk_metadata.chunk_metadata_id,
-                chunk_hash=embedded_term.chunk_hash,
+                chunk_hash=chunk_metadata.chunk_hash,
                 embedding_model=str(self._params.embedding_model),
-                embedding=embedded_term.embedding,
+                embedding=term_records[index].embedding,
                 embedding_date=datetime.now().isoformat(),
                 embedding_run_id=self.run_id,
                 run_id=self.run_id,
             )
+            for index, chunk_metadata in enumerate(metadata)
+        ]
 
-            await chunk_embedding.submit(session)
+    async def __update_embedding(self, session, embedded_term: EmbeddedOntologyTerm):
+
+        # pull records to update from the database
+        chunk_metadata: ChunkMetadata = await ChunkMetadata.fetch_record(
+            session,
+            filters={
+                "table_id": self.__table_ref.table_id,
+                "row_id": embedded_term.term.ontology_term_id,
+            },
+        )
+
+        chunk_embedding: ChunkEmbedding = await ChunkEmbedding.fetch_record(
+            session,
+            filters={
+                "chunk_metadata_id": chunk_metadata.chunk_metadata_id,
+                "chunk_hash": chunk_metadata.chunk_hash,
+            },
+        )
+
+        # update
+        chunk_metadata.document_hash = embedded_term.chunk_hash
+        chunk_metadata.chunk_hash = embedded_term.chunk_hash
+        chunk_metadata.chunk_text = embedded_term.chunk_text
+        await chunk_metadata.update(session)
+
+        chunk_embedding.chunk_hash = embedded_term.chunk_hash
+        chunk_embedding.embedding = embedded_term.embedding
+        chunk_embedding.embedding_model = str(self._params.embedding_model)
+        chunk_embedding.embedding_date = datetime.now(tz=timezone.utc).isoformat()
+        chunk_embedding.embedding_run_id = self.run_id
+        await chunk_embedding.update(session)
 
     async def load(self, session, embedded_terms: List[EmbeddedOntologyTerm]):
         # Developers Note: ecords coming in are list b/c this is a chunked load -
         # the base buffers them until `batch_size`` is reached
 
+        new_term_records: list[EmbeddedOntologyTerm] = []
         for e_term in embedded_terms:
-            term = e_term.term
+            term: OntologyTerm = e_term.term
             existing_record = await self.__fetch_existing_term(session, term.source_id)
 
             if existing_record is None:
-                await term.submit(session)
-                await self.__load_embedding(session, e_term)
+                await term.submit(
+                    session
+                )  # submitting terms one-by-one b/c one OWL file may have duplicates
+                new_term_records.append(e_term)
                 continue
 
             if self._params.update_existing:
@@ -339,14 +342,21 @@ class OntologyTermLoader(AbstractBasePlugin):
                         )
                         await existing_record.update(session)
 
-                    await self.__load_embedding(
-                        session,
-                        self.__generate_embedded_term(existing_record),
-                        is_updated_record=True,
-                    )
+                    updated_term = self.__generate_embedded_term(existing_record)
+                    await self.__update_embedding(session, updated_term)
                 else:
                     self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
             else:
                 self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
+
+        # bulk submit embeddings
+        if len(new_term_records) > 0:
+            chunk_metadata = self.__generate_chunk_metadata(new_term_records)
+            await ChunkMetadata.submit_many(session, chunk_metadata)
+
+            chunk_embeddings = self.__generate_chunk_embeddings(
+                chunk_metadata, new_term_records
+            )
+            await ChunkEmbedding.submit_many(session, chunk_embeddings)
 
         return self.create_checkpoint(record=embedded_terms[-1].term)
