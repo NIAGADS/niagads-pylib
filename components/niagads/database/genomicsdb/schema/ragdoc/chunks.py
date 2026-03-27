@@ -69,9 +69,13 @@ def generate_chunk_id(mapper, connection, target: ChunkMetadata):
     This listener constructs a composite chunk_id from document_type, document_section,
     and chunk_index.
     """
+    if not target.document_section:
+        target.document_section = "FULL"
+    if not target.chunk_index:
+        target.chunk_index = 0
     if not target.chunk_id:
         target.chunk_id = (
-            f"{target.document_type}_{target.document_section}_{target.chunk_index}"
+            f"{target.document_type}_{target.document_section }_{target.chunk_index}"
         )
 
 
