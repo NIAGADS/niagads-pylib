@@ -215,7 +215,10 @@ class OntologyTermLoader(AbstractBasePlugin):
         text = []
         for record in records:
             record["source_id"] = record.pop("curie")
-            term = OntologyTerm(**record)
+            term: OntologyTerm = OntologyTerm(**record)
+            if term.label is None:
+                term.label = term.term.replace("_", " ")
+
             term.run_id = self.run_id
             term.external_database_id = self.__external_database.external_database_id
 
@@ -228,9 +231,9 @@ class OntologyTermLoader(AbstractBasePlugin):
 
         embeddings = self.__embedding_generator.generate(text, as_list=False)
 
-        term: EmbeddedOntologyTerm
-        for index, term in enumerate(embedded_ontology_terms):
-            term.embedding = embeddings[index].tolist()
+        eterm: EmbeddedOntologyTerm
+        for index, eterm in enumerate(embedded_ontology_terms):
+            eterm.embedding = embeddings[index].tolist()
 
         self.__processed_record_count += self._params.embedding_batch_size
         self.logger.info(
@@ -247,8 +250,6 @@ class OntologyTermLoader(AbstractBasePlugin):
                 document_type=str(RAGDocType.ONTOLOGY),
                 document_hash=embedded_term.chunk_hash,
                 chunk_hash=embedded_term.chunk_hash,
-                chunk_index=0,
-                document_section="FULL",
                 chunk_text=embedded_term.chunk_text,
                 run_id=self.run_id,
             )
