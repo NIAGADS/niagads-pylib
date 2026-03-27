@@ -19,7 +19,7 @@ from sqlalchemy.exc import (
     MultipleResultsFound,
     NoResultFound,
 )  # TODO: EGA - make wrappers
-from .helpers import pathway_load
+from .helpers import load_pathway
 from .types import PathwayAnnotation
 
 # Define column names for Reactome file
@@ -33,13 +33,13 @@ COLUMN_NAMES = [
 ]
 
 
-#class GenePathwayAnnotation(BaseModel):
-    # id: str = Field(alias="gene_id")
-    #pathway_id: str
-    #pathway_name: str
-    #evidence_code: str
+# class GenePathwayAnnotation(BaseModel):
+# id: str = Field(alias="gene_id")
+# pathway_id: str
+# pathway_name: str
+# evidence_code: str
 
-    #model_config = {"extra": "ignore"}
+# model_config = {"extra": "ignore"}
 
 
 class ReactomeLoaderParams(
@@ -206,7 +206,9 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         Returns:
             ResumeCheckpoint: The checkpoint for resuming the ETL process.
         """
-        return await pathway_load(self, session, transformed, GeneIdentifierType.ENSEMBL)
+        return await load_pathway(
+            self, session, transformed, GeneIdentifierType.ENSEMBL
+        )
 
     def get_record_id(self, record: dict) -> str:
         """

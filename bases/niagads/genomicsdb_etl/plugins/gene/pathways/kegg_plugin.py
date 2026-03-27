@@ -1,50 +1,40 @@
-from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
+import xml.etree.ElementTree as ET
+from typing import List
+
+from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
+    ExternalDatabaseRefMixin,
+)
+
+from niagads.common.gene.models.annotation import PathwayMembership
+from niagads.common.reference.xrefs.data_sources import ThirdPartyResources
+from niagads.common.reference.xrefs.models import Pathway
+from niagads.common.types import ETLOperation
+from niagads.database.genomicsdb.schema.gene.xrefs import GeneXRefType
+from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
+from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     PathValidatorMixin,
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.schema.admin.pipeline import ETLOperation
-from niagads.csv_parser.core import CSVFileParser
-from niagads.genomicsdb.schema.gene.annotation import PathwayMembership
-from niagads.genomicsdb.schema.gene.gene_models import Gene, GeneIdentifierType
-from niagads.genomicsdb.schema.reference.pathway import Pathway
-from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
-)
-import xml.etree.ElementTree as ET
-from pydantic import BaseModel, Field, field_validator
-from typing import List
-from sqlalchemy.exc import (
-    MultipleResultsFound,
-    NoResultFound,
-)  # TODO: EGA - make wrappers
-from .helpers import pathway_load
-from .types import PathwayAnnotation
+from niagads.genomicsdb_etl.plugins.gene.pathways.helpers import load_pathway
+from niagads.genomicsdb_etl.plugins.gene.pathways.types import GenePathwayAssociation
+from pydantic import Field, field_validator
 
 
-class GenePathwayAnnotation(BaseModel):
-    """Model for KEGG pathway annotation."""
-    id: str = Field(alias="gene_id")
-    pathway_id: str
-    pathway_name: str
-    evidence_code: str
-
-    model_config = {"extra": "ignore"}
+from niagads.etl.plugins.types import ETLLoadStrategy
 
 
-
-class KEGGLoaderParams(BasePluginParams, PathValidatorMixin):
+class KEGGLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin):
     """
     Parameters for KEGGLoaderPlugin.
     """
 
     file: str = Field(..., description="KEGG KGML XML file to load")
 
-
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
-
 
     @field_validator("file", mode="before")
     def validate_format(cls, file_name: str) -> str:
@@ -66,8 +56,19 @@ class KEGGLoaderParams(BasePluginParams, PathValidatorMixin):
 
         return file_name
 
-    
-@PluginRegistry.register(metadata={"version": 1.0})
+
+metadata = PluginMetadata(
+    version="1.0",
+    description=("ETL Plugin to load KEGG pathway data from KGML XML files."),
+    affected_tables=[PathwayMembership, Pathway],
+    load_strategy=ETLLoadStrategy.CHUNKED,
+    operation=ETLOperation.INSERT,
+    is_large_dataset=False,
+    parameter_model=KEGGLoaderParams,
+)
+
+
+@PluginRegistry.register(metadata=metadata)
 class KEGGLoaderPlugin(AbstractBasePlugin):
     """
     Loads KEGG pathway annotations from KGML XML files.
@@ -75,86 +76,57 @@ class KEGGLoaderPlugin(AbstractBasePlugin):
 
     _params: KEGGLoaderParams
 
-    @classmethod
-    def description(cls):
-        return "Loads KEGG pathway data from KGML XML files."
-
-    @classmethod
-    def parameter_model(cls):
-        return KEGGLoaderParams
-
     @property
-    def operation(self):
-        return ETLOperation.INSERT
+    def external_database_id(self):
+        return self.__external_database.external_database_id
 
-    @property
-    def affected_tables(self):
-        # TODO: Replace with actual table name(s)
-        return [Pathway.table_name(), PathwayMembership.table_name()]
+    async def on_run_start(self, session):
+        """on run start hook override"""
 
-    @property
-    def load_strategy(self):
-        return LoadStrategy.CHUNKED
+        # validate the xdbref against the database
+        self.__external_database: ExternalDatabase = (
+            await self._params.fetch_xdbref(session) if self.is_etl_run else None
+        )
 
+        self.logger.debug(
+            f"external_database_id = {self.__external_database.external_database_id}"
+        )
 
     def extract(self):
         file_path = self._params.file
         self.logger.debug(f"Parsing KEGG KGML file: {file_path}")
 
-        
         tree = ET.parse(file_path)
         root = tree.getroot()
 
-        
         raw_name = root.attrib.get("name", "")  # "path:hsa01230"
         pathway_id = raw_name.split(":", 1)[1] if ":" in raw_name else raw_name
 
-        species = root.attrib.get("org", "")          # "hsa"
-        pathway_name = root.attrib.get("title", "")   # pathway human name
-        pathway_url = f"https://www.kegg.jp/pathway/{pathway_id}"
+        pathway_name = root.attrib.get("title", "")  # pathway name
 
-        annotations: List[PathwayAnnotation] = []
-
-        # Extract gene
+        # Find and parse gene entries
         for entry in root.findall("entry"):
-            ncbi_gene_id = entry.attrib.get("id")
-
-
-            annotation = PathwayAnnotation(
-                gene_id=ncbi_gene_id,
+            annotation = GenePathwayAssociation(
+                gene_id=entry.attrib.get("id"),
                 pathway_id=pathway_id,
-                pathway_url=pathway_url,
                 pathway_name=pathway_name,
-                evidence_code="KEGG",
-                species=species,
-                )
+            )
 
-            annotations.append(annotation)
+            if self._verbose:
+                self.logger.debug(f"Extracted: {annotation.model_dump()}")
 
-        self.logger.info(
-            f"Extracted {len(annotations)} KEGG PathwayAnnotation records from pathway {pathway_id}"
-        )
+            yield annotation
 
-        yield annotations
-
-    def transform(self, data: List[PathwayAnnotation]):
-        self.logger.debug("Transform step skipped (KEGG already transformed in extract).")
+    def transform(self, data: GenePathwayAssociation):
+        # no transform necessary; GeenPathwayAssociation already object generated in Extract
         return data
-    
-    async def load(
-        self, transformed: List[PathwayAnnotation], session
-    ) -> ResumeCheckpoint:
+
+    async def load(self, session, transformed: List[GenePathwayAssociation]):
         """
         Load transformed records into the database.
-
-        Args:
-            transformed: List of transformed pathway annotations.
-            session: Database session.
-
-        Returns:
-            ResumeCheckpoint: The checkpoint for resuming the ETL process.
         """
-        return await pathway_load(self, session, transformed, GeneIdentifierType.NCBI)
+        checkpoint = await load_pathway(self, session, transformed, GeneXRefType.NCBI)
+        return checkpoint
 
     def get_record_id(self, record: dict):
         return f"{record['pathway_id']}:{record['gene_id']}"
