@@ -1,60 +1,35 @@
 import xml.etree.ElementTree as ET
-from typing import List
-
-from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
-)
+from typing import List, Optional
 
 from niagads.common.gene.models.annotation import PathwayMembership
-from niagads.common.reference.xrefs.data_sources import ThirdPartyResources
 from niagads.common.reference.xrefs.models import Pathway
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.gene.xrefs import GeneXRefType
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import (
-    BasePluginParams,
-    PathValidatorMixin,
-    ResumeCheckpoint,
-)
+from niagads.etl.plugins.parameters import PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb_etl.plugins.gene.pathways.helpers import load_pathway
-from niagads.genomicsdb_etl.plugins.gene.pathways.types import GenePathwayAssociation
-from pydantic import Field, field_validator
-
-
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.genomicsdb_etl.plugins.gene.pathways.base_pathway_plugin import (
+    PathwayMembershipLoaderPlugin,
+    PathwayMembershipLoaderPluginParams,
+)
+from niagads.genomicsdb_etl.plugins.gene.pathways.types import GenePathwayAssociation
+from niagads.utils.sys import get_files_by_pattern
+from pydantic import Field
 
 
-class KEGGLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin):
+class KEGGLoaderParams(PathwayMembershipLoaderPluginParams):
     """
     Parameters for KEGGLoaderPlugin.
     """
 
-    file: str = Field(..., description="KEGG KGML XML file to load")
+    kgml_dir: str = Field(
+        ..., description="directory containing KEGG KGML XML files to load"
+    )
 
-    validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
-
-    @field_validator("file", mode="before")
-    def validate_format(cls, file_name: str) -> str:
-        """
-        Ensure KGML begins with <pathway>.
-        Skips comments and blank lines.
-        """
-        with open(file_name, "r", encoding="utf-8", errors="ignore") as fh:
-            for line in fh:
-                stripped = line.strip()
-                if stripped and not stripped.startswith("<!--"):
-                    first_tag = stripped
-                    break
-            else:
-                raise ValueError("KGML file is empty or contains no valid lines.")
-
-        if not first_tag.startswith("<pathway"):
-            raise ValueError(f"KGML must begin with <pathway>, got: {first_tag[:50]}")
-
-        return file_name
+    validate_file_exists = PathValidatorMixin.validator("kgml_dir")
 
 
 metadata = PluginMetadata(
@@ -69,55 +44,58 @@ metadata = PluginMetadata(
 
 
 @PluginRegistry.register(metadata=metadata)
-class KEGGLoaderPlugin(AbstractBasePlugin):
+class KEGGLoaderPlugin(PathwayMembershipLoaderPlugin):
     """
     Loads KEGG pathway annotations from KGML XML files.
     """
 
     _params: KEGGLoaderParams
 
-    @property
-    def external_database_id(self):
-        return self.__external_database.external_database_id
-
-    async def on_run_start(self, session):
-        """on run start hook override"""
-
-        # validate the xdbref against the database
-        self.__external_database: ExternalDatabase = (
-            await self._params.fetch_xdbref(session) if self.is_etl_run else None
-        )
-
-        self.logger.debug(
-            f"external_database_id = {self.__external_database.external_database_id}"
-        )
+    def __init__(
+        self,
+        params,
+        name: Optional[str] = None,
+        log_path: str = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(params, name, log_path, debug, verbose)
+        self.__files: List[str] = get_files_by_pattern(self._params.kgml_dir, "*.kgml")
+        self.logger.info(f"Found {len(self.__files)} KGML Files to load.")
 
     def extract(self):
-        file_path = self._params.file
-        self.logger.debug(f"Parsing KEGG KGML file: {file_path}")
+        file_path = self._params.kgml_dir
+        self.logger.info(f"Parsing: {file_path}")
 
         tree = ET.parse(file_path)
         root = tree.getroot()
 
         raw_name = root.attrib.get("name", "")  # "path:hsa01230"
         pathway_id = raw_name.split(":", 1)[1] if ":" in raw_name else raw_name
-
         pathway_name = root.attrib.get("title", "")  # pathway name
 
-        # Find and parse gene entries
-        for entry in root.findall("entry"):
-            annotation = GenePathwayAssociation(
+        if self._verbose:
+            self.logger.info(f"Pathway: {pathway_id}:{pathway_name}")
+
+        # <entry id="758" name="hsa:27235" type="gene" reaction="rn:R05000" link="https://www.kegg.jp/dbget-bin/www_bget?hsa:27235">
+        #    <graphics name="" .../>
+        # </entry>
+
+        # Find and parse gene entries; need to filter for type="gene"
+        annotations = [
+            GenePathwayAssociation(
                 gene_id=entry.attrib.get("id"),
                 pathway_id=pathway_id,
                 pathway_name=pathway_name,
             )
+            for entry in root.findall("entry[@type='gene']")
+        ]
 
-            if self._verbose:
-                self.logger.debug(f"Extracted: {annotation.model_dump()}")
+        self.logger.debug(f"Extracted: {len(annotations)} gene-pathway memberships")
 
-            yield annotation
+        return annotations
 
-    def transform(self, data: GenePathwayAssociation):
+    def transform(self, data: List[GenePathwayAssociation]):
         # no transform necessary; GeenPathwayAssociation already object generated in Extract
         return data
 
@@ -125,8 +103,7 @@ class KEGGLoaderPlugin(AbstractBasePlugin):
         """
         Load transformed records into the database.
         """
-        checkpoint = await load_pathway(self, session, transformed, GeneXRefType.NCBI)
+        checkpoint = await self._load_pathway_membership(
+            session, transformed, GeneXRefType.NCBI
+        )
         return checkpoint
-
-    def get_record_id(self, record: dict):
-        return f"{record['pathway_id']}:{record['gene_id']}"
