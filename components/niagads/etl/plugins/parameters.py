@@ -82,14 +82,13 @@ class PathValidatorMixin:
     """
 
     @classmethod
-    def validator(cls, field_name, is_dir=False):
+    def validator(cls, field_name):
         @field_validator(field_name, mode="plain")
         def file_exists(cls, value):
             from niagads.utils.sys import verify_path
 
             if not verify_path(value):
-                target_type = "Directory" if is_dir else "File"
-                raise ValueError(f"{target_type} does not exist: {value}")
+                raise ValueError(f"Unable to access {value}; path does not exist.")
             return value
 
         return file_exists

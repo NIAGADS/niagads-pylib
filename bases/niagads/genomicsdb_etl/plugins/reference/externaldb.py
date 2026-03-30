@@ -26,7 +26,7 @@ class ExternalDatabaseLoaderParams(BasePluginParams):
         ..., description="full path to external database configuration file"
     )
 
-    validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
+    validate_file_exists = PathValidatorMixin.validator("file")
 
 
 metadata = PluginMetadata(

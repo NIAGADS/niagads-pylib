@@ -92,7 +92,7 @@ class XMLRecordLoaderParams(BasePluginParams, PathValidatorMixin):
         description="If True, will log and skip records already existing in the database, otherwise the plugin will throw an error when duplicate records are detected (ignored if `--update` is True).",
     )
 
-    validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
+    validate_file_exists = PathValidatorMixin.validator("file")
 
 
 metadata = PluginMetadata(

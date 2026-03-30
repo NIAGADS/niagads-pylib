@@ -50,7 +50,7 @@ class ReactomeLoaderParams(
     file: str = Field(..., description="Reactome CSV file to load")
 
     # Validate that the file exists
-    validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
+    validate_file_exists = PathValidatorMixin.validator("file")
 
     @field_validator("file", mode="before")
     def validate_format(cls, file_name: str) -> str:

@@ -55,7 +55,7 @@ class OWLLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefM
         default=False,
         description="if term already exists in the table, attempts to update defintion and synonyms if necessary; if set to false, just skips existing terms",
     )
-    validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
+    validate_file_exists = PathValidatorMixin.validator("file")
 
 
 class OntologyTermReferenceLoaderParams(OWLLoaderParams):
