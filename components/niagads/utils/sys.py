@@ -11,6 +11,7 @@ from enum import auto
 from pathlib import Path
 from sys import exit, stderr
 from typing import IO, Union
+from glob import glob
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.dict import print_dict
@@ -117,7 +118,7 @@ def generic_file_sort(file: str, header=True, overwrite=True):
     execute_cmd(cmd)
 
     if overwrite:
-        move(f"{file}.sorted", file)
+        shutil.move(f"{file}.sorted", file)
         return file
     else:
         return file + ".sorted"
@@ -394,6 +395,30 @@ def verify_path(target_path):
         return os.path.exists(target_path)
     else:
         return os.path.isfile(target_path)
+
+
+def get_files_by_pattern(path: str, pattern: str, recursive: bool = False) -> list:
+    """
+    Get a list of all files in a path that match a given pattern.
+
+    Uses glob pattern matching. Supports wildcards like *, ?, and [seq].
+
+    Args:
+        path (str): Directory path to search.
+        pattern (str): Glob pattern to match (e.g., '*.txt', '*.csv').
+        recursive (bool, optional): If True, recursively search subdirectories.
+            Defaults to False.
+
+    Returns:
+        list: List of file paths matching the pattern, sorted alphabetically.
+    """
+
+    if recursive:
+        pattern = f"**/{pattern}"
+
+    full_pattern = os.path.join(path, pattern)
+    matches = glob(full_pattern, recursive=recursive)
+    return sorted([m for m in matches if os.path.isfile(m)])
 
 
 def die(message):
