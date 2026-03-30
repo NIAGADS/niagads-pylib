@@ -7,11 +7,12 @@ import logging
 import os
 import shutil
 import subprocess
+from contextlib import contextmanager
 from enum import auto
+from glob import glob
 from pathlib import Path
 from sys import exit, stderr
 from typing import IO, Union
-from glob import glob
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.dict import print_dict
@@ -193,22 +194,33 @@ def print_args(args, pretty=True):
     return print_dict(vars(args), pretty)
 
 
-def open_file(path: str, binary: bool = False) -> io.IOBase:
-    """
-    Open a file with support for compressed (.gz) files.
+@contextmanager
+def read_open_ctx(
+    path: str,
+    encoding="utf-8",
+    is_binary=False,
+):
+    """Context manager to open regular or gzip-compressed files for reading.
 
     Args:
-        path (str): Path to the file.
-        binary (bool): Whether to open the file in binary mode.
+        path (str): Path to the file. If path ends with '.gz', gzip open is used.
+        binary (bool): Open in binary mode (default is False = text mode).
+        encoding (str): Text encoding for non-binary mode (default "utf-8").
 
-    Returns:
-        io.IOBase: File object.
+    Yields:
+        io.IOBase: Open file handle (text or binary), auto-closed on exit.
     """
+
     if path.endswith(".gz"):
-        mode = "rb" if binary else "rt"
-        return gzip.open(path, mode, encoding=None if binary else "utf-8")
-    mode = "rb" if binary else "r"
-    return open(path, mode, encoding=None if binary else "utf-8")
+        mode = "rb" if is_binary else "rt"
+        file_handle = gzip.open(path, mode, encoding=None if is_binary else encoding)
+    else:
+        mode = "rb" if is_binary else "r"
+        file_handle = open(path, mode, encoding=None if is_binary else encoding)
+    try:
+        yield file_handle
+    finally:
+        file_handle.close()
 
 
 def is_binary_file(fileName):
