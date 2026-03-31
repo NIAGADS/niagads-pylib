@@ -5,6 +5,7 @@ Genome Reference ETL Plugins
 from typing import Any, Dict, Iterator, List
 
 from niagads.common.types import ETLOperation
+from niagads.csv_parser.core import CSVFileParser
 from niagads.database.genomicsdb.schema.reference.genome import GenomeReference
 from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.etl.plugins.base import AbstractBasePlugin
@@ -13,6 +14,8 @@ from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from pydantic import Field
+
+from niagads.genome_reference.human import GenomeBuild
 
 
 # ============================================================================
@@ -24,6 +27,10 @@ class ChromosomeMapLoaderParams(BasePluginParams, PathValidatorMixin):
     """Parameters for chromosome map loader plugin."""
 
     file: str = Field(..., description="full path to chromosome map file")
+    genome_build: GenomeBuild = Field(
+        default=GenomeBuild.GRCh38,
+        description=f"Reference genome build, one of {GenomeBuild.list()}",
+    )
 
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
@@ -59,9 +66,9 @@ class ChromosomeMapLoader(AbstractBasePlugin):
         Yields:
             Dictionary with chromosome name and length
         """
-        with open(self._params.file, "r") as fh:
-            # TODO: implement file parsing (tab-delimited: chromosome, length)
-            pass
+        parser = CSVFileParser(
+            file=self._params.file,
+        )
 
     def transform(self, records: List[Dict[str, Any]]):
         """

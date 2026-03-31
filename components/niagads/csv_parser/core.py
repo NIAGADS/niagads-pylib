@@ -126,6 +126,12 @@ class CSVFileParser:
         if "delimiter" not in kwargs:
             kwargs["delimiter"] = self.sniff() if self.__sep is None else self.__sep
 
+        if "header" not in kwargs:
+            if self.__header is None:
+                kwargs["header"] = None
+            else:
+                kwargs["header"] = 0
+
         # raise error if False
         df: DataFrame = read_csv(self.__file, **kwargs)
         if self.__na is not None:
