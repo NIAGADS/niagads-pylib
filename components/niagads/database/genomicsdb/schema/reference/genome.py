@@ -17,6 +17,7 @@ class GenomeReference(ReferenceTableBase):
     genome_reference_id: Mapped[int] = mapped_column(
         primary_key=True, autoincrement=True
     )
+    chromosome: Mapped[str] = mapped_column(String, index=True, nullable=False)
     genome_build: Mapped[str] = enum_column(GenomeBuild)
     aliases: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String), nullable=True)
     chromosome_length: Mapped[int] = mapped_column(nullable=False)
