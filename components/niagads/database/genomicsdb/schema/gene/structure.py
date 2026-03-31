@@ -20,6 +20,7 @@ class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __table_args__ = (
         *GenomicRegionMixin.__table_args__,
         *GenomicRegionMixin.get_indexes(GeneTableBase._schema, __tablename__),
+        *GenomicRegionMixin.set_bin_index_fk(GeneTableBase._schema, __tablename__),
         CheckConstraint(
             f"source_id ~ '{RegularExpressions.ENSEMBL_GENE_ID}'",
             name="gene_source_id_format_check",
@@ -38,6 +39,7 @@ class TranscriptModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __table_args__ = (
         *GenomicRegionMixin.__table_args__,
         *GenomicRegionMixin.get_indexes(GeneTableBase._schema, __tablename__),
+        *GenomicRegionMixin.set_bin_index_fk(GeneTableBase._schema, __tablename__),
         CheckConstraint(
             f"source_id ~ '{RegularExpressions.ENSEMBL_TRANSCRIPT_ID}'",
             name="transcript_source_id_format_check",
@@ -54,6 +56,7 @@ class ExonModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __table_args__ = (
         *GenomicRegionMixin.__table_args__,
         *GenomicRegionMixin.get_indexes(GeneTableBase._schema, __tablename__),
+        *GenomicRegionMixin.set_bin_index_fk(GeneTableBase._schema, __tablename__),
         CheckConstraint(
             f"source_id ~ '{RegularExpressions.ENSEMBL_EXON_ID}'",
             name="exon_source_id_format_check",
