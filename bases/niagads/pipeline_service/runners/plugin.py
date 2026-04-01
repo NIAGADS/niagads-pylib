@@ -256,7 +256,9 @@ async def main():
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
     parser.add_argument("--undo", action="store_true", help="Run in UNDO mode")
-    parser.add_argument("--run_id", type=int, help="ETL run_id; required for UNDO mode")
+    parser.add_argument(
+        "--run-id", type=int, help="ETL run identifier; required for UNDO mode"
+    )
     parser.add_argument(
         "--help", action="store_true", help="Show help message and exit"
     )

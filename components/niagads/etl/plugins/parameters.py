@@ -39,7 +39,7 @@ class BasePluginParams(BaseModel):
         description="database connection string; if not provided, the plugin will try to assign from `DATABASE_URI` property in an `.env` file",
     )
     run_id: Optional[int] = Field(
-        default=None, description="ETL run ID  (required for UNDO)"
+        default=None, description="ETL run ID  (required for UNDO)", exclude=True
     )
 
     # this shouldn't happen BTW b/c ge validator already set
