@@ -39,12 +39,12 @@ class AbstractFlatfileParser(ABC, ComponentBaseMixin):
             self._file, encoding=self._encoding, is_binary=self._is_binary
         )
 
-    def is_ignored_line(self, line: str) -> bool:
+    def is_ignored_line(self, line: str, line_number: int) -> bool:
         stripped = line.strip()
         return stripped == ""
 
     def preprocess_line(self, line: str) -> str:
-        return line.rstrip("\n")
+        return line.rstrip()
 
     @abstractmethod
     def parse_line(self, line: str):
@@ -54,7 +54,7 @@ class AbstractFlatfileParser(ABC, ComponentBaseMixin):
         with self.open_ctx() as fh:
             for line_number, raw_line in enumerate(fh, start=1):
                 line = self.preprocess_line(raw_line)
-                if self.is_ignored_line(line):
+                if self.is_ignored_line(line, line_number):
                     continue
                 try:
                     yield self.parse_line(line)
