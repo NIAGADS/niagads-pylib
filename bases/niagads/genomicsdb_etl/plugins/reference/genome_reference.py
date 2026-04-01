@@ -2,8 +2,9 @@
 Genome Reference ETL Plugins
 """
 
-from typing import Any, Dict, Iterator, List
+from typing import Any, Dict, Iterator, List, Optional
 
+from niagads.common.models.types import Range
 from niagads.common.types import ETLOperation
 from niagads.csv_parser.core import CSVFileParser
 from niagads.database.genomicsdb.schema.reference.genome import GenomeReference
@@ -13,9 +14,11 @@ from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.utils.string import xstr
 from pydantic import Field
 
-from niagads.genome_reference.human import GenomeBuild
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
+from sqlalchemy import select
 
 
 # ============================================================================
@@ -66,31 +69,57 @@ class ChromosomeMapLoader(AbstractBasePlugin):
         Yields:
             Dictionary with chromosome name and length
         """
-        parser = CSVFileParser(
-            file=self._params.file,
+        parser = CSVFileParser(file=self._params.file, header=False)
+        parser.header_fields(["chr", "length"])
+        for row in parser:
+            if row["chr"] == "chrMT":
+                row["chr"] == "chrM"
+            try:
+                HumanGenome(row["chr"])  # primary assembly only
+                yield row
+            except:
+                pass
+
+    def transform(self, record):
+        """transform to genomereference object"""
+        chromosome = record["chr"]
+        aliases = None
+        if chromosome == "chrM":
+            aliases = ["chrMT"]
+
+        chrmRef: GenomeReference = GenomeReference(
+            chromosome=chromosome,
+            chromosome_length=record["length"],
+            aliases=aliases,
+            run_id=self.run_id,
         )
+        return chrmRef
 
-    def transform(self, records: List[Dict[str, Any]]):
-        """
-        Transform chromosome map records into ORM model instances.
-
-        Args:
-            records: List of dictionaries with chromosome data
-
-        Yields:
-            GenomeReference ORM instances
-        """
-        for record in records:
-            # TODO: implement transformation to GenomeReference ORM
-            pass
-
-    async def load(self, session, records: list[GenomeReference]): ...
+    async def load(self, session, records: list[GenomeReference]):
+        GenomeReference.submit(session, records)
+        return self.create_checkpoint(record=records[-1])
 
 
 # ============================================================================
 # 2. INTERVAL BIN GENERATOR PLUGIN
 # ============================================================================
 
+BIN_INCREMENTS = [
+    -1,
+    64000000,
+    32000000,
+    16000000,
+    8000000,
+    4000000,
+    2000000,
+    1000000,
+    500000,
+    250000,
+    125000,
+    62500,
+    31250,
+    15625,
+]
 
 metadata_bin_gen = PluginMetadata(
     version="1.0",
@@ -112,31 +141,82 @@ class IntervalBinGenerator(AbstractBasePlugin):
     from chromosome reference data and loads into the interval_bin table.
     """
 
+    def __init__(
+        self,
+        params: Dict[str, Any],
+        name: Optional[str] = None,
+        log_path: str = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(params, name, log_path, debug, verbose)
+        self.__bin_count = 0
+        self.__num_levels = len(BIN_INCREMENTS)
+        self.__chromosome_map = {}
+
     def get_record_id(self, record: IntervalBin) -> str:
         return record.bin_index
 
-    def extract(self) -> Iterator:
-        """
-        Extract chromosome reference data and generate bins.
+    async def on_run_start(self, session):
+        # get chromosome lengths from database
+        async with self.session_ctx() as local_session:
+            stmt = select(
+                GenomeReference.chromosome, GenomeReference.chromosome_length
+            ).order_by(GenomeReference.genome_reference_id)
+            result = await local_session.execute(stmt)
+            self.__chromosome_map = result.all()
 
-        Yields:
-            Chromosome records with their lengths from the database
-        """
-        # TODO: implement extraction of chromosome references from database
-        pass
 
-    def transform(self, records: List[Dict[str, Any]]):
-        """
-        Transform chromosome data into interval bin hierarchy.
+    def __generate_bins(self, bin_root: str, range: Range, level, sequence_length):
+        """recursive function for generating bin index"""
+        bins = []
+        if level >= self.__num_levels: # not sure where this comes from?
+            return
 
-        Generates a hierarchical binning structure based on genomic coordinates.
+        bin_lower_bound = range.start
+        bin_upper_bound = range.start + BIN_INCREMENTS[level]
 
-        Args:
-            records: List of chromosome records
+        current_bin = 0
 
-        Yields:
-            IntervalBin ORM instances
-        """
+        if range.end > sequence_length:
+            range.end = sequence_length
+
+        while bin_lower_bound < range.end:
+            self.__bin_count += 1
+            current_bin = current_bin + 1
+            bin_label = bin_root + ".B" + xstr(current_bin) if level != 0 else xstr(bin_root)
+            if bin_upper_bound > sequence_length:
+                bin_upper_bound = sequence_length
+            if bin_upper_bound > range.end:
+                bin_upper_bound = range.end
+
+            insert_bin(level, self.__bin_count, bin_label, bin_lower_bound, bin_upper_bound)
+
+            next_level = level + 1
+            if next_level <= self.__num_levels:
+
+                bins.extend(self.__generate_bins(
+                    bin_label + ".L" + xstr(next_level),
+                    bin_lower_bound,
+                    bin_upper_bound,
+                    next_level,
+                    sequence_length,
+                ))
+
+            bin_lower_bound = bin_upper_bound
+            bin_upper_bound = bin_upper_bound + BIN_INCREMENTS[level]
+
+
+        def extract(self):
+            for chromosome, sequence_length in self.__chromosome_map.items():
+                self.logger.info(f"Processing chromosome: {chromosome}")
+                level = 0
+                # when level =0, bin_increments = sequence length
+
+                bins = self.generate_bins(chromosome, 0, sequence_length, level, sequence_length)
+
+    def transform(self, record):
+
         # TODO: implement bin generation algorithm
         pass
 
@@ -146,31 +226,9 @@ class IntervalBinGenerator(AbstractBasePlugin):
 # LEGACY CODE - IGNORE FROM HERE DOWN
 
 
-def read_chr_map():
-    """read chr map file and store as dictionary"""
-    result = OrderedDict()
-    with open(args.chromosomeMap, "r") as fh:
-        reader = DictReader(fh, delimiter="\t")
-        for line in reader:
-            chrom = line["chromosome"]
-            if "chr" not in chrom:
-                continue
-            if chrom == "chrMT":
-                chrom = "chrM"
-            chrLength = int(line["length"])
-            result[chrom] = chrLength
-
-    return result
-
-
 def load_bins():
     """generate and load bins"""
-    for chrom, seqLength in chrMap.iteritems():
-        warning("Processing", chrom)
-        binRoot = chrom
-        level = 0
-        increments[0] = seqLength
-        generate_bins(binRoot, 0, seqLength, level, seqLength)
+
 
         warning("Done with", chrom)
         if args.commit:
@@ -180,47 +238,6 @@ def load_bins():
             database.rollback()
             warning("Rolled back")
 
-
-def generate_bins(binRoot, locStart, locEnd, level, seqLength):
-    """recursive function for generating bin index"""
-    global binCount
-    if level >= numLevels:
-        return
-
-    lowerBound = locStart
-    upperBound = locStart + increments[level]
-
-    currentBin = 0
-
-    if locEnd > seqLength:
-        locEnd = seqLength
-
-    while lowerBound < locEnd:
-        binCount = binCount + 1
-        currentBin = currentBin + 1
-        binLabel = binRoot + ".B" + xstr(currentBin) if level != 0 else xstr(binRoot)
-        if upperBound > seqLength:
-            upperBound = seqLength
-        if upperBound > locEnd:
-            upperBound = locEnd
-
-        insert_bin(level, binCount, binLabel, lowerBound, upperBound)
-
-        nextLevel = level + 1
-        if nextLevel <= numLevels:
-            if lowerBound == 0:
-                warning("New Level:", level)
-
-            generate_bins(
-                binLabel + ".L" + xstr(nextLevel),
-                lowerBound,
-                upperBound,
-                nextLevel,
-                seqLength,
-            )
-
-        lowerBound = upperBound
-        upperBound = upperBound + increments[level]
 
 
 def insert_bin(level, binId, binPath, locStart, locEnd):
@@ -232,43 +249,7 @@ def insert_bin(level, binId, binPath, locStart, locEnd):
     )
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Generate and load the BinIndex reference table"
-    )
-    parser.add_argument(
-        "-m",
-        "--chromosomeMap",
-        help="full path file containing mapping of chr names to length; tab-delim, no header",
-        required=True,
-    )
-    parser.add_argument(
-        "--commit", action="store_true", help="run in commit mode", required=False
-    )
-    parser.add_argument(
-        "--gusConfigFile",
-        "--full path to gus config file, else assumes $GUS_HOME/config/gus.config",
-    )
-    args = parser.parse_args()
 
-    increments = [
-        -1,
-        64000000,
-        32000000,
-        16000000,
-        8000000,
-        4000000,
-        2000000,
-        1000000,
-        500000,
-        250000,
-        125000,
-        62500,
-        31250,
-        15625,
-    ]
-    binCount = 0
-    numLevels = len(increments)
 
     chrMap = read_chr_map()
     insertSql = "INSERT INTO BinIndexRef (chromosome, level, global_bin, global_bin_path, location) VALUES (%s, %s, %s, %s, %s)"

@@ -51,16 +51,6 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
 
     _params: ExternalDatabaseLoaderParams  # type annotation
 
-    def __init__(
-        self,
-        params: Dict[str, Any],
-        name: Optional[str] = None,
-        log_path: str = None,
-        debug: bool = False,
-        verbose: bool = False,
-    ):
-        super().__init__(params, name, log_path, debug, verbose)
-
     def extract(self) -> Iterator[dict]:
         """
         Extract external database configuration from JSON file.
