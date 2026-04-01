@@ -5,8 +5,6 @@ from niagads.common.gene.models.annotation import PathwayMembership
 from niagads.common.reference.xrefs.models import Pathway
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.gene.xrefs import GeneXRefType
-from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
-from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
@@ -51,49 +49,40 @@ class KEGGLoaderPlugin(PathwayMembershipLoaderPlugin):
 
     _params: KEGGLoaderParams
 
-    def __init__(
-        self,
-        params,
-        name: Optional[str] = None,
-        log_path: str = None,
-        debug: bool = False,
-        verbose: bool = False,
-    ):
-        super().__init__(params, name, log_path, debug, verbose)
-        self.__files: List[str] = get_files_by_pattern(self._params.kgml_dir, "*.kgml")
-        self.logger.info(f"Found {len(self.__files)} KGML Files to load.")
-
     def extract(self):
-        file_path = self._params.kgml_dir
-        self.logger.info(f"Parsing: {file_path}")
+        files: List[str] = get_files_by_pattern(self._params.kgml_dir, "*.kgml")
+        self.logger.info(f"Found {len(files)} KGML Files to load.")
 
-        tree = ET.parse(file_path)
-        root = tree.getroot()
+        for file_path in files:
+            self.logger.info(f"Parsing: {file_path}")
 
-        raw_name = root.attrib.get("name", "")  # "path:hsa01230"
-        pathway_id = raw_name.split(":", 1)[1] if ":" in raw_name else raw_name
-        pathway_name = root.attrib.get("title", "")  # pathway name
+            tree = ET.parse(file_path)
+            root = tree.getroot()
 
-        if self._verbose:
-            self.logger.info(f"Pathway: {pathway_id}:{pathway_name}")
+            raw_name = root.attrib.get("name", "")  # "path:hsa01230"
+            pathway_id = raw_name.split(":", 1)[1] if ":" in raw_name else raw_name
+            pathway_name = root.attrib.get("title", "")  # pathway name
 
-        # <entry id="758" name="hsa:27235" type="gene" reaction="rn:R05000" link="https://www.kegg.jp/dbget-bin/www_bget?hsa:27235">
-        #    <graphics name="" .../>
-        # </entry>
+            if self._verbose:
+                self.logger.info(f"Pathway: {pathway_id}:{pathway_name}")
 
-        # Find and parse gene entries; need to filter for type="gene"
-        annotations = [
-            GenePathwayAssociation(
-                gene_id=entry.attrib.get("id"),
-                pathway_id=pathway_id,
-                pathway_name=pathway_name,
-            )
-            for entry in root.findall("entry[@type='gene']")
-        ]
+            # <entry id="758" name="hsa:27235" type="gene" reaction="rn:R05000" link="https://www.kegg.jp/dbget-bin/www_bget?hsa:27235">
+            #    <graphics name="" .../>
+            # </entry>
 
-        self.logger.debug(f"Extracted: {len(annotations)} gene-pathway memberships")
+            # Find and parse gene entries; need to filter for type="gene"
+            annotations = [
+                GenePathwayAssociation(
+                    gene_id=entry.attrib.get("id"),
+                    pathway_id=pathway_id,
+                    pathway_name=pathway_name,
+                )
+                for entry in root.findall("entry[@type='gene']")
+            ]
 
-        return annotations
+            self.logger.debug(f"Extracted: {len(annotations)} gene-pathway memberships")
+
+            yield annotations
 
     def transform(self, data: List[GenePathwayAssociation]):
         # no transform necessary; GeenPathwayAssociation already object generated in Extract

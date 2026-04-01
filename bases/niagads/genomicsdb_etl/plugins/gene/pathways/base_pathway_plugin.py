@@ -45,7 +45,6 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
         self._external_database = None
         self._gene_pk_ref: dict = {}
         self._pathway_pk_ref: dict = {}
-        self._pathway_pk_ref: dict = {}
 
     # --------- Properties
 
@@ -93,7 +92,6 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
                     # set placeholder primary key so we can detect, skip loading
                     # memberships, and avoid future lookups
                     primary_key = "NOT_FOUND"
-                    self.logger.warning(f"Gene {gene_id} not found in database.")
 
             self._gene_pk_ref[gene_id] = primary_key
         return primary_key
@@ -161,7 +159,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
                 session, record.pathway_id, record.pathway_name
             )
 
-            gene_pk = self._lookup_gene_primary_key(
+            gene_pk = await self._lookup_gene_primary_key(
                 session, record.gene_id, gene_id_type
             )
 
@@ -171,6 +169,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
             if gene_pk == "NOT_FOUND":
                 self.logger.warning(f"Gene not found; skipping {record.model_dump()}")
                 self.inc_tx_count(PathwayMembership, ETLOperation.SKIP)
+                continue
 
             # build membership array
             memberships.append(
@@ -189,4 +188,4 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
         PathwayMembership.submit_many(session, memberships)
 
         # checkpoint is that last successful submit
-        return self.create_checkpoint(record=annotations[-1])
+        return self.create_checkpoint(record=memberships[-1])
