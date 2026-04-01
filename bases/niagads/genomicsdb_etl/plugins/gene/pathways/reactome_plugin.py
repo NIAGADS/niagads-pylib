@@ -1,16 +1,14 @@
-from niagads.etl.plugins.base import AbstractBasePlugin, LoadStrategy
+from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     PathValidatorMixin,
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-from niagads.genomicsdb.schema.admin.pipeline import ETLOperation
+
 from niagads.csv_parser.core import CSVFileParser
-from niagads.genomicsdb.schema.gene.annotation import PathwayMembership
-from niagads.genomicsdb.schema.gene.gene_models import Gene, GeneIdentifierType
-from niagads.genomicsdb.schema.reference.pathway import Pathway
-from niagads.genomicsdb_service.etl.plugins.common.mixins.parameters import (
+
+from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
 from pydantic import BaseModel, Field, field_validator
