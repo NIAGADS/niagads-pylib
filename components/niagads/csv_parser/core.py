@@ -24,6 +24,7 @@ for record in parser:
 import json
 
 from csv import Sniffer, Dialect, Error as CSVError
+from typing import Optional
 from niagads.exceptions.core import FileFormatError
 from niagads.flatfile.base import AbstractFlatfileParser
 from pandas import read_csv, DataFrame
@@ -51,8 +52,8 @@ class CSVFileParser(AbstractFlatfileParser):
     def __init__(
         self,
         file: str,
-        header: bool = True,
-        delimiter: str = None,
+        header: Optional[list[str]] = None,
+        delimiter: Optional[str] = None,
         encoding="ut-f8",
         debug: bool = False,
         verbose: bool = False,
@@ -63,6 +64,11 @@ class CSVFileParser(AbstractFlatfileParser):
         self.__na = None  # missing value string representation
         self.__header = header  # flag indicating whether file has a header
         self.__header_fields = None
+
+    def header_fields(self, values: list[str]):
+        """only necessary to customize header for iterator, w/pandas can define header fields
+        directly using `header` kwarg when calling `to_pandas_df` or `to_json`"""
+        self.__header_fields = values
 
     def na(self, value: str):
         """
@@ -146,7 +152,9 @@ class CSVFileParser(AbstractFlatfileParser):
             kwargs["delimiter"] = self.sniff()
 
         if "header" not in kwargs:
-            if self.__header is None:
+            if self.__header_fields is not None:
+                kwargs["header"] = self.__header_fields
+            elif self.__header is None:
                 kwargs["header"] = None
             else:
                 kwargs["header"] = 0
@@ -160,7 +168,7 @@ class CSVFileParser(AbstractFlatfileParser):
     # abstract base class overrides
     def is_ignored_line(self, line: str, line_number: int) -> bool:
         if self.__header and line_number == 1:
-            self.__header_fields = line.split(self.sniff())
+            self.__header_fields = [v.strip() for v in line.split(self.sniff())]
             return True
         stripped = line.strip()
         return stripped == ""
@@ -168,7 +176,7 @@ class CSVFileParser(AbstractFlatfileParser):
     def parse_line(self, line: str):
         """Parse one non-ignored line into a record."""
         values = [v.strip() for v in line.split(self.sniff())]
-        if self.__header:
+        if self.__header or self.__header_fields is not None:
             return dict(zip(self.__header_fields, values))
         else:
             return values
