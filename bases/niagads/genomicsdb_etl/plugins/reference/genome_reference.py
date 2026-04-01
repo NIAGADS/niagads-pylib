@@ -15,7 +15,7 @@ from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.utils.string import xstr
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from sqlalchemy import select
@@ -104,22 +104,12 @@ class ChromosomeMapLoader(AbstractBasePlugin):
 # 2. INTERVAL BIN GENERATOR PLUGIN
 # ============================================================================
 
-BIN_INCREMENTS = [
-    -1,
-    64000000,
-    32000000,
-    16000000,
-    8000000,
-    4000000,
-    2000000,
-    1000000,
-    500000,
-    250000,
-    125000,
-    62500,
-    31250,
-    15625,
-]
+
+class Bin(BaseModel):
+    genomic_region: Range
+    bin_index: str
+    bin_level: int
+
 
 metadata_bin_gen = PluginMetadata(
     version="1.0",
@@ -151,8 +141,24 @@ class IntervalBinGenerator(AbstractBasePlugin):
     ):
         super().__init__(params, name, log_path, debug, verbose)
         self.__bin_count = 0
-        self.__num_levels = len(BIN_INCREMENTS)
-        self.__chromosome_map = {}
+        self.__chromosome_map: Dict = {}
+        self.__bins = []
+        self.__bin_increments = [
+            -1,
+            64000000,
+            32000000,
+            16000000,
+            8000000,
+            4000000,
+            2000000,
+            1000000,
+            500000,
+            250000,
+            125000,
+            62500,
+            31250,
+            15625,
+        ]
 
     def get_record_id(self, record: IntervalBin) -> str:
         return record.bin_index
@@ -163,57 +169,65 @@ class IntervalBinGenerator(AbstractBasePlugin):
             stmt = select(
                 GenomeReference.chromosome, GenomeReference.chromosome_length
             ).order_by(GenomeReference.genome_reference_id)
-            result = await local_session.execute(stmt)
+            result = await local_session.execute(stmt).mappings()
             self.__chromosome_map = result.all()
 
-
-    def __generate_bins(self, bin_root: str, range: Range, level, sequence_length):
+    def __generate_chr_bins(
+        self, bin_root: str, range: Range, level: int, sequence_length: int
+    ):
         """recursive function for generating bin index"""
-        bins = []
-        if level >= self.__num_levels: # not sure where this comes from?
+        num_levels = len(self.__bin_increments)
+        if level >= num_levels:
             return
 
         bin_lower_bound = range.start
-        bin_upper_bound = range.start + BIN_INCREMENTS[level]
-
-        current_bin = 0
+        bin_upper_bound = range.start + self.__bin_increments[level]
 
         if range.end > sequence_length:
             range.end = sequence_length
 
-        while bin_lower_bound < range.end:
+        while bin_lower_bound <= range.end:
             self.__bin_count += 1
-            current_bin = current_bin + 1
-            bin_label = bin_root + ".B" + xstr(current_bin) if level != 0 else xstr(bin_root)
-            if bin_upper_bound > sequence_length:
-                bin_upper_bound = sequence_length
             if bin_upper_bound > range.end:
                 bin_upper_bound = range.end
 
-            insert_bin(level, self.__bin_count, bin_label, bin_lower_bound, bin_upper_bound)
+            bin_path = (
+                xstr(bin_root)
+                if level == 0
+                else bin_root + ".B" + xstr(self.__bin_count)
+            )
+
+            self.__bins.append(
+                Bin(
+                    genomic_region=Range(start=bin_lower_bound, end=bin_upper_bound),
+                    bin_index=bin_path,
+                    bin_level=level,
+                )
+            )
 
             next_level = level + 1
-            if next_level <= self.__num_levels:
+            if next_level <= num_levels:
+                self.__generate_chr_bins(
+                    bin_root=bin_path + ".L" + xstr(next_level),
+                    range=Range(start=bin_lower_bound, end=bin_upper_bound),
+                    level=next_level,
+                    sequence_length=sequence_length,
+                )
 
-                bins.extend(self.__generate_bins(
-                    bin_label + ".L" + xstr(next_level),
-                    bin_lower_bound,
-                    bin_upper_bound,
-                    next_level,
-                    sequence_length,
-                ))
+            bin_lower_bound = bin_upper_bound + 1  # ensure bins don't overlap
+            bin_upper_bound = bin_upper_bound + self.__bin_increments[level]
 
-            bin_lower_bound = bin_upper_bound
-            bin_upper_bound = bin_upper_bound + BIN_INCREMENTS[level]
-
-
-        def extract(self):
-            for chromosome, sequence_length in self.__chromosome_map.items():
-                self.logger.info(f"Processing chromosome: {chromosome}")
-                level = 0
-                # when level =0, bin_increments = sequence length
-
-                bins = self.generate_bins(chromosome, 0, sequence_length, level, sequence_length)
+    def extract(self):
+        for chromosome, chromosome_length in self.__chromosome_map.items():
+            self.logger.info(f"Processing chromosome: {chromosome}")
+            self.__bin_increments[0] = chromosome_length
+            self.__bins = []  # clear bins
+            bins = self.__generate_chr_bins(
+                bin_root=chromosome,
+                range=Range(start=1, end=chromosome_length),
+                level=0,
+                sequence_length=chromosome_length,
+            )
 
     def transform(self, record):
 
@@ -226,20 +240,6 @@ class IntervalBinGenerator(AbstractBasePlugin):
 # LEGACY CODE - IGNORE FROM HERE DOWN
 
 
-def load_bins():
-    """generate and load bins"""
-
-
-        warning("Done with", chrom)
-        if args.commit:
-            database.commit()
-            warning("Committed")
-        else:
-            database.rollback()
-            warning("Rolled back")
-
-
-
 def insert_bin(level, binId, binPath, locStart, locEnd):
     """inserts bin in to db"""
     values = binPath.split(".")
@@ -247,9 +247,6 @@ def insert_bin(level, binId, binPath, locStart, locEnd):
     cursor.execute(
         insertSql, (chrom, level, binId, binPath, NumericRange(locStart, locEnd, "(]"))
     )
-
-
-
 
     chrMap = read_chr_map()
     insertSql = "INSERT INTO BinIndexRef (chromosome, level, global_bin, global_bin_path, location) VALUES (%s, %s, %s, %s, %s)"
