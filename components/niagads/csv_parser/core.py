@@ -54,7 +54,7 @@ class CSVFileParser(AbstractFlatfileParser):
         file: str,
         header: Optional[list[str]] = None,
         delimiter: Optional[str] = None,
-        encoding="ut-f8",
+        encoding="utf-8",
         debug: bool = False,
         verbose: bool = False,
     ):
