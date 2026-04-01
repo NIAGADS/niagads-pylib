@@ -138,7 +138,6 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
 
         # Parse CSV file
         parser = CSVFileParser(self._params.file)
-        parser.strip(True)  # Strip whitespace
 
         # Read into DataFrame with no header and assign column names
         df = parser.to_pandas_df(header=None, names=COLUMN_NAMES)

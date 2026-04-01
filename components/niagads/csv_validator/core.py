@@ -41,11 +41,11 @@ class CSVValidator(ABC):
         """
         self._schema = schema
 
-    def get_schema(self, as_json: bool=False):
+    def get_schema(self, as_json: bool = False):
         if as_json:
             return self.__parse_schema()
         return self._schema
-    
+
     def __parse_schema(self):
         """
         Parse the schema from a dict, JSON string, or file path.
@@ -67,7 +67,7 @@ class CSVValidator(ABC):
             return self._schema
         else:
             raise ValueError("Invalid `schema` format:" + str(self._schema))
-        
+
     def get_metadata(self, asString=False):
         """
         retrieve the parsed metadata
@@ -125,7 +125,6 @@ class CSVPropertiesFileValidator(CSVValidator):
         """
         if is_xlsx(self._file):
             parser = ExcelFileParser(self._file)
-            parser.strip()
             if worksheet is None:
                 raise TypeError(
                     "Metadata file is of type `xlsx` (EXCEL); must supply name of the worksheet to load"
@@ -136,7 +135,6 @@ class CSVPropertiesFileValidator(CSVValidator):
 
         else:
             parser = CSVFileParser(self._file)
-            parser.strip()
             self._metadata = parser.to_json(
                 transpose=True, return_str=False, header=None, index_col=0
             )[0]
@@ -228,18 +226,22 @@ class CSVTableValidator(CSVValidator):
         df = pd.DataFrame(metadata)
         return df.to_csv(path_or_buf, sep="\t", index=False)
 
-
     def __resolve_enum_values(self, property_schema: dict):
-        property_type = property_schema.get('type')
-        if property_type == 'string' or (isinstance(property_type, list) and 'string' in property_type):
+        property_type = property_schema.get("type")
+        if property_type == "string" or (
+            isinstance(property_type, list) and "string" in property_type
+        ):
             if "enum" in property_schema:
                 return property_schema["enum"], True
             if "oneOf" in property_schema:
-                section = property_schema['oneOf']
-                if section and all(isinstance(s, dict) and "const" in s and isinstance(s["const"], str) for s in section):
+                section = property_schema["oneOf"]
+                if section and all(
+                    isinstance(s, dict) and "const" in s and isinstance(s["const"], str)
+                    for s in section
+                ):
                     return [item["const"] for item in section]
         return []
-            
+
     def normalize(self):
         """
         Get a normalized version of the metadata json, where normalization matches against enum
@@ -281,13 +283,16 @@ class CSVTableValidator(CSVValidator):
         Raises:
             jsonschema.exceptions.ValidationError if `fail_on_error` = True
         """
-        
-        INVALID_FIELD_ERRORS = ["Additional properties are not allowed", "is a required property"]
-        
-        file_errors = [] # for file-level errors
+
+        INVALID_FIELD_ERRORS = [
+            "Additional properties are not allowed",
+            "is a required property",
+        ]
+
+        file_errors = []  # for file-level errors
         result = []
         validator = JSONValidator(None, self._schema, self._debug)
-        validator.case_insensitive(enable = self._case_insensitive)
+        validator.case_insensitive(enable=self._case_insensitive)
         for index, row in enumerate(self._metadata):
             validator.set_json(row)
             row_errors = validator.run()
@@ -305,8 +310,8 @@ class CSVTableValidator(CSVValidator):
                             filtered_row_errors.append(err)
                     if filtered_row_errors:
                         result.append({index + 1: filtered_row_errors})
-                    
+
         if file_errors:
-            result.insert(0, {'file': list(set(file_errors))})
+            result.insert(0, {"file": list(set(file_errors))})
 
         return {"errors": result}  # empty array; all rows passed
