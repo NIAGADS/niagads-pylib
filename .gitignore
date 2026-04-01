@@ -3,6 +3,9 @@
 !/projects/open-access-api/dist/
 !/projects/metadata-builder/dist/
 
+# ai
+.codex
+
 # env files
 db.env
 .env
