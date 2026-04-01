@@ -257,7 +257,9 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
             if "small_variant" in feature_summary
             else 0
         )
-        if num_small_variants == 0 and not region.is_valid_range(max_span_size):
+        if num_small_variants == 0 and not region.validate_span_within_limit(
+            max_span_size
+        ):
             num_small_variants = f"number of small variants not calculated for ranges > {max_span_size:,} bp"
 
         result = [

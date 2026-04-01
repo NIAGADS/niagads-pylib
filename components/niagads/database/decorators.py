@@ -30,7 +30,7 @@ class RangeType(TypeDecorator):
         # Use the Range class's to_bracket_string method
         # sets inclusize end to True b/c most of the time dealing
         # with 1-based genomic coordinates
-        return value.to_bracketed_string()
+        return value.bracket_notation()
 
     def process_result_value(self, value, dialect):
         """

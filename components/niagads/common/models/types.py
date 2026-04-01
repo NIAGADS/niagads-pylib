@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, model_validator
 class Range(BaseModel):
     start: int = Field(title="Start")
     end: Optional[int] = Field(default=None, title="End")
+    inclusive_end: Optional[bool] = Field(default=False, exclude=True)
 
     def model_post_init(self, __context):
         if self.end is None:
@@ -24,11 +25,11 @@ class Range(BaseModel):
     def __str__(self):
         return f"{self.start}-{self.end}"
 
-    def bracket_notation(self, inclusiveEnd: bool = False):
-        return f"[{self.start}, {self.end}{']' if inclusiveEnd else ')'}"
+    def bracket_notation(self):
+        return f"[{self.start}, {self.end}{']' if self.inclusive_end else ')'}"
 
-    def is_valid_range(self, maxSpan: int):
+    def validate_span_within_limit(self, max_span: int):
         if self.end is None:
             raise RuntimeError("Range.end is None, cannot validate range size.")
 
-        return self.end - self.start <= maxSpan
+        return self.end - self.start <= max_span
