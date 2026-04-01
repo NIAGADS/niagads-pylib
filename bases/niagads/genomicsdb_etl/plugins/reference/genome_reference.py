@@ -19,6 +19,16 @@ from pydantic import BaseModel, Field
 
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from sqlalchemy import select
+from sqlalchemy_utils.types.ltree import Ltree
+
+
+class GenomeReferenceLoaderParams(BasePluginParams, PathValidatorMixin):
+    """Parameters for chromosome map loader plugin."""
+
+    genome_build: Optional[GenomeBuild] = Field(
+        default=GenomeBuild.GRCh38,
+        description=f"Reference genome build, one of {GenomeBuild.list()}",
+    )
 
 
 # ============================================================================
@@ -26,16 +36,12 @@ from sqlalchemy import select
 # ============================================================================
 
 
-class ChromosomeMapLoaderParams(BasePluginParams, PathValidatorMixin):
+class ChromosomeMapLoaderParams(GenomeReferenceLoaderParams, PathValidatorMixin):
     """Parameters for chromosome map loader plugin."""
 
     file: str = Field(..., description="full path to chromosome map file")
-    genome_build: GenomeBuild = Field(
-        default=GenomeBuild.GRCh38,
-        description=f"Reference genome build, one of {GenomeBuild.list()}",
-    )
 
-    validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
+    validate_file_exists = PathValidatorMixin.validator("file")
 
 
 metadata_chr_map = PluginMetadata(
@@ -89,14 +95,15 @@ class ChromosomeMapLoader(AbstractBasePlugin):
 
         chrmRef: GenomeReference = GenomeReference(
             chromosome=chromosome,
-            chromosome_length=record["length"],
+            chromosome_length=int(record["length"]),
+            genome_build=str(self._params.genome_build),
             aliases=aliases,
             run_id=self.run_id,
         )
         return chrmRef
 
     async def load(self, session, records: list[GenomeReference]):
-        GenomeReference.submit(session, records)
+        await GenomeReference.submit_many(session, records)
         return self.create_checkpoint(record=records[-1])
 
 
@@ -118,7 +125,7 @@ metadata_bin_gen = PluginMetadata(
     load_strategy=ETLLoadStrategy.CHUNKED,
     operation=ETLOperation.INSERT,
     is_large_dataset=True,
-    parameter_model=BasePluginParams,
+    parameter_model=GenomeReferenceLoaderParams,
 )
 
 
@@ -149,6 +156,8 @@ class IntervalBinGenerator(AbstractBasePlugin):
     from chromosome reference data and loads into the interval_bin table.
     """
 
+    _params: GenomeReferenceLoaderParams
+
     def __init__(
         self,
         params: Dict[str, Any],
@@ -158,7 +167,7 @@ class IntervalBinGenerator(AbstractBasePlugin):
         verbose: bool = False,
     ):
         super().__init__(params, name, log_path, debug, verbose)
-        self.__chromosome_map: Dict = {}
+        self.__chr_lengths: Dict = {}
 
     def get_record_id(self, record: IntervalBin) -> str:
         return record.bin_index
@@ -166,11 +175,15 @@ class IntervalBinGenerator(AbstractBasePlugin):
     async def on_run_start(self, session):
         # get chromosome lengths from database
         async with self.session_ctx() as local_session:
-            stmt = select(
-                GenomeReference.chromosome, GenomeReference.chromosome_length
-            ).order_by(GenomeReference.genome_reference_id)
-            result = await local_session.execute(stmt).mappings()
-            self.__chromosome_map = result.all()
+            stmt = (
+                select(GenomeReference.chromosome, GenomeReference.chromosome_length)
+                .where(GenomeReference.genome_build == str(self._params.genome_build))
+                .order_by(GenomeReference.genome_reference_id)
+            )
+            self.__chr_lengths = (await local_session.execute(stmt)).mappings().all()
+            self.logger.debug(
+                f"Retrieved {len(self.__chr_lengths)} chromosome mappings."
+            )
 
     def __generate_chr_bins(
         self,
@@ -202,14 +215,16 @@ class IntervalBinGenerator(AbstractBasePlugin):
             bin_range.end = min(bin_range.end, parent_bin_range.end)
 
             # new range snapshot to avoid updates by reference
-            yield Bin(
+            yield IntervalBin(
                 genomic_region=Range(
                     start=bin_range.start,
                     end=bin_range.end,
                     inclusive_end=True,
                 ),
-                bin_index=bin_path,
+                bin_index=Ltree(bin_path),
                 bin_level=tree_level,
+                run_id=self.run_id,
+                chromosome=str(HumanGenome(bin_path.split(".", maxsplit=1)[0])),
             )
 
             # recursively subdivide the bin to generate child levels
@@ -232,9 +247,11 @@ class IntervalBinGenerator(AbstractBasePlugin):
             bin_range.end = bin_range.start + bin_width - 1
 
     def extract(self):
-        for chromosome, chromosome_length in self.__chromosome_map.items():
+        for entry in self.__chr_lengths:
+            chromosome = entry["chromosome"]
+            chromosome_length = entry["chromosome_length"]
             self.logger.info(f"Processing chromosome: {chromosome}")
-            yield self.__generate_chr_bins(
+            yield from self.__generate_chr_bins(
                 bin_root=chromosome,
                 parent_bin_range=Range(
                     start=1, end=chromosome_length, inclusive_end=True
@@ -243,14 +260,9 @@ class IntervalBinGenerator(AbstractBasePlugin):
                 sequence_length=chromosome_length,
             )
 
-    def transform(self, record: Bin):
-        interval_bin = IntervalBin(**record.model_dump())
-        interval_bin.run_id = self.run_id
-        interval_bin.chromosome = HumanGenome(
-            record.bin_index.split(".", maxsplit=1)[0]
-        )
-        return interval_bin
+    def transform(self, record: IntervalBin):
+        return record
 
     async def load(self, session, records: list[IntervalBin]):
-        IntervalBin.submit_many(session, records)
+        await IntervalBin.submit_many(session, records)
         return self.create_checkpoint(record=records[-1])
