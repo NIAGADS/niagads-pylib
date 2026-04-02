@@ -78,6 +78,6 @@ def enum_column(
         combined_values.extend(enum_cls.list(return_enum_names=use_enum_names))
     name = "_".join(cls.__name__ for cls in enum)
 
-    sa_enum = Enum(*combined_values, native_enum=native_enum, name=name)
+    sa_enum = Enum(*combined_values, native_enum=native_enum, name=name.lower())
 
     return Column(sa_enum, nullable=nullable, index=index)
