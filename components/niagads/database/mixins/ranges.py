@@ -26,7 +26,7 @@ class GenomicRegionMixin(object):
     genomic_region: Mapped[Range] = mapped_column(RangeType, nullable=False)
     bin_index: Mapped[str] = mapped_column(LtreeType)
 
-    __table_args__ = (enum_constraint("chromosome", HumanGenome),)
+    __table_args__ = (enum_constraint("chromosome", HumanGenome, use_enum_names=True),)
 
     @classmethod
     def get_indexes(cls, schema: str, table: str):
