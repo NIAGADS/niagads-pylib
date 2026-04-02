@@ -3,16 +3,22 @@ Gene Structure Loader Plugin
 - Parse Ensembl GFF3 files and load gene, transcript, and exon records into gene structure tables.
 """
 
+from enum import auto
 from typing import Any, Dict, Iterator, List, Optional
 
+from sqlalchemy import Enum
+
+from niagads.common.models.types import Range
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.gene.structure import (
     GeneModel,
     TranscriptModel,
     ExonModel,
 )
-from niagads.common.gene.models.structure import GeneModel as Gene
+from niagads.common.gene.models.structure import GeneModel as GFF3GeneRecord
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
+from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
+from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
@@ -22,7 +28,9 @@ from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
 from niagads.flatfile.formats.gff3 import EnsemblGFF3Parser
-from pydantic import Field
+from pydantic import BaseModel, Field
+
+from niagads.genome_reference.human import HumanGenome
 
 
 class EnsemblGFF3LoaderParams(
@@ -31,6 +39,10 @@ class EnsemblGFF3LoaderParams(
     """Parameters for Ensembl GFF3 gene structure loader plugin."""
 
     file: str = Field(..., description="full path to Ensembl GFF3 file")
+    so_xdbr: str = Field(
+        ...,
+        description="external database reference for the sequence ontology `SO|version'",
+    )
 
     validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
 
@@ -46,6 +58,23 @@ metadata = PluginMetadata(
     is_large_dataset=False,
     parameter_model=EnsemblGFF3LoaderParams,
 )
+
+
+class FeatureType(Enum):
+    GENE = auto()
+    TRANSCRIPT = auto()
+    EXON = auto()
+
+
+class FeatureModel(BaseModel):
+    feature_type: str
+    id: str
+    gene_symbol: Optional[str] = None
+    gene_name: Optional[str] = None
+    biotype: Optional[str] = None
+    parent_id: Optional[str] = None
+    chromosome: HumanGenome
+    genomic_region: Range
 
 
 @PluginRegistry.register(metadata)
@@ -67,25 +96,41 @@ class EnsemblGFF3Loader(AbstractBasePlugin):
         verbose: bool = False,
     ):
         super().__init__(params, name, debug, verbose)
+        # Cache for gene primary keys to avoid redundant database queries
+        self.__gene_pk_ref = {}
+        # Cache for transcript primary keys to maintain relationships with genes
+        self.__transcript_pk_ref = {}
+        # Mapping of transcript primary keys to their parent gene primary keys
+        self.__transcript2gene_ref = {}
+        # References for ontology terms
+        self.__ontology_term_ref = {}
+        # External database ID for sequence ontology
+        self.__so_external_database_id = None
+        # External database instance
+        self.__external_database: ExternalDatabase = None
 
     @property
     def external_database_id(self):
         return self.__external_database.external_database_id
 
     async def on_run_start(self, session):
-        # validate the xdbref against the database
-        self.__external_database: ExternalDatabase = (
-            await self._params.fetch_xdbref(session) if self.is_etl_run else None
-        )
+        if self.is_etl_run:
+            # validate the xdbref against the database
+            self.__external_database = await self._params.fetch_xdbref(session)
 
-        self.logger.debug(
-            f"external_database_id = {self.__external_database.external_database_id}"
-        )
+            self.logger.debug(
+                f"external_database_id = {self.__external_database.external_database_id}"
+            )
+
+            # validate and fetch sequence ontology external database ref
+            so_xbdref_param = ExternalDatabaseRefMixin(xdbref=self._params.so_xdbr)
+            so_xdbref: ExternalDatabase = await so_xbdref_param.fetch_xdbref(session)
+            self.__so_external_database_id = so_xdbref.external_database_id
 
     def get_record_id(self, record: GeneModel) -> str:
         return record.source_id
 
-    def extract(self) -> Iterator:
+    def extract(self) -> Iterator[GFF3GeneRecord]:
         """
         Extract gene structures from Ensembl GFF3 file.
 
@@ -104,7 +149,7 @@ class EnsemblGFF3Loader(AbstractBasePlugin):
         for gene_model in parser:
             yield gene_model
 
-    def transform(self, records: List[Gene]):
+    def transform(self, records: List[GFF3GeneRecord]):
         """
         Transform gene models from GFF3 parser into ORM model instances.
 
@@ -123,47 +168,49 @@ class EnsemblGFF3Loader(AbstractBasePlugin):
             - List with all ExonModel ORM instances for that gene's transcripts
         """
         for gene_model in records:
-            # Create GeneModel ORM instance
-            gene_orm = GeneModel(
-                source_id=gene_model.id,
+            # NOTE: gene_type_id will need to be updated w/ontology_term_id
+            # in load
+            gene = FeatureModel(
+                feature_type=FeatureType.GENE,
+                id=gene_model.id,
                 gene_symbol=gene_model.symbol,
                 gene_name=gene_model.description,
-                gene_type=gene_model.biotype,
+                gene_type_id=gene_model.biotype,
                 chromosome=gene_model.location.chromosome,
                 genomic_region=gene_model.location,
-                external_database_id=self.external_database_id,
-                run_id=self.run_id,
             )
+
             # Yield gene first
-            yield gene_orm
+            yield gene
 
             # Collect and yield transcripts for this gene
             transcripts = []
             exons = []
 
+            # NOTE: gene_id, transcript_id FKs will need to updated to PKs
+            # in load
             for transcript_model in gene_model.transcripts:
-                transcript_orm = TranscriptModel(
-                    source_id=transcript_model.id,
-                    gene_id=gene_model.id,
-                    chromosome=transcript_model.location.chromosome,
-                    genomic_region=transcript_model.location,
-                    external_database_id=self.external_database_id,
-                    run_id=self.run_id,
+                transcripts.append(
+                    FeatureModel(
+                        feature_type=FeatureType.TRANSCRIPT,
+                        id=transcript_model.id,
+                        parent_id=gene_model.id,
+                        chromosome=transcript_model.location.chromosome,
+                        genomic_region=transcript_model.location,
+                    )
                 )
-                transcripts.append(transcript_orm)
 
                 # Collect exons for this transcript
                 for exon_model in transcript_model.exons:
-                    exon_orm = ExonModel(
-                        source_id=exon_model.id,
-                        gene_id=gene_model.id,
-                        transcript_id=transcript_model.id,
-                        chromosome=exon_model.location.chromosome,
-                        genomic_region=exon_model.location,
-                        external_database_id=self.external_database_id,
-                        run_id=self.run_id,
+                    exons.append(
+                        FeatureModel(
+                            feature_type=FeatureType.EXON,
+                            id=exon_model.id,
+                            parent_id=transcript_model.id,
+                            chromosome=exon_model.location.chromosome,
+                            genomic_region=exon_model.location,
+                        )
                     )
-                    exons.append(exon_orm)
 
             # Yield transcripts for this gene
             if transcripts:
@@ -173,8 +220,68 @@ class EnsemblGFF3Loader(AbstractBasePlugin):
             if exons:
                 yield exons
 
-    async def load(self, session, gene_models: list[GeneModel]): ...
+    async def __lookup_gene_biotype(self, session, biotype: str):
+        """find ontology_term_id matching gene biotype"""
+        try:
+            ontology_term_id = self.__ontology_term_ref[biotype]
+        except:
+            ontology_term_id = await OntologyTerm.find_primary_key(
+                session,
+                filters={
+                    "external_database_id": self.__so_external_database_id,
+                    "term": biotype,
+                },
+            )
+            self.__ontology_term_ref[biotype] = ontology_term_id
+        return ontology_term_id
 
-    # TODO - ontology term look up of biotype (in load)
-    # TODO - bin_index assignation (in load?)
-    # TODO - update gene and transcript ids with pks
+    async def load(self, session, records: List[FeatureModel]):
+        for feature_model in records:
+            bin_index = await IntervalBin.find_bin_index(feature_model.genomic_region)
+            if feature_model.feature_type == FeatureType.GENE:
+                gene_type_id = await self.__lookup_gene_biotype(
+                    session, feature_model.biotype
+                )
+                gene = GeneModel(
+                    source_id=feature_model.id,
+                    gene_symbol=feature_model.gene_symbol,
+                    gene_name=feature_model.gene_name,
+                    gene_type_id=gene_type_id,
+                    chromosome=feature_model.chromosome,
+                    genomic_region=feature_model.genomic_region,
+                    bin_index=bin_index,
+                    external_databse_id=self.external_database_id,
+                    run_id=self.run_id,
+                )
+                gene_pk = gene.submit(session)
+                self.__gene_pk_ref[feature_model.id] = gene_pk
+
+            if feature_model.feature_type == FeatureType.TRANSCRIPT:
+                parent_gene_pk = self.__gene_pk_ref[feature_model.parent_id]
+                transcript = TranscriptModel(
+                    source_id=feature_model.id,
+                    gene_id=parent_gene_pk,
+                    chromosome=feature_model.chromosome,
+                    genomic_region=feature_model.genomic_region,
+                    bin_index=bin_index,
+                    external_databse_id=self.external_database_id,
+                    run_id=self.run_id,
+                )
+                transcript_pk = transcript.submit(session)
+                self.__transcript_pk_ref[feature_model.id] = transcript_pk
+                self.__transcript2gene_ref[transcript_pk] = parent_gene_pk
+
+            if feature_model.feature_type == FeatureType.EXON:
+                parent_transcript_pk = self.__transcript_pk_ref[feature_model.id]
+                parent_gene_pk = self.__transcript2gene_ref[parent_transcript_pk]
+                transcript = ExonModel(
+                    source_id=feature_model.id,
+                    gene_id=parent_gene_pk,
+                    transcript_id=parent_transcript_pk,
+                    chromosome=feature_model.chromosome,
+                    genomic_region=feature_model.genomic_region,
+                    bin_index=bin_index,
+                    external_databse_id=self.external_database_id,
+                    run_id=self.run_id,
+                )
+                transcript.submit(session)
