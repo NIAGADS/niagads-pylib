@@ -4,6 +4,7 @@ SQLAlchemy ORM table definitions for core gene structure entities: gene, transcr
 Defines the canonical tables for gene structure in the genomicsdb gene schema.
 """
 
+from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.mixins import GenomicRegionMixin
 from niagads.database.genomicsdb.schema.gene.base import GeneTableBase
 from niagads.database.genomicsdb.schema.gene.helpers import gene_fk_column
@@ -31,7 +32,7 @@ class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     gene_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     gene_symbol: Mapped[str] = mapped_column(String(50))
     gene_name: Mapped[str] = mapped_column(String(250))
-    gene_type: Mapped[str] = mapped_column(String(150))  # TODO: map to ontology term?
+    gene_type_id: Mapped[int] = ontology_term_fk_column()  # TODO: map to ontology term?
 
 
 class TranscriptModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
