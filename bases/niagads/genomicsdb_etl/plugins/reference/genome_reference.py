@@ -124,7 +124,7 @@ metadata_bin_gen = PluginMetadata(
     affected_tables=[IntervalBin],
     load_strategy=ETLLoadStrategy.CHUNKED,
     operation=ETLOperation.INSERT,
-    is_large_dataset=True,
+    is_large_dataset=False,
     parameter_model=GenomeReferenceLoaderParams,
 )
 
@@ -170,7 +170,7 @@ class IntervalBinGenerator(AbstractBasePlugin):
         self.__chr_lengths: Dict = {}
 
     def get_record_id(self, record: IntervalBin) -> str:
-        return record.bin_index
+        return str(record.bin_index)
 
     async def on_run_start(self, session):
         # get chromosome lengths from database
