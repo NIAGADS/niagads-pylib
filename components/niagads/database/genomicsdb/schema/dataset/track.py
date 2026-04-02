@@ -67,7 +67,7 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
 
     is_shard: Mapped[Optional[bool]]
     shard_chromosome: Mapped[str] = enum_column(
-        HumanGenome, index=False, nullable=True, native_enum=True
+        HumanGenome, index=False, nullable=True, native_enum=True, use_enum_names=True
     )
     shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
