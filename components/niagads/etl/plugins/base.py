@@ -583,17 +583,19 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         return result
 
-    async def __flush_chunked_buffer(self, buffer, session) -> ResumeCheckpoint:
+    def __clear_buffer(self, buffer):
+        # Clear buffer if it's a list, else set to None to release reference
+        if isinstance(buffer, list):
+            return []
+        else:
+            return None
+
+    async def __load_buffer(self, buffer, session) -> ResumeCheckpoint:
         checkpoint = None
 
         if not self.is_dry_run:
             checkpoint = await self.__execute_load(session, buffer)
 
-        # Clear buffer if it's a list, else set to None to release reference
-        if isinstance(buffer, list):
-            buffer.clear()
-        else:
-            buffer = None
         return checkpoint
 
     async def __process_chunked_load(self):
@@ -606,6 +608,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
 
         buffer: list = []
+
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             if session is not None:
                 self.__attach_etl_transaction_listener(session)
@@ -618,21 +621,23 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                         buffer.append(processed_records)
 
                     if len(buffer) >= self._batch_size:
+                        residuals = False
                         batches = chunker(
                             buffer, self._batch_size, return_iterator=True
                         )
                         for batch in batches:
                             if len(batch) == self._batch_size:
-                                checkpoint = await self.__flush_chunked_buffer(
-                                    batch, session
-                                )
+                                checkpoint = await self.__load_buffer(batch, session)
                                 await self.__handle_transaction(session, checkpoint)
                             else:
                                 buffer = batch  # residuals
+                                residuals = True
+                        if not residuals:
+                            buffer = self.__clear_buffer(buffer)
 
                 # residuals
                 if buffer:
-                    checkpoint = await self.__flush_chunked_buffer(buffer, session)
+                    checkpoint = await self.__load_buffer(buffer, session)
                     await self.__handle_transaction(session, checkpoint)
 
     async def __process_bulk_load(self) -> ResumeCheckpoint:
@@ -657,7 +662,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             if session is not None:
                 self.__attach_etl_transaction_listener(session)
                 for batch in batches:
-                    checkpoint = await self.__flush_chunked_buffer(batch, session)
+                    checkpoint = await self.__load_buffer(batch, session)
                     await self.__handle_transaction(session, checkpoint)
 
     async def __register_etl_run(self) -> Optional[int]:
