@@ -20,14 +20,19 @@ class AbstractFlatfileParser(ABC, ComponentBaseMixin):
         file: str,
         *,
         encoding: str = "utf-8",
+        logger=None,
         debug: bool = False,
         verbose: bool = False,
     ):
-        super().__init__(debug=debug, verbose=verbose)
+        super().__init__(
+            debug=debug, verbose=verbose, initialize_logger=logger is not None
+        )
+        if logger is not None:
+            self.logger = logger
+
         if not verify_path(file):
             raise ValueError(f"Cannot parse {file} - file does not exist.")
         self._file = file
-        self._is_binary = is_binary_file(self._file)
         self._encoding = encoding
 
     @property
@@ -35,9 +40,7 @@ class AbstractFlatfileParser(ABC, ComponentBaseMixin):
         return self._file
 
     def open_ctx(self):
-        return read_open_ctx(
-            self._file, encoding=self._encoding, is_binary=self._is_binary
-        )
+        return read_open_ctx(self._file, encoding=self._encoding, is_binary=False)
 
     def is_ignored_line(self, line: str, line_number: int) -> bool:
         stripped = line.strip()
