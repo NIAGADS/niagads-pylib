@@ -39,12 +39,12 @@ class EnsemblGFF3LoaderParams(
     """Parameters for Ensembl GFF3 gene structure loader plugin."""
 
     file: str = Field(..., description="full path to Ensembl GFF3 file")
-    so_xdbr: str = Field(
+    so_xdbref: str = Field(
         ...,
         description="external database reference for the sequence ontology `SO|version'",
     )
 
-    validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
+    validate_file_exists = PathValidatorMixin.validator("file")
 
 
 metadata = PluginMetadata(
@@ -92,10 +92,11 @@ class EnsemblGFF3Loader(AbstractBasePlugin):
         self,
         params: Dict[str, Any],
         name: Optional[str] = None,
+        log_path: str = None,
         debug: bool = False,
         verbose: bool = False,
     ):
-        super().__init__(params, name, debug, verbose)
+        super().__init__(params, name, log_path, debug, verbose)
         # Cache for gene primary keys to avoid redundant database queries
         self.__gene_pk_ref = {}
         # Cache for transcript primary keys to maintain relationships with genes
@@ -123,7 +124,7 @@ class EnsemblGFF3Loader(AbstractBasePlugin):
             )
 
             # validate and fetch sequence ontology external database ref
-            so_xbdref_param = ExternalDatabaseRefMixin(xdbref=self._params.so_xdbr)
+            so_xbdref_param = ExternalDatabaseRefMixin(xdbref=self._params.so_xdbref)
             so_xdbref: ExternalDatabase = await so_xbdref_param.fetch_xdbref(session)
             self.__so_external_database_id = so_xdbref.external_database_id
 
@@ -142,6 +143,7 @@ class EnsemblGFF3Loader(AbstractBasePlugin):
         """
         parser = EnsemblGFF3Parser(
             file=self._params.file,
+            logger=self.logger,
             debug=self._debug,
             verbose=self._verbose,
         )

@@ -43,9 +43,11 @@ class ExternalDatabaseRef(BaseModel):
         return cls(name=name, version=version)
 
 
-class ExternalDatabaseRefMixin:
+class ExternalDatabaseRefMixin(BaseModel):
     """
     Mixin for handling external database reference parameters in ETL plugins.
+    class inherits from BaseModel b/c sometimes a plugin needs more than one xdbref
+    e.g., table data source, specific ontology for ontology term mappings
 
     Attributes:
         xdbref (str): External database reference string in the format 'name|version'.
