@@ -3,7 +3,7 @@ from typing import List, Optional
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.gene.annotation import PathwayMembership
 from niagads.database.genomicsdb.schema.gene.documents import Gene
-from niagads.database.genomicsdb.schema.gene.xrefs import GeneXRefType
+from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.pathway import Pathway
 from niagads.etl.plugins.base import AbstractBasePlugin
@@ -72,7 +72,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
     # --------- Load Helpers
 
     async def _lookup_gene_primary_key(
-        self, session, gene_id: str, gene_id_type: GeneXRefType
+        self, session, gene_id: str, gene_id_type: GeneIdentifierType
     ):
         """
         check for gene primary key in stored hash, if not found
@@ -137,7 +137,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
         self,
         session,
         annotations: List[GenePathwayAssociation],
-        gene_id_type: GeneXRefType,
+        gene_id_type: GeneIdentifierType,
     ):
         """
         Helper function to load pathway data into the database.
