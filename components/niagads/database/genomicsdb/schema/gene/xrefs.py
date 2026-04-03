@@ -63,6 +63,6 @@ class GeneXRef(GeneTableBase):
     ontology_term_id: Mapped[Optional[int]] = ontology_term_fk_column(
         nullable=True, index=True
     )
-    cross_references: Mapped[dict] = mapped_column(
+    cross_references: Mapped[Optional[dict]] = mapped_column(
         JSONB(none_as_null=True), nullable=True
     )
