@@ -12,7 +12,7 @@ from niagads.common.gene.models.annotation import (
 )
 from niagads.database.mixins import GenomicRegionMixin
 from niagads.database.genomicsdb.schema.gene.base import GeneMaterializedViewBase
-from niagads.database.genomicsdb.schema.gene.xrefs import GeneXRefType
+from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from sqlalchemy import ARRAY, String, func, select
 from sqlalchemy.dialects.postgresql import JSONB
@@ -135,7 +135,7 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
         return {"gene_id": record.gene_id, "ensembl_id": record.ensembl_id}
 
     async def __resolve_gene_xref(
-        self, session: AsyncSession, id: str, gene_identifier_type: GeneXRefType
+        self, session: AsyncSession, id: str, gene_identifier_type: GeneIdentifierType
     ):
         stmt = select(Gene).where(Gene.xrefs[str(gene_identifier_type)].astext == id)
         result = await session.execute(stmt)
@@ -155,7 +155,7 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
         self,
         session: AsyncSession,
         id: str,
-        gene_identifier_type: GeneXRefType,
+        gene_identifier_type: GeneIdentifierType,
         case_insensitive: bool = False,
     ):
         """
@@ -187,13 +187,13 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
                 "ENSG00000123456", GeneXRefType.ENSEMBL, session
             )
         """
-        if gene_identifier_type == GeneXRefType.ENSEMBL:
+        if gene_identifier_type == GeneIdentifierType.ENSEMBL:
             record: Gene = cast(
                 Gene, await super().fetch_record(session, {"ensembl_id": id.upper()})
             )
             return {"gene_id": record.gene_id, "ensembl_id": record.ensembl_id}
 
-        if gene_identifier_type == GeneXRefType.SYMBOL:
+        if gene_identifier_type == GeneIdentifierType.SYMBOL:
             return await self.resolve_gene_symbol(session, id, case_insensitive)
 
         else:  # check against the external_ids
