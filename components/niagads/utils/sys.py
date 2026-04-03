@@ -204,18 +204,17 @@ def read_open_ctx(
 
     Args:
         path (str): Path to the file. If path ends with '.gz', gzip open is used.
-        binary (bool): Open in binary mode (default is False = text mode).
+        is_binary (bool): Open in binary mode (default is False = text mode).
         encoding (str): Text encoding for non-binary mode (default "utf-8").
 
     Yields:
         io.IOBase: Open file handle (text or binary), auto-closed on exit.
     """
 
+    mode = "rb" if is_binary else "rt"
     if path.endswith(".gz"):
-        mode = "rb" if is_binary else "rt"
         file_handle = gzip.open(path, mode, encoding=None if is_binary else encoding)
     else:
-        mode = "rb" if is_binary else "r"
         file_handle = open(path, mode, encoding=None if is_binary else encoding)
     try:
         yield file_handle
