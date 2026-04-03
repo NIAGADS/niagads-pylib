@@ -138,7 +138,7 @@ term: OntologyTerm = await OntologyTerm.fetch_record(session, {"curie": 'GO:1234
 
 ```
 
-### TableRef (Catalog) Mixinx
+### TableRef (Catalog) Mixin
 
 Some tables include a generic `table_id`, `row_id` pair (e.g., [Gene.AnnotationEvidence](../../../components/niagads/database/genomicsdb/schema/gene/annotation.py)) that references a specific record in any cataloged table, so that the same reference pattern can work across many tables.  This relies on a table catalog, which is located in the `Admin` schema.  The [Admin.TableCatalog](../../../components/niagads/database/genomicsdb/schema/admin/catalog.py) provides a classmethod `get_table_ref` that takes a table class and returns the table reference in the catalog as [TableRef](../../../components/niagads/database/genomicsdb/schema/admin/types.py) object (providing: schema name and id, table name and id, and the table primary key field)
 
@@ -434,6 +434,44 @@ runpipe-plugin XMLRecordLoader --file test.xml --undo --run_id <run_id>
 > **Important**: UNDO deletes, it cannot rollback updates.  Please use with caution if your load involves updates.
 
 For more details, see inline documentation in [`AbstractBasePlugin`](../../../components/niagads/etl/plugins/base.py), [`PluginRegistry`](../../../components/niagads/etl/plugins/registry.py), and existing plugins in [`bases/niagads/genomicsdb_etl/etl/plugins`](../genomicsdb_etl).
+
+## Foreign Key Lookups
+
+### External Database References
+
+Most tables in our database have an `external_database_id` field that maps each record to its data source (stored in the `ExternalDatabase` table).  Some tables will also have a paired `source_id` field that stores the accession number or unique primary key for the record in the original data source.  Most of these will inherit from the `ExternalDatabaseMixin`.  There are rare cases (e.g., `Gene.XRefs`) where there is an explicitly defined `external_database_id` becuase the table does not require a `source_id` field.
+
+If a table definition includes the `ExternalDatabaseMixin`, then your plugin parameters will need to inherit from the `ExternalDatabaseRefMixin`. This will add an `--xdbref` parameter to the plugin and validators/lookup functions needed to validate the xdbref and retrieve the associated `external_database_id` from the database.  `xdbrefs` are always formatted as `db_name|db_version`.  Retrieving the `external_database_id` requires a database lookup; it is suggested that this is handled in the `on_run_start` lifecycle function.
+
+> **Note**: When running plugins from the command line *always* provide the xdbref in *quotes* (") as the pipe will be misinterpreted by the shell.  e.g., `--xdbref "Sequence Ontology|2024-11-18"`, not `--xdbref Sequence Ontology|2024-11-18`
+
+More details on the usage of this mixin to come, but you can search existing plugins for example utilization.
+
+There is a helper script `runpipe-xdb-lookup` that can be used to search the database for a specific database name (or partial names, search is fuzzy and case insensitive) or database key to get the list of possible xdbrefs.
+
+**Example Usage**
+
+```bash
+runpipe-xdb-lookup --xdb sequence
+```
+
+prints: Sequence Ontology|2024-11-18
+
+```bash
+runpipe-xdb-lookup --xdb SO
+```
+
+prints: Sequence Ontology|2024-11-18
+
+### Ontology Terms
+
+### Gene Identifiers
+
+### Variant Identifiers
+
+### Table References (Catalog)
+
+See [TableRefMixin](#tableref-catalog-mixin) section for more information.
 
 ## Instructions for AI Assistants Writing Plugins
 
