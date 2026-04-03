@@ -1,10 +1,10 @@
 import xml.etree.ElementTree as ET
 from typing import List, Optional
 
-from niagads.common.gene.models.annotation import PathwayMembership
-from niagads.common.reference.xrefs.models import Pathway
 from niagads.common.types import ETLOperation
+from niagads.database.genomicsdb.schema.gene.annotation import PathwayMembership
 from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType
+from niagads.database.genomicsdb.schema.reference.pathway import Pathway
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
