@@ -5,6 +5,7 @@ from niagads.common.models.types import Range
 from niagads.database.mixins.ranges import GenomicRegionMixin
 from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.database.genomicsdb.schema.reference.genome import GenomeReference
+from niagads.genome_reference.human import HumanGenome
 from sqlalchemy import Integer, and_, func, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +25,9 @@ class IntervalBin(ReferenceTableBase, GenomicRegionMixin):
     bin_level: Mapped[int] = mapped_column(Integer)
 
     @classmethod
-    async def find_bin_index(cls, session: AsyncSession, region: GenomicRegion):
+    async def find_bin_index(
+        cls, session: AsyncSession, chromosome: HumanGenome, span: Range
+    ):
         """
         Find the most specific (deepest level) bin that contains the given genomic region.
 
@@ -44,30 +47,28 @@ class IntervalBin(ReferenceTableBase, GenomicRegionMixin):
         """
         # Get chromosome size
         chr_size_stmt = select(GenomeReference.chromosome_length).where(
-            GenomeReference.chromosome == str(region.chromosome)
+            GenomeReference.chromosome == str(chromosome)
         )
         chr_size_result = await session.execute(chr_size_stmt)
         chr_size = chr_size_result.scalar()
 
         if chr_size is None:
-            raise NoResultFound(
-                f"Chromosome {region.chromosome} not found in GenomeReference"
-            )
+            raise NoResultFound(f"Chromosome {chromosome} not found in GenomeReference")
 
         # Constrain end to valid bounds; handles flanking regions past chromosome boundaries
-        end = min(region.end, chr_size - 1)
+        end = min(span.end, chr_size - 1)
 
         # Create query range
-        query_range = Range(start=region.start, end=end, inclusive_end=True)
+        query_range = Range(start=span.start, end=end, inclusive_end=True)
 
         # Find the most specific (deepest level) bin containing the region
         bin_stmt = (
             select(IntervalBin.bin_index)
             .where(
                 and_(
-                    IntervalBin.chromosome == str(region.chromosome),
+                    IntervalBin.chromosome == str(chromosome),
                     # The bin's genomic_region must contain the query range
-                    IntervalBin.genomic_region.op("@>")(query_range),
+                    IntervalBin.span.op("@>")(query_range),
                 )
             )
             .order_by(
