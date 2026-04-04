@@ -414,17 +414,18 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         return total
 
     def __attach_etl_transaction_listener(self, session: AsyncSession) -> None:
-        sync_session = session.sync_session
-        if sync_session.info.get("etl_self.__transaction_record_listener_attached"):
-            return
+        if session is not None:
+            sync_session = session.sync_session
+            if sync_session.info.get("etl_self.__transaction_record_listener_attached"):
+                return
 
-        sync_session.info["etl_self.__transaction_record_listener_attached"] = True
+            sync_session.info["etl_self.__transaction_record_listener_attached"] = True
 
-        event.listen(
-            sync_session,
-            "after_flush",
-            self.__track_etl_transactions,
-        )
+            event.listen(
+                sync_session,
+                "after_flush",
+                self.__track_etl_transactions,
+            )
 
     def __track_etl_transactions(self, sync_session, flush_context) -> None:
         """
@@ -610,10 +611,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         buffer: list = []
 
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            if session is not None:
-                self.__attach_etl_transaction_listener(session)
-                for records in self.extract():
-                    processed_records = self.transform(records)
+            self.__attach_etl_transaction_listener(session)
+            for records in self.extract():
+                processed_records = self.transform(records)
+
+                if session is not None:  # load
                     # chunked can yield one or a list of records
                     if isinstance(processed_records, list):
                         buffer.extend(processed_records)
@@ -635,7 +637,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                         if not residuals:
                             buffer = self.__clear_buffer(buffer)
 
-                # residuals
+            if session is not None:  # handle residuals
                 if buffer:
                     checkpoint = await self.__load_buffer(buffer, session)
                     await self.__handle_transaction(session, checkpoint)
