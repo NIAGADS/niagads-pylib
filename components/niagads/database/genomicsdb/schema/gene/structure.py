@@ -4,13 +4,14 @@ SQLAlchemy ORM table definitions for core gene structure entities: gene, transcr
 Defines the canonical tables for gene structure in the genomicsdb gene schema.
 """
 
+from typing import Optional
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.mixins import GenomicRegionMixin
 from niagads.database.genomicsdb.schema.gene.base import GeneTableBase
 from niagads.database.genomicsdb.schema.gene.helpers import gene_fk_column
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.utils.regular_expressions import RegularExpressions
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import CheckConstraint
 
@@ -49,7 +50,9 @@ class TranscriptModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     )
 
     transcript_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
     gene_id: Mapped[int] = gene_fk_column()
+    is_canonical: Mapped[bool] = mapped_column(index=True, nullable=True)
 
 
 class ExonModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
@@ -70,3 +73,4 @@ class ExonModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     transcript_id: Mapped[int] = mapped_column(
         ForeignKey("gene.transcript.transcript_id"), index=True, nullable=False
     )
+    rank: Mapped[Optional[int]] = mapped_column(Integer, index=False, nullable=False)

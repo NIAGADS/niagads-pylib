@@ -45,7 +45,7 @@ class GenomicRegionMixin(object):
         prefix = f"ix_{schema}_{table}_"
         return (
             Index(f"{prefix}_{field}", field, postgresql_using="gist")
-            for field in ["bin_index", "genomic_region"]
+            for field in ["bin_index", "span"]
         )
 
     @classmethod
