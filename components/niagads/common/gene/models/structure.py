@@ -22,6 +22,7 @@ class ExonModel(CustomBaseModel):
         title="Exon ID",
         description="Ensembl exon identifier",
     )
+    parent_id: str = Field(title="Parent Transcript ID")
     location: GenomicRegion = Field(
         title="Location",
         description="Genomic coordinates of the exon",
@@ -43,6 +44,7 @@ class CDSRegion(CustomBaseModel):
     Captures the genomic coordinates and reading frame phase.
     """
 
+    parent_id: str = Field(title="Parent Transcript ID")
     location: GenomicRegion = Field(
         title="Location",
         description="Genomic coordinates of the CDS region",
@@ -65,6 +67,7 @@ class UTRRegion(CustomBaseModel):
     5' UTR (before the start codon) and 3' UTR (after the stop codon).
     """
 
+    parent_id: str = Field(title="Parent Transcript ID")
     location: GenomicRegion = Field(
         title="Location",
         description="Genomic coordinates of the UTR region",
@@ -86,6 +89,7 @@ class CodonRegion(CustomBaseModel):
     or termination (stop codon).
     """
 
+    parent_id: str = Field(title="Parent Transcript ID")
     location: GenomicRegion = Field(
         title="Location",
         description="Genomic coordinates of the codon",
@@ -111,22 +115,14 @@ class TranscriptModel(CustomBaseModel):
         title="Transcript ID",
         description="Ensembl transcript identifier",
     )
+    parent_id: str = Field(title="Parent Gene ID")
+    name: Optional[str] = Field(default=None, title="Transcript Name")
     location: GenomicRegion = Field(
         title="Location",
         description="Genomic coordinates spanning all exons",
     )
-    source: Optional[str] = Field(
-        default=None,
-        title="Source",
-        description="Annotation source (e.g., ensembl, havana)",
-    )
-    biotype: Optional[str] = Field(
-        default=None,
-        title="Biotype",
-        description="Transcript biotype (e.g., protein_coding, lncRNA)",
-    )
     is_canonical: Optional[bool] = Field(
-        default=None,
+        default=False,
         title="Is Canonical",
         description="Whether this is the canonical transcript",
     )
@@ -195,11 +191,6 @@ class GeneModel(CustomBaseModel):
         default=None,
         title="Description",
         description="Human-readable gene description",
-    )
-    score: Optional[float] = Field(
-        default=None,
-        title="Score",
-        description="Quality/confidence score for the gene feature",
     )
     transcripts: List[TranscriptModel] = Field(
         default_factory=list,
