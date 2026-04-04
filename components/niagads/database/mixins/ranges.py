@@ -1,7 +1,9 @@
+from typing import Optional
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.genome_reference.human import HumanGenome
 from niagads.common.models.types import Range
 from niagads.database import RangeType
+from niagads.genome_reference.types import Strand
 from sqlalchemy import Index, ForeignKeyConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy_utils import LtreeType
@@ -25,10 +27,16 @@ class GenomicRegionMixin(object):
     chromosome: Mapped[str] = enum_column(
         HumanGenome, native_enum=True, use_enum_names=True
     )
-    genomic_region: Mapped[Range] = mapped_column(RangeType, nullable=False)
+    span: Mapped[Range] = mapped_column(RangeType, nullable=False)
+    strand: Mapped[Optional[str]] = enum_column(
+        Strand, native_enum=False, use_enum_names=False, nullable=True, index=False
+    )
     bin_index: Mapped[str] = mapped_column(LtreeType)
 
-    __table_args__ = (enum_constraint("chromosome", HumanGenome, use_enum_names=True),)
+    __table_args__ = (
+        enum_constraint("chromosome", HumanGenome, use_enum_names=True),
+        enum_constraint("strand", Strand, use_enum_names=False),
+    )
 
     @classmethod
     def get_indexes(cls, schema: str, table: str):
