@@ -168,7 +168,6 @@ class ETLLogger:
 
     def checkpoint(self, checkpoint: ResumeCheckpoint):
         self.report_section("ETL Resume Checkpoint")
-        self.info(f"{checkpoint.model_dump()}")
         try:
             self.info(f"CHECKPOINT: {checkpoint.as_info_string(self._debug)}")
         except Exception as err:
