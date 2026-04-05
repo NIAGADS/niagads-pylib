@@ -34,7 +34,7 @@ class BasePluginParams(BaseModel):
         default=None,
         description="resume checkpoint, a line number or record ID.  Indicate as line=<N> or id=<record ID>",
     )
-    connection_string: Optional[str] = Field(
+    database_uri: Optional[str] = Field(
         default=None,
         description="database connection string; if not provided, the plugin will try to assign from `DATABASE_URI` property in an `.env` file",
     )

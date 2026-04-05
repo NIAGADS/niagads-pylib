@@ -80,8 +80,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.__transaction_record: Dict[str, Dict[str, int]] = {}
         self.__execution_status: ProcessStatus = None
 
-        self._connection_string = (
-            self._params.connection_string or PipelineSettings.from_env().DATABASE_URI
+        self._database_uri = (
+            self._params.database_uri or PipelineSettings.from_env().DATABASE_URI
         )
 
         self.__session_manager = (
@@ -207,13 +207,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         return os.path.join(log_path, f"{self._name}.log")
 
     def __initialize_database_session(self):
-        if self._connection_string is None:
+        if self._database_uri is None:
             raise ValueError(
                 "Database connection string is required unless ETLMode is DRY_RUN."
             )
 
         return DatabaseSessionManager(
-            connection_string=self._connection_string,
+            connection_string=self._database_uri,
             echo=self._debug and self._verbose,
             expire_on_commit=False,
         )
@@ -519,7 +519,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 current connection string and debug settings.
         """
         return DatabaseSessionManager(
-            self._connection_string,
+            self._database_uri,
             pool_size=pool_size,
             echo=self._debug,
         )
