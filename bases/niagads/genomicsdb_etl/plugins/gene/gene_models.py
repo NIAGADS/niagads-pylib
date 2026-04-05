@@ -434,7 +434,7 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
             gene.gene_type_id = await self.__lookup_gene_biotype(
                 session, gene_feature.gene.gene_type_id
             )
-            if self._params.verify_biotypes:
+            if self._params.verify_biotypes_only:
                 continue
 
             gene_id = gene.source_id
