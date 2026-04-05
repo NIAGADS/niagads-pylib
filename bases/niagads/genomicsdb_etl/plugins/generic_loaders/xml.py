@@ -1,9 +1,5 @@
 """
-Sample ETL plugin for loading XML data into a database table using the NIAGADS ETL framework.
-
-- Expects an XML file with repeated blocks, each block corresponding to a row.
-- The outermost XML tag (e.g., <NIAGADS::AlleleFreqPopulation>) determines the schema.table to load into.
-
+ETL plugin for loading or updating a record in an arbitrary table.
 """
 
 import ast
@@ -108,7 +104,7 @@ metadata = PluginMetadata(
         Nested elements within <Record> are columns and their values.
         
         If the row already exists in the table, the plugin will throw an error unless
-        the --update flag is specified.
+        the --skip-duplicates flag is specified.
         """,
     load_strategy=ETLLoadStrategy.CHUNKED,
     operation=ETLOperation.LOAD,
@@ -305,16 +301,12 @@ class XMLRecordLoader(AbstractBasePlugin):
 
     async def load(self, session, entries: List[XMLEntry]) -> ResumeCheckpoint:
         """
-        Insert or update a single record in the target table based on XML input.
-        Checks if the record already exists in the table (using all columns as a composite key).
-        If not, inserts the record.
-        If it exists and --update is True, updates the record.
-        If it exists and --skip-existing is True, logs and skips the record.
-        If it exists and neither --update nor --skip-existing is True, raises an error.
-        Args:
-            transformed (XMLRecord): parsed and transformed XMLRecord.
-        Returns:
-            ResumeCheckpoint: resume checkpoint -> here None
+        Load XML records into the target table, performing insert or update as needed.
+
+        For each entry:
+          - If a matching record exists (by primary key or stable identifier), update it.
+          - If not, check for duplicates; if found and skip_duplicates is True, skip; else, raise error.
+          - Otherwise, insert the new record
         """
 
         for entry in entries:
