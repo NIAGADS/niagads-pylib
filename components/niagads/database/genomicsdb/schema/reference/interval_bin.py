@@ -26,7 +26,11 @@ class IntervalBin(ReferenceTableBase, GenomicRegionMixin):
 
     @classmethod
     async def find_bin_index(
-        cls, session: AsyncSession, chromosome: HumanGenome, span: Range
+        cls,
+        session: AsyncSession,
+        chromosome: HumanGenome,
+        span: Range,
+        check_end_range: bool = False,
     ):
         """
         Find the most specific (deepest level) bin that contains the given genomic region.
@@ -45,18 +49,23 @@ class IntervalBin(ReferenceTableBase, GenomicRegionMixin):
         Raises:
             Exception: If chromosome is not found in genome reference.
         """
-        # Get chromosome size
-        chr_size_stmt = select(GenomeReference.chromosome_length).where(
-            GenomeReference.chromosome == str(chromosome)
-        )
-        chr_size_result = await session.execute(chr_size_stmt)
-        chr_size = chr_size_result.scalar()
+        if check_end_range:
+            # Get chromosome size
+            chr_size_stmt = select(GenomeReference.chromosome_length).where(
+                GenomeReference.chromosome == str(chromosome)
+            )
+            chr_size_result = await session.execute(chr_size_stmt)
+            chr_size = chr_size_result.scalar()
 
-        if chr_size is None:
-            raise NoResultFound(f"Chromosome {chromosome} not found in GenomeReference")
+            if chr_size is None:
+                raise NoResultFound(
+                    f"Chromosome {chromosome} not found in GenomeReference"
+                )
 
-        # Constrain end to valid bounds; handles flanking regions past chromosome boundaries
-        end = min(span.end, chr_size - 1)
+            # Constrain end to valid bounds; handles flanking regions past chromosome boundaries
+            end = min(span.end, chr_size - 1)
+        else:
+            end = span.end
 
         # Create query range
         query_range = Range(start=span.start, end=end, inclusive_end=True)
