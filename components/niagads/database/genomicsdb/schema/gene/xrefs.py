@@ -35,8 +35,9 @@ class GeneXRefCategory(CaseInsensitiveEnum):
     ORTHOLOG = auto()
 
 
-# NOTE: not using the ExternalDatabaseMixin because there is no source_id
-class GeneXRef(GeneTableBase):
+# don't want the external_database_id/source_id constraint as they will be repeated
+# that is why source_id is not a stable_id
+class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
     __tablename__ = "xref"
     __table_args__ = (
         enum_constraint("xref_category", GeneXRefCategory),
@@ -44,11 +45,6 @@ class GeneXRef(GeneTableBase):
     )
     _stable_id = None
     xref_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    external_database_id: Mapped[int] = mapped_column(
-        ForeignKey("reference.externaldatabase.external_database_id"),
-        nullable=False,
-        index=True,
-    )
     gene_id: Mapped[int] = gene_fk_column()
     xref_category: Mapped[GeneXRefCategory] = enum_column(
         GeneXRefCategory, index=True, nullable=False

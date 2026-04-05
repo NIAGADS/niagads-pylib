@@ -1,0 +1,232 @@
+"""
+HGNC Gene Nomenclature XRef Loader Plugin
+
+Loads gene cross-references from the HGNC (HUGO Gene Nomenclature Committee) JSON download file
+into the gene.xref table, mapping genes by their Ensembl gene ID (stable_id/source_id).
+"""
+
+import json
+from typing import Any, Dict, Iterator, List, Optional
+
+from niagads.common.types import ETLOperation
+from niagads.database.genomicsdb.schema.gene.structure import GeneModel
+from niagads.database.genomicsdb.schema.gene.xrefs import GeneXRef, GeneXRefCategory
+from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
+from niagads.etl.plugins.base import AbstractBasePlugin
+from niagads.etl.plugins.metadata import PluginMetadata
+from niagads.etl.plugins.parameters import (
+    BasePluginParams,
+    PathValidatorMixin,
+    ResumeCheckpoint,
+)
+from niagads.etl.plugins.registry import PluginRegistry
+from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.genomicsdb_etl.plugins.gene.xrefs.mappings import HGNC_XREF_CATEGORY_MAP
+from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
+    ExternalDatabaseRefMixin,
+)
+from niagads.utils.string import dict_to_info_string, xstr
+from niagads.utils.sys import read_open_ctx
+from pydantic import BaseModel, Field
+
+
+class GeneXRefEntry(BaseModel):
+    """Parsed HGNC entry with mapped xref category."""
+
+    source_id: str
+    ensembl_id: str
+    xref_label: str  # the HGNC field name (e.g., "entrez_id", "omim_id")
+    xref_value: str  # the field value
+    xref_category: GeneXRefCategory
+
+
+class HGNCXRefLoaderParams(
+    BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin
+):
+    """Parameters for HGNC XRef Loader plugin."""
+
+    file: str = Field(
+        ...,
+        description="Full path to HGNC JSON file",
+    )
+
+    validate_file_exists = PathValidatorMixin.validator("file")
+
+
+metadata = PluginMetadata(
+    version="1.0",
+    description=(
+        "ETL Plugin to load gene cross-references from HGNC JSON download file "
+        f"into {GeneXRef.table_name()}. Maps genes by Ensembl gene ID (source_id) "
+        "and creates xref records for all mapped HGNC identifiers and attributes."
+    ),
+    affected_tables=[GeneXRef],
+    load_strategy=ETLLoadStrategy.CHUNKED,
+    operation=ETLOperation.INSERT,
+    is_large_dataset=False,
+    parameter_model=HGNCXRefLoaderParams,
+)
+
+
+@PluginRegistry.register(metadata)
+class HGNCXRefLoader(AbstractBasePlugin):
+    """
+    ETL plugin for loading HGNC gene cross-references into the gene.xref table.
+
+    Maps genes by Ensembl gene ID and creates xref records for all available HGNC
+    identifiers and attributes according to HGNC_XREF_CATEGORY_MAP.
+    """
+
+    _params: HGNCXRefLoaderParams  # type annotation
+
+    def __init__(
+        self,
+        params: Dict[str, Any],
+        name: Optional[str] = None,
+        log_path: str = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(params, name, log_path, debug, verbose)
+        self.__external_database: ExternalDatabase = None
+        self.__gene_pk_ref: Dict[str, GeneModel] = {}
+
+    @property
+    def external_database_id(self):
+        return self.__external_database.external_database_id
+
+    async def on_run_start(self, session):
+        """Fetch and cache the HGNC external database record."""
+        if self.is_etl_run:
+            # Fetch HGNC external database reference using mixin
+            self.__external_database = await self.fetch_xdbref(session)
+
+    def extract(self) -> Iterator[dict]:
+        """
+        Extract HGNC records from JSON file.
+
+        The HGNC JSON download file has the structure:
+        { "response": { "docs": [...] }, ... }
+
+        Yields each HGNC document (gene record).
+        """
+        invalid_ensembl_gene_count = 0
+        valid_ensembl_gene_count = 0
+        try:
+            with read_open_ctx(self._params.file) as fh:
+                data = json.load(fh)
+
+            entries = data["response"]["docs"]
+            self.logger.info(f"Read {len(entries)} HGNC records")
+
+            for entry in entries:
+                ensembl_id = entry.get("ensembl_gene_id", None)
+                if ensembl_id is None:
+                    invalid_ensembl_gene_count += 1
+                else:
+                    valid_ensembl_gene_count += 1
+                    yield entry
+
+            self.logger.info(f"Extracted {valid_ensembl_gene_count} Ensembl Genes")
+            if invalid_ensembl_gene_count > 0:
+                self.logger.info(f"Skipped {invalid_ensembl_gene_count} Ensembl Genes")
+
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Failed to parse HGNC JSON file: {e}")
+
+    def __is_empty_value(self, value):
+        if value is None:
+            return True
+        if isinstance(value, str) and value.strip() == "":
+            return True
+        if isinstance(value, list) and len(value) == 0:
+            return True
+        if isinstance(value, dict) and len(value) == 0:
+            return True
+        return False
+
+    def transform(self, entry: dict) -> List[GeneXRefEntry]:
+        """
+        Transform an HGNC record into a list of xref entries.
+
+        For each field in the HGNC record that is mapped in HGNC_XREF_CATEGORY_MAP,
+        create an HGNCGeneXRefEntry with the xref category.
+        """
+
+        ensembl_id = entry.get("ensembl_gene_id", None)
+        hgnc_id = entry.get("hgnc_id")
+
+        xrefs = []
+
+        for key, xref_value in entry.items():
+            if self.__is_empty_value(xref_value):
+                continue
+
+            key = key.replace("_ids", "_id")
+            category = HGNC_XREF_CATEGORY_MAP[key]
+
+            if isinstance(xref_value, list):
+                for v in xref_value:
+                    xrefs.append(
+                        GeneXRefEntry(
+                            source_id=hgnc_id,
+                            ensembl_id=ensembl_id,
+                            xref_label=key,
+                            xref_value=xstr(v),
+                            xref_category=str(category),
+                        )
+                    )
+                xrefs.append(
+                    GeneXRefEntry(
+                        source_id=hgnc_id,
+                        ensembl_id=ensembl_id,
+                        xref_label=key,
+                        xref_value=xstr(xref_value),
+                        xref_category=category,
+                    )
+                )
+
+        return xrefs
+
+    async def __lookup_gene(self, session, source_id: str) -> Optional[GeneModel]:
+        """
+        Lookup or fetch a gene by its Ensembl gene ID (source_id).
+        Uses a local cache to avoid repeated database queries.
+        """
+        try:
+            gene_pk = self.__gene_pk_ref[source_id]
+        except:
+            gene_pk = await GeneModel.find_primary_key(
+                session, filters={"source_id": source_id}
+            )
+            self.__gene_pk_ref[source_id] = gene_pk
+        return gene_pk
+
+    async def load(self, session, entries: List[GeneXRefEntry]) -> ResumeCheckpoint:
+        """
+        Load xref entries into the gene.xref table.
+        """
+        xrefs: List[GeneXRef] = []
+        current_ensembl_id = None
+        current_gene_pk = None
+        for entry in entries:
+            if current_ensembl_id != entry.ensembl_id:
+                current_ensembl_id = entry.ensembl_id
+                current_gene_pk = self.__lookup_gene(session, current_ensembl_id)
+
+            xrefs.append(
+                GeneXRef(
+                    gene_id=current_gene_pk,
+                    xref_category=entry.xref_category,
+                    xref_label=entry.xref_label,
+                    xref_value=entry.xref_value,
+                    external_database_id=self.external_database_id,
+                    run_id=self.run_id,
+                )
+            )
+
+        GeneXRef.submit_many(session, xrefs)
+        return self.create_checkpoint(record=entries[-1])
+
+    def get_record_id(self, record: GeneXRefEntry) -> str:
+        return f"{dict_to_info_string(record.model_dump())}"

@@ -11,7 +11,7 @@ HGNC_XREF_CATEGORY_MAP = {
     "rna_central_id": GeneXRefCategory.IDENTIFIER,
     "refseq_accession": GeneXRefCategory.IDENTIFIER,
     "ccds_id": GeneXRefCategory.IDENTIFIER,
-    "uniprot_ids": GeneXRefCategory.IDENTIFIER,
+    "uniprot_id": GeneXRefCategory.IDENTIFIER,
     "ucsc_id": GeneXRefCategory.IDENTIFIER,
     "ena": GeneXRefCategory.IDENTIFIER,
     "mane_select": GeneXRefCategory.IDENTIFIER,
