@@ -141,9 +141,9 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
         self.__so_external_database_id = None
 
     async def on_run_start(self, session):
-        if self.is_etl_run:
-            super().on_run_start(session)
+        await super().on_run_start(session)
 
+        if self.is_etl_run:
             # validate and fetch sequence ontology external database ref
             so_xbdref_param = ExternalDatabaseRefMixin(xdbref=self._params.so_xdbref)
             so_xdbref: ExternalDatabase = await so_xbdref_param.fetch_xdbref(session)
