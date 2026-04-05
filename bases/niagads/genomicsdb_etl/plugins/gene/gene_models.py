@@ -93,6 +93,9 @@ class EnsemblGFF3LoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
     """Parameters for Ensembl GFF3 gene structure loader plugin."""
 
     file: str = Field(..., description="full path to Ensembl GFF3 file")
+    verify_biotypes_only: bool = Field(
+        default=False, description="in `RUN` mode, only verify biotypes"
+    )
     so_xdbref: str = Field(
         ...,
         description="external database reference for the sequence ontology `SO|version'",
@@ -104,7 +107,9 @@ class EnsemblGFF3LoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
 metadata = PluginMetadata(
     version="1.0",
     description=(
-        "ETL Plugin to load gene structures (genes, transcripts, exons) from an Ensembl GFF3 file"
+        "ETL Plugin to load gene structures (genes, transcripts, exons) from an Ensembl GFF3 file. "
+        "Recommended to run first with `--verify-biotypes-only --verbose` because Ensembl "
+        "does not strictly adhere to the sequence ontology (SO)."
     ),
     affected_tables=[ExonModel, TranscriptModel, GeneModel],
     load_strategy=ETLLoadStrategy.CHUNKED,
@@ -411,13 +416,30 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
     async def load(self, session, records: list[GeneFeature]):
         gene_id = None
         for gene_feature in records:
-
             gene: GeneModel = gene_feature.gene
-            gene_id = gene.source_id
-            self.__set_common_attributes(gene)
+
+            if gene.gene_type_id == "artifact":
+                self.inc_tx_count(GeneModel, ETLOperation.SKIP)
+                self.inc_tx_count(
+                    TranscriptModel, ETLOperation.SKIP, len(gene_feature.transcripts)
+                )
+                num_exons = sum(
+                    len(transcript_feature.exons)
+                    for transcript_feature in gene_feature.transcripts
+                )
+                self.inc_tx_count(ExonModel, ETLOperation.SKIP, num_exons)
+                self.logger.info(f"Skipping `artifact` gene: {gene.source_id}")
+                continue
+
             gene.gene_type_id = await self.__lookup_gene_biotype(
                 session, gene_feature.gene.gene_type_id
             )
+            if self._params.verify_biotypes:
+                continue
+
+            gene_id = gene.source_id
+            self.__set_common_attributes(gene)
+
             gene_pk = await gene.submit(session)
 
             exons = []
