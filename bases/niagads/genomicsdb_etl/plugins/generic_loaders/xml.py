@@ -6,12 +6,15 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 
 """
 
+import ast
 import importlib.resources
-import json
+
 from typing import Any, Dict, Iterator, List, Optional, Type
 
 from lxml import etree
 from niagads.common.types import ETLOperation
+from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
+from niagads.database.genomicsdb.schema.admin.types import TableRef
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
@@ -21,26 +24,28 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-from pydantic import BaseModel, ConfigDict, Field, computed_field
-from sqlalchemy import text
+from niagads.utils.string import dict_to_info_string
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class SQLClauses(BaseModel):
-    columns: List[str]
-    col_names: str
-    placeholders: str
-    set_clause: str
-    where_clause: str
-
-
-class XMLRecord(BaseModel):
+class XMLEntry(BaseModel):
     data_table: str
     data_schema: str
 
     model_config = ConfigDict(extra="allow")
 
+    @property
+    def qualified_table_name(self):
+        return f"{self.data_schema}.{self.data_table}"
+
     def __str__(self):
         return str(self.model_dump(include_table_schema=True))
+
+    def has_field(self, field: str) -> bool:
+        """
+        Returns True if a table field (field) is present in this record.
+        """
+        return field in self.model_dump()
 
     def model_dump(
         self, *args, include_table_schema: bool = False, **kwargs
@@ -64,33 +69,13 @@ class XMLRecord(BaseModel):
             "XMLRecord: No extra fields found. This likely indicates an issue parsing the XML record."
         )
 
-    @computed_field
-    @property
-    def sql_clauses(self) -> SQLClauses:
-        """
-        Computed property to extract SQL clauses from a record as a Pydantic model.
-        """
-
-        columns = list(self.model_dump().keys())
-        return SQLClauses(
-            columns=columns,
-            col_names=", ".join(columns),
-            placeholders=", ".join(f":{col}" for col in columns),
-            set_clause=", ".join([f"{col} = :{col}" for col in columns]),
-            where_clause=" AND ".join([f"{col} = :{col}" for col in columns]),
-        )
-
 
 class XMLRecordLoaderParams(BasePluginParams, PathValidatorMixin):
     file: str = Field(description="Full path to the XML file to load.")
 
-    update: Optional[bool] = Field(
+    skip_duplicates: Optional[bool] = Field(
         default=False,
-        description="If True, plugin will update existing records; otherwise will handle duplicates according to value of `--skip-existing` option",
-    )
-    skip_existing: Optional[bool] = Field(
-        default=False,
-        description="If True, will log and skip records already existing in the database, otherwise the plugin will throw an error when duplicate records are detected (ignored if `--update` is True).",
+        description="If True, will log and skip records already existing in the database; If false will raise error",
     )
 
     validate_file_exists = PathValidatorMixin.validator("file")
@@ -125,7 +110,7 @@ metadata = PluginMetadata(
         If the row already exists in the table, the plugin will throw an error unless
         the --update flag is specified.
         """,
-    load_strategy=ETLLoadStrategy.BULK,
+    load_strategy=ETLLoadStrategy.CHUNKED,
     operation=ETLOperation.LOAD,
     is_large_dataset=False,
     parameter_model=XMLRecordLoaderParams,
@@ -136,8 +121,16 @@ metadata = PluginMetadata(
 class XMLRecordLoader(AbstractBasePlugin):
     _params: XMLRecordLoaderParams  # type annotation
 
-    def __init__(self, params: Dict[str, Any], name: Optional[str] = None):
-        super().__init__(params, name)
+    def __init__(
+        self,
+        params,
+        name: Optional[str] = None,
+        log_path: str = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(params, name, log_path, debug, verbose)
+        self.__table_ref_lookup: dict = {}
 
     def _parse_and_validate_xml(self) -> "etree._Element":
         """
@@ -175,7 +168,7 @@ class XMLRecordLoader(AbstractBasePlugin):
             self.logger.exception(f"XMLRecordLoader._parse_and_validate_xml: {msg}")
             raise RuntimeError(msg)
 
-    def extract(self) -> Iterator[XMLRecord]:
+    def extract(self) -> Iterator[XMLEntry]:
         try:
             root = self._parse_and_validate_xml()
             for table_elem in root.findall("Table"):
@@ -197,11 +190,18 @@ class XMLRecordLoader(AbstractBasePlugin):
                             raise ValueError(
                                 f"Duplicate field name '{col_name}' in record for table {schema}.{table}"
                             )
+
                         # normalize whitespace; preserve empty/null semantics
                         value = child.text.strip() if child.text is not None else None
+
+                        # convert nested dicts and arrays to correct python types
+                        if isinstance(value, str) and (
+                            value.startswith("[") or value.startswith("{}")
+                        ):
+                            value = ast.literal_eval(value)
                         data[col_name] = value
 
-                    record = XMLRecord(data_schema=schema, data_table=table, **data)
+                    record = XMLEntry(data_schema=schema, data_table=table, **data)
                     self.logger.debug(
                         f"Yielding row {record.model_dump(include_table_schema=True)}"
                     )
@@ -211,34 +211,99 @@ class XMLRecordLoader(AbstractBasePlugin):
             self.logger.error(f"Error - {e}")
             raise
 
-    def transform(self, data: XMLRecord) -> XMLRecord:
-        self.logger.debug("Transforming data", data)
-        if data is None:
-            raise RuntimeError(
-                "No records provided to transform(). At least one record is required."
-            )
+    def transform(self, data: XMLEntry) -> XMLEntry:
         return data
 
-    async def _record_exists(
-        self, session, qualified_table_name: str, record: XMLRecord
-    ) -> bool:
-        select_sql = f"SELECT TRUE FROM {qualified_table_name} WHERE {record.sql_clauses.where_clause} LIMIT 1"
-        result = await session.execute(text(select_sql), record.model_dump())
-        return result.fetch_one() is not None
+    async def __lookup_table_ref(self, session, qualified_table_name: str):
+        """
+        Retrieve and cache a TableRef for the given qualified table name.
 
-    async def _insert_record(
-        self, session, qualified_table_name: str, record: XMLRecord
-    ):
-        sql = f"INSERT INTO {qualified_table_name} ({record.sql_clauses.col_names}) VALUES ({record.sql_clauses.placeholders})"
-        await session.execute(text(sql), record.model_dump())
+        Looks up the TableRef in the local cache; if not present, fetches it from the TableCatalog
+        and stores it in the cache for future use.
+        """
+        table_ref: TableRef = self.__table_ref_lookup.get(qualified_table_name, None)
+        if table_ref is None:
+            table_ref = await TableCatalog.get_table_ref(session, qualified_table_name)
+            self.__table_ref_lookup[qualified_table_name] = table_ref
+        return table_ref
 
-    async def _update_record(
-        self, session, qualified_table_name: str, record: XMLRecord
-    ):
-        update_sql = f"UPDATE {qualified_table_name} SET {record.sql_clauses.set_clause} WHERE {record.sql_clauses.where_clause}"
-        await session.execute(text(update_sql), record.model_dump())
+    async def __existing_record(self, session, entry: XMLEntry) -> bool:
+        """
+        Checks if an existing record (by primary key or stable identifier) exists
+        in the database for the given entry, if so fetches it
 
-    async def load(self, transformed: XMLRecord, session) -> ResumeCheckpoint:
+        If the primary key field is present in the entry, verifies the record exists by primary key.
+        If not, but a stable identifier field is present, verifies by stable identifier.
+        Raises ValueError if the record does not exist for update.
+
+        Returns None if no record found or neither field is present
+        """
+
+        table_ref = await self.__lookup_table_ref(session, entry.qualified_table_name)
+        table_class = table_ref.table_class
+        table_pk_field = table_ref.table_primary_key
+        table_stable_id_field = table_ref.table_stable_id
+
+        existing_record = None
+        if entry.has_field(table_pk_field):
+            # check primary key first because if both primary key and stable_id are provided
+            # the user likely wants to update the stable_id
+            primary_key = getattr(entry, table_pk_field)
+            self.logger.debug(
+                f"Looking up record by primary_key: {entry.qualified_table_name} - {primary_key}"
+            )
+            try:
+                existing_record = await table_class.fetch_record(
+                    session, filters={table_pk_field: primary_key}
+                )
+            except:
+                raise ValueError(
+                    "Attempting to update record with invalid primary key: "
+                    f"{entry.model_dump(include_table_schema=True)}"
+                )
+        elif entry.has_field(table_stable_id_field):
+            stable_id = getattr(entry, table_stable_id_field)
+            self.logger.debug(
+                f"Looking up record by stable_id: {entry.qualified_table_name} - {stable_id}"
+            )
+            try:
+                existing_record = await table_class.fetch_record(
+                    session, filters={table_stable_id_field: stable_id}
+                )
+            except:
+                raise ValueError(
+                    "Attempting to update record with invalid stable identifier: "
+                    f"{entry.model_dump(include_table_schema=True)}"
+                )
+        return existing_record
+
+    async def __is_duplicate(self, session, entry: XMLEntry):
+        """
+        Checks if the given entry would be a duplicate in the database.
+
+        Looks up the table reference and ORM class, instantiates a record from the entry,
+        and checks for existence in the database using the ORM's exists method.
+        """
+        table_ref = await self.__lookup_table_ref(session, entry.qualified_table_name)
+        table_class = table_ref.table_class
+        record = table_class(**entry.model_dump())
+        return await record.exists(session)
+
+    async def __insert_record(self, session, entry: XMLEntry):
+        table_ref = await self.__lookup_table_ref(session, entry.qualified_table_name)
+        table_class = table_ref.table_class
+        record = table_class(**entry.model_dump())
+        await record.submit(session)
+
+    async def __update_record(self, session, entry: XMLEntry, record):
+        """
+        Update the fields of the record with values from entry, then call update.
+        """
+        for field, value in entry.model_dump().items():
+            setattr(record, field, value)
+        await record.update(session)
+
+    async def load(self, session, entries: List[XMLEntry]) -> ResumeCheckpoint:
         """
         Insert or update a single record in the target table based on XML input.
         Checks if the record already exists in the table (using all columns as a composite key).
@@ -252,32 +317,29 @@ class XMLRecordLoader(AbstractBasePlugin):
             ResumeCheckpoint: resume checkpoint -> here None
         """
 
-        qualified_table_name = f"{transformed.data_schema}.{transformed.data_table}"
-        self.logger.debug(f"Processing record {transformed} for {qualified_table_name}")
+        for entry in entries:
+            self.logger.debug(f"Processing record {entry}")
 
-        exists = await self._record_exists(session, qualified_table_name, transformed)
+            existing_record = await self.__existing_record(session, entry)
 
-        if exists:
-            if self._params.update:
-                await self._update_record(session, qualified_table_name, transformed)
-                self.inc_tx_count(qualified_table_name, ETLOperation.UPDATE)
-                self.logger.debug(f"Updated record {transformed}")
-            elif self._params.skip_existing:
-                self.logger.info(
-                    f"Skipped existing record in {qualified_table_name}: {transformed}"
-                )
-                self.inc_tx_count(qualified_table_name, ETLOperation.SKIP)
+            if existing_record is not None:
+                await self.__update_record(session, entry, existing_record)
             else:
-                raise RuntimeError(
-                    f"Record already exists and update/skip_existing is not enabled: {transformed}"
-                )
-        else:
-            await self._insert_record(session, qualified_table_name, transformed)
-            self.inc_tx_count(qualified_table_name)
-            self.logger.debug(f"Inserted record {transformed}")
+                is_duplicate: bool = await self.__is_duplicate(session, entry)
+                if is_duplicate:
+                    if self._params.skip_duplicates:
+                        self.logger.info(
+                            f"Skipped existing record in {entry.qualified_table_name}: {entry}"
+                        )
+                        self.inc_tx_count(entry.qualified_table_name, ETLOperation.SKIP)
+                    else:
+                        raise ValueError(
+                            f"Cannot insert duplicate record: {entry.model_dump(include_table_schema=True)}"
+                        )
+                else:
+                    await self.__insert_record(session, entry)
 
-        return self.create_checkpoint(transformed)
+        return self.create_checkpoint(record=entries[-1])
 
-    def get_record_id(self, record: Dict[str, Any]) -> Optional[str]:
-        # no way to know
-        return json.dumps(record)
+    def get_record_id(self, entry: XMLEntry) -> Optional[str]:
+        return dict_to_info_string(entry.model_dump(include_table_schema=True))
