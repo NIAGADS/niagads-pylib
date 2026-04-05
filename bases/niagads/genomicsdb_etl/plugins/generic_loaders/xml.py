@@ -7,6 +7,7 @@ Sample ETL plugin for loading XML data into a database table using the NIAGADS E
 """
 
 import importlib.resources
+import json
 from typing import Any, Dict, Iterator, List, Optional, Type
 
 from lxml import etree
@@ -175,10 +176,6 @@ class XMLRecordLoader(AbstractBasePlugin):
             raise RuntimeError(msg)
 
     def extract(self) -> Iterator[XMLRecord]:
-
-        if self._verbose:
-            self.logger.info(f"Parsing file {self._params.file}")
-
         try:
             root = self._parse_and_validate_xml()
             for table_elem in root.findall("Table"):
@@ -222,17 +219,23 @@ class XMLRecordLoader(AbstractBasePlugin):
             )
         return data
 
-    async def _record_exists(self, session, record: XMLRecord) -> bool:
-        select_sql = f"SELECT 1 FROM {record.data_schema}.{record.data_table} WHERE {record.sql_clauses.where_clause} LIMIT 1"
+    async def _record_exists(
+        self, session, qualified_table_name: str, record: XMLRecord
+    ) -> bool:
+        select_sql = f"SELECT TRUE FROM {qualified_table_name} WHERE {record.sql_clauses.where_clause} LIMIT 1"
         result = await session.execute(text(select_sql), record.model_dump())
-        return result.scalar() is not None
+        return result.fetch_one() is not None
 
-    async def _insert_record(self, session, record: XMLRecord):
-        sql = f"INSERT INTO {record.data_schema}.{record.data_table} ({record.sql_clauses.col_names}) VALUES ({record.sql_clauses.placeholders})"
+    async def _insert_record(
+        self, session, qualified_table_name: str, record: XMLRecord
+    ):
+        sql = f"INSERT INTO {qualified_table_name} ({record.sql_clauses.col_names}) VALUES ({record.sql_clauses.placeholders})"
         await session.execute(text(sql), record.model_dump())
 
-    async def _update_record(self, session, record: XMLRecord):
-        update_sql = f"UPDATE {record.data_schema}.{record.data_table} SET {record.sql_clauses.set_clause} WHERE {record.sql_clauses.where_clause}"
+    async def _update_record(
+        self, session, qualified_table_name: str, record: XMLRecord
+    ):
+        update_sql = f"UPDATE {qualified_table_name} SET {record.sql_clauses.set_clause} WHERE {record.sql_clauses.where_clause}"
         await session.execute(text(update_sql), record.model_dump())
 
     async def load(self, transformed: XMLRecord, session) -> ResumeCheckpoint:
@@ -249,32 +252,32 @@ class XMLRecordLoader(AbstractBasePlugin):
             ResumeCheckpoint: resume checkpoint -> here None
         """
 
-        table_key = f"{transformed.data_schema}.{transformed.data_table}"
-        self.logger.debug(f"Processing record {transformed} for {table_key}")
+        qualified_table_name = f"{transformed.data_schema}.{transformed.data_table}"
+        self.logger.debug(f"Processing record {transformed} for {qualified_table_name}")
 
-        exists = await self._record_exists(session, transformed)
+        exists = await self._record_exists(session, qualified_table_name, transformed)
 
         if exists:
             if self._params.update:
-                await self._update_record(session, transformed)
-                self.inc_tx_count(table_key, ETLOperation.UPDATE)
+                await self._update_record(session, qualified_table_name, transformed)
+                self.inc_tx_count(qualified_table_name, ETLOperation.UPDATE)
                 self.logger.debug(f"Updated record {transformed}")
             elif self._params.skip_existing:
                 self.logger.info(
-                    f"Skipped existing record in {table_key}: {transformed}"
+                    f"Skipped existing record in {qualified_table_name}: {transformed}"
                 )
-                self.inc_tx_count(table_key, ETLOperation.SKIP)
+                self.inc_tx_count(qualified_table_name, ETLOperation.SKIP)
             else:
                 raise RuntimeError(
                     f"Record already exists and update/skip_existing is not enabled: {transformed}"
                 )
         else:
-            await self._insert_record(session, transformed)
-            self.inc_tx_count(table_key)
+            await self._insert_record(session, qualified_table_name, transformed)
+            self.inc_tx_count(qualified_table_name)
             self.logger.debug(f"Inserted record {transformed}")
 
         return self.create_checkpoint(transformed)
 
     def get_record_id(self, record: Dict[str, Any]) -> Optional[str]:
         # no way to know
-        return None
+        return json.dumps(record)
