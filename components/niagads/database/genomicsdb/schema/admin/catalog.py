@@ -71,8 +71,20 @@ class TableCatalog(AdminTableBase):
         return f"{self._schema}.{self.name}"
 
     @classmethod
-    async def get_table_ref(cls, session: AsyncSession, table_class) -> TableRef:
-        schema_name, table_name = table_class.table_name().split(".")
+    async def get_table_ref(cls, session: AsyncSession, table_identifier) -> TableRef:
+        if isinstance(table_identifier, str):  # fully qualified name
+            schema_name, table_name = table_identifier.split(".")
+            # pull the table class from the sqlalchemy registry
+            registry = cls.registry
+            for mapper in registry.mappers:
+                tbl = mapper.local_table
+                if tbl.name == table_name and tbl.schema == schema_name:
+                    table_class = mapper.class_
+                    break
+
+        else:  # its a table class
+            schema_name, table_name = table_identifier.table_name().split(".")
+            table_class = table_identifier
 
         result = (
             (
@@ -102,4 +114,8 @@ class TableCatalog(AdminTableBase):
                 f"Table '{schema_name}.{table_name}' not found in DB catalog."
             )
 
-        return TableRef(**result)
+        return TableRef(
+            table_class=table_class,
+            table_stable_id=getattr(table_class, "_stable_id", None),
+            **result,
+        )

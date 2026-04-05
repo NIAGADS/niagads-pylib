@@ -7,6 +7,7 @@ from niagads.database.mixins.transactions import TransactionTableMixin
 from sqlalchemy import exists, inspect, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Mapped
 
 
@@ -25,14 +26,14 @@ class HousekeepingMixin:
     modification_date: Mapped[datetime] = datetime_column()
     # is_private: Mapped[bool] = mapped_column(nullable=True, index=True)
 
-    def get_model_fields(self):
+    @classmethod
+    def columns(cls):
         """
-        Return a dictionary of all public, non-callable attributes for this instance.
-        Excludes dunder, private, and callable attributes.
+        Return a set of all public, non-callable, non-dunder attributes defined on this mixin.
         """
         return {
-            k: v
-            for k, v in self.__dict__.items()
+            k
+            for k, v in cls.__dict__.items()
             if not k.startswith("_") and not callable(v)
         }
 
@@ -112,9 +113,8 @@ class LookupTableMixin:
             filters = {stable_id_field: getattr(self, stable_id_field)}
         else:
             filters = {}
-            housekeeping_fields = HousekeepingMixin.get_model_fields()
-            for field_name in self.model_dump().keys():
-                value = getattr(self, field_name, None)
+            housekeeping_fields = HousekeepingMixin.columns()
+            for field_name, value in self.model_dump().items():
                 if value is not None and field_name not in housekeeping_fields:
                     filters[field_name] = value
 
@@ -194,7 +194,7 @@ class LookupTableMixin:
             filters = {stable_id_field: getattr(self, stable_id_field)}
         else:
             filters = {}
-            housekeeping_fields = HousekeepingMixin.get_model_fields()
+            housekeeping_fields = HousekeepingMixin.columns()
             for field_name in self.model_dump().keys():
                 value = getattr(self, field_name, None)
                 if value is not None and field_name not in housekeeping_fields:
