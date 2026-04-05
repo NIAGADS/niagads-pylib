@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import ARRAY, Date, DateTime
-from sqlalchemy.dialects.postgresql import JSON, JSONB
+from sqlalchemy import Date, DateTime
+from sqlalchemy.dialects.postgresql import JSON, JSONB, ARRAY
 from sqlalchemy_utils import LtreeType
 from sqlalchemy_utils.types.ltree import Ltree
 

@@ -2,7 +2,8 @@ from typing import List, Optional
 from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.genome_reference.human import GenomeBuild
-from sqlalchemy import ARRAY, String
+from sqlalchemy import String
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 

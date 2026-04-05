@@ -17,8 +17,8 @@ from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
-from sqlalchemy import ARRAY, TEXT, Column, Index, Integer, String
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import TEXT, Column, Index, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 
