@@ -411,7 +411,6 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
     async def load(self, session, records: list[GeneFeature]):
         gene_id = None
         for gene_feature in records:
-            gene_subfeature_count = 0
 
             gene: GeneModel = gene_feature.gene
             gene_id = gene.source_id
@@ -420,27 +419,26 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
                 session, gene_feature.gene.gene_type_id
             )
             gene_pk = await gene.submit(session)
-            gene_subfeature_count += 1
 
             exons = []
+            exon_count = 0
             for transcript_feature in gene_feature.transcripts:
                 transcript = transcript_feature.transcript
                 self.__set_common_attributes(transcript)
                 transcript.gene_id = gene_pk
                 transcript_pk = await transcript.submit(session)
-                gene_subfeature_count += 1
 
                 for exon in transcript_feature.exons:
                     self.__set_common_attributes(exon)
                     exon.gene_id = gene_pk
                     exon.transcript_id = transcript_pk
                     exons.append(exon)
-                    gene_subfeature_count += 1
+                    exon_count += 1
 
             await ExonModel.submit_many(session, exons)  # submit exons in batch
 
             if self._verbose:
                 self.logger.info(
-                    f"Loaded Gene {gene_id} - N = {gene_subfeature_count} features."
+                    f"Loaded Gene {gene_id} - Transcripts = {len(gene_feature.transcripts)} | Exons = {exon_count}."
                 )
         return self.create_checkpoint(record=records[-1].gene)
