@@ -116,6 +116,7 @@ metadata = PluginMetadata(
     operation=ETLOperation.INSERT,
     is_large_dataset=False,
     parameter_model=EnsemblGFF3LoaderParams,
+    can_resume=True,
 )
 
 
@@ -413,21 +414,35 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
         feature.run_id = self.run_id
         feature.bin_index = self._find_bin_index(feature.chromosome, feature.span)
 
+    def __count_skipped_gene(self, gene_feature: GeneFeature):
+        self.inc_tx_count(GeneModel, ETLOperation.SKIP)
+        self.inc_tx_count(
+            TranscriptModel, ETLOperation.SKIP, len(gene_feature.transcripts)
+        )
+        num_exons = sum(
+            len(transcript_feature.exons)
+            for transcript_feature in gene_feature.transcripts
+        )
+        self.inc_tx_count(ExonModel, ETLOperation.SKIP, num_exons)
+
     async def load(self, session, records: list[GeneFeature]):
         gene_id = None
         for gene_feature in records:
             gene: GeneModel = gene_feature.gene
 
+            if not self._resume:
+                if gene.source_id != self._params.resume_after:
+                    self.__count_skipped_gene(gene_feature)
+                    continue
+                else:
+                    self.logger.info(
+                        f"Resuming load after checkpoint {self._params.resume_after}:{gene.source_id}"
+                    )
+                    self._resume = True
+                    continue  # checkpoint is last committed, so want to resume next
+
             if gene.gene_type_id == "artifact":
-                self.inc_tx_count(GeneModel, ETLOperation.SKIP)
-                self.inc_tx_count(
-                    TranscriptModel, ETLOperation.SKIP, len(gene_feature.transcripts)
-                )
-                num_exons = sum(
-                    len(transcript_feature.exons)
-                    for transcript_feature in gene_feature.transcripts
-                )
-                self.inc_tx_count(ExonModel, ETLOperation.SKIP, num_exons)
+                self.__count_skipped_gene(gene_feature)
                 self.logger.info(f"Skipping `artifact` gene: {gene.source_id}")
                 continue
 

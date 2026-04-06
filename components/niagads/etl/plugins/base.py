@@ -69,6 +69,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         except ValidationError as err:
             BasePluginParams.log_validation_errors(err, self.logger)
 
+        if self._params.resume_after is not None and not self.__metadata.can_resume:
+            raise NotImplementedError(
+                "Resume at checkpoint not implemented for this plugin, cannot proceed with `--resume-at` option"
+            )
+
+        # flag indicating in load is resumed (needs) to be class level b/c chunked loading
+        self._resume: bool = False if self._params.resume_after is not None else True
+
         # parameter based properties
         self._mode = ETLExecutionMode(self._params.mode)
         self._batch_size: int = self._params.batch_size
@@ -398,19 +406,23 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             + amount
         )
 
-    def __get_total_transactions(self) -> int:
+    def __get_total_transactions(self, skips_only: bool = False) -> int:
         """
         Calculate total transaction count from per-table self.__transaction_record.
 
         Returns:
-            int: Total count of INSERT, UPDATE, DELETE across all tables.
+            int: Total count of INSERT, UPDATE, DELETE (SKIP) across all tables.
         """
         total = 0
         for ops in self.__transaction_record.values():
-            # Exclude SKIP operations from the total
-            total += sum(
-                count for op, count in ops.items() if op != str(ETLOperation.SKIP)
-            )
+            if skips_only:
+                total += sum(
+                    count for op, count in ops.items() if op == str(ETLOperation.SKIP)
+                )
+            else:
+                total += sum(
+                    count for op, count in ops.items() if op != str(ETLOperation.SKIP)
+                )
         return total
 
     def __attach_etl_transaction_listener(self, session: AsyncSession) -> None:
@@ -530,9 +542,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         Commit or rollback the session based on ETLMode and batch size logic.
         """
-        tx_total = self.__get_total_transactions()
+
+        tx_total = self.__get_total_transactions(skips_only=not self._resume)
         msg = f"{tx_total} records"
-        if self.commit:
+        if not self._resume:
+            msg = f"SKIPPED {msg}"
+        elif self.commit:
             await session.commit()
             msg = f"COMMITTED {msg}"
         else:
@@ -897,6 +912,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.exception(error_message)
 
         finally:
+            if self.__execution_status != ProcessStatus.SUCCESS:
+                await self.__summarize_transactions()
             await self.__finalize_etl_run(error_message)
             self.logger.status(self.__status_report)
 

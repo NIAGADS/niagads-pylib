@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from niagads.etl.plugins.types import ResumeCheckpoint
 from niagads.etl.types import ETLExecutionMode
@@ -12,7 +12,7 @@ class BasePluginParams(BaseModel):
     Attributes:
         batch_size (int): Number of records to buffer before each load/commit in streaming mode.
         log_file (str): Path to the JSON log file for this plugin invocation.
-        checkpoint (Optional[ResumeFrom]): Resume checkpoint hints, interpreted by plugins (extract/transform).
+        resume_at (Optional[ResumeFrom]): Resume checkpoint hints, interpreted by plugins (extract/transform).
         run_id (Optional[str]): Pipeline run identifier, provided by the pipeline.
         connection_string (Optional[str]): Database connection string, if needed.
 
@@ -30,9 +30,8 @@ class BasePluginParams(BaseModel):
         ge=1,
         description="load batch size; indicates number of records to buffer or bulk insert per commit",
     )
-    resume_checkpoint: Optional[ResumeCheckpoint] = Field(
-        default=None,
-        description="resume checkpoint, a line number or record ID.  Indicate as line=<N> or id=<record ID>",
+    resume_after: Optional[Union[str, int]] = Field(
+        default=None, description="resume checkpoint, a line number or record ID."
     )
     database_uri: Optional[str] = Field(
         default=None,
