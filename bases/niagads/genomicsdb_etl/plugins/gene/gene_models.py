@@ -274,7 +274,7 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
 
         self.logger.info(
             f"Done Extracting records - Parsed {parsed_gene_count} Gene Features; "
-            "Skipped {skipped_line_count} lines."
+            f"Skipped {skipped_line_count} lines."
         )
 
     def __create_gene_model(self, entry: GFF3Entry) -> GeneModel:
