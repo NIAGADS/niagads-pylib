@@ -32,7 +32,7 @@ class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
 
     gene_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     gene_symbol: Mapped[str] = mapped_column(String(50))
-    gene_name: Mapped[str] = mapped_column(String(250))
+    gene_name: Mapped[str] = mapped_column(String(500))
     gene_type_id: Mapped[int] = ontology_term_fk_column()  # TODO: map to ontology term?
 
 
