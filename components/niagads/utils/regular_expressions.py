@@ -49,11 +49,11 @@ class RegularExpressions(StrEnum):
         r"^[1-9]\d{0,2}(\.\d{1,2})?e-\d{1,3}$" r"^[1-9]\d*(\.\d+)?e-\d+$"
     )
 
-    ENSEMBL_GENE_ID = r"^ENSG\d{11}$"  # Ensembl human gene ID (e.g., ENSG00000139618)
+    ENSEMBL_GENE_ID = r"^ENSG\d+$"  # Ensembl human gene ID (e.g., ENSG00000139618)
     ENSEMBL_TRANSCRIPT_ID = (
-        r"^ENST\d{11}$"  # Ensembl human transcript ID (e.g., ENST00000380152)
+        r"^ENST\d+$"  # Ensembl human transcript ID (e.g., ENST00000380152)
     )
-    ENSEMBL_EXON_ID = r"^ENSE\d{11}$"  # Ensembl human exon ID (e.g., ENSE00003606199)
+    ENSEMBL_EXON_ID = r"^ENSE\d+$"  # Ensembl human exon ID (e.g., ENSE00003606199)
 
     CYTOGENIC_LOCATION = (
         r"^(chr)?(\d{1,2}|X|Y|M|MT)(p|q)(\d{1,2}(\.\d+)?)(-(p|q)?\d{1,2}(\.\d+)?)?$"

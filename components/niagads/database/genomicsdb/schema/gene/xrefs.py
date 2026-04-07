@@ -27,6 +27,7 @@ class GeneIdentifierType(CaseInsensitiveEnum):
 
 class GeneXRefCategory(CaseInsensitiveEnum):
     IDENTIFIER = auto()
+    NOMENCLATURE = auto()
     LOCUS = auto()
     PUBLICATION = auto()
     RESOURCE_LINK = auto()
