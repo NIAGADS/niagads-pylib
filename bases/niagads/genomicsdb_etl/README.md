@@ -47,6 +47,47 @@ An [example plugin](#example-simple-text-loader-plugin) scaffold is provided in 
 
 Define a Pydantic model for plugin parameters. Inherit from [`BasePluginParams`](../../../components/niagads/etl/plugins/parameters.py) and add plugin-specific fields.
 
+The plugin runner will process the parameter model and turn it into a set of command line arguments based on the information provided in the model definition. All model fields (parameter options) should adhere to the following
+
+- Use **type hints** to define the expected value type.  If type hint is not provided, it will assume a `str`.
+  
+```python
+fail_on_duplicate: bool 
+```
+
+- All parameters are required unless qualified using the `Optional` type decorator.
+
+```python
+fail_on_duplicate: Optional[bool] 
+```
+
+- Default values must be provided for optional parameters.  Default may be `None`.  
+
+```python
+fail_on_duplicate: Optional[bool] = False
+```
+
+- **BEST PRACTICE** - Best practice is assign provide a Pydantic `Field`  to each parameter. This will allow you to provide descriptive text for each parameter that the runner will add to the plugin runtime documentation.
+
+```python
+fail_on_duplicates: Optional[bool] = Field(default=False, description="flag indicating whether the plugin fails when duplicate records are found; if False (default), logs the duplicate and skips.")
+```
+
+- Pydantic field can also be used to support complex types.  Currently the following are supported:
+  - `comma_separated_list` - Parameter expects a string value that is a comma-separated list of one or more values.  When this type is specified, the argument value will be parsed, split on `,` and returned as an `list`.
+  - `json_type` - Parameter expects a JSON string.  When this type is specifice, the argument value will be parsed and a JSON object (`dict`) returned.
+  - `case_insensitive_enum_type` - Parameter expects a value controlled by a `CaseInsensitiveEnum` (e.g., `--mode`). This type handles if the the user specifies `dry_run` or `DRY_RUN` ; i.e., matches against the allowed enum values after correcting for case.
+  
+To make use of these custom types, uses the `json_schema_extra` property in the `Field` definition:
+
+```python
+species: list[str] = Field(description=f"comma-separated list of one or more species", json_schema_extra={"type":comma_separated_list})
+```
+
+This example creates a required parameter that intakes a string, parses it and returns an list of strings.
+
+> **NOTE:** The system will auto-detect `case_insentivie_enum_types`.
+
 #### Parameter Validation
 
 Plugin parameter validation is critical for robust ETL operation. There are several ways to validate parameters:

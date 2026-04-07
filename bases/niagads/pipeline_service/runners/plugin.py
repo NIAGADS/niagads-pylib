@@ -105,55 +105,40 @@ class PluginRunner(ComponentBaseMixin):
         self._argument_parser.print_help()
 
     @staticmethod
-    def _resolve_arg_type(arg_type):
+    def _resolve_arg_type(arg_type, custom_arg_type):
         """
         Resolves the concrete type and required status for an argument type.
 
         Handles typing.Optional and Union types, returning the base type and
         whether the argument is required (True if not Optional, False otherwise).
         """
-
-        origin = get_origin(arg_type)
         required = True
+        origin = get_origin(arg_type)
         resolved_type = arg_type
+
+        # need to go through this regardless of custom to determine
+        # required status
         if origin is Union:
             args = get_args(arg_type)
             if type(None) in args:
                 required = False
             # Remove NoneType from Union (i.e., Optional)
-            non_none_args = [a for a in args if a is not type(None)]
-            if non_none_args:
-                resolved_type = non_none_args[0]
+            valid_arg_types = [a for a in args if a is not type(None)]
+            if valid_arg_types:
+                resolved_type = valid_arg_types[0]
             else:
                 resolved_type = str  # fallback
+
+        if custom_arg_type is not None:
+            resolved_type = custom_arg_type
         return resolved_type, required
 
     def _add_plugin_arg(self, arg: PluginArgDef):
         """
         Adds an argument to the parser using a PluginArgInfo object.
-
-        Args:
-            arg_info: PluginArgInfo instance containing argument details.
         """
-        # Use description to select custom types for
-        # parameters that expect to do conversions from strings
-        if "comma-separated" in arg.help.lower():
-            self._argument_parser.add_argument(
-                arg.arg_name,
-                type=comma_separated_list,
-                default=arg.default,
-                required=arg.required,
-                help=arg.help,
-            )
-        elif "json" in arg.help.lower():
-            self._argument_parser.add_argument(
-                arg.arg_name,
-                type=json_type,
-                default=arg.default,
-                required=arg.required,
-                help=arg.help,
-            )
-        elif issubclass(arg.arg_type, CaseInsensitiveEnum):
+        # detect case insensitive enums
+        if issubclass(arg.arg_type, CaseInsensitiveEnum):
             self._argument_parser.add_argument(
                 arg.arg_name,
                 type=case_insensitive_enum_type(arg.arg_type),
@@ -161,6 +146,8 @@ class PluginRunner(ComponentBaseMixin):
                 required=arg.required,
                 help=arg.help,
             )
+
+        # set action for bools
         elif arg.arg_type is bool:
             if arg.default is True:
                 self._argument_parser.add_argument(
@@ -184,7 +171,13 @@ class PluginRunner(ComponentBaseMixin):
             if field.exclude:  # i.e. bypass parent class parameters
                 continue  # skip field
 
-            arg_type, required = self._resolve_arg_type(field.annotation)
+            custom_arg_type = (
+                field.json_schema_extra.get("type") if field.json_schema_extra else None
+            )
+
+            arg_type, required = self._resolve_arg_type(
+                field.annotation, custom_arg_type
+            )
             arg_info = PluginArgDef(
                 arg_name=f"--{field_name.replace('_', '-')}",
                 arg_type=arg_type,
