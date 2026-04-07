@@ -158,11 +158,12 @@ class HGNCXRefLoader(AbstractBasePlugin):
 
         xrefs = []
 
+        key: str
         for key, xref_value in entry.items():
             if self.__is_empty_value(xref_value):
                 continue
 
-            key = key.replace("_ids", "_id")
+            xref_label = key.replace("_ids", "_id")
             category = HGNC_XREF_CATEGORY_MAP[key]
 
             if isinstance(xref_value, list):
@@ -171,16 +172,17 @@ class HGNCXRefLoader(AbstractBasePlugin):
                         GeneXRefEntry(
                             source_id=hgnc_id,
                             ensembl_id=ensembl_id,
-                            xref_label=key,
+                            xref_label=xref_label,
                             xref_value=xstr(v),
                             xref_category=str(category),
                         )
                     )
+
                 xrefs.append(
                     GeneXRefEntry(
                         source_id=hgnc_id,
                         ensembl_id=ensembl_id,
-                        xref_label=key,
+                        xref_label=xref_label,
                         xref_value=xstr(xref_value),
                         xref_category=category,
                     )
@@ -209,10 +211,16 @@ class HGNCXRefLoader(AbstractBasePlugin):
         xrefs: List[GeneXRef] = []
         current_ensembl_id = None
         current_gene_pk = None
+        gene_xref_count = 0
         for entry in entries:
             if current_ensembl_id != entry.ensembl_id:
+                if self._verbose and current_ensembl_id is not None:
+                    self.logger.debug(
+                        f"Inserted {gene_xref_count} for {current_ensembl_id}:{current_gene_pk}"
+                    )
                 current_ensembl_id = entry.ensembl_id
                 current_gene_pk = self.__lookup_gene(session, current_ensembl_id)
+                gene_xref_count = 0
 
             xrefs.append(
                 GeneXRef(
@@ -224,6 +232,7 @@ class HGNCXRefLoader(AbstractBasePlugin):
                     run_id=self.run_id,
                 )
             )
+            gene_xref_count += 1
 
         GeneXRef.submit_many(session, xrefs)
         return self.create_checkpoint(record=entries[-1])

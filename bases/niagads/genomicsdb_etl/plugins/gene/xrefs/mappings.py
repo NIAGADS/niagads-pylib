@@ -5,7 +5,7 @@ HGNC_XREF_CATEGORY_MAP = {
     "entrez_id": GeneXRefCategory.IDENTIFIER,
     "ensembl_gene_id": GeneXRefCategory.IDENTIFIER,
     "refseq_accession": GeneXRefCategory.IDENTIFIER,
-    "uniprot_id": GeneXRefCategory.IDENTIFIER,
+    "uniprot_ids": GeneXRefCategory.IDENTIFIER,
     "vega_id": GeneXRefCategory.IDENTIFIER,
     "ucsc_id": GeneXRefCategory.IDENTIFIER,
     "omim_id": GeneXRefCategory.RESOURCE_LINK,
