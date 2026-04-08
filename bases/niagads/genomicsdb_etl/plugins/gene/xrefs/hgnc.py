@@ -8,6 +8,7 @@ into the gene.xref table, mapping genes by their Ensembl gene ID (stable_id/sour
 import json
 from typing import Any, Dict, Iterator, List, Optional
 
+from sqlalchemy.exc import NoResultFound
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.gene.structure import GeneModel
 from niagads.database.genomicsdb.schema.gene.xrefs import GeneXRef, GeneXRefCategory
@@ -21,6 +22,7 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.exceptions.core import ValidationError
 from niagads.genomicsdb_etl.plugins.gene.xrefs.mappings import HGNC_XREF_CATEGORY_MAP
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
@@ -28,6 +30,9 @@ from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
 from niagads.utils.string import dict_to_info_string, xstr
 from niagads.utils.sys import read_open_ctx
 from pydantic import BaseModel, Field
+
+
+INVALID_XREFS = ["status", "uuid", "location_sortable", "curator_notes"]
 
 
 class GeneXRefEntry(BaseModel):
@@ -48,6 +53,13 @@ class HGNCXRefLoaderParams(
     file: str = Field(
         ...,
         description="Full path to HGNC JSON file",
+    )
+    verify_xref_keys: Optional[bool] = Field(
+        default=False,
+        description=(
+            "verify xrefs against xref mapping, reporting any novel mappings; "
+            "must set `--mode DRY_RUN`"
+        ),
     )
 
     validate_file_exists = PathValidatorMixin.validator("file")
@@ -90,6 +102,10 @@ class HGNCXRefLoader(AbstractBasePlugin):
         super().__init__(params, name, log_path, debug, verbose)
         self.__external_database: ExternalDatabase = None
         self.__gene_pk_ref: Dict[str, GeneModel] = {}
+        self.__unmapped_genes: set[str] = set()
+
+        if self._params.verify_xref_keys and not self.is_dry_run:
+            raise ValidationError("To verify XRef keys, set --mode DRY_RUN")
 
     @property
     def external_database_id(self):
@@ -99,7 +115,7 @@ class HGNCXRefLoader(AbstractBasePlugin):
         """Fetch and cache the HGNC external database record."""
         if self.is_etl_run:
             # Fetch HGNC external database reference using mixin
-            self.__external_database = await self.fetch_xdbref(session)
+            self.__external_database = await self._params.fetch_xdbref(session)
 
     def extract(self) -> Iterator[dict]:
         """
@@ -145,6 +161,21 @@ class HGNCXRefLoader(AbstractBasePlugin):
             return True
         return False
 
+    def __is_valid_xref(self, key: str, value):
+        if self.__is_empty_value(value):
+            return False
+        if key.startswith("date_"):
+            return False
+        if key in INVALID_XREFS:
+            return False
+        return True
+
+    def __format_xref_value(self, value):
+        if isinstance(value, str):
+            return value
+        else:
+            return xstr(value)
+
     def transform(self, entry: dict) -> List[GeneXRefEntry]:
         """
         Transform an HGNC record into a list of xref entries.
@@ -160,30 +191,40 @@ class HGNCXRefLoader(AbstractBasePlugin):
 
         key: str
         for key, xref_value in entry.items():
-            if self.__is_empty_value(xref_value):
+            if not self.__is_valid_xref(key, xref_value):
                 continue
 
+            xref_label = key.replace(".", "_").replace("-", "_")
+            try:
+                category = HGNC_XREF_CATEGORY_MAP[xref_label]
+            except KeyError as err:
+                if self._params.verify_xref_keys:
+                    self.logger.warning(f"Invalid xref: {key}")
+                else:
+                    raise err
+
             xref_label = key.replace("_ids", "_id")
-            category = HGNC_XREF_CATEGORY_MAP[key]
 
             if isinstance(xref_value, list):
                 for v in xref_value:
+                    v_str = self.__format_xref_value(v)
                     xrefs.append(
                         GeneXRefEntry(
                             source_id=hgnc_id,
                             ensembl_id=ensembl_id,
                             xref_label=xref_label,
-                            xref_value=xstr(v),
+                            xref_value=v_str,
                             xref_category=str(category),
                         )
                     )
-
+            else:
+                v_str = self.__format_xref_value(xref_value)
                 xrefs.append(
                     GeneXRefEntry(
                         source_id=hgnc_id,
                         ensembl_id=ensembl_id,
                         xref_label=xref_label,
-                        xref_value=xstr(xref_value),
+                        xref_value=v_str,
                         xref_category=category,
                     )
                 )
@@ -198,9 +239,12 @@ class HGNCXRefLoader(AbstractBasePlugin):
         try:
             gene_pk = self.__gene_pk_ref[source_id]
         except:
-            gene_pk = await GeneModel.find_primary_key(
-                session, filters={"source_id": source_id}
-            )
+            try:
+                gene_pk = await GeneModel.find_primary_key(
+                    session, filters={"source_id": source_id}
+                )
+            except NoResultFound:
+                gene_pk = None
             self.__gene_pk_ref[source_id] = gene_pk
         return gene_pk
 
@@ -219,8 +263,15 @@ class HGNCXRefLoader(AbstractBasePlugin):
                         f"Inserted {gene_xref_count} for {current_ensembl_id}:{current_gene_pk}"
                     )
                 current_ensembl_id = entry.ensembl_id
-                current_gene_pk = self.__lookup_gene(session, current_ensembl_id)
+                current_gene_pk = await self.__lookup_gene(session, current_ensembl_id)
                 gene_xref_count = 0
+
+                if current_gene_pk is None:
+                    self.__unmapped_genes.add(current_ensembl_id)
+
+            if current_gene_pk is None:
+                self.inc_tx_count(GeneXRef, ETLOperation.SKIP)
+                continue
 
             xrefs.append(
                 GeneXRef(
@@ -228,14 +279,22 @@ class HGNCXRefLoader(AbstractBasePlugin):
                     xref_category=entry.xref_category,
                     xref_label=entry.xref_label,
                     xref_value=entry.xref_value,
+                    source_id=entry.source_id,
                     external_database_id=self.external_database_id,
                     run_id=self.run_id,
                 )
             )
             gene_xref_count += 1
 
-        GeneXRef.submit_many(session, xrefs)
+        await GeneXRef.submit_many(session, xrefs)
         return self.create_checkpoint(record=entries[-1])
 
+    async def on_run_complete(self):
+        num_skipped = len(self.__unmapped_genes)
+        self.logger.warning(
+            f"Skipped {num_skipped} unmapped genes. Likely deprecated or non-primary assembly."
+        )
+        self.logger.info(self.__unmapped_genes)
+
     def get_record_id(self, record: GeneXRefEntry) -> str:
-        return f"{dict_to_info_string(record.model_dump())}"
+        return f"{record.ensembl_id}|{record.source_id}"

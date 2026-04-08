@@ -5,7 +5,7 @@ from niagads.database.helpers import enum_column, enum_constraint
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.database.genomicsdb.schema.gene.base import GeneTableBase
 from niagads.database.genomicsdb.schema.gene.helpers import gene_fk_column
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,7 +22,6 @@ class GeneIdentifierType(CaseInsensitiveEnum):
     OMIM = "omim_id"
     UCSC = "ucsc_id"
     REFSEQ = "refseq_id"
-    # TODO: orthologs?
 
 
 class GeneXRefCategory(CaseInsensitiveEnum):
