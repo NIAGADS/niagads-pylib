@@ -10,6 +10,7 @@ import re
 import uuid
 from datetime import datetime
 from typing import List, Union
+import warnings
 
 from dateutil.parser import parse as parse_date
 from typing_extensions import deprecated
@@ -183,17 +184,19 @@ def to_date(value, pattern="%Y-%m-%d", returnStr=False):
     return date.strftime(pattern) if returnStr else date
 
 
-def to_bool(val, int_as_bool: bool=True):
+def to_bool(val, int_as_bool: bool = True):
     """Convert a string representation of truth to true or false.
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
     are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
     'val' is anything else.
     modified from https://stackoverflow.com/a/18472142
     """
-    true_values =  ["y", "yes", "t", "true"]
-    if int_as_bool: true_values += ["1"]
+    true_values = ["y", "yes", "t", "true"]
+    if int_as_bool:
+        true_values += ["1"]
     false_values = ["n", "no", "f", "false"]
-    if int_as_bool: false_values += ["0"]
+    if int_as_bool:
+        false_values += ["0"]
 
     if val.lower() in true_values:
         return True
@@ -233,7 +236,13 @@ def is_date(value, fuzzy=False):
         return True
 
     try:
-        parse_date(value, fuzzy=fuzzy)
+        with warnings.catch_warnings(record=True) as w:
+            # sometimes it will "successfuly" parse and give a warning, e.g.,
+            # bad timezone -> probably not a date then, e.g., 1A1-3B will parse as a date
+            warnings.simplefilter("always")  # Catch all warnings
+            parse_date(value, fuzzy=fuzzy)
+        if w:
+            return False
         return True
 
     except:
@@ -330,8 +339,9 @@ def is_camel_case(s):
     """relaxed check for camel case b/c allows things like cRGB"""
     return s != s.lower() and s != s.upper() and "_" not in s
 
+
 def to_camel_case(s: str) -> str:
-    return ''.join(word.capitalize() for word in s.split('_'))
+    return "".join(word.capitalize() for word in s.split("_"))
 
 
 def to_snake_case(key):

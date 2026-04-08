@@ -301,7 +301,7 @@ class OntologyTermLoader(AbstractBasePlugin):
         chunk_embedding.chunk_hash = embedded_term.chunk_hash
         chunk_embedding.embedding = embedded_term.embedding
         chunk_embedding.embedding_model = str(self._params.embedding_model)
-        chunk_embedding.embedding_date = datetime.now(tz=timezone.utc).isoformat()
+        chunk_embedding.embedding_date = datetime.now().isoformat()
         chunk_embedding.embedding_run_id = self.run_id
         await chunk_embedding.update(session)
 
