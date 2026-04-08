@@ -10,8 +10,12 @@ from typing import Any, Dict, Iterator, List, Optional
 
 from sqlalchemy.exc import NoResultFound
 from niagads.common.types import ETLOperation
-from niagads.database.genomicsdb.schema.gene.structure import GeneModel
-from niagads.database.genomicsdb.schema.gene.xrefs import GeneXRef, GeneXRefCategory
+from niagads.database.genomicsdb.schema.gene.documents import Gene
+from niagads.database.genomicsdb.schema.gene.xrefs import (
+    GeneIdentifierType,
+    GeneXRef,
+    GeneXRefCategory,
+)
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
@@ -101,7 +105,7 @@ class HGNCXRefLoader(AbstractBasePlugin):
     ):
         super().__init__(params, name, log_path, debug, verbose)
         self.__external_database: ExternalDatabase = None
-        self.__gene_pk_ref: Dict[str, GeneModel] = {}
+        self.__gene_pk_ref: Dict[str, int] = {}
         self.__unmapped_genes: set[str] = set()
 
         if self._params.verify_xref_keys and not self.is_dry_run:
@@ -231,7 +235,7 @@ class HGNCXRefLoader(AbstractBasePlugin):
 
         return xrefs
 
-    async def __lookup_gene(self, session, source_id: str) -> Optional[GeneModel]:
+    async def __lookup_gene(self, session, source_id: str) -> Optional[int]:
         """
         Lookup or fetch a gene by its Ensembl gene ID (source_id).
         Uses a local cache to avoid repeated database queries.
@@ -240,8 +244,10 @@ class HGNCXRefLoader(AbstractBasePlugin):
             gene_pk = self.__gene_pk_ref[source_id]
         except:
             try:
-                gene_pk = await GeneModel.find_primary_key(
-                    session, filters={"source_id": source_id}
+                gene_pk = await Gene.resolve_identifier(
+                    session,
+                    id=source_id,
+                    gene_identifier_type=GeneIdentifierType.ENSEMBL,
                 )
             except NoResultFound:
                 gene_pk = None

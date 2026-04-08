@@ -66,8 +66,9 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
         JSONB(none_as_null=True), nullable=True
     )
 
+    @classmethod
     async def resolve_symbol(
-        self,
+        cls,
         session: AsyncSession,
         symbol: str,
         match_synonyms: bool = False,
@@ -143,8 +144,9 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
         else:  # if not matching against synonyms
             raise NoResultFound(f"No matching genes found for symbol: {symbol}")
 
+    @classmethod
     async def resolve_identifier(
-        self,
+        cls,
         session: AsyncSession,
         id: str,
         gene_identifier_type: GeneIdentifierType,
@@ -195,12 +197,12 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
                     session, {"gene_symbol", id}, allow_multiple=allow_multiple
                 )
             else:
-                return await self.resolve_symbol(
+                return await cls.resolve_symbol(
                     session, id, require_exact_match, allow_multiple
                 )
 
         else:  # check against the external_ids
-            return await self.find_primary_key(
+            return await cls.find_primary_key(
                 session,
                 filters={"xref_label": str(gene_identifier_type), "xref_value": id},
                 allow_multiple=allow_multiple,

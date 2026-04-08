@@ -47,8 +47,9 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
     )
     data_sources: Mapped[dict] = mapped_column(JSONB(none_as_null=True))
 
+    @classmethod
     async def resolve_identifier(
-        self,
+        cls,
         session: AsyncSession,
         id: str,
         gene_identifier_type: GeneIdentifierType,
