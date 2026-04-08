@@ -162,17 +162,17 @@ class LookupTableMixin:
             *(getattr(cls, k) == v for k, v in filters.items())
         )
         result = await session.execute(stmt)
-        rows = result.all()
-        if not rows:
+        records = result.scalars().all()
+        if not records:
             raise NoResultFound(f"No record found for {filters} in {cls.table_name()}")
-        if len(rows) > 1:
+        if len(records) > 1:
             if allow_multiple:
-                return [row[0] for row in rows]
+                return records
             else:
                 raise MultipleResultsFound(
                     f"Multiple records found for {filters} in {cls.table_name()}"
                 )
-        return rows[0][0]
+        return records[0]
 
     async def retrieve_primary_key(
         self, session: AsyncSession, match_stable_id_only: bool = False
@@ -250,17 +250,17 @@ class LookupTableMixin:
             *(getattr(cls, k) == v for k, v in filters.items())
         )
         result = await session.execute(stmt)
-        rows = result.all()
-        if not rows:
+        records = result.scalars().all()
+        if not records:
             raise NoResultFound(f"No record found for {filters} in {cls.table_name()}")
-        if len(rows) > 1:
+        if len(records) > 1:
             if allow_multiple:
-                return [row[0] for row in rows]
+                return records
             else:
                 raise MultipleResultsFound(
                     f"Multiple records found for {filters} in {cls.table_name()}"
                 )
-        return rows[0][0]
+        return records[0]
 
     @classmethod
     async def fetch_record(
@@ -295,17 +295,17 @@ class LookupTableMixin:
         """
         stmt = select(cls).where(*(getattr(cls, k) == v for k, v in filters.items()))
         result = await session.execute(stmt)
-        rows = result.scalars().all()
-        if not rows:
+        records = result.scalars().all()
+        if not records:
             raise NoResultFound(f"No record found for {filters} in {cls.table_name()}")
-        if len(rows) > 1:
+        if len(records) > 1:
             if allow_multiple:
-                return rows
+                return records
             else:
                 raise MultipleResultsFound(
                     f"Multiple records found for {filters} in {cls.table_name()}"
                 )
-        return rows[0]
+        return records[0]
 
 
 class IdAliasMixin:
