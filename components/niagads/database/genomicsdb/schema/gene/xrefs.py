@@ -16,15 +16,14 @@ from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 
 
 class GeneIdentifierType(CaseInsensitiveEnum):
-    ENSEMBL = "ensembl_id"
+    ENSEMBL = "ensembl_gene_id"
     ENTREZ = "entrez_id"
     NCBI = "entrez_id"
     SYMBOL = "gene_symbol"
     HGNC = "hgnc_id"
     UNIPROT = "uniprot_id"
-    OMIM = "omim_id"
     UCSC = "ucsc_id"
-    REFSEQ = "refseq_id"
+    REFSEQ = "refseq_accession"
 
 
 class GeneXRefCategory(CaseInsensitiveEnum):
