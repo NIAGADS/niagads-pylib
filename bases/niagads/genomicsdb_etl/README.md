@@ -514,6 +514,12 @@ prints: Sequence Ontology|2024-11-18
 
 See [TableRefMixin](#tableref-catalog-mixin) section for more information.
 
+## Debug Troubleshooting
+
+### **RuntimeWarning: Enable tracemalloc to get the object allocation traceback**
+
+An async function was likely not **awaited**.
+
 ## Instructions for AI Assistants Writing Plugins
 
 When assisting in writing an ETL plugin, follow these steps:
