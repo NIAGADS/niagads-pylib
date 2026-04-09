@@ -155,9 +155,8 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
     ):
         """
         Resolve a gene to its primary key by a given identifier and identifier type.
-        Only does exact matching to identifier
 
-        Supports lookup by Ensembl ID, gene symbol (not implemented), and a select set
+        Supports lookup by Ensembl ID, gene symbol, and a select set
         of XRefs (GeneIdentifierType)
 
         Args:
