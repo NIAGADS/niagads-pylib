@@ -86,7 +86,7 @@ species: list[str] = Field(description=f"comma-separated list of one or more spe
 
 This example creates a required parameter that intakes a string, parses it and returns an list of strings.
 
-> **NOTE:** The system will auto-detect `case_insentivie_enum_types`.
+> **NOTE:** The system will auto-detect and handle `case_insentivie_enum_type`.
 
 #### Parameter Validation
 
@@ -513,6 +513,12 @@ prints: Sequence Ontology|2024-11-18
 ### Table References (Catalog)
 
 See [TableRefMixin](#tableref-catalog-mixin) section for more information.
+
+### Other `runpipe` scripts
+
+#### `runpipe-export`
+
+For exporting data to pipe to external tools (e.g, for UniProtKB ID mapping) or to save a snapshot before doing an update.
 
 ## Debug Troubleshooting
 
