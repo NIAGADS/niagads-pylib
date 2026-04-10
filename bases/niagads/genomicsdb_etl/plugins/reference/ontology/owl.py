@@ -4,7 +4,7 @@ Ontology Loader Plugins
 Loads an ontology from an OWL file into the reference ontology graph schema.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional
 
 from niagads.common.types import ETLOperation
