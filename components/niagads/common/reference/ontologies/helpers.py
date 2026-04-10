@@ -39,5 +39,7 @@ def get_field_iri(field: str, preferred=True) -> str:
             return AnnotationPropertyIRI.DEPRECATED
         case "comment":
             return AnnotationPropertyIRI.COMMENT
+        case "namespace":
+            return AnnotationPropertyIRI.NAMESPACE
         case _:
             raise ValueError(f"No property IRI mapping required for '{field}'.")
