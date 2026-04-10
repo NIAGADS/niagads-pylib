@@ -100,7 +100,7 @@ class TrackInterval(DatasetTableBase, GenomicRegionMixin):
         Index(
             "ix_index_trackinterval_track_id",
             "track_id",
-            postgresql_include=["num_hits", "genomic_region"],
+            postgresql_include=["num_hits", "span"],
         ),
         DatasetTableBase.__table_args__,
     )
