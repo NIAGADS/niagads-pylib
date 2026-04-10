@@ -66,8 +66,8 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
             f"external_database_id = {self.__external_database.external_database_id}"
         )
 
-    def get_record_id(self, record: dict):
-        return f"{record['pathway_id']}:{record['gene_id']}"
+    def get_record_id(self, record: GenePathwayAssociation):
+        return f"{record.pathway_id}:{record.gene_id}"
 
     # --------- Load Helpers
 
@@ -115,7 +115,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
         primary_key = self._pathway_pk_ref.get(pathway_id, None)
         if primary_key is None:
             try:
-                primary_key = await Pathway.find_primary_key(
+                primary_key = await Pathway.find_primary_key(session,
                     filters={"source_id": pathway_id}
                 )
 
@@ -124,7 +124,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
                 # get new primary key
                 pathway = Pathway(
                     source_id=pathway_id,
-                    pathway_name=pathway_name,
+                    name=pathway_name,
                     external_database_id=self.external_database_id,
                     run_id=self.run_id,
                 )
@@ -185,7 +185,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
         # note: this could potentially throw an error if len(memberships) == 0
         # which could happen (unlikely though) if all genes are not found in database
         # so let the error get thrown b/c something is wrong w/data if that happens
-        PathwayMembership.submit_many(session, memberships)
+        await PathwayMembership.submit_many(session, memberships)
 
         # checkpoint is that last successful submit
-        return self.create_checkpoint(record=memberships[-1])
+        return self.create_checkpoint(record=annotations[-1])
