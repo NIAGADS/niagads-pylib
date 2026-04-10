@@ -59,8 +59,7 @@ class KEGGLoaderPlugin(PathwayMembershipLoaderPlugin):
             tree = ET.parse(file_path)
             root = tree.getroot()
 
-            raw_name = root.attrib.get("name", "")  # "path:hsa01230"
-            pathway_id = raw_name.split(":", 1)[1] if ":" in raw_name else raw_name
+            pathway_id = root.attrib.get("name", "").split(":")[1]  # "path:hsa01230"
             pathway_name = root.attrib.get("title", "")  # pathway name
 
             if self._verbose:
@@ -73,7 +72,7 @@ class KEGGLoaderPlugin(PathwayMembershipLoaderPlugin):
             # Find and parse gene entries; need to filter for type="gene"
             annotations = [
                 GenePathwayAssociation(
-                    gene_id=entry.attrib.get("id"),
+                    gene_id=entry.attrib.get("name").split(":")[1],
                     pathway_id=pathway_id,
                     pathway_name=pathway_name,
                 )
