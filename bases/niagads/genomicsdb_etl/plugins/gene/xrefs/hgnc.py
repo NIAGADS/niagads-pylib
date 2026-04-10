@@ -8,6 +8,8 @@ into the gene.xref table, mapping genes by their Ensembl gene ID (stable_id/sour
 import json
 from typing import Any, Dict, Iterator, List, Optional
 
+from niagads.database.genomicsdb.schema.gene.structure import GeneModel
+from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.gene.documents import Gene
@@ -120,6 +122,12 @@ class HGNCXRefLoader(AbstractBasePlugin):
         if self.is_etl_run:
             # Fetch HGNC external database reference using mixin
             self.__external_database = await self._params.fetch_xdbref(session)
+
+            # going to have to pretty much match whole gene table, so cache it
+            # to speed things up
+            self.__gene_pk_ref = GeneModel.retrieve_gene_pk_mapping()
+
+            self.logger.info(f"Cached {len(self.__gene_pk_ref)} gene_pk references.")
 
     def extract(self) -> Iterator[dict]:
         """
@@ -235,25 +243,6 @@ class HGNCXRefLoader(AbstractBasePlugin):
 
         return xrefs
 
-    async def __lookup_gene(self, session, source_id: str) -> Optional[int]:
-        """
-        Lookup or fetch a gene by its Ensembl gene ID (source_id).
-        Uses a local cache to avoid repeated database queries.
-        """
-        try:
-            gene_pk = self.__gene_pk_ref[source_id]
-        except:
-            try:
-                gene_pk = await Gene.resolve_identifier(
-                    session,
-                    id=source_id,
-                    gene_identifier_type=GeneIdentifierType.ENSEMBL,
-                )
-            except NoResultFound:
-                gene_pk = None
-            self.__gene_pk_ref[source_id] = gene_pk
-        return gene_pk
-
     async def load(self, session, entries: List[GeneXRefEntry]) -> ResumeCheckpoint:
         """
         Load xref entries into the gene.xref table.
@@ -269,11 +258,13 @@ class HGNCXRefLoader(AbstractBasePlugin):
                         f"Inserted {gene_xref_count} for {current_ensembl_id}:{current_gene_pk}"
                     )
                 current_ensembl_id = entry.ensembl_id
-                current_gene_pk = await self.__lookup_gene(session, current_ensembl_id)
                 gene_xref_count = 0
 
-                if current_gene_pk is None:
+                try:
+                    current_gene_pk = self.__gene_pk_ref[current_ensembl_id]
+                except:
                     self.__unmapped_genes.add(current_ensembl_id)
+                    current_gene_pk = None
 
             if current_gene_pk is None:
                 self.inc_tx_count(GeneXRef, ETLOperation.SKIP)

@@ -1,4 +1,5 @@
 from typing import Type
+from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.database.genomicsdb.schema.mixins import GenomicsDBTableMixin
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -29,3 +30,19 @@ class TableRef(BaseModel, arbitrary_types_allowed=True):
     table_class: Type[GenomicsDBTableMixin] = Field(
         ..., title="Table ORM Class", description="ORM class for the table."
     )
+
+    @classmethod
+    def get_table_class(cls, schema_name: str, table_name: str):
+        """
+        Retrieve the ORM model class from a qualified table name.
+        """
+
+        registry = GenomicsDBSchemaBase.registry
+        for mapper in registry.mappers:
+            tbl = mapper.local_table
+            if tbl.name == table_name and tbl.schema == schema_name:
+                return mapper.class_
+
+        raise ValueError(
+            f"Table '{schema_name}.{table_name}' not found in ORM registry"
+        )

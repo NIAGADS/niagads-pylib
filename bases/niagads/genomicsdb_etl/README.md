@@ -86,7 +86,7 @@ species: list[str] = Field(description=f"comma-separated list of one or more spe
 
 This example creates a required parameter that intakes a string, parses it and returns an list of strings.
 
-> **NOTE:** The system will auto-detect `case_insentivie_enum_types`.
+> **NOTE:** The system will auto-detect and handle `case_insentivie_enum_type`.
 
 #### Parameter Validation
 
@@ -514,6 +514,12 @@ prints: Sequence Ontology|2024-11-18
 
 See [TableRefMixin](#tableref-catalog-mixin) section for more information.
 
+### Other `runpipe` scripts
+
+#### `runpipe-export`
+
+For exporting data to pipe to external tools (e.g, for UniProtKB ID mapping) or to save a snapshot before doing an update.
+
 ## Debug Troubleshooting
 
 ### **RuntimeWarning: Enable tracemalloc to get the object allocation traceback**
@@ -532,7 +538,8 @@ When assisting in writing an ETL plugin, follow these steps:
 6. **Register the plugin**: Use `@PluginRegistry.register(metadata)` decorator on the plugin class.
 7. **Use provided utilities**: Use transaction wrappers (`submit`, `update`) and lookup mixins for database operations.
 8. **Handle run_id**: Ensure all records have `run_id` set before submission.
-9. **Add optional lifecycle methods**: Override `preprocess`, `on_run_start`, or `on_run_complete` as needed.
-10. **Validate parameters**: Use Pydantic validators, mixins, or database checks in `on_run_start`.
-11. **Return checkpoints**: Have `load` return `ResumeCheckpoint` for resume support.
-12. **Follow conventions**: Review existing plugins, use async/await patterns, and follow project style guidelines in the copilot-instructions file.
+9. **Loads are always done in batches**, the difference between the methods is governed by how the batch is generated.
+10. **Add optional lifecycle methods**: Override `preprocess`, `on_run_start`, or `on_run_complete` as needed.
+11. **Validate parameters**: Use Pydantic validators, mixins, or database checks in `on_run_start`.
+12. **Return checkpoints**: Have `load` return `ResumeCheckpoint` for resume support.
+13. **Follow conventions**: Review existing plugins, use async/await patterns, and follow project style guidelines in the copilot-instructions file.

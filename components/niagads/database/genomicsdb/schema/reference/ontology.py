@@ -41,6 +41,7 @@ class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
     _stable_id = "source_id"
 
     ontology_term_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    namespace: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
     term: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
     term_iri: Mapped[str] = mapped_column(String(250), index=False, nullable=False)
     entity_type: Mapped[str] = enum_column(EntityTypeIRI, use_enum_names=True)

@@ -74,13 +74,7 @@ class TableCatalog(AdminTableBase):
     async def get_table_ref(cls, session: AsyncSession, table_identifier) -> TableRef:
         if isinstance(table_identifier, str):  # fully qualified name
             schema_name, table_name = table_identifier.split(".")
-            # pull the table class from the sqlalchemy registry
-            registry = cls.registry
-            for mapper in registry.mappers:
-                tbl = mapper.local_table
-                if tbl.name == table_name and tbl.schema == schema_name:
-                    table_class = mapper.class_
-                    break
+            table_class = TableRef.get_table_class(schema=schema_name, table=table_name)
 
         else:  # its a table class
             schema_name, table_name = table_identifier.table_name().split(".")
