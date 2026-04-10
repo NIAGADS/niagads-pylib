@@ -185,6 +185,9 @@ class OntologyTermLoader(AbstractBasePlugin):
             for s in term.synonyms:
                 chunk_text += f"\nSynonym: {s}"
 
+        if term.namespace:
+            chunk_text += f"\nNamespace: {term.namespace}"
+
         if self._verbose:
             self.logger.debug(f"Chunk Text: {chunk_text}")
 

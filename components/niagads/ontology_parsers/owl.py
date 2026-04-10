@@ -80,6 +80,8 @@ class OWLParser(ComponentBaseMixin):
         definition = entity_properties.get(get_field_iri("definition"), [None])[0]
         synonyms = entity_properties.get(get_field_iri("synonym"), None)
 
+        namespace = entity_properties.get(get_field_iri("namespace"), [None])[0]
+
         return {
             "term_iri": entity_iri,
             "entity_type": str(entity_type),
@@ -88,6 +90,7 @@ class OWLParser(ComponentBaseMixin):
             "definition": definition,
             "synonyms": synonyms,
             "is_deprecated": is_deprecated,
+            "namespace": namespace,
         }
 
     def extract_terms(self) -> Iterator[dict]:
