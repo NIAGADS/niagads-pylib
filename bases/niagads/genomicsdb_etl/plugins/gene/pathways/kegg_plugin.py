@@ -68,17 +68,18 @@ class KEGGLoaderPlugin(PathwayMembershipLoaderPlugin):
             # <entry id="758" name="hsa:27235" type="gene" reaction="rn:R05000" link="https://www.kegg.jp/dbget-bin/www_bget?hsa:27235">
             #    <graphics name="" .../>
             # </entry>
-
-            # Find and parse gene entries; need to filter for type="gene"
-            annotations = [
-                GenePathwayAssociation(
-                    gene_id=entry.attrib.get("name").split(":")[1],
-                    pathway_id=pathway_id,
-                    pathway_name=pathway_name,
-                )
-                for entry in root.findall("entry[@type='gene']")
-            ]
-
+            annotations = []
+            for entry in root.findall("entry[@type='gene']"):
+                genes = entry.attrib.get('name').split(" ")
+                for gene in genes:            
+                    # Find and parse gene entries; need to filter for type="gene"
+                    annotations.append(GenePathwayAssociation(
+                        gene_id=gene.split(":")[1],
+                        pathway_id=pathway_id,
+                        pathway_name=pathway_name,
+                    ))
+                    
+ 
             self.logger.debug(f"Extracted: {len(annotations)} gene-pathway memberships")
 
             yield annotations
