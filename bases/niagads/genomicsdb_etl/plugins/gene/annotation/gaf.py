@@ -214,7 +214,7 @@ class GAFLoader(AbstractBasePlugin):
         transform GAFEntry into a GOAssociationEntry
         """
         return GOAssociationEntry(
-            entry.db_object_id,
+            uniprot_id=entry.db_object_id,
             term_curie=entry.go_id,
             evidence_code=entry.evidence_code,
             qualifiers=self.__build_qualifiers(entry),
@@ -232,7 +232,7 @@ class GAFLoader(AbstractBasePlugin):
                     external_database_id=self.__eco_xdbr_id,
                 )
                 self.__evidence_code_pk_ref[code] = ontology_term_id
-                self.logger.critical(f"Matched {code} - {ontology_term_id}")
+
             except:
                 ontology_term_id = await OntologyTerm.find_primary_key(
                     session,
@@ -241,7 +241,6 @@ class GAFLoader(AbstractBasePlugin):
                     search_synonyms=True,
                 )
                 self.__evidence_code_pk_ref[code] = ontology_term_id
-                self.logger.critical(f"Matched {code} - {ontology_term_id}")
 
         return ontology_term_id
 
@@ -252,11 +251,10 @@ class GAFLoader(AbstractBasePlugin):
         except:
             ontology_term_id = await OntologyTerm.find_primary_key(
                 session,
-                source_id=curie,
+                curie=curie,
                 external_database_id=self.__go_xdbr_id,
             )
             self.__go_curie_pk_ref[curie] = ontology_term_id
-            self.logger.critical(f"Matched {curie} - {ontology_term_id}")
 
         return ontology_term_id
 
@@ -277,7 +275,7 @@ class GAFLoader(AbstractBasePlugin):
         annotation_evidence: List[AnnotationEvidence] = []
         for entry in entries:
             # Lookup gene by UniProt ID
-            gene_pk = await self.__lookup_gene_pk(session, entry.uniprot_id)
+            gene_pk = self.__lookup_gene_pk(entry.uniprot_id)
             if gene_pk is None:
                 self.inc_tx_count(GOAssociation, ETLOperation.SKIP)
                 continue
