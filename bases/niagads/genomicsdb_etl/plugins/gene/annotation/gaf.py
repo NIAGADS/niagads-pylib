@@ -77,29 +77,18 @@ class GAFLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefM
 
     file: str = Field(..., description="Full path to GAF 2.2 file")
 
-    go_xdbr: str = Field(
+    go_xdbref: str = Field(
         ...,
         description="GO ontology external database reference (name|version) for "
         "mapping GO terms",
     )
-    eco_xdbr: str = Field(
+    eco_xdbref: str = Field(
         ...,
         description="Evidence Code Ontology (ECO) external database reference "
         "(name|version) for mapping evidence codes",
     )
 
     validate_file_exists = PathValidatorMixin.validator("file")
-
-
-# class GOAnnotationEntry(BaseModel):
-#     """Processed GO annotation entry ready for database load."""
-
-#     gene_id: int
-#     go_term_id: int
-#     evidence_code_id: int
-#     db_reference: Optional[str] = None
-#     with_or_from: Optional[list[str]] = None
-#     qualifier: Optional[str] = None
 
 
 metadata = PluginMetadata(
@@ -111,7 +100,7 @@ metadata = PluginMetadata(
     ),
     affected_tables=[AnnotationEvidence, GOAssociation],
     load_strategy=ETLLoadStrategy.CHUNKED,
-    operation=ETLOperation.LOAD,
+    operation=ETLOperation.INSERT,
     is_large_dataset=False,
     parameter_model=GAFLoaderParams,
 )
@@ -163,20 +152,20 @@ class GAFLoader(AbstractBasePlugin):
             ).external_database_id
 
             # Gene Ontology external_database_id
-            xdbref_param = ExternalDatabaseRefMixin(xdbref=self._params.go_xdbr)
+            xdbref_param = ExternalDatabaseRefMixin(xdbref=self._params.go_xdbref)
             self.__go_xdbr_id: int = (
                 await xdbref_param.fetch_xdbref(session)
             ).external_database_id
 
             # ECO external_database_id
-            xdbref_param = ExternalDatabaseRefMixin(xdbref=self._params.eco_xdbr)
+            xdbref_param = ExternalDatabaseRefMixin(xdbref=self._params.eco_xdbref)
             self.__eco_xdbr_id: int = (
                 await xdbref_param.fetch_xdbref(session)
             ).external_database_id
 
             # going to have to pretty much match whole gene table, so cache it
             # to speed things up
-            self.__gene_pk_ref = GeneXRef.retrieve_gene_pk_mapping(
+            self.__gene_pk_ref = await GeneXRef.retrieve_gene_pk_mapping(
                 session, gene_identifier_type=GeneIdentifierType.UNIPROT
             )
 
@@ -220,7 +209,7 @@ class GAFLoader(AbstractBasePlugin):
 
         return qualifiers if qualifiers else None
 
-    async def transform(self, entry: GAFEntry):
+    def transform(self, entry: GAFEntry):
         """
         transform GAFEntry into a GOAssociationEntry
         """
@@ -294,10 +283,12 @@ class GAFLoader(AbstractBasePlugin):
                 continue
 
             # Lookup GO term
-            go_term_id = self.__lookup_go_term_curie(session, entry.term_curie)
+            go_term_id = await self.__lookup_go_term_curie(session, entry.term_curie)
 
             # Lookup ECO code
-            evidence_code_id = self.__lookup_evidence_code(session, entry.evidence_code)
+            evidence_code_id = await self.__lookup_evidence_code(
+                session, entry.evidence_code
+            )
 
             # Create GOAssociation record
             association = GOAssociation(
@@ -307,7 +298,7 @@ class GAFLoader(AbstractBasePlugin):
                 run_id=self.run_id,
             )
 
-            association_pk = association.submit(session)
+            association_pk = await association.submit(session)
 
             evidence = AnnotationEvidence(
                 table_id=self.__goa_table_ref.table_id,
@@ -320,7 +311,7 @@ class GAFLoader(AbstractBasePlugin):
 
             annotation_evidence.append(evidence)
 
-        AnnotationEvidence.submit_many(session, annotation_evidence)
+        await AnnotationEvidence.submit_many(session, annotation_evidence)
 
         return self.create_checkpoint(record=entries[-1])
 
