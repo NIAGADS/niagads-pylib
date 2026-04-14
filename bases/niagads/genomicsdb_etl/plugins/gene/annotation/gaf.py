@@ -284,65 +284,53 @@ class GAFLoader(AbstractBasePlugin):
         Returns:
             ResumeCheckpoint for resumable runs
         """
+
+        annotation_evidence: List[AnnotationEvidence] = []
         for entry in entries:
             # Lookup gene by UniProt ID
-            gene_id = await self.__lookup_gene_pk(session, entry.uniprot_id)
-            if gene_id is None:
+            gene_pk = await self.__lookup_gene_pk(session, entry.uniprot_id)
+            if gene_pk is None:
                 self.inc_tx_count(GOAssociation, ETLOperation.SKIP)
                 continue
 
             # Lookup GO term
-            term_ontology_term_id = self.__lookup_go_term_curie(
-                session, entry.term_curie
-            )
+            go_term_id = self.__lookup_go_term_curie(session, entry.term_curie)
 
             # Lookup ECO code
-            eco_term_id = self.__lookup_evidence_code(session, entry.evidence_code)
+            evidence_code_id = self.__lookup_evidence_code(session, entry.evidence_code)
 
             # Create GOAssociation record
             association = GOAssociation(
-                gene_id=gene_id,
-                go_term_id=term_ontology_term_id,
+                gene_id=gene_pk,
+                go_term_id=go_term_id,
                 external_database_id=self.__external_database_id,
                 run_id=self.run_id,
             )
 
             association_pk = association.submit(session)
 
-            # LEFT OFF HERE
-            annotation_evidences: List[AnnotationEvidence] = []
-            for idx, go_assoc in enumerate(go_associations):
-                eco_term_id, qualifiers = annotation_data[idx]
-                annotation_ev = AnnotationEvidence(
-                    evidence_code_id=eco_term_id,
-                    table_id=self.__goa_table_ref.table_id,
-                    row_id=go_assoc.go_association_id,
-                    qualifiers=qualifiers,
-                    run_id=self.run_id,
-                )
-                annotation_evidences.append(annotation_ev)
+            evidence = AnnotationEvidence(
+                table_id=self.__goa_table_ref.table_id,
+                row_id=association_pk,
+                evidence_code_id=evidence_code_id,
+                qualifiers=entry.qualifiers,
+                external_database_id=self.__external_database_id,
+                run_id=self.run_id,
+            )
 
-            if annotation_evidences:
-                await AnnotationEvidence.submit_many(session, annotation_evidences)
+            annotation_evidence.append(evidence)
 
-        if entries:
-            return self.create_checkpoint(record=entries[-1])
-        return None
+        AnnotationEvidence.submit_many(session, annotation_evidence)
 
-    def get_record_id(self, record: GAFEntry) -> str:
+        return self.create_checkpoint(record=entries[-1])
+
+    def get_record_id(self, record: GOAssociationEntry) -> str:
         """Return unique identifier for checkpoint."""
-        return f"{record.db_object_id}|{record.go_id}"
+        return f"{record.uniprot_id}|{record.term_curie}"
 
     async def on_run_complete(self):
         """Log summary statistics after run completion."""
         total_unmapped_genes = len(self.__unmapped_genes)
-        total_unmapped_go = len(self.__unmapped_go_terms)
-        total_unmapped_eco = len(self.__unmapped_eco_codes)
-
-        if self.__skipped_records > 0:
-            self.logger.warning(
-                f"Skipped {self.__skipped_records} records due to " f"mapping failures"
-            )
 
         if total_unmapped_genes > 0:
             self.logger.warning(
@@ -350,17 +338,3 @@ class GAFLoader(AbstractBasePlugin):
             )
             if self._verbose:
                 self.logger.debug(f"Unmapped genes: {self.__unmapped_genes}")
-
-        if total_unmapped_go > 0:
-            self.logger.warning(
-                f"Could not find {total_unmapped_go} GO term identifiers"
-            )
-            if self._verbose:
-                self.logger.debug(f"Unmapped GO terms: {self.__unmapped_go_terms}")
-
-        if total_unmapped_eco > 0:
-            self.logger.warning(
-                f"Could not find {total_unmapped_eco} ECO evidence codes"
-            )
-            if self._verbose:
-                self.logger.debug(f"Unmapped ECO codes: {self.__unmapped_eco_codes}")
