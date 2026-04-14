@@ -53,36 +53,42 @@ class KEGGLoaderPlugin(PathwayMembershipLoaderPlugin):
         files: List[str] = get_files_by_pattern(self._params.kgml_dir, "*.kgml")
         self.logger.info(f"Found {len(files)} KGML Files to load.")
 
+        pathway_count = 0
+        entry_count = 0
         for file_path in files:
-            self.logger.info(f"Parsing: {file_path}")
-
+            pathway_count += 1
             tree = ET.parse(file_path)
             root = tree.getroot()
 
             pathway_id = root.attrib.get("name", "").split(":")[1]  # "path:hsa01230"
             pathway_name = root.attrib.get("title", "")  # pathway name
 
-            if self._verbose:
-                self.logger.info(f"Pathway: {pathway_id}:{pathway_name}")
-
+            # Find and parse gene entries; need to filter for type="gene"
             # <entry id="758" name="hsa:27235" type="gene" reaction="rn:R05000" link="https://www.kegg.jp/dbget-bin/www_bget?hsa:27235">
             #    <graphics name="" .../>
             # </entry>
+
             annotations = []
             for entry in root.findall("entry[@type='gene']"):
-                genes = entry.attrib.get('name').split(" ")
-                for gene in genes:            
-                    # Find and parse gene entries; need to filter for type="gene"
-                    annotations.append(GenePathwayAssociation(
-                        gene_id=gene.split(":")[1],
-                        pathway_id=pathway_id,
-                        pathway_name=pathway_name,
-                    ))
-                    
- 
-            self.logger.debug(f"Extracted: {len(annotations)} gene-pathway memberships")
+                genes = entry.attrib.get("name").split(" ")
+                for gene in genes:
+                    annotations.append(
+                        GenePathwayAssociation(
+                            gene_id=gene.split(":")[1],
+                            pathway_id=pathway_id,
+                            pathway_name=pathway_name,
+                        )
+                    )
+                    entry_count += 1
+
+            if self._verbose:
+                self.logger.info(f"Extracted {len(annotations)} from {file_path}")
 
             yield annotations
+
+            self.logger.info(
+                f"Parsed {entry_count} gene-pathway entries from {pathway_count} KGML files."
+            )
 
     def transform(self, data: List[GenePathwayAssociation]):
         # no transform necessary; GeenPathwayAssociation already object generated in Extract
