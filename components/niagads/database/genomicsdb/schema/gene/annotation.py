@@ -19,6 +19,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 class AnnotationTableBase(GenomicsDBSchemaBase, GenomicsDBTableMixin):
     __abstract__ = True
     _stable_id = None
+    _schema = "gene"
+
+    __table_args__ = {"schema": _schema}
+
     external_database_id: Mapped[int] = mapped_column(
         ForeignKey("reference.externaldatabase.external_database_id"),
         nullable=False,
