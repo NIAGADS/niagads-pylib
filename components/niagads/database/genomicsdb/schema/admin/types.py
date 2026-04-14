@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Optional
 from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.database.genomicsdb.schema.mixins import GenomicsDBTableMixin
 from pydantic import BaseModel, ConfigDict, Field
@@ -26,7 +26,9 @@ class TableRef(BaseModel, arbitrary_types_allowed=True):
         title="Table Primary Key",
         description="Name of the primary key column for the table.",
     )
-    table_stable_id: str = (Field(default=None, title="Table Stable (FAIR) ID"),)
+    table_stable_id: Optional[str] = (
+        Field(default=None, title="Table Stable (FAIR) ID"),
+    )
     table_class: Type[GenomicsDBTableMixin] = Field(
         ..., title="Table ORM Class", description="ORM class for the table."
     )
