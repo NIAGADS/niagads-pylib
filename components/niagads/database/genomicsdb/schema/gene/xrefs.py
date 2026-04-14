@@ -98,7 +98,7 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
             )
         records = (await session.execute(stmt)).mappings().all()
         for r in records:
-            mapping[r["id_key"]] = r["gene_id"]
+            mapping[r[id_key]] = r["gene_id"]
         return mapping
 
     @classmethod
@@ -178,27 +178,6 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
 
         else:  # if not matching against synonyms
             raise NoResultFound(f"No matching genes found for symbol: {symbol}")
-
-    @classmethod
-    async def retrieve_gene_pk_mapping(
-        cls,
-        session: AsyncSession,
-        gene_identifier_type: GeneIdentifierType = GeneIdentifierType.ENSEMBL,
-    ):
-        """
-        Retrieve a mapping from gene identifiers to gene primary keys.
-
-        Args:
-            session (AsyncSession): SQLAlchemy async session for database access.
-            gene_identifier_type (GeneIdentifierType, optional): The type of gene identifier to use for mapping. Defaults to ENSEMBL.
-
-        Returns:
-            dict: A mapping from the specified gene identifier values to gene primary keys.
-
-        Example:
-            mapping = await GeneXRef.retrieve_gene_pk_mapping(session, GeneIdentifierType.HGNC)
-        """
-        return GeneXRef.retrieve_gene_pk_mapping(session, gene_identifier_type)
 
     @classmethod
     async def resolve_identifier(
