@@ -5,15 +5,17 @@ Defines annotation, pathway membership, and related tables for gene-centric know
 """
 
 from niagads.database.genomicsdb.schema.admin.mixins import TableRefMixin
+from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.database.genomicsdb.schema.gene.base import GeneTableBase
 from niagads.database.genomicsdb.schema.gene.helpers import gene_fk_column
+from niagads.database.genomicsdb.schema.mixins import GenomicsDBTableMixin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class PathwayMembership(GeneTableBase):
+class PathwayMembership(GenomicsDBSchemaBase, GenomicsDBTableMixin):
     __tablename__ = "pathwaymembership"
     __table_args__ = (
         UniqueConstraint("pathway_id", "gene_id", name="uq_pathway_gene_membership"),
@@ -24,6 +26,12 @@ class PathwayMembership(GeneTableBase):
     pathway_membership_id: Mapped[int] = mapped_column(
         primary_key=True, autoincrement=True
     )
+    external_database_id: Mapped[int] = mapped_column(
+        ForeignKey("reference.externaldatabase.external_database_id"),
+        nullable=False,
+        index=True,
+    )
+
     pathway_id: Mapped[int] = mapped_column(
         ForeignKey("reference.pathway.pathway_id"),
         nullable=False,
