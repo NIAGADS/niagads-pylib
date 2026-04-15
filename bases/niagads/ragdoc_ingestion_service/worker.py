@@ -1,9 +1,17 @@
 import asyncio
+from datetime import datetime
 from typing import Optional
 
 from niagads.common.core import ComponentBaseMixin
+from niagads.database.ragdoc.schema import IngestionJob
+from niagads.database.session import DatabaseSessionManager
+from niagads.database.types import RetrievalStatus
 from niagads.nlp.llm_types import LLM
 from niagads.ragdoc.services.config import BaseRagdocServiceSettings
+from niagads.ragdoc.services.ingestion import (
+    DocumentIngestionRequest,
+    DocumentIngestionService,
+)
 from niagads.ragdoc.services.jobs import IngestionJobService
 
 
@@ -25,13 +33,59 @@ class DocumentIngestionWorker(ComponentBaseMixin):
     ):
         super().__init__(debug=debug, verbose=verbose)
         model = None if embedding_model is None else LLM(embedding_model)
-        self._job_service = IngestionJobService(
+        self._database_session_manager = DatabaseSessionManager(database_uri)
+        self._ingestion_service = DocumentIngestionService(
             database_uri=database_uri,
             embedding_model=model,
             debug=debug,
             verbose=verbose,
         )
+        self._job_service = IngestionJobService(
+            database_uri=database_uri,
+            debug=debug,
+            verbose=verbose,
+        )
         self._poll_interval = poll_interval
+
+    async def process_job(self, job_id: int):
+        """Process a single queued ingestion job and persist the outcome."""
+        async with self._database_session_manager.session_ctx() as session:
+            job = await session.get(IngestionJob, job_id)
+            if job is None:
+                raise ValueError(f"Ingestion job {job_id} not found")
+
+            job.status = RetrievalStatus.IN_PROGRESS
+            job.start_date = datetime.now()
+            job.error_message = None
+            await session.flush()
+            await session.commit()
+
+            url = job.url
+            max_pages = job.max_pages
+
+        try:
+            result = await self._ingestion_service.ingest(
+                DocumentIngestionRequest(url=url, max_pages=max_pages)
+            )
+        except Exception as err:
+            async with self._database_session_manager.session_ctx() as session:
+                job = await session.get(IngestionJob, job_id)
+                job.status = RetrievalStatus.FAILED
+                job.end_date = datetime.now()
+                job.error_message = str(err)
+                await session.flush()
+                await session.commit()
+            raise
+
+        async with self._database_session_manager.session_ctx() as session:
+            job = await session.get(IngestionJob, job_id)
+            job.status = RetrievalStatus.SUCCESS
+            job.end_date = datetime.now()
+            job.num_documents = result.num_documents
+            job.num_chunks = result.num_chunks
+            job.num_embeddings = result.num_embeddings
+            await session.flush()
+            await session.commit()
 
     async def run(self):
         """Continuously poll for and process queued jobs."""
@@ -43,11 +97,13 @@ class DocumentIngestionWorker(ComponentBaseMixin):
                     continue
 
                 try:
-                    await self._job_service.process_job(job_id)
+                    await self.process_job(job_id)
                 except Exception:
                     self.logger.exception(f"Failed processing ingestion job {job_id}")
         finally:
+            await self._ingestion_service.close()
             await self._job_service.close()
+            await self._database_session_manager.close()
 
 
 def main():

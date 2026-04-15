@@ -15,8 +15,8 @@ class Settings(CustomSettings):
     DATABASE_URI: Optional[str] = Field(None, pattern=RegularExpressions.POSTGRES_URI)
 
 
-class DocumentIngestionApp(ComponentBaseMixin):
-    """Streamlit application for queuing and monitoring website ingestion jobs."""
+class RAGDocAdminApp(ComponentBaseMixin):
+    """Streamlit application for queuing and monitoring RAG document jobs."""
 
     def __init__(
         self,
@@ -31,9 +31,9 @@ class DocumentIngestionApp(ComponentBaseMixin):
 
     def run(self):
         """Render and run the Streamlit application."""
-        st.set_page_config(page_title="Document Ingestion Admin", layout="centered")
-        st.title("Document Ingestion Admin")
-        st.caption("Queue website crawls and monitor ingestion progress.")
+        st.set_page_config(page_title="RAG Document Admin", layout="centered")
+        st.title("RAG Document Admin")
+        st.caption("Queue website crawls and monitor processing status.")
 
         with st.form("add_url_form"):
             url = st.text_input("Root URL")
@@ -122,8 +122,8 @@ class DocumentIngestionApp(ComponentBaseMixin):
 
 
 def main():
-    """Run the document ingestion Streamlit application."""
-    app = DocumentIngestionApp()
+    """Run the RAG document Streamlit admin application."""
+    app = RAGDocAdminApp()
     app.run()
 
 
