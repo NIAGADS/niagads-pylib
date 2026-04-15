@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bullseye
+FROM python:3.12-slim
 
 ARG WHEEL=ragdoc_api_service-0.1.0-py3-none-any.whl
 

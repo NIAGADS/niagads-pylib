@@ -8,6 +8,8 @@ services:
       args:
         WHEEL: "ragdoc_admin_service-0.1.0-py3-none-any.whl"
     environment:
-      DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@chatbot-poc-db:5432/${POSTGRES_DB}
+      DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ragdoc-db:5432/${POSTGRES_DB}
     ports:
       - ${HOST_ADMIN_PORT}:8501
+    networks:
+      - shared-net

@@ -6,3 +6,5 @@ services:
       dockerfile: ./Dockerfile
     ports:
       - "${HOST_API_SERVICE_PORT}:8000"
+    networks:
+      - shared-net
