@@ -9,3 +9,10 @@ class RAGDocType(CaseInsensitiveEnum):
     VARIANT = auto()
     METADATA = auto()
     DOCUMENT = auto()
+
+
+class RetrievalStatus(CaseInsensitiveEnum):
+    PENDING = auto()
+    IN_PROGRESS = auto()
+    SUCCESS = auto()
+    FAILED = auto()

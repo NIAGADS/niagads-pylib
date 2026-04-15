@@ -5,32 +5,24 @@ Defines table mapping, chunk metadata, and embedding tables for chunked
 retrieval-augmented generation (RAG) workflows in the genomicsdb ragdoc schema.
 """
 
-from niagads.database.helpers import enum_column, enum_constraint
-from niagads.database.mixins.embeddings import EmbeddingMixin
 from niagads.database.genomicsdb.schema.admin.mixins import TableRefMixin
 from niagads.database.genomicsdb.schema.ragdoc.base import RAGDocTableBase
-from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
-from pgvector.sqlalchemy import Vector
-from sqlalchemy import (
-    TEXT,
-    ForeignKey,
-    Index,
-    Integer,
-    LargeBinary,
-    String,
-    UniqueConstraint,
-    event,
-)
+from niagads.database.helpers import enum_column
+from niagads.database.mixins.chunks import ChunkMetadataMixin
+from niagads.database.mixins.embeddings import EmbeddingMixin
+from niagads.database.types import RAGDocType
+from sqlalchemy import ForeignKey, Index, LargeBinary, UniqueConstraint, event
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class ChunkMetadata(RAGDocTableBase, TableRefMixin):
+class ChunkMetadata(RAGDocTableBase, ChunkMetadataMixin, TableRefMixin):
     """
     Stores chunk boundaries and metadata for structured and unstructured documents.
     """
 
     __tablename__ = "chunkmetadata"
     __table_args__ = (
+        *ChunkMetadataMixin.__table_args__,
         UniqueConstraint(
             "table_id",
             "row_id",
@@ -41,24 +33,9 @@ class ChunkMetadata(RAGDocTableBase, TableRefMixin):
         ),
         Index("ix_chunkmetadata_table_doc", "table_id", "row_id"),
         Index("ix_chunkmetadata_chunk_hash", "chunk_hash"),  # for checking staleness
-        enum_constraint("document_type", RAGDocType),
         RAGDocTableBase.__table_args__,
     )
-
-    chunk_metadata_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     document_type: Mapped[str] = enum_column(RAGDocType, nullable=False, index=True)
-    document_section: Mapped[str] = mapped_column(
-        String(64), nullable=False, server_default="FULL", default="FULL"
-    )
-    document_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=True)
-    chunk_hash: Mapped[bytes] = mapped_column(LargeBinary(32), nullable=False)
-    chunk_text: Mapped[str] = mapped_column(TEXT, nullable=True)
-    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
-    start_offset: Mapped[int] = mapped_column(Integer, nullable=True)
-    end_offset: Mapped[int] = mapped_column(Integer, nullable=True)
-    chunk_id: Mapped[str] = mapped_column(
-        String(128), nullable=False, unique=False, index=True
-    )
 
 
 @event.listens_for(ChunkMetadata, "before_insert")
@@ -68,6 +45,9 @@ def generate_chunk_id(mapper, connection, target: ChunkMetadata):
 
     This listener constructs a composite chunk_id from document_type, document_section,
     and chunk_index.
+
+    usage:
+
     """
     if not target.document_section:
         target.document_section = "FULL"

@@ -14,7 +14,7 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
-from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
+from niagads.database.types import RAGDocType
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.etl.plugins.base import AbstractBasePlugin
