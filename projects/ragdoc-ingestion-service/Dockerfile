@@ -1,23 +1,14 @@
 # FIXME: when moved to polylith project, use wheel based install
 FROM python:3.12-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV POETRY_HOME=/opt/poetry
-ENV PATH="/opt/poetry/bin:$PATH"
-ENV POETRY_VIRTUALENVS_CREATE=false
+ARG WHEEL=ragdoc_ingestion_service-0.1.0-py3-none-any.whl
 
-WORKDIR /app
 
-COPY pyproject.toml poetry.lock README.md /app/
-COPY bases /app/bases
-COPY components /app/components
-COPY development /app/development
+RUN python -m pip install --upgrade pip
 
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y curl git \
-    && curl -sSL https://install.python-poetry.org | python3 - \
-    && poetry install --no-interaction --no-ansi \
-    && rm -rf /var/lib/apt/lists/*
+WORKDIR /code
 
-CMD ["python", "-m", "development.chatbot_poc.worker"]
+COPY ./dist/$WHEEL /code/$WHEEL
+RUN pip install --no-cache-dir --upgrade /code/$WHEEL
+
+CMD ["ragdoc-ingestion-worker"]

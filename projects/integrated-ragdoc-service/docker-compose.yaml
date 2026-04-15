@@ -25,23 +25,6 @@ services:
     networks:
       - shared-net
 
-  ragdoc-db-init:
-    networks:
-      - shared-net
-  ragdoc-ingestion-service:
-    networks:
-      - shared-net
-  ragdoc-admin-service:
-    networks:
-      - shared-net
-  ragdoc-api-service:
-    networks:
-      - shared-net
-
-  project-b:
-    networks:
-      - shared-net
-
 networks:
   shared-net:
     driver: bridge

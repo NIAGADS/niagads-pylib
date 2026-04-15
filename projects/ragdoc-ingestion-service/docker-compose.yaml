@@ -9,7 +9,9 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ragdoc-db:5432/${POSTGRES_DB}
-    command: [ "python", "-m", "niagads.ragdoc_ingestion_service.init_schema" ]
+    command: [ "ragdoc-init-schema" ]
+    networks:
+      - shared-net
   ragdoc-ingestion-service:
     build:
       context: .
@@ -17,3 +19,9 @@ services:
     restart: always
     environment:
       DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ragdoc-db:5432/${POSTGRES_DB}
+    networks:
+      - shared-net
+
+networks:
+  shared-net:
+    driver: bridge

@@ -1,7 +1,7 @@
 [project]
 name = "ragdoc-ingestion-service"
 authors = [
-    {name = "fossilfriend", email = "egreenfest@gmail.com"}
+    { name = "fossilfriend", email = "egreenfest@gmail.com" },
 ]
 dependencies = [
     "aiohttp (>=3.13.5,<4.0.0)",
@@ -18,25 +18,29 @@ dependencies = [
     "sqlalchemy-utils (>=0.42.1,<0.43.0)",
     "strenum (>=0.4.15,<0.5.0)",
     "transformers (>=5.5.4,<6.0.0)",
-    "typing-extensions (>=4.15.0,<5.0.0)"
+    "typing-extensions (>=4.15.0,<5.0.0)",
 ]
 requires-python = ">=3.11,<3.14"
 version = "0.1.0"
 
 [tool.poetry]
 packages = [
-    {from = "../../bases", include = "niagads/ragdoc_ingestion_service"},
-    {from = "../../components", include = "niagads/common"},
-    {from = "../../components", include = "niagads/database"},
-    {from = "../../components", include = "niagads/enums"},
-    {from = "../../components", include = "niagads/exceptions"},
-    {from = "../../components", include = "niagads/genome_reference"},
-    {from = "../../components", include = "niagads/nlp"},
-    {from = "../../components", include = "niagads/ragdoc"},
-    {from = "../../components", include = "niagads/requests"},
-    {from = "../../components", include = "niagads/settings"},
-    {from = "../../components", include = "niagads/utils"}
+    { from = "../../bases", include = "niagads/ragdoc_ingestion_service" },
+    { from = "../../components", include = "niagads/common" },
+    { from = "../../components", include = "niagads/database" },
+    { from = "../../components", include = "niagads/enums" },
+    { from = "../../components", include = "niagads/exceptions" },
+    { from = "../../components", include = "niagads/genome_reference" },
+    { from = "../../components", include = "niagads/nlp" },
+    { from = "../../components", include = "niagads/ragdoc" },
+    { from = "../../components", include = "niagads/requests" },
+    { from = "../../components", include = "niagads/settings" },
+    { from = "../../components", include = "niagads/utils" },
 ]
+
+[project.scripts]
+ragdoc-init-schema = "niagads.ragdoc_ingestion_service.init_schema:main"
+ragdoc-ingestion-worker = "niagads.ragdoc_ingestion_service.worker:main"
 
 [tool.tomlsort]
 all = true
@@ -46,5 +50,5 @@ spaces_indent_inline_array = 4
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = [
-    "poetry-core>=1.0.0"
+    "poetry-core>=1.0.0",
 ]
