@@ -11,7 +11,7 @@ from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
-from niagads.genomicsdb_etl.plugins.gene.pathways.types import GenePathwayAssociation
+from niagads.genomicsdb_etl.plugins.gene.pathways.types import PathwayGeneAssociations
 from pydantic import Field
 from sqlalchemy.exc import NoResultFound
 
@@ -45,6 +45,8 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
         self._external_database = None
         self._gene_pk_ref: dict = {}
         self._pathway_pk_ref: dict = {}
+        self._seen_memberships: dict = {}
+        self._unmapped_genes: set[str] = set()
 
     # --------- Properties
 
@@ -66,8 +68,8 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
             f"external_database_id = {self.__external_database.external_database_id}"
         )
 
-    def get_record_id(self, record: GenePathwayAssociation):
-        return f"{record.pathway_id}:{record.gene_id}"
+    def get_record_id(self, record: PathwayGeneAssociations):
+        return f"{record.pathway_info.pathway_id}"
 
     # --------- Load Helpers
 
@@ -91,9 +93,11 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
                 else:
                     # set placeholder primary key so we can detect, skip loading
                     # memberships, and avoid future lookups
+                    self._unmapped_genes.add(gene_id)
                     primary_key = "NOT_FOUND"
 
             self._gene_pk_ref[gene_id] = primary_key
+
         return primary_key
 
     async def _retrieve_or_load_pathway(
@@ -115,8 +119,8 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
         primary_key = self._pathway_pk_ref.get(pathway_id, None)
         if primary_key is None:
             try:
-                primary_key = await Pathway.find_primary_key(session,
-                    filters={"source_id": pathway_id}
+                primary_key = await Pathway.find_primary_key(
+                    session, filters={"source_id": pathway_id}
                 )
 
             except NoResultFound:
@@ -136,7 +140,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
     async def _load_pathway_membership(
         self,
         session,
-        annotations: List[GenePathwayAssociation],
+        annotations: List[PathwayGeneAssociations],
         gene_id_type: GeneIdentifierType,
     ):
         """
@@ -144,7 +148,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
 
         Args:
             session: The database session.
-            annotations: List of pathway annotations.
+            annotations: List of pathway annotations (pathway_info, member_genes)
             gene_id_type: The type of gene identifier to use for resolving genes.
             is_multi_pathway_load (Optinal, book): flag indicating if all
         Returns:
@@ -152,40 +156,46 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
         """
         self.logger.debug(f"Initiating batch load; n={len(annotations)} records.")
 
-        memberships = []
-        for record in annotations:
+        for pathway in annotations:
             # Lookup / possibly load pathway and get its primary key
             pathway_pk = await self._retrieve_or_load_pathway(
-                session, record.pathway_id, record.pathway_name
+                session,
+                pathway.pathway_info.pathway_id,
+                pathway.pathway_info.pathway_name,
             )
 
-            gene_pk = await self._lookup_gene_primary_key(
-                session, record.gene_id, gene_id_type
-            )
-
-            # skip records with bad genes, if flagged
-            # not to fail on missing genes; failure is handled in the
-            # gene lookup function
-            if gene_pk == "NOT_FOUND":
-                self.logger.warning(f"Gene not found; skipping {record.model_dump()}")
-                self.inc_tx_count(PathwayMembership, ETLOperation.SKIP)
-                continue
-
-            # build membership array
-            memberships.append(
-                PathwayMembership(
-                    gene_id=gene_pk,
-                    pathway_id=pathway_pk,
-                    run_id=self.run_id,
-                    external_database_id=self.external_database_id,
+            memberships = []
+            for gene in pathway.member_genes:
+                gene_pk = await self._lookup_gene_primary_key(
+                    session, gene.gene_id, gene_id_type
                 )
-            )
 
-        # submit pathway-memberships in bulk
-        # note: this could potentially throw an error if len(memberships) == 0
-        # which could happen (unlikely though) if all genes are not found in database
-        # so let the error get thrown b/c something is wrong w/data if that happens
-        await PathwayMembership.submit_many(session, memberships)
+                # skip records with bad genes, if flagged
+                # not to fail on missing genes; failure is handled in the
+                # gene lookup function
+                if gene_pk == "NOT_FOUND":
+                    self.inc_tx_count(PathwayMembership, ETLOperation.SKIP)
+                    continue
+
+                # build membership array
+                memberships.append(
+                    PathwayMembership(
+                        gene_id=gene_pk,
+                        pathway_id=pathway_pk,
+                        run_id=self.run_id,
+                        external_database_id=self.external_database_id,
+                    )
+                )
+
+            # submit pathway-memberships in bulk
+            await PathwayMembership.submit_many(session, memberships)
 
         # checkpoint is that last successful submit
         return self.create_checkpoint(record=annotations[-1])
+
+    async def on_run_complete(self):
+        num_skipped = len(self._unmapped_genes)
+        self.logger.warning(
+            f"Skipped {num_skipped} unmapped genes. Likely RefSeq only, provisional, or non-primary assembly."
+        )
+        self.logger.info(self._unmapped_genes)
