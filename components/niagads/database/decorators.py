@@ -4,6 +4,7 @@ from dateutil import parser
 from niagads.common.models.types import Range
 from sqlalchemy.dialects.postgresql import INT4RANGE
 from sqlalchemy.types import DateTime, TypeDecorator
+from asyncpg import Range as AsyncPGRange
 
 
 class RangeType(TypeDecorator):
@@ -30,11 +31,17 @@ class RangeType(TypeDecorator):
         # Use the Range class's to_bracket_string method
         # sets inclusize end to True b/c most of the time dealing
         # with 1-based genomic coordinates
-        return value.to_bracketed_string()
+        # return value.bracket_notation()
 
-    def process_result_value(self, value, dialect):
+        return AsyncPGRange(
+            lower=value.start,
+            upper=value.end,
+            upper_inc=value.inclusive_end,
+        )
+
+    def process_result_value(self, value: AsyncPGRange, dialect):
         """
-        Convert a PostgreSQL INT4RANGE string back to a Range object.
+        Convert a PostgreSQL INT4RANGE back to a Range object.
         called automatically when result is fetched
         Args:
             value (str): The PostgreSQL range string.
@@ -44,21 +51,11 @@ class RangeType(TypeDecorator):
         """
         if value is None:
             return None
-        # Parse the PostgreSQL range string back to a Range object
-        # Example: '[1,100)' -> Range(start=1, end=100)
-        import re
-
-        match = re.match(r"\[(\d+),\s*(\d+)([\]\)])", value)
-        if match:
-            inclusiveEnd = True
-            start = int(match.group(1))
-            end = int(match.group(2))
-            bracket = match.group(3)
-            if bracket == ")":
-                end -= 1  # exclusive end, so subtract 1
-                inclusiveEnd = False
-            return Range(start=start, end=end, inclusive_end=inclusiveEnd)
-        return value
+        return Range(
+            start=value.lower,
+            end=value.upper,
+            inclusive_end=value.upper_inc,
+        )
 
 
 class AutoDateTime(TypeDecorator):

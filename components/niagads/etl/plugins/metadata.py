@@ -16,3 +16,4 @@ class PluginMetadata(BaseModel, arbitrary_types_allowed=True):
     operation: ETLOperation
     is_large_dataset: bool = False
     parameter_model: Type[BasePluginParams]
+    can_resume: Optional[bool] = False

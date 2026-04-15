@@ -4,7 +4,7 @@ Ontology Loader Plugins
 Loads an ontology from an OWL file into the reference ontology graph schema.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional
 
 from niagads.common.types import ETLOperation
@@ -55,7 +55,7 @@ class OWLLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefM
         default=False,
         description="if term already exists in the table, attempts to update defintion and synonyms if necessary; if set to false, just skips existing terms",
     )
-    validate_file_exists = PathValidatorMixin.validator("file", is_dir=False)
+    validate_file_exists = PathValidatorMixin.validator("file")
 
 
 class OntologyTermReferenceLoaderParams(OWLLoaderParams):
@@ -185,6 +185,9 @@ class OntologyTermLoader(AbstractBasePlugin):
             for s in term.synonyms:
                 chunk_text += f"\nSynonym: {s}"
 
+        if term.namespace:
+            chunk_text += f"\nNamespace: {term.namespace}"
+
         if self._verbose:
             self.logger.debug(f"Chunk Text: {chunk_text}")
 
@@ -301,7 +304,7 @@ class OntologyTermLoader(AbstractBasePlugin):
         chunk_embedding.chunk_hash = embedded_term.chunk_hash
         chunk_embedding.embedding = embedded_term.embedding
         chunk_embedding.embedding_model = str(self._params.embedding_model)
-        chunk_embedding.embedding_date = datetime.now(tz=timezone.utc).isoformat()
+        chunk_embedding.embedding_date = datetime.now().isoformat()
         chunk_embedding.embedding_run_id = self.run_id
         await chunk_embedding.update(session)
 

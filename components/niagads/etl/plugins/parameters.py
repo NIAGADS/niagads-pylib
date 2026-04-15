@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from niagads.etl.plugins.types import ResumeCheckpoint
 from niagads.etl.types import ETLExecutionMode
@@ -12,7 +12,7 @@ class BasePluginParams(BaseModel):
     Attributes:
         batch_size (int): Number of records to buffer before each load/commit in streaming mode.
         log_file (str): Path to the JSON log file for this plugin invocation.
-        checkpoint (Optional[ResumeFrom]): Resume checkpoint hints, interpreted by plugins (extract/transform).
+        resume_at (Optional[ResumeFrom]): Resume checkpoint hints, interpreted by plugins (extract/transform).
         run_id (Optional[str]): Pipeline run identifier, provided by the pipeline.
         connection_string (Optional[str]): Database connection string, if needed.
 
@@ -30,16 +30,15 @@ class BasePluginParams(BaseModel):
         ge=1,
         description="load batch size; indicates number of records to buffer or bulk insert per commit",
     )
-    resume_checkpoint: Optional[ResumeCheckpoint] = Field(
-        default=None,
-        description="resume checkpoint, a line number or record ID.  Indicate as line=<N> or id=<record ID>",
+    resume_after: Optional[Union[str, int]] = Field(
+        default=None, description="resume checkpoint, a line number or record ID."
     )
-    connection_string: Optional[str] = Field(
+    database_uri: Optional[str] = Field(
         default=None,
         description="database connection string; if not provided, the plugin will try to assign from `DATABASE_URI` property in an `.env` file",
     )
     run_id: Optional[int] = Field(
-        default=None, description="ETL run ID  (required for UNDO)"
+        default=None, description="ETL run ID  (required for UNDO)", exclude=True
     )
 
     # this shouldn't happen BTW b/c ge validator already set
@@ -82,14 +81,13 @@ class PathValidatorMixin:
     """
 
     @classmethod
-    def validator(cls, field_name, is_dir=False):
+    def validator(cls, field_name):
         @field_validator(field_name, mode="plain")
         def file_exists(cls, value):
             from niagads.utils.sys import verify_path
 
             if not verify_path(value):
-                target_type = "Directory" if is_dir else "File"
-                raise ValueError(f"{target_type} does not exist: {value}")
+                raise ValueError(f"Unable to access {value}; path does not exist.")
             return value
 
         return file_exists

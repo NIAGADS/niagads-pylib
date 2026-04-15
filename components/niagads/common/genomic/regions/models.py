@@ -6,7 +6,7 @@ from niagads.genome_reference.types import Strand
 from pydantic import Field, field_serializer
 
 
-# zero based regions
+# 1-based regions
 class GenomicRegion(Range):
     chromosome: HumanGenome = Field(title="Chromosome", serialization_alias="chr")
     length: Optional[int] = Field(default=None, title="Length")

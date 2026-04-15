@@ -35,7 +35,7 @@ class GenomicFeature(BaseModel):
         chrm, span = self.feature_id.split(":")
         start, end = span.split("-")
         spanRange = Range(start=start, end=end)
-        return spanRange.is_valid_range(maxSpan)
+        return spanRange.validate_span_within_limit(maxSpan)
 
     @staticmethod
     def validate_gene_id(id: str):

@@ -64,6 +64,7 @@ class ThirdPartyResources(CaseInsensitiveEnum):
     GWAS_CATALOG = "https://www.ebi.ac.uk/gwas/"
     REFSEQ = "https://www.ncbi.nlm.nih.gov/refseq/"
     TF_FOOTPRINT_ATLAS = "https://doi.org/10.1016/j.celrep.2020.108029"
+    KEGG = "https://www.kegg.jp"
 
     def __replace_leading_digit_with_word(s: str) -> str:
         digit_map = {

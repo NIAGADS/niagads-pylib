@@ -17,8 +17,8 @@ from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
-from sqlalchemy import ARRAY, TEXT, Column, Index, Integer, String
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import TEXT, Column, Index, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 
@@ -67,7 +67,7 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
 
     is_shard: Mapped[Optional[bool]]
     shard_chromosome: Mapped[str] = enum_column(
-        HumanGenome, index=False, nullable=True, native_enum=True
+        HumanGenome, index=False, nullable=True, native_enum=True, use_enum_names=True
     )
     shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
@@ -96,10 +96,11 @@ class TrackInterval(DatasetTableBase, GenomicRegionMixin):
     __table_args__ = (
         *GenomicRegionMixin.__table_args__,  # Unpack mixin's args first
         *GenomicRegionMixin.get_indexes(DatasetTableBase._schema, __tablename__),
+        *GenomicRegionMixin.set_bin_index_fk(DatasetTableBase._schema, __tablename__),
         Index(
             "ix_index_trackinterval_track_id",
             "track_id",
-            postgresql_include=["num_hits", "genomic_region"],
+            postgresql_include=["num_hits", "span"],
         ),
         DatasetTableBase.__table_args__,
     )

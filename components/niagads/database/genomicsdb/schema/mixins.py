@@ -7,6 +7,7 @@ from niagads.database.mixins.transactions import TransactionTableMixin
 from sqlalchemy import exists, inspect, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Mapped
 
 
@@ -25,14 +26,14 @@ class HousekeepingMixin:
     modification_date: Mapped[datetime] = datetime_column()
     # is_private: Mapped[bool] = mapped_column(nullable=True, index=True)
 
-    def get_model_fields(self):
+    @classmethod
+    def columns(cls):
         """
-        Return a dictionary of all public, non-callable attributes for this instance.
-        Excludes dunder, private, and callable attributes.
+        Return a set of all public, non-callable, non-dunder attributes defined on this mixin.
         """
         return {
-            k: v
-            for k, v in self.__dict__.items()
+            k
+            for k, v in cls.__dict__.items()
             if not k.startswith("_") and not callable(v)
         }
 
@@ -112,9 +113,8 @@ class LookupTableMixin:
             filters = {stable_id_field: getattr(self, stable_id_field)}
         else:
             filters = {}
-            housekeeping_fields = HousekeepingMixin.get_model_fields()
-            for field_name in self.model_dump().keys():
-                value = getattr(self, field_name, None)
+            housekeeping_fields = HousekeepingMixin.columns()
+            for field_name, value in self.model_dump().items():
                 if value is not None and field_name not in housekeeping_fields:
                     filters[field_name] = value
 
@@ -162,17 +162,17 @@ class LookupTableMixin:
             *(getattr(cls, k) == v for k, v in filters.items())
         )
         result = await session.execute(stmt)
-        rows = result.all()
-        if not rows:
+        records = result.scalars().all()
+        if not records:
             raise NoResultFound(f"No record found for {filters} in {cls.table_name()}")
-        if len(rows) > 1:
+        if len(records) > 1:
             if allow_multiple:
-                return [row[0] for row in rows]
+                return records
             else:
                 raise MultipleResultsFound(
                     f"Multiple records found for {filters} in {cls.table_name()}"
                 )
-        return rows[0][0]
+        return records[0]
 
     async def retrieve_primary_key(
         self, session: AsyncSession, match_stable_id_only: bool = False
@@ -194,7 +194,7 @@ class LookupTableMixin:
             filters = {stable_id_field: getattr(self, stable_id_field)}
         else:
             filters = {}
-            housekeeping_fields = HousekeepingMixin.get_model_fields()
+            housekeeping_fields = HousekeepingMixin.columns()
             for field_name in self.model_dump().keys():
                 value = getattr(self, field_name, None)
                 if value is not None and field_name not in housekeeping_fields:
@@ -250,17 +250,17 @@ class LookupTableMixin:
             *(getattr(cls, k) == v for k, v in filters.items())
         )
         result = await session.execute(stmt)
-        rows = result.all()
-        if not rows:
+        records = result.scalars().all()
+        if not records:
             raise NoResultFound(f"No record found for {filters} in {cls.table_name()}")
-        if len(rows) > 1:
+        if len(records) > 1:
             if allow_multiple:
-                return [row[0] for row in rows]
+                return records
             else:
                 raise MultipleResultsFound(
                     f"Multiple records found for {filters} in {cls.table_name()}"
                 )
-        return rows[0][0]
+        return records[0]
 
     @classmethod
     async def fetch_record(
@@ -295,17 +295,17 @@ class LookupTableMixin:
         """
         stmt = select(cls).where(*(getattr(cls, k) == v for k, v in filters.items()))
         result = await session.execute(stmt)
-        rows = result.scalars().all()
-        if not rows:
+        records = result.scalars().all()
+        if not records:
             raise NoResultFound(f"No record found for {filters} in {cls.table_name()}")
-        if len(rows) > 1:
+        if len(records) > 1:
             if allow_multiple:
-                return rows
+                return records
             else:
                 raise MultipleResultsFound(
                     f"Multiple records found for {filters} in {cls.table_name()}"
                 )
-        return rows[0]
+        return records[0]
 
 
 class IdAliasMixin:

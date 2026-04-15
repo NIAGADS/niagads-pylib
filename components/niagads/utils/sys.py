@@ -7,7 +7,9 @@ import logging
 import os
 import shutil
 import subprocess
+from contextlib import contextmanager
 from enum import auto
+from glob import glob
 from pathlib import Path
 from sys import exit, stderr
 from typing import IO, Union
@@ -117,7 +119,7 @@ def generic_file_sort(file: str, header=True, overwrite=True):
     execute_cmd(cmd)
 
     if overwrite:
-        move(f"{file}.sorted", file)
+        shutil.move(f"{file}.sorted", file)
         return file
     else:
         return file + ".sorted"
@@ -192,22 +194,32 @@ def print_args(args, pretty=True):
     return print_dict(vars(args), pretty)
 
 
-def open_file(path: str, binary: bool = False) -> io.IOBase:
-    """
-    Open a file with support for compressed (.gz) files.
+@contextmanager
+def read_open_ctx(
+    path: str,
+    encoding="utf-8",
+    is_binary=False,
+):
+    """Context manager to open regular or gzip-compressed files for reading.
 
     Args:
-        path (str): Path to the file.
-        binary (bool): Whether to open the file in binary mode.
+        path (str): Path to the file. If path ends with '.gz', gzip open is used.
+        is_binary (bool): Open in binary mode (default is False = text mode).
+        encoding (str): Text encoding for non-binary mode (default "utf-8").
 
-    Returns:
-        io.IOBase: File object.
+    Yields:
+        io.IOBase: Open file handle (text or binary), auto-closed on exit.
     """
+
+    mode = "rb" if is_binary else "rt"
     if path.endswith(".gz"):
-        mode = "rb" if binary else "rt"
-        return gzip.open(path, mode, encoding=None if binary else "utf-8")
-    mode = "rb" if binary else "r"
-    return open(path, mode, encoding=None if binary else "utf-8")
+        file_handle = gzip.open(path, mode, encoding=None if is_binary else encoding)
+    else:
+        file_handle = open(path, mode, encoding=None if is_binary else encoding)
+    try:
+        yield file_handle
+    finally:
+        file_handle.close()
 
 
 def is_binary_file(fileName):
@@ -394,6 +406,30 @@ def verify_path(target_path):
         return os.path.exists(target_path)
     else:
         return os.path.isfile(target_path)
+
+
+def get_files_by_pattern(path: str, pattern: str, recursive: bool = False) -> list:
+    """
+    Get a list of all files in a path that match a given pattern.
+
+    Uses glob pattern matching. Supports wildcards like *, ?, and [seq].
+
+    Args:
+        path (str): Directory path to search.
+        pattern (str): Glob pattern to match (e.g., '*.txt', '*.csv').
+        recursive (bool, optional): If True, recursively search subdirectories.
+            Defaults to False.
+
+    Returns:
+        list: List of file paths matching the pattern, sorted alphabetically.
+    """
+
+    if recursive:
+        pattern = f"**/{pattern}"
+
+    full_pattern = os.path.join(path, pattern)
+    matches = glob(full_pattern, recursive=recursive)
+    return sorted([m for m in matches if os.path.isfile(m)])
 
 
 def die(message):

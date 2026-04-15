@@ -69,6 +69,14 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         except ValidationError as err:
             BasePluginParams.log_validation_errors(err, self.logger)
 
+        if self._params.resume_after is not None and not self.__metadata.can_resume:
+            raise NotImplementedError(
+                "Resume at checkpoint not implemented for this plugin, cannot proceed with `--resume-at` option"
+            )
+
+        # flag indicating in load is resumed (needs) to be class level b/c chunked loading
+        self._resume: bool = False if self._params.resume_after is not None else True
+
         # parameter based properties
         self._mode = ETLExecutionMode(self._params.mode)
         self._batch_size: int = self._params.batch_size
@@ -80,8 +88,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.__transaction_record: Dict[str, Dict[str, int]] = {}
         self.__execution_status: ProcessStatus = None
 
-        self._connection_string = (
-            self._params.connection_string or PipelineSettings.from_env().DATABASE_URI
+        self._database_uri = (
+            self._params.database_uri or PipelineSettings.from_env().DATABASE_URI
         )
 
         self.__session_manager = (
@@ -207,13 +215,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         return os.path.join(log_path, f"{self._name}.log")
 
     def __initialize_database_session(self):
-        if self._connection_string is None:
+        if self._database_uri is None:
             raise ValueError(
                 "Database connection string is required unless ETLMode is DRY_RUN."
             )
 
         return DatabaseSessionManager(
-            connection_string=self._connection_string,
+            connection_string=self._database_uri,
             echo=self._debug and self._verbose,
             expire_on_commit=False,
         )
@@ -398,33 +406,38 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             + amount
         )
 
-    def __get_total_transactions(self) -> int:
+    def __get_total_transactions(self, skips_only: bool = False) -> int:
         """
         Calculate total transaction count from per-table self.__transaction_record.
 
         Returns:
-            int: Total count of INSERT, UPDATE, DELETE across all tables.
+            int: Total count of INSERT, UPDATE, DELETE (SKIP) across all tables.
         """
         total = 0
         for ops in self.__transaction_record.values():
-            # Exclude SKIP operations from the total
-            total += sum(
-                count for op, count in ops.items() if op != str(ETLOperation.SKIP)
-            )
+            if skips_only:
+                total += sum(
+                    count for op, count in ops.items() if op == str(ETLOperation.SKIP)
+                )
+            else:
+                total += sum(
+                    count for op, count in ops.items() if op != str(ETLOperation.SKIP)
+                )
         return total
 
     def __attach_etl_transaction_listener(self, session: AsyncSession) -> None:
-        sync_session = session.sync_session
-        if sync_session.info.get("etl_self.__transaction_record_listener_attached"):
-            return
+        if session is not None:
+            sync_session = session.sync_session
+            if sync_session.info.get("etl_self.__transaction_record_listener_attached"):
+                return
 
-        sync_session.info["etl_self.__transaction_record_listener_attached"] = True
+            sync_session.info["etl_self.__transaction_record_listener_attached"] = True
 
-        event.listen(
-            sync_session,
-            "after_flush",
-            self.__track_etl_transactions,
-        )
+            event.listen(
+                sync_session,
+                "after_flush",
+                self.__track_etl_transactions,
+            )
 
     def __track_etl_transactions(self, sync_session, flush_context) -> None:
         """
@@ -518,7 +531,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                 current connection string and debug settings.
         """
         return DatabaseSessionManager(
-            self._connection_string,
+            self._database_uri,
             pool_size=pool_size,
             echo=self._debug,
         )
@@ -529,9 +542,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
         Commit or rollback the session based on ETLMode and batch size logic.
         """
-        tx_total = self.__get_total_transactions()
+
+        tx_total = self.__get_total_transactions(skips_only=not self._resume)
         msg = f"{tx_total} records"
-        if self.commit:
+        if not self._resume:
+            msg = f"SKIPPED {msg}"
+        elif self.commit:
             await session.commit()
             msg = f"COMMITTED {msg}"
         else:
@@ -583,17 +599,19 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         return result
 
-    async def __flush_chunked_buffer(self, buffer, session) -> ResumeCheckpoint:
+    def __clear_buffer(self, buffer):
+        # Clear buffer if it's a list, else set to None to release reference
+        if isinstance(buffer, list):
+            return []
+        else:
+            return None
+
+    async def __load_buffer(self, buffer, session) -> ResumeCheckpoint:
         checkpoint = None
 
         if not self.is_dry_run:
             checkpoint = await self.__execute_load(session, buffer)
 
-        # Clear buffer if it's a list, else set to None to release reference
-        if isinstance(buffer, list):
-            buffer.clear()
-        else:
-            buffer = None
         return checkpoint
 
     async def __process_chunked_load(self):
@@ -606,11 +624,13 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         """
 
         buffer: list = []
+
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
-            if session is not None:
-                self.__attach_etl_transaction_listener(session)
-                for records in self.extract():
-                    processed_records = self.transform(records)
+            self.__attach_etl_transaction_listener(session)
+            for records in self.extract():
+                processed_records = self.transform(records)
+
+                if session is not None:  # load
                     # chunked can yield one or a list of records
                     if isinstance(processed_records, list):
                         buffer.extend(processed_records)
@@ -618,21 +638,23 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
                         buffer.append(processed_records)
 
                     if len(buffer) >= self._batch_size:
+                        residuals = False
                         batches = chunker(
                             buffer, self._batch_size, return_iterator=True
                         )
                         for batch in batches:
                             if len(batch) == self._batch_size:
-                                checkpoint = await self.__flush_chunked_buffer(
-                                    batch, session
-                                )
+                                checkpoint = await self.__load_buffer(batch, session)
                                 await self.__handle_transaction(session, checkpoint)
                             else:
                                 buffer = batch  # residuals
+                                residuals = True
+                        if not residuals:
+                            buffer = self.__clear_buffer(buffer)
 
-                # residuals
+            if session is not None:  # handle residuals
                 if buffer:
-                    checkpoint = await self.__flush_chunked_buffer(buffer, session)
+                    checkpoint = await self.__load_buffer(buffer, session)
                     await self.__handle_transaction(session, checkpoint)
 
     async def __process_bulk_load(self) -> ResumeCheckpoint:
@@ -657,7 +679,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             if session is not None:
                 self.__attach_etl_transaction_listener(session)
                 for batch in batches:
-                    checkpoint = await self.__flush_chunked_buffer(batch, session)
+                    checkpoint = await self.__load_buffer(batch, session)
                     await self.__handle_transaction(session, checkpoint)
 
     async def __register_etl_run(self) -> Optional[int]:
@@ -890,6 +912,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
             self.logger.exception(error_message)
 
         finally:
+            if self.__execution_status != ProcessStatus.SUCCESS:
+                await self.__summarize_transactions()
             await self.__finalize_etl_run(error_message)
             self.logger.status(self.__status_report)
 

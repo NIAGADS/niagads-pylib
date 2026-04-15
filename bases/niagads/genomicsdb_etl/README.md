@@ -47,6 +47,47 @@ An [example plugin](#example-simple-text-loader-plugin) scaffold is provided in 
 
 Define a Pydantic model for plugin parameters. Inherit from [`BasePluginParams`](../../../components/niagads/etl/plugins/parameters.py) and add plugin-specific fields.
 
+The plugin runner will process the parameter model and turn it into a set of command line arguments based on the information provided in the model definition. All model fields (parameter options) should adhere to the following
+
+- Use **type hints** to define the expected value type.  If type hint is not provided, it will assume a `str`.
+  
+```python
+fail_on_duplicate: bool 
+```
+
+- All parameters are required unless qualified using the `Optional` type decorator.
+
+```python
+fail_on_duplicate: Optional[bool] 
+```
+
+- Default values must be provided for optional parameters.  Default may be `None`.  
+
+```python
+fail_on_duplicate: Optional[bool] = False
+```
+
+- **BEST PRACTICE** - Best practice is assign provide a Pydantic `Field`  to each parameter. This will allow you to provide descriptive text for each parameter that the runner will add to the plugin runtime documentation.
+
+```python
+fail_on_duplicates: Optional[bool] = Field(default=False, description="flag indicating whether the plugin fails when duplicate records are found; if False (default), logs the duplicate and skips.")
+```
+
+- Pydantic field can also be used to support complex types.  Currently the following are supported:
+  - `comma_separated_list` - Parameter expects a string value that is a comma-separated list of one or more values.  When this type is specified, the argument value will be parsed, split on `,` and returned as an `list`.
+  - `json_type` - Parameter expects a JSON string.  When this type is specifice, the argument value will be parsed and a JSON object (`dict`) returned.
+  - `case_insensitive_enum_type` - Parameter expects a value controlled by a `CaseInsensitiveEnum` (e.g., `--mode`). This type handles if the the user specifies `dry_run` or `DRY_RUN` ; i.e., matches against the allowed enum values after correcting for case.
+  
+To make use of these custom types, uses the `json_schema_extra` property in the `Field` definition:
+
+```python
+species: list[str] = Field(description=f"comma-separated list of one or more species", json_schema_extra={"type":comma_separated_list})
+```
+
+This example creates a required parameter that intakes a string, parses it and returns an list of strings.
+
+> **NOTE:** The system will auto-detect and handle `case_insentivie_enum_type`.
+
 #### Parameter Validation
 
 Plugin parameter validation is critical for robust ETL operation. There are several ways to validate parameters:
@@ -138,7 +179,7 @@ term: OntologyTerm = await OntologyTerm.fetch_record(session, {"curie": 'GO:1234
 
 ```
 
-### TableRef (Catalog) Mixinx
+### TableRef (Catalog) Mixin
 
 Some tables include a generic `table_id`, `row_id` pair (e.g., [Gene.AnnotationEvidence](../../../components/niagads/database/genomicsdb/schema/gene/annotation.py)) that references a specific record in any cataloged table, so that the same reference pattern can work across many tables.  This relies on a table catalog, which is located in the `Admin` schema.  The [Admin.TableCatalog](../../../components/niagads/database/genomicsdb/schema/admin/catalog.py) provides a classmethod `get_table_ref` that takes a table class and returns the table reference in the catalog as [TableRef](../../../components/niagads/database/genomicsdb/schema/admin/types.py) object (providing: schema name and id, table name and id, and the table primary key field)
 
@@ -435,6 +476,56 @@ runpipe-plugin XMLRecordLoader --file test.xml --undo --run_id <run_id>
 
 For more details, see inline documentation in [`AbstractBasePlugin`](../../../components/niagads/etl/plugins/base.py), [`PluginRegistry`](../../../components/niagads/etl/plugins/registry.py), and existing plugins in [`bases/niagads/genomicsdb_etl/etl/plugins`](../genomicsdb_etl).
 
+## Foreign Key Lookups
+
+### External Database References
+
+Most tables in our database have an `external_database_id` field that maps each record to its data source (stored in the `ExternalDatabase` table).  Some tables will also have a paired `source_id` field that stores the accession number or unique primary key for the record in the original data source.  Most of these will inherit from the `ExternalDatabaseMixin`.  There are rare cases (e.g., `Gene.XRefs`) where there is an explicitly defined `external_database_id` becuase the table does not require a `source_id` field.
+
+If a table definition includes the `ExternalDatabaseMixin`, then your plugin parameters will need to inherit from the `ExternalDatabaseRefMixin`. This will add an `--xdbref` parameter to the plugin and validators/lookup functions needed to validate the xdbref and retrieve the associated `external_database_id` from the database.  `xdbrefs` are always formatted as `db_name|db_version`.  Retrieving the `external_database_id` requires a database lookup; it is suggested that this is handled in the `on_run_start` lifecycle function.
+
+> **Note**: When running plugins from the command line *always* provide the xdbref in *quotes* (") as the pipe will be misinterpreted by the shell.  e.g., `--xdbref "Sequence Ontology|2024-11-18"`, not `--xdbref Sequence Ontology|2024-11-18`
+
+More details on the usage of this mixin to come, but you can search existing plugins for example utilization.
+
+There is a helper script `runpipe-xdb-lookup` that can be used to search the database for a specific database name (or partial names, search is fuzzy and case insensitive) or database key to get the list of possible xdbrefs.
+
+**Example Usage**
+
+```bash
+runpipe-xdb-lookup --xdb sequence
+```
+
+prints: Sequence Ontology|2024-11-18
+
+```bash
+runpipe-xdb-lookup --xdb SO
+```
+
+prints: Sequence Ontology|2024-11-18
+
+### Ontology Terms
+
+### Gene Identifiers
+
+### Variant Identifiers
+
+### Table References (Catalog)
+
+See [TableRefMixin](#tableref-catalog-mixin) section for more information.
+
+### Other `runpipe` scripts
+
+#### `runpipe-export`
+
+For exporting data to pipe to external tools (e.g, for UniProtKB ID mapping) or to save a snapshot before doing an update.
+
+## Debug Troubleshooting
+
+### **RuntimeWarning: Enable tracemalloc to get the object allocation traceback**
+
+An async function was likely not **awaited**.
+
 ## Instructions for AI Assistants Writing Plugins
 
 When assisting in writing an ETL plugin, follow these steps:
@@ -447,7 +538,8 @@ When assisting in writing an ETL plugin, follow these steps:
 6. **Register the plugin**: Use `@PluginRegistry.register(metadata)` decorator on the plugin class.
 7. **Use provided utilities**: Use transaction wrappers (`submit`, `update`) and lookup mixins for database operations.
 8. **Handle run_id**: Ensure all records have `run_id` set before submission.
-9. **Add optional lifecycle methods**: Override `preprocess`, `on_run_start`, or `on_run_complete` as needed.
-10. **Validate parameters**: Use Pydantic validators, mixins, or database checks in `on_run_start`.
-11. **Return checkpoints**: Have `load` return `ResumeCheckpoint` for resume support.
-12. **Follow conventions**: Review existing plugins, use async/await patterns, and follow project style guidelines in the copilot-instructions file.
+9. **Loads are always done in batches**, the difference between the methods is governed by how the batch is generated.
+10. **Add optional lifecycle methods**: Override `preprocess`, `on_run_start`, or `on_run_complete` as needed.
+11. **Validate parameters**: Use Pydantic validators, mixins, or database checks in `on_run_start`.
+12. **Return checkpoints**: Have `load` return `ResumeCheckpoint` for resume support.
+13. **Follow conventions**: Review existing plugins, use async/await patterns, and follow project style guidelines in the copilot-instructions file.

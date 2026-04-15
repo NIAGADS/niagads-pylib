@@ -1,69 +1,96 @@
-import logging
+"""
+This module provides a CSVFileParser class for parsing CSV files with additional functionality.
+
+The CSVFileParser inherits from AbstractFlatfileParser and provides methods to infer delimiters,
+convert CSV data to pandas data frame or JSON, and parse lines into records. The iterator behavior
+is inherited from the parent class and utilizes the `parse_line` method to determine the output.
+
+Iterator Behavior:
+- With a header: Each iteration returns a dictionary where keys are column names and
+    values are the corresponding data.
+- Without a header: Each iteration returns a list of values.
+
+Iterator Usage Example:
+
+```python
+from niagads.csv_parser.core import CSVFileParser
+
+parser = CSVFileParser("example.csv", header=True)
+for record in parser:
+    print(record)
+```
+"""
+
 import json
 
 from csv import Sniffer, Dialect, Error as CSVError
+from typing import Optional
 from niagads.exceptions.core import FileFormatError
+from niagads.flatfile.base import AbstractFlatfileParser
 from pandas import read_csv, DataFrame
 
 from niagads.utils.dict import convert_str2numeric_values
 from niagads.utils.pandas import strip_df
 
 
-class CSVFileParser:
+class CSVFileParser(AbstractFlatfileParser):
     """
-    parser for CSV files; mainly to add the following functionality:
+    Parser for CSV files with additional functionality:
 
-    * infer delimiter
-    * to_json (leveraging pandas)
+    - Infer delimiter automatically.
+    - Convert CSV data to JSON using pandas.
+
+    Attributes:
+        file (str): Path to the CSV file.
+        header (bool): Indicates if the file contains a header row.
+        delimiter (str): Delimiter used in the CSV file. If None, it will be inferred.
+        encoding (str): File encoding. Defaults to "utf-8".
+        debug (bool): Debug mode flag.
+        verbose (bool): Verbose mode flag.
     """
 
-    def __init__(self, file: str, sep: str = None, debug: bool = False):
-        """
-        init new CSVParser
+    def __init__(
+        self,
+        file: str,
+        header: Optional[list[str]] = None,
+        delimiter: Optional[str] = None,
+        encoding="utf-8",
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(file, encoding=encoding, debug=debug, verbose=verbose)
 
-        Args:
-            file (str): file name (full path)
-            sep (str, optional): delimiter; if None will attempt to infer.  Defaults to None.
-            debug (bool, optional): enable debug mode. Defaults to False.
-        """
-        self._debug = debug
-        self.logger = logging.getLogger(__name__)
-        self.__file = file
-        self.__sep = sep
+        self.__delimiter = delimiter
         self.__na = None  # missing value string representation
-        self.__strip = False  # flag for trimming leading & trailing whitespace
+        self.__header = header  # flag indicating whether file has a header
+        self.__header_fields = None
+
+    def header_fields(self, values: list[str]):
+        """only necessary to customize header for iterator, w/pandas can define header fields
+        directly using `header` kwarg when calling `to_pandas_df` or `to_json`"""
+        self.__header_fields = values
 
     def na(self, value: str):
         """
-        fill NA's with specified value when using pandas conversions
+        Fill NA values with the specified value when using pandas conversions.
 
         Args:
-            value (str): value to fill (e.g., 'NULL', 'NA', '.')
+            value (str): Value to fill (e.g., 'NULL', 'NA', '.').
         """
         self.__na = value
 
-    def strip(self, strip=True):
-        """
-        flag indicating whether to iterate over all fields and
-        trim leading and trailing spaces when converting to JSON or CSV
-
-        Args:
-            strip (bool, optional): trim leading and trailing spaces from all fields. Defaults to True.
-        """
-        self.__strip = strip
-
     def to_json(self, transpose=False, return_str=False, **kwargs):
         """
-        converts the CSV file to JSON
+        Convert the CSV file to JSON format.
 
         Args:
-            transpose (bool, optional): transpose the worksheet?
-            returnStr (bool, optional): return jsonStr instead of object
+            transpose (bool, optional): Whether to transpose the worksheet. Defaults to False.
+            return_str (bool, optional): Whether to return a JSON string instead of an object. Defaults to False.
             **kwargs (optional): arguments to pass to `pandas` `read_csv` see
                 (see https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html))
 
         Returns:
-            if `returnStr` returns JSON string instead of object
+            str or dict: JSON string if `return_str` is True, otherwise a JSON object.
         """
 
         # orient='records' returns indexes; e.g. [index: {row data}] so need to extract the values
@@ -78,27 +105,26 @@ class CSVFileParser:
 
         return json.dumps(jsonObj) if return_str else json.loads(jsonStr)
 
-    def __trim(self, df: DataFrame):
-        """
-        trims trailing spaces if set in options
-
-        Args:
-            df (DataFrame): pandas data frame
-        """
-        return strip_df(df) if self.__strip else df
-
     def sniff(self, bytes: int = 1024):
         """
-        'sniff' out / infer the delimitier
+        Infer the delimiter used in the CSV file by analyzing its content.
+
+        Args:
+            bytes (int, optional): Number of bytes to read for delimiter inference. Defaults to 1024.
+
+        Returns:
+            str: Inferred delimiter.
+
+        Raises:
+            FileFormatError: If the delimiter cannot be determined.
         """
         try:
-            if self.__sep is not None:
-                return self.__sep
-            else:
-                with open(self.__file, "r", encoding="utf-8", errors="ignore") as fh:
+            if self.__delimiter is None:
+                with self.open_ctx() as fh:
                     dialect: Dialect = Sniffer().sniff(fh.read(bytes))
                     fh.seek(0)
-                    return dialect.delimiter
+                    self.__delimiter = dialect.delimiter
+                return self.__delimiter
         except CSVError as err:
             if bytes < 4096:  # try a larger section of the file
                 return self.sniff(bytes=4096)
@@ -110,24 +136,47 @@ class CSVFileParser:
 
     def to_pandas_df(self, transpose=False, **kwargs) -> DataFrame:
         """
-        _summary_
+        Convert the CSV file to a pandas DataFrame.
 
         Args:
-            transpose (str): transpose the worksheet
-            **kwargs: must match expected args for pandas.read_excel
-                (see https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html)
+            transpose (bool, optional): Whether to transpose the worksheet. Defaults to False.
+            **kwargs: Additional arguments passed to pandas `read_csv`.
 
         Returns:
-            DataFrame: CSV data in data frame format
+            DataFrame: CSV data in DataFrame format.
         """
         if kwargs is None:
             kwargs = {}
 
         if "delimiter" not in kwargs:
-            kwargs["delimiter"] = self.sniff() if self.__sep is None else self.__sep
+            kwargs["delimiter"] = self.sniff()
+
+        if "header" not in kwargs:
+            if self.__header_fields is not None:
+                kwargs["header"] = self.__header_fields
+            elif self.__header is None:
+                kwargs["header"] = None
+            else:
+                kwargs["header"] = 0
 
         # raise error if False
-        df: DataFrame = read_csv(self.__file, **kwargs)
+        df: DataFrame = read_csv(self._file, **kwargs)
         if self.__na is not None:
             df.fillna(self.__na)
-        return self.__trim(df.T) if transpose else self.__trim(df)
+        return strip_df(df.T) if transpose else strip_df(df)
+
+    # abstract base class overrides
+    def is_ignored_line(self, line: str, line_number: int) -> bool:
+        if self.__header and line_number == 1:
+            self.__header_fields = [v.strip() for v in line.split(self.sniff())]
+            return True
+        stripped = line.strip()
+        return stripped == ""
+
+    def parse_line(self, line: str):
+        """Parse one non-ignored line into a record."""
+        values = [v.strip() for v in line.split(self.sniff())]
+        if self.__header or self.__header_fields is not None:
+            return dict(zip(self.__header_fields, values))
+        else:
+            return values

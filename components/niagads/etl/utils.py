@@ -49,7 +49,10 @@ def register_package_plugins(package_name: str):
         package.__path__, package.__name__ + "."
     ):
         if not ispkg:
-            importlib.import_module(modname)
+            try:
+                importlib.import_module(modname)
+            except Exception as err:
+                print(f"WARNING: Unable to register plugin package:{modname} - {err}")
     # for _, modname, ispkg in pkgutil.iter_modules(package.__path__):
     #    if not ispkg:
     #        importlib.import_module(f"{package_name}.{modname}")

@@ -169,7 +169,7 @@ class GA4GHVRSService(ComponentBaseMixin):
                 and fail_on_error is True.
         """
         self.get_refget_accession(location.chromosome)  # verify chromosome
-        start = location.start
+        start = location.start - 1  # genomic region is 1-based
         try:
             self._seqrepo_data_proxy.validate_ref_seq(
                 f"{self._assembly}:{location.chromosome}",
@@ -410,8 +410,14 @@ class GA4GHVRSService(ComponentBaseMixin):
         if not refget_accession.startswith("ga4gh"):
             refget_accession = f"ga4gh:{refget_accession}"
 
+        # 1 to 0-base conversion for genomicregion
+        start = (
+            location.start - 1
+            if isinstance(location, GenomicRegion)
+            else location.start
+        )
         return self._seqrepo_data_proxy.get_sequence(
-            refget_accession, start=location.start, end=location.end
+            refget_accession, start=start, end=location.end
         )
 
     def refget_to_chromosome(self, refget_accession: str) -> HumanGenome:
@@ -464,8 +470,8 @@ class GA4GHVRSService(ComponentBaseMixin):
 
         location = SequenceLocation(
             sequenceReference=SequenceReference(refgetAccession=refget_accession),
-            start=region.start,
-            end=region.length,
+            start=region.start - 1,  # genomic regions are 1-based
+            end=region.end,
         )
         if compute_id:
             location.id = ga4gh_identify(location)  # compute ga4gh identifier

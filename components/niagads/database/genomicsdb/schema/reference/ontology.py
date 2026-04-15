@@ -16,10 +16,12 @@ from niagads.database.genomicsdb.schema.reference.externaldb import ExternalData
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.utils.string import jaccard_word_similarity
 from pydantic import BaseModel, Field
-from sqlalchemy import ARRAY, TEXT, Boolean, Index, String, UniqueConstraint
+from sqlalchemy import TEXT, Boolean, Index, String, UniqueConstraint, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
+from sqlalchemy.dialects.postgresql import ARRAY
 
 
 class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
@@ -39,6 +41,7 @@ class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
     _stable_id = "source_id"
 
     ontology_term_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    namespace: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
     term: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
     term_iri: Mapped[str] = mapped_column(String(250), index=False, nullable=False)
     entity_type: Mapped[str] = enum_column(EntityTypeIRI, use_enum_names=True)
@@ -54,6 +57,59 @@ class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
     @curie.expression
     def curie(cls):
         return cls.source_id
+
+    # -------------------------
+    # Term Lookups
+    # -------------------------
+
+    @classmethod
+    async def find_primary_key(
+        cls,
+        session: AsyncSession,
+        term: str = None,
+        curie: str = None,
+        external_database_id: int = None,
+        search_synonyms: bool = False,
+        allow_multiple: bool = False,
+    ):
+        """wrapper for TransactionTable `find_primary_key` that allows searching of synonyms"""
+        filters: dict = {}
+        if term is not None:
+            filters["term"] = term
+        if curie is not None:
+            filters["source_id"] = curie
+        if len(filters) == 0:
+            raise ValueError(
+                "Must provide at least one of `term` or `curie` to look up an ontology term"
+            )
+
+        if external_database_id is not None:
+            filters["external_database_id"] = external_database_id
+
+        if not search_synonyms:
+            return await super().find_primary_key.__func__(
+                cls, session, filters=filters
+            )
+        else:
+            if term is None:
+                raise ValueError("Can only match synonyms if a `term` is provided.")
+            stmt = select(OntologyTerm.ontology_term_id).where(
+                OntologyTerm.synonyms.contains([term])
+            )
+            result = await session.execute(stmt)
+            rows = result.scalars().all()
+            if not rows:
+                raise NoResultFound(
+                    f"No record found for {filters} in {cls.table_name()}"
+                )
+            if len(rows) > 1:
+                if allow_multiple:
+                    return rows
+                else:
+                    raise MultipleResultsFound(
+                        f"Multiple records found for {filters} in {cls.table_name()}"
+                    )
+            return rows[0]
 
     # -------------------------
     # Duplicate Term Handlers

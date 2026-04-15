@@ -121,6 +121,7 @@ class ETLLogger:
     def __connection_string_reporter(self, cstring):
         """Return a log-safe DB connection string (credentials redacted unless debug mode)."""
         full_cstring = Settings.from_env().DATABASE_URI if cstring is None else cstring
+
         if self._debug:
             return full_cstring
         else:
@@ -129,12 +130,10 @@ class ETLLogger:
     def __log_safe_reporter(self, value):
         """Strip credentials and file paths from logs if non-debug mode"""
 
-        if self._debug:
-            return value
-
         if isinstance(value, str):
-            if value.startswith("postgres://") or value.startswith("postgresql://"):
-                return self.__connection_string_reporter(value)
+            if self._debug:
+                return value
+
             data_dir = os.environ.get("DATA_DIR", None)
             if data_dir and data_dir in value:
                 return value.replace(data_dir, "$DATA_DIR")
@@ -157,7 +156,10 @@ class ETLLogger:
         config = params.model_dump()
         max_key_len = max(len(str(k)) for k in config.keys()) if config else 12
         for key, value in config.items():
-            display_value = self.__log_safe_reporter(value)
+            if key == "database_uri":
+                display_value = self.__connection_string_reporter(value)
+            else:
+                display_value = self.__log_safe_reporter(value)
             self.info(f"{key.upper():<{max_key_len}} : {display_value}")
         self.report_section_end("ETL Plugin Config")
 
@@ -168,7 +170,10 @@ class ETLLogger:
 
     def checkpoint(self, checkpoint: ResumeCheckpoint):
         self.report_section("ETL Resume Checkpoint")
-        self.info(f"CHECKPOINT: {checkpoint.as_info_string(self._debug)}")
+        try:
+            self.info(f"CHECKPOINT: {checkpoint.as_info_string(self._debug)}")
+        except Exception as err:
+            self.warning(f"UNABLE TO CREATE CHECKPOINT: {err}")
         self.report_section_end("ETL Resume Checkpoint")
         self.flush()
 
