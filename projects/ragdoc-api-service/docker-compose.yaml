@@ -1,0 +1,8 @@
+services:
+  ragdoc-api-service:
+    restart: always
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - "${HOST_API_SERVICE_PORT}:8000"

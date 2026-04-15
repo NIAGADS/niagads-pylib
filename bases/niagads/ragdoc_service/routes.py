@@ -13,7 +13,8 @@ from niagads.ragdoc_service.models import (
     ChunkResponse,
     DocumentResponse,
     JobStatusResponse,
-    SearchResponse,
+    RetrievalRequest,
+    RetrievalResponse,
 )
 from sqlalchemy import Select, func, select
 
@@ -129,15 +130,14 @@ async def list_document_chunks(
     ]
 
 
-@router.get("/search", response_model=SearchResponse, summary="search-chunks")
-async def search_chunks(
+@router.post("/retrieve", response_model=RetrievalResponse, summary="retrieve-context")
+async def retrieve_context(
+    request: RetrievalRequest,
     session: AsyncSessionDependency,
     embedding_generator: EmbeddingGeneratorDependency,
-    q: str = Query(..., min_length=1),
-    limit: int = Query(default=25, ge=1, le=200),
 ):
     """
-    Search chunk embeddings using semantic similarity with pgvector.
+    Retrieve chunk context using semantic similarity with pgvector.
 
     Returns ranked knowledgebase chunks with citation-ready information:
     - Chunk text
@@ -145,12 +145,12 @@ async def search_chunks(
     - Section information
     - Cosine similarity score (0-1, where 1 is most similar)
     """
-    # Generate embedding for the query
-    query_embedding = embedding_generator.generate(q, normalize=True, as_list=True)
+    query_embedding = embedding_generator.generate(
+        request.query, normalize=True, as_list=True
+    )
 
-    # Search using pgvector cosine similarity distance
     # cosine_distance ranges from 0 (identical) to 2 (opposite)
-    # We use (1 - distance/2) to convert to similarity score 0-1
+    # Convert to a 0-1 similarity score for callers.
     statement: Select = (
         select(
             ChunkMetadata,
@@ -167,7 +167,7 @@ async def search_chunks(
         .join(Document, Document.document_id == ChunkMetadata.document_id)
         .where(ChunkEmbedding.embedding.isnot(None))
         .order_by(func.desc("similarity_score"))
-        .limit(limit)
+        .limit(request.limit)
     )
     result = await session.execute(statement)
 
@@ -185,4 +185,4 @@ async def search_chunks(
             )
         )
 
-    return SearchResponse(query=q, results=results)
+    return RetrievalResponse(query=request.query, results=results)

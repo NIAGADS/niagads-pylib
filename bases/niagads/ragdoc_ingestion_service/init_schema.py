@@ -2,7 +2,7 @@ import asyncio
 
 from sqlalchemy import text
 
-from development.chatbot_poc.database.tables import RAGDeclarativeBase
+from niagads.database.ragdoc.schema import RAGDeclarativeBase
 from niagads.database.session import DatabaseSessionManager
 from niagads.settings.core import CustomSettings
 from niagads.utils.regular_expressions import RegularExpressions

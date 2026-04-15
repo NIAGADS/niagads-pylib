@@ -40,8 +40,13 @@ class ChunkResponse(CustomBaseModel):
     score: Optional[float] = Field(None, description="Score or relevance of the chunk")
 
 
-class SearchResponse(CustomBaseModel):
-    query: str = Field(..., description="Search query string")
+class RetrievalRequest(CustomBaseModel):
+    query: str = Field(..., min_length=1, description="Retrieval query string")
+    limit: int = Field(25, ge=1, le=200, description="Maximum chunks to return")
+
+
+class RetrievalResponse(CustomBaseModel):
+    query: str = Field(..., description="Retrieval query string")
     results: list[ChunkResponse] = Field(
-        ..., description="List of chunk search results"
+        ..., description="Ranked context chunks for downstream RAG use"
     )

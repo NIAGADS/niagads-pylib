@@ -1,0 +1,19 @@
+services:
+  ragdoc-db-init:
+    restart: 'no'
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    depends_on:
+      chatbot-poc-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@chatbot-poc-db:5432/${POSTGRES_DB}
+    command: [ "python", "-m", "niagads.ragdoc_ingestion_service.init_schema" ]
+  ragdoc-ingestion-service:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: always
+    environment:
+      DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@chatbot-poc-db:5432/${POSTGRES_DB}

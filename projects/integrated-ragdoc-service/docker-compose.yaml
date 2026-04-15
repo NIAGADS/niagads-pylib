@@ -1,0 +1,47 @@
+include:
+  - ../ragdoc-admin-service/docker-compose.yaml
+  - ../ragdoc-api-service/docker-compose.yaml
+  - ../ragdoc-ingestion-service/docker-compose.yaml
+
+services:
+  ragdoc-db:
+    image: pgvector/pgvector:pg17
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    ports:
+      - ${HOST_DB_PORT}:5432
+    volumes:
+      - ${HOST_DB_DIR}:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    networks:
+      - shared-net
+
+  ragdoc-db-init:
+    networks:
+      - shared-net
+  ragdoc-ingestion-service:
+    networks:
+      - shared-net
+  ragdoc-admin-service:
+    networks:
+      - shared-net
+  ragdoc-api-service:
+    networks:
+      - shared-net
+
+  project-b:
+    networks:
+      - shared-net
+
+networks:
+  shared-net:
+    driver: bridge
