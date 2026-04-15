@@ -17,8 +17,9 @@ COPY components /app/components
 COPY development /app/development
 
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y curl \
+    && apt-get install --no-install-recommends -y curl git \
     && curl -sSL https://install.python-poetry.org | python3 - \
-    && poetry install --no-interaction --no-ansi
+    && poetry install --no-interaction --no-ansi \
+    && rm -rf /var/lib/apt/lists/*
 
 CMD ["streamlit", "run", "development/chatbot_poc/app.py"]
