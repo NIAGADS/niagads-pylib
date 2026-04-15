@@ -11,6 +11,9 @@ packages = [
     { include = "niagads/pd_dataframe", from = "../../components" },
     { include = "niagads/arg_parser", from = "../../components" },
     { include = "niagads/utils", from = "../../components" },
+    {include = "niagads/flatfile",from = "../../components"},
+    {include = "niagads/common",from = "../../components"},
+    {include = "niagads/genome_reference",from = "../../components"},
 ]
 
 [project]

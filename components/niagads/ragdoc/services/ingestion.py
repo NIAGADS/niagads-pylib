@@ -11,17 +11,17 @@ from collections import deque
 from datetime import datetime
 from urllib.parse import urldefrag, urljoin, urlparse
 
-from aiohttp import ClientSession
 from lxml import html
 from niagads.common.core import ComponentBaseMixin
 from niagads.database.session import DatabaseSessionManager
 from niagads.database.types import RAGDocType
 from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.helpers import chunk_text
+from niagads.requests.core import HttpClientSessionManager
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from development.chatbot_poc.database.tables import (
+from niagads.database.ragdoc.schema import (
     ChunkEmbedding,
     ChunkMetadata,
     Document,
@@ -151,6 +151,7 @@ class DocumentIngestionService(ComponentBaseMixin):
     ):
         super().__init__(debug=debug, verbose=verbose)
         self._database_session_manager = DatabaseSessionManager(database_uri)
+        self._http_client_manager = HttpClientSessionManager(baseUrl="", debug=debug)
         self._embedding_generator = (
             TextEmbeddingGenerator()
             if embedding_model is None
@@ -181,7 +182,9 @@ class DocumentIngestionService(ComponentBaseMixin):
 
         async with self._database_session_manager.session_ctx() as session:
             for document in documents:
-                document_id, should_index = await self._store_document(session, document)
+                document_id, should_index = await self._store_document(
+                    session, document
+                )
                 if not should_index:
                     continue
 
@@ -229,39 +232,39 @@ class DocumentIngestionService(ComponentBaseMixin):
         visited = set()
         documents = []
 
-        async with ClientSession() as session:
-            while queue and len(visited) < max_pages:
-                url = queue.popleft()
-                if url in visited:
-                    continue
+        session = await self._http_client_manager()
+        while queue and len(visited) < max_pages:
+            url = queue.popleft()
+            if url in visited:
+                continue
 
-                visited.add(url)
+            visited.add(url)
 
-                try:
-                    async with session.get(url) as response:
-                        content_type = response.headers.get("Content-Type", "")
-                        if "html" not in content_type.lower():
-                            continue
-                        source = await response.text()
-                except Exception:
-                    self.logger.exception(f"Failed to scrape {url}")
-                    continue
+            try:
+                async with session.get(url) as response:
+                    content_type = response.headers.get("Content-Type", "")
+                    if "html" not in content_type.lower():
+                        continue
+                    source = await response.text()
+            except Exception:
+                self.logger.exception(f"Failed to scrape {url}")
+                continue
 
-                content_blocks, links = self._extract_page_content(url, source)
-                if content_blocks:
-                    documents.append(
-                        RetrievedDocument(
-                            url=url,
-                            content=" ".join(block.text for block in content_blocks),
-                            content_blocks=content_blocks,
-                            document_type=request.document_type,
-                        )
+            content_blocks, links = self._extract_page_content(url, source)
+            if content_blocks:
+                documents.append(
+                    RetrievedDocument(
+                        url=url,
+                        content=" ".join(block.text for block in content_blocks),
+                        content_blocks=content_blocks,
+                        document_type=request.document_type,
                     )
+                )
 
-                for link in links:
-                    normalized_link = self._normalize_url(urljoin(url, link))
-                    if self._is_in_scope_link(normalized_link, root_netloc):
-                        queue.append(normalized_link)
+            for link in links:
+                normalized_link = self._normalize_url(urljoin(url, link))
+                if self._is_in_scope_link(normalized_link, root_netloc):
+                    queue.append(normalized_link)
 
         return documents
 
@@ -289,7 +292,9 @@ class DocumentIngestionService(ComponentBaseMixin):
 
         return chunks
 
-    async def _store_document(self, session, document: RetrievedDocument) -> tuple[int, bool]:
+    async def _store_document(
+        self, session, document: RetrievedDocument
+    ) -> tuple[int, bool]:
         """Persist the document record and return its primary key and index flag."""
         content_hash = TextEmbeddingGenerator.hash_text(document.content)
         query = select(Document).where(
@@ -423,3 +428,4 @@ class DocumentIngestionService(ComponentBaseMixin):
     async def close(self):
         """Close pooled database connections owned by the service."""
         await self._database_session_manager.close()
+        await self._http_client_manager.close()

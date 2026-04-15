@@ -5,11 +5,10 @@ import pandas as pd
 import streamlit as st
 from niagads.common.core import ComponentBaseMixin
 from niagads.database.types import RetrievalStatus
+from niagads.ragdoc.services.jobs import IngestionJobService
 from niagads.settings.core import CustomSettings
 from niagads.utils.regular_expressions import RegularExpressions
 from pydantic import Field
-
-from development.chatbot_poc.services.jobs import IngestionJobService
 
 
 class Settings(CustomSettings):

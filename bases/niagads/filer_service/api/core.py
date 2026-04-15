@@ -1,14 +1,13 @@
+import uvicorn
 from niagads.api.common.app.factory import AppFactory
-from niagads.api.filer.documentation import OPEN_API_SPEC, APP_NAMESPACE
-from niagads.api.filer.routes.root import router as RootRouter
-from niagads.api.filer.routes.records.track import router as RecordRouter
-from niagads.api.filer.routes.search import router as MetadataRouter
+from niagads.api.filer.documentation import APP_NAMESPACE, OPEN_API_SPEC
 from niagads.api.filer.routes.data import router as DataRouter
-from niagads.api.filer.routes.service import router as ServiceRouter
-from niagads.api.filer.routes.records.collection import (
-    router as CollectionRouter,
-)
 from niagads.api.filer.routes.dictionary import router as DictionaryRouter
+from niagads.api.filer.routes.records.collection import router as CollectionRouter
+from niagads.api.filer.routes.records.track import router as RecordRouter
+from niagads.api.filer.routes.root import router as RootRouter
+from niagads.api.filer.routes.search import router as MetadataRouter
+from niagads.api.filer.routes.service import router as ServiceRouter
 from niagads.settings.core import get_service_environment
 
 # from niagads.api.filer.routes.qtls import router as QTLRouter

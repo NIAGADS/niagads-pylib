@@ -37,6 +37,9 @@ packages = [
     { from = "../../components", include = "niagads/json_validator" },
     { from = "../../components", include = "niagads/metadata_validator" },
     { from = "../../components", include = "niagads/utils" },
+    {include = "niagads/flatfile",from = "../../components"},
+    {include = "niagads/common",from = "../../components"},
+    {include = "niagads/genome_reference",from = "../../components"},
 ]
 exclude = [
     "../../bases/niagads/metadata_validator_tool/README.md",

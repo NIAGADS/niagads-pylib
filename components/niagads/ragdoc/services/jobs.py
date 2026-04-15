@@ -1,11 +1,14 @@
 from datetime import datetime
 
 from niagads.common.core import ComponentBaseMixin
+from niagads.database.ragdoc.schema import IngestionJob
 from niagads.database.session import DatabaseSessionManager
 from niagads.database.types import RetrievalStatus
+from niagads.ragdoc.services.ingestion import (
+    DocumentIngestionRequest,
+    DocumentIngestionService,
+)
 from sqlalchemy import Select, select
-
-from development.chatbot_poc.database.tables import IngestionJob
 
 
 class IngestionJobService(ComponentBaseMixin):
@@ -62,10 +65,6 @@ class IngestionJobService(ComponentBaseMixin):
 
     async def process_job(self, job_id: int):
         """Process a single queued job and persist the outcome."""
-        from development.chatbot_poc.services.ingestion import (
-            DocumentIngestionRequest,
-            DocumentIngestionService,
-        )
 
         ingestion_service = DocumentIngestionService(
             database_uri=self._database_uri,

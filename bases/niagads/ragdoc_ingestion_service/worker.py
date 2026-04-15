@@ -3,15 +3,11 @@ from typing import Optional
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.nlp.llm_types import LLM
-from niagads.settings.core import CustomSettings
-from niagads.utils.regular_expressions import RegularExpressions
-from pydantic import Field
-
-from development.chatbot_poc.services.jobs import IngestionJobService
+from niagads.ragdoc.services.config import BaseRagdocServiceSettings
+from niagads.ragdoc.services.jobs import IngestionJobService
 
 
-class Settings(CustomSettings):
-    DATABASE_URI: str = Field(..., pattern=RegularExpressions.POSTGRES_URI)
+class Settings(BaseRagdocServiceSettings):
     WORKER_POLL_INTERVAL: int = 5
     EMBEDDING_MODEL: Optional[str] = None
 

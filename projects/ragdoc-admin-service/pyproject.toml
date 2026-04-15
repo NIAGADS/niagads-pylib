@@ -1,0 +1,38 @@
+[project]
+name = "ragdoc-admin-service"
+authors = [
+    { name = "fossilfriend", email = "egreenfest@gmail.com" },
+]
+dependencies = [
+    "pandas (>=3.0.2,<4.0.0)",
+    "pydantic (>=2.13.0,<3.0.0)",
+    "streamlit (>=1.56.0,<2.0.0)",
+]
+requires-python = ">=3.11,<3.14"
+version = "0.1.0"
+
+[tool.poetry]
+packages = [
+    { from = "../../bases", include = "niagads/ragdoc_admin_service" },
+    { from = "../../components", include = "niagads/common" },
+    { from = "../../components", include = "niagads/database" },
+    { from = "../../components", include = "niagads/enums" },
+    { from = "../../components", include = "niagads/exceptions" },
+    { from = "../../components", include = "niagads/genome_reference" },
+    { from = "../../components", include = "niagads/nlp" },
+    { from = "../../components", include = "niagads/ragdoc" },
+    { from = "../../components", include = "niagads/requests" },
+    { from = "../../components", include = "niagads/settings" },
+    { from = "../../components", include = "niagads/utils" },
+]
+
+[tool.tomlsort]
+all = true
+in_place = true
+spaces_indent_inline_array = 4
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = [
+    "poetry-core>=1.0.0",
+]

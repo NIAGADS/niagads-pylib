@@ -1,22 +1,21 @@
 from fastapi import APIRouter, HTTPException, Query
-from sqlalchemy import Select, func, select
-
-from development.chatbot_poc.api.dependencies import (
-    EmbeddingGeneratorDependency,
-    SessionDependency,
-)
-from development.chatbot_poc.api.models import (
-    ChunkResponse,
-    DocumentResponse,
-    JobStatusResponse,
-    SearchResponse,
-)
-from development.chatbot_poc.database.tables import (
+from niagads.database.ragdoc.schema import (
     ChunkEmbedding,
     ChunkMetadata,
     Document,
     IngestionJob,
 )
+from niagads.ragdoc_service.dependencies import (
+    AsyncSessionDependency,
+    EmbeddingGeneratorDependency,
+)
+from niagads.ragdoc_service.models import (
+    ChunkResponse,
+    DocumentResponse,
+    JobStatusResponse,
+    SearchResponse,
+)
+from sqlalchemy import Select, func, select
 
 
 router = APIRouter()
@@ -29,7 +28,7 @@ async def status():
 
 
 @router.get("/jobs", response_model=list[JobStatusResponse], summary="list-jobs")
-async def list_jobs(session: SessionDependency):
+async def list_jobs(session: AsyncSessionDependency):
     """List ingestion jobs ordered newest first."""
     statement: Select = select(IngestionJob).order_by(IngestionJob.creation_date.desc())
     result = await session.execute(statement)
@@ -56,7 +55,7 @@ async def list_jobs(session: SessionDependency):
     "/documents", response_model=list[DocumentResponse], summary="list-documents"
 )
 async def list_documents(
-    session: SessionDependency,
+    session: AsyncSessionDependency,
     limit: int = Query(default=100, ge=1, le=1000),
 ):
     """List stored documents."""
@@ -84,7 +83,7 @@ async def list_documents(
     response_model=DocumentResponse,
     summary="get-document",
 )
-async def get_document(document_id: int, session: SessionDependency):
+async def get_document(document_id: int, session: AsyncSessionDependency):
     """Fetch a single stored document by primary key."""
     document = await session.get(Document, document_id)
     if document is None:
@@ -106,7 +105,7 @@ async def get_document(document_id: int, session: SessionDependency):
 )
 async def list_document_chunks(
     document_id: int,
-    session: SessionDependency,
+    session: AsyncSessionDependency,
     limit: int = Query(default=200, ge=1, le=2000),
 ):
     """List chunks for a single document."""
@@ -132,7 +131,7 @@ async def list_document_chunks(
 
 @router.get("/search", response_model=SearchResponse, summary="search-chunks")
 async def search_chunks(
-    session: SessionDependency,
+    session: AsyncSessionDependency,
     embedding_generator: EmbeddingGeneratorDependency,
     q: str = Query(..., min_length=1),
     limit: int = Query(default=25, ge=1, le=200),
