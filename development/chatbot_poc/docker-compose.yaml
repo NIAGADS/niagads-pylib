@@ -1,0 +1,63 @@
+services:
+  chatbot-poc-db:
+    image: pgvector/pgvector:pg17
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    ports:
+      - ${HOST_DB_PORT}:5432
+    volumes:
+      - ${HOST_DB_DIR}:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+
+  chatbot-poc-init:
+    restart: 'no'
+    build:
+      context: ../..
+      dockerfile: ./development/chatbot_poc/Dockerfile.worker
+    depends_on:
+      chatbot-poc-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@chatbot-poc-db:5432/${POSTGRES_DB}
+    command: [ "python", "-m", "development.chatbot_poc.init_schema" ]
+
+  chatbot-poc-admin:
+    build:
+      context: ../..
+      dockerfile: ./development/chatbot_poc/Dockerfile.admin
+    restart: always
+    depends_on:
+      chatbot-poc-db:
+        condition: service_healthy
+      chatbot-poc-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@chatbot-poc-db:5432/${POSTGRES_DB}
+    ports:
+      - ${HOST_ADMIN_PORT}:8501
+
+  chatbot-poc-worker:
+    build:
+      context: ../..
+      dockerfile: ./development/chatbot_poc/Dockerfile.worker
+    restart: always
+    depends_on:
+      chatbot-poc-db:
+        condition: service_healthy
+      chatbot-poc-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@chatbot-poc-db:5432/${POSTGRES_DB}

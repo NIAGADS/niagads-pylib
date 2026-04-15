@@ -2,7 +2,15 @@ from niagads.database.helpers import datetime_column, enum_column, enum_constrai
 from niagads.database.mixins.chunks import ChunkMetadataMixin
 from niagads.database.mixins.embeddings import EmbeddingMixin
 from niagads.database.types import RAGDocType, RetrievalStatus
-from sqlalchemy import ForeignKey, Index, LargeBinary, String, Text, UniqueConstraint
+from sqlalchemy import (
+    ForeignKey,
+    Index,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -50,6 +58,58 @@ class Document(RAGDeclarativeBase):
         nullable=False,
         index=True,
         comment="Indicates the current retrieval or ingestion outcome for the document.",
+    )
+
+
+class IngestionJob(RAGDeclarativeBase):
+    """Queued website ingestion request tracked by the admin app and worker."""
+
+    __tablename__ = "ingestionjob"
+    __table_args__ = (
+        enum_constraint("status", RetrievalStatus),
+        Index("ix_ingestionjob_status_created", "status", "creation_date"),
+    )
+
+    ingestion_job_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    url: Mapped[str] = mapped_column(
+        String(2048),
+        nullable=False,
+        index=True,
+        comment="Root URL to crawl when the job is processed.",
+    )
+    max_pages: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Optional crawl limit applied to this job.",
+    )
+    status: Mapped[str] = enum_column(
+        RetrievalStatus,
+        nullable=False,
+        index=True,
+        comment="Current processing status for the ingestion job.",
+    )
+    creation_date: Mapped[str] = datetime_column(nullable=False)
+    start_date: Mapped[str] = datetime_column(nullable=True)
+    end_date: Mapped[str] = datetime_column(nullable=True)
+    error_message: Mapped[str] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Failure details for the most recent processing attempt.",
+    )
+    num_documents: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Number of persisted documents created by the job.",
+    )
+    num_chunks: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Number of chunks created by the job.",
+    )
+    num_embeddings: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Number of embeddings created by the job.",
     )
 
 
