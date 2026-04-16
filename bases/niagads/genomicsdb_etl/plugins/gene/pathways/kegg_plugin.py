@@ -13,7 +13,11 @@ from niagads.genomicsdb_etl.plugins.gene.pathways.base_pathway_plugin import (
     PathwayMembershipLoaderPlugin,
     PathwayMembershipLoaderPluginParams,
 )
-from niagads.genomicsdb_etl.plugins.gene.pathways.types import GenePathwayAssociation
+from niagads.genomicsdb_etl.plugins.gene.pathways.types import (
+    PathwayGeneAssociations,
+    MembershipAnnotation,
+    PathwayInfo,
+)
 from niagads.utils.sys import get_files_by_pattern
 from pydantic import Field
 
@@ -72,29 +76,39 @@ class KEGGLoaderPlugin(PathwayMembershipLoaderPlugin):
             for entry in root.findall("entry[@type='gene']"):
                 genes = entry.attrib.get("name").split(" ")
                 for gene in genes:
+                    gene_id = gene.split(":")[1]
+                    membership_key = f"{gene_id}|{pathway_id}"
+                    if membership_key in self._seen_memberships:
+                        continue
+                    else:
+                        self._seen_memberships[membership_key] = True
+
                     annotations.append(
-                        GenePathwayAssociation(
-                            gene_id=gene.split(":")[1],
-                            pathway_id=pathway_id,
-                            pathway_name=pathway_name,
+                        MembershipAnnotation(
+                            gene_id=gene_id,
                         )
                     )
                     entry_count += 1
 
             if self._verbose:
-                self.logger.info(f"Extracted {len(annotations)} from {file_path}")
+                self.logger.info(
+                    f"Extracted {len(annotations)} entries from {file_path}"
+                )
+            pathway_info = PathwayInfo(pathway_id=pathway_id, pathway_name=pathway_name)
 
-            yield annotations
-
-            self.logger.info(
-                f"Parsed {entry_count} gene-pathway entries from {pathway_count} KGML files."
+            yield PathwayGeneAssociations(
+                pathway_info=pathway_info, member_genes=annotations
             )
 
-    def transform(self, data: List[GenePathwayAssociation]):
+        self.logger.info(
+            f"Parsed {entry_count} gene-pathway entries from {pathway_count} KGML files."
+        )
+
+    def transform(self, data: PathwayGeneAssociations):
         # no transform necessary; GeenPathwayAssociation already object generated in Extract
         return data
 
-    async def load(self, session, transformed: List[GenePathwayAssociation]):
+    async def load(self, session, transformed: List[PathwayGeneAssociations]):
         """
         Load transformed records into the database.
         """

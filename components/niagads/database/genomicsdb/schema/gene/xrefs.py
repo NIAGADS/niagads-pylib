@@ -236,8 +236,9 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
                 )
 
         else:  # check against the external_ids
-            return await cls.find_primary_key(
+            record: GeneXRef = await cls.fetch_record(
                 session,
                 filters={"xref_label": str(gene_identifier_type), "xref_value": id},
                 allow_multiple=allow_multiple,
             )
+            return record.gene_id

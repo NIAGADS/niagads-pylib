@@ -5,7 +5,7 @@ Enables foreign key references from other tables to ontology terms.
 Intended for use alongside the ontology graph schema for comprehensive ontology support.
 """
 
-from typing import Optional
+from typing import Optional, Union
 from uuid import uuid4
 
 from niagads.common.reference.ontologies.types import EntityTypeIRI
@@ -110,6 +110,63 @@ class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
                         f"Multiple records found for {filters} in {cls.table_name()}"
                     )
             return rows[0]
+
+    @classmethod
+    async def retrieve_term_pk_mapping(
+        cls,
+        session: AsyncSession,
+        ontology_ref: Union[str, int],
+        map_thru_term: bool = False,
+    ):
+        """Retrieve a mapping of Ensembl gene source IDs to primary key gene IDs.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session for database access.
+            ontology_ref (str, int): Ontology reference.  Can be namespace (str) or external_database_id (int)
+            map_thru_term (optional, bool): When True, map term (& synonyms) -> PK, When False map curie -> PK.  Defaults to False
+
+        Returns:
+            dict[str, int]: Mapping from lookup value to ontology_term_id (primary key).
+
+        """
+
+        if isinstance(ontology_ref, int):
+            external_database_id: int = ontology_ref
+        else:
+            external_database_id: int = await ExternalDatabase.find_primary_key(
+                session, filters={"database_key": ontology_ref}
+            )
+
+        mapping = {}
+        if not map_thru_term:
+            stmt = select(OntologyTerm.ontology_term_id, OntologyTerm.curie).where(
+                OntologyTerm.external_database_id == external_database_id
+            )
+            records = (await session.execute(stmt)).all()
+            for ontology_term_id, curie in records:
+                mapping[curie] = ontology_term_id
+        else:
+            # also need to do labels and synonyms
+            stmt = select(
+                OntologyTerm.ontology_term_id,
+                OntologyTerm.term,
+                OntologyTerm.synonyms,
+            ).where(OntologyTerm.external_database_id == external_database_id)
+            records = (await session.execute(stmt)).all()
+
+            # FIXME - raise an error?
+            for ontology_term_id, term, synonyms in records:
+                mapping[term] = ontology_term_id
+
+                # these may introduce duplicates
+                # give term priority
+                if synonyms is not None:
+                    for syn in synonyms:
+                        if syn in mapping:
+                            continue
+                        mapping[syn] = ontology_term_id
+
+        return mapping
 
     # -------------------------
     # Duplicate Term Handlers

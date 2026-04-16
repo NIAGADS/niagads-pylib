@@ -6,11 +6,7 @@ GOAssociation and AnnotationEvidence tables, mapping gene references through
 GeneXRef.
 """
 
-from typing import Any, Dict, Iterator, List, Optional
-
-from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
-)
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
@@ -19,9 +15,8 @@ from niagads.database.genomicsdb.schema.gene.annotation import (
     AnnotationEvidence,
     GOAssociation,
 )
-from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
-from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType, GeneXRef
+from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
@@ -31,11 +26,12 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-from niagads.utils.regular_expressions import RegularExpressions
-from niagads.utils.string import matches
+from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
+    ExternalDatabaseRefMixin,
+)
+from niagads.utils.string import dict_to_info_string
 from niagads.utils.sys import read_open_ctx
-from pydantic import BaseModel, Field, field_validator
-from sqlalchemy.exc import NoResultFound
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 
 class GAFEntry(BaseModel):
@@ -65,11 +61,41 @@ class GAFEntry(BaseModel):
         return [x for x in v.split("|")]
 
 
+class EvidenceQualifiers(BaseModel):
+    qualifier: Optional[str] = None
+    reference: Optional[str] = None
+    with_or_from: Optional[list[str]] = None
+
+    def __str__(self):
+        return dict_to_info_string(
+            self.model_dump(exclude_none=True, exclude_unset=True)
+        )
+
+
+class Evidence(BaseModel):
+    evidence_code: str
+    qualifiers: Optional[EvidenceQualifiers] = None
+
+    def __str__(self):
+        if self.qualifiers:
+            return f"{self.evidence_code};{str(self.qualifiers)}"
+        return self.evidence_code
+
+    def __hash__(self):
+        return hash(str(self))
+
+
 class GOAssociationEntry(BaseModel):
     uniprot_id: str
     term_curie: str
-    evidence_code: str
-    qualifiers: Optional[dict]
+    evidence: set[Evidence]
+
+    # can't serialize this kind of set
+    @field_serializer("evidence")
+    def serialize_evidence(self, evidence, _info):
+        if evidence is None:
+            return evidence
+        return list(evidence)
 
 
 class GAFLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin):
@@ -99,7 +125,7 @@ metadata = PluginMetadata(
         "Maps gene identifiers via UniProtKB"
     ),
     affected_tables=[AnnotationEvidence, GOAssociation],
-    load_strategy=ETLLoadStrategy.CHUNKED,
+    load_strategy=ETLLoadStrategy.BATCH,  # processing in bulk is the best way to handle duplicates
     operation=ETLOperation.INSERT,
     is_large_dataset=False,
     parameter_model=GAFLoaderParams,
@@ -169,21 +195,42 @@ class GAFLoader(AbstractBasePlugin):
                 session, gene_identifier_type=GeneIdentifierType.UNIPROT
             )
 
+            # cache ontology mappings
+            # map thru evidence codes
+            self.__evidence_code_pk_ref = await OntologyTerm.retrieve_term_pk_mapping(
+                session, ontology_ref=self.__eco_xdbr_id, map_thru_term=True
+            )
+
+            # map thru GO CURIES
+            self.__go_curie_pk_ref = await OntologyTerm.retrieve_term_pk_mapping(
+                session, ontology_ref=self.__go_xdbr_id
+            )
+
             # Get table reference for annotation evidence
             self.__goa_table_ref = await TableCatalog.get_table_ref(
                 session, GOAssociation
             )
 
+            self.logger.info("Done Intitializing Caches")
+            self.logger.info(f"Cached {len(self.__gene_pk_ref)} gene ID mappings")
+            self.logger.info(
+                f"Cached {len(self.__evidence_code_pk_ref)} evidence code mappings"
+            )
+            self.logger.info(f"Cached {len(self.__go_curie_pk_ref)} GO CURIE mappings")
+
     def extract(self) -> Iterator[GAFEntry]:
         """Extract GO annotations from GAF file."""
         fields = list(GAFEntry.model_fields.keys())
+        entries = []
         with read_open_ctx(self._params.file) as fh:
             for line in fh:
                 if line.startswith("!"):
                     continue
                 values = line.strip().split("\t")
                 entry = dict(zip(fields, values))
-                yield GAFEntry(**entry)
+                entries.append(GAFEntry(**entry))
+
+        return entries
 
     def __lookup_gene_pk(self, uniprot_id: str) -> Optional[int]:
         """Look up gene ID by UniProt identifier."""
@@ -194,8 +241,9 @@ class GAFLoader(AbstractBasePlugin):
             self.__unmapped_genes.add(uniprot_id)
             return None
 
-    def __build_qualifiers(self, entry: GAFEntry) -> dict:
+    def __build_qualifiers(self, entry: GAFEntry) -> Optional[EvidenceQualifiers]:
         """Build qualifiers dict for AnnotationEvidence."""
+
         qualifiers = {}
 
         if entry.qualifier:
@@ -205,57 +253,47 @@ class GAFLoader(AbstractBasePlugin):
             qualifiers["reference"] = entry.db_reference
 
         if entry.with_or_from:
-            qualifiers["with_or_from"] = entry.with_or_from
+            if entry.with_or_from[0] != "":
+                qualifiers["with_or_from"] = entry.with_or_from
 
-        return qualifiers if qualifiers else None
+        return EvidenceQualifiers(**qualifiers) if qualifiers else None
 
-    def transform(self, entry: GAFEntry):
+    def transform(self, entries: List[GAFEntry]):
         """
         transform GAFEntry into a GOAssociationEntry
         """
-        return GOAssociationEntry(
-            uniprot_id=entry.db_object_id,
-            term_curie=entry.go_id,
-            evidence_code=entry.evidence_code,
-            qualifiers=self.__build_qualifiers(entry),
-        )
 
-    async def __lookup_evidence_code(self, session, code: str):
+        annotations: Dict[str, GOAssociationEntry] = {}
+        for entry in entries:
+            uniprot_id = entry.db_object_id
+            key = f"{uniprot_id}|{entry.go_id}"
+
+            evidence = Evidence(
+                evidence_code=entry.evidence_code,
+                qualifiers=self.__build_qualifiers(entry),
+            )
+
+            if key in annotations:
+                annotations[key].evidence.add(evidence)
+            else:
+                annotations[key] = GOAssociationEntry(
+                    uniprot_id=entry.db_object_id,
+                    term_curie=entry.go_id,
+                    evidence={evidence},
+                )
+        return list(annotations.values())
+
+    async def __lookup_evidence_code(self, code: str):
         """find ontology_term_id matching evidence code"""
-        try:
-            ontology_term_id = self.__evidence_code_pk_ref[code]
-        except:
-            try:  # look up in database
-                ontology_term_id = await OntologyTerm.find_primary_key(
-                    session,
-                    term=code,
-                    external_database_id=self.__eco_xdbr_id,
-                )
-                self.__evidence_code_pk_ref[code] = ontology_term_id
-
-            except:
-                ontology_term_id = await OntologyTerm.find_primary_key(
-                    session,
-                    term=code,
-                    external_database_id=self.__eco_xdbr_id,
-                    search_synonyms=True,
-                )
-                self.__evidence_code_pk_ref[code] = ontology_term_id
-
+        # allow error to be raised if code is not found
+        ontology_term_id = self.__evidence_code_pk_ref[code]
         return ontology_term_id
 
-    async def __lookup_go_term_curie(self, session, curie: str):
-        """find ontology_term_id matching evidence code"""
-        try:
-            ontology_term_id = self.__go_curie_pk_ref[curie]
-        except:
-            ontology_term_id = await OntologyTerm.find_primary_key(
-                session,
-                curie=curie,
-                external_database_id=self.__go_xdbr_id,
-            )
-            self.__go_curie_pk_ref[curie] = ontology_term_id
+    async def __lookup_go_term_curie(self, curie: str):
+        """find ontology_term_id matching go term curie"""
 
+        # allow error to be raised if curie is not found
+        ontology_term_id = self.__go_curie_pk_ref[curie]
         return ontology_term_id
 
     async def load(
@@ -271,8 +309,8 @@ class GAFLoader(AbstractBasePlugin):
         Returns:
             ResumeCheckpoint for resumable runs
         """
-
-        annotation_evidence: List[AnnotationEvidence] = []
+        # faster to do two bulk submits
+        associations: dict[str, GOAssociation] = {}
         for entry in entries:
             # Lookup gene by UniProt ID
             gene_pk = self.__lookup_gene_pk(entry.uniprot_id)
@@ -281,33 +319,45 @@ class GAFLoader(AbstractBasePlugin):
                 continue
 
             # Lookup GO term
-            go_term_id = await self.__lookup_go_term_curie(session, entry.term_curie)
-
-            # Lookup ECO code
-            evidence_code_id = await self.__lookup_evidence_code(
-                session, entry.evidence_code
-            )
+            go_term_id = await self.__lookup_go_term_curie(entry.term_curie)
 
             # Create GOAssociation record
-            association = GOAssociation(
+            key = f"{entry.uniprot_id}|{entry.term_curie}"
+            associations[key] = GOAssociation(
                 gene_id=gene_pk,
                 go_term_id=go_term_id,
                 external_database_id=self.__external_database_id,
                 run_id=self.run_id,
             )
 
-            association_pk = await association.submit(session)
+        await GOAssociation.submit_many(session, associations.values())
 
-            evidence = AnnotationEvidence(
-                table_id=self.__goa_table_ref.table_id,
-                row_id=association_pk,
-                evidence_code_id=evidence_code_id,
-                qualifiers=entry.qualifiers,
-                external_database_id=self.__external_database_id,
-                run_id=self.run_id,
-            )
+        annotation_evidence = []
+        for entry in entries:
+            try:
+                key = f"{entry.uniprot_id}|{entry.term_curie}"
+                association_pk = associations[key].go_association_id
+            except:  # skipped gene
+                self.inc_tx_count(AnnotationEvidence, ETLOperation.SKIP)
+                continue
 
-            annotation_evidence.append(evidence)
+            for evidence_entry in entry.evidence:
+                # Lookup ECO code
+                evidence_code_id = await self.__lookup_evidence_code(
+                    evidence_entry.evidence_code
+                )
+                evidence = AnnotationEvidence(
+                    table_id=self.__goa_table_ref.table_id,
+                    row_id=association_pk,
+                    evidence_code_id=evidence_code_id,
+                    qualifiers=evidence_entry.qualifiers.model_dump(
+                        exclude_none=True, exclude_unset=True
+                    ),
+                    external_database_id=self.__external_database_id,
+                    run_id=self.run_id,
+                )
+
+                annotation_evidence.append(evidence)
 
         await AnnotationEvidence.submit_many(session, annotation_evidence)
 
