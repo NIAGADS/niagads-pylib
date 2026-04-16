@@ -65,7 +65,11 @@ class AnnotationEvidence(AnnotationTableBase, TableRefMixin):
     __tablename__ = "annotationevidence"
     __table_args__ = (
         UniqueConstraint(
-            "evidence_code_id", "table_id", "row_id", name="uq_gene_annotation_evidence"
+            "evidence_code_id",
+            "table_id",
+            "row_id",
+            "qualifiers",
+            name="uq_gene_annotation_evidence",
         ),
         GeneTableBase.__table_args__,
     )
