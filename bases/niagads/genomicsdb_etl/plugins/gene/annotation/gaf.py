@@ -8,9 +8,10 @@ GeneXRef.
 
 from typing import Any, Dict, Iterator, List, Optional, Union
 
-from niagads.common.gene.models.annotation import (
+
+from niagads.common.models.annotation import (
+    AnnotationEvidenceDescriptor,
     AnnotationEvidenceQualifier,
-    GeneAnnotationEvidence,
 )
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
@@ -64,7 +65,7 @@ class GAFEntry(BaseModel):
         return [x for x in v.split("|")]
 
 
-class Evidence(GeneAnnotationEvidence):
+class Evidence(AnnotationEvidenceDescriptor):
     evidence_code: str
 
 
@@ -257,7 +258,7 @@ class GAFLoader(AbstractBasePlugin):
             uniprot_id = entry.db_object_id
             key = f"{uniprot_id}|{entry.go_id}"
 
-            evidence = Evidence(
+            evidence = AnnotationEvidenceDescriptor(
                 evidence_code=entry.evidence_code,
                 qualifiers=self.__build_qualifiers(entry),
             )

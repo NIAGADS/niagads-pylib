@@ -89,7 +89,7 @@ class AnnotationEvidenceQualifier(CustomBaseModel):
         )
 
 
-class AnnotationEvidence(CustomBaseModel):
+class AnnotationEvidenceDescriptor(CustomBaseModel):
     """
     Represents evidence supporting a Gene Ontology (GO) annotation.
     """
@@ -123,7 +123,7 @@ class BaseAnnotation(CustomBaseModel):
         title="Annotation Type",
         description="type of annotation; adapted from Predicted Effector Genes (PEG) Aggregation, Standards, and Unified Schema framework",
     )
-    evidence: List[AnnotationEvidence] = Field(
+    evidence: List[AnnotationEvidenceDescriptor] = Field(
         title="Evidence",
         description="evidence for this gene-go-association",
     )
