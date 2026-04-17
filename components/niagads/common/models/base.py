@@ -4,7 +4,7 @@ Base Pydantic model classes for NIAGADS data models.
 
 from datetime import date, datetime
 from enum import Enum, auto
-from typing import Self, TypeVar
+from typing import TypeVar
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.dict import prune

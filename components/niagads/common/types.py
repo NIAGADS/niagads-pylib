@@ -1,5 +1,5 @@
 from enum import auto
-from typing import Annotated
+from typing import Annotated, Union
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.regular_expressions import RegularExpressions
@@ -10,6 +10,8 @@ T_DOI = Annotated[str, Field(pattern=RegularExpressions.DOI)]
 T_Gene = Annotated[str, Field(pattern=RegularExpressions.GENE)]
 T_VariantID = Annotated[str, Field(pattern=RegularExpressions.POSITIONAL_VARIANT_ID)]
 T_RefSNP = Annotated[str, Field(pattern=RegularExpressions.REFSNP)]
+
+PrimitiveType = Union[str, int, float, bool, None]
 
 
 class ProcessStatus(CaseInsensitiveEnum):

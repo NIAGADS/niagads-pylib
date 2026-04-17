@@ -10,14 +10,20 @@ from niagads.utils.regular_expressions import RegularExpressions
 from pydantic import Field, model_validator
 
 
-class VariantRecord(CustomBaseModel):
+# TODO: add ga4gh to variant identifier (optional? maybe)
+
+
+class VariantIdentifier(CustomBaseModel):
+    ref_snp_id: Optional[str] = Field(default=None, pattern=RegularExpressions.REFSNP)
+    positional_id: str = Field(pattern=RegularExpressions.POSITIONAL_VARIANT_ID)
+
+
+class VariantRecord(VariantIdentifier):
     location: GenomicRegion
     ref: str
     alt: str
     variant_class: VariantClass = Field(default=VariantClass.SNV)
 
-    ref_snp_id: Optional[str] = Field(default=None, pattern=RegularExpressions.REFSNP)
-    positional_id: str = Field(pattern=RegularExpressions.POSITIONAL_VARIANT_ID)
     normalized_positional_id: Optional[str] = Field(
         default=None, pattern=RegularExpressions.POSITIONAL_VARIANT_ID
     )
