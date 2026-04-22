@@ -68,10 +68,6 @@ class AnnotationEvidenceQualifier(CustomBaseModel):
         default=None,
         description="Flags (relationships) that modify the interpretation of an annotation one (e.g., contained_in, not, colocalizes_with, labeled_by)",
     )
-    reference: Optional[list[str]] = Field(
-        default=None,
-        description="One or more unique identifiers for a single source cited as authority for the annotation (e.g., publication and repository accession)",
-    )
     with_or_from: Optional[list[str]] = Field(
         Default=None,
         description="One or more additional identifier annotations to contextualize evidence; required for some evidence codes - e.g., IC, IEA, IGI, IPI, ISS",
@@ -118,7 +114,7 @@ class AnnotationEvidenceDescriptor(CustomBaseModel):
         return hash(str(self))
 
 
-class BaseAnnotation(CustomBaseModel):
+class AnnotationEvidenceMixin:
     annotation_type: AnnotationType = Field(
         title="Annotation Type",
         description="type of annotation; adapted from Predicted Effector Genes (PEG) Aggregation, Standards, and Unified Schema framework",
@@ -129,16 +125,8 @@ class BaseAnnotation(CustomBaseModel):
     )
 
 
-class AnnotationWithValue(BaseAnnotation):
-    metric: OntologyTerm = Field(title="Scoring or labeling metric")
-    value: PrimitiveType = Field(title="Value")
-    track: Optional[str] = Field(
-        default=None,
-        title="Track",
-        description="Identifier for the track or dataset from which the value was derived",
+class ScoreMixin:
+    metric: Optional[OntologyTerm] = Field(
+        default=None, title="Scoring or labeling metric"
     )
-    publication: Optional[T_PubMedID] = Field(
-        default=None,
-        title="Publication",
-        description="Publication from which the value was derived",
-    )
+    value: Optional[PrimitiveType] = Field(default=None, title="Value")
