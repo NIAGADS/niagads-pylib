@@ -2,6 +2,7 @@
 Pydantic models for gene annotations
 """
 
+from typing import ClassVar
 from niagads.common.models.annotations import (
     AnnotationEvidenceMixin,
     AnnotationType,
@@ -17,7 +18,7 @@ class GOAssociation(AnnotationEvidenceMixin, OntologyTerm):
     Represents a Gene Ontology (GO) association annotation for a gene
     """
 
-    annotation_type = AnnotationType.KNOW
+    annotation_type: ClassVar[AnnotationType] = AnnotationType.KNOW
 
 
 class PathwayMembership(AnnotationEvidenceMixin, Pathway):
@@ -25,7 +26,7 @@ class PathwayMembership(AnnotationEvidenceMixin, Pathway):
     Represents a pathway membership annotation for a gene
     """
 
-    annotation_type = AnnotationType.SET
+    annotation_type: ClassVar[AnnotationType] = AnnotationType.SET
 
     def __str__(self):
         """Return the pathway name as string representation."""
