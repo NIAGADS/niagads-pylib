@@ -8,6 +8,7 @@ from niagads.utils.string import dict_to_info_string
 from pydantic import ConfigDict, Field
 
 
+# TODO: map to "ontologies"
 class AnnotationType(CaseInsensitiveEnum):
     """
     adapted from Predicted Effector Genes (PEG) Aggregation, Standards, and Unified Schema (PEGASUS) framework
@@ -38,8 +39,8 @@ class AnnotationType(CaseInsensitiveEnum):
     INT = Integrated evidence
     """
 
-    LD = "Linkage disequilibrium"
-    FM = "Finemapping and credible sets"
+    LD = "Linkage disequilibrium"  # mesh:D015810 # EDAM:operation_0488
+    FM = "Finemapping and credible sets"  # EDAM:operation_0282
     COLOC = "Colocalisation"
     QTL = "Molecular QTL"
     MR = "Mendelian Randomization"
