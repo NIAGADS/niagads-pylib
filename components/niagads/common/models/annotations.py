@@ -1,11 +1,11 @@
 from typing import List, Optional
-
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.reference.ontologies.models import OntologyTerm
-from niagads.common.types import PrimitiveType, T_PubMedID
+from niagads.common.types import PrimitiveType
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.utils.string import dict_to_info_string
-from pydantic import ConfigDict, Field
+from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import dict_to_info_string, matches
+from pydantic import ConfigDict, Field, model_validator
 
 
 # TODO: map to "ontologies"
@@ -65,20 +65,34 @@ class AnnotationType(CaseInsensitiveEnum):
 
 
 class AnnotationEvidenceQualifier(CustomBaseModel):
-    qualifier: Optional[str] = Field(
+    reference_accession: Optional[str] = Field(
         default=None,
-        description="Flags (relationships) that modify the interpretation of an annotation one (e.g., contained_in, not, colocalizes_with, labeled_by)",
-    )
-    with_or_from: Optional[list[str]] = Field(
-        Default=None,
-        description="One or more additional identifier annotations to contextualize evidence; required for some evidence codes - e.g., IC, IEA, IGI, IPI, ISS",
+        description="database or literature reference",
     )
     description: Optional[str] = Field(
         default=None,
         title="Additional descriptive, qualifying information about the evidence",
     )
+    data_source: Optional[str] = Field(
+        default=None, description="source database for the reference_accession"
+    )
 
+    # additional, project specific qualifiers
+    # e.g., GAF WithOrFrom, 'qualifier'
     model_config = ConfigDict(extra="allow")
+
+    @model_validator(mode="after")
+    def validate_data_source_required(self):
+        """
+        Validate that data_source is required if reference_accession is not a PubMed ID.
+        """
+        if not self.data_source and self.reference_accession:
+            if not matches(RegularExpressions.PUBMED_ID, self.reference_accession):
+
+                raise ValueError(
+                    "data_source is required when reference_accession is not a PubMed ID"
+                )
+        return self
 
     def __str__(self):
         return dict_to_info_string(
