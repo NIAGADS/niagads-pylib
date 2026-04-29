@@ -4,6 +4,7 @@ SQLAlchemy ORM table definitions for gene annotation and membership tables.
 Defines annotation, pathway membership, and related tables for gene-centric knowledge in the genomicsdb gene schema.
 """
 
+from niagads.common.models.annotations import AnnotationType
 from niagads.database.genomicsdb.schema.admin.mixins import TableRefMixin
 from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.database.genomicsdb.schema.gene.base import GeneTableBase
@@ -13,6 +14,7 @@ from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_f
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 # these only need an external_database_id, but not a source_id
@@ -48,6 +50,14 @@ class PathwayMembership(AnnotationTableBase):
     )
     gene_id: Mapped[int] = gene_fk_column()
 
+    @hybrid_property
+    def annotation_type(self):
+        return AnnotationType.SET
+
+    @annotation_type.expression
+    def annotation_type(cls):
+        return AnnotationType.SET.name
+
 
 class GOAssociation(AnnotationTableBase):
     __tablename__ = "goassociation"
@@ -59,6 +69,14 @@ class GOAssociation(AnnotationTableBase):
     go_association_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     go_term_id: Mapped[int] = ontology_term_fk_column()
     gene_id: Mapped[int] = gene_fk_column()
+
+    @hybrid_property
+    def annotation_type(self):
+        return AnnotationType.KNOW
+
+    @annotation_type.expression
+    def annotation_type(cls):
+        return AnnotationType.KNOW.name
 
 
 class AnnotationEvidence(AnnotationTableBase, TableRefMixin):
