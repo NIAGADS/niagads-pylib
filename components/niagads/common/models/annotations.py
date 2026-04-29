@@ -136,7 +136,7 @@ class AnnotationEvidenceMixin:
     )
     evidence: List[AnnotationEvidenceDescriptor] = Field(
         title="Evidence",
-        description="evidence for this gene-go-association",
+        description="evidence for this annotation",
     )
 
 
