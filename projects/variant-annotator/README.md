@@ -16,6 +16,7 @@ The main goal of this project is to define and orchestrate containers for:
 
 - **UTA (Universal Transcript Archive)**: Provides transcript and alignment data for variant normalization and annotation.
 - **SeqRepo**: Offers fast, local access to biological sequence data, required for VRS-based normalization and annotation.
+- **Ensembl VEP**: Variant Annotation (Ensembl VEP)
 
 These services are essential for tools and APIs that implement or depend on GA4GH VRS, enabling consistent and reproducible variant representation.
 
@@ -46,17 +47,20 @@ Once inside the `variant-annotator` directory, follow the configuration and serv
 
 ### Configuration
 
-Copy `sample.env` to `.env`.  **If working within the `niagads-pylib` monorepo, please COPY the file; DO NOT RENAME to avoid accidentally removing `sample.env` from the repository.**
+Copy `service.env.sample` to `service.env`.  **If working within the `niagads-pylib` monorepo, please COPY the file; DO NOT RENAME to avoid accidentally removing `service.env.sample` from the repository.**
 
-- Modify the following values in the `.env` as needed for your system:
+- Modify the following values in the `.env` as needed for your system and the service you want to run:
 
-  - `HOST_SEQREPO_DATA_DIR`: Absolute path to the SeqRepo data directory on the host machine. This directory contains the biological sequence data required by the SeqRepo services.
-  - `HOST_UTA_DATA_DIR`: Absolute path to the UTA data directory on the host machine. This directory stores the PostgreSQL database files for the UTA service.
+  - `HOST_SEQREPO_DATA_DIR`: **REQUIRED** Absolute path to the SeqRepo data directory on the host machine. This directory contains the biological sequence data required by the SeqRepo services.
+  - `HOST_UTA_DATA_DIR`: **REQUIRED** Absolute path to the UTA data directory on the host machine. This directory stores the PostgreSQL database files for the UTA service.
   - `HOST_SEQREPO_SERVICE_PORT`: The port on the host machine to bind the SeqRepo REST service. Default is `5000`.
   - `HOST_UTA_SERVICE_PORT`: The port on the host machine to bind the UTA service. Default is `5432`.
   - `UTA_PGADMIN_PWD`: The password for the PostgreSQL database used by the UTA service. You can replace `UtaVar1a` with a secure password or leave as is if service is only deployed locally.
-  - `UTA_UID`: user ID on the host machine (`id -u`); specify to ensure database volume is non-root
-  - `UTA_GID`: user group ID on the host mahcine (`id -g`); specify to ensure database volume is non-root
+  - `UTA_UID`: **REQUIRED** user ID on the host machine (`id -u`); specify to ensure database volume is non-root (required for UTA and VEP)
+  - `UTA_GID`: **REQUIRED** user group ID on the host mahcine (`id -g`); specify to ensure database volume is non-root (required for UTA and VEP)
+  - `VEP_VERSION`: version of VEP to use.  Defaults to current version used by the GenomicsDB
+  - `VEP_CACHE_PATH`: **REQUIRED** Absolute path to where VEP cache files will be installed and persist on the host machine.
+  - `VEP_PLUGINS`: **REQUIRED** comma separated list of VEP [plugins](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html); defaults to those used by GenomicsDB.  Please read official instructions for each plugin that you want to use.  They may require additional download, tabix steps, and a parameters to the run command
 
 > For ownership of the mounted volumes files to be correct (i.e., non-root), please **create the volumne target paths in full** _before_ building the containers.
 
@@ -82,7 +86,30 @@ The `docker-compose.yaml` defines the following services:
    - PostgresSQL data volume is mounted in the directory specified by the `HOST_UTA_DATA_DIR` environment variable.
    - Runs on the port specified by the `HOST_UTA_SERVICE_PORT` environment variable (default: 5432). Recommend changing this value as it is likely that the ETL target database will also be on port 5432.
    - Test (assuming psql installed on system): `psql -XAt postgres://anonymous@localhost/uta -c 'select count(*) from uta_20241220.transcript'` (expect 314227)
+  
+4. **Ensembl VEP**"
+   - Predicts the effect of your variants (SNPs, insertions, deletions, CNVs or structural variants) on gene transcripts and protein sequence.
+   - Run in `install` mode to do one-off installation of cache database for your taxon and assembly
+     - Default: Human/GRCh38
+  
+      ```bash
+      MODE=install docker compose run --rm vep
+      ```
 
+     - Specific Species/Assembly Install (e.g., Mouse)
+
+     ```bash
+     MODE=install SPECIES=mus_musculus ASSEMBLY=GRCm39 docker compose run --rm vep
+     ```
+
+   - Run annotation job as follows:
+  
+    ```bash
+    docker compose run --rm -v ${LOCAL_DATA_DIR}:/data -w /data vep -i my_input.vcf -o my_output.vcf --cache --offline
+    ```
+  
+    > `-v` mounts your local data directory `LOCAL_DATA_DIR` to :/data in the docker container
+  
 ### System Clean-up and Monitoring
 
 The `seqrepo` service is used to download and install the SeqRepo data. This service only needs to be run once. After the data is downloaded and installed, the container and image can be removed to free up resources.
@@ -130,3 +157,4 @@ nohup ./monitor_idle_containers.sh --days 3 --check-interval 7200 --containers "
 - [GA4GH VRS PyPI](https://pypi.org/project/ga4gh.vrs/0.8.4/)
 - [UTA Documentation](https://github.com/biocommons/uta)
 - [SeqRepo Documentation](https://github.com/biocommons/seqrepo)
+- [VEP Documentation](https://www.ensembl.org/info/docs/tools/vep/script/index.html)

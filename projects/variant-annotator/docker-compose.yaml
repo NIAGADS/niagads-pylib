@@ -3,32 +3,49 @@ services:
   seqrepo:
     container_name: variant-annotator-seqrepo
     image: biocommons/seqrepo:2024-12-20
+    env_file: ./seqrepo.env
+
     volumes:
-      - ${HOST_SEQREPO_DATA_DIR}:/usr/local/share/seqrepo
+      - ${HOST_SEQREPO_DATA_DIR:-/tmp/seqrepo}:/usr/local/share/seqrepo
 
   seqrepo-rest-service:
     container_name: variant-annotator-seqrepo-rest
     image: biocommons/seqrepo-rest-service:0.2.2
+    env_file: ./seqrepo.env
     volumes:
-      - ${HOST_SEQREPO_DATA_DIR}:/usr/local/share/seqrepo
+      - ${HOST_SEQREPO_DATA_DIR:-/tem/seqrepo}:/usr/local/share/seqrepo
     depends_on:
       - seqrepo
     command: seqrepo-rest-service -w /usr/local/share/seqrepo/2024-12-20
     network_mode: bridge
     ports:
-      - ${HOST_SEQREPO_SERVICE_PORT}:5000
+      - ${HOST_SEQREPO_SERVICE_PORT:-5000}:5000
     read_only: true
 
   uta:
     container_name: variant-annotator-uta
     image: biocommons/uta:uta_20241220
-    user: ${UTA_UID}:${UTA_GID}
+    user: ${UTA_UID:-9999}:${UTA_GID:-9999}
+    env_file: ./uta.env
     environment:
-      - POSTGRES_PASSWORD=$UTA_PGADMIN_PWD
+      - POSTGRES_PASSWORD=${UTA_PGADMIN_PWD:-UtaVar1a}
     volumes:
       - ${HOST_UTA_DATA_DIR}:/var/lib/postgresql/data
     ports:
-      - ${HOST_UTA_SERVICE_PORT}:5432
+      - ${HOST_UTA_SERVICE_PORT:-5432}:5432
+
+  vep:
+    image: ensemblorg/ensembl-vep:${VEP_VERSION:-release_115.2}
+    user: "${USER_ID:-9999}:${GROUP_ID:-9999}"
+    env_file: ./vep.env
+    environment:
+      - SPECIES=${SPECIES:-homo_sapiens}
+      - ASSEMBLY=${ASSEMBLY:-GRCh38}
+      - MODE=${MODE:-install}
+    volumes:
+      - ${VEP_CACHE_PATH:-/tmp/vep_cache}:/opt/vep/.vep
+    # The 'entrypoint' is the logic gate
+    entrypoint: /bin/bash -c ' if [ "$$MODE" = "install" ]; then echo "Starting Install for $$SPECIES ($$ASSEMBLY)..."; perl $$VEP_SRC/INSTALL.pl -a c -s $$SPECIES -y $$ASSEMBLY --AUTO; else $$VEP_SRC/vep "$$@"; fi' --
 
 volumes:
   seqrepo_vol:
