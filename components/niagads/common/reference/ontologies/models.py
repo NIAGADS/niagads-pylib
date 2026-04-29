@@ -26,6 +26,7 @@ class OntologyTerm(CustomBaseModel):
     definition: Optional[str] = Field(
         default=None, description="Textual definition of the term"
     )
+    namespace: Optional[str] = Field(default=None, title="Namespace")
     synonyms: list[str] = Field(
         default_factory=list, description="List of synonyms for the term"
     )

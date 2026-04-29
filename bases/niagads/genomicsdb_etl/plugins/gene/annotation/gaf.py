@@ -8,6 +8,11 @@ GeneXRef.
 
 from typing import Any, Dict, Iterator, List, Optional, Union
 
+
+from niagads.common.models.annotations import (
+    AnnotationEvidenceDescriptor,
+    AnnotationEvidenceQualifier,
+)
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
 from niagads.database.genomicsdb.schema.admin.types import TableRef
@@ -29,7 +34,6 @@ from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
-from niagads.utils.string import dict_to_info_string
 from niagads.utils.sys import read_open_ctx
 from pydantic import BaseModel, Field, field_serializer, field_validator
 
@@ -61,28 +65,8 @@ class GAFEntry(BaseModel):
         return [x for x in v.split("|")]
 
 
-class EvidenceQualifiers(BaseModel):
-    qualifier: Optional[str] = None
-    reference: Optional[str] = None
-    with_or_from: Optional[list[str]] = None
-
-    def __str__(self):
-        return dict_to_info_string(
-            self.model_dump(exclude_none=True, exclude_unset=True)
-        )
-
-
-class Evidence(BaseModel):
+class Evidence(AnnotationEvidenceDescriptor):
     evidence_code: str
-    qualifiers: Optional[EvidenceQualifiers] = None
-
-    def __str__(self):
-        if self.qualifiers:
-            return f"{self.evidence_code};{str(self.qualifiers)}"
-        return self.evidence_code
-
-    def __hash__(self):
-        return hash(str(self))
 
 
 class GOAssociationEntry(BaseModel):
@@ -241,7 +225,9 @@ class GAFLoader(AbstractBasePlugin):
             self.__unmapped_genes.add(uniprot_id)
             return None
 
-    def __build_qualifiers(self, entry: GAFEntry) -> Optional[EvidenceQualifiers]:
+    def __build_qualifiers(
+        self, entry: GAFEntry
+    ) -> Optional[AnnotationEvidenceQualifier]:
         """Build qualifiers dict for AnnotationEvidence."""
 
         qualifiers = {}
@@ -250,13 +236,17 @@ class GAFLoader(AbstractBasePlugin):
             qualifiers["qualifier"] = entry.qualifier
 
         if entry.db_reference:
-            qualifiers["reference"] = entry.db_reference
+            qualifiers["reference"] = (
+                entry.db_reference.split("|")
+                if entry.db_reference is not None
+                else None
+            )
 
         if entry.with_or_from:
             if entry.with_or_from[0] != "":
                 qualifiers["with_or_from"] = entry.with_or_from
 
-        return EvidenceQualifiers(**qualifiers) if qualifiers else None
+        return AnnotationEvidenceQualifier(**qualifiers) if qualifiers else None
 
     def transform(self, entries: List[GAFEntry]):
         """
@@ -268,7 +258,7 @@ class GAFLoader(AbstractBasePlugin):
             uniprot_id = entry.db_object_id
             key = f"{uniprot_id}|{entry.go_id}"
 
-            evidence = Evidence(
+            evidence = AnnotationEvidenceDescriptor(
                 evidence_code=entry.evidence_code,
                 qualifiers=self.__build_qualifiers(entry),
             )

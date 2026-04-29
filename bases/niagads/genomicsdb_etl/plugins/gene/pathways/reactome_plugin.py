@@ -1,34 +1,61 @@
+"""
+TODOs:
+
+* remove bad (not unused, but bad) imports
+* build the PluginMetadata Object, delete the obsolete @properties that define the same info
+* clean up the logging statements, review them and make sure info, vs debug, vs "verbose"
+   * add a temporary critical logging statement in extract to make sure dataframe header is as expected
+* update transform to transform ReactomeEntries into GenePathwayAssociations
+  * figure out how to aggregate the member gene list
+* remove unused imports
+* review w/EGA and identify places to streamline / polish
+"""
+
+from typing import List
+
+from niagads.csv_parser.core import CSVFileParser
+from niagads.database.genomicsdb.schema.gene.annotation import PathwayMembership
+from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType
+from niagads.database.genomicsdb.schema.reference.pathway import Pathway
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     PathValidatorMixin,
-    ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-
-from niagads.csv_parser.core import CSVFileParser
-
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
+from niagads.genomicsdb_etl.plugins.gene.pathways.base_pathway_plugin import (
+    PathwayMembershipLoaderPlugin,
+    PathwayMembershipLoaderPluginParams,
+)
+from niagads.genomicsdb_etl.plugins.gene.pathways.types import (
+    MembershipAnnotation,
+    PathwayGeneAssociations,
+    PathwayInfo,
+)
 from pydantic import BaseModel, Field, field_validator
-from typing import List
-from sqlalchemy.exc import (
+from sqlalchemy.exc import (  # TODO: EGA - make wrappers
     MultipleResultsFound,
     NoResultFound,
-)  # TODO: EGA - make wrappers
+)
+
 from .helpers import load_pathway
 from .types import PathwayAnnotation
 
-# Define column names for Reactome file
-COLUMN_NAMES = [
-    "gene_id",
-    "pathway_id",
-    "pathway_url",
-    "pathway_name",
-    "evidence_code",
-    "species",
-]
+
+class ReactomeEntry(BaseModel):
+    gene_id: str
+    pathway_id: str
+    pathway_url: str
+    pathway_name: str
+    evidence_code: str
+    species: str
+
+    @classmethod
+    def column_names(cls):
+        return list(cls.model_fields.keys())
 
 
 # class GenePathwayAnnotation(BaseModel):
@@ -74,9 +101,9 @@ class ReactomeLoaderParams(
             values = first_line.split("\t")
 
         # Check column count
-        if len(COLUMN_NAMES) != len(values):
+        if len(ReactomeEntry.column_names()) != len(values):
             raise ValueError(
-                f"Expected {len(COLUMN_NAMES)} columns, found {len(values)} columns.\n"
+                f"Expected {len(ReactomeEntry.column_names())} columns, found {len(values)} columns.\n"
             )
 
         # Check that column 3 (pathway_url) starts with 'https:'
@@ -138,7 +165,7 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         parser = CSVFileParser(self._params.file)
 
         # Read into DataFrame with no header and assign column names
-        df = parser.to_pandas_df(header=None, names=COLUMN_NAMES)
+        df = parser.to_pandas_df(header=ReactomeEntry.column_names())
 
         # Log file dimensions
         self.logger.info(
@@ -169,54 +196,88 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
             f"Data extraction complete with {len(filtered_df)} filtered rows"
         )
 
-        return filtered_df.to_dict(orient="dict")
+        # transform data frame to json (list of objects) and use list comprehension to iterate over the objects
+        # and build a list of ReactomeEntries
+        return [ReactomeEntry(**entry) for entry in filtered_df.to_dict(orient="dict")]
 
-    def transform(self, data: list):
+    def transform(self, data: list[ReactomeEntry]) -> list[PathwayGeneAssociations]:
         """
-        Transform the extracted DataFrame into a list of PathwayAnnotation objects.
+        Transforms the list of ReactomeEntries into a list of PathwayGeneAssociations.
+
 
         Args:
-            data: Filtered DataFrame from extract step
+            data: Extracted data as a list of dictionaries.
 
         Returns:
-            List[PathwayAnnotation]: List of transformed records for loading
+            List[PathwayGeneAssociations]: Transformed data
         """
         self.logger.debug(f"Starting transformation with {len(data)} input rows")
 
-        # Transform DataFrame to list of PathwayAnnotation objects
-        records = [PathwayAnnotation(**row) for row in data]
+        # Step1 -> initialize an empty hash for PathwayGeneAssociations
+        # pathway_id : PathwayGeneAssociation
 
-        self.logger.info(f"Transformation complete with {len(records)} records")
+        transformed = []
+        for record in data:
+            # Step 2: is record.pathway_id in the hash?
+            # if no -> build the PathwayGeneAssociation object for it & add it hash
+            # if yes -> create new MembershipAnnotation and add to the member_gene list
+            # NOTE: python always updates objects by reference
 
-        return records
+            # Create PathwayInfo object
+            pathway_info = PathwayInfo(
+                pathway_id=record["pathway_id"],
+                pathway_name=record["pathway_name"],
+            )
 
-    async def load(
-        self, transformed: List[PathwayAnnotation], session
-    ) -> ResumeCheckpoint:
+            # Create MembershipAnnotation object
+            genes = [
+                MembershipAnnotation(
+                    gene_id=record["gene_id"],
+                    # include evidence code?
+                )
+            ]
+
+            # EGA Hint -> don't need this
+            # Create PathwayGeneAssociations object
+            transformed.append(
+                PathwayGeneAssociations(
+                    pathway_info=pathway_info,
+                    genes=genes,
+                )
+            )
+
+        # step 4 -> after iterating over the entries - what to return?
+        # return the hash the values
+
+        self.logger.info(f"Transformation complete with {len(transformed)} records")
+        return transformed
+
+    async def load(self, session, transformed: List[PathwayGeneAssociations]):
         """
         Load transformed records into the database.
 
         Args:
-            transformed: List of transformed pathway annotations.
             session: Database session.
+            transformed: List of transformed pathway annotations.
 
         Returns:
             ResumeCheckpoint: The checkpoint for resuming the ETL process.
         """
-        return await load_pathway(
-            self, session, transformed, GeneIdentifierType.ENSEMBL
+        checkpoint = await self._load_pathway_membership(
+            session, transformed, GeneIdentifierType.ENSEMBL
         )
+        return checkpoint
 
-    def get_record_id(self, record: dict) -> str:
+    def get_record_id(self, record: PathwayGeneAssociations) -> str:
         """
         Get unique identifier for a record.
 
-        Uses combination of gene_id and pathway_id as unique identifier.
+        Uses combination of pathway_id and gene_id as unique identifier.
 
         Args:
-            record: Record dict
+            record: PathwayGeneAssociations object
 
         Returns:
             str: Unique identifier
         """
-        return f"{record['pathway_id']}:{record['gene_id']}"
+        return f"{record.pathway_info.pathway_id}:{record.associated_genes[0].gene_id}"
