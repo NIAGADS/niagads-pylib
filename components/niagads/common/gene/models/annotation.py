@@ -13,7 +13,6 @@ from niagads.common.models.annotations import (
 )
 from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.reference.xrefs.models import Pathway
-from pydantic import Field
 
 
 class GOAssociation(AnnotationEvidenceMixin, OntologyTerm):
@@ -39,8 +38,13 @@ class PathwayMembership(AnnotationEvidenceMixin, Pathway):
 class OpenTargetAssociation(AnnotationEvidenceMixin, ScoreMixin):
     disease: OntologyTerm
     target: OntologyTerm
-    data_type: OntologyTerm
+
+    data_type: OntologyTerm  # aggregation type
     data_source: Optional[str] = None  # or does this go into qualifier->reference
+    # max evidence_count a qualifier?
+
+    # Set evidence code to ECO_0007669 / computational evidence used in automatic assertion
+    # in plugin
 
 
 # overall
@@ -51,7 +55,7 @@ class OpenTargetAssociation(AnnotationEvidenceMixin, ScoreMixin):
 # aggregationValue - may not be relevant
 # association score
 # evidence count (float)
-
+#
 
 # aggregationtype / #aggregation value
 # may be: direct -> by data type
