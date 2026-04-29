@@ -2,12 +2,22 @@ from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     PathValidatorMixin,
-    ResumeCheckpoint,
+    
+)
+from niagads.genomicsdb_etl.plugins.gene.pathways.types import (
+    PathwayGeneAssociations,
+    MembershipAnnotation,
+    PathwayInfo,
 )
 from niagads.etl.plugins.registry import PluginRegistry
-
+from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType
+from niagads.database.genomicsdb.schema.reference.pathway import Pathway
+from niagads.database.genomicsdb.schema.gene.annotation import PathwayMembership
 from niagads.csv_parser.core import CSVFileParser
-
+from niagads.genomicsdb_etl.plugins.gene.pathways.base_pathway_plugin import (
+    PathwayMembershipLoaderPlugin,
+    PathwayMembershipLoaderPluginParams,
+)
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
@@ -26,7 +36,7 @@ COLUMN_NAMES = [
     "pathway_id",
     "pathway_url",
     "pathway_name",
-    "evidence_code",
+    #"evidence_code",
     "species",
 ]
 
@@ -171,52 +181,72 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
 
         return filtered_df.to_dict(orient="dict")
 
-    def transform(self, data: list):
+    def transform(self, data: list[dict]) -> list[PathwayGeneAssociations]:
         """
-        Transform the extracted DataFrame into a list of PathwayAnnotation objects.
+        Transform the extracted data into PathwayGeneAssociations.
 
         Args:
-            data: Filtered DataFrame from extract step
+            data: Extracted data as a list of dictionaries.
 
         Returns:
-            List[PathwayAnnotation]: List of transformed records for loading
+            List[PathwayGeneAssociations]: Transformed data
         """
         self.logger.debug(f"Starting transformation with {len(data)} input rows")
 
-        # Transform DataFrame to list of PathwayAnnotation objects
-        records = [PathwayAnnotation(**row) for row in data]
+        transformed = []
+        for record in data:
+            # Create PathwayInfo object
+            pathway_info = PathwayInfo(
+                pathway_id=record["pathway_id"],
+                pathway_name=record["pathway_name"],
+            )
 
-        self.logger.info(f"Transformation complete with {len(records)} records")
+            # Create MembershipAnnotation object
+            genes = [
+                MembershipAnnotation(
+                    gene_id=record["gene_id"],  
+                    #include evidence code?
+                )
+            ]
 
-        return records
+            # Create PathwayGeneAssociations object
+            transformed.append(
+                PathwayGeneAssociations(
+                    pathway_info=pathway_info,
+                    genes=genes,
+                )
+            )
 
-    async def load(
-        self, transformed: List[PathwayAnnotation], session
-    ) -> ResumeCheckpoint:
+        self.logger.info(f"Transformation complete with {len(transformed)} records")
+        return transformed
+
+
+    async def load(self, session, transformed: List[PathwayGeneAssociations]):
         """
         Load transformed records into the database.
 
         Args:
-            transformed: List of transformed pathway annotations.
             session: Database session.
+            transformed: List of transformed pathway annotations.
 
         Returns:
             ResumeCheckpoint: The checkpoint for resuming the ETL process.
         """
-        return await load_pathway(
-            self, session, transformed, GeneIdentifierType.ENSEMBL
+        checkpoint = await self._load_pathway_membership(
+            session, transformed, GeneIdentifierType.ENSEMBL
         )
+        return checkpoint
 
-    def get_record_id(self, record: dict) -> str:
+    def get_record_id(self, record: PathwayGeneAssociations) -> str:
         """
         Get unique identifier for a record.
 
-        Uses combination of gene_id and pathway_id as unique identifier.
+        Uses combination of pathway_id and gene_id as unique identifier.
 
         Args:
-            record: Record dict
+            record: PathwayGeneAssociations object
 
         Returns:
             str: Unique identifier
         """
-        return f"{record['pathway_id']}:{record['gene_id']}"
+        return f"{record.pathway_info.pathway_id}:{record.associated_genes[0].gene_id}"
