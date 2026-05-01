@@ -82,7 +82,7 @@ The `docker-compose.yaml` defines the following services:
      - Default: Human/GRCh38
   
       ```bash
-      docker compose run -e MODE=install --rm vep /bin/bash
+      docker compose run -e MODE=install --rm vep
       ```
 
    - Run annotation job as follows:
