@@ -39,5 +39,6 @@ services:
       - TARGET_ASSEMBLY=${ASSEMBLY}
       - PLUGINS=${VEP_PLUGINS}
     volumes:
-      - ${VEP_CACHE_PATH}:/data:z
+      - ${HOST_VEP_CACHE_DIR}:/data:z
+      - ${HOST_VEP_DATA_DIR}:/input:z
     entrypoint: /bin/bash -c ' if [ "$$MODE" = "install" ]; then echo "Starting Install for $$TARGET_SPECIES ($$TARGET_ASSEMBLY)..."; perl $$VEP_SRC/INSTALL.pl -a cf -s $$TARGET_SPECIES -y $$TARGET_ASSEMBLY --plugins $$PLUGINS; else $$VEP_SRC/vep "$$@"; fi'

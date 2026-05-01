@@ -82,13 +82,13 @@ The `docker-compose.yaml` defines the following services:
      - Default: Human/GRCh38
   
       ```bash
-      docker compose run -e MODE=install --rm vep /bin/bash
+      docker compose run -e MODE=install --rm vep 
       ```
 
    - Run annotation job as follows:
   
     ```bash
-    docker compose run --rm -v ${LOCAL_DATA_DIR}:/data -w /data vep -i my_input.vcf -o my_output.vcf --cache --offline
+    docker compose run --rm -v ${LOCAL_DATA_DIR}:/input vep -i input/my_input.vcf -o input/my_output.vcf --cache --offline
     ```
   
     > `-v` mounts your local data directory `LOCAL_DATA_DIR` to :/data in the docker container
