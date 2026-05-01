@@ -49,20 +49,9 @@ Once inside the `variant-annotator` directory, follow the configuration and serv
 
 Copy `service.env.sample` to `service.env`.  **If working within the `niagads-pylib` monorepo, please COPY the file; DO NOT RENAME to avoid accidentally removing `service.env.sample` from the repository.**
 
-- Modify the following values in the `.env` as needed for your system and the service you want to run:
+- Modify the `.env` as needed for your system and the service you want to run.
 
-  - `HOST_SEQREPO_DATA_DIR`: **REQUIRED** Absolute path to the SeqRepo data directory on the host machine. This directory contains the biological sequence data required by the SeqRepo services.
-  - `HOST_UTA_DATA_DIR`: **REQUIRED** Absolute path to the UTA data directory on the host machine. This directory stores the PostgreSQL database files for the UTA service.
-  - `HOST_SEQREPO_SERVICE_PORT`: The port on the host machine to bind the SeqRepo REST service. Default is `5000`.
-  - `HOST_UTA_SERVICE_PORT`: The port on the host machine to bind the UTA service. Default is `5432`.
-  - `UTA_PGADMIN_PWD`: The password for the PostgreSQL database used by the UTA service. You can replace `UtaVar1a` with a secure password or leave as is if service is only deployed locally.
-  - `UTA_UID`: **REQUIRED** user ID on the host machine (`id -u`); specify to ensure database volume is non-root (required for UTA and VEP)
-  - `UTA_GID`: **REQUIRED** user group ID on the host mahcine (`id -g`); specify to ensure database volume is non-root (required for UTA and VEP)
-  - `VEP_VERSION`: version of VEP to use.  Defaults to current version used by the GenomicsDB
-  - `VEP_CACHE_PATH`: **REQUIRED** Absolute path to where VEP cache files will be installed and persist on the host machine.
-  - `VEP_PLUGINS`: **REQUIRED** comma separated list of VEP [plugins](https://www.ensembl.org/info/docs/tools/vep/script/vep_plugins.html); defaults to those used by GenomicsDB.  Please read official instructions for each plugin that you want to use.  They may require additional download, tabix steps, and a parameters to the run command
-
-> For ownership of the mounted volumes files to be correct (i.e., non-root), please **create the volumne target paths in full** _before_ building the containers.
+> Note that unless otherwise specified, data/cache directories will be created in `/tmp`
 
 ### Run the Services
 
@@ -93,14 +82,8 @@ The `docker-compose.yaml` defines the following services:
      - Default: Human/GRCh38
   
       ```bash
-      MODE=install docker compose run --rm vep
+      docker compose run -e MODE=install --rm vep /bin/bash
       ```
-
-     - Specific Species/Assembly Install (e.g., Mouse)
-
-     ```bash
-     MODE=install SPECIES=mus_musculus ASSEMBLY=GRCm39 docker compose run --rm vep
-     ```
 
    - Run annotation job as follows:
   
