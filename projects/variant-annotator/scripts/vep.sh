@@ -33,13 +33,16 @@ fi
 WORKING_DIR=$(dirname "$FILE")
 INPUT_FILE_BASENAME=$(basename "$FILE")
 INPUT_FILE=/working/${INPUT_FILE_BASENAME}
-OUTPUT_FILE=${INPUT_FILE}.vep.json.gz
-ERROR_FILE=${INPUT_FILE}.vep.errors
-LOG_FILE=${INPUT_FILE}.vep.log
+OUTPUT_DIR=/working/vep_output
+OUTPUT_BASENAME=${OUTPUT_DIR}/${INPUT_FILE_BASENAME}
+OUTPUT_FILE=${OUTPUT_BASENAME}.vep.json.gz
+ERROR_FILE=${OUTPUT_BASENAME}.vep.errors
+LOG_FILE=${OUTPUT_BASENAME}.vep.log
 
 echo "WORKING_DIR=$WORKING_DIR"
 echo "INPUT_FILE_BASE_NAME=$INPUT_FILE_BASENAME"
 echo "INPUT_FILE=$INPUT_FILE"
+echo "OUTPUT_FILE=$OUTPUT_FILE"
 
 
 # Set cadd_config based on IS_SV
@@ -51,13 +54,12 @@ fi
 
 if 
 
-set -x
 docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/.env -f $PROJECT_DIR/niagads-pylib/projects/variant-annotator/docker-compose.yaml \
     run --rm -v ${WORKING_DIR}:/working:z \
-  vep  \
-  --input_file $INPUT_FILE \
-  --output_file $OUTPUT_FILE \
-  --skipped_variants_file $OUTPUT_FILE.skipped \
+  vep \
+  --input_file="${INPUT_FILE}" \
+  --output_file="${OUTPUT_FILE}" \
+  --skipped_variants_file="${OUTPUT_BASENAME}.skipped" \
   --no_check_variants_order \
   --format vcf \
   --compress_output gzip \
@@ -69,8 +71,6 @@ docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/
   --fork 4 \
   --hgvs \
   --fasta /data \
-  --sift b \
-  --polyphen b \
   --ccds \
   --symbol \
   --numbers \
@@ -89,7 +89,6 @@ docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/
   --af_1kg \
   --af_gnomadg \
   --af_gnomade \
-  --pubmed \
   --clin_sig_allele 1 \
   --nearest gene \
   --gene_phenotype \
@@ -99,9 +98,7 @@ docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/
   --plugin LoFtool,/data/LoFtool_scores.txt \
   --force_overwrite \
   --verbose \
-  --warning_file  $ERROR_FILE 
-
-  # --plugin CADD,$CADD_CONFIG \
+  --warning_file="${ERROR_FILE}"
 
 then
     echo "SUCCESS"
