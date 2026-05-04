@@ -14,11 +14,6 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
-     --working-dir)
-      WORKING_DIR="$2"
-      shift # past argument
-      shift # past value
-      ;;
     --is-sv)
       IS_SV=1
       shift # past argument
@@ -35,12 +30,9 @@ if [[ -z "$FILE" ]]; then
   exit 1
 fi
 
-if [[ -z "$CACHE_DIR" ]]; then
-  echo "--cache argument is required" >&2
-  exit 1
-fi
-
-INPUT_FILE=/working/${FILE}
+WORKING_DIR=$(dirname "$FILE")
+INPUT_FILE_BASENAME=$(basename "$FILE")
+INPUT_FILE=/working/${INPUT_FILE_BASE_NAME}
 OUTPUT_FILE=${INPUT_FILE}.vep.json.gz
 ERROR_FILE=${INPUT_FILE}.vep.errors
 LOG_FILE=${INPUT_FILE}.vep.log
