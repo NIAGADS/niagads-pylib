@@ -32,13 +32,14 @@ fi
 
 WORKING_DIR=$(dirname "$FILE")
 INPUT_FILE_BASENAME=$(basename "$FILE")
-INPUT_FILE=/working/${INPUT_FILE_BASE_NAME}
+INPUT_FILE=/working/${INPUT_FILE_BASENAME}
 OUTPUT_FILE=${INPUT_FILE}.vep.json.gz
 ERROR_FILE=${INPUT_FILE}.vep.errors
 LOG_FILE=${INPUT_FILE}.vep.log
 
 echo "WORKING_DIR=$WORKING_DIR"
 echo "INPUT_FILE_BASE_NAME=$INPUT_FILE_BASENAME"
+echo "INPUT_FILE=$INPUT_FILE"
 
 
 # Set cadd_config based on IS_SV
@@ -50,6 +51,7 @@ fi
 
 if 
 
+set -x
 docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/.env -f $PROJECT_DIR/niagads-pylib/projects/variant-annotator/docker-compose.yaml \
     run --rm -v ${WORKING_DIR}:/working:z \
   vep  \
@@ -64,7 +66,7 @@ docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/
   --offline \
   --no_stats \
   --json \
-  --fork 8 \
+  --fork 4 \
   --hgvs \
   --fasta /data \
   --sift b \
