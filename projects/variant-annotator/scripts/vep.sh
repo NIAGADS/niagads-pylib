@@ -51,7 +51,7 @@ fi
 if 
 
 docker compose run --rm -v ${WORKING_DIR}:/working:z \
-  --f $PROJECT_HOME/niagads-pylib/projects/variant-annotator/docker-compose.yaml \
+  -f $PROJECT_HOME/niagads-pylib/projects/variant-annotator/docker-compose.yaml \
   vep  \
   --input_file $INPUT_FILE \
   --output_file $OUTPUT_FILE \
