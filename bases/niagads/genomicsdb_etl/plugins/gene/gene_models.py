@@ -6,19 +6,20 @@ Gene Structure Loader Plugin
 from enum import auto
 from typing import Any, Dict, Iterator, Optional, Union
 
-from niagads.common.genomic.regions.models import GenomicRegion
+from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.models.types import Range
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.gene.structure import (
     ExonModel,
     GeneModel,
+    ProteinModel,
     TranscriptModel,
 )
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.parameters import PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genome_reference.human import HumanGenome
@@ -78,6 +79,7 @@ class GFF3Entry(BaseModel):
 # DEVELOPER'S NOTE: arbitrary_types_allowed=True must be used b/c types are ORM models
 class TranscriptFeature(BaseModel, arbitrary_types_allowed=True):
     transcript: TranscriptModel
+    proteins: list[ProteinModel] = []
     exons: list[ExonModel] = []
 
 
@@ -111,7 +113,7 @@ metadata = PluginMetadata(
         "Recommended to run first with `--verify-biotypes-only --verbose` because Ensembl "
         "does not strictly adhere to the sequence ontology (SO)."
     ),
-    affected_tables=[ExonModel, TranscriptModel, GeneModel],
+    affected_tables=[ExonModel, ProteinModel, TranscriptModel, GeneModel],
     load_strategy=ETLLoadStrategy.CHUNKED,
     operation=ETLOperation.INSERT,
     is_large_dataset=False,
@@ -145,6 +147,7 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
         self.__ontology_term_ref = {}
         # External database ID for sequence ontology
         self.__so_external_database_id = None
+        self.__transcript_protein_ref: dict[str, list[str]] = {}
 
     async def on_run_start(self, session):
         await super().on_run_start(session)
@@ -161,11 +164,11 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
     ) -> str:
         return record.source_id
 
-    def __build_genomic_region(self, entry: GFF3Entry) -> GenomicRegion:
+    def __build_genomic_region(self, entry: GFF3Entry) -> OneBasedGenomicRegion:
         """
         Create a GenomicRegion from GFF3 entry fields.
         """
-        return GenomicRegion(
+        return OneBasedGenomicRegion(
             chromosome=entry.chromosome,
             start=entry.start,
             end=entry.end,
@@ -203,6 +206,18 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
                     continue
 
                 entry["attributes"] = info_string_to_dict(entry["attributes"])
+
+                protein_id = entry["attributes"].get("protein_id")
+                if protein_id is not None:
+                    parent_id = entry["attributes"].get("Parent")
+                    if parent_id is not None and "transcript" in parent_id:
+                        transcript_id = parent_id.split(":")[1]
+                        if transcript_id in self.__transcript_protein_ref:
+                            self.__transcript_protein_ref[transcript_id].append(
+                                protein_id
+                            )
+                        else:
+                            self.__transcript_protein_ref[transcript_id] = [protein_id]
 
                 if "exon_id" in entry["attributes"]:
                     entry_id = entry["attributes"].get("exon_id")
@@ -299,7 +314,7 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
             else:
                 gene_symbol = "novel gene"
 
-        span: GenomicRegion = self.__build_genomic_region(entry)
+        span: OneBasedGenomicRegion = self.__build_genomic_region(entry)
 
         gene_type: str = entry.attributes.get("biotype")
         if gene_type == "misc_RNA":  # this term does not exist in SO
@@ -326,7 +341,7 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
         if "tag" in entry.attributes:
             is_canonical = "Ensembl_canonical" in entry.attributes["tag"]
 
-        span: GenomicRegion = self.__build_genomic_region(entry)
+        span: OneBasedGenomicRegion = self.__build_genomic_region(entry)
 
         transcript = TranscriptModel(
             source_id=entry.id,
@@ -339,13 +354,18 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
         )
 
         transcript_feature = TranscriptFeature(transcript=transcript)
+
+        if transcript.source_id in self.__transcript_protein_ref:
+            for pid in self.__transcript_protein_ref[transcript.source_id]:
+                transcript_feature.proteins.append(ProteinModel(source_id=pid))
+
         for exon in entry.children:
             transcript_feature.exons.append(self.__create_exon_model(exon))
 
         return transcript_feature
 
     def __create_exon_model(self, entry: GFF3Entry):
-        span: GenomicRegion = self.__build_genomic_region(entry)
+        span: OneBasedGenomicRegion = self.__build_genomic_region(entry)
         exon = ExonModel(
             source_id=entry.id,
             transcript_id=entry.parent_id,
@@ -464,6 +484,12 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
                 self.__set_common_attributes(transcript)
                 transcript.gene_id = gene_pk
                 transcript_pk = await transcript.submit(session)
+
+                for protein in transcript_feature.proteins:
+                    protein.external_database_id = self.external_database_id
+                    protein.run_id = self.run_id
+                    protein.transcript_id = transcript_pk
+                    await protein.submit(session)
 
                 for exon in transcript_feature.exons:
                     self.__set_common_attributes(exon)

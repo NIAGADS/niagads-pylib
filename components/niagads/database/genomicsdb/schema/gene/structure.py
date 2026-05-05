@@ -75,6 +75,21 @@ class TranscriptModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     is_canonical: Mapped[bool] = mapped_column(index=True, nullable=True)
 
 
+class ProteinModel(GeneTableBase, IdAliasMixin):
+    __tablename__ = "protein"
+    __table_args__ = (
+        CheckConstraint(
+            f"source_id ~ '{RegularExpressions.ENSEMBL_PROTEIN_ID}'",
+            name="protein_source_id_format_check",
+        ),
+        GeneTableBase.__table_args__,
+    )
+    protein_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    transcript_id: Mapped[int] = mapped_column(
+        ForeignKey("gene.transcript.transcript_id"), index=True, nullable=False
+    )
+
+
 class ExonModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "exon"
     __table_args__ = (
