@@ -1,8 +1,8 @@
 """
 UniProt KB ID XRef Loader Plugin
 
-Loads gene cross-references from UniProt KB ID mapping files into the gene.xref
-table, filtering for Ensembl gene IDs and mapping them to genes
+Loads gene and protein cross-references from UniProt KB ID mapping files into the gene.xref
+tables, filtering for Ensembl gene/protein IDs and mapping them to genes/proteins
 by Ensembl stable ID.
 
 Input file format:
@@ -14,15 +14,11 @@ Input file format:
 import re
 from typing import Any, Dict, Iterator, Optional
 
-from niagads.database.genomicsdb.schema.gene.structure import GeneModel
-from niagads.utils.sys import read_open_ctx
-from sqlalchemy import select
-from sqlalchemy.exc import NoResultFound
 from niagads.common.types import ETLOperation
-from niagads.database.genomicsdb.schema.gene.documents import Gene
+from niagads.database.genomicsdb.schema.gene.structure import GeneModel
 from niagads.database.genomicsdb.schema.gene.xrefs import (
-    GeneIdentifierType,
     GeneXRef,
+    ProteinXRef,
     XRefCategory,
 )
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
@@ -38,10 +34,12 @@ from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
+from niagads.utils.sys import read_open_ctx
 from pydantic import BaseModel, Field
 
 # Pattern to strip version suffix from Ensembl Gene IDs
-ENSEMBL_VERSION_PATTERN = re.compile(r"^(ENSG*\d+)\.\d+$")
+ENSEMBL_GENE_VERSION_PATTERN = re.compile(r"^(ENSG*\d+)\.\d+$")
+ENSEMBL_PROTEIN_VERSION_PATTERN = re.compile(r"^(ENSP*\d+)\.\d+$")
 
 
 class UniProtXRefEntry(BaseModel):
@@ -70,10 +68,10 @@ class UniProtKBIDLoaderParams(
 metadata = PluginMetadata(
     version="1.0",
     description=(
-        "ETL Plugin to load gene cross-references from UniProt KB ID (full) mapping file "
+        "ETL Plugin to load gene and protein cross-references from UniProt KB ID (full) mapping file "
         f"into {GeneXRef.table_name()}."
     ),
-    affected_tables=[GeneXRef],
+    affected_tables=[GeneXRef, ProteinXRef],
     load_strategy=ETLLoadStrategy.CHUNKED,
     operation=ETLOperation.INSERT,
     is_large_dataset=False,
@@ -133,7 +131,7 @@ class UniProtKBIDLoader(AbstractBasePlugin):
             ENST00000467678.5 -> ENST00000467678
             ENSG00000022976 -> ENSG00000022976 (already stripped)
         """
-        match = ENSEMBL_VERSION_PATTERN.match(ensembl_id)
+        match = ENSEMBL_GENE_VERSION_PATTERN.match(ensembl_id)
         if match:
             return match.group(1)
         return ensembl_id
@@ -197,25 +195,6 @@ class UniProtKBIDLoader(AbstractBasePlugin):
         Returns the entry as-is since it's already in the required format.
         """
         return entry
-
-    async def __lookup_gene(self, session, source_id: str) -> Optional[int]:
-        """
-        Lookup or fetch a gene by its Ensembl gene ID (source_id).
-        Uses a local cache to avoid repeated database queries.
-        """
-        try:
-            gene_pk = self.__gene_pk_ref[source_id]
-        except KeyError:
-            try:
-                gene_pk = await Gene.resolve_identifier(
-                    session,
-                    id=source_id,
-                    gene_identifier_type=GeneIdentifierType.ENSEMBL,
-                )
-            except NoResultFound:
-                gene_pk = None
-            self.__gene_pk_ref[source_id] = gene_pk
-        return gene_pk
 
     async def load(self, session, mappings: list[UniProtXRefEntry]) -> ResumeCheckpoint:
         """
