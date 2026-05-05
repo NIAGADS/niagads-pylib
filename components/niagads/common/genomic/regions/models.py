@@ -25,10 +25,33 @@ class GenomicRegion(Range):
     inclusive_end: Optional[bool] = Field(default=True)
 
     @classmethod
-    def from_region_id(cls, span: str):
-        chromosome, range = span.split(":")
-        start, end = range.split("-")
-        return cls(chromosome=HumanGenome(chromosome), start=start, end=end)
+    def from_region_id(cls, span: str, is_zero_based: bool = False):
+        """
+        Create a GenomicRegion from a region string in the format 'chr:start-end:strand'.
+
+        Args:
+            span (str): Region string, e.g., '1:100-200'.
+            is_zero_based (bool): If True, interpret coordinates as 0-based (start inclusive, end exclusive). If False, interpret as 1-based (start and end inclusive).
+
+        Returns:
+            GenomicRegion: Parsed region object with correct coordinate convention.
+        """
+        positional_elements = span.split(":")  # chrm, range, strand (optional)
+        start, end = positional_elements[1].split("-")
+        start = int(start)
+        end = int(end)
+
+        range = cls(
+            chromosome=HumanGenome(positional_elements[0]),
+            start=start,
+            end=end,
+            inclusive_end=not is_zero_based,
+        )
+
+        if len(positional_elements) == 3:
+            range.strand = positional_elements[2]
+
+        return range
 
     @field_serializer("chromosome")
     def serialize_chromosome(self, chromosome: HumanGenome, _info):
