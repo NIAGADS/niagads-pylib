@@ -23,7 +23,7 @@ from niagads.database.genomicsdb.schema.gene.documents import Gene
 from niagads.database.genomicsdb.schema.gene.xrefs import (
     GeneIdentifierType,
     GeneXRef,
-    GeneXRefCategory,
+    XRefCategory,
 )
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.etl.plugins.base import AbstractBasePlugin
@@ -39,7 +39,6 @@ from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
 from pydantic import BaseModel, Field
-
 
 # Pattern to strip version suffix from Ensembl Gene IDs
 ENSEMBL_VERSION_PATTERN = re.compile(r"^(ENSG*\d+)\.\d+$")
@@ -236,7 +235,7 @@ class UniProtKBIDLoader(AbstractBasePlugin):
             xrefs.append(
                 GeneXRef(
                     gene_id=gene_pk,
-                    xref_category=GeneXRefCategory.IDENTIFIER,
+                    xref_category=XRefCategory.IDENTIFIER,
                     xref_label="uniprot_id",
                     xref_value=entry.uniprot_id,
                     source_id=entry.uniprot_id,

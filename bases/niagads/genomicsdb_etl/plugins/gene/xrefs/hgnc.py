@@ -16,7 +16,7 @@ from niagads.database.genomicsdb.schema.gene.documents import Gene
 from niagads.database.genomicsdb.schema.gene.xrefs import (
     GeneIdentifierType,
     GeneXRef,
-    GeneXRefCategory,
+    XRefCategory,
 )
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.etl.plugins.base import AbstractBasePlugin
@@ -37,7 +37,6 @@ from niagads.utils.string import dict_to_info_string, xstr
 from niagads.utils.sys import read_open_ctx
 from pydantic import BaseModel, Field
 
-
 INVALID_XREFS = ["status", "uuid", "location_sortable", "curator_notes"]
 
 
@@ -48,7 +47,7 @@ class GeneXRefEntry(BaseModel):
     ensembl_id: str
     xref_label: str  # the HGNC field name (e.g., "entrez_id", "omim_id")
     xref_value: str  # the field value
-    xref_category: GeneXRefCategory
+    xref_category: XRefCategory
 
 
 class HGNCXRefLoaderParams(
