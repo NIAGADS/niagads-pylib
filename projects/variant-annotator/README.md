@@ -78,6 +78,9 @@ The `docker-compose.yaml` defines the following services:
   
 4. **Ensembl VEP**"
    - Predicts the effect of your variants (SNPs, insertions, deletions, CNVs or structural variants) on gene transcripts and protein sequence.
+
+    **General Usage**
+
    - Run in `install` mode to do one-off installation of cache database for your taxon and assembly
      - Default: Human/GRCh38
   
@@ -88,10 +91,26 @@ The `docker-compose.yaml` defines the following services:
    - Run annotation job as follows:
   
     ```bash
-    docker compose run --rm -v ${LOCAL_DATA_DIR}:/input vep -i input/my_input.vcf -o input/my_output.vcf --cache --offline
+    docker compose run --rm -v ${LOCAL_DATA_DIR}:/working vep -i input/my_input.vcf -o input/my_output.vcf --cache --offline$
     ```
   
     > `-v` mounts your local data directory `LOCAL_DATA_DIR` to :/data in the docker container
+
+    **GenomicsDB VEP Analysis**
+
+    - ensure that the following environmental variables are set:
+        `$DATA_DIR`: data directory on host
+        `PROJECT_DIR`: full path to the parent directory in which the `niagads-pylib` project exists
+    - install and activate the `variant-annotator` poetry environment to put shell scripts in the path
+
+    ```bash
+    cd $PROJECT_DIR/niagads-pylib/projects/variant-annotator
+    poetry install
+    source .venv/bin/activate
+    ```
+
+    - run in `install` mode as described above
+    -
   
 ### System Clean-up and Monitoring
 

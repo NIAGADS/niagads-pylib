@@ -1,21 +1,38 @@
+
 [project]
 name = "variant-annotator"
 version = "0.1.0"
+
 
 authors = [
     { name = "fossilfriend", email = "egreenfest@gmail.com" },
 ]
 dependencies = [
+    "python-dateutil (>=2.9.0.post0,<3.0.0)",
+    "pandas (>=3.0.2,<4.0.0)",
+    "pydantic (>=2.13.3,<3.0.0)",
+    "strenum (>=0.4.15,<0.5.0)",
+    "typing-extensions (>=4.15.0,<5.0.0)",
+    "pydantic-settings (>=2.14.0,<3.0.0)",
+
 ]
 requires-python = ">=3.11,<3.14"
 
 
 [tool.poetry]
 packages = [
+    { from = "../../components", include = "niagads/subprocess_manager" },
+    { include = "niagads/common", from = "../../components" },
+    { include = "niagads/enums", from = "../../components" },
+    { include = "niagads/exceptions", from = "../../components" },
+    { include = "niagads/genome_reference", from = "../../components" },
+    { include = "niagads/utils", from = "../../components" },
+    { include = "scripts" },
 ]
 
-[project.scripts]
 
+[project.scripts]
+run-vep = "scripts.vep_runner:main"
 
 [tool.tomlsort]
 all = true
