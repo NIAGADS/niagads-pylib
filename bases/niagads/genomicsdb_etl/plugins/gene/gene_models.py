@@ -469,35 +469,41 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
             gene.gene_type_id = await self.__lookup_gene_biotype(
                 session, gene_feature.gene.gene_type_id
             )
+            self.logger.debug(f"verified biotype: {gene.gene_type_id}")
             if self._params.verify_biotypes_only:
                 continue
 
             gene_id = gene.source_id
             self.__set_common_attributes(gene)
-
             gene_pk = await gene.submit(session)
 
-            exons = []
-            exon_count = 0
             for transcript_feature in gene_feature.transcripts:
                 transcript = transcript_feature.transcript
                 self.__set_common_attributes(transcript)
                 transcript.gene_id = gene_pk
-                transcript_pk = await transcript.submit(session)
+                await transcript.stage(session)
 
+            await session.flush()
+
+            exons = []
+            proteins = []
+            exon_count = 0
+            for transcript_feature in gene_feature.transcripts:
                 for protein in transcript_feature.proteins:
                     protein.external_database_id = self.external_database_id
                     protein.run_id = self.run_id
-                    protein.transcript_id = transcript_pk
-                    await protein.submit(session)
+                    protein.transcript_id = transcript_feature.transcript.transcript_id
+                    proteins.append(protein)
 
                 for exon in transcript_feature.exons:
                     self.__set_common_attributes(exon)
                     exon.gene_id = gene_pk
-                    exon.transcript_id = transcript_pk
+                    exon.transcript_id = transcript_feature.transcript.transcript_id
                     exons.append(exon)
                     exon_count += 1
 
+            if len(proteins) > 0:
+                await ProteinModel.submit_many(session, proteins)
             await ExonModel.submit_many(session, exons)  # submit exons in batch
 
             if self._verbose:
