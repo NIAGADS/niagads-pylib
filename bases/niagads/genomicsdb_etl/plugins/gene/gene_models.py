@@ -477,13 +477,14 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
             self.__set_common_attributes(gene)
             gene_pk = await gene.submit(session)
 
+            transcripts = []
             for transcript_feature in gene_feature.transcripts:
                 transcript = transcript_feature.transcript
                 self.__set_common_attributes(transcript)
                 transcript.gene_id = gene_pk
-                await transcript.stage(session)
+                transcripts.append(transcript)
 
-            await session.flush()
+            await TranscriptModel.submit_many(session, transcripts)
 
             exons = []
             proteins = []
