@@ -13,12 +13,22 @@ class TransactionTableMixin(DeclarativeBase):
     def table_name(cls):
         return f"{cls._schema}.{cls.__tablename__}"
 
+    async def stage(self, session: AsyncSession):
+        """
+        Insert this table entry into the database but don't flush, just stage the addition.
+
+        Args:
+            session (AsyncSession): SQLAlchemy Async Session
+        """
+        session.add(self)
+
     async def submit(self, session: AsyncSession) -> int:
         """
         Insert this table entry into the database and return the primary key value.
 
         Args:
             session: SQLAlchemy AsyncSession.
+
 
         Returns:
             int: The primary key value of the inserted record.

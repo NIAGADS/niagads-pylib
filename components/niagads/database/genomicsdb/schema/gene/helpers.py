@@ -27,3 +27,23 @@ def gene_fk_column(nullable: bool = False, index: bool = True) -> Mapped[int]:
     return mapped_column(
         Integer, ForeignKey("gene.gene.gene_id"), nullable=nullable, index=index
     )
+
+
+def protein_fk_column(nullable: bool = False, index: bool = True) -> Mapped[int]:
+    """
+    Create a mapped_column for a protein foreign key.
+
+    Args:
+        nullable (bool): Whether the column is nullable. Defaults to False.
+        index (bool): Whether to add an index. Defaults to True.
+
+    Returns:
+        Mapped[int]: SQLAlchemy mapped_column for protein foreign key to
+            protein.protein_id.
+
+    Example:
+        protein_id: Mapped[int] = protein_fk_column()
+    """
+    return mapped_column(
+        Integer, ForeignKey("gene.protein.protein_id"), nullable=nullable, index=index
+    )
