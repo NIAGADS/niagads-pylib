@@ -7,7 +7,6 @@ from enum import auto
 from typing import Any, Dict, Iterator, Optional, Union
 
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
-from niagads.common.models.types import Range
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.gene.structure import (
     ExonModel,
@@ -147,7 +146,7 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
         self.__ontology_term_ref = {}
         # External database ID for sequence ontology
         self.__so_external_database_id = None
-        self.__transcript_protein_ref: dict[str, list[str]] = {}
+        self.__transcript_protein_ref: dict[str, set[str]] = {}
 
     async def on_run_start(self, session):
         await super().on_run_start(session)
@@ -213,11 +212,9 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
                     if parent_id is not None and "transcript" in parent_id:
                         transcript_id = parent_id.split(":")[1]
                         if transcript_id in self.__transcript_protein_ref:
-                            self.__transcript_protein_ref[transcript_id].append(
-                                protein_id
-                            )
+                            self.__transcript_protein_ref[transcript_id].add(protein_id)
                         else:
-                            self.__transcript_protein_ref[transcript_id] = [protein_id]
+                            self.__transcript_protein_ref[transcript_id] = {protein_id}
 
                 if "exon_id" in entry["attributes"]:
                     entry_id = entry["attributes"].get("exon_id")
@@ -330,7 +327,7 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
             gene_name=gene_name,
             chromosome=str(span.chromosome),
             strand=str(span.strand),
-            span=Range(start=span.start, end=span.end),
+            span=span.range,
             gene_type_id=gene_type,
         )
 
@@ -350,7 +347,7 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
             gene_id=entry.parent_id,
             chromosome=str(span.chromosome),
             strand=str(span.strand),
-            span=Range(start=span.start, end=span.end),
+            span=span.range,
         )
 
         transcript_feature = TranscriptFeature(transcript=transcript)
@@ -372,7 +369,7 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
             rank=entry.attributes.get("rank"),
             chromosome=str(span.chromosome),
             strand=str(span.strand),
-            span=Range(start=span.start, end=span.end),
+            span=span.range,
         )
 
         return exon

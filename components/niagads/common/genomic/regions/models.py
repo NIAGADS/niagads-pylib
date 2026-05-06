@@ -24,6 +24,10 @@ class GenomicRegion(Range):
     strand: Optional[Strand] = Field(default=Strand.SENSE, title="Strand")
     inclusive_end: Optional[bool] = Field(default=True)
 
+    @property
+    def range(self):
+        return Range(start=self.start, end=self.end, inclusive_end=self.inclusive_end)
+
     @classmethod
     def from_region_id(cls, span: str, is_zero_based: bool = False):
         """

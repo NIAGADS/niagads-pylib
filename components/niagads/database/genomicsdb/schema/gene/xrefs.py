@@ -89,7 +89,7 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
         """
 
         if gene_identifier_type == GeneIdentifierType.ENSEMBL:
-            return GeneModel.retrieve_gene_pk_mapping(session)
+            return GeneModel.fetch_ensembl_to_pk_map(session)
 
         mapping = {}
         id_key = str(gene_identifier_type)

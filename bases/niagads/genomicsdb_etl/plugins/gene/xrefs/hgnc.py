@@ -124,7 +124,7 @@ class HGNCXRefLoader(AbstractBasePlugin):
 
             # going to have to pretty much match whole gene table, so cache it
             # to speed things up
-            self.__gene_pk_ref = GeneModel.retrieve_gene_pk_mapping(session)
+            self.__gene_pk_ref = GeneModel.fetch_ensembl_to_pk_map(session)
 
             self.logger.info(f"Cached {len(self.__gene_pk_ref)} gene_pk references.")
 

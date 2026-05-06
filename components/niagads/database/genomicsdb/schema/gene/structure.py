@@ -38,7 +38,7 @@ class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     gene_type_id: Mapped[int] = ontology_term_fk_column()  # TODO: map to ontology term?
 
     @classmethod
-    async def retrieve_gene_pk_mapping(cls, session: AsyncSession):
+    async def fetch_ensembl_to_pk_map(cls, session: AsyncSession):
         """Retrieve a mapping of Ensembl gene source IDs to primary key gene IDs.
 
         Args:
@@ -88,6 +88,24 @@ class ProteinModel(GeneTableBase, IdAliasMixin):
     transcript_id: Mapped[int] = mapped_column(
         ForeignKey("gene.transcript.transcript_id"), index=True, nullable=False
     )
+
+    @classmethod
+    async def fetch_ensembl_to_pk_map(cls, session: AsyncSession):
+        """Retrieve a mapping of Ensembl protein source IDs to primary key protein IDs.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session for database access.
+
+        Returns:
+            dict[str, int]: Mapping from Ensembl protein source_id to protein_id (primary key).
+
+        """
+        mapping = {}
+        stmt = select(ProteinModel.protein_id, ProteinModel.source_id)
+        records = (await session.execute(stmt)).mappings().all()
+        for r in records:
+            mapping[r["source_id"]] = r["protein_id"]
+        return mapping
 
 
 class ExonModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
