@@ -2,7 +2,10 @@ from enum import auto
 from typing import Optional
 
 from niagads.database.genomicsdb.schema.gene.base import GeneTableBase
-from niagads.database.genomicsdb.schema.gene.helpers import gene_fk_column
+from niagads.database.genomicsdb.schema.gene.helpers import (
+    gene_fk_column,
+    protein_fk_column,
+)
 from niagads.database.genomicsdb.schema.gene.structure import GeneModel
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
@@ -26,7 +29,7 @@ class GeneIdentifierType(CaseInsensitiveEnum):
     REFSEQ = "refseq_accession"
 
 
-class GeneXRefCategory(CaseInsensitiveEnum):
+class XRefCategory(CaseInsensitiveEnum):
     IDENTIFIER = auto()
     NOMENCLATURE = auto()
     LOCUS = auto()
@@ -42,14 +45,14 @@ class GeneXRefCategory(CaseInsensitiveEnum):
 class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
     __tablename__ = "xref"
     __table_args__ = (
-        enum_constraint("xref_category", GeneXRefCategory),
+        enum_constraint("xref_category", XRefCategory),
         GeneTableBase.__table_args__,
     )
     _stable_id = None
     xref_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     gene_id: Mapped[int] = gene_fk_column()
-    xref_category: Mapped[GeneXRefCategory] = enum_column(
-        GeneXRefCategory, index=True, nullable=False
+    xref_category: Mapped[XRefCategory] = enum_column(
+        XRefCategory, index=True, nullable=False
     )
     xref_label: Mapped[Optional[str]] = mapped_column(
         String(50), index=True, nullable=True
@@ -86,7 +89,7 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
         """
 
         if gene_identifier_type == GeneIdentifierType.ENSEMBL:
-            return GeneModel.retrieve_gene_pk_mapping(session)
+            return GeneModel.fetch_ensembl_to_pk_map(session)
 
         mapping = {}
         id_key = str(gene_identifier_type)
@@ -242,3 +245,23 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
                 allow_multiple=allow_multiple,
             )
             return record.gene_id
+
+
+class ProteinXRef(GeneTableBase, ExternalDatabaseMixin):
+    __tablename__ = "proteinxref"
+    __table_args__ = (
+        enum_constraint("xref_category", XRefCategory),
+        GeneTableBase.__table_args__,
+    )
+    _stable_id = None
+    protein_xref_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    protein_id: Mapped[int] = protein_fk_column()
+    xref_category: Mapped[XRefCategory] = enum_column(
+        XRefCategory, index=True, nullable=False
+    )
+    xref_label: Mapped[Optional[str]] = mapped_column(
+        String(50), index=True, nullable=True
+    )
+    xref_value: Mapped[Optional[str]] = mapped_column(
+        String(250), index=True, nullable=True
+    )

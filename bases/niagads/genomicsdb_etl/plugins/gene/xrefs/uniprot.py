@@ -1,8 +1,8 @@
 """
 UniProt KB ID XRef Loader Plugin
 
-Loads gene cross-references from UniProt KB ID mapping files into the gene.xref
-table, filtering for Ensembl gene IDs and mapping them to genes
+Loads gene and protein cross-references from UniProt KB ID mapping files into Gene XRef
+tables, filtering for Ensembl gene/protein IDs and mapping them to genes/proteins
 by Ensembl stable ID.
 
 Input file format:
@@ -11,19 +11,16 @@ Input file format:
     R4GNG1         Ensembl_TRS ENST00000467678.5
 """
 
+from enum import Enum, auto
 import re
 from typing import Any, Dict, Iterator, Optional
 
-from niagads.database.genomicsdb.schema.gene.structure import GeneModel
-from niagads.utils.sys import read_open_ctx
-from sqlalchemy import select
-from sqlalchemy.exc import NoResultFound
 from niagads.common.types import ETLOperation
-from niagads.database.genomicsdb.schema.gene.documents import Gene
+from niagads.database.genomicsdb.schema.gene.structure import GeneModel, ProteinModel
 from niagads.database.genomicsdb.schema.gene.xrefs import (
-    GeneIdentifierType,
     GeneXRef,
-    GeneXRefCategory,
+    ProteinXRef,
+    XRefCategory,
 )
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.etl.plugins.base import AbstractBasePlugin
@@ -38,21 +35,27 @@ from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
+from niagads.utils.sys import read_open_ctx
 from pydantic import BaseModel, Field
 
-
 # Pattern to strip version suffix from Ensembl Gene IDs
-ENSEMBL_VERSION_PATTERN = re.compile(r"^(ENSG*\d+)\.\d+$")
+ENSEMBL_ID_VERSION_PATTERN = re.compile(r"^(ENS[GP]\d+)\.\d+$")
+
+
+class XRefFeatureType(Enum):
+    GENE = "Ensembl"
+    PROTEIN = "Ensembl_PRO"
 
 
 class UniProtXRefEntry(BaseModel):
     """Parsed UniProt entry with mapped Ensembl ID."""
 
+    feature_type: XRefFeatureType
     uniprot_id: str
     ensembl_id: str
 
     def __str__(self):
-        return f"{self.uniprot_id}|{self.ensembl_id}"
+        return f"{self.feature_type.name}:{self.uniprot_id}|{self.ensembl_id}"
 
 
 class UniProtKBIDLoaderParams(
@@ -71,10 +74,10 @@ class UniProtKBIDLoaderParams(
 metadata = PluginMetadata(
     version="1.0",
     description=(
-        "ETL Plugin to load gene cross-references from UniProt KB ID (full) mapping file "
+        "ETL Plugin to load gene and protein cross-references from UniProt KB ID (full) mapping file "
         f"into {GeneXRef.table_name()}."
     ),
-    affected_tables=[GeneXRef],
+    affected_tables=[GeneXRef, ProteinXRef],
     load_strategy=ETLLoadStrategy.CHUNKED,
     operation=ETLOperation.INSERT,
     is_large_dataset=False,
@@ -105,6 +108,8 @@ class UniProtKBIDLoader(AbstractBasePlugin):
         super().__init__(params, name, log_path, debug, verbose)
         self.__external_database: ExternalDatabase = None
         self.__gene_pk_ref: Dict[str, int] = {}
+        self.__protein_pk_ref: Dict[str, int] = {}
+
         # once you strip the .extension on the IDS, lots of duplicate mappings
         self.__seen: Dict[str, str] = {}
         self.__unmapped_genes: set[str] = set()
@@ -121,7 +126,10 @@ class UniProtKBIDLoader(AbstractBasePlugin):
 
             # going to have to pretty much match whole gene table, so cache it
             # to speed things up
-            self.__gene_pk_ref = GeneModel.retrieve_gene_pk_mapping(session)
+            self.__gene_pk_ref = GeneModel.fetch_ensembl_to_pk_map(session)
+            self.logger.info(f"Cached {len(self.__gene_pk_ref)} gene_pk references.")
+
+            self.__protein_pk_ref = ProteinModel.fetch_ensembl_to_pk_map(session)
             self.logger.info(f"Cached {len(self.__gene_pk_ref)} gene_pk references.")
 
     @staticmethod
@@ -134,7 +142,7 @@ class UniProtKBIDLoader(AbstractBasePlugin):
             ENST00000467678.5 -> ENST00000467678
             ENSG00000022976 -> ENSG00000022976 (already stripped)
         """
-        match = ENSEMBL_VERSION_PATTERN.match(ensembl_id)
+        match = ENSEMBL_ID_VERSION_PATTERN.match(ensembl_id)
         if match:
             return match.group(1)
         return ensembl_id
@@ -155,8 +163,9 @@ class UniProtKBIDLoader(AbstractBasePlugin):
             for line_number, line in enumerate(fh, start=1):
                 uniprot_id, id_type, mapped_id = line.strip().split("\t")
 
-                # Filter for Ensembl IDs only
-                if id_type != "Ensembl":
+                try:
+                    feature_type = XRefFeatureType(id_type)
+                except:
                     filtered_count += 1
                     continue
 
@@ -164,6 +173,7 @@ class UniProtKBIDLoader(AbstractBasePlugin):
                 ensembl_id = self._strip_version_suffix(mapped_id)
 
                 xref = UniProtXRefEntry(
+                    feature_type=feature_type,
                     uniprot_id=uniprot_id,
                     ensembl_id=ensembl_id,
                 )
@@ -199,33 +209,11 @@ class UniProtKBIDLoader(AbstractBasePlugin):
         """
         return entry
 
-    async def __lookup_gene(self, session, source_id: str) -> Optional[int]:
-        """
-        Lookup or fetch a gene by its Ensembl gene ID (source_id).
-        Uses a local cache to avoid repeated database queries.
-        """
-        try:
-            gene_pk = self.__gene_pk_ref[source_id]
-        except KeyError:
-            try:
-                gene_pk = await Gene.resolve_identifier(
-                    session,
-                    id=source_id,
-                    gene_identifier_type=GeneIdentifierType.ENSEMBL,
-                )
-            except NoResultFound:
-                gene_pk = None
-            self.__gene_pk_ref[source_id] = gene_pk
-        return gene_pk
-
-    async def load(self, session, mappings: list[UniProtXRefEntry]) -> ResumeCheckpoint:
-        """
-        Load a UniProt xref entry into the gene.xref table.
-        """
+    def __build_gene_xrefs(self, mappings: list[UniProtXRefEntry]) -> list[GeneXRef]:
         xrefs = []
         for entry in mappings:
-            # Lookup the gene using Ensembl ID
-            # gene_pk = await self.__lookup_gene(session, entry.ensembl_id)
+            if entry.feature_type != XRefFeatureType.GENE:
+                continue
             try:
                 gene_pk = self.__gene_pk_ref[entry.ensembl_id]
             except:
@@ -236,7 +224,7 @@ class UniProtKBIDLoader(AbstractBasePlugin):
             xrefs.append(
                 GeneXRef(
                     gene_id=gene_pk,
-                    xref_category=GeneXRefCategory.IDENTIFIER,
+                    xref_category=XRefCategory.IDENTIFIER,
                     xref_label="uniprot_id",
                     xref_value=entry.uniprot_id,
                     source_id=entry.uniprot_id,
@@ -244,8 +232,43 @@ class UniProtKBIDLoader(AbstractBasePlugin):
                     run_id=self.run_id,
                 )
             )
+        return xrefs
 
-        await GeneXRef.submit_many(session, xrefs)
+    def __build_protein_xrefs(
+        self, mappings: list[UniProtXRefEntry]
+    ) -> list[ProteinXRef]:
+        xrefs = []
+        for entry in mappings:
+            if entry.feature_type != XRefFeatureType.PROTEIN:
+                continue
+            try:
+                protein_pk = self.__protein_pk_ref[entry.ensembl_id]
+            except:
+                self.inc_tx_count(ProteinXRef, ETLOperation.SKIP)
+                continue
+
+            xrefs.append(
+                ProteinXRef(
+                    protein_id=protein_pk,
+                    xref_category=XRefCategory.IDENTIFIER,
+                    xref_label="uniprot_id",
+                    xref_value=entry.uniprot_id,
+                    source_id=entry.uniprot_id,
+                    external_database_id=self.external_database_id,
+                    run_id=self.run_id,
+                )
+            )
+        return xrefs
+
+    async def load(self, session, mappings: list[UniProtXRefEntry]) -> ResumeCheckpoint:
+        """
+        Load a UniProt xref entry into the gene.xref table.
+        """
+        gene_xrefs = self.__build_gene_xrefs(mappings)
+        protein_xrefs = self.__build_protein_xrefs(mappings)
+
+        await GeneXRef.submit_many(session, gene_xrefs)
+        await ProteinXRef.submit_many(session, protein_xrefs)
         return self.create_checkpoint(record=mappings[-1])
 
     async def on_run_complete(self):

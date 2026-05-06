@@ -54,6 +54,7 @@ class RegularExpressions(StrEnum):
         r"^ENST\d+$"  # Ensembl human transcript ID (e.g., ENST00000380152)
     )
     ENSEMBL_EXON_ID = r"^ENSE\d+$"  # Ensembl human exon ID (e.g., ENSE00003606199)
+    ENSEMBL_PROTEIN_ID = r"^ENSP\d+$"  # Ensembl human exon ID (e.g., ENSP00003606199)
 
     CYTOGENIC_LOCATION = (
         r"^(chr)?(\d{1,2}|X|Y|M|MT)(p|q)(\d{1,2}(\.\d+)?)(-(p|q)?\d{1,2}(\.\d+)?)?$"

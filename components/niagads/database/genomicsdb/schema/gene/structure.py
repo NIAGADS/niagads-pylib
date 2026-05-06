@@ -38,7 +38,7 @@ class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     gene_type_id: Mapped[int] = ontology_term_fk_column()  # TODO: map to ontology term?
 
     @classmethod
-    async def retrieve_gene_pk_mapping(cls, session: AsyncSession):
+    async def fetch_ensembl_to_pk_map(cls, session: AsyncSession):
         """Retrieve a mapping of Ensembl gene source IDs to primary key gene IDs.
 
         Args:
@@ -73,6 +73,39 @@ class TranscriptModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
     name: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
     gene_id: Mapped[int] = gene_fk_column()
     is_canonical: Mapped[bool] = mapped_column(index=True, nullable=True)
+
+
+class ProteinModel(GeneTableBase, IdAliasMixin):
+    __tablename__ = "protein"
+    __table_args__ = (
+        CheckConstraint(
+            f"source_id ~ '{RegularExpressions.ENSEMBL_PROTEIN_ID}'",
+            name="protein_source_id_format_check",
+        ),
+        GeneTableBase.__table_args__,
+    )
+    protein_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    transcript_id: Mapped[int] = mapped_column(
+        ForeignKey("gene.transcript.transcript_id"), index=True, nullable=False
+    )
+
+    @classmethod
+    async def fetch_ensembl_to_pk_map(cls, session: AsyncSession):
+        """Retrieve a mapping of Ensembl protein source IDs to primary key protein IDs.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session for database access.
+
+        Returns:
+            dict[str, int]: Mapping from Ensembl protein source_id to protein_id (primary key).
+
+        """
+        mapping = {}
+        stmt = select(ProteinModel.protein_id, ProteinModel.source_id)
+        records = (await session.execute(stmt)).mappings().all()
+        for r in records:
+            mapping[r["source_id"]] = r["protein_id"]
+        return mapping
 
 
 class ExonModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
