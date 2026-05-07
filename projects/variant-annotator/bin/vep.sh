@@ -1,9 +1,8 @@
 #!/bin/bash
+ 
+#   set -x
 
-SV_CADD_CONFIG="sv=/data/cadd/gnomAD_SV_release_v2.1.tsv.gz"
-DEFAULT_CADD_CONFIG="snv=/data/cadd/whole_genome_SNVs.tsv.gz,indels=/data/cadd/gnomad.genomes.r4.0.indel.tsv.gz,${SV_CADD_CONFIG}"
-
-IS_SV=0
+FORK=2
 
 # Parse named arguments: --file and --is-sv
 while [[ $# -gt 0 ]]; do
@@ -14,9 +13,11 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
-    --is-sv)
-      IS_SV=1
+    *)
+    --fork)
+      FORK="$2"
       shift # past argument
+      shift # past value
       ;;
     *)
       echo "Unknown argument: $1" >&2
@@ -31,82 +32,46 @@ if [[ -z "$FILE" ]]; then
 fi
 
 WORKING_DIR=$(dirname "$FILE")
-mkdir -p $WORKING_DIR/vep_output
+FILE_NAME=$(basename "$FILE")
 
-INPUT_FILE_BASENAME=$(basename "$FILE")
-INPUT_FILE=/working/${INPUT_FILE_BASENAME}
-
-OUTPUT_DIR=/working/vep_output
-OUTPUT_FILE_PREFIX=${OUTPUT_DIR}/${INPUT_FILE_BASENAME}
-OUTPUT_FILE=${OUTPUT_FILE_PREFIX}.vep.json.gz
-ERROR_FILE=${OUTPUT_FILE_PREFIX}.vep.errors
-LOG_FILE=${OUTPUT_FILE_PREFIX}.vep.log
-
-FASTA_FILE=/data/homo_sapiens/115_GRCh38/Homo_sapiens.GRCh38.dna.toplevel.fa.gz
-
-# Set cadd_config based on IS_SV
-if [[ "$IS_SV" -eq 1 ]]; then
-   CADD_CONFIG=$SV_CADD_CONFIG
-else
-   CADD_CONFIG=$DEFAULT_CADD_CONFIG
-fi
-
+INPUT_FILE=/working/${FILE_NAME}
+OUTPUT_FILE=${INPUT_FILE}.vep.json.gz
+ERROR_FILE=${INPUT_FILE}.vep.errors
+SKIP_FILE=${INPUT_FILE}.vep.skipped
+LOG_FILE=${FILE}.vep.log
 
 
 echo "WORKING_DIR=$WORKING_DIR"
-echo "INPUT_FILE_BASE_NAME=$INPUT_FILE_BASENAME"
 echo "INPUT_FILE=$INPUT_FILE"
 echo "OUTPUT_FILE=$OUTPUT_FILE"
-echo "CADD_CONFIG=$CADD_CONFIG"
 
-#   
+
 if 
 
 docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/.env --file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/docker-compose.yaml \
-    run --rm -v ${WORKING_DIR}:/working \
+    run --rm -T -v ${WORKING_DIR}:/working vep \
   vep \
   --input_file="${INPUT_FILE}" \
   --output_file="${OUTPUT_FILE}" \
-  --skipped_variants_file="${OUTPUT_FILE_PREFIX}.skipped" \
+  --skipped_variants_file="${SKIP_FILE}" \
+  --warning_file="${ERROR_FILE}" \
   --no_check_variants_order \
   --format vcf \
   --compress_output gzip \
+  --force_overwrite \
   --cache \
-  --fork 4 \
-  --offline \
+  --verbose \
+  --fork="${FORK}" \
   --no_stats \
   --json \
-  --hgvs \
-  --fasta="${FASTA_FILE}" \
-  --ccds \
-  --symbol \
-  --numbers \
-  --domains \
-  --regulatory \
-  --canonical \
-  --protein \
-  --biotype \
-  --tsl \
-  --pubmed \
-  --uniprot \
-  --variant_class \
-  --exclude_predicted \
-  --gencode_basic \
-  --af \
-  --af_1kg \
-  --af_gnomadg \
-  --af_gnomade \
-  --clin_sig_allele 1 \
-  --nearest gene \
-  --gene_phenotype \
+  --offline \
+  --everything \
   --plugin TSSDistance \
   --plugin Enformer,file=/data/enformer/enformer_grch38.vcf.gz \
   --plugin NMD \
   --plugin LoFtool,/data/LoFtool_scores.txt \
-  --plugin CADD,"${CADD_CONFIG}" \
-  --force_overwrite \
-  --verbose \
-  --warning_file="${ERROR_FILE}" \
+  --plugin CADD,snv=/data/cadd/whole_genome_SNVs.tsv.gz,indels=/data/cadd/gnomad.genomes.r4.0.indel.tsv.gz >  /dev/null 2> "${LOG_FILE}"
+
 
 then
     echo "SUCCESS"

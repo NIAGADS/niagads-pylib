@@ -96,21 +96,33 @@ The `docker-compose.yaml` defines the following services:
   
     > `-v` mounts your local data directory `LOCAL_DATA_DIR` to :/data in the docker container
 
+    - to run the vep container interactively (for debugging):
+
+    ```bash
+    docker compose run --rm --it --entrypoint sh vep
+    ```
+
     **GenomicsDB VEP Analysis**
 
     - ensure that the following environmental variables are set:
         `$DATA_DIR`: data directory on host
         `PROJECT_DIR`: full path to the parent directory in which the `niagads-pylib` project exists
-    - install and activate the `variant-annotator` poetry environment to put shell scripts in the path
+
+    - single file
 
     ```bash
-    cd $PROJECT_DIR/niagads-pylib/projects/variant-annotator
-    poetry install
-    source .venv/bin/activate
+    source $PROJECT_DIR/niagads-pylib/projects/variant-annotator/bin/vep.sh --file <file_name> 
     ```
 
-    - run in `install` mode as described above
-    -
+    > defaults to use `--fork 4`.  To set a different number of forks, add the `--fork N` option to the command above
+
+    - multiple files in a single directory
+
+    ```bash
+    source $PROJECT_DIR/niagads-pylib/projects/variant-annotator/bin/run_vep_parallel.sh <directory> <max_parallel> <fork>
+    ```
+
+    > `<max_parallel>` and `<fork>` are optional, defaulting to 4, and 3 respectively.  Max parallel is the number of files (jobs) to process in parallel; fork is the VEP fork parameter.
   
 ### System Clean-up and Monitoring
 
