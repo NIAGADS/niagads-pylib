@@ -166,6 +166,20 @@ To run the script in the background and monitor `seqrepo` and `uta` containers w
 nohup ./monitor_idle_containers.sh --days 3 --check-interval 7200 --containers "seqrepo,uta" > monitor_idle.log 2>&1 &
 ```
 
+## Useful `bash` commands
+
+- extract all significant LD from gzipped LD panel
+
+```bash
+gunzip -c yourfile.gz | awk '$9 >= 0.2' | gzip > yourfile-sig.gz
+```
+
+- extract the vcf (non sample) fields from the SV files
+
+```bash
+zcat yourfile.vcf.gz | cut -f1-9 | bgzip > yourfile.1-9.vcf.gz
+```
+
 ## References
 
 - [GA4GH VRS PyPI](https://pypi.org/project/ga4gh.vrs/0.8.4/)
