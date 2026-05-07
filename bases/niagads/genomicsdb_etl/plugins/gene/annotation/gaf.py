@@ -258,7 +258,7 @@ class GAFLoader(AbstractBasePlugin):
             uniprot_id = entry.db_object_id
             key = f"{uniprot_id}|{entry.go_id}"
 
-            evidence = AnnotationEvidenceDescriptor(
+            evidence = Evidence(
                 evidence_code=entry.evidence_code,
                 qualifiers=self.__build_qualifiers(entry),
             )
