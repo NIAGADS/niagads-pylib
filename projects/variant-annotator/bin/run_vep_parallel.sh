@@ -3,14 +3,14 @@
 # Run VEP annotation on all VCF files in a directory in parallel
 # Usage: ./run_vep_parallel.sh <directory> [max_parallel_jobs]
 
-set -e
+# set -e
 
 SCRIPT_DIR=$PROJECT_DIR/niagads-pylib/projects/variant-annotator/bin
 VEP_SCRIPT="${SCRIPT_DIR}/vep.sh"
 
 # Parse arguments
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <vcf_directory> [max_parallel_jobs]" >&2
+  echo "Usage: $0 <vcf_directory> [max_parallel_jobs] [number_VEP_forks]" >&2
   echo "  <vcf_directory>: Directory containing VCF files" >&2
   echo "  [max_parallel_jobs]: Maximum number of parallel jobs (default: 4)" >&2
   exit 1
@@ -49,6 +49,7 @@ fi
 
 echo "Found ${#VALID_FILES[@]} VCF file(s) to process"
 echo "Processing with max $MAX_PARALLEL parallel jobs"
+echo "And allowing with $FORK VEP Forks"
 echo ""
 
 # Process files in parallel using GNU Parallel or xargs
@@ -65,6 +66,7 @@ run_single_vep() {
 }
 
 export VEP_SCRIPT
+export FORK
 export -f run_single_vep
 
 # Use GNU Parallel if available, otherwise fall back to xargs
