@@ -13,7 +13,6 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
-    *)
     --fork)
       FORK="$2"
       shift # past argument
@@ -35,7 +34,7 @@ WORKING_DIR=$(dirname "$FILE")
 FILE_NAME=$(basename "$FILE")
 
 INPUT_FILE=/working/${FILE_NAME}
-OUTPUT_FILE=${INPUT_FILE}.vep.json.gz
+OUTPUT_FILE=${INPUT_FILE}.vep.json
 ERROR_FILE=${INPUT_FILE}.vep.errors
 SKIP_FILE=${INPUT_FILE}.vep.skipped
 LOG_FILE=${FILE}.vep.log
@@ -57,7 +56,6 @@ docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/
   --warning_file="${ERROR_FILE}" \
   --no_check_variants_order \
   --format vcf \
-  --compress_output gzip \
   --force_overwrite \
   --cache \
   --verbose \
@@ -66,6 +64,7 @@ docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/
   --json \
   --offline \
   --everything \
+  --ga4gh_vrs \
   --plugin TSSDistance \
   --plugin Enformer,file=/data/enformer/enformer_grch38.vcf.gz \
   --plugin NMD \
