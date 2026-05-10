@@ -9,7 +9,7 @@ from ga4gh.vrs.extras.translator import AlleleTranslator
 from ga4gh.vrs.models import Allele, SequenceLocation, SequenceReference
 from ga4gh.vrs.normalize import normalize as vrs_normalize
 from niagads.common.core import ComponentBaseMixin
-from niagads.common.genomic.regions.models import GenomicRegion
+from niagads.common.genomic.regions.models import ZeroBasedGenomicRegion
 from niagads.exceptions.core import ValidationError
 from niagads.ga4gh.models import GA4GHVariantRecord
 from niagads.ga4gh.types import VariantNomenclature
@@ -73,11 +73,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             raise ValueError(f"Invalid structural variant: '{variant}' ")
 
         location: SequenceLocation = self._vrs_service.create_vrs_sequence_location(
-            GenomicRegion(
-                chromosome=variant.location.chromosome,
-                start=variant.location.start,
-                end=variant.location.end,
-            ),
+            variant.genomic_region.to_zero_based_region(),
             compute_id=False,
             normalize=False,
         )
@@ -87,7 +83,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
 
         primary_key = (
             f"{variant.variant_class}_"
-            f"{variant.location.chromosome.upper()}_"
+            f"{variant.chromosome.upper()}_"
             f"{hashed_location_id[:8].upper()}"
         )
 
@@ -153,13 +149,16 @@ class GA4GHVRSService(ComponentBaseMixin):
         )
 
     def validate_sequence(
-        self, location: GenomicRegion, sequence: str, fail_on_error: bool = True
+        self,
+        location: ZeroBasedGenomicRegion,
+        sequence: str,
+        fail_on_error: bool = True,
     ):
         """
         Validate that a given sequence matches the reference genome at the specified location.
 
         Args:
-            location (GenomicRegion): Genomic region with chromosome, start, and end coordinates.
+            location (ZeroBasedGenomicRegion): Genomic region with chromosome, start, and end coordinates.
             sequence (str): Sequence to validate against the reference genome.
             fail_on_error (bool, optional): If True, raise ValidationError on mismatch.
                 If False, log a warning instead. Default is True.
@@ -169,7 +168,7 @@ class GA4GHVRSService(ComponentBaseMixin):
                 and fail_on_error is True.
         """
         self.get_refget_accession(location.chromosome)  # verify chromosome
-        start = location.start - 1  # genomic region is 1-based
+        start = location.start
         try:
             self._seqrepo_data_proxy.validate_ref_seq(
                 f"{self._assembly}:{location.chromosome}",
@@ -392,30 +391,32 @@ class GA4GHVRSService(ComponentBaseMixin):
             )
         return refget_accession
 
-    def get_sequence(self, location: Union[GenomicRegion, SequenceLocation]):
+    def get_sequence(self, location: Union[ZeroBasedGenomicRegion, SequenceLocation]):
         """
         Retrieve the reference sequence for a specified genomic region.
 
         Args:
-            region (GenomicRegion): Genomic region with chromosome, start, and end coordinates.
+            region (ZeroBasedGenomicRegion): Genomic region with chromosome, start, and end coordinates.
 
         Returns:
             str: Reference sequence string for the region.
         """
-        if isinstance(location, GenomicRegion):
+        is_genomic_region: bool = isinstance(location, ZeroBasedGenomicRegion)
+
+        if is_genomic_region:
+            if location.inclusive_end:
+                raise ValueError(
+                    "Must transform to zero-based coordinates before using GA4GH annotators"
+                )
             refget_accession = self.get_refget_accession(location.chromosome)
+
         else:
             refget_accession = location.sequenceReference.refgetAccession
 
         if not refget_accession.startswith("ga4gh"):
             refget_accession = f"ga4gh:{refget_accession}"
 
-        # 1 to 0-base conversion for genomicregion
-        start = (
-            location.start - 1
-            if isinstance(location, GenomicRegion)
-            else location.start
-        )
+        start = location.start
         return self._seqrepo_data_proxy.get_sequence(
             refget_accession, start=start, end=location.end
         )
@@ -440,7 +441,7 @@ class GA4GHVRSService(ComponentBaseMixin):
 
     def create_vrs_sequence_location(
         self,
-        region: GenomicRegion,
+        region: ZeroBasedGenomicRegion,
         normalize: bool = True,
         compute_id: bool = True,
     ):
@@ -456,7 +457,7 @@ class GA4GHVRSService(ComponentBaseMixin):
         normalize the location and compute its GA4GH identifier.
 
         Args:
-            region (GenomicRegion): Genomic region with chromosome, start, and end coordinates.
+            region (ZeroBasedGenomicRegion): Genomic region with chromosome, start, and end coordinates.
             normalize (bool, optional): If True, normalize the SequenceLocation. Default is True.
             compute_id (bool, optional): If True, compute and assign a GA4GH identifier.
                 Default is True.
@@ -466,6 +467,11 @@ class GA4GHVRSService(ComponentBaseMixin):
                 (if normalize=True),
             otherwise the raw SequenceLocation object.
         """
+        if region.inclusive_end:
+            raise ValueError(
+                "Must transform to zero-based coordinates before using GA4GH annotators"
+            )
+
         refget_accession = self.get_refget_accession(region.chromosome)
 
         location = SequenceLocation(
