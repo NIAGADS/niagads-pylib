@@ -3,6 +3,7 @@
 #   set -x
 
 FORK=2
+BUFFER_SIZE=10000
 
 
 # Parse named arguments: --file and --is-sv
@@ -16,6 +17,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     --fork)
       FORK="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    --buffer-size)
+      BUFFER_SIZE="$2"
       shift # past argument
       shift # past value
       ;;
@@ -60,14 +66,15 @@ docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/
   --json \
   --offline \
   --everything \
-  --buffer_size 25000 \
+  --buffer_size="${BUFFER_SIZE}" \
   --plugin TSSDistance \
   --plugin Enformer,file=/data/enformer/enformer_grch38.vcf.gz \
   --plugin NMD \
   --plugin LoFtool,/data/LoFtool_scores.txt \
-  --plugin CADD,snv=/data/cadd/whole_genome_SNVs.tsv.gz,indels=/data/cadd/gnomad.genomes.r4.0.indel.tsv.gz  2>&1 > "${LOG_FILE}"
+  --plugin CADD,snv=/data/cadd/whole_genome_SNVs.tsv.gz,indels=/data/cadd/gnomad.genomes.r4.0.indel.tsv.gz \
+  > "${LOG_FILE}" 2>&1
 then
-    echo "SUCCESS"
+    echo "SUCCESS VEP - $FILE"
 else
-    echo "FAIL"
+    echo "FAIL VEP - $FILE"
 fi

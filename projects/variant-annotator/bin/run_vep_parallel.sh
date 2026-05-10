@@ -10,15 +10,40 @@ VEP_SCRIPT="${SCRIPT_DIR}/vep.sh"
 
 # Parse arguments
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <vcf_directory> [max_parallel_jobs] [number_VEP_forks]" >&2
+  echo "Usage: $0 <vcf_directory> [--max-parallel N] [--fork N] [--buffer-size N]" >&2
   echo "  <vcf_directory>: Directory containing VCF files" >&2
-  echo "  [max_parallel_jobs]: Maximum number of parallel jobs (default: 4)" >&2
+  echo "  [--max-parallel N]: Maximum number of parallel jobs (default: 4)" >&2
+  echo "  [--fork N]: Number of VEP forks (default: 3)" >&2
+  echo "  [--buffer-size N]: VEP buffer size (default: 10000)" >&2
   exit 1
 fi
 
 VCF_DIR="$1"
-MAX_PARALLEL="${2:-4}"
-FORK="${3:-3}"
+MAX_PARALLEL=4
+FORK=3
+BUFFER_SIZE=10000
+
+shift
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --max-parallel)
+      MAX_PARALLEL="$2"
+      shift 2
+      ;;
+    --fork)
+      FORK="$2"
+      shift 2
+      ;;
+    --buffer-size)
+      BUFFER_SIZE="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
 
 if [[ ! -d "$VCF_DIR" ]]; then
   echo "Error: Directory '$VCF_DIR' does not exist" >&2
@@ -47,6 +72,9 @@ if [[ ${#VALID_FILES[@]} -eq 0 ]]; then
   exit 1
 fi
 
+# Sort files by size (largest first)
+mapfile -t VALID_FILES < <(printf '%s\n' "${VALID_FILES[@]}" | xargs ls -S)
+
 echo "Found ${#VALID_FILES[@]} VCF file(s) to process"
 echo "Processing with max $MAX_PARALLEL parallel jobs"
 echo "And allowing with $FORK VEP Forks"
@@ -57,7 +85,7 @@ run_single_vep() {
   local vcf_file="$1"
   local basename="$(basename "$vcf_file")"
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] Starting VEP for $basename"
-  if "$VEP_SCRIPT" --file "$vcf_file" --fork "$FORK"; then
+  if "$VEP_SCRIPT" --file "$vcf_file" --fork "$FORK" --buffer-size "$BUFFER_SIZE"; then
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] Completed VEP for $basename"
   else
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] FAILED VEP for $basename" >&2
@@ -67,6 +95,7 @@ run_single_vep() {
 
 export VEP_SCRIPT
 export FORK
+export BUFFER_SIZE
 export -f run_single_vep
 
 # Use GNU Parallel if available, otherwise fall back to xargs
