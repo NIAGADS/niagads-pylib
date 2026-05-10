@@ -31,8 +31,8 @@ class RegularExpressions(StrEnum):
 
     # variant identifiers / nomenclatures
     POSITIONAL_VARIANT_ID = r"^.+:\d+:[ACGT]+:[ACGT]+$"
-    REFSNP = r"^rs\d+$"
-    STRUCTUAL_VARIANT = (
+    REF_SNP_ID = r"^rs\d+$"
+    STRUCTUAL_VARIANT_ID = (
         r"^(DEL|INS|DUP|INV|CNV|TRA)_CHR(\d{1,2}|[XYM]|MT)_([A-Z]|\d){8}$"
     )
     SPDI = r"^[^:]+:\d+:[ACGTNacgtn-]+:[ACGTNacgtn-]+$"

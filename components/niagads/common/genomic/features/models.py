@@ -88,11 +88,11 @@ class GenomicFeature(BaseModel):
         pattern = RegularExpressions.POSITIONAL_VARIANT_ID
 
         if matches(pattern, id) == False:
-            pattern = RegularExpressions.REFSNP
+            pattern = RegularExpressions.REF_SNP_ID
             if matches(pattern, id.lower()):
                 return id.lower()
             else:
-                pattern = RegularExpressions.STRUCTUAL_VARIANT
+                pattern = RegularExpressions.STRUCTUAL_VARIANT_ID
                 if matches(pattern, id.upper()):
                     return id.upper()
                 else:

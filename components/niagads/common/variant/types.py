@@ -1,7 +1,28 @@
 from enum import auto
 
+from niagads.common.variant.models.record import VariantIdentifier
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.list import qw
+
+
+class LDPartner(VariantIdentifier):
+    """Represents a variant in linkage disequilibrium (LD) with another variant.
+
+    Inherits from VariantIdentifier:
+        ref_snp_id (Optional[str]): Reference SNP ID (e.g., rsID).
+        positional_id (str): Positional variant identifier.
+
+    Additional LD attributes:
+        r_squared (float): Squared correlation coefficient (r²) between variants.
+        r (float): Correlation coefficient between variants.
+        d (float): D statistic for LD.
+        d_prime (float): D' statistic for LD.
+    """
+
+    r_squared: float
+    r: float
+    d: float
+    d_prime: float
 
 
 class VariantClass(CaseInsensitiveEnum):

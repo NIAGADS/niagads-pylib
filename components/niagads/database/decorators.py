@@ -1,7 +1,11 @@
 from datetime import datetime
+import gzip
+import json
+from typing import Any
 
 from dateutil import parser
 from niagads.common.models.types import Range
+from sqlalchemy import LargeBinary
 from sqlalchemy.dialects.postgresql import INT4RANGE
 from sqlalchemy.types import DateTime, TypeDecorator
 from asyncpg import Range as AsyncPGRange
@@ -71,3 +75,22 @@ class AutoDateTime(TypeDecorator):
             except (ValueError, TypeError) as e:
                 raise ValueError(f"Could not parse datetime string: {value}") from e
         raise TypeError(f"Expected datetime or str, got {type(value)}")
+
+
+class CompressedJson(TypeDecorator):
+    impl = LargeBinary
+    cache_ok = True
+
+    def process_bind_param(self, value: Any, dialect) -> bytes | None:
+        if value is None:
+            return None
+
+        json_bytes = json.dumps(value, separators=(",", ":")).encode("utf-8")
+        return gzip.compress(json_bytes)
+
+    def process_result_value(self, value: bytes | None, dialect) -> Any:
+        if value is None:
+            return None
+
+        json_bytes = gzip.decompress(value)
+        return json.loads(json_bytes.decode("utf-8"))

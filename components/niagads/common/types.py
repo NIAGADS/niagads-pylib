@@ -9,7 +9,7 @@ T_PubMedID = Annotated[str, Field(pattern=RegularExpressions.PUBMED_ID)]
 T_DOI = Annotated[str, Field(pattern=RegularExpressions.DOI)]
 T_Gene = Annotated[str, Field(pattern=RegularExpressions.GENE)]
 T_VariantID = Annotated[str, Field(pattern=RegularExpressions.POSITIONAL_VARIANT_ID)]
-T_RefSNP = Annotated[str, Field(pattern=RegularExpressions.REFSNP)]
+T_RefSNP = Annotated[str, Field(pattern=RegularExpressions.REF_SNP_ID)]
 
 PrimitiveType = Union[str, int, float, bool, None]
 
