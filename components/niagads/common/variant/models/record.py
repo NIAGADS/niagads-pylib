@@ -2,34 +2,41 @@
 
 from typing import Optional
 
-from niagads.common.genomic.regions.models import GenomicRegion
+from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.models.base import CustomBaseModel
+from niagads.common.models.types import Range
 from niagads.common.variant.types import VariantClass
 from niagads.genome_reference.human import HumanGenome
 from niagads.utils.regular_expressions import RegularExpressions
 from pydantic import Field, model_validator
 
-
 # TODO: add ga4gh to variant identifier (optional? maybe)
 
 
 class VariantIdentifier(CustomBaseModel):
-    ref_snp_id: Optional[str] = Field(default=None, pattern=RegularExpressions.REFSNP)
-    positional_id: str = Field(pattern=RegularExpressions.POSITIONAL_VARIANT_ID)
+    ref_snp_id: Optional[str] = Field(
+        default=None, pattern=RegularExpressions.REF_SNP_ID
+    )
+    id: str = Field(
+        pattern=RegularExpressions.POSITIONAL_VARIANT_ID
+        + "|"
+        + RegularExpressions.STRUCTUAL_VARIANT_ID,
+        description="stable NIAGADS variant ID",
+    )
 
 
 class VariantRecord(VariantIdentifier):
-    location: GenomicRegion
+    chromosome: HumanGenome
+    position: int
+    length: Optional[int] = None
     ref: str
     alt: str
     variant_class: VariantClass = Field(default=VariantClass.SNV)
 
+    # FIXME: remove?
     normalized_positional_id: Optional[str] = Field(
         default=None, pattern=RegularExpressions.POSITIONAL_VARIANT_ID
     )
-
-    # positional ID or SV/long INDEL ID
-    id: str = Field(title="Variant ID", description="stable NIAGADS variant ID")
 
     def __str__(self):
         if self.id is not None:
@@ -47,6 +54,18 @@ class VariantRecord(VariantIdentifier):
     def resolve_length(self):
         return self._resolve_length()
 
+    @property
+    def span(self):
+        return Range(
+            start=self.position, end=self.position + self.length - 1, inclusive_end=1
+        )
+
+    @property
+    def genomic_region(self):
+        return OneBasedGenomicRegion(
+            **self.span.model_dump(), chromosome=self.chromosome, length=self.length
+        )
+
     def _resolve_length(self):
         """
         Determine variant length based on type and length of reference allele
@@ -55,13 +74,13 @@ class VariantRecord(VariantIdentifier):
         """
         if self.variant_class.is_structural_variant() and self.location.length is None:
             # assume generic INDEL
-            self.location.length = max(len(self.ref), len(self.alt))
+            self.length = max(len(self.ref), len(self.alt))
 
         if self.variant_class in [VariantClass.SNV, VariantClass.SHORT_INS]:
             # SNV and SHORT_INS: length is 1
-            self.location.length = 1
+            self.length = 1
         else:  # MVN, SHORT_INDEL, SHORT_DEL length = length of ref
-            self.location.length = len(self.ref)
+            self.length = len(self.ref)
         return self
 
     @model_validator(mode="after")
@@ -91,12 +110,11 @@ class VariantRecord(VariantIdentifier):
     def from_positional_id(cls, variant_id: str):
         positional_id = variant_id.replace("-", ":")
         chrm, position, ref, alt = positional_id.split(":")
-        start = position - 1  # GenomicRegions are 0-based
-        location = GenomicRegion(
-            chromosome=HumanGenome(chrm), start=start, length=start + len(ref)
-        )
+
         return cls(
-            location=location,
+            chromosome=HumanGenome(chrm),
+            position=position,
+            length=position + len(ref),
             ref=ref,
             alt=alt,
             positional_id=positional_id,
