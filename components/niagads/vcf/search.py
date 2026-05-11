@@ -5,7 +5,7 @@ import pysam
 # from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from niagads.genome_reference.human import HumanGenome
-from niagads.vcf.core import VCFEntry
+from niagads.vcf.types import VCFEntry
 
 
 def file_search(

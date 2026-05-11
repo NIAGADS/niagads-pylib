@@ -5,6 +5,7 @@ from typing import Optional
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.models.types import Range
+from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.types import VariantClass
 from niagads.genome_reference.human import HumanGenome
 from niagads.utils.regular_expressions import RegularExpressions
@@ -32,6 +33,8 @@ class VariantRecord(VariantIdentifier):
     ref: str
     alt: str
     variant_class: VariantClass = Field(default=VariantClass.SNV)
+
+    ga4gh_vrs: Allele
 
     # FIXME: remove?
     normalized_positional_id: Optional[str] = Field(

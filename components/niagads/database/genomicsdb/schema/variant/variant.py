@@ -1,5 +1,6 @@
 from typing import Optional
 
+from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.types import LDPartner, VariantClass
 from niagads.database.decorators import CompressedJson
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
@@ -33,10 +34,10 @@ class Variant(VariantTableBase, IdAliasMixin, GenomicRegionMixin, EmbeddingMixin
 
     positional_id: Mapped[str] = mapped_column(String(150))
     ref_snp_id: Mapped[Optional[str]] = mapped_column(String(25), nullable=True)
-    ga4gh_vrs: Mapped[dict] = mapped_column(JSONB(none_as_null=True))
+    ga4gh_vrs: Mapped[Allele] = mapped_column(JSONB(none_as_null=True))
     hgvs: Mapped[Optional[str]] = mapped_column(nullable=True)
 
-    type: Mapped[VariantClass] = enum_column(
+    variant_type: Mapped[VariantClass] = enum_column(
         VariantClass, native_enum=True, use_enum_names=True
     )
     is_adsp_variant: Mapped[Optional[bool]] = mapped_column(nullable=True)
@@ -50,7 +51,6 @@ class Variant(VariantTableBase, IdAliasMixin, GenomicRegionMixin, EmbeddingMixin
     functional_annotation: Mapped[Optional[dict]] = mapped_column(
         JSONB(none_as_null=True)
     )
-    gwas_annotation: Mapped[Optional[dict]] = mapped_column(nullable=True)
     allele_frequency: Mapped[Optional[dict]] = mapped_column(nullable=True)
 
     ld_partners: Mapped[Optional[list[LDPartner]]] = mapped_column(
