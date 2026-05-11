@@ -5,7 +5,7 @@ import pysam
 # from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from niagads.genome_reference.human import HumanGenome
-from niagads.vcf.core import VCFEntry
+from niagads.vcf.types import VCFEntry
 
 
 def file_search(
@@ -71,6 +71,6 @@ def remote_file_search(
         if countsOnly:
             return sum(1 for _ in vcf.fetch(region=region))
         for entry in vcf.fetch(region=region):
-            hits.append(VCFEntry.from_pysam_entry(entry))
+            hits.append(VCFEntry.from_line(entry))
 
     return hits

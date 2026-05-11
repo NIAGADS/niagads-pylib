@@ -6,12 +6,22 @@ from typing import Union
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs.dataproxy import DataProxyValidationError, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator
-from ga4gh.vrs.models import Allele, SequenceLocation, SequenceReference
+from ga4gh.vrs.models import (
+    Allele,
+    SequenceLocation,
+    SequenceReference,
+    LengthExpression,
+    ReferenceLengthExpression,
+    LiteralSequenceExpression,
+)
 from ga4gh.vrs.normalize import normalize as vrs_normalize
 from niagads.common.core import ComponentBaseMixin
-from niagads.common.genomic.regions.models import ZeroBasedGenomicRegion
+from niagads.common.genomic.regions.models import (
+    OneBasedGenomicRegion,
+    ZeroBasedGenomicRegion,
+)
+from niagads.common.variant.models.record import VariantRecord
 from niagads.exceptions.core import ValidationError
-from niagads.ga4gh.models import GA4GHVariantRecord
 from niagads.ga4gh.types import VariantNomenclature
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
 
@@ -34,18 +44,19 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             genome_build, seqrepo_service_url, debug=debug, verbose=verbose
         )
 
-    def primary_key(self, variant: GA4GHVariantRecord, require_validation: bool = True):
+    @property
+    def ga4gh_service(self):
+        return self._vrs_service
+
+    def set_primary_key(self, variant: VariantRecord, require_validation: bool = True):
         if variant.variant_class.is_structural_variant():
-            return self.sv_primary_key(variant)
-
+            self.sv_primary_key(variant)
         if variant.variant_class.is_short_indel():
-            return self.short_indel_primary_key(
-                variant, require_validation=require_validation
-            )
+            self.short_indel_primary_key(variant, require_validation=require_validation)
         else:  # SNV / MNV - no normalization necessary
-            return variant.positional_id
+            variant.id = variant.positional_id
 
-    def sv_primary_key(self, variant: GA4GHVariantRecord):
+    def sv_primary_key(self, variant: VariantRecord):
         """
         Generate a unique primary key for a structural variant (SV) using a hashed
         GA4GH VRS SequenceLocation.
@@ -91,10 +102,10 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             f"Primary Key for SV: {variant.variant_class} - {str(variant)} = {primary_key}"
         )
 
-        return primary_key
+        variant.id = primary_key
 
     def short_indel_primary_key(
-        self, variant: GA4GHVariantRecord, require_validation: bool = True
+        self, variant: VariantRecord, require_validation: bool = True
     ):
         """
         Generate a primary key for a short indel variant.
@@ -120,11 +131,14 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             )
 
         if len(variant.ref) + len(variant.alt) <= 10:  # still human readable
-            return self._vrs_service.normalize_positional_variant(
-                variant.positional_id, require_validation=require_validation
+            variant.normalized_positional_id = (
+                self._vrs_service.normalize_positional_variant(
+                    variant.positional_id, require_validation=require_validation
+                )
             )
+            variant.id = variant.normalized_positional_id
         else:
-            return self.sv_primary_key(variant)  # do like sv
+            variant.id = self.sv_primary_key(variant)  # do like sv
 
 
 class GA4GHVRSService(ComponentBaseMixin):
@@ -182,7 +196,52 @@ class GA4GHVRSService(ComponentBaseMixin):
                 f"Invalid sequence: {sequence} does not match reference genome in the region: {str(location)}."
             )
 
-    def create_vrs_allele(
+    def variant_to_vrs_allele(
+        self,
+        variant: VariantRecord,
+        require_validation: bool = True,
+        normalize: bool = True,
+        as_json: bool = True,
+    ):
+        if variant.variant_class.is_structural_variant():
+            return self.sv_to_vrs_allele(variant, as_json=as_json)
+        else:
+            return self.variant_id_to_vrs_allele(
+                variant.positional_id,
+                variant_id_type=VariantNomenclature.POSITIONAL,
+                require_validation=require_validation,
+                normalize=normalize,
+                as_json=as_json,
+            )
+
+    def sv_to_vrs_allele(
+        self,
+        variant: VariantRecord,
+        as_json: bool = True,
+    ):
+        region: ZeroBasedGenomicRegion = OneBasedGenomicRegion(
+            chromosome=variant.chromosome,
+            start=variant.span.start,
+            end=variant.span.end,
+        ).to_zero_based_region()
+
+        vrs_location = self.create_vrs_sequence_location(
+            region, normalize=False, compute_id=False
+        )
+
+        if variant.variant_class == "DEL":
+            state = ReferenceLengthExpression(length=variant.length)
+        elif variant.variant_class == "INS":
+            state = LiteralSequenceExpression(sequence=variant.alt)
+        else:
+            state = LengthExpression(length=variant.length)
+
+        allele = Allele(location=vrs_location, state=state)
+        allele.id = ga4gh_identify(allele)
+
+        return allele.model_dump(exclude_none=True) if as_json else allele
+
+    def variant_id_to_vrs_allele(
         self,
         variant_id: str,
         variant_id_type: VariantNomenclature,
@@ -228,6 +287,7 @@ class GA4GHVRSService(ComponentBaseMixin):
                 require_validation=require_validation,
                 do_normalize=normalize,
             )
+        allele.id = ga4gh_identify(allele)
         return allele.model_dump(exclude_none=True) if as_json else allele
 
     def allele_to_positional_variant(self, vrs_allele: Allele) -> str:
@@ -327,7 +387,7 @@ class GA4GHVRSService(ComponentBaseMixin):
                 f"Cannot convert: invalid positional variant identifier {variant_id}."
             )
 
-        allele: Allele = self.create_vrs_allele(
+        allele: Allele = self.variant_id_to_vrs_allele(
             variant_id,
             VariantNomenclature.GNOMAD,
             as_json=False,
@@ -357,7 +417,7 @@ class GA4GHVRSService(ComponentBaseMixin):
                 f"Cannot convert: invalid positional variant identifier {variant_id}."
             )
 
-        allele: Allele = self.create_vrs_allele(
+        allele: Allele = self.variant_id_to_vrs_allele(
             variant_id,
             VariantNomenclature.GNOMAD,
             as_json=False,
@@ -512,7 +572,7 @@ class GA4GHVRSService(ComponentBaseMixin):
             ValidationError: If require_validation is True and the reference
                 sequence does not match the reference genome.
         """
-        allele: Allele = self.create_vrs_allele(
+        allele: Allele = self.variant_id_to_vrs_allele(
             variant_id=variant_id,
             variant_id_type=VariantNomenclature.POSITIONAL,
             as_json=False,
