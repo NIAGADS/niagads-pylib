@@ -2,6 +2,8 @@
  
 #   set -x
 
+set -o pipefail
+
 FORK=2
 BUFFER_SIZE=10000
 
@@ -72,9 +74,9 @@ docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/
   --plugin NMD \
   --plugin LoFtool,/data/LoFtool_scores.txt \
   --plugin CADD,snv=/data/cadd/whole_genome_SNVs.tsv.gz,indels=/data/cadd/gnomad.genomes.r4.0.indel.tsv.gz \
-  > "${LOG_FILE}" 2>&1
+  2>&1 | tee "${LOG_FILE}" > /dev/null
 then
-    echo "SUCCESS VEP - $FILE"
+    echo "SUCCESS VEP - $FILE" | tee -a "${LOG_FILE}" > /dev/null
 else
-    echo "FAIL VEP - $FILE"
+    echo "FAIL VEP - $FILE" | tee -a "${LOG_FILE}" > /dev/null
 fi
