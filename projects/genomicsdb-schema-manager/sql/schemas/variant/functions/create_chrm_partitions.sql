@@ -1,6 +1,6 @@
 -- CREATE PARTITIONS
 CREATE OR REPLACE FUNCTION "variant"."create_variant_partitions" (p_table_name TEXT) RETURNS INTEGER 
-VOLATILE AS $ body $ 
+VOLATILE AS $body$ 
     DECLARE 
     partition TEXT;
     CHR TEXT;
@@ -18,4 +18,4 @@ BEGIN
     END LOOP;
     RETURN NULL;
 END;
-$ body $ LANGUAGE plpgsql;
+$body$ LANGUAGE plpgsql;
