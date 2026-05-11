@@ -3,7 +3,7 @@ from niagads.genome_reference.human import HumanGenome
 from niagads.utils.dict import info_string_to_dict
 from niagads.utils.string import to_json
 from pydantic import BaseModel
-from cyvcf2 import Variant
+import cyvcf2 as cyvcf
 
 VCF_HEADER_FIELDS = [
     "chrom",
@@ -63,7 +63,9 @@ class VCFEntry(BaseModel):
         return cls(**entryObj)
 
     @classmethod
-    def from_cyvcf2_variant(cls, variant: Variant, alt_allele: str = None) -> Self:
+    def from_cyvcf2_variant(
+        cls, variant: cyvcf.Variant, alt_allele: str = None
+    ) -> Self:
         """Create VCFEntry from a cyvcf2 Variant object.
 
         Args:
