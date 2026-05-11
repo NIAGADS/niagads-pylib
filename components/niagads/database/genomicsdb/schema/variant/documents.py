@@ -22,9 +22,7 @@ class Variant(VariantTableBase, IdAliasMixin, GenomicRegionMixin, EmbeddingMixin
     __tablename__ = "variant"
     __table_args__ = {
         **VariantTableBase.__table_args__,
-        "info": {  # not really a view but we don't want alembic to create this table b/c it is partitioned
-            "is_view": True
-        },
+        "info": {"is_partitioned_by_chromosome": True},
     }
 
     variant_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

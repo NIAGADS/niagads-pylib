@@ -30,6 +30,12 @@ class MigrationRunner(ComponentBaseMixin):
             )
         )
 
+        self.__partitioned_by_chromosome_prefixes = [
+            f"{table.schema}.{table.name}_chr"
+            for table in GenomicsDBSchemaBase.metadata.tables.values()
+            if table.info.get("is_partitioned_by_chromosome", False)
+        ]
+
     def include_object(
         self, object_, name: str, type_: str, reflected: bool, compare_to: Any
     ) -> bool:
@@ -43,8 +49,21 @@ class MigrationRunner(ComponentBaseMixin):
         if self.__skip_fks and type_ == "foreign_key_constraint":
             return False
 
-        if type_ == "table" and getattr(object_, "info", {}).get("is_view", False):
-            return False
+        if reflected and type_ in {"table", "index"}:
+            table = object_ if type_ == "table" else object_.table
+            table_key = f"{table.schema}.{table.name}"
+
+            if any(
+                table_key.startswith(prefix)
+                for prefix in self.__partitioned_by_chromosome_prefixes
+            ):
+                return False
+
+        if type_ == "table":
+            if object_.info.get("is_view", False):
+                return False
+            if object_.info.get("is_partitioned_by_chromosome", False):
+                return False
 
         # Filter by target schema if not schema-independent
         if not self.__schema_independent and hasattr(object_, "schema"):
