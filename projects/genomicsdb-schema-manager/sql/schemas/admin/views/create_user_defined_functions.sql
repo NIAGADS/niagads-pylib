@@ -11,13 +11,10 @@ OR REPLACE VIEW admin.user_defined_functions AS (
             SELECT
                 n.nspname AS function_schema,
                 p.proname AS function_name,
-                l.lanname AS function_language,
-                CASE
-                    WHEN l.lanname = 'internal' THEN p.prosrc
-                    ELSE pg_get_functiondef(p.oid)
-                END AS definition,
                 pg_get_function_arguments(p.oid) AS function_arguments,
-                t.typname AS return_type
+                t.typname AS return_type,
+                l.lanname AS function_language,
+                pg_get_functiondef(p.oid) AS definition
             FROM
                 pg_proc p
                 LEFT JOIN pg_namespace n ON p.pronamespace = n.oid
@@ -30,5 +27,5 @@ OR REPLACE VIEW admin.user_defined_functions AS (
                 function_name
         ) a
     WHERE
-        function_language != 'c'
+        function_language NOT IN ('c', 'internal')
 );

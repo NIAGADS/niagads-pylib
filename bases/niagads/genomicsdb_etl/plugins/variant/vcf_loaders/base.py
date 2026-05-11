@@ -2,9 +2,9 @@ from typing import Iterator, Optional
 import cyvcf2
 from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.models.record import VariantRecord
-from niagads.database.genomicsdb.schema.variant.variant import Variant
+from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.etl.plugins.parameters import PathValidatorMixin
-from niagads.ga4gh.annotators import GA4GHVRSService, PrimaryKeyGenerator
+from niagads.ga4gh.annotators import PrimaryKeyGenerator
 from niagads.genome_reference.human import GenomeBuild
 from niagads.genomicsdb_etl.plugins.common.bases.features import (
     BaseFeatureLoaderParams,

@@ -4,5 +4,5 @@ if [[ "$1" == "--commit" ]]; then
 fi
 
 for sql_file in "$PROJECT_ROOT"/sql/schemas/admin/views/*.sql; do
-	poetry run gdb_run_sql --file "$sql_file" $COMMIT_FLAG
+	poetry -C $PROJECT_ROOT run gdb_run_sql --file "$sql_file" $COMMIT_FLAG
 done
