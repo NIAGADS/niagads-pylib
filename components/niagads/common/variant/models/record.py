@@ -36,7 +36,7 @@ class VariantRecord(VariantIdentifier):
 
     ga4gh_vrs: Allele
 
-    # FIXME: remove?
+    positional_id: Optional[str] = None
     normalized_positional_id: Optional[str] = Field(
         default=None, pattern=RegularExpressions.POSITIONAL_VARIANT_ID
     )
