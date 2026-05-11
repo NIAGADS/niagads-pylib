@@ -1,6 +1,7 @@
 from typing import Optional
 
 from niagads.common.variant.models.ga4gh_vrs import Allele
+from niagads.common.variant.models.record import VariantRecord
 from niagads.common.variant.types import LDPartner, VariantClass
 from niagads.database.decorators import CompressedJson
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
@@ -63,3 +64,20 @@ class Variant(VariantTableBase, IdAliasMixin, GenomicRegionMixin, EmbeddingMixin
     )
 
     functional_annotation_summary: Mapped[Optional[dict]] = mapped_column(nullable=True)
+
+    @classmethod
+    def from_variant_record(cls, record: VariantRecord):
+        return cls(
+            chromosome=str(record.chromosome),
+            position=record.position,
+            span=record.span,
+            length=record.length,
+            ref_allele=record.ref,
+            alt_allele=record.alt,
+            variant_class=str(record.variant_class),
+            positional_id=record.positional_id,
+            normalized_positional_id=record.normalized_positional_id,
+            ref_snp_id=record.ref_snp_id,
+            ga4gh_vrs=record.ga4gh_vrs.model_dump(),
+            is_structural_variant=record.variant_class.is_structural_variant(),
+        )
