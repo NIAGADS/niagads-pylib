@@ -6,6 +6,7 @@ set -o pipefail
 
 FORK=2
 BUFFER_SIZE=10000
+NO_STATS=true
 
 
 # Parse named arguments: --file and --is-sv
@@ -26,6 +27,10 @@ while [[ $# -gt 0 ]]; do
       BUFFER_SIZE="$2"
       shift # past argument
       shift # past value
+      ;;
+    --stats)
+      NO_STATS=false
+      shift # past argument
       ;;
     *)
       echo "Unknown argument: $1" >&2
@@ -58,7 +63,7 @@ docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/
   --skipped_variants_file="${SKIP_FILE}" \
   --warning_file="${ERROR_FILE}" \
   --no_check_variants_order \
-  --no_stats \
+  $([[ "$NO_STATS" == "true" ]] && echo "--no_stats") \
   --format vcf \
   --force_overwrite \
   --compress_output gzip \

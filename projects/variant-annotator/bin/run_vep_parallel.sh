@@ -10,11 +10,12 @@ VEP_SCRIPT="${SCRIPT_DIR}/vep.sh"
 
 # Parse arguments
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <vcf_directory> [--max-parallel N] [--fork N] [--buffer-size N]" >&2
+  echo "Usage: $0 <vcf_directory> [--max-parallel N] [--fork N] [--buffer-size N] [--stats]" >&2
   echo "  <vcf_directory>: Directory containing VCF files" >&2
   echo "  [--max-parallel N]: Maximum number of parallel jobs (default: 4)" >&2
   echo "  [--fork N]: Number of VEP forks (default: 3)" >&2
   echo "  [--buffer-size N]: VEP buffer size (default: 10000)" >&2
+  echo "  [--stats]: Generate statistics (default: no stats)" >&2
   exit 1
 fi
 
@@ -22,6 +23,7 @@ VCF_DIR="$1"
 MAX_PARALLEL=4
 FORK=3
 BUFFER_SIZE=10000
+NO_STATS=true
 
 shift
 while [[ $# -gt 0 ]]; do
@@ -37,6 +39,10 @@ while [[ $# -gt 0 ]]; do
     --buffer-size)
       BUFFER_SIZE="$2"
       shift 2
+      ;;
+    --stats)
+      NO_STATS=false
+      shift
       ;;
     *)
       echo "Unknown argument: $1" >&2
@@ -85,7 +91,9 @@ run_single_vep() {
   local vcf_file="$1"
   local basename="$(basename "$vcf_file")"
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] Starting VEP for $basename"
-  if "$VEP_SCRIPT" --file "$vcf_file" --fork "$FORK" --buffer-size "$BUFFER_SIZE"; then
+  local vep_args="--file $vcf_file --fork $FORK --buffer-size $BUFFER_SIZE"
+  [[ "$NO_STATS" == "false" ]] && vep_args="$vep_args --stats" || true
+  if "$VEP_SCRIPT" $vep_args; then
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] Completed VEP for $basename"
   else
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] FAILED VEP for $basename" >&2
@@ -96,6 +104,7 @@ run_single_vep() {
 export VEP_SCRIPT
 export FORK
 export BUFFER_SIZE
+export NO_STATS
 export -f run_single_vep
 
 # Use GNU Parallel if available, otherwise fall back to xargs
