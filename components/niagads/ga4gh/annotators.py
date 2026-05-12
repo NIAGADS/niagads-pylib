@@ -81,6 +81,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             ValueError: If the variant is not a structural variant.
         """
         if not variant.variant_class.is_structural_variant():
+            # 'short indels' will end up here if too long to be indexed w/out hash
             raise ValueError(f"Invalid structural variant: '{variant}' ")
 
         location: SequenceLocation = self._vrs_service.create_vrs_sequence_location(
@@ -93,8 +94,8 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         ).hexdigest()
 
         primary_key = (
-            f"{variant.variant_class}_"
-            f"{variant.chromosome.upper()}_"
+            f"{str(variant.variant_class)}_"
+            f"{variant.chromosome.name.upper()}_"
             f"{hashed_location_id[:8].upper()}"
         )
 
@@ -130,15 +131,36 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
                 f"Invalid short insertion and/or deletion variant: '{variant}' "
             )
 
-        if len(variant.ref) + len(variant.alt) <= 10:  # still human readable
-            variant.normalized_positional_id = (
-                self._vrs_service.normalize_positional_variant(
-                    variant.positional_id, require_validation=require_validation
-                )
+        primary_key = variant.positional_id
+        if len(variant.ref) + len(variant.alt) > 10:
+            # too long to be human readable and indexable
+            # Hash the entire Allele (includes ref/alt), not just location
+            allele = (
+                variant.ga4gh_vrs.model_dump()
+                if variant.ga4gh_vrs is not None
+                else self._vrs_service.variant_to_vrs_allele(
+                    variant,
+                    require_validation=require_validation,
+                    normalize=False,
+                    as_json=False,
+                ).model_dump(exclude_none=True)
             )
-            variant.id = variant.normalized_positional_id
-        else:
-            variant.id = self.sv_primary_key(variant)  # do like sv
+
+            hashed_allele_id = hashlib.sha512(
+                json.dumps(allele).encode("utf-8")
+            ).hexdigest()
+
+            primary_key = (
+                f"{str(variant.variant_class).replace('SHORT_', '')}_"
+                f"{variant.chromosome.name.upper()}_"
+                f"{hashed_allele_id[:8].upper()}"
+            )
+
+        self.logger.debug(
+            f"Primary Key for {variant.variant_class} - {str(variant)} = {primary_key}"
+        )
+
+        variant.id = primary_key
 
 
 class GA4GHVRSService(ComponentBaseMixin):
@@ -532,7 +554,9 @@ class GA4GHVRSService(ComponentBaseMixin):
                 "Must transform to zero-based coordinates before using GA4GH annotators"
             )
 
-        refget_accession = self.get_refget_accession(region.chromosome)
+        refget_accession = self.get_refget_accession(region.chromosome).replace(
+            "ga4gh:", ""
+        )
 
         location = SequenceLocation(
             sequenceReference=SequenceReference(refgetAccession=refget_accession),
