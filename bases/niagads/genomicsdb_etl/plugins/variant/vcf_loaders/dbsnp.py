@@ -90,11 +90,33 @@ class dbSNPVCFLoader(BaseVCFLoader):
         # TODO: extract ALFA frequencies from INFO
         record.allele_frequency = None
 
+    def __is_duplicate(self, variant: dbSNPRecord):
+        """
+        Checks if the given variant is a duplicate within the current bin.
+
+        Since variants in different bins cannot overlap in position and all "niagads_id" (stable, unique ids)
+        are based on position it is sufficient to check for duplicates only within the current bin.
+        This approach avoids the need to track all seen variants genome-wide, which would be infeasible for large datasets.
+
+        current_bin and current_bin_variants are class members b/c a bin may persist across a chunked load
+        """
+        if self._current_bin_index is not None:
+            if variant.id in self._current_bin_variants:
+                return True
+
     async def load(
         self, session: AsyncSession, records: list[dbSNPRecord]
     ) -> Optional[ResumeCheckpoint]:
         variants = []
+
         for record in records:
+            if self.__is_duplicate(record):
+                self.logger.warning(
+                    f"Skipping Duplicate Variant: NIAGADS_ID = {record.id}; RECORD = {record}"
+                )
+                self.inc_tx_count(Variant, ETLOperation.INSERT)
+                continue
+
             variant = Variant.from_variant_record(record)
             variant.allele_frequency = record.allele_frequency
             variant.run_id = self.run_id
@@ -103,6 +125,11 @@ class dbSNPVCFLoader(BaseVCFLoader):
             )
             variant.external_database_id = self.external_database_id
             variants.append(variant)
+
+            if variant.bin_index != self._current_bin_index:
+                self._current_bin_index = variant.bin_index
+                self._current_bin_variants = {}
+            self._current_bin_variants[record.id] = True
 
         await Variant.submit_many(session, variants)
         return self.create_checkpoint(record=records[-1])

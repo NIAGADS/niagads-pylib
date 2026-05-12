@@ -1,4 +1,4 @@
-from typing import Iterator, Optional
+from typing import Dict, Iterator, Optional
 import cyvcf2
 from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.models.record import VariantRecord
@@ -43,6 +43,10 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
     ):
         super().__init__(params, name, log_path, debug, verbose)
         self._pk_generator: Optional[PrimaryKeyGenerator] = None
+
+        # for avoiding record duplications w/out creating a unique constraint
+        self._current_bin_variants: Dict[str, bool] = {}
+        self._current_bin_index: str = None
 
     async def on_run_start(self, session):
         await super().on_run_start(session)
