@@ -63,13 +63,14 @@ fi
 
 # Find all VCF files
 VCF_FILES=("$VCF_DIR"/*.vcf "$VCF_DIR"/*.vcf.gz)
-VCF_FILES=("${VCF_FILES[@]}" "$VCF_DIR"/*.VCF "$VCF_DIR"/*.VCF.gz)
 
-# Filter to only existing files
+# Filter to only existing files and remove duplicates
+declare -A seen
 VALID_FILES=()
 for file in "${VCF_FILES[@]}"; do
-  if [[ -f "$file" ]]; then
+  if [[ -f "$file" ]] && [[ ! ${seen["$file"]} ]]; then
     VALID_FILES+=("$file")
+    seen["$file"]=1
   fi
 done
 

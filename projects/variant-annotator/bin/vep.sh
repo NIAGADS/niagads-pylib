@@ -78,10 +78,9 @@ docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/
   --plugin Enformer,file=/data/enformer/enformer_grch38.vcf.gz \
   --plugin NMD \
   --plugin LoFtool,/data/LoFtool_scores.txt \
-  --plugin CADD,snv=/data/cadd/whole_genome_SNVs.tsv.gz,indels=/data/cadd/gnomad.genomes.r4.0.indel.tsv.gz \
-  2>&1 | tee "${LOG_FILE}" > /dev/null
+  --plugin CADD,snv=/data/cadd/whole_genome_SNVs.tsv.gz,indels=/data/cadd/gnomad.genomes.r4.0.indel.tsv.gz 
 then
-    echo "SUCCESS VEP - $FILE" | tee -a "${LOG_FILE}" > /dev/null
+    echo "SUCCESS - $FILE" 
 else
-    echo "FAIL VEP - $FILE" | tee -a "${LOG_FILE}" > /dev/null
-fi
+    echo "FAIL - $FILE"
+fi >> "${LOG_FILE}"
