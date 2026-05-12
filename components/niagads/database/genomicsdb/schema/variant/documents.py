@@ -18,6 +18,10 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 
 class Variant(VariantTableBase, IdAliasMixin, GenomicRegionMixin, EmbeddingMixin):
+    # exclude some fields from mixings
+    strand = None
+    embedding_model = None
+    embedding_date = None
 
     __tablename__ = "variant"
     __table_args__ = {
@@ -42,9 +46,7 @@ class Variant(VariantTableBase, IdAliasMixin, GenomicRegionMixin, EmbeddingMixin
     ga4gh_vrs: Mapped[Allele] = mapped_column(JSONB(none_as_null=True))
     hgvs: Mapped[Optional[str]] = mapped_column(nullable=True)
 
-    variant_class: Mapped[VariantClass] = enum_column(
-        VariantClass, native_enum=True, use_enum_names=True
-    )
+    variant_class: Mapped[VariantClass] = mapped_column(String(25), nullable=False)
     is_adsp_variant: Mapped[Optional[bool]] = mapped_column(nullable=True)
     is_structural_variant: Mapped[Optional[bool]] = mapped_column(nullable=True)
     is_annotated: Mapped[Optional[bool]] = mapped_column(nullable=True)
@@ -80,7 +82,7 @@ class Variant(VariantTableBase, IdAliasMixin, GenomicRegionMixin, EmbeddingMixin
             ref_allele=record.ref,
             alt_allele=record.alt,
             variant_class=str(record.variant_class),
-            positional_id=record.positional_id,
+            niagads_id=record.id,
             normalized_positional_id=record.normalized_positional_id,
             ref_snp_id=record.ref_snp_id,
             ga4gh_vrs=record.ga4gh_vrs.model_dump(),

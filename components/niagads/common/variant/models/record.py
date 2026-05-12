@@ -32,7 +32,7 @@ class VariantRecord(VariantIdentifier):
     length: Optional[int] = None
     ref: str
     alt: str
-    variant_class: VariantClass = Field(default=VariantClass.SNV)
+    variant_class: VariantClass = None
 
     ga4gh_vrs: Optional[Allele] = None
 
@@ -59,7 +59,6 @@ class VariantRecord(VariantIdentifier):
         len_alt = len(self.alt)
         if len_ref >= 50 or len_alt >= 50:
             # SV variant classes should have been set
-            # at creation - FIXME: raise error?
             if self.variant_class is None:
                 self.variant_class = VariantClass.SV
         elif len_ref == 1 and len_alt == 1:
@@ -97,15 +96,18 @@ class VariantRecord(VariantIdentifier):
         helper function created b/c needs to be done at initialization and then recalculated
         after normalization
         """
-        if self.variant_class.is_structural_variant() and self.location.length is None:
-            # assume generic INDEL
-            self.length = max(len(self.ref), len(self.alt))
+        if self.variant_class.is_structural_variant() and self.length is None:
+            # ideally structural variant length is set, but if not
+            self.length = abs(len(self.ref) - len(self.alt))
 
-        if self.variant_class in [VariantClass.SNV, VariantClass.SHORT_INS]:
-            # SNV and SHORT_INS: length is 1
-            self.length = 1
-        else:  # MVN, SHORT_INDEL, SHORT_DEL length = length of ref
+        elif self.variant_class in [VariantClass.SNV, VariantClass.MNV]:
             self.length = len(self.ref)
+        elif self.variant_class == VariantClass.SHORT_INS:
+            self.length = len(self.alt) - len(self.ref)
+        elif self.variant_class == VariantClass.SHORT_DEL:
+            self.length = len(self.ref) - len(self.alt)
+        else:  # SHORT_INDEL
+            self.length = abs(len(self.ref) - len(self.alt))
         return self
 
     @classmethod

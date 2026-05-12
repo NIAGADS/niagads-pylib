@@ -2,6 +2,7 @@ from typing import Dict, Iterator, Optional
 import cyvcf2
 from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.models.record import VariantRecord
+from niagads.common.variant.types import VariantClass
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.etl.plugins.parameters import PathValidatorMixin
 from niagads.ga4gh.annotators import PrimaryKeyGenerator
@@ -17,12 +18,12 @@ from pydantic import Field
 class BaseVCFLoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
     file: str = Field(..., description="Full path to VCF file")
 
-    genome_build: GenomeBuild = Field(
+    genome_build: Optional[GenomeBuild] = Field(
         default=GenomeBuild.GRCh38,
         description=f"Reference genome build, one of {GenomeBuild.list()}",
     )
 
-    seqrepo_service_url: str = Field(
+    seqrepo_service_url: Optional[str] = Field(
         default="http://localhost:5000/seqrepo",
         description="URL to seqrepo service for GA4GH VRS",
     )
@@ -55,6 +56,7 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
             seqrepo_service_url=self._params.seqrepo_service_url,
             debug=self._debug,
             verbose=self._verbose,
+            logger=self.logger,
         )
 
     def extract(self) -> Iterator[VCFEntry]:
@@ -69,7 +71,7 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
             reader.close()
 
     def get_record_id(self, record: Variant) -> str:
-        return record.niagads_id
+        return record.id
 
     def _generate_variant_identifier_record(
         self, entry: VCFEntry, require_validation: bool = True
@@ -79,12 +81,31 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
         record.ref_snp_id = (
             entry.id.lower() if entry.id.lower().startswith("rs") else None
         )
-        record.ga4gh_vrs = Allele(
-            **self._pk_generator.ga4gh_service.variant_to_vrs_allele(
-                record, require_validation=require_validation, as_json=True
-            )
+
+        # generate the GA4GH VRS allele
+        ga4gh_allele = self._pk_generator.ga4gh_service.variant_to_vrs_allele(
+            record,
+            normalize=True,
+            require_validation=require_validation,
+            as_json=False,
         )
-        # already validated don't need to do it again
+
+        # if a short indel use the normalized GA4GH VRS allele to generate the normalized positional id
+        if record.variant_class.is_short_indel():
+            record.normalized_positional_id = (
+                self._pk_generator.ga4gh_service.allele_to_positional_variant(
+                    ga4gh_allele
+                )
+            )
+        else:
+            record.normalized_positional_id = positional_id
+
+        if self._verbose:
+            self.logger.debug(
+                f"{positional_id} | {record.variant_class} | {ga4gh_allele.model_dump(exclude_none=True)}"
+            )
+
+        record.ga4gh_vrs = Allele(**ga4gh_allele.model_dump(exclude_none=True))
         self._pk_generator.set_primary_key(record, require_validation=False)
 
         return record

@@ -19,7 +19,6 @@ from niagads.etl.plugins.parameters import ResumeCheckpoint
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 
-from niagads.genome_reference.human import HumanGenome
 from niagads.genomicsdb_etl.plugins.variant.vcf_loaders.base import (
     BaseVCFLoader,
     BaseVCFLoaderParams,
@@ -46,6 +45,7 @@ class dbSNPRecord(VariantRecord):
 class dbSNPVCFLoader(BaseVCFLoader):
 
     def __parse_allele_frequencies(self, freq_str: str, allele_index: int):
+
         def get_value(values):
             try:
                 freq_value = values[allele_index]
@@ -53,13 +53,14 @@ class dbSNPVCFLoader(BaseVCFLoader):
             except IndexError:
                 return None
 
-        return {
-            k: freq
-            for pair in freq_str.split("|")
-            for k, v in [pair.split(":", 1)]
-            for freq in [get_value(v.split(","))]
-            if freq is not None
-        }
+        frequencies = {}
+        for population_frequencies in freq_str.split("|"):
+            pop, pop_freq_str = population_frequencies.split(":")
+            pop_allele_freq = get_value(pop_freq_str.split(","))
+            if pop_allele_freq is not None:
+                frequencies[pop] = pop_allele_freq
+
+        return frequencies
 
     def extract(self) -> Iterator[VCFEntry]:
         """Extract variants from VCF."""
@@ -83,12 +84,14 @@ class dbSNPVCFLoader(BaseVCFLoader):
     def transform(self, entry: VCFEntry) -> Optional[dbSNPRecord]:
         """Transform VCF variant to Variant ORM object."""
 
-        record: dbSNPRecord = self._generate_variant_identifier_record(
-            entry, require_validation=False  # trust dbSNP
+        record: dbSNPRecord = dbSNPRecord(
+            **self._generate_variant_identifier_record(
+                entry, require_validation=False  # trust dbSNP
+            ).model_dump()
         )
 
-        # TODO: extract ALFA frequencies from INFO
-        record.allele_frequency = None
+        record.allele_frequency = entry.info["FREQ"]
+        return record
 
     def __is_duplicate(self, variant: dbSNPRecord):
         """
@@ -117,11 +120,12 @@ class dbSNPVCFLoader(BaseVCFLoader):
                 self.inc_tx_count(Variant, ETLOperation.INSERT)
                 continue
 
+            self.logger.debug(f"{record} - {record.variant_class}")
             variant = Variant.from_variant_record(record)
             variant.allele_frequency = record.allele_frequency
             variant.run_id = self.run_id
             variant.bin_index = self._find_bin_index(
-                str(record.chromosome), record.span.start, record.span.end
+                str(record.chromosome), record.span
             )
             variant.external_database_id = self.external_database_id
             variants.append(variant)
