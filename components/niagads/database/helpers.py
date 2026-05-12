@@ -56,6 +56,7 @@ def enum_column(
     index=True,
     native_enum=False,
     use_enum_names: bool = False,
+    exists_in_schema: str = None,
 ):
     """
     Returns a SQLAlchemy Column for the given enum.
@@ -79,6 +80,12 @@ def enum_column(
         combined_values.extend(enum_cls.list(return_enum_names=use_enum_names))
     name = "_".join(cls.__name__ for cls in enum)
 
-    sa_enum = Enum(*combined_values, native_enum=native_enum, name=name.lower())
+    sa_enum = Enum(
+        *combined_values,
+        native_enum=native_enum,
+        name=name.lower(),
+        schema=exists_in_schema,
+        create_type=exists_in_schema is None,
+    )
 
     return Column(sa_enum, nullable=nullable, index=index)
