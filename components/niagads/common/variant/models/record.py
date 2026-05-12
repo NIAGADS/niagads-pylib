@@ -34,11 +34,11 @@ class VariantRecord(VariantIdentifier):
     alt: str
     variant_class: VariantClass = Field(default=VariantClass.SNV)
 
-    ga4gh_vrs: Allele
+    ga4gh_vrs: Optional[Allele] = None
 
     positional_id: Optional[str] = None
     normalized_positional_id: Optional[str] = Field(
-        default=None, pattern=RegularExpressions.POSITIONAL_VARIANT_ID
+        default=None, pattern=RegularExpressions.NORMALIZED_POSITIONAL_VARIANT_ID
     )
 
     def __str__(self):
@@ -52,6 +52,28 @@ class VariantRecord(VariantIdentifier):
                 )
             else:
                 return self.positional_id
+
+    @model_validator(mode="after")
+    def resolve_variant_type(self):
+        len_ref = len(self.ref)
+        len_alt = len(self.alt)
+        if len_ref >= 50 or len_alt >= 50:
+            # SV variant classes should have been set
+            # at creation - FIXME: raise error?
+            if self.variant_class is None:
+                self.variant_class = VariantClass.SV
+        elif len_ref == 1 and len_alt == 1:
+            self.variant_class = VariantClass.SNV
+        elif len_ref == len_alt and len_ref > 1:
+            self.variant_class = VariantClass.MNV
+        elif len_ref == 1 and len_alt > 0:
+            self.variant_class = VariantClass.SHORT_INS
+        elif len_ref > 0 and len_alt == 1:
+            self.variant_class = VariantClass.SHORT_DEL
+        elif len_ref > 0 and len_alt > 0:
+            self.variant_class = VariantClass.SHORT_INDEL
+
+        return self
 
     @model_validator(mode="after")
     def resolve_length(self):
@@ -86,29 +108,6 @@ class VariantRecord(VariantIdentifier):
             self.length = len(self.ref)
         return self
 
-    @model_validator(mode="after")
-    def resolve_variant_type(self):
-
-        len_ref = len(self.ref)
-        len_alt = len(self.alt)
-        if len_ref >= 50 or len_alt >= 50:
-            # SV variant classes should have been set
-            # at creation - FIXME: raise error?
-            if self.variant_class is None:
-                self.variant_class = VariantClass.SV
-        elif len_ref == 1 and len_alt == 1:
-            self.variant_class = VariantClass.SNV
-        elif len_ref == len_alt and len_ref > 1:
-            self.variant_class = VariantClass.MNV
-        elif len_ref == 0 and len_alt > 0:
-            self.variant_class = VariantClass.SHORT_INS
-        elif len_ref > 0 and len_alt == 0:
-            self.variant_class = VariantClass.SHORT_DEL
-        elif len_ref > 0 and len_alt > 0:
-            self.variant_class = VariantClass.SHORT_INDEL
-
-        return self
-
     @classmethod
     def from_positional_id(cls, variant_id: str):
         positional_id = variant_id.replace("-", ":")
@@ -117,8 +116,8 @@ class VariantRecord(VariantIdentifier):
         return cls(
             chromosome=HumanGenome(chrm),
             position=position,
-            length=position + len(ref),
             ref=ref,
             alt=alt,
             positional_id=positional_id,
+            id=positional_id,
         )
