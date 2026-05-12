@@ -52,7 +52,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
     def set_primary_key(self, variant: VariantRecord, require_validation: bool = True):
         if variant.variant_class.is_structural_variant():
             self.sv_primary_key(variant)
-        if variant.variant_class.is_short_indel():
+        elif variant.variant_class.is_short_indel():
             self.short_indel_primary_key(variant, require_validation=require_validation)
         else:  # SNV / MNV - no normalization necessary
             variant.id = variant.positional_id
