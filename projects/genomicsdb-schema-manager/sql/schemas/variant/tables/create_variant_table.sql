@@ -11,23 +11,6 @@ literature_summary
 pathway / ontology terms
 */
 
-CREATE TYPE Variant.VariantClassType AS ENUM (
-    'SNV',
-    'MNV',
-    'SHORT_INDEL',
-    'SHORT_DEL',
-    'SHORT_INS',
-    'INDEL',
-    'DEL',
-    'INS',
-    'DUP',
-    'INV',
-    'TRANS',
-    'CNV',
-    'MEI',
-    'SV'
-);
-
 CREATE TABLE Variant.Variant (
     VARIANT_ID SERIAL NOT NULL,
     EXTERNAL_DATABASE_ID INTEGER NOT NULL,
@@ -45,7 +28,7 @@ CREATE TABLE Variant.Variant (
     GA4GH_VRS JSONB NOT NULL,
     HGVS TEXT,
 
-    VARIANT_CLASS Variant.VariantClassType NOT NULL,
+    VARIANT_CLASS CHARACTER VARYING(25) NOT NULL,
     IS_ADSP_VARIANT BOOLEAN,
     IS_STRUCTURAL_VARIANT BOOLEAN,
     IS_ANNOTATED BOOLEAN,
@@ -53,7 +36,7 @@ CREATE TABLE Variant.Variant (
     LD_PARTNERS BYTEA,
 
     ADSP_ANNOTATION JSONB, --QC, FAVOR, ADSP MSC
-    MOST_SEVERE_CONSEQUNCE JSONB,
+    MOST_SEVERE_CONSEQUENCE JSONB,
     FUNCTIONAL_ANNOTATION JSONB, -- vep, etc
     ALLELE_FREQUENCY JSONB,
   
