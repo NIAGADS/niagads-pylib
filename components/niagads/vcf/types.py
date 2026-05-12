@@ -81,7 +81,7 @@ class VCFEntry(BaseModel):
             ValueError: If alt_allele is provided but not found in variant.ALT.
         """
         if alt_allele is not None:
-            if not variant.ALT.includes(alt_allele):
+            if alt_allele not in variant.ALT:
                 raise ValueError(
                     f"Can not parse VCFEntry -> invalid alt allele: {alt_allele}; {variant}"
                 )
