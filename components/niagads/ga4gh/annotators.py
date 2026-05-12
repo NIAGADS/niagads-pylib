@@ -28,7 +28,6 @@ from niagads.genome_reference.human import GenomeBuild, HumanGenome
 # hopefullu disable seqrepo INFO notices for each request to the service
 logging.getLogger("ga4gh.vrs").setLevel(logging.WARNING)
 logging.getLogger("seqrepo").setLevel(logging.WARNING)
-# logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 class PrimaryKeyGenerator(ComponentBaseMixin):
@@ -38,8 +37,10 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         seqrepo_service_url: str,
         debug: bool = False,
         verbose: bool = False,
+        logger=None,
     ):
-        super().__init__(debug=debug, verbose=verbose)
+        super().__init__(debug=debug, verbose=verbose, logger=logger)
+        # self.logger.propagate = True
         self._vrs_service: GA4GHVRSService = GA4GHVRSService(
             genome_build, seqrepo_service_url, debug=debug, verbose=verbose
         )
@@ -174,8 +175,9 @@ class GA4GHVRSService(ComponentBaseMixin):
         seqrepo_service_url: str,
         debug: bool = False,
         verbose: bool = False,
+        logger=None,
     ):
-        super().__init__(debug=debug, verbose=verbose)
+        super().__init__(debug=debug, verbose=verbose, logger=logger)
         self._seqrepo_data_proxy = create_dataproxy(f"seqrepo+{seqrepo_service_url}")
         self._assembly: GenomeBuild = genome_build
 
