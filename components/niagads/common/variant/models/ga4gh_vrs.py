@@ -45,7 +45,7 @@ class ReferenceLengthExpression(SequenceExpression):
     length: int | tuple[Optional[int], Optional[int]] = Field(
         ..., description="The number of residues in the sequence"
     )
-    repeat_subunit_length: int = Field(
+    repeatSubunitLength: int = Field(
         ..., description="The number of residues in the repeat subunit"
     )
 
@@ -59,12 +59,35 @@ class LengthExpression(SequenceExpression):
     )
 
 
-class SequenceLocation(BaseModel):
-    """A location defined by an interval on a sequence"""
+class SequenceReference(BaseModel):
+    """Reference to a sequence (e.g., RefGet accession)"""
 
-    reference_sequence_id: str = Field(
-        ..., description="Reference to a sequence (e.g., RefGet accession)"
+    type: Literal["SequenceReference"] = Field(
+        "SequenceReference", description="GA4GH VRS type"
     )
+    refgetAccession: str = Field(
+        ..., description="RefGet accession for the reference sequence"
+    )
+
+
+class SequenceLocation(BaseModel):
+    """A location defined by an interval on a sequence (GA4GH VRS-compliant)"""
+
+    type: Literal["SequenceLocation"] = Field(
+        "SequenceLocation", description="GA4GH VRS type"
+    )
+    id: Optional[str] = Field(
+        default=None, description="Optional identifier for the location"
+    )
+    digest: Optional[str] = Field(default=None, description="Digest for the location")
+    sequenceReference: Optional[SequenceReference] = Field(
+        default=None,
+        description="Reference to a sequence (GA4GH SequenceReference object)",
+    )
+    # reference_sequence_id: Optional[str] = Field(
+    #     default=None,
+    #     description="Reference to a sequence (legacy field, e.g., RefGet accession)",
+    # )
     start: int | tuple[Optional[int], Optional[int]] = Field(
         ..., description="The start coordinate or range"
     )
@@ -77,14 +100,16 @@ class SequenceLocation(BaseModel):
 
 
 class Allele(BaseModel):
-    """The state of a molecule at a location"""
+    """The state of a molecule at a location (GA4GH VRS-compliant)"""
 
+    type: Literal["Allele"] = Field("Allele", description="GA4GH VRS type")
+    id: Optional[str] = Field(
+        default=None, description="Optional identifier for the allele"
+    )
+    digest: Optional[str] = Field(default=None, description="Digest for the allele")
     location: Union[str, SequenceLocation] = Field(
         ..., description="The location of the allele"
     )
     state: Union[
         LiteralSequenceExpression, ReferenceLengthExpression, LengthExpression
     ] = Field(..., description="An expression of the sequence state")
-    id: Optional[str] = Field(
-        default=None, description="Optional identifier for the allele"
-    )
