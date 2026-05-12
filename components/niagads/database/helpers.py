@@ -5,7 +5,7 @@ from sqlalchemy import CheckConstraint, Column, Enum, func
 from sqlalchemy.orm import mapped_column
 
 
-def datetime_column(nullable: bool = False):
+def datetime_column(nullable: bool = False, index: bool = False):
     """
     Returns a SQLAlchemy mapped_column for TIMESTAMP with server_default=func.now().
 
@@ -19,6 +19,7 @@ def datetime_column(nullable: bool = False):
         AutoDateTime,
         server_default=None if nullable else func.now(),
         nullable=nullable,
+        index=index,
     )
 
 

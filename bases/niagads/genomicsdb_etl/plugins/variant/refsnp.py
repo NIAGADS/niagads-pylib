@@ -4,12 +4,12 @@ dbSNP RefSNP Merge History Loader Plugin
 """
 
 import json
-from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, List, Optional
 
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
-from niagads.database.genomicsdb.schema.variant.mappers import RefSnpAlias
+from niagads.database.genomicsdb.schema.variant.mappings import RefSNPAlias
+from niagads.database.genomicsdb.schema.variant.types import RefSNPMergeHistory
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
@@ -19,41 +19,16 @@ from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
 from niagads.utils.sys import read_open_ctx
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-from dateutil.parser import parse as parse_datetime
+from pydantic import Field, field_validator
 
 
-class Alias(BaseModel):
-    merged_into: str
+class MergeRecord(RefSNPMergeHistory):
     ref_snp_id: str = Field(alias="merged_rsid")
-    merge_build: int = Field(alias="revision")
-    merge_date: str
-
-    model_config = ConfigDict(populate_by_name=True)
-
-    @field_validator("merge_date", mode="before")
-    def format_date(cls, value: str):
-        return (
-            parse_datetime(value)
-            .astimezone(timezone.utc)
-            .replace(tzinfo=None)
-            .isoformat()
-        )
-
-    @classmethod
-    def __prefix_ref_snp_id(cls, rsid: str):
-        if rsid.startswith("rs"):
-            return rsid
-        else:
-            return f"rs{rsid}"
-
-    @field_validator("merged_into", mode="before")
-    def prefix_merged_into(cls, value: str):
-        return cls.__prefix_ref_snp_id(value)
+    merge_history: Optional[list[RefSNPMergeHistory]] = None
 
     @field_validator("ref_snp_id", mode="before")
     def prefix_ref_snp_id(cls, value: str):
-        return cls.__prefix_ref_snp_id(value)
+        return cls._prefix_ref_snp_id(value)
 
 
 class RefSNPMergeHistoryLoaderParams(
@@ -69,10 +44,10 @@ class RefSNPMergeHistoryLoaderParams(
 metadata = PluginMetadata(
     version="1.0",
     description=(
-        f"ETL Plugin to load dbSNP merge history from a JSON file into {RefSnpAlias.table_name()}. "
+        f"ETL Plugin to load dbSNP merge history from a JSON file into {RefSNPAlias.table_name()}. "
         f"Creates mappings showing which rsids were merged into target rsids."
     ),
-    affected_tables=[RefSnpAlias],
+    affected_tables=[RefSNPAlias],
     load_strategy=ETLLoadStrategy.CHUNKED,
     operation=ETLOperation.INSERT,
     is_large_dataset=False,
@@ -120,37 +95,38 @@ class RefSNPMergeHistory(AbstractBasePlugin):
             Iterator[Dict]: Dictionary containing merge history record data.
         """
         with read_open_ctx(self._params.file) as fh:
-            for line_num, line in enumerate(fh, start=1):
-                yield json.loads(line.strip())
+            entry_count = 0
+            for line in fh:
+                entry = json.loads(line.strip())
+                snapshot = entry.get("merged_snapshot_data")
+                if snapshot["merged_into"]:  # no further merges
+                    entry_count += 1
+                    yield entry
 
-            self.logger.info(f"Read {line_num} entries.")
+            self.logger.info(f"Extracted {entry_count} entries.")
 
-    def transform(self, entry: dict) -> List[RefSnpAlias]:
+    def transform(self, entry: dict) -> MergeRecord:
         """
         Transform a dbSNP merge history record into intermediate data objects.
         """
 
-        entry_id = entry["refsnp_id"]
-        alias_records = []
-        merge_history = entry.get("dbsnp1_merges", [])
-        for merge_entry in merge_history:
-            alias_records.append(Alias(merged_into=entry_id, **merge_entry))
+        ref_snp_id = entry["refsnp_id"]
+        merge_history = []
+        for merge_entry in entry.get("dbsnp1_merges", []):
+            merge_history.append(MergeRecord(merged_into=ref_snp_id, **merge_entry))
 
         snapshot = entry.get("merged_snapshot_data")
-        try:
-            alias_records.append(
-                Alias(
-                    ref_snp_id=entry_id,
-                    merged_into=snapshot["merged_into"][0],
-                    merge_build=snapshot["proxy_build_id"],
-                    merge_date=snapshot["proxy_time"],
-                )
-            )
-        except IndexError:  # no merge into target
-            pass
-        return alias_records
+        record = MergeRecord(
+            ref_snp_id=ref_snp_id,
+            merged_into=snapshot["merged_into"][0],
+            merge_build=snapshot["proxy_build_id"],
+            merge_date=snapshot["proxy_time"],
+        )
+        if merge_history:
+            record.merge_history = merge_history
+        return record
 
-    def get_record_id(self, record: Alias) -> str:
+    def get_record_id(self, record: MergeRecord) -> str:
         """
         Extract unique identifier from a MergeAliasRecord.
 
@@ -162,7 +138,7 @@ class RefSNPMergeHistory(AbstractBasePlugin):
         """
         return f"{record.ref_snp_id} -> {record.merged_into}"
 
-    async def load(self, session, records: List[Alias]):
+    async def load(self, session, records: List[MergeRecord]):
         """
         Insert RefSnpAlias records into the database.
         """
@@ -170,12 +146,12 @@ class RefSNPMergeHistory(AbstractBasePlugin):
         for alias_record in records:
             # Create RefSnpAlias ORM object with database-dependent fields
             aliases.append(
-                RefSnpAlias(
+                RefSNPAlias(
                     **alias_record.model_dump(),
                     external_database_id=self.external_database_id,
                     run_id=self.run_id,
                 )
             )
 
-        await RefSnpAlias.submit_many(session, aliases)
+        await RefSNPAlias.submit_many(session, aliases)
         return self.create_checkpoint(record=records[-1])

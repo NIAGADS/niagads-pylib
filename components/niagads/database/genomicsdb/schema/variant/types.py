@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from dateutil.parser import parse as parse_datetime
 
 
-class RefSNPMergeRecord(BaseModel):
+class RefSNPMergeHistory(BaseModel):
     merged_into: str
     merge_build: int = Field(alias="revision")
     merge_date: str
@@ -19,8 +19,8 @@ class RefSNPMergeRecord(BaseModel):
             .isoformat()
         )
 
-    @classmethod
-    def __prefix_ref_snp_id(cls, rsid: str):
+    @staticmethod
+    def _prefix_ref_snp_id(rsid: str):
         if rsid.startswith("rs"):
             return rsid
         else:
@@ -28,4 +28,4 @@ class RefSNPMergeRecord(BaseModel):
 
     @field_validator("merged_into", mode="before")
     def prefix_merged_into(cls, value: str):
-        return cls.__prefix_ref_snp_id(value)
+        return cls._prefix_ref_snp_id(value)
