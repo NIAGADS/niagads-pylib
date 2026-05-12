@@ -1,7 +1,7 @@
 from niagads.database.decorators import AutoDateTime
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.list import list_to_string
-from sqlalchemy import TIMESTAMP, CheckConstraint, Column, Enum, func
+from sqlalchemy import CheckConstraint, Column, Enum, func
 from sqlalchemy.orm import mapped_column
 
 
