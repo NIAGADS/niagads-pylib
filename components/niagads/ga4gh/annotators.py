@@ -22,6 +22,7 @@ from niagads.common.genomic.regions.models import (
     ZeroBasedGenomicRegion,
 )
 from niagads.common.variant.models.record import VariantRecord
+from niagads.common.variant.types import VariantClass
 from niagads.exceptions.core import ValidationError
 from niagads.ga4gh.types import VariantNomenclature
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
@@ -113,7 +114,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         """
         Generate a primary key for a short indel variant.
 
-        For indels where the combined length of ref and alt alleles is ≤ 10,
+        For indels where the combined length of ref and alt alleles is ≤ 20,
         returns a normalized positional variant string for human readability.
         For longer indels, falls back to the hashed SV primary key convention.
 
@@ -134,7 +135,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             )
 
         primary_key = variant.positional_id
-        if len(variant.ref) + len(variant.alt) > 10:
+        if len(variant.ref) + len(variant.alt) > 20:
             # too long to be human readable and indexable
             # Hash the entire Allele (includes ref/alt), not just location
             allele = (
@@ -222,6 +223,37 @@ class GA4GHVRSService(ComponentBaseMixin):
                 f"Invalid sequence: {sequence} does not match reference genome in the region: {str(location)}."
             )
 
+    def snv_to_vrs_allele(self, variant: VariantRecord, as_json: bool = True):
+        """
+        Create a GA4GH VRS Allele for an SNV without seqrepo lookups.
+
+        For SNVs, no normalization is needed—construct the Allele directly from
+        the variant's ref/alt and cached refget accession for the chromosome.
+
+        Args:
+            variant (VariantRecord): SNV variant with ref and alt alleles.
+            as_json (bool, optional): If True, return as JSON dict; otherwise return Allele object.
+                Default is True.
+
+        Returns:
+            dict or Allele: GA4GH VRS Allele object.
+        """
+        region: ZeroBasedGenomicRegion = OneBasedGenomicRegion(
+            chromosome=variant.chromosome,
+            start=variant.span.start,
+            end=variant.span.end,
+        ).to_zero_based_region()
+
+        vrs_location = self.create_vrs_sequence_location(
+            region, normalize=False, compute_id=False
+        )
+
+        state = LiteralSequenceExpression(sequence=variant.alt)
+        allele = Allele(location=vrs_location, state=state)
+        allele.id = ga4gh_identify(allele)
+
+        return allele.model_dump(exclude_none=True) if as_json else allele
+
     def variant_to_vrs_allele(
         self,
         variant: VariantRecord,
@@ -231,6 +263,8 @@ class GA4GHVRSService(ComponentBaseMixin):
     ):
         if variant.variant_class.is_structural_variant():
             return self.sv_to_vrs_allele(variant, as_json=as_json)
+        elif variant.variant_class == VariantClass.SNV:
+            return self.snv_to_vrs_allele(variant, as_json=as_json)
         else:
             return self.variant_id_to_vrs_allele(
                 variant.positional_id,
@@ -345,7 +379,6 @@ class GA4GHVRSService(ComponentBaseMixin):
                 ref = self.get_sequence(vrs_allele.location)
             alt = vrs_allele.state.sequence.root
         elif vrs_allele.state.type == "ReferenceLengthExpression":
-
             if (
                 vrs_allele.state.sequence is None
                 or vrs_allele.state.sequence.root == ""
@@ -571,9 +604,10 @@ class GA4GHVRSService(ComponentBaseMixin):
 
         location = SequenceLocation(
             sequenceReference=SequenceReference(refgetAccession=refget_accession),
-            start=region.start - 1,  # genomic regions are 1-based
+            start=region.start,
             end=region.end,
         )
+
         if compute_id:
             location.id = ga4gh_identify(location)  # compute ga4gh identifier
         return vrs_normalize(location) if normalize else location
