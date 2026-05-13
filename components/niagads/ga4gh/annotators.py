@@ -1,3 +1,4 @@
+from ast import Dict
 import hashlib
 import json
 import logging
@@ -180,6 +181,7 @@ class GA4GHVRSService(ComponentBaseMixin):
         super().__init__(debug=debug, verbose=verbose, logger=logger)
         self._seqrepo_data_proxy = create_dataproxy(f"seqrepo+{seqrepo_service_url}")
         self._assembly: GenomeBuild = genome_build
+        self._refget_accession_cache: dict = {}
 
         self._allele_translator = AlleleTranslator(
             data_proxy=self._seqrepo_data_proxy,
@@ -469,14 +471,17 @@ class GA4GHVRSService(ComponentBaseMixin):
         Raises:
             ValueError if chromosome cannot be mapped to a RefGet accession.
         """
-
-        refget_accession = self._seqrepo_data_proxy.translate_sequence_identifier(
-            f"{self._assembly}:{str(chromosome)}", "ga4gh"
-        )[0]
+        key = f"{self._assembly}:{str(chromosome)}"
+        refget_accession = self._refget_accession_cache.get(key, None)
+        if not refget_accession:
+            refget_accession = self._seqrepo_data_proxy.translate_sequence_identifier(
+                key, "ga4gh"
+            )[0]
         if not refget_accession:
             raise ValueError(
                 f"Unable to map chromosome {chromosome} to a GA4GH RefGet Accession"
             )
+
         return refget_accession
 
     def get_sequence(self, location: Union[ZeroBasedGenomicRegion, SequenceLocation]):
