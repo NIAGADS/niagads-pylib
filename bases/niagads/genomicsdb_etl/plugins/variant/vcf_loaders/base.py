@@ -28,6 +28,11 @@ class BaseVCFLoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
         description="URL to seqrepo service for GA4GH VRS",
     )
 
+    seqrepo_batch_size: Optional[int] = Field(
+        default=50,
+        description="number of parallel requests to seqrepo service for GA4GH VRS and stable ID Generation",
+    )
+
     validate_file_exists = PathValidatorMixin.validator("file")
 
 
@@ -48,15 +53,14 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
         # for avoiding record duplications w/out creating a unique constraint
         self._current_bin_variants: Dict[str, bool] = {}
         self._current_bin_index: str = None
+        self._skip_normalization: bool = False
 
     async def on_run_start(self, session):
         await super().on_run_start(session)
         self._pk_generator = PrimaryKeyGenerator(
             genome_build=self._params.genome_build,
             seqrepo_service_url=self._params.seqrepo_service_url,
-            debug=self._debug,
-            verbose=self._verbose,
-            logger=self.logger,
+            logger=self.logger if self._verbose else None,
         )
 
     def extract(self) -> Iterator[VCFEntry]:
@@ -91,14 +95,15 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
         )
 
         # if a short indel use the normalized GA4GH VRS allele to generate the normalized positional id
-        if record.variant_class.is_short_indel():
-            record.normalized_positional_id = (
-                self._pk_generator.ga4gh_service.allele_to_positional_variant(
-                    ga4gh_allele
+        if not self._skip_normalization and record.variant_class.is_short_indel():
+            try:
+                record.normalized_positional_id = (
+                    self._pk_generator.ga4gh_service.allele_to_positional_variant(
+                        ga4gh_allele
+                    )
                 )
-            )
-        else:
-            record.normalized_positional_id = positional_id
+            except:  # most likely a repeat so the normalized sequence is longer than expected
+                pass
 
         if self._verbose:
             self.logger.debug(

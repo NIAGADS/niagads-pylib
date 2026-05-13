@@ -343,7 +343,11 @@ class GA4GHVRSService(ComponentBaseMixin):
                 ref = self.get_sequence(vrs_allele.location)
             alt = vrs_allele.state.sequence.root
         elif vrs_allele.state.type == "ReferenceLengthExpression":
-            if vrs_allele.state.sequence.root == "":  # bug, happens sometimes
+
+            if (
+                vrs_allele.state.sequence is None
+                or vrs_allele.state.sequence.root == ""
+            ):  # happens sometimes for repeats
                 ref = self.get_sequence(vrs_allele.location)
             else:
                 ref = vrs_allele.state.sequence.root * vrs_allele.state.length

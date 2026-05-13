@@ -57,20 +57,23 @@ class VariantRecord(VariantIdentifier):
     def resolve_variant_type(self):
         len_ref = len(self.ref)
         len_alt = len(self.alt)
-        if len_ref >= 50 or len_alt >= 50:
-            # SV variant classes should have been set
-            if self.variant_class is None:
-                self.variant_class = VariantClass.SV
+
+        is_SV: bool = len_ref >= 50 or len_alt >= 50
+        if is_SV and self.variant_class is not None:
+            return self  # trust it
+
         elif len_ref == 1 and len_alt == 1:
             self.variant_class = VariantClass.SNV
         elif len_ref == len_alt and len_ref > 1:
             self.variant_class = VariantClass.MNV
         elif len_ref == 1 and len_alt > 0:
-            self.variant_class = VariantClass.SHORT_INS
+            self.variant_class = VariantClass.INS if is_SV else VariantClass.SHORT_INS
         elif len_ref > 0 and len_alt == 1:
-            self.variant_class = VariantClass.SHORT_DEL
+            self.variant_class = VariantClass.DEL if is_SV else VariantClass.SHORT_DEL
         elif len_ref > 0 and len_alt > 0:
-            self.variant_class = VariantClass.SHORT_INDEL
+            self.variant_class = (
+                VariantClass.INDEL if is_SV else VariantClass.SHORT_INDEL
+            )
 
         return self
 

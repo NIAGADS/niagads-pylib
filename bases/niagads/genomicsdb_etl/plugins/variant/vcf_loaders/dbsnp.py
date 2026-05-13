@@ -44,6 +44,17 @@ class dbSNPRecord(VariantRecord):
 @PluginRegistry.register(metadata)
 class dbSNPVCFLoader(BaseVCFLoader):
 
+    def __init__(
+        self,
+        params: BaseVCFLoaderParams,
+        name: Optional[str] = None,
+        log_path: str = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(params, name, log_path, debug, verbose)
+        self._skip_normalization = True
+
     def __parse_allele_frequencies(self, freq_str: str, allele_index: int):
 
         def get_value(values):
@@ -62,9 +73,10 @@ class dbSNPVCFLoader(BaseVCFLoader):
 
         return frequencies
 
-    def extract(self) -> Iterator[VCFEntry]:
-        """Extract variants from VCF."""
+    def extract(self) -> Iterator[list[VCFEntry]]:
+        """Extract variants from VCF in seqrepo_batch_size batches."""
         reader = cyvcf2.Reader(self._params.file)
+        batch = []
         try:
             for entry in reader:
                 # index starts at 1 b/c ref is 0 in lists in INFO annotations
@@ -76,7 +88,15 @@ class dbSNPVCFLoader(BaseVCFLoader):
                         )
                     else:
                         vcf_entry.info["FREQ"] = None
-                    yield vcf_entry
+                    batch.append(vcf_entry)
+
+                    if len(batch) >= self._params.seqrepo_batch_size:
+                        yield batch
+                        batch = []
+
+            # yield residual batch
+            if batch:
+                yield batch
 
         finally:
             reader.close()
@@ -115,12 +135,11 @@ class dbSNPVCFLoader(BaseVCFLoader):
         for record in records:
             if self.__is_duplicate(record):
                 self.logger.warning(
-                    f"Skipping Duplicate Variant: NIAGADS_ID = {record.id}; RECORD = {record}"
+                    f"Skipping Duplicate Variant: NIAGADS_ID = {record.id}; RECORD = {record.positional_id} / {record.ref_snp_id} / DUPLICATES {self._current_bin_variants[record.id]}"
                 )
                 self.inc_tx_count(Variant, ETLOperation.INSERT)
                 continue
 
-            self.logger.debug(f"{record} - {record.variant_class}")
             variant = Variant.from_variant_record(record)
             variant.allele_frequency = record.allele_frequency
             variant.run_id = self.run_id
@@ -133,7 +152,7 @@ class dbSNPVCFLoader(BaseVCFLoader):
             if variant.bin_index != self._current_bin_index:
                 self._current_bin_index = variant.bin_index
                 self._current_bin_variants = {}
-            self._current_bin_variants[record.id] = True
+            self._current_bin_variants[record.id] = record.ref_snp_id
 
         await Variant.submit_many(session, variants)
         return self.create_checkpoint(record=records[-1])
