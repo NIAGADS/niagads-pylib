@@ -105,7 +105,7 @@ class RefSNPMergeHistory(AbstractBasePlugin):
 
             self.logger.info(f"Extracted {entry_count} entries.")
 
-    def transform(self, entry: dict) -> MergeRecord:
+    async def transform(self, entry: dict) -> MergeRecord:
         """
         Transform a dbSNP merge history record into intermediate data objects.
         """

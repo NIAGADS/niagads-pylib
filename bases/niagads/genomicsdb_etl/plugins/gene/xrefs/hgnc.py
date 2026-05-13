@@ -187,7 +187,7 @@ class HGNCXRefLoader(AbstractBasePlugin):
         else:
             return xstr(value)
 
-    def transform(self, entry: dict) -> List[GeneXRefEntry]:
+    async def transform(self, entry: dict) -> List[GeneXRefEntry]:
         """
         Transform an HGNC record into a list of xref entries.
 

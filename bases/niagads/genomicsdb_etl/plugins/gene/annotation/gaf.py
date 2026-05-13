@@ -248,7 +248,7 @@ class GAFLoader(AbstractBasePlugin):
 
         return AnnotationEvidenceQualifier(**qualifiers) if qualifiers else None
 
-    def transform(self, entries: List[GAFEntry]):
+    async def transform(self, entries: List[GAFEntry]):
         """
         transform GAFEntry into a GOAssociationEntry
         """

@@ -86,7 +86,7 @@ class ChromosomeMapLoader(AbstractBasePlugin):
             except:
                 pass
 
-    def transform(self, record):
+    async def transform(self, record):
         """transform to genomereference object"""
         chromosome = record["chr"]
         aliases = None
@@ -233,7 +233,7 @@ class IntervalBinGenerator(AbstractBasePlugin):
                 tree_level=0,
             )
 
-    def transform(self, record: IntervalBin):
+    async def transform(self, record: IntervalBin):
         return record
 
     async def load(self, session, records: list[IntervalBin]):

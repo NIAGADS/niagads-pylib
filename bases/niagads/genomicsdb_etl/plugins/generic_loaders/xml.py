@@ -207,7 +207,7 @@ class XMLRecordLoader(AbstractBasePlugin):
             self.logger.error(f"Error - {e}")
             raise
 
-    def transform(self, data: XMLEntry) -> XMLEntry:
+    async def transform(self, data: XMLEntry) -> XMLEntry:
         return data
 
     async def __lookup_table_ref(self, session, qualified_table_name: str):

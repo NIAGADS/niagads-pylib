@@ -202,7 +202,7 @@ class UniProtKBIDLoader(AbstractBasePlugin):
             f"Extracted {line_number - filtered_count - duplicate_count} Ensembl records"
         )
 
-    def transform(self, entry: UniProtXRefEntry) -> UniProtXRefEntry:
+    async def transform(self, entry: UniProtXRefEntry) -> UniProtXRefEntry:
         """
         Transform a UniProt entry (minimal transformation for this simple format).
 

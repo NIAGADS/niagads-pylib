@@ -63,7 +63,7 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         self.logger.debug(f"Extracted: {config}")
         return config
 
-    def transform(self, record: dict) -> ExternalDatabase:
+    async def transform(self, record: dict) -> ExternalDatabase:
         """
         Convert a record (JSON config) dict to an ExternalDatabase object.
 
