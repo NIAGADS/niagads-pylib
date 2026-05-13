@@ -200,7 +200,9 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         # and build a list of ReactomeEntries
         return [ReactomeEntry(**entry) for entry in filtered_df.to_dict(orient="dict")]
 
-    async def transform(self, data: list[ReactomeEntry]) -> list[PathwayGeneAssociations]:
+    async def transform(
+        self, data: list[ReactomeEntry]
+    ) -> list[PathwayGeneAssociations]:
         """
         Transforms the list of ReactomeEntries into a list of PathwayGeneAssociations.
 
