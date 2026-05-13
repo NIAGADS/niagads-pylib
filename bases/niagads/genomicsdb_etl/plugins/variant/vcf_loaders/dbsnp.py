@@ -7,6 +7,7 @@ Loads DBSNP variants from VCF file into variant table.
 **ASSUMES EMPTY TABLE**
 """
 
+import asyncio
 from typing import Iterator, Optional
 
 
@@ -101,17 +102,19 @@ class dbSNPVCFLoader(BaseVCFLoader):
         finally:
             reader.close()
 
-    def transform(self, entry: VCFEntry) -> Optional[dbSNPRecord]:
-        """Transform VCF variant to Variant ORM object."""
+    async def transform(self, entries: list[VCFEntry]) -> list[dbSNPRecord]:
+        """Transform VCF variants to Variant records (with standardized IDs) concurrently."""
 
-        record: dbSNPRecord = dbSNPRecord(
-            **self._generate_variant_identifier_record(
-                entry, require_validation=False  # trust dbSNP
-            ).model_dump()
-        )
+        async def process_entry(entry: VCFEntry) -> dbSNPRecord:
+            record: dbSNPRecord = dbSNPRecord(
+                **self._generate_variant_identifier_record(
+                    entry, require_validation=False  # trust dbSNP
+                ).model_dump()
+            )
+            record.allele_frequency = entry.info["FREQ"]
+            return record
 
-        record.allele_frequency = entry.info["FREQ"]
-        return record
+        return await asyncio.gather(*[process_entry(entry) for entry in entries])
 
     def __is_duplicate(self, variant: dbSNPRecord):
         """

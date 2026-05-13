@@ -89,7 +89,7 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
         # generate the GA4GH VRS allele
         ga4gh_allele = self._pk_generator.ga4gh_service.variant_to_vrs_allele(
             record,
-            normalize=True,
+            normalize=not self._skip_normalization,
             require_validation=require_validation,
             as_json=False,
         )
@@ -111,6 +111,8 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
             )
 
         record.ga4gh_vrs = Allele(**ga4gh_allele.model_dump(exclude_none=True))
+        # FIXME: need to indicate if variant is already normalized for pk generator as well
+        # need to test that if we don't normalize here we still get the right variant back
         self._pk_generator.set_primary_key(record, require_validation=False)
 
         return record
