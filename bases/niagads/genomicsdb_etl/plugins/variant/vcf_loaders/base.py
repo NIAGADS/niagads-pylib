@@ -104,6 +104,8 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
                 )
             except:  # most likely a repeat so the normalized sequence is longer than expected
                 pass
+        else:
+            record.normalized_positional_id = positional_id
 
         if self._verbose:
             self.logger.debug(
@@ -111,8 +113,6 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
             )
 
         record.ga4gh_vrs = Allele(**ga4gh_allele.model_dump(exclude_none=True))
-        # FIXME: need to indicate if variant is already normalized for pk generator as well
-        # need to test that if we don't normalize here we still get the right variant back
         self._pk_generator.set_primary_key(record, require_validation=False)
 
         return record
