@@ -3,7 +3,7 @@ from niagads.genome_reference.human import HumanGenome
 from niagads.utils.dict import info_string_to_dict
 from niagads.utils.string import to_json
 from pydantic import BaseModel
-from cyvcf2 import Variant
+import cyvcf2 as cyvcf
 
 VCF_HEADER_FIELDS = [
     "chrom",
@@ -34,23 +34,28 @@ class VCFEntry(BaseModel):
         for key, value in obj.items():
             if key in skip:
                 continue
-            if value is None:
+            elif key == "alt":
+                if "," in value:
+                    obj[key] = value.split(",")
+                else:
+                    obj[key] = [value]
+            elif value is None:
                 obj[key] = "."
-            if isinstance(value, str):
+            elif isinstance(value, str):
                 obj[key] = to_json(value)
 
         return obj
 
     @staticmethod
     def cyvcf2_info2dict(info: Any):
-        if info is None:
-            return info
+        if info is None or info == ".":
+            return "."
         return VCFEntry.format_dict(dict(info))
 
     @classmethod
-    def from_pysam_entry(cls, entry: str) -> Self:
+    def from_line(cls, entry: str) -> Self:
         entryObj = VCFEntry.format_dict(
-            dict(zip(VCF_HEADER_FIELDS, entry.split("\t"))), skip=["info"]
+            dict(zip(VCF_HEADER_FIELDS, entry.strip().split("\t"))), skip=["info"]
         )
         if entryObj["info"] != ".":
             entryObj["info"] = info_string_to_dict(entryObj["info"])
@@ -58,13 +63,34 @@ class VCFEntry(BaseModel):
         return cls(**entryObj)
 
     @classmethod
-    def from_cyvcf2_variant(cls, variant: Variant) -> Self:
+    def from_cyvcf2_variant(
+        cls, variant: cyvcf.Variant, alt_allele: str = None
+    ) -> Self:
+        """Create VCFEntry from a cyvcf2 Variant object.
+
+        Args:
+            variant: cyvcf2 Variant object to parse.
+            alt_allele: Optional specific ALT allele to extract. If provided,
+                validates that it exists in the variant's ALT alleles.
+
+        Returns:
+            VCFEntry with single ALT allele (if alt_allele specified) or
+            the full ALT list from the variant.
+
+        Raises:
+            ValueError: If alt_allele is provided but not found in variant.ALT.
+        """
+        if alt_allele is not None:
+            if alt_allele not in variant.ALT:
+                raise ValueError(
+                    f"Can not parse VCFEntry -> invalid alt allele: {alt_allele}; {variant}"
+                )
         return cls(
-            chrom=str(HumanGenome(str(variant.CHROM))),
+            chrom=variant.CHROM,
             pos=variant.POS,
             id=variant.ID or ".",
             ref=variant.REF,
-            alt=",".join(variant.ALT) or ".",
+            alt=alt_allele or variant.ALT or ".",
             qual=str(variant.QUAL) if variant.QUAL is not None else ".",
             filter=variant.FILTER or ".",
             info=(

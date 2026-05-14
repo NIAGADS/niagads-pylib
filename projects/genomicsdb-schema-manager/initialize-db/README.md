@@ -45,7 +45,15 @@ poetry run gdb_alembic --schema All --message "initial table creation - all sche
 poetry run gdb_alembic --upgrade 
 ```
 
-#### Step 3. Create `Admin` Helpers
+#### Step3.  Create the Partioned Variant Tables
+
+Although there are SQLAlchemy models defining Variant.Variant, the table is partitioned and Alembic cannot handle that easily.  So just create using SQL.
+
+```bash
+source $PROJECT_ROOT/initialize-db/create_partitioned_variant_tables.sh
+```
+
+#### Step 4. Create `Admin` Helpers
 
 These commands will create DBAdmin Helper Views and Functions for tasks such as like lock and table Size monitoring, a lookup for user defined functions, estimating result sizes, etc.
 

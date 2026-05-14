@@ -126,11 +126,13 @@ class UniProtKBIDLoader(AbstractBasePlugin):
 
             # going to have to pretty much match whole gene table, so cache it
             # to speed things up
-            self.__gene_pk_ref = GeneModel.fetch_ensembl_to_pk_map(session)
+            self.__gene_pk_ref = await GeneModel.fetch_ensembl_to_pk_map(session)
             self.logger.info(f"Cached {len(self.__gene_pk_ref)} gene_pk references.")
 
-            self.__protein_pk_ref = ProteinModel.fetch_ensembl_to_pk_map(session)
-            self.logger.info(f"Cached {len(self.__gene_pk_ref)} gene_pk references.")
+            self.__protein_pk_ref = await ProteinModel.fetch_ensembl_to_pk_map(session)
+            self.logger.info(
+                f"Cached {len(self.__protein_pk_ref)} protein_pk references."
+            )
 
     @staticmethod
     def _strip_version_suffix(ensembl_id: str) -> str:
@@ -181,7 +183,6 @@ class UniProtKBIDLoader(AbstractBasePlugin):
                 # need to cache uniprot/ensembl pairs (uniprot can map to multiple genes)
                 # to weed out duplicates
                 if str(xref) in self.__seen:
-                    self.logger.info(str(xref))
                     duplicate_count += 1
                     continue
 
@@ -201,7 +202,7 @@ class UniProtKBIDLoader(AbstractBasePlugin):
             f"Extracted {line_number - filtered_count - duplicate_count} Ensembl records"
         )
 
-    def transform(self, entry: UniProtXRefEntry) -> UniProtXRefEntry:
+    async def transform(self, entry: UniProtXRefEntry) -> UniProtXRefEntry:
         """
         Transform a UniProt entry (minimal transformation for this simple format).
 

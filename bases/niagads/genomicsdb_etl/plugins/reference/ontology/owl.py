@@ -205,7 +205,7 @@ class OntologyTermLoader(AbstractBasePlugin):
         )
         return embedded_term
 
-    def transform(self, records: list[dict]) -> EmbeddedOntologyTerm:
+    async def transform(self, records: list[dict]) -> EmbeddedOntologyTerm:
         """
         Convert a list of record (OWL entity) dicts to an OntologyTerms and generate embeddings
         in batches

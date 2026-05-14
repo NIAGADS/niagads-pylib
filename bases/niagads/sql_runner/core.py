@@ -96,7 +96,7 @@ class SqlRunner(ComponentBaseMixin):
             if "dry-run rollback" in str(err):
                 self.logger.info("Transaction rolled back (dry-run).")
             else:
-                raise
+                self.logger.error(f"{err}")
 
         finally:
             await manager.close()

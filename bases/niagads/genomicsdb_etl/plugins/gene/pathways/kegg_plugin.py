@@ -104,7 +104,7 @@ class KEGGLoaderPlugin(PathwayMembershipLoaderPlugin):
             f"Parsed {entry_count} gene-pathway entries from {pathway_count} KGML files."
         )
 
-    def transform(self, data: PathwayGeneAssociations):
+    async def transform(self, data: PathwayGeneAssociations):
         # no transform necessary; GeenPathwayAssociation already object generated in Extract
         return data
 

@@ -1,3 +1,4 @@
+from ast import Dict
 import hashlib
 import json
 import logging
@@ -6,19 +7,29 @@ from typing import Union
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs.dataproxy import DataProxyValidationError, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator
-from ga4gh.vrs.models import Allele, SequenceLocation, SequenceReference
+from ga4gh.vrs.models import (
+    Allele,
+    SequenceLocation,
+    SequenceReference,
+    LengthExpression,
+    ReferenceLengthExpression,
+    LiteralSequenceExpression,
+)
 from ga4gh.vrs.normalize import normalize as vrs_normalize
 from niagads.common.core import ComponentBaseMixin
-from niagads.common.genomic.regions.models import GenomicRegion
+from niagads.common.genomic.regions.models import (
+    OneBasedGenomicRegion,
+    ZeroBasedGenomicRegion,
+)
+from niagads.common.variant.models.record import VariantRecord
+from niagads.common.variant.types import VariantClass
 from niagads.exceptions.core import ValidationError
-from niagads.ga4gh.models import GA4GHVariantRecord
 from niagads.ga4gh.types import VariantNomenclature
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
 
 # hopefullu disable seqrepo INFO notices for each request to the service
 logging.getLogger("ga4gh.vrs").setLevel(logging.WARNING)
 logging.getLogger("seqrepo").setLevel(logging.WARNING)
-# logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 class PrimaryKeyGenerator(ComponentBaseMixin):
@@ -28,24 +39,27 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         seqrepo_service_url: str,
         debug: bool = False,
         verbose: bool = False,
+        logger=None,
     ):
-        super().__init__(debug=debug, verbose=verbose)
+        super().__init__(debug=debug, verbose=verbose, logger=logger)
+        # self.logger.propagate = True
         self._vrs_service: GA4GHVRSService = GA4GHVRSService(
             genome_build, seqrepo_service_url, debug=debug, verbose=verbose
         )
 
-    def primary_key(self, variant: GA4GHVariantRecord, require_validation: bool = True):
+    @property
+    def ga4gh_service(self):
+        return self._vrs_service
+
+    def set_primary_key(self, variant: VariantRecord, require_validation: bool = True):
         if variant.variant_class.is_structural_variant():
-            return self.sv_primary_key(variant)
-
-        if variant.variant_class.is_short_indel():
-            return self.short_indel_primary_key(
-                variant, require_validation=require_validation
-            )
+            self.sv_primary_key(variant)
+        elif variant.variant_class.is_short_indel():
+            self.short_indel_primary_key(variant, require_validation=require_validation)
         else:  # SNV / MNV - no normalization necessary
-            return variant.positional_id
+            variant.id = variant.positional_id
 
-    def sv_primary_key(self, variant: GA4GHVariantRecord):
+    def sv_primary_key(self, variant: VariantRecord):
         """
         Generate a unique primary key for a structural variant (SV) using a hashed
         GA4GH VRS SequenceLocation.
@@ -70,14 +84,11 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             ValueError: If the variant is not a structural variant.
         """
         if not variant.variant_class.is_structural_variant():
+            # 'short indels' will end up here if too long to be indexed w/out hash
             raise ValueError(f"Invalid structural variant: '{variant}' ")
 
         location: SequenceLocation = self._vrs_service.create_vrs_sequence_location(
-            GenomicRegion(
-                chromosome=variant.location.chromosome,
-                start=variant.location.start,
-                end=variant.location.end,
-            ),
+            variant.genomic_region.to_zero_based_region(),
             compute_id=False,
             normalize=False,
         )
@@ -86,8 +97,8 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         ).hexdigest()
 
         primary_key = (
-            f"{variant.variant_class}_"
-            f"{variant.location.chromosome.upper()}_"
+            f"{str(variant.variant_class)}_"
+            f"{variant.chromosome.name.upper()}_"
             f"{hashed_location_id[:8].upper()}"
         )
 
@@ -95,15 +106,15 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             f"Primary Key for SV: {variant.variant_class} - {str(variant)} = {primary_key}"
         )
 
-        return primary_key
+        variant.id = primary_key
 
     def short_indel_primary_key(
-        self, variant: GA4GHVariantRecord, require_validation: bool = True
+        self, variant: VariantRecord, require_validation: bool = True
     ):
         """
         Generate a primary key for a short indel variant.
 
-        For indels where the combined length of ref and alt alleles is ≤ 10,
+        For indels where the combined length of ref and alt alleles is ≤ 20,
         returns a normalized positional variant string for human readability.
         For longer indels, falls back to the hashed SV primary key convention.
 
@@ -123,12 +134,36 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
                 f"Invalid short insertion and/or deletion variant: '{variant}' "
             )
 
-        if len(variant.ref) + len(variant.alt) <= 10:  # still human readable
-            return self._vrs_service.normalize_positional_variant(
-                variant.positional_id, require_validation=require_validation
+        primary_key = variant.positional_id
+        if len(variant.ref) + len(variant.alt) > 20:
+            # too long to be human readable and indexable
+            # Hash the entire Allele (includes ref/alt), not just location
+            allele = (
+                variant.ga4gh_vrs.model_dump()
+                if variant.ga4gh_vrs is not None
+                else self._vrs_service.variant_to_vrs_allele(
+                    variant,
+                    require_validation=require_validation,
+                    normalize=False,
+                    as_json=False,
+                ).model_dump(exclude_none=True)
             )
-        else:
-            return self.sv_primary_key(variant)  # do like sv
+
+            hashed_allele_id = hashlib.sha512(
+                json.dumps(allele).encode("utf-8")
+            ).hexdigest()
+
+            primary_key = (
+                f"{str(variant.variant_class).replace('SHORT_', '')}_"
+                f"{variant.chromosome.name.upper()}_"
+                f"{hashed_allele_id[:8].upper()}"
+            )
+
+        self.logger.debug(
+            f"Primary Key for {variant.variant_class} - {str(variant)} = {primary_key}"
+        )
+
+        variant.id = primary_key
 
 
 class GA4GHVRSService(ComponentBaseMixin):
@@ -142,10 +177,12 @@ class GA4GHVRSService(ComponentBaseMixin):
         seqrepo_service_url: str,
         debug: bool = False,
         verbose: bool = False,
+        logger=None,
     ):
-        super().__init__(debug=debug, verbose=verbose)
+        super().__init__(debug=debug, verbose=verbose, logger=logger)
         self._seqrepo_data_proxy = create_dataproxy(f"seqrepo+{seqrepo_service_url}")
         self._assembly: GenomeBuild = genome_build
+        self._refget_accession_cache: dict = {}
 
         self._allele_translator = AlleleTranslator(
             data_proxy=self._seqrepo_data_proxy,
@@ -153,13 +190,16 @@ class GA4GHVRSService(ComponentBaseMixin):
         )
 
     def validate_sequence(
-        self, location: GenomicRegion, sequence: str, fail_on_error: bool = True
+        self,
+        location: ZeroBasedGenomicRegion,
+        sequence: str,
+        fail_on_error: bool = True,
     ):
         """
         Validate that a given sequence matches the reference genome at the specified location.
 
         Args:
-            location (GenomicRegion): Genomic region with chromosome, start, and end coordinates.
+            location (ZeroBasedGenomicRegion): Genomic region with chromosome, start, and end coordinates.
             sequence (str): Sequence to validate against the reference genome.
             fail_on_error (bool, optional): If True, raise ValidationError on mismatch.
                 If False, log a warning instead. Default is True.
@@ -169,7 +209,7 @@ class GA4GHVRSService(ComponentBaseMixin):
                 and fail_on_error is True.
         """
         self.get_refget_accession(location.chromosome)  # verify chromosome
-        start = location.start - 1  # genomic region is 1-based
+        start = location.start
         try:
             self._seqrepo_data_proxy.validate_ref_seq(
                 f"{self._assembly}:{location.chromosome}",
@@ -183,7 +223,85 @@ class GA4GHVRSService(ComponentBaseMixin):
                 f"Invalid sequence: {sequence} does not match reference genome in the region: {str(location)}."
             )
 
-    def create_vrs_allele(
+    def snv_to_vrs_allele(self, variant: VariantRecord, as_json: bool = True):
+        """
+        Create a GA4GH VRS Allele for an SNV without seqrepo lookups.
+
+        For SNVs, no normalization is needed—construct the Allele directly from
+        the variant's ref/alt and cached refget accession for the chromosome.
+
+        Args:
+            variant (VariantRecord): SNV variant with ref and alt alleles.
+            as_json (bool, optional): If True, return as JSON dict; otherwise return Allele object.
+                Default is True.
+
+        Returns:
+            dict or Allele: GA4GH VRS Allele object.
+        """
+        region: ZeroBasedGenomicRegion = OneBasedGenomicRegion(
+            chromosome=variant.chromosome,
+            start=variant.span.start,
+            end=variant.span.end,
+        ).to_zero_based_region()
+
+        vrs_location = self.create_vrs_sequence_location(
+            region, normalize=False, compute_id=False
+        )
+
+        state = LiteralSequenceExpression(sequence=variant.alt)
+        allele = Allele(location=vrs_location, state=state)
+        allele.id = ga4gh_identify(allele)
+
+        return allele.model_dump(exclude_none=True) if as_json else allele
+
+    def variant_to_vrs_allele(
+        self,
+        variant: VariantRecord,
+        require_validation: bool = True,
+        normalize: bool = True,
+        as_json: bool = True,
+    ):
+        if variant.variant_class.is_structural_variant():
+            return self.sv_to_vrs_allele(variant, as_json=as_json)
+        elif variant.variant_class == VariantClass.SNV:
+            return self.snv_to_vrs_allele(variant, as_json=as_json)
+        else:
+            return self.variant_id_to_vrs_allele(
+                variant.positional_id,
+                variant_id_type=VariantNomenclature.POSITIONAL,
+                require_validation=require_validation,
+                normalize=normalize,
+                as_json=as_json,
+            )
+
+    def sv_to_vrs_allele(
+        self,
+        variant: VariantRecord,
+        as_json: bool = True,
+    ):
+        region: ZeroBasedGenomicRegion = OneBasedGenomicRegion(
+            chromosome=variant.chromosome,
+            start=variant.span.start,
+            end=variant.span.end,
+        ).to_zero_based_region()
+
+        vrs_location = self.create_vrs_sequence_location(
+            region, normalize=False, compute_id=False
+        )
+
+        if variant.variant_class == "DEL":
+            state = ReferenceLengthExpression(length=variant.length)
+        elif variant.variant_class == "INS":
+            state = LiteralSequenceExpression(sequence=variant.alt)
+        else:
+            state = LengthExpression(length=variant.length)
+
+        allele = Allele(location=vrs_location, state=state)
+        allele.id = ga4gh_identify(allele)
+
+        return allele.model_dump(exclude_none=True) if as_json else allele
+
+    def variant_id_to_vrs_allele(
         self,
         variant_id: str,
         variant_id_type: VariantNomenclature,
@@ -229,6 +347,7 @@ class GA4GHVRSService(ComponentBaseMixin):
                 require_validation=require_validation,
                 do_normalize=normalize,
             )
+        allele.id = ga4gh_identify(allele)
         return allele.model_dump(exclude_none=True) if as_json else allele
 
     def allele_to_positional_variant(self, vrs_allele: Allele) -> str:
@@ -260,7 +379,10 @@ class GA4GHVRSService(ComponentBaseMixin):
                 ref = self.get_sequence(vrs_allele.location)
             alt = vrs_allele.state.sequence.root
         elif vrs_allele.state.type == "ReferenceLengthExpression":
-            if vrs_allele.state.sequence.root == "":  # bug, happens sometimes
+            if (
+                vrs_allele.state.sequence is None
+                or vrs_allele.state.sequence.root == ""
+            ):  # happens sometimes for repeats
                 ref = self.get_sequence(vrs_allele.location)
             else:
                 ref = vrs_allele.state.sequence.root * vrs_allele.state.length
@@ -328,7 +450,7 @@ class GA4GHVRSService(ComponentBaseMixin):
                 f"Cannot convert: invalid positional variant identifier {variant_id}."
             )
 
-        allele: Allele = self.create_vrs_allele(
+        allele: Allele = self.variant_id_to_vrs_allele(
             variant_id,
             VariantNomenclature.GNOMAD,
             as_json=False,
@@ -358,7 +480,7 @@ class GA4GHVRSService(ComponentBaseMixin):
                 f"Cannot convert: invalid positional variant identifier {variant_id}."
             )
 
-        allele: Allele = self.create_vrs_allele(
+        allele: Allele = self.variant_id_to_vrs_allele(
             variant_id,
             VariantNomenclature.GNOMAD,
             as_json=False,
@@ -382,40 +504,45 @@ class GA4GHVRSService(ComponentBaseMixin):
         Raises:
             ValueError if chromosome cannot be mapped to a RefGet accession.
         """
-
-        refget_accession = self._seqrepo_data_proxy.translate_sequence_identifier(
-            f"{self._assembly}:{str(chromosome)}", "ga4gh"
-        )[0]
+        key = f"{self._assembly}:{str(chromosome)}"
+        refget_accession = self._refget_accession_cache.get(key, None)
+        if not refget_accession:
+            refget_accession = self._seqrepo_data_proxy.translate_sequence_identifier(
+                key, "ga4gh"
+            )[0]
         if not refget_accession:
             raise ValueError(
                 f"Unable to map chromosome {chromosome} to a GA4GH RefGet Accession"
             )
+
         return refget_accession
 
-    def get_sequence(self, location: Union[GenomicRegion, SequenceLocation]):
+    def get_sequence(self, location: Union[ZeroBasedGenomicRegion, SequenceLocation]):
         """
         Retrieve the reference sequence for a specified genomic region.
 
         Args:
-            region (GenomicRegion): Genomic region with chromosome, start, and end coordinates.
+            region (ZeroBasedGenomicRegion): Genomic region with chromosome, start, and end coordinates.
 
         Returns:
             str: Reference sequence string for the region.
         """
-        if isinstance(location, GenomicRegion):
+        is_genomic_region: bool = isinstance(location, ZeroBasedGenomicRegion)
+
+        if is_genomic_region:
+            if location.inclusive_end:
+                raise ValueError(
+                    "Must transform to zero-based coordinates before using GA4GH annotators"
+                )
             refget_accession = self.get_refget_accession(location.chromosome)
+
         else:
             refget_accession = location.sequenceReference.refgetAccession
 
         if not refget_accession.startswith("ga4gh"):
             refget_accession = f"ga4gh:{refget_accession}"
 
-        # 1 to 0-base conversion for genomicregion
-        start = (
-            location.start - 1
-            if isinstance(location, GenomicRegion)
-            else location.start
-        )
+        start = location.start
         return self._seqrepo_data_proxy.get_sequence(
             refget_accession, start=start, end=location.end
         )
@@ -440,7 +567,7 @@ class GA4GHVRSService(ComponentBaseMixin):
 
     def create_vrs_sequence_location(
         self,
-        region: GenomicRegion,
+        region: ZeroBasedGenomicRegion,
         normalize: bool = True,
         compute_id: bool = True,
     ):
@@ -456,7 +583,7 @@ class GA4GHVRSService(ComponentBaseMixin):
         normalize the location and compute its GA4GH identifier.
 
         Args:
-            region (GenomicRegion): Genomic region with chromosome, start, and end coordinates.
+            region (ZeroBasedGenomicRegion): Genomic region with chromosome, start, and end coordinates.
             normalize (bool, optional): If True, normalize the SequenceLocation. Default is True.
             compute_id (bool, optional): If True, compute and assign a GA4GH identifier.
                 Default is True.
@@ -466,13 +593,21 @@ class GA4GHVRSService(ComponentBaseMixin):
                 (if normalize=True),
             otherwise the raw SequenceLocation object.
         """
-        refget_accession = self.get_refget_accession(region.chromosome)
+        if region.inclusive_end:
+            raise ValueError(
+                "Must transform to zero-based coordinates before using GA4GH annotators"
+            )
+
+        refget_accession = self.get_refget_accession(region.chromosome).replace(
+            "ga4gh:", ""
+        )
 
         location = SequenceLocation(
             sequenceReference=SequenceReference(refgetAccession=refget_accession),
-            start=region.start - 1,  # genomic regions are 1-based
+            start=region.start,
             end=region.end,
         )
+
         if compute_id:
             location.id = ga4gh_identify(location)  # compute ga4gh identifier
         return vrs_normalize(location) if normalize else location
@@ -506,7 +641,7 @@ class GA4GHVRSService(ComponentBaseMixin):
             ValidationError: If require_validation is True and the reference
                 sequence does not match the reference genome.
         """
-        allele: Allele = self.create_vrs_allele(
+        allele: Allele = self.variant_id_to_vrs_allele(
             variant_id=variant_id,
             variant_id_type=VariantNomenclature.POSITIONAL,
             as_json=False,

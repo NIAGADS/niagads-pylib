@@ -1,13 +1,13 @@
 # adapted from https://github.com/ga4gh/vrs-python/blob/e28852f9369f74e07e23e4652695eb95710798f3/docker-compose.yml
 services:
   seqrepo:
-    container_name: variant-annotator-seqrepo
+    container_name: gdb-seqrepo
     image: biocommons/seqrepo:2024-12-20
     volumes:
       - ${HOST_SEQREPO_DATA_DIR}:/usr/local/share/seqrepo
 
   seqrepo-rest-service:
-    container_name: variant-annotator-seqrepo-rest
+    container_name: gdb-seqrepo-rest
     image: biocommons/seqrepo-rest-service:0.2.2
     volumes:
       - ${HOST_SEQREPO_DATA_DIR}:/usr/local/share/seqrepo
@@ -20,18 +20,24 @@ services:
     read_only: true
 
   uta:
-    container_name: variant-annotator-uta
+    container_name: gdb-uta
     image: biocommons/uta:uta_20241220
-    user: ${UTA_UID}:${UTA_GID}
     environment:
-      - POSTGRES_PASSWORD=$UTA_PGADMIN_PWD
+      - POSTGRES_PASSWORD=${UTA_PGADMIN_PWD}
     volumes:
       - ${HOST_UTA_DATA_DIR}:/var/lib/postgresql/data
     ports:
       - ${HOST_UTA_SERVICE_PORT}:5432
 
-volumes:
-  seqrepo_vol:
-    external: true
-  uta_vol:
-    external: true
+  vep:
+    container_name: gdb-vep
+    image: ensemblorg/ensembl-vep:${VEP_VERSION}
+    environment:
+      - HOME=/opt/vep
+      - VEP_SRC=/opt/vep/src/ensembl-vep
+      - TARGET_SPECIES=${SPECIES}
+      - TARGET_ASSEMBLY=${ASSEMBLY}
+      - PLUGINS=${VEP_PLUGINS}
+    volumes:
+      - ${HOST_VEP_CACHE_DIR}:/data
+    entrypoint: /bin/bash -c ' if [ "$$MODE" = "install" ]; then echo "Starting Install for $$TARGET_SPECIES ($$TARGET_ASSEMBLY)..."; perl $$VEP_SRC/INSTALL.pl -a cf -s $$TARGET_SPECIES -y $$TARGET_ASSEMBLY --plugins $$PLUGINS; else $$VEP_SRC/vep "$$@"; fi'

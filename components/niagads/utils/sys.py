@@ -1,5 +1,6 @@
 """i/o and other system (e.g., subprocess) utils"""
 
+import bz2
 import datetime
 import gzip
 import io
@@ -214,6 +215,8 @@ def read_open_ctx(
     mode = "rb" if is_binary else "rt"
     if path.endswith(".gz"):
         file_handle = gzip.open(path, mode, encoding=None if is_binary else encoding)
+    elif path.endswith(".bz2"):
+        file_handle = bz2.open(path, mode, encoding=None if is_binary else encoding)
     else:
         file_handle = open(path, mode, encoding=None if is_binary else encoding)
     try:
