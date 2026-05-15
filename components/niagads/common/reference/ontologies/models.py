@@ -2,7 +2,7 @@ from typing import Optional, Union
 from niagads.common.models.base import CustomBaseModel
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import dict_to_info_string, matches
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, ValidationInfo, field_validator, model_validator
 
 
 class OntologyTerm(CustomBaseModel):
@@ -27,27 +27,29 @@ class OntologyTerm(CustomBaseModel):
         default=None, description="Textual definition of the term"
     )
     namespace: Optional[str] = Field(default=None, title="Namespace")
-    synonyms: list[str] = Field(
-        default_factory=list, description="List of synonyms for the term"
+    synonyms: Optional[list[str]] = Field(
+        default=None, description="List of synonyms for the term"
     )
-    is_deprecated: bool = Field(
+    is_deprecated: Optional[bool] = Field(
         default=False, description="True if the term is deprecated"
     )
-    is_placeholder: bool = Field(default=False, description="True if palceholder term")
+    is_placeholder: Optional[bool] = Field(
+        default=False, description="True if palceholder term"
+    )
 
     @staticmethod
     def extract_curie(iri: str) -> str:
         return iri.rsplit("/", 1)[-1].replace("_", ":")
 
     @field_validator("curie", mode="before")
-    def validate_curie(cls, v, data: dict):
+    def validate_curie(cls, v, info: ValidationInfo):
         """
         Validate ID for the ontology term. If curie is None,
         extracts it from the URI. Raises a validation error if both are None.
         """
         if v is not None:
             return v
-        term_iri: str = data.get("curie")
+        term_iri: str = info.data.get("term_iri")
         if term_iri:
             return cls.extract_curie(term_iri)
 

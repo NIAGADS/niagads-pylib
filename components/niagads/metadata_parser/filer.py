@@ -81,13 +81,19 @@ class MetadataTemplateParser(ComponentBaseMixin):
 
     def to_track_records(self) -> Iterator[TrackRecord]:
         for entry in self.__metadata_template:
-            yield MetadataEntryParser(
+            if self._verbose:
+                self.logger.debug(f"{entry}")
+            record = MetadataEntryParser(
                 entry,
                 self.__filer_download_url,
                 debug=self._debug,
                 verbose=self._verbose,
                 logger=self.logger,
             ).to_track_record()
+
+            if self._verbose:
+                self.logger.debug(f"{record}")
+            yield record
 
 
 class MetadataEntryParser(ComponentBaseMixin):
@@ -99,7 +105,7 @@ class MetadataEntryParser(ComponentBaseMixin):
         -- camelCase to snake_case
         -- rename fields, e.g., antibody -> antibody_target
         -- remove (s)
-        -- identifier -> track_id
+        -- identifier -> id
 
     values:
         -- genome build: hg38 -> GRCh38, hg19 -> GRCh37
@@ -158,7 +164,7 @@ class MetadataEntryParser(ComponentBaseMixin):
             return value.replace("Not applicable;", "")
 
         if "date" in key.lower() and is_date(value):
-            return to_date(value)
+            return to_date(value, return_str=True)
 
         return unquote(value)  # html entities
 
@@ -211,15 +217,19 @@ class MetadataEntryParser(ComponentBaseMixin):
         # patches on assembled metadata
         self.__final_patches()
 
-        self.logger.debug(f"Done parsing metadata entry: {self.__metadata}")
+        if self._verbose:
+            self.logger.debug(f"Done parsing metadata entry: {self.__metadata}")
 
     def parse_basic_attributes(self):
-        """Basic attributes, including setting track_id"""
-        self.__metadata.update({"track_id": self.get_entry_attribute("identifier")})
+        """Basic attributes, including setting id"""
+        self.__metadata.update({"id": self.get_entry_attribute("identifier")})
         self.parse_descriptive_attributes()
         self.parse_genome_build()
         self.__metadata.update(
-            {"is_download_only": self.get_entry_attribute("download_only", False)}
+            {
+                "is_download_only": self.get_entry_attribute("track_type")
+                == "downloadOnly"
+            }
         )
 
     def parse_descriptive_attributes(self):
@@ -291,8 +301,7 @@ class MetadataEntryParser(ComponentBaseMixin):
 
             bsType = self.get_entry_attribute("biosample_type")
 
-            if self._debug:
-                self.logger.debug(f"term = {term}; term_id = {termId}; type = {bsType}")
+            # self.logger.debug(f"term = {term}; term_id = {termId}; type = {bsType}")
 
             if bsType in ["Fractionation", "Timecourse"]:
                 if self._verbose:
@@ -303,17 +312,38 @@ class MetadataEntryParser(ComponentBaseMixin):
                     )
                 bsType = "cell line"
 
+            tissue = self.get_entry_attribute("tissue_category")
+            system = self.get_entry_attribute("system_category")
+            lifestage = self.get_entry_attribute("life_stage")
+
             # TODO handle tissue categories, systems to be list
             characteristics = BiosampleCharacteristics(
-                biosample=[OntologyTerm(term=term, curie=termId)],
-                tissue=[self.get_entry_attribute("tissue_category")],
-                system=[self.get_entry_attribute("system_category")],
-                life_stage=self.get_entry_attribute("life_stage"),
-                biosample_type=None if bsType is None else str(BiosampleType(bsType)),
+                biosample=[
+                    OntologyTerm(
+                        term=term,
+                        curie=f"#FILER-biosample:{term}" if termId is None else termId,
+                    )
+                ],
+                tissue=(
+                    None
+                    if tissue is None
+                    else [OntologyTerm(term=tissue, curie=f"#FILER-tissue:{tissue}")]
+                ),
+                system=None if system is None else [system],
+                life_stage=(
+                    None
+                    if lifestage is None
+                    else OntologyTerm(
+                        term=lifestage, curie=f"FILER-lifestage:{lifestage}"
+                    )
+                ),
+                biosample_type=None if bsType is None else [BiosampleType(bsType)],
             )
 
             self.__metadata.update(
-                {"biosample_characteristics": characteristics.model_dump(exclude=None)}
+                {
+                    "biosample_characteristics": characteristics
+                }  # .model_dump(exclude=None)}
             )
 
     def parse_experimental_design(self):
@@ -391,12 +421,10 @@ class MetadataEntryParser(ComponentBaseMixin):
 
         # FIXME temporary patches
         if dataSource == "MiGA":
-            self.logger.info("Patching NIAGADS DSS Accession Provenance: MiGA")
             provenance.data_source = "NIAGADS DSS"
             provenance.accession = "NG00105"
             provenance.study = "MiGA - Microglia Genomic Atlas"
         if dataSource.startswith("NG00102"):
-            self.logger.info("Patching NIAGADS DSS Accession Provenance: NG000102")
             provenance.accession = provenance.data_source
             provenance.data_source = "NIAGADS DSS"
             provenance.study = provenance.release_version
@@ -454,7 +482,7 @@ class MetadataEntryParser(ComponentBaseMixin):
             if analysis == "annotation":
                 # check output type
                 if "gene" in outputType.lower():
-                    return "gene"
+                    return "GENE"
 
                 if "variant" in outputType.lower():
                     return "variant"
@@ -535,33 +563,8 @@ class MetadataEntryParser(ComponentBaseMixin):
         return None
 
     def parse_feature_type(self):
-        if "experimental_design" not in self.__metadata:
-            self.parse_experimental_design()
-
-        feature = self.__assign_feature_by_assay()
-        if feature is None:
-            feature = self.__assign_feature_by_analysis()
-        if feature is None:
-            feature = self.__assign_feature_by_classification()
-        if feature is None:
-            feature = self.__assign_feature_by_output_type()
-
-        if feature is None:
-            raise ValueError("No feature type mapped for track: ", self.__metadata)
-
-        # variants have unnecessary prefixes
-        # SAS GIH INDEL
-        # SAS GIH SNV
-        # SAS GIH SV
-        # SAS SV
-        if feature.endswith(" INDEL"):
-            feature = "insertion/deletion variant (INDEL)"
-        if feature.endswith(" SNV"):
-            feature = "single nucleotide variant (SNV)"
-        if feature.endswith(" SV"):
-            feature = "structural variant (SV)"
-
-        self.__metadata.update({"feature_type": feature})
+        # FIXME: this is now genomics db only, much improved data category captures this
+        self.__metadata.update({"feature_type": "REGION"})
 
     def __parse_data_category(self):
         category = self.get_entry_attribute("data_category")

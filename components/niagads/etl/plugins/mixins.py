@@ -5,7 +5,7 @@ from niagads.nlp.embeddings import TextEmbeddingGenerator
 from pydantic import BaseModel
 
 
-class ExternalDatabaseContextMixin(BaseModel):
+class ExternalDatabaseContextMixin:
     """
     Mixin for AbstractBasePlugin classes to provide context and validation for external database references.
 
@@ -20,7 +20,7 @@ class ExternalDatabaseContextMixin(BaseModel):
         on_run_start: Async hook to fetch and set the external database reference at ETL run start.
     """
 
-    _external_database: ExternalDatabase
+    _external_database: ExternalDatabase = None
 
     @property
     def external_database_id(self):
@@ -28,10 +28,10 @@ class ExternalDatabaseContextMixin(BaseModel):
 
     async def on_run_start(self, session):
         if self.is_etl_run:
-            self.__external_database = await self._params.fetch_xdbref(session)
+            self._external_database = await self._params.fetch_xdbref(session)
 
 
-class EmbeddingGeneratorContextMixin(BaseModel):
+class EmbeddingGeneratorContextMixin:
     """
     Mixin for ETL plugins to provide context and setup for text embedding generation.
 
@@ -49,6 +49,7 @@ class EmbeddingGeneratorContextMixin(BaseModel):
     """
 
     _table_ref: TableRef = None
+    _embedding_generator: TextEmbeddingGenerator = None
 
     async def set_table_ref(self, session, table_model):
         self._table_ref = await TableCatalog.get_table_ref(session, table_model)
