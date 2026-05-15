@@ -22,7 +22,7 @@ class ExperimentalDesign(CustomBaseModel):
         title="Classification",
         json_schema_extra={"is_filer_annotation": True},
     )
-    data_category: Optional[OntologyTerm] = Field(default=None, title="Data Category")
+    data_category: Optional[str] = Field(default=None, title="Data Category")
     output_type: Optional[str] = Field(
         default=None,
         title="Output Type",
