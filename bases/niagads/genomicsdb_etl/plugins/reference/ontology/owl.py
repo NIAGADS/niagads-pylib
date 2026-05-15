@@ -110,7 +110,9 @@ class OntologyTermLoader(
 
     async def on_run_start(self, session):
         """on run start hook override"""
-        super().on_run_start(session)  # embedding generator & external database
+        await ExternalDatabaseContextMixin.on_run_start(
+            self, session
+        )  # embedding generator & external database
 
         # get the table catalog reference for the OntologyTerm table
         self.set_table_ref(OntologyTerm)
