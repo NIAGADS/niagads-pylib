@@ -24,7 +24,7 @@ class ExternalDatabaseContextMixin(BaseModel):
 
     @property
     def external_database_id(self):
-        return self._external_database.external_database_id
+        return self._external_database.external_database_id if self.is_etl_run else None
 
     async def on_run_start(self, session):
         if self.is_etl_run:
