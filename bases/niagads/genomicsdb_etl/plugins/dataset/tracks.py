@@ -15,6 +15,7 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkMetadata,
 )
 from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
+from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.mixins import (
@@ -64,10 +65,13 @@ class TrackLoaderBase(
         verbose: bool = False,
     ):
         super().__init__(params, name, log_path, debug, verbose)
+        self._database_type_id: int = None
 
     async def on_run_start(self, session):
         await ExternalDatabaseContextMixin.on_run_start(self, session)
         await EmbeddingGeneratorContextMixin.on_run_start(self, session)
+
+        self.set_table_ref(session, Track)
 
     def get_record_id(self, record: TrackRecord):
         return record.id
@@ -178,6 +182,8 @@ class FILERTrackLoader(TrackLoaderBase):
         if not self._params.skip_live_validation:
             await self.__fetch_live_track_ids()
 
+        self._dataset_type_id = OntologyTerm.find_primary_key(session, filters={"term"})
+
     def __exclude_track(self, record: TrackRecord):
         """Determine if a track should be skipped."""
 
@@ -275,6 +281,7 @@ class FILERTrackLoader(TrackLoaderBase):
 
         PROGRESS_INTERVAL = 10
         embeddings = []
+        generated_count = 0
         for batch_index, chunk in enumerate(
             chunker(
                 embedded_track_records,
@@ -282,16 +289,16 @@ class FILERTrackLoader(TrackLoaderBase):
                 return_iterator=False,
             )
         ):
-            self.logger.debug(f"Embedding batch {batch_index}")
             embedding_subset = self._embedding_generator.generate(
                 [r.chunk_text for r in chunk],
                 as_list=True,
             )
             embeddings += embedding_subset
+            generated_count += len(chunk)
 
             if (batch_index + 1) % PROGRESS_INTERVAL == 0:
                 self.logger.info(
-                    f"Generated embeddings for {(batch_index + 1) * self._params.embedding_batch_size} / "
+                    f"Generated embeddings for {generated_count} / "
                     f"{len(embedded_track_records)} records"
                 )
 
@@ -307,13 +314,14 @@ class FILERTrackLoader(TrackLoaderBase):
         for record in records:
             tracks.append(
                 Track(
-                    record.track.model_dump(),
+                    **record.track.model_dump(exclude=["id"]),
+                    source_id=record.track.id,
                     run_id=self.run_id,
                     external_database_id=self.external_database_id,
                 )
             )
 
-        Track.submit_many(session, tracks)
+        await Track.submit_many(session, tracks)
 
         chunk_metadata: list[ChunkMetadata] = []
         for index, record in enumerate(records):
@@ -344,6 +352,7 @@ class FILERTrackLoader(TrackLoaderBase):
                     run_id=self.run_id,
                 )
             )
+
         await ChunkEmbedding.submit_many(session, chunk_embeddings)
 
         return self.create_checkpoint(record=records[-1])
