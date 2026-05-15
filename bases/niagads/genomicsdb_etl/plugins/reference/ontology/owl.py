@@ -110,12 +110,11 @@ class OntologyTermLoader(
 
     async def on_run_start(self, session):
         """on run start hook override"""
-        await ExternalDatabaseContextMixin.on_run_start(
-            self, session
-        )  # embedding generator & external database
+        await ExternalDatabaseContextMixin.on_run_start(self, session)
+        await EmbeddingGeneratorContextMixin.on_run_start(self, session)
 
         # get the table catalog reference for the OntologyTerm table
-        self.set_table_ref(OntologyTerm)
+        await self.set_table_ref(session, OntologyTerm)
 
     def get_record_id(self, record: OntologyTerm) -> str:
         """
