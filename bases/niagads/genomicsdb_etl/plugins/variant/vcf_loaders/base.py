@@ -12,7 +12,7 @@ from niagads.genomicsdb_etl.plugins.common.bases.features import (
     BaseFeatureLoaderPlugin,
 )
 from niagads.vcf.types import VCFEntry
-from pydantic import Field, HttpUrl
+from pydantic import Field
 
 
 class BaseVCFLoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
@@ -23,7 +23,7 @@ class BaseVCFLoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
         description=f"Reference genome build, one of {GenomeBuild.list()}",
     )
 
-    seqrepo_service_url: Optional[HttpUrl] = Field(
+    seqrepo_service_url: Optional[str] = Field(
         default="http://localhost:5000/seqrepo",
         description="URL to seqrepo service for GA4GH VRS",
     )
