@@ -8,14 +8,11 @@ from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional
 
 from niagads.common.types import ETLOperation
-from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
-from niagads.database.genomicsdb.schema.admin.types import TableRef
 from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
 from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
-from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
@@ -33,10 +30,8 @@ from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
-from niagads.nlp.embeddings import TextEmbeddingGenerator
-from niagads.nlp.llm_types import LLM, NLPModelType
 from niagads.ontology_parsers import OWLParser
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from sqlalchemy.exc import NoResultFound
 
 
