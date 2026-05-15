@@ -200,6 +200,8 @@ class BiosampleType(Enum):
                 if member.name.lower() == lvalue.replace(" ", "_"):
                     return member
 
+            if lvalue == "embryonic stem cell derived":
+                return cls.ESC_CELL_LINE
             if lvalue == "primary tissue":
                 return cls.TISSUE
             if lvalue == "in vitro differentiated cells":

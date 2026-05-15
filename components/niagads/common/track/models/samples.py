@@ -15,7 +15,7 @@ class BiosampleCharacteristics(CustomBaseModel):
         title="Biosample",
         description="ontology term describing the biosample",
     )
-    biosample_type: List[BiosampleType] = Field(
+    biosample_type: Optional[List[BiosampleType]] = Field(
         default=None,
         title="Biosample: Type",
         description="the biological source of a sample used in an experiment",

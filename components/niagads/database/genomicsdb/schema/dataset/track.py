@@ -9,6 +9,8 @@ from niagads.common.track.models import (
     Phenotype,
     Provenance,
 )
+from niagads.common.track.models.curation import CurationEvent
+from niagads.common.track.models.phenotypes import PhenotypeCount
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.database.mixins import GenomicRegionMixin
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
@@ -40,6 +42,8 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     track_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     is_filer_track: Mapped[bool] = mapped_column(default=False)
+
+    # FIXME: when we revisit ontology terms
     dataset_type_id: Mapped[int] = ontology_term_fk_column()
 
     name: Mapped[str]
@@ -68,6 +72,12 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     )
     provenance: Mapped[Provenance] = mapped_column(JSONB(none_as_null=True))
     file_properties: Mapped[Optional[FileProperties]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    study_diagnosis: Mapped[Optional[List[PhenotypeCount]]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    curation_history: Mapped[Optional[List[CurationEvent]]] = mapped_column(
         JSONB(none_as_null=True)
     )
 
