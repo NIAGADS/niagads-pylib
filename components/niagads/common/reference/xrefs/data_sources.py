@@ -21,8 +21,8 @@ class NIAGADSResources(CaseInsensitiveEnum):
     NIAGADS_DSS = "https://dss.niagads.org"
     ADVP = "https://advp.niagads.org"
     FILER = "https://tf.lisanwanglab.org/FILER"
-    FILER_API = "https://tf.lisanwanglab.org/FILER2/"
-    FILER_DOWNLOADS = "https://tf.lisanwanglab.org/GADB"
+    FILER_SERVICE_URL = "https://tf.lisanwanglab.org/FILER2/"
+    FILER_DOWNLOAD_URL = "https://tf.lisanwanglab.org/GADB"
     GENOMICSDB = "https://www.niagads.org/genomics"
 
     @classmethod

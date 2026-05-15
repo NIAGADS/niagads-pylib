@@ -22,24 +22,41 @@ class Provenance(CustomBaseModel):
         title="Accession",
         description="accession identifier in original data source; may be parent accession if track is part of a collection (e.g., NIAGADS DSS dataset accession)",
     )  # FIXME: for FILER set to None or figure out where original accession is?
-    release_date: str = Field(title="Release Date")
-    release_version: Optional[str] = Field(default=None, title="Release Version")
+
+    release_date: str = Field(
+        title="Release Date", json_schema_extra={"exclude_from_embeddings": True}
+    )
+
+    release_version: Optional[str] = Field(
+        default=None,
+        title="Release Version",
+        json_schema_extra={"exclude_from_embeddings": True},
+    )
+
     download_date: Optional[str] = Field(
         default=None,
         title="Download Date",
-        json_schema_extra={"is_filer_annotation": True},
+        json_schema_extra={
+            "is_filer_annotation": True,
+            "exclude_from_embeddings": True,
+        },
     )
+
     download_url: Optional[str] = Field(
         default=None,
         title="Download URL",
         exclude=True,
-        json_schema_extra={"is_filer_annotation": True},
+        json_schema_extra={
+            "is_filer_annotation": True,
+            "exclude_from_embeddings": True,
+        },
     )
     consortium: Optional[Set[Consortia]] = Field(
         default=None,
         title="Consortium",
         description=f"collaborative partnership",
     )
+
     study: Optional[str] = Field(
         default=None,
         title="Study",
@@ -59,8 +76,12 @@ class Provenance(CustomBaseModel):
         title="Attribution",
         description="Human-readable author citation for primary publication (or PI and year if no publication).  Must match author-date citation format, e.g., Smith 2006 or Smith et al. 2006",
     )  # FIXME: for FILER allow to be None
+
     pubmed_id: Optional[Set[T_PubMedID]] = Field(default=None, title="PubMed ID")
-    doi: Optional[Set[str]] = Field(default=None, title="DOI")
+
+    doi: Optional[Set[str]] = Field(
+        default=None, title="DOI", json_schema_extra={"exclude_from_embeddings": True}
+    )
 
     @field_validator("doi", mode="after")
     def validate_doi(cls, values: Set[str]):
@@ -95,7 +116,9 @@ class Provenance(CustomBaseModel):
 
 
 class FileProperties(CustomBaseModel):
-    file_name: str = Field(title="File Name")
+    file_name: str = Field(
+        title="File Name",
+    )
     url: Optional[str] = Field(
         default=None,
         title="URL",
