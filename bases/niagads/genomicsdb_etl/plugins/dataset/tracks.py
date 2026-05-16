@@ -107,7 +107,7 @@ class FILERTrackLoaderParams(TrackLoaderBaseParams):
     metadata=PluginMetadata(
         version="1.0",
         description=f"Parses and loads FILER metadata template file into the {Track.table_name()} table.",
-        affected_tables=[Track],
+        affected_tables=[ChunkEmbedding, ChunkMetadata, Track],
         load_strategy=ETLLoadStrategy.BULK,
         operation=ETLOperation.INSERT,
         is_large_dataset=False,
