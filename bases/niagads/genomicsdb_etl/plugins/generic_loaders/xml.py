@@ -20,7 +20,7 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-from niagads.utils.string import dict_to_info_string
+from niagads.utils.string import dict_to_info_string, is_number, to_number
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -189,6 +189,10 @@ class XMLRecordLoader(AbstractBasePlugin):
 
                         # normalize whitespace; preserve empty/null semantics
                         value = child.text.strip() if child.text is not None else None
+
+                        # identify numbers
+                        if is_number(value):
+                            value = to_number(value)
 
                         # convert nested dicts and arrays to correct python types
                         if isinstance(value, str) and (
