@@ -59,6 +59,10 @@ class OWLLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefM
         description="if term already exists in the table, attempts to update defintion and synonyms if necessary; if set to false, just skips existing terms",
     )
     validate_file_exists = PathValidatorMixin.validator("file")
+    curie_prefix: Optional[str] = Field(
+        default=None,
+        description="prefix for curie for ontologies that don't include the namespace in the curie; e.g., EDAM -> topic:001 => EDAM:topic_001",
+    )
 
 
 class OntologyTermReferenceLoaderParams(OWLLoaderParams, EmbeddingParameterMixin): ...
@@ -182,7 +186,11 @@ class OntologyTermLoader(
         embedded_ontology_terms = []
         text = []
         for record in records:
-            record["source_id"] = record.pop("curie")
+            curie = record.pop("curie")
+            if self._params.curie_prefix is not None:
+                curie = f"{self._params.curie_prefix}:{curie.replace(':', '_')}"
+            record["source_id"] = curie
+
             term: OntologyTerm = OntologyTerm(**record)
             if term.label is None:
                 term.label = term.term.replace("_", " ")
