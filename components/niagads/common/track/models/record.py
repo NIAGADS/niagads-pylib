@@ -11,15 +11,14 @@ from niagads.common.track.models import (
     Provenance,
 )
 from niagads.common.track.models.phenotypes import PhenotypeCount
-from niagads.genome_reference.human import GenomeBuild
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from pydantic import Field
 
 
 class TrackRecord(CustomBaseModel):
 
-    track_id: str = Field(
+    id: str = Field(
         title="Track ID",
-        alias="id",
         serialization_alias="id",
         description="stable track identifier",
     )
@@ -37,16 +36,32 @@ class TrackRecord(CustomBaseModel):
     )
 
     is_download_only: Optional[bool] = Field(
-        default=False,
+        default=None,
         title="Download Only",
         description="File is available for download only; data cannot be queried using the NIAGADS Open Access API.",
-        json_schema_extra={"is_filer_annotation": True},
+        json_schema_extra={
+            "is_filer_annotation": True,
+            "exclude_from_embeddings": True,
+        },
     )
     is_shard: Optional[bool] = Field(
-        default=False,
+        default=None,
         title="Is Shard?",
         description="Flag indicating whether track is part of a result set sharded by chromosome.",
-        json_schema_extra={"is_filer_annotation": True},
+        json_schema_extra={
+            "is_filer_annotation": True,
+            "exclude_from_embeddings": True,
+        },
+        exclude=True,
+    )
+
+    shard_chromosome: Optional[HumanGenome] = Field(
+        default=None,
+        title="Shard Chromosome",
+        json_schema_extra={
+            "is_filer_annotation": True,
+            "exclude_from_embeddings": True,
+        },
         exclude=True,
     )
 
@@ -55,7 +70,7 @@ class TrackRecord(CustomBaseModel):
         title="Provenance",
     )
     file_properties: FileProperties = Field(
-        title="File Properties",
+        title="File Properties", json_schema_extra={"exclude_from_embeddings": True}
     )
     experimental_design: ExperimentalDesign = Field(
         default=None,
@@ -69,6 +84,7 @@ class TrackRecord(CustomBaseModel):
         default=None,
         title="Study Diagnosis",
         description="number of cases and controls",
+        json_schema_extra={"exclude_from_embeddings": True},
     )
     biosample_characteristics: Optional[BiosampleCharacteristics] = Field(
         default=None,
@@ -79,6 +95,7 @@ class TrackRecord(CustomBaseModel):
         default=None,
         title="Curation History",
         description="Chronological list of curation events applied to this track",
+        json_schema_extra={"exclude_from_embeddings": True},
     )
 
     def to_ga4gh_drs(self) -> dict:

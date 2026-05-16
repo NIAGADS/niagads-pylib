@@ -76,16 +76,6 @@ class Track(Base):
 
 
 TARGET_TABLE = "dataset.track"  # f"{Track..schema}.{Track.__tablename__}"
-SKIP_DATASOURCES = [
-    "RefSeq",
-    "1K Genome Phase3",
-    "dbSNP",
-    "DASHR2",
-    "RefSeq",
-    "HOMER",
-    "Inferno",
-    "Gencode",
-]
 
 
 class Counts(BaseModel):
@@ -102,8 +92,8 @@ class TrackMetadataLoader(AbstractDataLoader):
         databaseUri: str,
         dataStore: TrackDataStore,
         genomeBuild: GenomeBuild = GenomeBuild.GRCh38,
-        apiUrl: str = NIAGADSResources.FILER_API,
-        downloadUrl: str = NIAGADSResources.FILER_DOWNLOADS,
+        apiUrl: str = NIAGADSResources.FILER_SERVICE_URL,
+        downloadUrl: str = NIAGADSResources.FILER_DOWNLOAD_URL,
         commit: bool = False,
         test: bool = False,
         debug: bool = False,
@@ -136,88 +126,6 @@ class TrackMetadataLoader(AbstractDataLoader):
         if self._debug:
             self.logger.debug(f"Parsed track type = {type(self.__parsedTracks[0])}")
             self.logger.debug(f"{self.__parsedTracks[0].model_dump()}")
-
-    async def fetch_live_track_ids(self):
-        """Fetch live FILER track identifiers reference."""
-
-        sessionManager = HttpClientSessionManager(self.__apiUrl, debug=self._debug)
-        params = {"genomeBuild": self.__genomeBuild.hg_label()}
-        response: dict = await sessionManager.fetch_json("get_metadata.php", params)
-        await sessionManager.close()
-
-        self.__liveTracks = {
-            t[
-                "identifier"
-            ]: True  # t["Identifier"] if "Identifier" in t else t["#Identifier"]: True
-            for t in response
-        }
-
-        self.logger.info(
-            f"Retrieved {len(self.__liveTracks)} {self.__genomeBuild} live tracks for validation."
-        )
-
-        self.logger.debug(self.__liveTracks)
-
-    def __skip_track(self, track: Track):
-        """Determine if a track should be skipped."""
-
-        if track.genome_build is None:
-            self.logger.debug(f"Skipped {track.name} - no genome build")
-            return True
-
-        if "CADD" in track.name:
-            self.logger.debug(f"Skipped {track.name}")
-            return True
-
-        if track.name.startswith("GWAS_Catalog"):
-            self.logger.debug(f"Skipped {track.name}")
-            return True
-
-        dataSource = track.provenance.get("data_source")
-        if dataSource in SKIP_DATASOURCES:
-            self.logger.debug(f"Skipped {dataSource}")
-            return True
-
-        if dataSource.startswith("Ensembl"):
-            self.logger.debug(f"Skipped {track.name}")
-            return True
-
-        if dataSource.startswith("UCSC"):
-            self.logger.debug(f"Skipped {track.name}")
-            return True
-
-        if "Not applicable" in track.name:
-            raise ValueError(
-                f"Malformed track name.  Please review and correct or update skip_track criteria to proceed."
-            )
-
-        if not self.__skipLiveValidation:
-            if track.track_id not in self.__liveTracks:
-                return True
-
-        return False
-
-    def __get_shard_root(self, fileName: str):
-        # get shard root from file name
-        shardKey = regex_replace(RegularExpressions.SHARD, "_", fileName)
-        if shardKey not in self.__shardedTracks:
-            self.__shardedTracks[shardKey] = next(
-                (
-                    t.track_id
-                    for t in self.__parsedTracks
-                    if regex_replace(
-                        RegularExpressions.SHARD,
-                        "_",
-                        t.file_properties.get("file_name"),
-                    )
-                    == shardKey
-                    and matches(r"_chr1_", t.file_properties.get("file_name"))
-                ),
-                None,
-            )
-        if self._debug:
-            self.logger.debug(f"Shard: {shardKey}: {self.__shardedTracks[shardKey]}")
-        return self.__shardedTracks[shardKey]
 
     async def load(self):
         self.report_config()

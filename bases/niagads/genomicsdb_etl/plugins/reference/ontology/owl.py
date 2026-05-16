@@ -8,27 +8,30 @@ from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional
 
 from niagads.common.types import ETLOperation
-from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
-from niagads.database.genomicsdb.schema.admin.types import TableRef
 from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
 from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
-from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.mixins import (
+    EmbeddingGeneratorContextMixin,
+    ExternalDatabaseContextMixin,
+)
+from niagads.etl.plugins.parameters import (
+    BasePluginParams,
+    EmbeddingParameterMixin,
+    PathValidatorMixin,
+)
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
-from niagads.nlp.embeddings import TextEmbeddingGenerator
-from niagads.nlp.llm_types import LLM, NLPModelType
 from niagads.ontology_parsers import OWLParser
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from sqlalchemy.exc import NoResultFound
 
 
@@ -56,23 +59,13 @@ class OWLLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefM
         description="if term already exists in the table, attempts to update defintion and synonyms if necessary; if set to false, just skips existing terms",
     )
     validate_file_exists = PathValidatorMixin.validator("file")
-
-
-class OntologyTermReferenceLoaderParams(OWLLoaderParams):
-    embedding_model: Optional[LLM] = Field(
-        LLM.ALL_MINILM_L6_V2,
-        description="LLM model for generating text embeddings",
-    )
-    embedding_batch_size: Optional[int] = Field(
-        default=128, description="batch size for calculating embeddings"
+    curie_prefix: Optional[str] = Field(
+        default=None,
+        description="prefix for curie for ontologies that don't include the namespace in the curie; e.g., EDAM -> topic:001 => EDAM:topic_001",
     )
 
-    @field_validator("embedding_model")
-    @classmethod
-    def validate_embedding_model(cls, v: LLM) -> LLM:
-        """Validate that embedding_model is in allowed embedding models list."""
-        LLM.validate(v, NLPModelType.EMBEDDING)
-        return LLM(v)
+
+class OntologyTermReferenceLoaderParams(OWLLoaderParams, EmbeddingParameterMixin): ...
 
 
 @PluginRegistry.register(
@@ -89,7 +82,9 @@ class OntologyTermReferenceLoaderParams(OWLLoaderParams):
         parameter_model=OntologyTermReferenceLoaderParams,
     )
 )
-class OntologyTermLoader(AbstractBasePlugin):
+class OntologyTermLoader(
+    AbstractBasePlugin, EmbeddingGeneratorContextMixin, ExternalDatabaseContextMixin
+):
     """
     ETL plugin for loading ontology terms from an OWL file into the reference ontologyterm table
     """
@@ -105,9 +100,6 @@ class OntologyTermLoader(AbstractBasePlugin):
         verbose: bool = False,
     ):
         super().__init__(params, name, log_path, debug, verbose)
-        self.__embedding_generator = None
-        self.__external_database = None
-        self.__table_ref = None
         self.__processed_record_count = 0
 
     async def __fetch_existing_term(
@@ -122,35 +114,11 @@ class OntologyTermLoader(AbstractBasePlugin):
 
     async def on_run_start(self, session):
         """on run start hook override"""
+        await ExternalDatabaseContextMixin.on_run_start(self, session)
+        await EmbeddingGeneratorContextMixin.on_run_start(self, session)
 
-        self.__embedding_generator = TextEmbeddingGenerator(
-            self._params.embedding_model
-        )
-        if self.__embedding_generator.is_cpu_limited:
-            if self._params.embedding_batch_size > 128:
-                self.logger.warning(
-                    "CPU detected; batch sizes > 128 may cause slowdowns or high memory use when calculating embeddings."
-                )
-        elif self._params.embedding_batch_size > 512:
-            self.logger.warning(
-                "GPU detected; batch sizes > 512 may cause slowdowns or high memory use when calculating embeddings."
-            )
-
-        # one-off-lookups
-
-        # validate the xdbref against the database
-        self.__external_database: ExternalDatabase = (
-            await self._params.fetch_xdbref(session) if self.is_etl_run else None
-        )
-
-        self.logger.debug(
-            f"external_database_id = {self.__external_database.external_database_id}"
-        )
-
-        # for table_id in chunmk_metadata
-        self.__table_ref: TableRef = await TableCatalog.get_table_ref(
-            session, OntologyTerm
-        )
+        # get the table catalog reference for the OntologyTerm table
+        await self.set_table_ref(session, OntologyTerm)
 
     def get_record_id(self, record: OntologyTerm) -> str:
         """
@@ -194,13 +162,13 @@ class OntologyTermLoader(AbstractBasePlugin):
         return EmbeddedOntologyTerm(
             term=term,
             chunk_text=chunk_text,
-            chunk_hash=self.__embedding_generator.hash_text(chunk_text),
+            chunk_hash=self._embedding_generator.hash_text(chunk_text),
         )
 
     def __generate_embedded_term(self, term: OntologyTerm) -> EmbeddedOntologyTerm:
         """generate embeddings for a single term"""
         embedded_term = self.__generate_chunk_text(term)
-        embedded_term.embedding = self.__embedding_generator.generate(
+        embedded_term.embedding = self._embedding_generator.generate(
             embedded_term.chunk_text, as_list=True
         )
         return embedded_term
@@ -218,13 +186,17 @@ class OntologyTermLoader(AbstractBasePlugin):
         embedded_ontology_terms = []
         text = []
         for record in records:
-            record["source_id"] = record.pop("curie")
+            curie = record.pop("curie")
+            if self._params.curie_prefix is not None:
+                curie = f"{self._params.curie_prefix}:{curie.replace(':', '_')}"
+            record["source_id"] = curie
+
             term: OntologyTerm = OntologyTerm(**record)
             if term.label is None:
                 term.label = term.term.replace("_", " ")
 
             term.run_id = self.run_id
-            term.external_database_id = self.__external_database.external_database_id
+            term.external_database_id = self.external_database_id
 
             if self._verbose:
                 self.logger.debug(f"Term: {term.model_dump()}")
@@ -233,7 +205,7 @@ class OntologyTermLoader(AbstractBasePlugin):
             embedded_ontology_terms.append(embedded_term)
             text.append(embedded_term.chunk_text)
 
-        embeddings = self.__embedding_generator.generate(text, as_list=False)
+        embeddings = self._embedding_generator.generate(text, as_list=False)
 
         eterm: EmbeddedOntologyTerm
         for index, eterm in enumerate(embedded_ontology_terms):
@@ -249,7 +221,7 @@ class OntologyTermLoader(AbstractBasePlugin):
     def __generate_chunk_metadata(self, term_records: list[EmbeddedOntologyTerm]):
         return [
             ChunkMetadata(
-                table_id=self.__table_ref.table_id,
+                table_id=self._table_ref.table_id,
                 row_id=embedded_term.term.ontology_term_id,
                 document_type=str(RAGDocType.ONTOLOGY),
                 document_hash=embedded_term.chunk_hash,
@@ -282,7 +254,7 @@ class OntologyTermLoader(AbstractBasePlugin):
         chunk_metadata: ChunkMetadata = await ChunkMetadata.fetch_record(
             session,
             filters={
-                "table_id": self.__table_ref.table_id,
+                "table_id": self._table_ref.table_id,
                 "row_id": embedded_term.term.ontology_term_id,
             },
         )
@@ -341,9 +313,7 @@ class OntologyTermLoader(AbstractBasePlugin):
                     if await existing_record.in_namespace(
                         session, self.__external_database.database_key
                     ):
-                        existing_record.external_database_id = (
-                            self.__external_database.external_database_id
-                        )
+                        existing_record.external_database_id = self.external_database_id
                         await existing_record.update(session)
 
                     updated_term = self.__generate_embedded_term(existing_record)

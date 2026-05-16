@@ -162,13 +162,13 @@ def xstr(value, null_str="", falseAsNull=False, dictsAsJson=True):
             return str(value)
 
     if is_date(value):
-        return to_date(value, returnStr=True)
+        return to_date(value, return_str=True)
 
     return str(value)
 
 
 # FIXME: try/catch for non numeric types
-def to_date(value, pattern="%Y-%m-%d", returnStr=False):
+def to_date(value, pattern="%Y-%m-%d", return_str=False):
     """converts a string into a Python date time object or reformat existing datetime object
 
     Args:
@@ -181,7 +181,7 @@ def to_date(value, pattern="%Y-%m-%d", returnStr=False):
         formatted string (following pattern) if returnStr is True
     """
     date = value if isinstance(value, datetime) else parse_date(value, fuzzy=True)
-    return date.strftime(pattern) if returnStr else date
+    return date.strftime(pattern) if return_str else date
 
 
 def to_bool(val, int_as_bool: bool = True):
