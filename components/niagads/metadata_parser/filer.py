@@ -225,12 +225,8 @@ class MetadataEntryParser(ComponentBaseMixin):
         self.__metadata.update({"id": self.get_entry_attribute("identifier")})
         self.parse_descriptive_attributes()
         self.parse_genome_build()
-        self.__metadata.update(
-            {
-                "is_download_only": self.get_entry_attribute("track_type")
-                == "downloadOnly"
-            }
-        )
+        if self.get_entry_attribute("track_type") == "downloadOnly":
+            self.__metadata.update({"is_download_only": True})
 
     def parse_descriptive_attributes(self):
         """parse name and description"""

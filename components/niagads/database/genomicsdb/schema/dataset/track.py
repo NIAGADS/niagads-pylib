@@ -52,7 +52,7 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     genome_build: Mapped[str] = enum_column(GenomeBuild)
 
     feature_type: Mapped[str] = mapped_column(String(50), index=True)
-    is_download_only: Mapped[bool] = mapped_column(index=True)
+    is_download_only: Mapped[bool] = mapped_column(index=True, nullable=True)
 
     is_shard: Mapped[Optional[bool]]
     shard_chromosome: Mapped[str] = enum_column(
