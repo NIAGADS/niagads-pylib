@@ -41,7 +41,7 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
 
     track_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    is_filer_track: Mapped[bool] = mapped_column(default=False)
+    is_filer_track: Mapped[bool] = mapped_column()
 
     # FIXME: when we revisit ontology terms
     dataset_type_id: Mapped[int] = ontology_term_fk_column()
@@ -52,7 +52,7 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     genome_build: Mapped[str] = enum_column(GenomeBuild)
 
     feature_type: Mapped[str] = mapped_column(String(50), index=True)
-    is_download_only: Mapped[bool] = mapped_column(default=False, index=True)
+    is_download_only: Mapped[bool] = mapped_column(index=True)
 
     is_shard: Mapped[Optional[bool]]
     shard_chromosome: Mapped[str] = enum_column(

@@ -36,7 +36,7 @@ class TrackRecord(CustomBaseModel):
     )
 
     is_download_only: Optional[bool] = Field(
-        default=False,
+        default=None,
         title="Download Only",
         description="File is available for download only; data cannot be queried using the NIAGADS Open Access API.",
         json_schema_extra={
@@ -45,7 +45,7 @@ class TrackRecord(CustomBaseModel):
         },
     )
     is_shard: Optional[bool] = Field(
-        default=False,
+        default=None,
         title="Is Shard?",
         description="Flag indicating whether track is part of a result set sharded by chromosome.",
         json_schema_extra={

@@ -317,11 +317,12 @@ class FILERTrackLoader(TrackLoaderBase):
         for record in records:
             tracks.append(
                 Track(
-                    **record.track.model_dump(exclude=["id"]),
+                    **record.track.model_dump(exclude=["id"], exclude_none=True),
                     source_id=record.track.id,
                     dataset_type_id=self._dataset_type_id,
                     run_id=self.run_id,
                     external_database_id=self.external_database_id,
+                    is_filer_track=True,
                 )
             )
 
