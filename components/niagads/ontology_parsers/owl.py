@@ -78,6 +78,12 @@ class OWLParser(ComponentBaseMixin):
             return None
 
         definition = entity_properties.get(get_field_iri("definition"), [None])[0]
+
+        if definition is None:  # FIXME
+            definition = entity_properties.get(
+                get_field_iri("definition", preferred=False), [None]
+            )[0]
+
         synonyms = entity_properties.get(get_field_iri("synonym"), None)
 
         namespace = entity_properties.get(get_field_iri("namespace"), [None])[0]
