@@ -70,9 +70,12 @@ class OWLParser(ComponentBaseMixin):
         curie = entity_properties.get(get_field_iri("curie"), [None])[0]
         if curie is None:  # then extract from iri, e.g, for AnnotationProperty
             curie = OntologyTerm.extract_curie(entity_iri)
-        is_deprecated = bool(
-            entity_properties.get(get_field_iri("is_deprecated"), [False])[0]
+        is_deprecated = (
+            True
+            if bool(entity_properties.get(get_field_iri("is_deprecated"), [False])[0])
+            else None
         )
+
         term = self.__get_term_value(entity_properties, curie, is_deprecated)
         if term is None:
             return None
