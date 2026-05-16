@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from niagads.common.models.base import SerializationOptions
+from niagads.common.models.base import CustomBaseModel, SerializationOptions
 from niagads.common.reference.xrefs.data_sources import NIAGADSResources
 from niagads.common.track.models.record import TrackRecord
 from niagads.common.types import ETLOperation
@@ -35,10 +35,10 @@ from niagads.metadata_parser.filer import MetadataTemplateParser
 from niagads.requests.core import HttpClientSessionManager
 from niagads.utils.list import chunker
 from niagads.utils.sys import read_open_ctx
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 
-class EmbeddedTrackRecord(BaseModel, arbitrary_types_allowed=True):
+class EmbeddedTrackRecord(CustomBaseModel, arbitrary_types_allowed=True):
     track: TrackRecord
     chunk_text: str
     chunk_hash: bytes
@@ -73,8 +73,8 @@ class TrackLoaderBase(
 
         await self.set_table_ref(session, Track)
 
-    def get_record_id(self, record: TrackRecord):
-        return record.id
+    def get_record_id(self, erecord: EmbeddedTrackRecord):
+        return erecord.track.id
 
 
 class FILERTrackLoaderParams(TrackLoaderBaseParams):
@@ -131,7 +131,7 @@ class FILERTrackLoader(TrackLoaderBase):
         "DASHR2",  # FIXME: something is wrong w/their name generation
     ]
     _FILER_METADATA_ENDPOINT = "get_metadata.php"
-    _DATASET_TYPE_CURIE: str = "topic:0085"  # FIX ME - temporary
+    _DATASET_TYPE_CURIE: str = "EDAM:topic_0085"  # FIX ME - temporary
 
     _params: FILERTrackLoaderParams
 
@@ -183,7 +183,7 @@ class FILERTrackLoader(TrackLoaderBase):
         if not self._params.skip_live_validation:
             await self.__fetch_live_track_ids()
 
-        self._dataset_type_id = OntologyTerm.find_primary_key(
+        self._dataset_type_id = await OntologyTerm.find_primary_key(
             session, curie=self._DATASET_TYPE_CURIE
         )
 
