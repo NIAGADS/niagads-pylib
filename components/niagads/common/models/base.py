@@ -43,7 +43,7 @@ class CustomBaseModel(BaseModel):
             _info.context is not None
             and _info.context.get(SerializationOptions.ENUMS_AS_NAME) is True
         ):
-            if isinstance(v, Enum) or isinstance(v, CaseInsensitiveEnum):
+            if isinstance(v, (Enum, CaseInsensitiveEnum)):
                 return v.name
 
         return v
@@ -54,6 +54,13 @@ class CustomBaseModel(BaseModel):
     ):
         """custom serializer to handle context, while respecting serialization options"""
         data = handler(self)
+
+        # exclude byte data
+        data = {
+            k: v
+            for k, v in data.items()
+            if not isinstance(v, (bytes, bytearray, memoryview))
+        }
 
         # Check if we should exclude empty objects (empty lists and dicts)
         if (
