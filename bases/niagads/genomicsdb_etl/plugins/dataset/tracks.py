@@ -71,7 +71,7 @@ class TrackLoaderBase(
         await ExternalDatabaseContextMixin.on_run_start(self, session)
         await EmbeddingGeneratorContextMixin.on_run_start(self, session)
 
-        self.set_table_ref(session, Track)
+        await self.set_table_ref(session, Track)
 
     def get_record_id(self, record: TrackRecord):
         return record.id
@@ -131,6 +131,7 @@ class FILERTrackLoader(TrackLoaderBase):
         "DASHR2",  # FIXME: something is wrong w/their name generation
     ]
     _FILER_METADATA_ENDPOINT = "get_metadata.php"
+    _DATASET_TYPE_CURIE: str = "topic:0085"  # FIX ME - temporary
 
     _params: FILERTrackLoaderParams
 
@@ -182,7 +183,9 @@ class FILERTrackLoader(TrackLoaderBase):
         if not self._params.skip_live_validation:
             await self.__fetch_live_track_ids()
 
-        self._dataset_type_id = OntologyTerm.find_primary_key(session, filters={"term"})
+        self._dataset_type_id = OntologyTerm.find_primary_key(
+            session, curie=self._DATASET_TYPE_CURIE
+        )
 
     def __exclude_track(self, record: TrackRecord):
         """Determine if a track should be skipped."""
@@ -316,6 +319,7 @@ class FILERTrackLoader(TrackLoaderBase):
                 Track(
                     **record.track.model_dump(exclude=["id"]),
                     source_id=record.track.id,
+                    dataset_type_id=self._dataset_type_id,
                     run_id=self.run_id,
                     external_database_id=self.external_database_id,
                 )
