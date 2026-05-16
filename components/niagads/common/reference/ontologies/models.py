@@ -31,10 +31,10 @@ class OntologyTerm(CustomBaseModel):
         default=None, description="List of synonyms for the term"
     )
     is_deprecated: Optional[bool] = Field(
-        default=False, description="True if the term is deprecated"
+        default=None, description="True if the term is deprecated"
     )
     is_placeholder: Optional[bool] = Field(
-        default=False, description="True if palceholder term"
+        default=None, description="True if palceholder term"
     )
 
     @staticmethod

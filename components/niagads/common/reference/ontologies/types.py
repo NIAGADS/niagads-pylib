@@ -55,7 +55,8 @@ class AnnotationPropertyIRI(CaseInsensitiveEnum):
 
     EDITOR_PREFERRED_LABEL = "http://purl.obolibrary.org/obo/IAO_0000111"
     LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
-    DEFINITION = "http://purl.obolibrary.org/obo/IAO_0000115"
+    OBO_DEFINITION = "http://purl.obolibrary.org/obo/IAO_0000115"
+    DEFINITION = "http://www.geneontology.org/formats/oboInOwl#hasDefinition"
     ID = "http://www.geneontology.org/formats/oboInOwl#id"
     HAS_EXACT_SYNONYM = "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym"
     DEPRECATED = "http://www.w3.org/2002/07/owl#deprecated"
