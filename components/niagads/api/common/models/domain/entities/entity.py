@@ -14,7 +14,7 @@ class Entity(CaseInsensitiveEnum):
         return self.value.title()
 
 
-class EntityRecordStats(BaseModel):
+class EntityMetrics(BaseModel):
     entity: Entity
     num_records: int
 
