@@ -7,7 +7,7 @@ from niagads.api.common.models.datasets.track import (
     AbridgedTrackResponse,
     TrackResponse,
 )
-from niagads.api.common.models.response.record import ResponseModel
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.parameters.pagination import page_param
 from niagads.api.common.parameters.record.path import collection_param
 from niagads.api.common.parameters.record.query import track_param
@@ -67,7 +67,7 @@ async def get_collections(
 @router.get(
     "/{collection}",
     response_model=Union[
-        ResponseModel, AbridgedTrackResponse, TrackResponse, TableViewResponse
+        BaseResponseModel, AbridgedTrackResponse, TrackResponse, TableViewResponse
     ],
     summary="get-collection-record-metadata",
     description="Get the metadata for all tracks associated with a FILER collection.",
@@ -86,7 +86,7 @@ async def get_collection_track_metadata(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[ResponseModel, AbridgedTrackResponse, TrackResponse, TableViewResponse]:
+) -> Union[BaseResponseModel, AbridgedTrackResponse, TrackResponse, TableViewResponse]:
 
     response_content = ResponseContent.validate(content, "content", ResponseContent)
     helper = FILERRouteHelper(
@@ -101,7 +101,7 @@ async def get_collection_track_metadata(
                 else (
                     AbridgedTrackResponse
                     if response_content == ResponseContent.BRIEF
-                    else ResponseModel
+                    else BaseResponseModel
                 )
             ),
         ),

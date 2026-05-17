@@ -8,7 +8,7 @@ from niagads.api.common.models.features.variant import (
     AbridgedVariantResponse,
     VariantResponse,
 )
-from niagads.api.common.models.response.record import ResponseModel
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.parameters.location import loc_param
 from niagads.api.common.parameters.record.filters import (
     VariantType,
@@ -45,7 +45,7 @@ MAX_SPAN = Settings.from_env().MAX_SPAN_SIZE
 # TODO add params for content, format, view
 @router.get(
     "/variant",
-    response_model=Union[ResponseModel, VariantResponse, AbridgedVariantResponse],
+    response_model=Union[BaseResponseModel, VariantResponse, AbridgedVariantResponse],
     name="Search for variants [Beta]",
     description=f"Retrieve variants by region (length < {MAX_SPAN:,}) and filter for variant type or impacted gene; this endpoint is in beta, future versions will allow more extended filtering on predicted consequence and variant class",
 )
@@ -54,7 +54,7 @@ async def search_varinats(
     variantType: VariantType = Depends(variant_type_param),
     impactedGene: str = Depends(vep_impacted_gene_param),
     internal: InternalRequestParameters = Depends(),
-) -> Union[ResponseModel, VariantResponse, AbridgedVariantResponse]:
+) -> Union[BaseResponseModel, VariantResponse, AbridgedVariantResponse]:
 
     svs_only = variantType == VariantType.SV
 

@@ -13,7 +13,7 @@ from niagads.api.common.models.features.gene import (
     GeneResponse,
 )
 from niagads.api.common.models.entities import Entity
-from niagads.api.common.models.response.record import ResponseModel
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.models.services.query import QueryFilter
 from niagads.api.common.parameters.associations import (
     association_source_param,
@@ -97,7 +97,7 @@ tags = []
 
 @router.get(
     "/{gene}/pathways",
-    response_model=Union[GeneAnnotationResponse, ResponseModel, TableViewResponse],
+    response_model=Union[GeneAnnotationResponse, BaseResponseModel, TableViewResponse],
     name="Get gene pathway membership",
     description="",
 )
@@ -113,7 +113,7 @@ async def get_gene_pathways(
         ResponseContent.FULL, description=ResponseContent.full_data(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[GeneAnnotationResponse, ResponseModel, TableViewResponse]:
+) -> Union[GeneAnnotationResponse, BaseResponseModel, TableViewResponse]:
 
     response_format = ResponseFormat.generic().validate(
         format, "format", ResponseFormat
@@ -130,7 +130,7 @@ async def get_gene_pathways(
             content=response_content,
             format=response_format,
             view=response_view,
-            model=ResponseModel if counts_only else GeneAnnotationResponse,
+            model=BaseResponseModel if counts_only else GeneAnnotationResponse,
         ),
         Parameters(id=gene.feature_id),
         query=GenePathwayQuery,
@@ -143,7 +143,7 @@ async def get_gene_pathways(
 
 @router.get(
     "/{gene}/function",
-    response_model=Union[GeneAnnotationResponse, ResponseModel, TableViewResponse],
+    response_model=Union[GeneAnnotationResponse, BaseResponseModel, TableViewResponse],
     name="Get gene-GO associations",
     description="",
 )
@@ -159,7 +159,7 @@ async def get_gene_function(
         ResponseContent.FULL, description=ResponseContent.full_data(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[GeneAnnotationResponse, ResponseModel, TableViewResponse]:
+) -> Union[GeneAnnotationResponse, BaseResponseModel, TableViewResponse]:
 
     response_format = ResponseFormat.generic().validate(
         format, "format", ResponseFormat
@@ -176,7 +176,7 @@ async def get_gene_function(
             content=response_content,
             format=response_format,
             view=response_view,
-            model=ResponseModel if counts_only else GeneAnnotationResponse,
+            model=BaseResponseModel if counts_only else GeneAnnotationResponse,
         ),
         Parameters(id=gene.feature_id),
         query=GeneFunctionQuery,
@@ -189,7 +189,9 @@ async def get_gene_function(
 
 @router.get(
     "/{gene}/associations",
-    response_model=Union[GeneticAssociationResponse, ResponseModel, TableViewResponse],
+    response_model=Union[
+        GeneticAssociationResponse, BaseResponseModel, TableViewResponse
+    ],
     name="Get genetic associations",
     description=(
         "Retrieve genetic associations (GWAS) for variants proximal to (+/- 1000kb) "
@@ -212,7 +214,7 @@ async def get_gene_genetic_associations(
         ResponseContent.FULL, description=ResponseContent.full_data(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[GeneticAssociationResponse, ResponseModel, TableViewResponse]:
+) -> Union[GeneticAssociationResponse, BaseResponseModel, TableViewResponse]:
 
     response_content = ResponseContent.full_data().validate(
         content, "content", ResponseContent
@@ -230,7 +232,7 @@ async def get_gene_genetic_associations(
             content=response_content,
             format=response_format,
             view=response_view,
-            model=ResponseModel if counts_only else GeneticAssociationResponse,
+            model=BaseResponseModel if counts_only else GeneticAssociationResponse,
         ),
         Parameters(
             id=gene.feature_id,

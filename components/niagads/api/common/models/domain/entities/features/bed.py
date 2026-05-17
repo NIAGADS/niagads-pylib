@@ -3,7 +3,7 @@ from typing import Any, List, Optional, Union
 from niagads.api.common.views.table import TableRow
 from niagads.api.common.constants import DEFAULT_NULL_STRING
 from niagads.api.common.models.mixins import DynamicRowModel
-from niagads.api.common.models.response.record import ResponseModel
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.views.table import Table
 from niagads.utils.string import dict_to_info_string
 from pydantic import Field
@@ -102,7 +102,7 @@ class BEDFeature(DynamicRowModel):
         return TableRow(**row)
 
 
-class BEDResponse(ResponseModel):
+class BEDResponse(BaseResponseModel):
     data: List[BEDFeature]
 
     def __has_dynamic_extras(self) -> bool:

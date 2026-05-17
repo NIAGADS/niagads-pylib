@@ -13,7 +13,7 @@ from niagads.api.common.models.features.variant import (
     VariantResponse,
 )
 from niagads.api.common.models.entities import Entity
-from niagads.api.common.models.response.record import ResponseModel
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.models.services.query import QueryFilter
 from niagads.api.common.parameters.associations import (
     association_source_param,
@@ -131,7 +131,9 @@ async def get_variant_allele_frequencies(
 
 @router.get(
     "/{variant}/associations",
-    response_model=Union[GeneticAssociationResponse, ResponseModel, TableViewResponse],
+    response_model=Union[
+        GeneticAssociationResponse, BaseResponseModel, TableViewResponse
+    ],
     name="Get GWAS genetic associations",
     description="Retrieve genetic associations (GWAS) for the variant",
 )
@@ -151,7 +153,7 @@ async def get_variant_genetic_associations(
         ResponseContent.FULL, description=ResponseContent.full_data(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[GeneticAssociationResponse, ResponseModel, TableViewResponse]:
+) -> Union[GeneticAssociationResponse, BaseResponseModel, TableViewResponse]:
 
     response_format = ResponseFormat.generic().validate(
         format, "format", ResponseFormat
@@ -169,7 +171,7 @@ async def get_variant_genetic_associations(
             content=response_content,
             format=response_format,
             view=response_view,
-            model=ResponseModel if counts_only else GeneticAssociationResponse,
+            model=BaseResponseModel if counts_only else GeneticAssociationResponse,
         ),
         Parameters(
             id=variant.feature_id,

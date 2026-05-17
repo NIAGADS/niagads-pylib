@@ -1,9 +1,10 @@
 from typing import List
-from niagads.api.common.data_models.response.record import RecordResponse
-from niagads.api.common.data_models.search import EntityRecordMatch
+
+from niagads.api.common.models.response.base import BaseResponseModel
+from niagads.api.common.models.service.entity_search import EntityRecordMatch
 
 
-class RecordSearchResultResponse(RecordResponse):
+class EntityMatchResponse(BaseResponseModel):
     data: List[EntityRecordMatch]
 
     def to_text(self, incl_header=False, null_str="NA"):

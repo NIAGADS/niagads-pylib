@@ -1,20 +1,17 @@
 from typing import List, Optional, Union
 
+from niagads.common.genomic.regions.models import GenomicRegion
 from niagads.common.variant.models.annotations import (
     CADDScore,
     PredictedConsequenceSummary,
     QCStatus,
 )
 from niagads.common.models.base import CustomBaseModel
-from niagads.api.common.views.table import TableRow
-from niagads.api.common.models.features.region import GenomicRegion
-
-from niagads.api.common.models.mixins import RowModel
-from niagads.api.common.models.response.record import ResponseModel
+from niagads.api.common.models.response.record import BaseResponseModel
 from pydantic import Field, field_validator
 
 
-class VariantFeature(RowModel):
+class VariantFeature(CustomBaseModel):
     positional_id: str = Field(title="Variant", order=1, serialization_alias="id")
     ref_snp_id: Optional[str] = Field(default=None, title="Ref SNP ID", order=1)
 
@@ -184,7 +181,7 @@ class FrequencyPopulation(CustomBaseModel):
         return self.population
 
 
-class AlleleFrequencies(RowModel):
+class AlleleFrequencies(CustomBaseModel):
     population: FrequencyPopulation = Field(title="Population", order=1)
     allele: str = Field(title="Allele", order=3)
 
@@ -195,22 +192,14 @@ class AlleleFrequencies(RowModel):
     )
     frequency: str = Field(title="Frequency", order=4)
 
-    def as_table_row(self, **kwargs):
-        row = self.flat_dump(delimiter=" // ")
-        population = {"value": self.population.population}
-        if self.population.description is not None:
-            population.update({"info": self.population.description})
-        row.update({"population": population})
-        return TableRow(**row)
 
-
-class VariantFunction(RowModel):
+class VariantFunction(CustomBaseModel):
     """ranked consequences"""
 
     pass
 
 
-class ColocatedVariants(RowModel):
+class ColocatedVariants(CustomBaseModel):
     alternative_alleles: Optional[List[str]] = None
     colocated_variants: Optional[List[str]] = None
 
@@ -225,20 +214,20 @@ class ColocatedVariants(RowModel):
         )
 
 
-class VariantAnnotationResponse(ResponseModel):
+class VariantAnnotationResponse(BaseResponseModel):
     data: Union[
         List[ColocatedVariants],
         List[VariantFunction],
         List[AlleleFrequencies],
-        List[RowModel],
+        List[CustomBaseModel],
     ]
 
 
-class AbridgedVariantResponse(ResponseModel):
+class AbridgedVariantResponse(BaseResponseModel):
     data: List[Variant]
 
 
-class VariantResponse(ResponseModel):
+class VariantResponse(BaseResponseModel):
     data: List[AnnotatedVariant]
 
     def to_text(self, incl_header=False, null_str=""):

@@ -4,16 +4,16 @@ from niagads.common.gene.models.annotation import (
     GOAssociation,
     PathwayMembership,
 )
-from niagads.api.common.models.mixins import RowModel
-from niagads.api.common.models.response.record import ResponseModel
+from niagads.api.common.models.response.record import BaseResponseModel
+from niagads.common.genomic.regions.models import GenomicRegion
+from niagads.common.models.base import CustomBaseModel
 from pydantic import Field
-from niagads.api.common.models.features.region import GenomicRegion
 
 
 # FIXME: this needs to be a common.model without the RowModel b/c it is used in
 # components/niagads/common/models/composite_attributes/variant.py
 # which creates an api dependency in alembic builds
-class GeneFeature(RowModel):
+class GeneFeature(CustomBaseModel):
     id: str = Field(title="Ensembl ID", description="Ensembl gene identifier")
     gene_symbol: Optional[str] = Field(
         default=None,
@@ -84,7 +84,7 @@ class AnnotatedGene(Gene):
         raise NotImplementedError("Not implemented for Annotated Genes")
 
 
-class GeneFunction(GOAssociation, RowModel):
+class GeneFunction(GOAssociation):
     def __str__(self):
         return self.to_info_string()
 
@@ -97,24 +97,23 @@ class GeneFunction(GOAssociation, RowModel):
         return obj
 
 
-class GenePathwayMembership(PathwayMembership, RowModel):
+class GenePathwayMembership(PathwayMembership):
     def __str__(self):
         return self.to_info_string()
 
 
-class GeneAnnotationResponse(ResponseModel):
+class GeneAnnotationResponse(BaseResponseModel):
     data: Union[
         List[GenePathwayMembership],
         List[GeneFunction],
-        List[RowModel],
     ]
 
 
-class AbridgedGeneResponse(ResponseModel):
+class AbridgedGeneResponse(BaseResponseModel):
     data: List[Gene]
 
 
-class GeneResponse(ResponseModel):
+class GeneResponse(BaseResponseModel):
     data: List[AnnotatedGene]
 
     def to_table(self, id=None, title=None):
@@ -126,7 +125,7 @@ class GeneResponse(ResponseModel):
         )
 
 
-class RegionGene(RowModel):
+class RegionGene(CustomBaseModel):
     gene: GeneFeature = Field(title="Gene")
     gene_type: str = Field(title="Gene Type")
     location: GenomicRegion

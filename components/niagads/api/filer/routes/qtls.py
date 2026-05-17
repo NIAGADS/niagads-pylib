@@ -3,7 +3,7 @@ from typing import Union
 
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.records.features.bed import BEDResponse
-from niagads.api.common.models.response.record import ResponseModel
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.views.table import TableViewResponse
 from niagads.api.common.parameters.location import loc_param
 from niagads.api.common.parameters.pagination import page_param
@@ -39,7 +39,7 @@ tags = ["Data Retrieval by Region", "xQTL Track Record"]
     "/{track}",
     tags=tags,
     name="Get QTLs by Region[Beta]",
-    response_model=Union[BEDResponse, TableViewResponse, ResponseModel],
+    response_model=Union[BEDResponse, TableViewResponse, BaseResponseModel],
     description="retrieve xQTL data from FILER for the specified genomic region or sequence feature",
 )
 async def get_feature_qtl(
@@ -55,7 +55,7 @@ async def get_feature_qtl(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[BEDResponse, TableViewResponse, ResponseModel]:
+) -> Union[BEDResponse, TableViewResponse, BaseResponseModel]:
 
     response_content = ResponseContent.data().validate(
         content, "content", ResponseContent
@@ -71,7 +71,7 @@ async def get_feature_qtl(
             model=(
                 BEDResponse
                 if response_content == ResponseContent.FULL
-                else ResponseModel
+                else BaseResponseModel
             ),
         ),
         Parameters(track=track, location=loc, page=page),

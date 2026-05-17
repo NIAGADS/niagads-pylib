@@ -48,7 +48,7 @@ class ORMCompatabileMixin:
         return {k: v for k, v in data.items() if k in fields or k.startswith("num_")}
 
 
-class ResultSizeMixin:
+class ResultMetricsMixin:
     num_results: int = Field(
         title="Num. Results",
         description="number of search results",

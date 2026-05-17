@@ -9,7 +9,7 @@ from niagads.api.common.models.features.region import (
     GenomicRegion,
     RegionResponse,
 )
-from niagads.api.common.models.response.record import ResponseModel
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.parameters.record.path import region_param
 from niagads.api.common.parameters.response import (
     ResponseContent,
@@ -76,13 +76,15 @@ async def get_region(
     return response
 
 
-class RegionAnnotationResponse(ResponseModel):
+class RegionAnnotationResponse(BaseResponseModel):
     data: Union[List[RegionVariant], List[RegionGene]]
 
 
 @router.get(
     "/{region}/variants",
-    response_model=Union[RegionAnnotationResponse, ResponseModel, TableViewResponse],
+    response_model=Union[
+        RegionAnnotationResponse, BaseResponseModel, TableViewResponse
+    ],
     name="Get co-located variants",
     description=f"retrieve variants contained within or overlapping this region.  If the regions is > {MAX_SPAN} bp, only structural variants will be retrieved",
 )
@@ -96,7 +98,7 @@ async def get_region_variants(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[RegionAnnotationResponse, ResponseModel, TableViewResponse]:
+) -> Union[RegionAnnotationResponse, BaseResponseModel, TableViewResponse]:
 
     svs_only: bool = svsOnly or not region.is_within_range_limit(MAX_SPAN)
 
@@ -134,7 +136,9 @@ async def get_region_variants(
 
 @router.get(
     "/{region}/genes",
-    response_model=Union[RegionAnnotationResponse, ResponseModel, TableViewResponse],
+    response_model=Union[
+        RegionAnnotationResponse, BaseResponseModel, TableViewResponse
+    ],
     name="Get co-located genes",
     description=f"retrieve genes contained within or overlapping this region.",
 )
@@ -147,7 +151,7 @@ async def get_region_genes(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[RegionAnnotationResponse, ResponseModel, TableViewResponse]:
+) -> Union[RegionAnnotationResponse, BaseResponseModel, TableViewResponse]:
 
     response_content = ResponseContent.FULL
     response_format = ResponseFormat.generic().validate(

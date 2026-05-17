@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.datasets.track import AbridgedTrackResponse
 from niagads.api.common.models.features.bed import BEDResponse
-from niagads.api.common.models.response.record import ResponseModel
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.parameters.location import assembly_param, loc_param
 from niagads.api.common.parameters.pagination import page_param
 from niagads.api.common.parameters.record.query import track_list_param
@@ -34,7 +34,7 @@ router = APIRouter(
     "/",
     summary="get-track-data-bulk",
     response_model=Union[
-        ResponseModel, BEDResponse, AbridgedTrackResponse, TableViewResponse
+        BaseResponseModel, BEDResponse, AbridgedTrackResponse, TableViewResponse
     ],
     description="Retrieve data from one or more FILER tracks in the specified region.",
 )
@@ -51,7 +51,7 @@ async def get_track_data_bulk(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[ResponseModel, BEDResponse, AbridgedTrackResponse, TableViewResponse]:
+) -> Union[BaseResponseModel, BEDResponse, AbridgedTrackResponse, TableViewResponse]:
 
     response_content = ResponseContent.data().validate(
         content, "content", ResponseContent
@@ -70,7 +70,7 @@ async def get_track_data_bulk(
                 else (
                     AbridgedTrackResponse
                     if response_content == ResponseContent.BRIEF
-                    else ResponseModel
+                    else BaseResponseModel
                 )
             ),
         ),
@@ -86,7 +86,7 @@ tags = [str(SharedOpenAPITags.SEARCH)]
 @router.get(
     "/search",
     response_model=Union[
-        ResponseModel, AbridgedTrackResponse, BEDResponse, TableViewResponse
+        BaseResponseModel, AbridgedTrackResponse, BEDResponse, TableViewResponse
     ],
     tags=tags,
     summary="get-track-data-by-metadata-search",
@@ -110,7 +110,7 @@ async def get_track_data_by_metadata_search(
     ),
     view: str = Query(ResponseView.DEFAULT, description=ResponseView.get_description()),
     internal: InternalRequestParameters = Depends(),
-) -> Union[ResponseModel, AbridgedTrackResponse, BEDResponse, TableViewResponse]:
+) -> Union[BaseResponseModel, AbridgedTrackResponse, BEDResponse, TableViewResponse]:
 
     response_content = ResponseContent.data().validate(
         content, "content", ResponseContent
@@ -129,7 +129,7 @@ async def get_track_data_by_metadata_search(
                 else (
                     AbridgedTrackResponse
                     if response_content == ResponseContent.BRIEF
-                    else ResponseModel
+                    else BaseResponseModel
                 )
             ),
         ),

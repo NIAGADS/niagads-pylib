@@ -1,7 +1,10 @@
 from typing import Any, ClassVar, Dict, List, Optional, Self, Union
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.data_models.mixins import ORMCompatabileMixin, ResultSizeMixin
+from niagads.api.common.models.domain.mixins import (
+    ORMCompatabileMixin,
+    ResultMetricsMixin,
+)
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.track.models import TrackRecord
 
@@ -11,7 +14,7 @@ from niagads.utils.dict import promote_nested
 from pydantic import ConfigDict, Field, model_validator
 
 
-class TrackSummary(CustomBaseModel, ORMCompatabileMixin):
+class TrackMetadataBrief(CustomBaseModel, ORMCompatabileMixin):
     model_config = ConfigDict(is_summary=True)
 
     id: str = Field(
@@ -52,10 +55,10 @@ class TrackSummary(CustomBaseModel, ORMCompatabileMixin):
     )
 
 
-class Track(TrackRecord, ORMCompatabileMixin): ...
+class TrackMetadata(TrackRecord, ORMCompatabileMixin): ...
 
 
-class TrackResultSize(CustomBaseModel, ResultSizeMixin):
+class TrackResultMetrics(CustomBaseModel, ResultMetricsMixin):
     id: str = Field(
         title="Track ID",
         description="stable track identifier",

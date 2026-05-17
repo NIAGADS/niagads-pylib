@@ -1,14 +1,13 @@
 from typing import List
 
-from niagads.api.common.models.mixins import RowModel
-from niagads.api.common.models.response.record import ResponseModel
-from niagads.api.common.parameters.response import ResponseView
+
+from niagads.api.common.models.domain.mixins import ORMCompatabileMixin
+from niagads.common.models.base import CustomBaseModel
 from pydantic import Field
 
 
-class Collection(RowModel):
-    primary_key: str = Field(
-        serialization_alias="id",
+class Collection(CustomBaseModel, ORMCompatabileMixin):
+    id: str = Field(
         title="Collection ID",
         description="Unique collection identifier; may be a NIAGADS Dataset Accession",
     )
@@ -17,9 +16,6 @@ class Collection(RowModel):
     num_tracks: int = Field(
         title="Number of Tracks", description="number of data tracks in the collection"
     )
-
-    def to_view_data(self, view: ResponseView, **kwargs):
-        return self.model_dump()
 
 
 class CollectionResponse(ResponseModel):

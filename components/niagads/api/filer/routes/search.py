@@ -6,7 +6,7 @@ from niagads.api.common.models.datasets.track import (
     AbridgedTrackResponse,
     TrackResponse,
 )
-from niagads.api.common.models.response.record import ResponseModel
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.parameters.location import assembly_param, chromosome_param
 from niagads.api.common.parameters.pagination import page_param
 from niagads.api.common.parameters.record.path import track_param
@@ -36,7 +36,7 @@ router = APIRouter(
 @router.get(
     "/",
     response_model=Union[
-        ResponseModel,
+        BaseResponseModel,
         AbridgedTrackResponse,
         TrackResponse,
         TableViewResponse,
@@ -61,7 +61,7 @@ async def search_track_metadata(
         ResponseView.DEFAULT, description=ResponseView.table(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[ResponseModel, AbridgedTrackResponse, TrackResponse, TableViewResponse]:
+) -> Union[BaseResponseModel, AbridgedTrackResponse, TrackResponse, TableViewResponse]:
 
     if filter is None and keyword is None:
         raise ValidationError(
@@ -81,7 +81,7 @@ async def search_track_metadata(
                 else (
                     AbridgedTrackResponse
                     if response_content == ResponseContent.BRIEF
-                    else ResponseModel
+                    else BaseResponseModel
                 )
             ),
         ),
@@ -95,7 +95,7 @@ async def search_track_metadata(
 
 @router.get(
     "/shard/{track}",
-    response_model=Union[TrackResponse, AbridgedTrackResponse, ResponseModel],
+    response_model=Union[TrackResponse, AbridgedTrackResponse, BaseResponseModel],
     summary="get-shard-metadata-beta",
     description=(
         "Some tracks are sharded by chromosome. "
@@ -114,7 +114,7 @@ async def get_shard(
         ResponseFormat.JSON, description=ResponseFormat.generic(description=True)
     ),
     internal: InternalRequestParameters = Depends(),
-) -> Union[AbridgedTrackResponse, TrackResponse, ResponseModel]:
+) -> Union[AbridgedTrackResponse, TrackResponse, BaseResponseModel]:
 
     response_content = ResponseContent.descriptive(inclUrls=True).validate(
         content, "content", ResponseContent
@@ -130,7 +130,7 @@ async def get_shard(
                 else (
                     AbridgedTrackResponse
                     if response_content == ResponseContent.BRIEF
-                    else ResponseModel
+                    else BaseResponseModel
                 )
             ),
         ),
