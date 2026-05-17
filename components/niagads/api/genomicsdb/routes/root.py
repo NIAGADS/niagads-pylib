@@ -5,7 +5,7 @@ from niagads.api.common.app.factory import AppFactory
 from niagads.api.common.constants import SharedOpenAPITags
 
 
-from niagads.api.common.models.records import Entity, RecordSummary
+from niagads.api.common.models.entities import Entity, EntityRecordStats
 from niagads.api.common.models.response.base import (
     MessageResponse,
     RecordResponse,
@@ -22,7 +22,6 @@ from niagads.api.genomicsdb.documentation import (
     PUBMED_IDS,
     APP_NAME,
 )
-
 
 router = APIRouter(tags=[APP_NAME])
 
@@ -48,7 +47,7 @@ async def get_database_description(
         description=OPEN_API_TAGS[0].description,
         url=OPEN_API_TAGS[0].externalDocs.get("url"),
         pubmed_id=PUBMED_IDS,
-        records=[RecordSummary(entity=Entity.TRACK, num_records=track_count)],
+        records=[EntityRecordStats(entity=Entity.TRACK, num_records=track_count)],
     )
     return MessageResponse(
         message=["Database Statistics currently being updated; check back soon"],

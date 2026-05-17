@@ -557,7 +557,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         # if transaction is successful, can update the checkpoint
         self.__checkpoint = checkpoint
         self.logger.info(
-            f"{msg} - CHECKPOINT: {self.__checkpoint.as_info_string(self._debug)}"
+            f"{msg} - CHECKPOINT: {self.__checkpoint.to_info_string(self._debug)}"
         )
 
     async def __execute_load(self, session, buffer) -> ResumeCheckpoint:

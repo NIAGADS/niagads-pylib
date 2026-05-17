@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from niagads.api.common.app.factory import AppFactory
 from niagads.api.common.constants import SharedOpenAPITags
 
-from niagads.api.common.models.records import Entity, RecordSummary
+from niagads.api.common.models.entities import Entity, EntityRecordStats
 from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.models.routes import RouteDescription
 from niagads.api.common.services.metadata.query import MetadataQueryService
@@ -43,7 +43,7 @@ async def get_database_description(
         description=OPEN_API_TAGS[0].description,
         url=OPEN_API_TAGS[0].externalDocs.get("url"),
         pubmed_id=PUBMED_IDS,
-        records=[RecordSummary(entity=Entity.TRACK, num_records=trackCount)],
+        records=[EntityRecordStats(entity=Entity.TRACK, num_records=trackCount)],
     )
     return RecordResponse(data=[result], request=internal.request_data)
 

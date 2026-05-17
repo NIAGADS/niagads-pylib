@@ -9,7 +9,7 @@ from niagads.common.models.base import CustomBaseModel
 from niagads.api.common.views.table import TableRow
 from niagads.api.common.models.features.region import GenomicRegion
 
-from niagads.api.common.models.base import RowModel
+from niagads.api.common.models.mixins import RowModel
 from niagads.api.common.models.response.record import RecordResponse
 from pydantic import Field, field_validator
 

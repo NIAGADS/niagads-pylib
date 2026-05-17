@@ -11,7 +11,7 @@ from niagads.api.common.models.features.region import (
     AnnotatedGenomicRegion,
     GenomicRegion,
 )
-from niagads.api.common.models.records import Entity
+from niagads.api.common.models.entities import Entity
 from niagads.api.common.models.services.query import (
     PreparedStatement,
     QueryDefinition,

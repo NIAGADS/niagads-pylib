@@ -88,7 +88,7 @@ class OntologyTerm(CustomBaseModel):
     def __str__(self):
         return self.term
 
-    def as_info_string(self) -> str:
+    def to_info_string(self) -> str:
         info: dict = {"term": self.term}
         if self.curie:
             info.update({"curie": self.curie})

@@ -1,5 +1,5 @@
 from niagads.api.common.config import Settings
-from niagads.api.common.models.records import Entity
+from niagads.api.common.models.entities import Entity
 from niagads.api.common.models.services.query import QueryDefinition
 
 REGION_RECORD_QUERY = f"""

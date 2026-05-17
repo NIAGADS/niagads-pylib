@@ -8,7 +8,7 @@ from niagads.common.track.models import (
     BiosampleCharacteristics,
     Phenotype,
 )
-from niagads.api.common.models.base import RowModel
+from niagads.api.common.models.mixins import RowModel
 from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.parameters.enums import EnumParameter
 from pydantic import Field, field_serializer, model_validator

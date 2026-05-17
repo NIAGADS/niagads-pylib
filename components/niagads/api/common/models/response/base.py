@@ -1,34 +1,55 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, Union
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.models.response.pagination import (
-    PaginationDataModel,
-)
-from niagads.api.common.models.response.request import RequestDataModel
+from niagads.api.common.data_models.response.mixins import TextSerializationMixin
+from niagads.api.common.data_models.response.pagination import PaginationDataModel
+from niagads.api.common.data_models.response.request import RequestDataModel
+
 from pydantic import BaseModel, Field
 
 
-class AbstractBaseResponse(BaseModel, ABC):
-    data: Union[list, dict]
+class PaginationDataModel(BaseModel):
+    """Captures pagination status."""
 
-    def is_empty(self):
-        return len(self.data) == 0
+    page: int = Field(
+        default=1,
+        description="if result is paged, indicates the current page of the result; defaults to 1",
+    )
+    total_num_pages: int = Field(
+        default=1,
+        description="if the result is paged, reports total number of pages in the full result set (response); defaults to 1",
+    )
+    paged_num_records: Optional[int] = Field(
+        default=None,
+        description="number of records in the current paged result set (response)",
+    )
+    total_num_records: Optional[int] = Field(
+        default=None,
+        description="total number of records in the full result set (response)",
+    )
 
+
+class AbstractBaseResponse(ABC, BaseModel):
     request: RequestDataModel = Field(
         description="details about the originating request"
     )
     pagination: Optional[PaginationDataModel] = Field(
         default=None, description="pagination status, if the result is paged"
     )
-    message: Optional[List[str]] = Field(
+    message: Optional[list[Union[str, dict]]] = Field(
         default=None, description="warning or info message(s) qualifying the response"
     )
 
+    @property
+    def is_empty(self):
+        return len(self.data) == 0
+
+    @property
     def is_paged(self):
         return self.pagination is not None
 
-    def add_message(self, msg: str):
+    def update_message(self, msg: Union[str, dict]):
         if self.message is None:
             self.message = [msg]
         else:
@@ -37,61 +58,22 @@ class AbstractBaseResponse(BaseModel, ABC):
     @abstractmethod
     def to_text(self, incl_header: bool = False, null_str: str = DEFAULT_NULL_STRING):
         """return a plain tab-delimited text reseponse"""
-        pass
-
-    @abstractmethod
-    def to_table(self, id: str = None, title: str = None):
-        """return a table view response"""
-        pass
-
-    @abstractmethod
-    def to_vcf(self):
-        """return a plain-text VCF formatted response"""
-        pass
-
-    @abstractmethod
-    def to_bed(self):
-        """return a plain-text BED formatted response"""
-        pass
+        ...
 
 
 class MessageResponse(AbstractBaseResponse):
-    data: dict = None
+    data: Dict[str, Any]
 
-    def to_text(self, incl_header=False, null_str="NA"):
-        raise NotImplementedError("Not implemented for messages")
-
-    def to_bed(self):
-        raise NotImplementedError("Not implemented for messages")
-
-    def to_table(self, id=None, title=None):
-        raise NotImplementedError("Not implemented for messages")
-
-    def to_vcf(self):
-        raise NotImplementedError("Not implemented for messages")
+    def to_text(self, incl_header=False, null_str=DEFAULT_NULL_STRING):
+        raise NotImplementedError(
+            "`to_text` conversion not implemented for MessageResponse"
+        )
 
 
-class ListResponse(AbstractBaseResponse):
+class ListResponse(AbstractBaseResponse, TextSerializationMixin):
     data: List[Union[str, int, float]]
 
-    def to_table(self, id=None, title=None):
-        raise NotImplementedError("Table views not available for non-tabular data.")
-
-    def to_bed(self):
-        raise NotImplementedError(
-            "BED formatted responses not available for non-tabular data."
+    def to_text(self, incl_header=False, null_str=DEFAULT_NULL_STRING):
+        return super().to_delimited_text(
+            incl_header=incl_header, delimiter="\n", null_str=null_str
         )
-
-    def to_vcf(self):
-        raise NotImplementedError(
-            "VCF formatted responses not available for non-tabular data."
-        )
-
-    def to_text(self, incl_header=False, null_str="NA"):
-        if self.is_empty():
-            return ""
-
-        return "\n".join([null_str if v is None else str(v) for v in self.data])
-
-
-T_Response = TypeVar("T_Response", bound=AbstractBaseResponse)

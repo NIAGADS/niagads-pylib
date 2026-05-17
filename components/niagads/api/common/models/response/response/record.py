@@ -1,7 +1,7 @@
 from typing import Any, List, TypeVar
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.models.base import DynamicRowModel, T_RowModel
+from niagads.api.common.models.mixins import DynamicRowModel, T_RowModel
 from niagads.api.common.models.response.base import AbstractBaseResponse
 from niagads.api.common.views.table import Table
 from pydantic import Field, model_validator

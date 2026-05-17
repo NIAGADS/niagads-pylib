@@ -4,7 +4,7 @@ from niagads.common.gene.models.annotation import (
     GOAssociation,
     PathwayMembership,
 )
-from niagads.api.common.models.base import RowModel
+from niagads.api.common.models.mixins import RowModel
 from niagads.api.common.models.response.record import RecordResponse
 from pydantic import Field
 from niagads.api.common.models.features.region import GenomicRegion
@@ -46,7 +46,7 @@ class Gene(GeneFeature):
     )
 
     def __str__(self):
-        return self.as_info_string()
+        return self.to_info_string()
 
     def flat_dump(self, null_free=False, delimiter="|"):
         obj = super().flat_dump(null_free, delimiter=delimiter)
@@ -74,7 +74,7 @@ class AnnotatedGene(Gene):
     go_annotation: Optional[List[GOAssociation]] = None
     pathway_membership: Optional[List[PathwayMembership]] = None
 
-    def as_info_string(self):
+    def to_info_string(self):
         raise NotImplementedError("Not implemented for Annotated Genes")
 
     def as_list(self, fields=None):
@@ -86,7 +86,7 @@ class AnnotatedGene(Gene):
 
 class GeneFunction(GOAssociation, RowModel):
     def __str__(self):
-        return self.as_info_string()
+        return self.to_info_string()
 
     def flat_dump(self, null_free=False, delimiter="|"):
         obj = super().flat_dump(null_free, delimiter=delimiter)
@@ -99,7 +99,7 @@ class GeneFunction(GOAssociation, RowModel):
 
 class GenePathwayMembership(PathwayMembership, RowModel):
     def __str__(self):
-        return self.as_info_string()
+        return self.to_info_string()
 
 
 class GeneAnnotationResponse(RecordResponse):

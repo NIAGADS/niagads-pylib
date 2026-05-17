@@ -12,7 +12,7 @@ from niagads.api.common.models.features.variant import (
     VariantAnnotationResponse,
     VariantResponse,
 )
-from niagads.api.common.models.records import Entity
+from niagads.api.common.models.entities import Entity
 from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.models.services.query import QueryFilter
 from niagads.api.common.parameters.associations import (

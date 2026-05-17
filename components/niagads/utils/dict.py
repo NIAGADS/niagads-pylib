@@ -42,24 +42,37 @@ def deep_merge(a: dict, b: dict) -> dict:
     return out
 
 
-def promote_nested(dictObj: dict, attributes=None, updateByReference: bool = False):
-    """promotes all nested dicts; e.g.:
-    {"A": {"B": 1, "C":2}, "D":3} -> {"B":1, "C":2, "D":3}
-    when updateByReference, will overwrite the original object
+def promote_nested(obj: dict, attributes=None, modify_in_place: bool = False):
+    """Promote nested dictionaries to the top level of a dictionary.
+
+    If `attributes` is provided, only nested dicts whose keys are in `attributes` are promoted.
+    Otherwise, all nested dicts are promoted. When `modify_in_place` is True, the original
+    object is modified; otherwise, a new object is returned.
+
+    Example:
+        {"A": {"B": 1, "C": 2}, "D": 3} -> {"B": 1, "C": 2, "D": 3}
+
+    Args:
+        obj (dict): The dictionary to promote nested dicts from.
+        attributes (list or None, optional): List of keys to promote if their values are dicts.
+            If None, all nested dicts are promoted. Defaults to None.
+        modify_in_place (bool): If True, modifies the original object. If False, returns a new object.
+
+    Returns:
+        dict or True: The updated dictionary if not modifying in place, otherwise True for success.
     """
-    newDict = deepcopy(dictObj) if not updateByReference else dictObj
+    new_obj = deepcopy(obj) if not modify_in_place else obj
     if attributes is not None:
-        objFields = [
-            k for k, v in newDict.items() if isinstance(v, dict) and k in attributes
+        fields = [
+            k for k, v in new_obj.items() if isinstance(v, dict) and k in attributes
         ]
     else:
-        objFields = [k for k, v in newDict.items() if isinstance(v, dict)]
+        fields = [k for k, v in new_obj.items() if isinstance(v, dict)]
 
-    for f in objFields:
-        newDict.update(dictObj.pop(f, None))
+    for f in fields:
+        new_obj.update(obj.pop(f, None))
 
-    if not updateByReference:
-        return newDict
+    return new_obj if not modify_in_place else True
 
 
 def all_values_are_none(dictObj: dict):

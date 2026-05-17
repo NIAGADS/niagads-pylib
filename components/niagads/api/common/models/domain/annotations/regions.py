@@ -1,4 +1,4 @@
-from niagads.api.common.models.base import RowModel
+from niagads.api.common.models.mixins import RowModel
 from niagads.api.common.models.features.region import GenomicRegion
 from niagads.api.common.models.features.variant import AbridgedVariant
 from pydantic import Field

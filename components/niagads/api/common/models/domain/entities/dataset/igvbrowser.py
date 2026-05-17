@@ -8,7 +8,7 @@ from niagads.common.track.models import (
     Provenance,
 )
 from niagads.api.common.config import Settings
-from niagads.api.common.models.base import RowModel
+from niagads.api.common.models.mixins import RowModel
 from niagads.api.common.models.response.record import RecordResponse
 from niagads.api.common.parameters.response import (
     ResponseFormat,
@@ -71,7 +71,7 @@ class IGVBrowserTrackConfig(RowModel):
         if not isinstance(data, dict):
             data = data.model_dump()  # assume data is an ORM w/model_dump mixin
 
-        promote_nested(data, attributes="file_properties", updateByReference=True)
+        promote_nested(data, attributes="file_properties", modify_in_place=True)
 
         # filter out excess from the Track ORM model
         modelFields = IGVBrowserTrackConfig.model_fields.keys()
@@ -158,7 +158,7 @@ class IGVBrowserTrackMetadata(RowModel):
 
         # get the provenance fields, but leave the rest as dicts
         promote_nested(
-            data, attributes="provenance", updateByReference=True
+            data, attributes="provenance", modify_in_place=True
         )  # should make data_source, url etc available
 
         # filter out excess from the Track ORM model
@@ -187,7 +187,7 @@ class IGVBrowserTrackMetadata(RowModel):
         row: dict = super().to_view_data(view, **kwargs)
 
         if view == ResponseView.TABLE:
-            promote_nested(row, updateByReference=True)
+            promote_nested(row, modify_in_place=True)
             # FIXME: front-end?
             row.update({"term": row["biosample"][0]["term"]})
             if "term_id" in row["biosample"]:
