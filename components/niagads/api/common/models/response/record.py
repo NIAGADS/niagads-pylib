@@ -1,111 +1,82 @@
 from typing import Any, List, TypeVar
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.models.mixins import DynamicRowModel, T_RowModel
-from niagads.api.common.models.response.base import AbstractBaseResponse
-from niagads.api.common.views.table import Table
+from niagads.api.common.models.domain.base import DynamicRecordModel
+from niagads.api.common.models.response.base import AbstractBaseResponseModel
+from niagads.common.models.base import CustomBaseModel
 from pydantic import Field, model_validator
 
 
-class RecordResponse(AbstractBaseResponse):
-
-    data: List[T_RowModel] = Field(
-        description="a list of one or more records or data points; format of list entries will vary by the resource and type of record or data being queried by the endpoint"
-    )
+class ResponseModel(AbstractBaseResponseModel):
+    data: List[CustomBaseModel] = Field(description="a list of one or more records")
 
     @model_validator(mode="before")
     @classmethod
-    def validate_row_model(cls, data: Any):
+    def preempt_union_validation(cls, candidate_obj: Any):
+        """Guard to preempt FastAPI union validation errors by normalizing ambiguous input types."""
         # wrong serialization
-        if isinstance(data, str):
-            return data
-        if isinstance(data, dict):
-            return data
+        if isinstance(candidate_obj, (str, int, float, bool)):
+            return candidate_obj
+        if isinstance(candidate_obj, list):
+            # still invalid b/c need a dict w/at least request & data
+            return candidate_obj
 
-        if isinstance(data, list):
-            if not isinstance(data[0], dict):
-                return cls(data=data)  # assume T_RowModel
-            return cls(data=[DynamicRowModel(**item) for item in data])
+        if isinstance(candidate_obj, dict):
+            if "data" in candidate_obj and "request" in candidate_obj:
+                candidate_data = candidate_obj["data"]
+                if isinstance(candidate_data, list) and isinstance(
+                    candidate_data[0], dict
+                ):
+                    # convert the data dict to CustomBaseModel child
+                    data: list[DynamicRecordModel] = [
+                        DynamicRecordModel(**row) for row in candidate_data
+                    ]
+                    new_obj = {**candidate_obj, "data": data}
+                    return cls(**new_obj)
 
-    @classmethod
-    def row_model(cls, name=False):
+        # otherwise, assume object can be serialized by this response model
+        # and or should fail serialization and raise a valid error
+        # fall back to normal Pydantic validation
+
+    @property
+    def row_data_model(self):
         """get the type of the row model in the response;
         if name is True, return the class name, otherwise
         return the type"""
 
-        rowType = cls.model_fields["data"].annotation
+        data_row_model = self.__class__.model_fields["data"].annotation
         try:  # can't explicity test for List[rowType], so just try
-            rowType = rowType.__args__[0]  # rowType = typing.List[RowType]
+            data_row_model = data_row_model.__args__[
+                0
+            ]  # rowType = typing.List[RowType]
         except:
-            rowType = rowType
+            data_row_model = data_row_model
 
-        return rowType.__name__ if name == True else rowType
+        return data_row_model
 
-    # START abstract methods
+    @property
+    def row_data_fields(self):
+        row_model: CustomBaseModel = self.row_data_model
+        return row_model.get_model_fields_from_class(sort=True)
 
-    def to_table(self, id: str = None, title: str = None):
-        if self.is_empty():
-            return {}
-
-        else:
-            columns = self.data[0].generate_table_columns()
-            data = [r.as_table_row() for r in self.data]
-            table = {"columns": columns, "data": data}
-
-            if title is not None:
-                table.update({"title", title})
-            if id is not None:
-                table.update({"id": id})
-            return Table(**table)
-
-    def to_vcf(self):
-        raise NotImplementedError(
-            "VCF formatted output not available for a generic data response."
-        )
-
-    def to_bed(self):
-        raise NotImplementedError(
-            "BED formatted output not available for a generic data repsonse."
-        )
-
-    def _get_empty_header(self):
-        model: T_RowModel = self.row_model()
-        fields = model.list_model_fields(as_str=True)
-        return "\t".join(fields) + "\n"
-
-    def to_text(self, incl_header=False, null_str: str = DEFAULT_NULL_STRING):
+    def to_text(self, incl_header=True, null_str: str = DEFAULT_NULL_STRING):
         if self.is_empty():
             if incl_header:
-                # no data so have to get model fields from the class
-                return self._get_empty_header()
+                return "\t".join(self.row_data_fields)
             else:
                 return ""
 
         else:
-            # not sure if this check will still be necessary
-            # if isinstance(self.data, dict):
-            #    if incl_header:
-            #       responseStr = "\t".join(list(self.data.keys())) + "\n"
-            #    responseStr += (
-            #        "\t".join([xstr(v, null_str=null_str) for v in self.data.values()]) + "\n"
-            #    )
-
-            fields = self.data[0].get_table_fields(as_str=True)
-            rows = []
-            for r in self.data:
-                if isinstance(r, str):
-                    rows.append(r)
+            output_buffer: list = []
+            for index, row in enumerate(self.data, start=1):
+                if incl_header and index == 1:
+                    row_str = row.to_delimited_text(
+                        incl_header=True, null_str=DEFAULT_NULL_STRING
+                    )
                 else:
-                    # pass fields to ensure consistent ordering
-                    rows.append(r.as_text(fields=fields, null_str=null_str))
+                    row_str = row.to_delimited_text(
+                        incl_header=False, null_str=DEFAULT_NULL_STRING
+                    )
+                output_buffer.append(row_str)
 
-            responseStr = "\t".join(fields) + "\n" if incl_header else ""
-            responseStr += "\n".join(rows)
-
-        return responseStr
-
-    # END abstract methods
-
-
-# possibly allows you to set a type hint to a class and all its subclasses
-T_RecordResponse = TypeVar("T_RecordResponse", bound=RecordResponse)
+        return "\t".join(output_buffer)

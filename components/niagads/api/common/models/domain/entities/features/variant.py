@@ -10,7 +10,7 @@ from niagads.api.common.views.table import TableRow
 from niagads.api.common.models.features.region import GenomicRegion
 
 from niagads.api.common.models.mixins import RowModel
-from niagads.api.common.models.response.record import RecordResponse
+from niagads.api.common.models.response.record import ResponseModel
 from pydantic import Field, field_validator
 
 
@@ -225,7 +225,7 @@ class ColocatedVariants(RowModel):
         )
 
 
-class VariantAnnotationResponse(RecordResponse):
+class VariantAnnotationResponse(ResponseModel):
     data: Union[
         List[ColocatedVariants],
         List[VariantFunction],
@@ -234,11 +234,11 @@ class VariantAnnotationResponse(RecordResponse):
     ]
 
 
-class AbridgedVariantResponse(RecordResponse):
+class AbridgedVariantResponse(ResponseModel):
     data: List[Variant]
 
 
-class VariantResponse(RecordResponse):
+class VariantResponse(ResponseModel):
     data: List[AnnotatedVariant]
 
     def to_text(self, incl_header=False, null_str=""):

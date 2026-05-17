@@ -9,7 +9,7 @@ from niagads.common.track.models import (
     Phenotype,
 )
 from niagads.api.common.models.mixins import RowModel
-from niagads.api.common.models.response.record import RecordResponse
+from niagads.api.common.models.response.record import ResponseModel
 from niagads.api.common.parameters.enums import EnumParameter
 from pydantic import Field, field_serializer, model_validator
 
@@ -188,11 +188,11 @@ class VariantAssociationSummary(RowModel):
         return str(AssociationTrait(trait_category))
 
 
-class GeneticAssociationSummaryResponse(RecordResponse):
+class GeneticAssociationSummaryResponse(ResponseModel):
     data: List[VariantAssociationSummary]
 
 
-class GeneticAssociationResponse(RecordResponse):
+class GeneticAssociationResponse(ResponseModel):
     data: Union[List[VariantAssociation], List[GeneVariantAssociation]]
 
     def to_vcf(self):

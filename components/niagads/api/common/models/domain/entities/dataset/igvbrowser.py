@@ -9,7 +9,7 @@ from niagads.common.track.models import (
 )
 from niagads.api.common.config import Settings
 from niagads.api.common.models.mixins import RowModel
-from niagads.api.common.models.response.record import RecordResponse
+from niagads.api.common.models.response.record import ResponseModel
 from niagads.api.common.parameters.response import (
     ResponseFormat,
     ResponseView,
@@ -223,11 +223,11 @@ class IGVBrowserTrackMetadata(RowModel):
         return None
 
 
-class IGVBrowserTrackConfigResponse(RecordResponse):
+class IGVBrowserTrackConfigResponse(ResponseModel):
     data: List[IGVBrowserTrackConfig]
 
 
-class IGVBrowserTrackSelectorResponse(RecordResponse):
+class IGVBrowserTrackSelectorResponse(ResponseModel):
     data: Table
 
     @classmethod

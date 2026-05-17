@@ -6,7 +6,7 @@ from niagads.common.models.types import Range
 from niagads.exceptions.core import ValidationError
 from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from niagads.api.common.models.response.base import (
-    AbstractBaseResponse,
+    AbstractBaseResponseModel,
     T_RecordResponse,
     T_Response,
 )
@@ -69,7 +69,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     # allows ensurance that model is always a child of RecordResponse
     @field_validator("model")
     def validate_model(cls, model):
-        if issubclass(model, AbstractBaseResponse):
+        if issubclass(model, AbstractBaseResponseModel):
             return model
         raise RuntimeError(
             f"Wrong type for `model` : `{model}`; must be subclass of `AbstractResponse`"

@@ -1,4 +1,4 @@
-from niagads.api.common.data_models.mixins import ORMCompatabileMixin
+from niagads.api.common.models.domain.mixins import ORMCompatabileMixin
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import BaseModel, Field
 

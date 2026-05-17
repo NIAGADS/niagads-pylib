@@ -4,7 +4,6 @@ Base Pydantic model classes for NIAGADS data models.
 
 from datetime import date, datetime
 from enum import Enum, auto
-from typing import Any, Dict, TypeVar
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.dict import prune
@@ -129,20 +128,29 @@ class CustomBaseModel(BaseModel):
         data = self.clean_model_dump(exclude_none=False)
         return [data.get(f) for f in sorted_fields]
 
-    def to_delimited_text(self, fields=None, null_str="NA", **kwargs):
-        """Return model as a tab-delimited text row.
+    def to_delimited_text(
+        self, fields=None, incl_header: bool = True, null_str="NA", delimiter="\t"
+    ):
+        """Return model as a delimited text row (e.g., tab-delimited).
 
         Args:
-            fields (list[str], optional): List of field names to include and order.
-                If None, uses all model fields sorted by 'order' metadata.
+            fields (list[str], optional): Field names to include and order. If None, uses all model fields sorted by 'order' metadata.
+            incl_header (bool): If True, include a header row with field names. Defaults to True.
             null_str (str): String to use for null/missing values. Defaults to "NA".
-            **kwargs: Additional keyword arguments (unused).
+            delimiter (str): Delimiter to use between values. Defaults to tab ("\t").
 
         Returns:
-            str: Tab-delimited string of field values.
+            str: Delimited string of field values (with optional header).
         """
+
         values = self.to_value_list(fields=fields)
-        return "\t".join([xstr(v, null_str=null_str) for v in values])
+        delimited_text = delimiter.join([xstr(v, null_str=null_str) for v in values])
+
+        if incl_header:
+            header = delimiter.join(fields)
+            delimited_text = delimiter.join([header, delimited_text])
+
+        return delimited_text
 
     def has_extras(self):
         """test if extra model fields are present"""
@@ -151,8 +159,37 @@ class CustomBaseModel(BaseModel):
 
         return False
 
+    @classmethod
+    def get_model_fields_from_class(cls, sort: bool = False):
+        """Classmethod for getting model field names
+
+        Sorting uses the 'order' key in json_schema_extra if available.
+
+        Args:
+            sort (bool): If True, fields are sorted by 'order' metadata; otherwise,
+            original order is used.
+
+        Returns:
+            list[str]: List of model field names
+        """
+        # get fields, ignore those set to exclude=True
+        fields: dict = [
+            (k, v)
+            for k, v in cls.model_fields.items()
+            if not getattr(v, "exclude", False)
+        ]
+        if sort:
+            fields = sorted(
+                fields,
+                key=lambda item: (item[1].json_schema_extra or {}).get(
+                    "order", float("inf")
+                ),
+            )
+
+        return list(fields.keys())
+
     def get_model_fields(self, sort: bool = False):
-        """Return model field names, optionally sorted by 'order' metadata.
+        """Return model field names for an instantiated class
 
         Includes extra fields if present. Sorting uses the 'order' key in
         json_schema_extra if available.
@@ -164,17 +201,20 @@ class CustomBaseModel(BaseModel):
         Returns:
             list[str]: List of model field names, including extras if present.
         """
+
+        # get fields, ignore those set to exclude=True
+        fields: dict = [
+            (k, v)
+            for k, v in self.__class__.model_fields.items()
+            if not getattr(v, "exclude", False)
+        ]
         if sort:
-            fields = dict(
-                sorted(
-                    self.__class__.model_fields.items(),
-                    key=lambda item: (item[1].json_schema_extra or {}).get(
-                        "order", float("inf")
-                    ),
-                )
+            fields = sorted(
+                fields,
+                key=lambda item: (item[1].json_schema_extra or {}).get(
+                    "order", float("inf")
+                ),
             )
-        else:
-            fields = self.__class__.model_fields
 
         if self.has_extras():
             extras = {k: Field() for k in self.model_extra.keys()}
@@ -191,6 +231,3 @@ class CustomBaseModel(BaseModel):
     @property
     def model_fields(self):
         return self.get_model_fields()
-
-
-T_BaseModel = TypeVar("T_BaseModel", bound=CustomBaseModel)

@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
+from niagads.api.common.models.service.request import RequestDataModel
+from niagads.common.models.base import CustomBaseModel
+from niagads.utils.string import xstr
 from pydantic import BaseModel, Field
 
 
@@ -26,7 +29,7 @@ class PaginationDataModel(BaseModel):
     )
 
 
-class AbstractBaseResponse(ABC, BaseModel):
+class AbstractBaseResponseModel(ABC, BaseModel):
     request: RequestDataModel = Field(
         description="details about the originating request"
     )
@@ -57,7 +60,7 @@ class AbstractBaseResponse(ABC, BaseModel):
         ...
 
 
-class MessageResponse(AbstractBaseResponse):
+class MessageResponse(AbstractBaseResponseModel):
     data: Dict[str, Any]
 
     def to_text(self, incl_header=False, null_str=DEFAULT_NULL_STRING):
@@ -66,10 +69,11 @@ class MessageResponse(AbstractBaseResponse):
         )
 
 
-class ListResponse(AbstractBaseResponse, TextSerializationMixin):
+class ListResponse(AbstractBaseResponseModel):
     data: List[Union[str, int, float]]
 
     def to_text(self, incl_header=False, null_str=DEFAULT_NULL_STRING):
-        return super().to_delimited_text(
-            incl_header=incl_header, delimiter="\n", null_str=null_str
-        )
+        if self.is_empty():
+            return ""
+
+        return "\n".join([xstr(v) for v in self.data if v is not None])

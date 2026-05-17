@@ -9,7 +9,7 @@ from niagads.api.common.models.features.variant import (
     Variant,
     VariantFeature,
 )
-from niagads.api.common.models.response.record import RecordResponse
+from niagads.api.common.models.response.record import ResponseModel
 
 from niagads.api.common.parameters.response import ResponseView
 from pydantic import Field, field_serializer
@@ -216,9 +216,9 @@ class QTL(VariantPValueScore):
         return config
 
 
-class GWASSumStatResponse(RecordResponse):
+class GWASSumStatResponse(ResponseModel):
     data: List[VariantPValueScore]
 
 
-class QTLResponse(RecordResponse):
+class QTLResponse(ResponseModel):
     data: List[QTL]

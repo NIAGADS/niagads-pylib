@@ -5,7 +5,7 @@ from niagads.common.gene.models.annotation import (
     PathwayMembership,
 )
 from niagads.api.common.models.mixins import RowModel
-from niagads.api.common.models.response.record import RecordResponse
+from niagads.api.common.models.response.record import ResponseModel
 from pydantic import Field
 from niagads.api.common.models.features.region import GenomicRegion
 
@@ -102,7 +102,7 @@ class GenePathwayMembership(PathwayMembership, RowModel):
         return self.to_info_string()
 
 
-class GeneAnnotationResponse(RecordResponse):
+class GeneAnnotationResponse(ResponseModel):
     data: Union[
         List[GenePathwayMembership],
         List[GeneFunction],
@@ -110,11 +110,11 @@ class GeneAnnotationResponse(RecordResponse):
     ]
 
 
-class AbridgedGeneResponse(RecordResponse):
+class AbridgedGeneResponse(ResponseModel):
     data: List[Gene]
 
 
-class GeneResponse(RecordResponse):
+class GeneResponse(ResponseModel):
     data: List[AnnotatedGene]
 
     def to_table(self, id=None, title=None):

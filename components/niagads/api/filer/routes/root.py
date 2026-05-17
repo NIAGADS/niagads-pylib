@@ -5,7 +5,7 @@ from niagads.api.common.app.factory import AppFactory
 from niagads.api.common.constants import SharedOpenAPITags
 
 from niagads.api.common.models.entities import Entity, EntityRecordStats
-from niagads.api.common.models.response.record import RecordResponse
+from niagads.api.common.models.response.record import ResponseModel
 from niagads.api.common.models.routes import RouteDescription
 from niagads.api.common.services.metadata.query import MetadataQueryService
 
@@ -25,14 +25,14 @@ router = APIRouter(tags=BASE_TAGS)
 
 @router.get(
     "/status",
-    response_model=RecordResponse,
+    response_model=ResponseModel,
     summary="get-api-info",
     description=f"Retrieve a brief overesponse_view of the {APP_NAME}",
     tags=[str(SharedOpenAPITags.STATUS)],
 )
 async def get_database_description(
     internal: InternalRequestParameters = Depends(),
-) -> RecordResponse:
+) -> ResponseModel:
 
     trackCount = await MetadataQueryService(
         internal.session, data_store=TRACK_DATA_STORES
@@ -45,7 +45,7 @@ async def get_database_description(
         pubmed_id=PUBMED_IDS,
         records=[EntityRecordStats(entity=Entity.TRACK, num_records=trackCount)],
     )
-    return RecordResponse(data=[result], request=internal.request_data)
+    return ResponseModel(data=[result], request=internal.request_data)
 
 
 @router.get(
