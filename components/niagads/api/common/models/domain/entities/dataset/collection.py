@@ -6,7 +6,7 @@ from niagads.common.models.base import CustomBaseModel
 from pydantic import Field
 
 
-class Collection(CustomBaseModel, ORMCompatabileMixin):
+class CollectionMetadata(CustomBaseModel, ORMCompatabileMixin):
     id: str = Field(
         title="Collection ID",
         description="Unique collection identifier; may be a NIAGADS Dataset Accession",
@@ -16,7 +16,3 @@ class Collection(CustomBaseModel, ORMCompatabileMixin):
     num_tracks: int = Field(
         title="Number of Tracks", description="number of data tracks in the collection"
     )
-
-
-class CollectionResponse(ResponseModel):
-    data: List[Collection]
