@@ -29,12 +29,12 @@ class MetadataRouteHelperService(RouteHelperService):
     async def get_track_metadata(self, raw_response=False):
         """fetch track metadata; expects a list of track identifiers in the parameters"""
         is_cached = True  # assuming true from the start
-        cache_key = self._managers.cache_key.encrypt()
+        cache_key = self._managers.cache_service.cache_key.encrypt()
         if raw_response:
             cache_key += CacheKeyQualifier.RAW
 
-        result = await self._managers.cache.get(
-            cache_key, namespace=self._managers.cache_key.namespace
+        result = await self._managers.cache_service.get(
+            cache_key, namespace=self._managers.cache_service.cache_key.namespace
         )
 
         if result is None:
@@ -57,8 +57,8 @@ class MetadataRouteHelperService(RouteHelperService):
 
         if raw_response:
             # cache the raw response
-            await self._managers.cache.set(
-                cache_key, result, namespace=self._managers.cache_key.namespace
+            await self._managers.cache_service.set(
+                cache_key, result, namespace=self._managers.cache_service.cache_key.namespace
             )
 
             return result
@@ -69,12 +69,12 @@ class MetadataRouteHelperService(RouteHelperService):
     async def get_collection_track_metadata(self, raw_response=False):
         """fetch track metadata for a specific collection"""
         is_cached = True  # assuming true from the start
-        cache_key = self._managers.cache_key.encrypt()
+        cache_key = self._managers.cache_service.cache_key.encrypt()
         if raw_response:
             cache_key += CacheKeyQualifier.RAW + "_" + str(raw_response)
 
-        result = await self._managers.cache.get(
-            cache_key, namespace=self._managers.cache_key.namespace
+        result = await self._managers.cache_service.get(
+            cache_key, namespace=self._managers.cache_service.cache_key.namespace
         )
 
         if result is None:
@@ -97,8 +97,8 @@ class MetadataRouteHelperService(RouteHelperService):
 
         if raw_response:
             # cache the raw response
-            await self._managers.cache.set(
-                cache_key, result, namespace=self._managers.cache_key.namespace
+            await self._managers.cache_service.set(
+                cache_key, result, namespace=self._managers.cache_service.cache_key.namespace
             )
             return result
 
@@ -108,15 +108,15 @@ class MetadataRouteHelperService(RouteHelperService):
         self, raw_response: Optional[ResponseContent] = None
     ):
         """retrieve track metadata based on filter/keyword searches"""
-        cache_key = self._managers.cache_key.encrypt()
+        cache_key = self._managers.cache_service.cache_key.encrypt()
         content = self._response_config.content
 
         if raw_response is not None:
             content = raw_response
             cache_key += CacheKeyQualifier.RAW + "_" + str(raw_response)
 
-        result = await self._managers.cache.get(
-            cache_key, namespace=self._managers.cache_key.namespace
+        result = await self._managers.cache_service.get(
+            cache_key, namespace=self._managers.cache_service.cache_key.namespace
         )
 
         if result is not None:
@@ -162,17 +162,13 @@ class MetadataRouteHelperService(RouteHelperService):
         if raw_response is None:
             return await self.generate_response(result, is_cached=False)
         else:  # cache the raw response before returning
-            await self._managers.cache.set(
-                cache_key, result, namespace=self._managers.cache_key.namespace
+            await self._managers.cache_service.set(
+                cache_key, result, namespace=self._managers.cache_service.cache_key.namespace
             )
             return result
 
     async def get_shard(self):
-        cache_key = self._managers.cache_key.encrypt()
-
-        result = await self._managers.cache.get(
-            cache_key, namespace=self._managers.cache_key.namespace
-        )
+        result = await self._managers.cache_service.get_response()
 
         if result is not None:
             return await self.generate_response(result, is_cached=True)

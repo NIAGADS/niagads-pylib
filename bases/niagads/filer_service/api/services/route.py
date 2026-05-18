@@ -50,8 +50,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         )
         self._pagination_service = FILERTrackDataPaginationService(
             self._parameters,
-            self._managers.cache,
-            self._managers.cache_key,
+            self._managers.cache_service,
             page_size=self.page_size,
         )
 
@@ -81,20 +80,15 @@ class FILERRouteHelper(MetadataRouteHelperService):
             f"/{FILERApiEndpoint.OVERLAPS}?genome_build={assembly}&countsOnly={countsOnly}"
             + f"&span={span}&tracks={','.join(tracks)}"
         )
-        result = await self._managers.cache.get(
-            cache_key,
-            namespace=CacheNamespace.EXTERNAL_API,
-            timeout=CACHEDB_PARALLEL_TIMEOUT,
+        result = await self._managers.cache_service.get(
+            cache_key, namespace=CacheNamespace.EXTERNAL_API
         )
         if result is None:
             result = await ApiWrapperService(
                 self._managers.http_client_session
             ).get_track_hits(tracks, span, assembly, countsOnly=countsOnly)
-            await self._managers.cache.set(
-                cache_key,
-                result,
-                namespace=CacheNamespace.EXTERNAL_API,
-                timeout=CACHEDB_PARALLEL_TIMEOUT,
+            await self._managers.cache_service.set(
+                cache_key, result, namespace=CacheNamespace.EXTERNAL_API
             )
         return result
 
@@ -102,20 +96,15 @@ class FILERRouteHelper(MetadataRouteHelperService):
         cache_key = CacheKeyDataModel.encrypt_key(
             f"/{FILERApiEndpoint.GENE_QTLS}?" + f"&gene={gene}&track={track}"
         )
-        result = await self._managers.cache.get(
-            cache_key,
-            namespace=CacheNamespace.EXTERNAL_API,
-            timeout=CACHEDB_PARALLEL_TIMEOUT,
+        result = await self._managers.cache_service.get(
+            cache_key, namespace=CacheNamespace.EXTERNAL_API
         )
         if result is None:
             result = await ApiWrapperService(
                 self._managers.http_client_session
             ).get_gene_qtls(track, gene)
-            await self._managers.cache.set(
-                cache_key,
-                result,
-                namespace=CacheNamespace.EXTERNAL_API,
-                timeout=CACHEDB_PARALLEL_TIMEOUT,
+            await self._managers.cache_service.set(
+                cache_key, result, namespace=CacheNamespace.EXTERNAL_API
             )
         return result
 
@@ -123,10 +112,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         self, trackResultSummary: List[TrackResultMetrics], span=None, validate=True
     ):
 
-        result = await self._managers.cache.get(
-            self._managers.cache_key.encrypt(),
-            namespace=self._managers.cache_key.namespace,
-        )
+        result = await self._managers.cache_service.get_response()
         if result is not None:
             return await self.generate_response(result, is_cached=True)
 
@@ -162,9 +148,9 @@ class FILERRouteHelper(MetadataRouteHelperService):
     async def get_track_data(self, validate=True):
         """if AbridgedTrack is set, then fetches from the summary not from a parameter"""
 
-        cachedResponse = await self._get_cached_response()
-        if cachedResponse is not None:
-            return cachedResponse
+        cached_response = await self._managers.cache_service.get_response()
+        if cached_response is not None:
+            return await self.generate_response(cached_response, is_cached=True)
 
         tracks = self._parameters.get("track")
         tracks = tracks.split(",") if isinstance(tracks, str) else tracks
@@ -242,9 +228,9 @@ class FILERRouteHelper(MetadataRouteHelperService):
         return result
 
     async def search_track_data(self):
-        cachedResponse = await self._get_cached_response()
-        if cachedResponse is not None:
-            return cachedResponse
+        cached_response = await self._managers.cache_service.get_response()
+        if cached_response is not None:
+            return await self.generate_response(cached_response, is_cached=True)
 
         hasMetadataFilters = (
             self._parameters.get("keyword") is not None
@@ -277,7 +263,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         cache_key = CacheKeyDataModel.encrypt_key(cache_key.replace(":", "_"))
 
         informativeTrackOverlaps: List[TrackResultMetrics] = (
-            await self._managers.cache.get(
+            await self._managers.cache_service.get(
                 cache_key, namespace=CacheNamespace.EXTERNAL_API
             )
         )
@@ -285,10 +271,8 @@ class FILERRouteHelper(MetadataRouteHelperService):
             informativeTrackOverlaps = await ApiWrapperService(
                 self._managers.http_client_session
             ).get_informative_tracks(span, self._parameters.get("genome_build"))
-            await self._managers.cache.set(
-                cache_key,
-                informativeTrackOverlaps,
-                namespace=CacheNamespace.EXTERNAL_API,
+            await self._managers.cache_service.set(
+                cache_key, informativeTrackOverlaps, namespace=CacheNamespace.EXTERNAL_API
             )
 
         if len(informativeTrackOverlaps) == 0:
@@ -354,9 +338,9 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 raise RuntimeError("Invalid response content specified")
 
     async def get_feature_qtls(self):
-        cachedResponse = await self._get_cached_response()
-        if cachedResponse is not None:
-            return cachedResponse
+        cached_response = await self._managers.cache_service.get_response()
+        if cached_response is not None:
+            return await self.generate_response(cached_response, is_cached=True)
 
         assembly = await self.__validate_tracks([self._parameters.track])
 

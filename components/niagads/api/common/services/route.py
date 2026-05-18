@@ -10,19 +10,12 @@ from niagads.api.common.models.domain.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
-from niagads.api.common.models.response.views.table import TableViewResponse
-from niagads.api.common.models.service.cache import (
-    CacheKeyDataModel,
-    CacheKeyQualifier,
-    CacheNamespace,
-)
-from niagads.common.genomic.features.models import GenomicFeature
-from niagads.exceptions.core import ValidationError
-
 from niagads.api.common.models.response.base import BaseResponseModel
-
+from niagads.api.common.models.response.views.table import TableViewResponse
 from niagads.api.common.services.features import FeatureQueryService
 from niagads.api.common.services.pagination import PaginationService
+from niagads.common.genomic.features.models import GenomicFeature
+from niagads.exceptions.core import ValidationError
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 _INTERNAL_PARAMETERS = ["span", "_tracks"]
@@ -136,27 +129,9 @@ class RouteHelperService:
     def set_result_size(self, result_size: int):
         self._pagination_service.set_result_size(result_size)
 
-    async def _get_cached_response(self):
-        cache_key = self._managers.cache_key.encrypt()
-        response = await self._managers.cache.get(
-            cache_key, namespace=self._managers.cache_key.namespace
-        )
-
-        if response is not None:
-            return await self.generate_response(response, is_cached=True)
-
-        return None
-
     async def generate_table_response(self, response: BaseResponseModel):
-        # create an encrypted cache key
-        cache_key = CacheKeyDataModel.encrypt_key(
-            self._managers.cache_key.key
-            + str(CacheKeyQualifier.VIEW)
-            + str(ResponseView.TABLE)
-        )
-
-        view_response = await self._managers.cache.get(
-            cache_key, namespace=CacheNamespace.VIEW
+        cache_key, view_response = await self._managers.cache_service.get_view_response(
+            ResponseView.TABLE
         )
 
         if view_response:
@@ -170,8 +145,8 @@ class RouteHelperService:
             pagination=response.pagination,
         )
 
-        await self._managers.cache.set(
-            cache_key, view_response, namespace=CacheNamespace.VIEW
+        await self._managers.cache_service.set_view_response(
+            ResponseView.TABLE, view_response
         )
 
         return view_response
@@ -201,7 +176,7 @@ class RouteHelperService:
             else:
                 # FIXME
                 # if self._response_config.model == IGVBrowserTrackSelectorResponse:
-                #    queryId = self._managers.cache_key.encrypt()
+                #    queryId = self._managers.cache_service.cache_key.encrypt()
                 #    collectionId = self._parameters.get("collection")
 
                 #    response = self._response_config.model(
@@ -217,11 +192,7 @@ class RouteHelperService:
                 )
 
             # cache the response
-            await self._managers.cache.set(
-                self._managers.cache_key.encrypt(),
-                response,
-                namespace=self._managers.cache_key.namespace,
-            )
+            await self._managers.cache_service.set_response(response)
 
         match self._response_config.view:
             case ResponseView.TABLE:

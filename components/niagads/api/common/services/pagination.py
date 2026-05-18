@@ -9,9 +9,8 @@ from niagads.api.common.models.service.cache import (
     CacheKeyQualifier,
     CacheNamespace,
 )
-
-from niagads.cache.core import KeyDBCacheManager
 from niagads.api.common.models.response.base import PaginationDataModel
+from niagads.api.common.services.cache import CacheService
 from niagads.common.models.types import Range
 from niagads.exceptions.core import ValidationError
 from niagads.utils.list import cumulative_sum
@@ -149,13 +148,11 @@ class TrackDataPaginationService(PaginationService, ABC):
     def __init__(
         self,
         parameters,
-        cache: KeyDBCacheManager,
-        cache_key: CacheKeyDataModel,
+        cache_service: CacheService,
         page_size: int = DEFAULT_PAGE_SIZE,
     ):
         super().__init__(parameters, page_size=page_size)
-        self._cache = cache
-        self._cache_key = cache_key
+        self._cache_service = cache_service
 
     async def build_page_cursor(
         self, track_result_summary: List[TrackResultMetrics]
@@ -163,7 +160,7 @@ class TrackDataPaginationService(PaginationService, ABC):
         sorted_track_result_summary: List[TrackResultMetrics] = TrackResultMetrics.sort(
             track_result_summary
         )
-        no_page_cache_key = self._cache_key.no_page()
+        no_page_cache_key = self._cache_service.cache_key.no_page()
 
         cursor_cache_key = CacheKeyDataModel.encrypt_key(
             no_page_cache_key + CacheKeyQualifier.CURSOR
@@ -172,12 +169,12 @@ class TrackDataPaginationService(PaginationService, ABC):
             no_page_cache_key + CacheKeyQualifier.RESULT_SIZE
         )
 
-        cursors = await self._cache.get(
+        cursors = await self._cache_service.get(
             cursor_cache_key,
             namespace=CacheNamespace.QUERY_CACHE,
         )
         self.set_result_size(
-            await self._cache.get(
+            await self._cache_service.get(
                 result_size_cache_key,
                 namespace=CacheNamespace.QUERY_CACHE,
             )
@@ -189,7 +186,7 @@ class TrackDataPaginationService(PaginationService, ABC):
             )
             self.set_result_size(cumulative_sum_by_track[-1])
 
-            await self._cache.set(
+            await self._cache_service.set(
                 result_size_cache_key,
                 self.result_size,
                 namespace=CacheNamespace.QUERY_CACHE,
@@ -223,7 +220,7 @@ class TrackDataPaginationService(PaginationService, ABC):
                 f"{len(sorted_track_result_summary)-1}:{sorted_track_result_summary[-1].num_results}"
             )
 
-            await self._cache.set(
+            await self._cache_service.set(
                 cursor_cache_key,
                 cursors,
                 namespace=CacheNamespace.QUERY_CACHE,
