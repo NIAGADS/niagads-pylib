@@ -1,42 +1,40 @@
 from enum import auto
-from typing import Annotated, List
+from typing import Annotated
 
 from aiohttp import ClientSession
 from fastapi import Depends
-from niagads.database import DatabaseSessionManager
-from niagads.common.constants.track import TrackDataStore
-from niagads.enums.core import CaseInsensitiveEnum
-from niagads.api.common.config import Settings
-from niagads.api.common.parameters.internal import (
-    InternalRequestParameters as _InternalRequestParameters,
+from niagads.api.common.models.domain.parameters.internal import (
+    InternalRequestParameters,
 )
-from niagads.api.common.parameters.text_search import (
+from niagads.api.common.models.domain.parameters.text_search import (
     TextSearchFilterParameter,
 )
+from niagads.database import DatabaseSessionManager
+from niagads.enums.core import CaseInsensitiveEnum
+from niagads.api.common.config import Settings
 from niagads.requests.core import HttpClientSessionManager
 from niagads.settings.core import ServiceEnvironment, get_service_environment
 from sqlalchemy.ext.asyncio import AsyncSession
 
 _HTTP_CLIENT_TIMEOUT = 60
 
-ROUTE_SESSION_MANAGER: DatabaseSessionManager = DatabaseSessionManager(
+FILERDatabaseSessionManager: DatabaseSessionManager = DatabaseSessionManager(
     connection_string=Settings.from_env().APP_DB_URI,
     echo=get_service_environment() == ServiceEnvironment.DEV,
 )
 
-API_CLIENT_SESSION_MANAGER = HttpClientSessionManager(
+FILERHttpClientSessionManager = HttpClientSessionManager(
     Settings.from_env().EXTERNAL_REQUEST_URL, timeout=_HTTP_CLIENT_TIMEOUT
 )
 
 
-class InternalRequestParameters(
-    _InternalRequestParameters, arbitrary_types_allowed=True
+class FILEREndpointRequestParameters(
+    InternalRequestParameters, arbitrary_types_allowed=True
 ):
-    session: Annotated[AsyncSession, Depends(ROUTE_SESSION_MANAGER)]
-    api_client_session: Annotated[ClientSession, Depends(API_CLIENT_SESSION_MANAGER)]
-
-
-TRACK_DATA_STORES: List[TrackDataStore] = [TrackDataStore.FILER, TrackDataStore.SHARED]
+    database_session: Annotated[AsyncSession, Depends(FILERDatabaseSessionManager)]
+    http_client_session: Annotated[
+        ClientSession, Depends(FILERHttpClientSessionManager)
+    ]
 
 
 class TextSearchFilterFields(CaseInsensitiveEnum):

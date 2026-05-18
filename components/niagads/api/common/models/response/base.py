@@ -56,7 +56,7 @@ class BaseResponseModel(BaseModel):
             self.message.append(msg)
 
 
-class StandardDataSerializationResponse(BaseResponseModel):
+class DataResponse(BaseResponseModel):
     data: List[CustomBaseModel] = Field(description="a list of one or more records")
 
     @model_validator(mode="before")

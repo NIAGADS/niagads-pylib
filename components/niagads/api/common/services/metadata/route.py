@@ -47,7 +47,7 @@ class MetadataRouteHelperService(RouteHelperService):
             tracks = sorted(tracks)  # best for caching & pagination
 
             result = await MetadataQueryService(
-                self._managers.session, data_store=self._data_store
+                self._managers.database_session, data_store=self._data_store
             ).get_track_metadata(tracks, response_type=self._response_config.content)
 
             if not raw_response:
@@ -83,7 +83,7 @@ class MetadataRouteHelperService(RouteHelperService):
             is_cached = False
 
             result = await MetadataQueryService(
-                self._managers.session,
+                self._managers.database_session,
                 self._managers.request_data,
                 self._data_store,
             ).get_collection_track_metadata(
@@ -135,7 +135,7 @@ class MetadataRouteHelperService(RouteHelperService):
         if raw_response is None:
             # get counts to either return or determine pagination
             result = await MetadataQueryService(
-                self._managers.session, data_store=self._data_store
+                self._managers.database_session, data_store=self._data_store
             ).query_track_metadata(
                 self._parameters.get("genome_build"),
                 self._parameters.get("filter", None),
@@ -153,7 +153,7 @@ class MetadataRouteHelperService(RouteHelperService):
                 limit = self._pageSize
 
         result = await MetadataQueryService(
-            self._managers.session, data_store=self._data_store
+            self._managers.database_session, data_store=self._data_store
         ).query_track_metadata(
             self._parameters.get("genome_build"),
             self._parameters.get("filter", None),

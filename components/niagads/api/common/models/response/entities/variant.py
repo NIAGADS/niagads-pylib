@@ -5,12 +5,12 @@ from niagads.api.common.models.domain.entities.variant import (
     VariantAnnotation,
     VariantDescriptor,
 )
-from niagads.api.common.models.response.base import StandardDataSerializationResponse
+from niagads.api.common.models.response.base import DataResponse
 
 
-class VariantResponse(StandardDataSerializationResponse):
+class VariantResponse(DataResponse):
     data: List[Union[VariantDescriptor, Variant, AnnotatedVariant]]
 
 
-class VariantAnnotation(StandardDataSerializationResponse):
+class VariantAnnotation(DataResponse):
     data: List[VariantAnnotation]

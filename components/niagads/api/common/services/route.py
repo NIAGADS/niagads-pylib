@@ -334,6 +334,6 @@ class RouteHelperService:
                 )
 
     async def get_feature_location(self, feature: GenomicFeature):
-        return await FeatureQueryService(self._managers.session).get_feature_location(
-            feature
-        )
+        return await FeatureQueryService(
+            self._managers.database_session
+        ).get_feature_location(feature)

@@ -30,9 +30,7 @@ router = APIRouter(tags=BASE_TAGS)
     description=f"Retrieve a brief overesponse_view of the {APP_NAME}",
     tags=[str(SharedOpenAPITags.STATUS)],
 )
-async def get_database_description(
-    internal: InternalRequestParameters = Depends(),
-) -> BaseResponseModel:
+async def get_database_description() -> BaseResponseModel:
 
     trackCount = await MetadataQueryService(
         internal.session, data_store=TRACK_DATA_STORES

@@ -182,7 +182,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
     async def __validate_tracks(self, tracks: List[str]):
         """by setting validate=True, the service runs .validate_tracks before validating the genome build"""
         assembly = await MetadataQueryService(
-            self._managers.session, data_store=self._data_store
+            self._managers.database_session, data_store=self._data_store
         ).get_genome_build(tracks, validate=True)
         if isinstance(assembly, dict):
             raise ValidationError(
@@ -225,7 +225,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         )
         if result is None:
             result = await ApiWrapperService(
-                self._managers.api_client_session
+                self._managers.http_client_session
             ).get_track_hits(tracks, span, assembly, countsOnly=countsOnly)
             await self._managers.cache.set(
                 cache_key,
@@ -246,7 +246,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         )
         if result is None:
             result = await ApiWrapperService(
-                self._managers.api_client_session
+                self._managers.http_client_session
             ).get_gene_qtls(track, gene)
             await self._managers.cache.set(
                 cache_key,
@@ -420,7 +420,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         )
         if informativeTrackOverlaps is None:
             informativeTrackOverlaps = await ApiWrapperService(
-                self._managers.api_client_session
+                self._managers.http_client_session
             ).get_informative_tracks(span, self._parameters.get("genome_build"))
             await self._managers.cache.set(
                 cache_key,

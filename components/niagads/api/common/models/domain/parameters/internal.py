@@ -27,5 +27,5 @@ class InternalRequestParameters(BaseModel, arbitrary_types_allowed=True):
     cache: Annotated[KeyDBCacheManager, Depends(_CACHE_MANAGER)]
 
     # session managers; callable to return none, override as needed for each endpoint
-    api_client_session: Optional[ClientSession] = Depends(get_none)
-    session: Optional[AsyncSession] = Depends(get_none)
+    http_client_session: Optional[ClientSession] = Depends(get_none)
+    database_session: Optional[AsyncSession] = Depends(get_none)
