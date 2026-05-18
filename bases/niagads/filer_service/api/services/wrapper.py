@@ -1,8 +1,8 @@
 from typing import List, Union
 
 from aiohttp import ClientSession
-from niagads.api.common.models.datasets.track import TrackResultSize
-from niagads.api.common.models.features.bed import BEDFeature
+from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
+from niagads.api.common.models.domain.entities.features.bed import BEDFeature
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome_reference.human import GenomeBuild
 from pydantic import BaseModel
@@ -67,7 +67,7 @@ class ApiWrapperService:
 
     async def __get_result_size(
         self, span: str, assembly: str, tracks: List[str]
-    ) -> List[TrackResultSize]:
+    ) -> List[TrackResultMetrics]:
         # TODO: new FILER endpoint, count overlaps for specific track ID?
         if (
             len(tracks) <= 3
@@ -76,9 +76,7 @@ class ApiWrapperService:
                 FILERApiEndpoint.OVERLAPS, {"track": ",".join(tracks), "span": span}
             )
             return [
-                TrackResultSize(
-                    track_id=t["Identifier"], num_results=len(t["features"])
-                )
+                TrackResultMetrics(id=t["Identifier"], num_results=len(t["features"]))
                 for t in response
             ]
 
@@ -87,9 +85,7 @@ class ApiWrapperService:
 
             # need to filter all informative tracks for the ones that were requested
             # and add in the zero counts for the ones that have no hits
-            informativeTracks = set(
-                [t.track_id for t in response]
-            )  # all informative tracks
+            informativeTracks = set([t.id for t in response])  # all informative tracks
             nonInformativeTracks = set(tracks).difference(
                 informativeTracks
             )  # tracks with no hits in the span
@@ -97,13 +93,13 @@ class ApiWrapperService:
                 informativeTracks
             )  # informative tracks in the requested list
 
-            return [tc for tc in response if tc.track_id in informativeTracks] + [
-                TrackResultSize(track_id=t, num_results=0) for t in nonInformativeTracks
+            return [tc for tc in response if tc.id in informativeTracks] + [
+                TrackResultMetrics(id=t, num_results=0) for t in nonInformativeTracks
             ]
 
     async def get_track_hits(
         self, tracks: List[str], span: str, assembly: str, countsOnly: bool = False
-    ) -> Union[List[FILERApiDataResponse], List[TrackResultSize]]:
+    ) -> Union[List[FILERApiDataResponse], List[TrackResultMetrics]]:
 
         if countsOnly:
             return await self.__get_result_size(span, assembly, tracks)
@@ -137,13 +133,13 @@ class ApiWrapperService:
 
     async def get_informative_tracks(
         self, span: str, assembly: str, sort=False
-    ) -> List[TrackResultSize]:
+    ) -> List[TrackResultMetrics]:
         result = await self.__fetch(
             FILERApiEndpoint.INFORMATIVE_TRACKS,
             {"span": span, "genome_build": assembly},
         )
         result = [
-            TrackResultSize(track_id=t["Identifier"], num_results=t["numOverlaps"])
+            TrackResultMetrics(id=t["Identifier"], num_results=t["numOverlaps"])
             for t in result
         ]
-        return TrackResultSize.sort(result) if sort else result
+        return TrackResultMetrics.sort(result) if sort else result
