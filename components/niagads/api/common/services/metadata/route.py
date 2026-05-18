@@ -1,15 +1,18 @@
 from typing import Optional
 
-from niagads.api.common.models.services.cache import CacheKeyQualifier
-from niagads.api.common.parameters.internal import InternalRequestParameters
-from niagads.api.common.parameters.response import ResponseContent
+from niagads.api.common.models.domain.parameters.internal import (
+    InternalRequestParameters,
+)
+from niagads.api.common.models.domain.parameters.response import ResponseContent
+from niagads.api.common.models.service.cache import CacheKeyQualifier
 from niagads.api.common.services.metadata.query import MetadataQueryService
 from niagads.api.common.services.route import (
     Parameters,
     ResponseConfiguration,
     RouteHelperService,
 )
-from niagads.common.constants.track import TrackDataStore
+
+# FIXME: data_store -> is_filer_track
 
 
 class MetadataRouteHelperService(RouteHelperService):

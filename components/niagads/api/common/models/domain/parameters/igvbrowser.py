@@ -1,5 +1,6 @@
 from enum import auto
-from niagads.api.common.parameters.enums import EnumParameter
+
+from niagads.api.common.models.domain.parameters.types import EnumParameter
 
 
 class ADSPRelease(EnumParameter):

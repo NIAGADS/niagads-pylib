@@ -5,12 +5,12 @@ from niagads.api.common.models.domain.entities.gene import (
     GeneAnnotation,
     GeneDescriptor,
 )
-from niagads.api.common.models.response.base import BaseResponseModel
+from niagads.api.common.models.response.base import StandardDataSerializationResponse
 
 
-class GeneResponse(BaseResponseModel):
+class GeneResponse(StandardDataSerializationResponse):
     data: List[Union[GeneDescriptor, Gene, AnnotatedGene]]
 
 
-class GeneAnnotationResponse(BaseResponseModel):
+class GeneAnnotationResponse(StandardDataSerializationResponse):
     data: List[GeneAnnotation]

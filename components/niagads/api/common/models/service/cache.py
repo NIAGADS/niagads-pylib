@@ -1,7 +1,8 @@
 from enum import StrEnum, auto
 
 from fastapi import Request
-from niagads.api.common.models.response.request import RequestDataModel
+
+from niagads.api.common.models.service.request import RequestDataModel
 from niagads.utils.string import blake2b_hash, regex_replace
 from pydantic import BaseModel, Field
 

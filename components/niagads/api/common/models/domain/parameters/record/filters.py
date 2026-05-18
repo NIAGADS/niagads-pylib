@@ -2,7 +2,7 @@ from enum import auto
 from typing import Optional
 
 from fastapi import Query
-from niagads.api.common.parameters.enums import EnumParameter
+from niagads.api.common.models.domain.parameters.types import EnumParameter
 from niagads.api.common.utils import sanitize
 
 

@@ -30,7 +30,7 @@ class PaginationDataModel(BaseModel):
     )
 
 
-class AbstractBaseResponseModel(ABC, BaseModel):
+class BaseResponseModel(BaseModel):
     request: RequestDataModel = Field(
         description="details about the originating request"
     )
@@ -55,13 +55,8 @@ class AbstractBaseResponseModel(ABC, BaseModel):
         else:
             self.message.append(msg)
 
-    @abstractmethod
-    def to_text(self, incl_header: bool = False, null_str: str = DEFAULT_NULL_STRING):
-        """return a plain tab-delimited text reseponse"""
-        ...
 
-
-class BaseResponseModel(AbstractBaseResponseModel):
+class StandardDataSerializationResponse(BaseResponseModel):
     data: List[CustomBaseModel] = Field(description="a list of one or more records")
 
     @model_validator(mode="before")
@@ -136,7 +131,7 @@ class BaseResponseModel(AbstractBaseResponseModel):
         return "\t".join(output_buffer)
 
 
-class MessageResponse(AbstractBaseResponseModel):
+class MessageResponse(BaseResponseModel):
     data: Dict[str, Any]
 
     def to_text(self, incl_header=False, null_str=DEFAULT_NULL_STRING):
@@ -145,7 +140,7 @@ class MessageResponse(AbstractBaseResponseModel):
         )
 
 
-class ListResponse(AbstractBaseResponseModel):
+class ListResponse(BaseResponseModel):
     data: List[Union[str, int, float]]
 
     def to_text(self, incl_header=False, null_str=DEFAULT_NULL_STRING):

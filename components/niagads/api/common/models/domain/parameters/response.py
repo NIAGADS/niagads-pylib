@@ -1,6 +1,6 @@
 from enum import auto
 
-from niagads.api.common.parameters.enums import EnumParameter
+from niagads.api.common.models.domain.parameters.types import EnumParameter
 
 
 class ResponseContent(EnumParameter):
@@ -62,39 +62,11 @@ class ResponseFormat(EnumParameter):
 
     JSON = auto()
     TEXT = auto()
-    VCF = auto()
-    BED = auto()
 
     @classmethod
     def get_description(cls, inclValues=True):
         message = "Response format.  If a non-text `view` is specified, the response format will default to `JSON`"
         return message + f" {super().get_description()}" if inclValues else message
-
-    @classmethod
-    def generic(cls, description=False):
-        subset = cls.exclude(
-            "generic_formats", [ResponseFormat.VCF, ResponseFormat.BED]
-        )
-        if description:
-            return cls.get_description(False) + " " + subset.get_description()
-        else:
-            return subset
-
-    @classmethod
-    def functional_genomics(cls, description=False):
-        subset = cls.exclude("functional_genomics_formats", [ResponseFormat.VCF])
-        if description:
-            return cls.get_description(False) + " " + subset.get_description()
-        else:
-            return subset
-
-    @classmethod
-    def variant_score(cls, description=False):
-        subset = cls.exclude("variant_score_formats", [ResponseFormat.BED])
-        if description:
-            return cls.get_description(False) + " " + subset.get_description()
-        else:
-            return subset
 
 
 class ResponseView(EnumParameter):

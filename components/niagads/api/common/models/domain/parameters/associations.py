@@ -1,7 +1,7 @@
 import math
 from typing import Union
 from fastapi import HTTPException, Query
-from niagads.api.common.models.annotations.associations import (
+from niagads.api.common.models.domain.annotations.associations import (
     AssociationSource,
     AssociationTrait,
 )

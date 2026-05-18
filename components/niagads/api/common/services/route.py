@@ -1,34 +1,31 @@
 from typing import Any, Dict, Optional, Type, Union
 
 from fastapi import Response
+from niagads.api.common.models.domain.parameters.internal import (
+    InternalRequestParameters,
+)
+from niagads.api.common.models.domain.parameters.response import (
+    ResponseContent,
+    ResponseFormat,
+    ResponseView,
+)
+from niagads.api.common.models.response.views.table import TableViewResponse
+from niagads.api.common.models.service.cache import (
+    CacheKeyDataModel,
+    CacheKeyQualifier,
+    CacheNamespace,
+)
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.common.models.types import Range
 from niagads.exceptions.core import ValidationError
 from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from niagads.api.common.models.response.base import (
-    AbstractBaseResponseModel,
-    T_RecordResponse,
-    T_Response,
-)
-from niagads.api.common.models.response.pagination import (
+    BaseResponseModel,
     PaginationDataModel,
 )
-from niagads.api.common.models.services.cache import (
-    CacheKeyDataModel,
-    CacheKeyQualifier,
-    CacheNamespace,
-)
-from niagads.api.common.models.datasets.igvbrowser import (
-    IGVBrowserTrackSelectorResponse,
-)
-from niagads.api.common.parameters.internal import InternalRequestParameters
-from niagads.api.common.parameters.response import (
-    ResponseContent,
-    ResponseFormat,
-    ResponseView,
-)
+
+
 from niagads.api.common.services.features import FeatureQueryService
-from niagads.api.common.views.table import TableViewResponse
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 _INTERNAL_PARAMETERS = ["span", "_tracks"]
@@ -41,7 +38,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     format: ResponseFormat = ResponseFormat.JSON
     content: ResponseContent = ResponseContent.FULL
     view: ResponseView = ResponseView.DEFAULT
-    model: Type[T_Response] = None
+    model: BaseResponseModel = None
 
     @model_validator(mode="after")
     def validate_config(self, __context):
@@ -69,7 +66,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     # allows ensurance that model is always a child of RecordResponse
     @field_validator("model")
     def validate_model(cls, model):
-        if issubclass(model, AbstractBaseResponseModel):
+        if issubclass(model, BaseResponseModel):
             return model
         raise RuntimeError(
             f"Wrong type for `model` : `{model}`; must be subclass of `AbstractResponse`"
@@ -171,7 +168,8 @@ class RouteHelperService:
 
         if page > self._pagination.total_num_pages:
             raise ValidationError(
-                f"Request `page` {page} does not exist; this query generates a maximum of {self._pagination.total_num_pages} pages"
+                f"Request `page` {page} does not exist; this query generates a maximum of "
+                f"{self._pagination.total_num_pages} pages"
             )
 
         return True
@@ -187,7 +185,8 @@ class RouteHelperService:
 
         if self._result_size > self._pageSize * MAX_NUM_PAGES:
             raise ValidationError(
-                f"Result size ({self._result_size}) is too large; filter for fewer tracks or narrow the queried genomic region."
+                f"Result size ({self._result_size}) is too large; filter for fewer tracks "
+                "or narrow the queried genomic region."
             )
 
         return (
@@ -239,7 +238,7 @@ class RouteHelperService:
 
         return Range(start=start, end=end)
 
-    async def generate_table_response(self, response: Type[T_RecordResponse]):
+    async def generate_table_response(self, response: BaseResponseModel):
         # create an encrypted cache key
         cache_key = CacheKeyDataModel.encrypt_key(
             self._managers.cache_key.key
@@ -269,7 +268,7 @@ class RouteHelperService:
         return viewResponse
 
     async def generate_response(self, result: Any, is_cached: bool = False):
-        response: Type[T_RecordResponse] = result if is_cached else None
+        response: BaseResponseModel = result if is_cached else None
         if response is None:
             self._managers.request_data.update_parameters(
                 self._parameters, exclude=_INTERNAL_PARAMETERS
@@ -291,21 +290,22 @@ class RouteHelperService:
                     data=result,
                 )
             else:
-                if self._response_config.model == IGVBrowserTrackSelectorResponse:
-                    queryId = self._managers.cache_key.encrypt()
-                    collectionId = self._parameters.get("collection")
+                # FIXME
+                # if self._response_config.model == IGVBrowserTrackSelectorResponse:
+                #    queryId = self._managers.cache_key.encrypt()
+                #    collectionId = self._parameters.get("collection")
 
-                    response = self._response_config.model(
-                        request=self._managers.request_data,
-                        data=IGVBrowserTrackSelectorResponse.build_table(
-                            result, queryId if collectionId is None else collectionId
-                        ),
-                    )
-                else:
-                    response = self._response_config.model(
-                        request=self._managers.request_data,
-                        data=result,  # self._sqa_row2dict(result),
-                    )
+                #    response = self._response_config.model(
+                #       request=self._managers.request_data,
+                #        data=IGVBrowserTrackSelectorResponse.build_table(
+                #            result, queryId if collectionId is None else collectionId
+                #        ),
+                #    )
+                # else:
+                response = self._response_config.model(
+                    request=self._managers.request_data,
+                    data=result,  # self._sqa_row2dict(result),
+                )
 
             # cache the response
             await self._managers.cache.set(
@@ -323,16 +323,6 @@ class RouteHelperService:
                     case ResponseFormat.TEXT:
                         return Response(
                             response.to_text(incl_header=True),
-                            media_type="text/plain",
-                        )
-                    case ResponseFormat.BED:
-                        return Response(
-                            response.to_bed(),
-                            media_type="text/plain",
-                        )
-                    case ResponseFormat.VCF:
-                        return Response(
-                            response.to_vcf(),
                             media_type="text/plain",
                         )
                     case _:  # JSON
