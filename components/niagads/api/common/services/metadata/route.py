@@ -7,16 +7,16 @@ from niagads.api.common.models.domain.parameters.response import ResponseContent
 from niagads.api.common.models.service.cache import CacheKeyQualifier
 from niagads.api.common.services.metadata.query import MetadataQueryService
 from niagads.api.common.services.route import (
+    EndpointService,
     RequestParameters,
     ResponseConfiguration,
-    RouteHelperService,
 )
 
 # FIXME: data_store -> is_filer_track
 
 
-class MetadataRouteHelperService(RouteHelperService):
-    """RouteHelperService extended w/Metadata queries"""
+class MetadataEndpointService(EndpointService):
+    """EndpointService extended w/Metadata queries"""
 
     def __init__(
         self,

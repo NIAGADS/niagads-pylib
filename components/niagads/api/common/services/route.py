@@ -100,7 +100,7 @@ class RequestParameters(BaseModel):
         self.model_extra[attribute] = value
 
 
-class RouteHelperService:
+class EndpointService:
 
     def __init__(
         self,
