@@ -16,7 +16,10 @@ from niagads.api.common.parameters.response import ResponseContent
 from niagads.api.common.services.metadata.query import MetadataQueryService
 from niagads.api.common.services.metadata.route import MetadataRouteHelperService
 from niagads.api.common.services.route import PaginationCursor as PaginationCursor
-from niagads.api.common.services.route import Parameters, ResponseConfiguration
+from niagads.api.common.services.route import (
+    RequestParameters,
+    ResponseConfiguration,
+)
 from niagads.api.filer.services.wrapper import (
     ApiWrapperService,
     FILERApiDataResponse,
@@ -46,7 +49,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         self,
         managers: InternalRequestParameters,
         responseConfig: ResponseConfiguration,
-        params: Parameters,
+        params: RequestParameters,
     ):
         super().__init__(
             managers,

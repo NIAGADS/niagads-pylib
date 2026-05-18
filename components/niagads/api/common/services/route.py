@@ -101,7 +101,7 @@ class PaginationCursor(BaseModel):
     offset: Optional[int] = None
 
 
-class Parameters(BaseModel):
+class RequestParameters(BaseModel):
     """arbitrary namespace to store request parameters and pass them to helpers"""
 
     __pydantic_extra__: Dict[str, Any]
@@ -123,12 +123,12 @@ class RouteHelperService:
         self,
         managers: InternalRequestParameters,
         responseConfig: ResponseConfiguration,
-        params: Parameters,
+        params: RequestParameters,
     ):
         self._managers: InternalRequestParameters = managers
         self._response_config: ResponseConfiguration = responseConfig
         self._pagination: PaginationDataModel = None
-        self._parameters: Parameters = params
+        self._parameters: RequestParameters = params
         self._pageSize: int = DEFAULT_PAGE_SIZE
         self._result_size: int = None
 

@@ -7,7 +7,7 @@ from niagads.api.common.models.domain.parameters.response import ResponseContent
 from niagads.api.common.models.service.cache import CacheKeyQualifier
 from niagads.api.common.services.metadata.query import MetadataQueryService
 from niagads.api.common.services.route import (
-    Parameters,
+    RequestParameters,
     ResponseConfiguration,
     RouteHelperService,
 )
@@ -22,7 +22,7 @@ class MetadataRouteHelperService(RouteHelperService):
         self,
         managers: InternalRequestParameters,
         response_config: ResponseConfiguration,
-        params: Parameters,
+        params: RequestParameters,
         data_store=[TrackDataStore.SHARED],
     ):
         super().__init__(managers, response_config, params)
