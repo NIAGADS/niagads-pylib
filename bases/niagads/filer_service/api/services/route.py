@@ -4,50 +4,42 @@ from itertools import groupby
 from operator import itemgetter
 from typing import List, Union
 
-from niagads.api.common.models.datasets.track import TrackResultSize
-from niagads.api.common.models.features.bed import BEDFeature
-from niagads.api.common.models.services.cache import (
-    CacheKeyDataModel,
-    CacheKeyQualifier,
-    CacheNamespace,
-)
-from niagads.api.common.parameters.internal import InternalRequestParameters
-from niagads.api.common.parameters.response import ResponseContent
+
+from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
+from niagads.api.common.models.domain.parameters.response import ResponseContent
+from niagads.api.common.models.service.cache import CacheKeyDataModel, CacheNamespace
 from niagads.api.common.services.metadata.query import MetadataQueryService
 from niagads.api.common.services.metadata.route import MetadataRouteHelperService
-from niagads.api.common.services.pagination import PaginationCursor
+from niagads.api.common.services.pagination import TrackDataPaginationCursor
 from niagads.api.common.services.route import (
     RequestParameters,
     ResponseConfiguration,
 )
-from niagads.api.filer.services.wrapper import (
+
+from niagads.filer_service.api.dependencies import FILEREndpointRequestParameters
+from niagads.filer_service.api.services.pagination import (
+    FILERTrackDataPaginationService,
+)
+from niagads.exceptions.core import ValidationError
+from niagads.common.genomic.features.models import GenomicFeature, GenomicFeatureType
+from niagads.database.genomicsdb.schema.dataset.track import Track
+from niagads.filer_service.api.services.wrapper import (
     ApiWrapperService,
     FILERApiDataResponse,
     FILERApiEndpoint,
 )
-from niagads.common.constants.track import TrackDataStore
-from niagads.exceptions.core import ValidationError
-from niagads.common.genomic.features.models import GenomicFeature, GenomicFeatureType
-from niagads.database.genomicsdb.schema.dataset.track import Track
-from niagads.utils.list import chunker, cumulative_sum
-from pydantic import BaseModel
+from niagads.utils.list import chunker
 
 FILER_HTTP_CLIENT_TIMEOUT = 60
 CACHEDB_PARALLEL_TIMEOUT = 30
 TRACKS_PER_API_REQUEST_LIMIT = 50
 
 
-class TrackPaginationCursor(BaseModel):
-    tracks: List[str]
-    start: PaginationCursor
-    end: PaginationCursor
-
-
 class FILERRouteHelper(MetadataRouteHelperService):
 
     def __init__(
         self,
-        managers: InternalRequestParameters,
+        managers: FILEREndpointRequestParameters,
         responseConfig: ResponseConfiguration,
         params: RequestParameters,
     ):
@@ -55,131 +47,18 @@ class FILERRouteHelper(MetadataRouteHelperService):
             managers,
             responseConfig,
             params,
-            [TrackDataStore.FILER, TrackDataStore.SHARED],
         )
-
-    async def __initialize_data_query_pagination(
-        self, trackResultSummary: List[TrackResultSize]
-    ) -> TrackPaginationCursor:
-        """calculate expected result size, number of pages;
-        determines and caches cursor-based pagination
-
-        pagination determined as follows:
-
-        1. sort track summary in DESC order by number of data points
-        2. calculate cumulative sum to estimate result size
-        3. create array of `ordered_track_index`:`offset` pairs defining the end point for the current page
-            (start point is cursor[page - 1], with cursor[0] always being `0:0`)
-
-        returns current set of pagedTracks, and start/end points for slicing within track results
-        """
-        # sort the track summary
-        sortedTrackResultSummary: List[TrackResultSize] = TrackResultSize.sort(
-            trackResultSummary
-        )
-
-        # generate cache keys
-        noPageCacheKey = self._managers.cache_key.no_page()
-        cursorCacheKey = CacheKeyDataModel.encrypt_key(
-            noPageCacheKey + CacheKeyQualifier.CURSOR
-        )
-        rs_cache_key = CacheKeyDataModel.encrypt_key(
-            noPageCacheKey + CacheKeyQualifier.RESULT_SIZE
-        )
-
-        # check to see if pagination has been cached
-        cursors = await self._managers.cache.get(
-            cursorCacheKey,
-            namespace=CacheNamespace.QUERY_CACHE,
-            timeout=CACHEDB_PARALLEL_TIMEOUT,
-        )
-        self._pagination_service.set_result_size(
-            await self._managers.cache.get(
-            rs_cache_key,
-            namespace=CacheNamespace.QUERY_CACHE,
-            timeout=CACHEDB_PARALLEL_TIMEOUT,
-        )
-        )
-
-        # if either is uncached, the data may be out of sync so recalculate cache size
-        if cursors is None or self.result_size is None:
-            cumulativeSum = cumulative_sum(
-                [t.num_results for t in sortedTrackResultSummary]
-            )
-            self._pagination_service.set_result_size(cumulativeSum[
-                -1
-            ])  # last element is total number of hits
-
-            await self._managers.cache.set(
-                rs_cache_key,
-                self.result_size,
-                namespace=CacheNamespace.QUERY_CACHE,
-                timeout=CACHEDB_PARALLEL_TIMEOUT,
-            )
-
-            self._pagination_service.initialize_pagination()  # need total number of pages to find cursors
-
-            cursors = ["0:0"]
-            if self.result_size > self.page_size:  # figure out page cursors
-                residualRecords = 0
-                priorTrackIndex = 0
-                offset = 0
-                for p in range(1, self.pagination.total_num_pages):
-                    sliceRange = self._pagination_service.slice_result_by_page(p)
-                    for index, counts in enumerate(cumulativeSum):
-                        if counts > sliceRange.end:  # end of page
-                            offset = (
-                                offset + self.page_size
-                                if priorTrackIndex == index
-                                else self.page_size - residualRecords
-                            )
-                            cursors.append(f"{index}:{offset}")
-
-                            residualRecords = (
-                                sortedTrackResultSummary[index].num_results - offset
-                            )
-                            priorTrackIndex = index
-
-                            break
-
-            # end of final page is always the last track, last feature
-            cursors.append(
-                f"{len(sortedTrackResultSummary)-1}:{sortedTrackResultSummary[-1].num_results}"
-            )
-
-            # cache the pagination cursor
-            await self._managers.cache.set(
-                cursorCacheKey,
-                cursors,
-                namespace=CacheNamespace.QUERY_CACHE,
-                timeout=CACHEDB_PARALLEL_TIMEOUT,
-            )
-
-        else:  # initialize from cached pagination
-            self._pagination_service.initialize_pagination()
-
-        startTrackIndex, startOffset = [
-            int(x) for x in cursors[self.pagination.page - 1].split(":")
-        ]
-        endTrackIndex, endIndex = [
-            int(x) for x in cursors[self.pagination.page].split(":")
-        ]
-        pagedTracks = [
-            t.track_id
-            for t in sortedTrackResultSummary[startTrackIndex : endTrackIndex + 1]
-        ]
-
-        return TrackPaginationCursor(
-            tracks=pagedTracks,
-            # cursor list & start/endTrackIndex is based on all tracks; need to adjust for pagedTrack slice
-            start=PaginationCursor(key=0, offset=startOffset),
-            end=PaginationCursor(key=endTrackIndex - startTrackIndex, offset=endIndex),
+        self._pagination_service = FILERTrackDataPaginationService(
+            self._parameters,
+            self._managers.cache,
+            self._managers.cache_key,
+            page_size=self.page_size,
         )
 
     def __merge_track_lists(self, trackList1, trackList2):
         matched = groupby(
-            sorted(trackList1 + trackList2, key=itemgetter("track_id")),
-            itemgetter("track_id"),
+            sorted(trackList1 + trackList2, key=itemgetter("id")),
+            itemgetter("id"),
         )
         combinedLists = [dict(ChainMap(*g)) for k, g in matched]
         return combinedLists
@@ -194,27 +73,6 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 "Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently"
             )
         return assembly
-
-    def __page_data_result(
-        self, cursor: TrackPaginationCursor, data: List[FILERApiDataResponse]
-    ) -> List[BEDFeature]:
-
-        # sort the response by the cursor pagedTracks so the track order is correct
-        # FILER currently processes sequentially so this is unecessary but if updated
-        # to process in parallel, it will be required
-        sortedData = sorted(data, key=lambda x: cursor.tracks == x.Identifier)
-
-        result: List[BEDFeature] = []
-        for trackIndex, track in enumerate(sortedData):
-            sliceStart = cursor.start.offset if trackIndex == cursor.start.key else None
-            sliceEnd = cursor.end.offset if trackIndex == cursor.end.key else None
-
-            features: List[BEDFeature] = track.features[sliceStart:sliceEnd]
-            for f in features:
-                f.add_track(track.Identifier)
-                result.append(f)
-
-        return result
 
     async def __get_track_data_task(
         self, tracks: List[str], assembly: str, span: str, countsOnly: bool
@@ -262,7 +120,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         return result
 
     async def __get_paged_track_data(
-        self, trackResultSummary: List[TrackResultSize], span=None, validate=True
+        self, trackResultSummary: List[TrackResultMetrics], span=None, validate=True
     ):
 
         result = await self._managers.cache.get(
@@ -272,8 +130,8 @@ class FILERRouteHelper(MetadataRouteHelperService):
         if result is not None:
             return await self.generate_response(result, is_cached=True)
 
-        cursor: TrackPaginationCursor = await self.__initialize_data_query_pagination(
-            trackResultSummary
+        cursor: TrackDataPaginationCursor = (
+            await self._pagination_service.build_page_cursor(trackResultSummary)
         )
 
         assembly = self._parameters.get("genome_build")
@@ -297,7 +155,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         for r in chunkedResults:
             data = data + r
 
-        result = self.__page_data_result(cursor, data)
+        result = self._pagination_service.page_data(cursor, data)
 
         return await self.generate_response(result, is_cached=False)
 
@@ -331,7 +189,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
             )
 
         # to ensure pagination order, need to sort by counts
-        sortedTrackResultSummary: List[TrackResultSize] = TrackResultSize.sort(
+        sortedTrackResultSummary: List[TrackResultMetrics] = TrackResultMetrics.sort(
             trackResultSummary
         )
         self.set_result_size(len(sortedTrackResultSummary))
@@ -341,7 +199,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         match self._response_config.content:
             case ResponseContent.IDS:
                 result = [
-                    t["track_id"]
+                    t["id"]
                     for t in sortedTrackResultSummary[sliceRange.start : sliceRange.end]
                 ]
                 return await self.generate_response(result)
@@ -370,7 +228,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 raise RuntimeError("Invalid response content specified")
 
     def __generate_track_overlap_summary(
-        self, metadata: List[Track], data: Union[List[dict], List[TrackResultSize]]
+        self, metadata: List[Track], data: Union[List[dict], List[TrackResultMetrics]]
     ):
         result = self.__merge_track_lists(
             [t.model_dump() for t in metadata],
@@ -418,7 +276,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
         cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?genome_build={self._parameters.get('assembly')}&span={span}"
         cache_key = CacheKeyDataModel.encrypt_key(cache_key.replace(":", "_"))
 
-        informativeTrackOverlaps: List[TrackResultSize] = (
+        informativeTrackOverlaps: List[TrackResultMetrics] = (
             await self._managers.cache.get(
                 cache_key, namespace=CacheNamespace.EXTERNAL_API
             )
@@ -439,35 +297,39 @@ class FILERRouteHelper(MetadataRouteHelperService):
             )
             return await self.generate_response([], is_cached=False)
 
-        targetTrackResultSize = informativeTrackOverlaps
+        targetTrackResultMetrics = informativeTrackOverlaps
 
         if hasMetadataFilters:
             # filter for tracks that match the filter
             matchingTrackIds = (
-                [t.track_id for t in matchingTracks]
+                [t.id for t in matchingTracks]
                 if raw_response != ResponseContent.IDS
                 else matchingTracks
             )
-            informativeTrackIds = [t.track_id for t in informativeTrackOverlaps]
+            informativeTrackIds = [t.id for t in informativeTrackOverlaps]
             targetTrackIds = list(
                 set(matchingTrackIds).intersection(informativeTrackIds)
             )
-            targetTrackResultSize: List[TrackResultSize] = [
-                t for t in informativeTrackOverlaps if t.track_id in targetTrackIds
+            targetTrackResultMetrics: List[TrackResultMetrics] = [
+                t for t in informativeTrackOverlaps if t.id in targetTrackIds
             ]
 
         if self._response_config.content == ResponseContent.FULL:
-            return await self.__get_paged_track_data(targetTrackResultSize, span=span)
+            return await self.__get_paged_track_data(
+                targetTrackResultMetrics, span=span
+            )
 
         # to ensure pagination order, need to sort by counts
-        result: List[TrackResultSize] = TrackResultSize.sort(targetTrackResultSize)
+        result: List[TrackResultMetrics] = TrackResultMetrics.sort(
+            targetTrackResultMetrics
+        )
         self.set_result_size(len(result))
         self._pagination_service.initialize_pagination()
         sliceRange = self._pagination_service.slice_result_by_page()
 
         match self._response_config.content:
             case ResponseContent.IDS:
-                result = [t.track_id for t in result[sliceRange.start : sliceRange.end]]
+                result = [t.id for t in result[sliceRange.start : sliceRange.end]]
                 return await self.generate_response(result)
 
             case ResponseContent.COUNTS:
@@ -478,7 +340,7 @@ class FILERRouteHelper(MetadataRouteHelperService):
 
             case ResponseContent.BRIEF | ResponseContent.URLS:
                 metadata: List[Track] = [
-                    t for t in matchingTracks if t.track_id in targetTrackIds
+                    t for t in matchingTracks if t.id in targetTrackIds
                 ]
                 summary = self.__generate_track_overlap_summary(metadata, result)
                 result = (
@@ -509,17 +371,17 @@ class FILERRouteHelper(MetadataRouteHelperService):
                 data: FILERApiDataResponse = await self.__get_gene_qtl_data_task(
                     self._parameters.track, feature.feature_id
                 )
-                counts = TrackResultSize(
-                    track_id=self._parameters.track, num_results=len(data.features)
+                counts = TrackResultMetrics(
+                    id=self._parameters.track, num_results=len(data.features)
                 )
 
                 if self._response_config.content == ResponseContent.COUNTS:
                     return await self.generate_response(counts)
 
-                cursor: TrackPaginationCursor = (
-                    await self.__initialize_data_query_pagination([counts])
+                cursor: TrackDataPaginationCursor = (
+                    await self._pagination_service.build_page_cursor([counts])
                 )
-                result = self.__page_data_result(cursor, [data])
+                result = self._pagination_service.page_data(cursor, [data])
                 return await self.generate_response(result, is_cached=False)
 
             case GenomicFeatureType.VARIANT:

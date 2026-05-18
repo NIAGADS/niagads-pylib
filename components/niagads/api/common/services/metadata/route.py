@@ -23,10 +23,8 @@ class MetadataRouteHelperService(RouteHelperService):
         managers: InternalRequestParameters,
         response_config: ResponseConfiguration,
         params: RequestParameters,
-        data_store=[TrackDataStore.SHARED],
     ):
         super().__init__(managers, response_config, params)
-        self._data_store = data_store
 
     async def get_track_metadata(self, raw_response=False):
         """fetch track metadata; expects a list of track identifiers in the parameters"""
@@ -83,9 +81,7 @@ class MetadataRouteHelperService(RouteHelperService):
             is_cached = False
 
             result = await MetadataQueryService(
-                self._managers.database_session,
-                self._managers.request_data,
-                self._data_store,
+                self._managers.database_session, self._managers.request_data
             ).get_collection_track_metadata(
                 self._parameters.get("collection"),
                 self._parameters.get("track"),

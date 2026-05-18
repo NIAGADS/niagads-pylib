@@ -1,15 +1,32 @@
-from typing import Optional, Union
+from abc import ABC, abstractmethod
+from typing import List, Optional, Union
 
 from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
+from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
+from niagads.api.common.models.domain.entities.features.bed import BEDFeature
+from niagads.api.common.models.service.cache import (
+    CacheKeyDataModel,
+    CacheKeyQualifier,
+    CacheNamespace,
+)
+
+from niagads.cache.core import KeyDBCacheManager
 from niagads.api.common.models.response.base import PaginationDataModel
 from niagads.common.models.types import Range
 from niagads.exceptions.core import ValidationError
+from niagads.utils.list import cumulative_sum
 from pydantic import BaseModel
 
 
 class PaginationCursor(BaseModel):
     key: Union[str, int]
     offset: Optional[int] = None
+
+
+class TrackDataPaginationCursor(BaseModel):
+    tracks: List[str]
+    start: PaginationCursor
+    end: PaginationCursor
 
 
 class PaginationService:
@@ -125,3 +142,116 @@ class PaginationService:
             end = self._result_size
 
         return Range(start=start, end=end)
+
+
+class TrackDataPaginationService(PaginationService, ABC):
+
+    def __init__(
+        self,
+        parameters,
+        cache: KeyDBCacheManager,
+        cache_key: CacheKeyDataModel,
+        page_size: int = DEFAULT_PAGE_SIZE,
+    ):
+        super().__init__(parameters, page_size=page_size)
+        self._cache = cache
+        self._cache_key = cache_key
+
+    async def build_page_cursor(
+        self, track_result_summary: List[TrackResultMetrics]
+    ) -> TrackDataPaginationCursor:
+        sorted_track_result_summary: List[TrackResultMetrics] = TrackResultMetrics.sort(
+            track_result_summary
+        )
+        no_page_cache_key = self._cache_key.no_page()
+
+        cursor_cache_key = CacheKeyDataModel.encrypt_key(
+            no_page_cache_key + CacheKeyQualifier.CURSOR
+        )
+        result_size_cache_key = CacheKeyDataModel.encrypt_key(
+            no_page_cache_key + CacheKeyQualifier.RESULT_SIZE
+        )
+
+        cursors = await self._cache.get(
+            cursor_cache_key,
+            namespace=CacheNamespace.QUERY_CACHE,
+        )
+        self.set_result_size(
+            await self._cache.get(
+                result_size_cache_key,
+                namespace=CacheNamespace.QUERY_CACHE,
+            )
+        )
+
+        if cursors is None or self.result_size is None:
+            cumulative_sum_by_track = cumulative_sum(
+                [t.num_results for t in sorted_track_result_summary]
+            )
+            self.set_result_size(cumulative_sum_by_track[-1])
+
+            await self._cache.set(
+                result_size_cache_key,
+                self.result_size,
+                namespace=CacheNamespace.QUERY_CACHE,
+            )
+
+            self.initialize_pagination()
+
+            cursors = ["0:0"]
+            if self.result_size > self.page_size:
+                residual_records = 0
+                prior_track_index = 0
+                offset = 0
+                for page in range(1, self.pagination.total_num_pages):
+                    slice_range = self.slice_result_by_page(page)
+                    for index, counts in enumerate(cumulative_sum_by_track):
+                        if counts > slice_range.end:
+                            offset = (
+                                offset + self.page_size
+                                if prior_track_index == index
+                                else self.page_size - residual_records
+                            )
+                            cursors.append(f"{index}:{offset}")
+
+                            residual_records = (
+                                sorted_track_result_summary[index].num_results - offset
+                            )
+                            prior_track_index = index
+                            break
+
+            cursors.append(
+                f"{len(sorted_track_result_summary)-1}:{sorted_track_result_summary[-1].num_results}"
+            )
+
+            await self._cache.set(
+                cursor_cache_key,
+                cursors,
+                namespace=CacheNamespace.QUERY_CACHE,
+            )
+        else:
+            self.initialize_pagination()
+
+        start_track_index, start_offset = [
+            int(x) for x in cursors[self.pagination.page - 1].split(":")
+        ]
+        end_track_index, end_index = [
+            int(x) for x in cursors[self.pagination.page].split(":")
+        ]
+        paged_tracks = [
+            t.id
+            for t in sorted_track_result_summary[
+                start_track_index : end_track_index + 1
+            ]
+        ]
+
+        return TrackDataPaginationCursor(
+            tracks=paged_tracks,
+            start=PaginationCursor(key=0, offset=start_offset),
+            end=PaginationCursor(
+                key=end_track_index - start_track_index, offset=end_index
+            ),
+        )
+
+    @abstractmethod
+    def page_data(self, cursor: TrackDataPaginationCursor, data: List) -> List:
+        raise NotImplementedError
