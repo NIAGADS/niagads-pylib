@@ -23,7 +23,7 @@ class FILERApiDataResponse(BaseModel):
     features: List[BEDFeature]
 
 
-class ApiWrapperService:
+class FILERClientService:
     def __init__(self, session):
         self.__session: ClientSession = session
 

@@ -23,8 +23,8 @@ from niagads.filer_service.api.services.pagination import (
 from niagads.exceptions.core import ValidationError
 from niagads.common.genomic.features.models import GenomicFeature, GenomicFeatureType
 from niagads.database.genomicsdb.schema.dataset.track import Track
-from niagads.filer_service.api.services.wrapper import (
-    ApiWrapperService,
+from niagads.filer_service.api.services.client import (
+    FILERClientService,
     FILERApiDataResponse,
     FILERApiEndpoint,
 )
@@ -84,7 +84,7 @@ class FILEREndpointService(MetadataEndpointService):
             cache_key, namespace=CacheNamespace.EXTERNAL_API
         )
         if result is None:
-            result = await ApiWrapperService(
+            result = await FILERClientService(
                 self._managers.http_client_session
             ).get_track_hits(tracks, span, assembly, countsOnly=countsOnly)
             await self._managers.cache_service.set(
@@ -100,7 +100,7 @@ class FILEREndpointService(MetadataEndpointService):
             cache_key, namespace=CacheNamespace.EXTERNAL_API
         )
         if result is None:
-            result = await ApiWrapperService(
+            result = await FILERClientService(
                 self._managers.http_client_session
             ).get_gene_qtls(track, gene)
             await self._managers.cache_service.set(
@@ -268,11 +268,13 @@ class FILEREndpointService(MetadataEndpointService):
             )
         )
         if informativeTrackOverlaps is None:
-            informativeTrackOverlaps = await ApiWrapperService(
+            informativeTrackOverlaps = await FILERClientService(
                 self._managers.http_client_session
             ).get_informative_tracks(span, self._parameters.get("genome_build"))
             await self._managers.cache_service.set(
-                cache_key, informativeTrackOverlaps, namespace=CacheNamespace.EXTERNAL_API
+                cache_key,
+                informativeTrackOverlaps,
+                namespace=CacheNamespace.EXTERNAL_API,
             )
 
         if len(informativeTrackOverlaps) == 0:

@@ -5,7 +5,7 @@ from niagads.api.common.services.pagination import (
     TrackDataPaginationCursor,
     TrackDataPaginationService,
 )
-from niagads.filer_service.api.services.wrapper import FILERApiDataResponse
+from niagads.filer_service.api.services.client import FILERApiDataResponse
 
 
 class FILERTrackDataPaginationService(TrackDataPaginationService):
