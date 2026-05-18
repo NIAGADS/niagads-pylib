@@ -15,7 +15,7 @@ from niagads.api.common.parameters.internal import InternalRequestParameters
 from niagads.api.common.parameters.response import ResponseContent
 from niagads.api.common.services.metadata.query import MetadataQueryService
 from niagads.api.common.services.metadata.route import MetadataRouteHelperService
-from niagads.api.common.services.route import PaginationCursor as PaginationCursor
+from niagads.api.common.services.pagination import PaginationCursor
 from niagads.api.common.services.route import (
     RequestParameters,
     ResponseConfiguration,
@@ -93,43 +93,45 @@ class FILERRouteHelper(MetadataRouteHelperService):
             namespace=CacheNamespace.QUERY_CACHE,
             timeout=CACHEDB_PARALLEL_TIMEOUT,
         )
-        self._result_size = await self._managers.cache.get(
+        self._pagination_service.set_result_size(
+            await self._managers.cache.get(
             rs_cache_key,
             namespace=CacheNamespace.QUERY_CACHE,
             timeout=CACHEDB_PARALLEL_TIMEOUT,
         )
+        )
 
         # if either is uncached, the data may be out of sync so recalculate cache size
-        if cursors is None or self._result_size is None:
+        if cursors is None or self.result_size is None:
             cumulativeSum = cumulative_sum(
                 [t.num_results for t in sortedTrackResultSummary]
             )
-            self._result_size = cumulativeSum[
+            self._pagination_service.set_result_size(cumulativeSum[
                 -1
-            ]  # last element is total number of hits
+            ])  # last element is total number of hits
 
             await self._managers.cache.set(
                 rs_cache_key,
-                self._result_size,
+                self.result_size,
                 namespace=CacheNamespace.QUERY_CACHE,
                 timeout=CACHEDB_PARALLEL_TIMEOUT,
             )
 
-            self.initialize_pagination()  # need total number of pages to find cursors
+            self._pagination_service.initialize_pagination()  # need total number of pages to find cursors
 
             cursors = ["0:0"]
-            if self._result_size > self._pageSize:  # figure out page cursors
+            if self.result_size > self.page_size:  # figure out page cursors
                 residualRecords = 0
                 priorTrackIndex = 0
                 offset = 0
-                for p in range(1, self._pagination.total_num_pages):
-                    sliceRange = self.slice_result_by_page(p)
+                for p in range(1, self.pagination.total_num_pages):
+                    sliceRange = self._pagination_service.slice_result_by_page(p)
                     for index, counts in enumerate(cumulativeSum):
                         if counts > sliceRange.end:  # end of page
                             offset = (
-                                offset + self._pageSize
+                                offset + self.page_size
                                 if priorTrackIndex == index
-                                else self._pageSize - residualRecords
+                                else self.page_size - residualRecords
                             )
                             cursors.append(f"{index}:{offset}")
 
@@ -154,13 +156,13 @@ class FILERRouteHelper(MetadataRouteHelperService):
             )
 
         else:  # initialize from cached pagination
-            self.initialize_pagination()
+            self._pagination_service.initialize_pagination()
 
         startTrackIndex, startOffset = [
-            int(x) for x in cursors[self._pagination.page - 1].split(":")
+            int(x) for x in cursors[self.pagination.page - 1].split(":")
         ]
         endTrackIndex, endIndex = [
-            int(x) for x in cursors[self._pagination.page].split(":")
+            int(x) for x in cursors[self.pagination.page].split(":")
         ]
         pagedTracks = [
             t.track_id
@@ -332,9 +334,9 @@ class FILERRouteHelper(MetadataRouteHelperService):
         sortedTrackResultSummary: List[TrackResultSize] = TrackResultSize.sort(
             trackResultSummary
         )
-        self._result_size = len(sortedTrackResultSummary)
-        self.initialize_pagination()
-        sliceRange = self.slice_result_by_page()
+        self.set_result_size(len(sortedTrackResultSummary))
+        self._pagination_service.initialize_pagination()
+        sliceRange = self._pagination_service.slice_result_by_page()
 
         match self._response_config.content:
             case ResponseContent.IDS:
@@ -459,9 +461,9 @@ class FILERRouteHelper(MetadataRouteHelperService):
 
         # to ensure pagination order, need to sort by counts
         result: List[TrackResultSize] = TrackResultSize.sort(targetTrackResultSize)
-        self._result_size = len(result)
-        self.initialize_pagination()
-        sliceRange = self.slice_result_by_page()
+        self.set_result_size(len(result))
+        self._pagination_service.initialize_pagination()
+        sliceRange = self._pagination_service.slice_result_by_page()
 
         match self._response_config.content:
             case ResponseContent.IDS:

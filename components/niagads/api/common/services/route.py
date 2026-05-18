@@ -1,6 +1,7 @@
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict
 
 from fastapi import Response
+from niagads.api.common.constants import DEFAULT_PAGE_SIZE
 from niagads.api.common.models.domain.parameters.internal import (
     InternalRequestParameters,
 )
@@ -16,16 +17,12 @@ from niagads.api.common.models.service.cache import (
     CacheNamespace,
 )
 from niagads.common.genomic.features.models import GenomicFeature
-from niagads.common.models.types import Range
 from niagads.exceptions.core import ValidationError
-from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
-from niagads.api.common.models.response.base import (
-    BaseResponseModel,
-    PaginationDataModel,
-)
 
+from niagads.api.common.models.response.base import BaseResponseModel
 
 from niagads.api.common.services.features import FeatureQueryService
+from niagads.api.common.services.pagination import PaginationService
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 _INTERNAL_PARAMETERS = ["span", "_tracks"]
@@ -94,13 +91,6 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
             raise ValidationError(f"Invalid value provided for `view`: {format}")
 
 
-class PaginationCursor(BaseModel):
-    """pagination cursor"""
-
-    key: Union[str, int]
-    offset: Optional[int] = None
-
-
 class RequestParameters(BaseModel):
     """arbitrary namespace to store request parameters and pass them to helpers"""
 
@@ -122,18 +112,29 @@ class RouteHelperService:
     def __init__(
         self,
         managers: InternalRequestParameters,
-        responseConfig: ResponseConfiguration,
+        response_config: ResponseConfiguration,
         params: RequestParameters,
+        page_size: int = DEFAULT_PAGE_SIZE,
     ):
         self._managers: InternalRequestParameters = managers
-        self._response_config: ResponseConfiguration = responseConfig
-        self._pagination: PaginationDataModel = None
+        self._response_config: ResponseConfiguration = response_config
         self._parameters: RequestParameters = params
-        self._pageSize: int = DEFAULT_PAGE_SIZE
-        self._result_size: int = None
+        self._pagination_service = PaginationService(params, page_size=page_size)
 
-    def set_page_size(self, pageSize: int):
-        self._pageSize = pageSize
+    @property
+    def pagination(self):
+        return self._pagination_service.pagination
+
+    @property
+    def page_size(self):
+        return self._pagination_service.page_size
+
+    @property
+    def result_size(self):
+        return self._pagination_service.result_size
+
+    def set_result_size(self, result_size: int):
+        self._pagination_service.set_result_size(result_size)
 
     async def _get_cached_response(self):
         cache_key = self._managers.cache_key.encrypt()
@@ -146,98 +147,6 @@ class RouteHelperService:
 
         return None
 
-    def _pagination_exists(self, raiseError: bool = True):
-        if self._pagination is None:
-            if raiseError:
-                raise RuntimeError(
-                    "Attempting to modify or access pagination before initializing"
-                )
-            else:
-                return False
-        return True
-
-    def _is_valid_page(self, page: int):
-        """test if the page is valid (w/in range of expected number of pages)"""
-
-        self._pagination_exists()
-
-        if self._pagination.total_num_pages is None:
-            raise RuntimeError(
-                "Attempting fetch a page before estimating total number of pages"
-            )
-
-        if page > self._pagination.total_num_pages:
-            raise ValidationError(
-                f"Request `page` {page} does not exist; this query generates a maximum of "
-                f"{self._pagination.total_num_pages} pages"
-            )
-
-        return True
-
-    def page(self):
-        if self._parameters is not None:
-            return self._parameters.get("page", 1)
-        return 1
-
-    def total_num_pages(self):
-        if self._result_size is None:
-            raise RuntimeError("Attempting to page before estimating result size.")
-
-        if self._result_size > self._pageSize * MAX_NUM_PAGES:
-            raise ValidationError(
-                f"Result size ({self._result_size}) is too large; filter for fewer tracks "
-                "or narrow the queried genomic region."
-            )
-
-        return (
-            1
-            if self._result_size < self._pageSize
-            else next(
-                (
-                    p
-                    for p in range(1, MAX_NUM_PAGES)
-                    if (p - 1) * self._pageSize > self._result_size
-                )
-            )
-            - 1
-        )
-
-    def initialize_pagination(self):
-        self._pagination = PaginationDataModel(
-            page=self.page(),
-            total_num_pages=self.total_num_pages(),
-            paged_num_records=None,
-            total_num_records=self._result_size,
-        )
-
-        return self._is_valid_page(self._pagination.page)
-
-    def set_paged_num_records(self, numRecords: int):
-        self._pagination_exists()
-        self._pagination.paged_num_records = numRecords
-
-    def offset(self):
-        """calculate offset for SQL pagination"""
-        self._pagination_exists()
-        return (
-            None
-            if self._pagination.page == 1
-            else (self._pagination.page - 1) * self._pageSize
-        )
-
-    def slice_result_by_page(self, page: int = None) -> Range:
-        """calculates start and end indexes for paging an array"""
-        self._pagination_exists()
-        targetPage = self._pagination.page if page is None else page
-        start = (targetPage - 1) * self._pageSize
-        end = (
-            start + self._pageSize
-        )  # don't subtract 1 b/c python slices are not end-range inclusive
-        if end > self._result_size:
-            end = self._result_size
-
-        return Range(start=start, end=end)
-
     async def generate_table_response(self, response: BaseResponseModel):
         # create an encrypted cache key
         cache_key = CacheKeyDataModel.encrypt_key(
@@ -246,26 +155,26 @@ class RouteHelperService:
             + str(ResponseView.TABLE)
         )
 
-        viewResponse = await self._managers.cache.get(
+        view_response = await self._managers.cache.get(
             cache_key, namespace=CacheNamespace.VIEW
         )
 
-        if viewResponse:
-            return viewResponse
+        if view_response:
+            return view_response
 
         self._managers.request_data.set_request_id(cache_key)
 
-        viewResponse = TableViewResponse(
+        view_response = TableViewResponse(
             table=response.to_table(id=cache_key),
             request=self._managers.request_data,
             pagination=response.pagination,
         )
 
         await self._managers.cache.set(
-            cache_key, viewResponse, namespace=CacheNamespace.VIEW
+            cache_key, view_response, namespace=CacheNamespace.VIEW
         )
 
-        return viewResponse
+        return view_response
 
     async def generate_response(self, result: Any, is_cached: bool = False):
         response: BaseResponseModel = result if is_cached else None
@@ -276,17 +185,17 @@ class RouteHelperService:
 
             # set pagination for lists of results
             if isinstance(result, list):
-                if not self._pagination_exists(raiseError=False):
-                    if self._result_size is None:
-                        self._result_size = len(result)
+                if not self._pagination_service.pagination_exists(raise_error=False):
+                    if self.result_size is None:
+                        self.set_result_size(len(result))
 
-                    self.initialize_pagination()
+                    self._pagination_service.initialize_pagination()
 
-                self.set_paged_num_records(len(result))
+                self._pagination_service.set_paged_num_records(len(result))
 
                 response = self._response_config.model(
                     request=self._managers.request_data,
-                    pagination=self._pagination,
+                    pagination=self.pagination,
                     data=result,
                 )
             else:

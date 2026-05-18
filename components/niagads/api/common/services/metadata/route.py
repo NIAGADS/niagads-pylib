@@ -51,10 +51,10 @@ class MetadataRouteHelperService(RouteHelperService):
             ).get_track_metadata(tracks, response_type=self._response_config.content)
 
             if not raw_response:
-                self._result_size = len(result)
-                is_paged = self.initialize_pagination()
+                self.set_result_size(len(result))
+                is_paged = self._pagination_service.initialize_pagination()
                 if is_paged:
-                    sliceRange = self.slice_result_by_page()
+                    sliceRange = self._pagination_service.slice_result_by_page()
                     result = result[sliceRange.start : sliceRange.end]
 
         if raw_response:
@@ -93,10 +93,10 @@ class MetadataRouteHelperService(RouteHelperService):
             )
 
             if not raw_response:
-                self._result_size = len(result)
-                is_paged = self.initialize_pagination()
+                self.set_result_size(len(result))
+                is_paged = self._pagination_service.initialize_pagination()
                 if is_paged:
-                    sliceRange = self.slice_result_by_page()
+                    sliceRange = self._pagination_service.slice_result_by_page()
                     result = result[sliceRange.start : sliceRange.end]
 
         if raw_response:
@@ -146,11 +146,11 @@ class MetadataRouteHelperService(RouteHelperService):
             if content == ResponseContent.COUNTS:
                 return await self.generate_response(result, is_cached=False)
 
-            self._result_size = result["num_tracks"]
-            is_paged = self.initialize_pagination()
+            self.set_result_size(result["num_tracks"])
+            is_paged = self._pagination_service.initialize_pagination()
             if is_paged:  # will return true if model can be paged and page is valid
-                offset = self.offset()
-                limit = self._pageSize
+                offset = self._pagination_service.offset()
+                limit = self.page_size
 
         result = await MetadataQueryService(
             self._managers.database_session, data_store=self._data_store
