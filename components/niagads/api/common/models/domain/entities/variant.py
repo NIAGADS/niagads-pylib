@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 
+from niagads.api.common.models.domain.mixins import ORMCompatabileMixin
 from niagads.common.genomic.regions.models import GenomicRegion
 from niagads.common.variant.models.annotations import (
     CADDScore,
@@ -7,16 +8,19 @@ from niagads.common.variant.models.annotations import (
     QCStatus,
 )
 from niagads.common.models.base import CustomBaseModel
-from niagads.api.common.models.response.record import BaseResponseModel
+from niagads.common.variant.models.record import VariantIdentifier, VariantRecord
 from pydantic import Field, field_validator
 
 
-class VariantFeature(CustomBaseModel):
-    positional_id: str = Field(title="Variant", order=1, serialization_alias="id")
-    ref_snp_id: Optional[str] = Field(default=None, title="Ref SNP ID", order=1)
+class VariantDescriptor(VariantIdentifier, ORMCompatabileMixin): ...
 
 
-class AbridgedVariant(VariantFeature):
+class Variant(VariantRecord, ORMCompatabileMixin):
+    positional_id: Optional[str] = Field(exclude=True)
+    normalized_positional_id: Optional[str] = Field(exclude=True)
+
+
+class AnnotatedVariantBrief(Variant):
     variant_class: str = Field(title="Variant Type")
     is_adsp_variant: Optional[bool] = Field(
         default=False,
@@ -29,32 +33,6 @@ class AbridgedVariant(VariantFeature):
         title="Predicted Consequence",
         description="most severe consequence predicted by VEP",
     )
-
-    def flat_dump(self, null_free=False, delimiter="|"):
-        obj = super().flat_dump(null_free, delimiter=delimiter)
-
-        # promote the location fields
-        del obj["most_severe_consequence"]
-        if self.most_severe_consequence is not None:
-            obj.update(self.most_severe_consequence._flat_dump())
-        else:
-            obj.update(
-                {
-                    k: None
-                    for k in PredictedConsequenceSummary.get_model_fields(as_str=True)
-                }
-            )
-
-        return obj
-
-    @classmethod
-    def list_model_fields(cls, as_str=False):
-        fields = super().list_model_fields()
-
-        del fields["most_severe_consequence"]
-        fields.update(PredictedConsequenceSummary.get_model_fields())
-
-        return list(fields.keys()) if as_str else fields
 
     @field_validator("is_adsp_variant", mode="before")
     @classmethod
@@ -74,144 +52,33 @@ class AbridgedVariant(VariantFeature):
             return PredictedConsequenceSummary.from_vep_json(v)
 
 
-class Variant(AbridgedVariant):
-
-    location: GenomicRegion
-    ref: Optional[str] = Field(default=None, title="Reference Allele")
-    alt: Optional[str] = Field(default=None, title="Alternative Allele")
-    allele_string: Optional[str] = Field(default=None, title="Allele String")
-
-    is_structural_variant: bool = Field(
-        default=False,
-        title="Is SV?",
-        description="flag indicating whether the variant is a structural variant",
-    )
-
-    def flat_dump(self, null_free=False, delimiter="|"):
-        obj = super().flat_dump(null_free, delimiter=delimiter)
-
-        # promote the location fields
-        del obj["location"]
-        obj.update(self.location.flat_dump())
-
-        return obj
-
-    @classmethod
-    def list_model_fields(cls, as_str=False):
-        fields = super().list_model_fields()
-
-        del fields["location"]
-        fields.update(GenomicRegion.list_model_fields())
-
-        return list(fields.keys()) if as_str else fields
-
-    @field_validator("is_structural_variant", mode="before")
-    @classmethod
-    def parse_is_structural_variant(cls, v):
-        return cls.boolean_null_check(v)
-
-
-class AnnotatedVariant(Variant):
+class AnnotatedVariant(AnnotatedVariantBrief):
 
     # FIXME: these queries can take a while; not part of the variant record
     # alternative_alleles: Optional[List[str]]
     # colocated_variants: Optional[List[Variant]]
 
-    is_multi_allelic: bool = Field(
-        default=False,
-        title="Is Multi-allelic?",
-        description="flag indicating whether the dbSNP refSNP is multi-allelic",
-    )
-
-    cadd_scores: Optional[CADDScore] = Field(
-        serialization_alias="cadd_score",
-        default=None,
-        title="CADD Score(s)",
-        description="score of the deleteriousness of a variant",
-    )
-
-    adsp_qc: Optional[List[QCStatus]] = None
-
     allele_frequencies: Optional[dict] = Field(
         default=None, description="allele frequencies from 1000Genomes, ALFA, ExAC"
     )
-    ranked_consequences: Optional[dict] = Field(
+    adsp_annotation: Optional[dict] = Field(
         default=None,
-        serialization_alias="predicted_consequences",
-        description="all predicted consequences from VEP annotation",
+        description="ADSP Annotation (see FAQ): incl. ranked VEP most severe consequence; selected FAVOR annotations",
     )
 
-    # TODO: vrs: [VRS] - ga4gh variant representation
-
-    @field_validator("is_multi_allelic", mode="before")
-    @classmethod
-    def parse_is_multi_allelic(cls, v):
-        return cls.boolean_null_check(v)
-
-    @field_validator("adsp_qc", mode="before")
-    @classmethod
-    def parse_adsp_qc(cls, v):
-        if v is None:
-            return v
-        if isinstance(v, QCStatus):
-            return [QCStatus]
-        if isinstance(v, list) and isinstance(v[0], QCStatus):
-            return v
-        if isinstance(v, dict):
-            qc = []
-            for release, scores in v.items():
-                status = QCStatus(
-                    status_code=scores["filter"],
-                    passed="PASS" in scores["filter"],
-                    release=release,
-                    scores=scores["info"],
-                )
-                qc.append(status)
-            return qc
-        else:
-            raise RuntimeError("Unexpected value returned for `adsp_qc` status")
-
-
-class FrequencyPopulation(CustomBaseModel):
-    abbreviation: str = Field(title="Population")
-    population: str = Field(title="Population")
-    description: Optional[str] = None
-
-    def __str__(self):
-        return self.population
-
-
-class AlleleFrequencies(CustomBaseModel):
-    population: FrequencyPopulation = Field(title="Population", order=1)
-    allele: str = Field(title="Allele", order=3)
-
-    data_source: str = Field(
-        title="Resource",
-        description="original data source for the frequency information",
-        order=2,
+    vep_annotation: Optional[dict] = Field(
+        default=None,
+        description="full VEP annotation (w/out ADSP ranking; see FAQ)",
     )
-    frequency: str = Field(title="Frequency", order=4)
 
 
-class VariantFunction(CustomBaseModel):
-    """ranked consequences"""
-
-    pass
+class VariantAnnotation(ORMCompatibleRecord, DynamicMixin): ...
 
 
-class ColocatedVariants(CustomBaseModel):
-    alternative_alleles: Optional[List[str]] = None
-    colocated_variants: Optional[List[str]] = None
-
-    def as_table_row(self, **kwargs):
-        raise NotImplementedError(
-            "Table views not available for lists of co-located variants."
-        )
-
-    def as_text(self, fields=None, null_str="NA", **kwargs):
-        raise NotImplementedError(
-            "Plain text response not available for lists of co-located variants."
-        )
+# TODO: come back to this
+# class ColocatedVariants(CustomBaseModel):
+#    alternative_alleles: Optional[List[str]] = None
+#    colocated_variants: Optional[List[str]] = None
 
 
 class VariantAnnotationResponse(BaseResponseModel):
@@ -224,7 +91,7 @@ class VariantAnnotationResponse(BaseResponseModel):
 
 
 class AbridgedVariantResponse(BaseResponseModel):
-    data: List[Variant]
+    data: List[VariantOld]
 
 
 class VariantResponse(BaseResponseModel):

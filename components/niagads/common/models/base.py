@@ -148,7 +148,7 @@ class CustomBaseModel(BaseModel):
 
         if incl_header:
             header = delimiter.join(fields)
-            delimited_text = delimiter.join([header, delimited_text])
+            delimited_text = "\n".join([header, delimited_text])
 
         return delimited_text
 

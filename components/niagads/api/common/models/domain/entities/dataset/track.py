@@ -1,20 +1,18 @@
-from typing import Any, ClassVar, Dict, List, Optional, Self, Union
+from typing import Optional
 
-from niagads.api.common.constants import DEFAULT_NULL_STRING
+from niagads.api.common.models.domain.base import ORMCompatibleRecord
 from niagads.api.common.models.domain.mixins import (
     ORMCompatabileMixin,
     ResultMetricsMixin,
 )
+from niagads.common.genomic.features.models import GenomicFeatureType
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.track.models import TrackRecord
-
-from niagads.common.genomic.features.models import GenomicFeatureType
 from niagads.genome_reference.human import GenomeBuild
-from niagads.utils.dict import promote_nested
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field
 
 
-class TrackMetadataBrief(CustomBaseModel, ORMCompatabileMixin):
+class TrackMetadataBrief(ORMCompatibleRecord):
     model_config = ConfigDict(is_summary=True)
 
     id: str = Field(

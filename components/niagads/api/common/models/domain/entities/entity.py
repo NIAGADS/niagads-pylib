@@ -1,4 +1,4 @@
-from niagads.api.common.models.domain.mixins import ORMCompatabileMixin
+from niagads.api.common.models.domain.base import ORMCompatibleRecord
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import BaseModel, Field
 
@@ -19,7 +19,7 @@ class EntityMetrics(BaseModel):
     num_records: int
 
 
-class EntityRecordMatch(ORMCompatabileMixin):
+class EntityRecordMatch(ORMCompatibleRecord):
     primary_key: str = Field(
         serialization_alias="id",
         title="Record ID",

@@ -1,12 +1,12 @@
 from typing import List
 
 
-from niagads.api.common.models.domain.mixins import ORMCompatabileMixin
-from niagads.common.models.base import CustomBaseModel
+from niagads.api.common.models.domain.base import ORMCompatibleRecord
+
 from pydantic import Field
 
 
-class CollectionMetadata(CustomBaseModel, ORMCompatabileMixin):
+class CollectionMetadata(ORMCompatibleRecord):
     id: str = Field(
         title="Collection ID",
         description="Unique collection identifier; may be a NIAGADS Dataset Accession",

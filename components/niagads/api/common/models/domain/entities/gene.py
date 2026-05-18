@@ -1,19 +1,18 @@
 from typing import Dict, List, Optional, Union
 
+from niagads.api.common.models.domain.base import ORMCompatibleRecord
+from niagads.api.common.models.domain.mixins import DynamicMixin, ORMCompatabileMixin
 from niagads.common.gene.models.annotation import (
     GOAssociation,
     PathwayMembership,
 )
-from niagads.api.common.models.response.record import BaseResponseModel
+from niagads.common.gene.models.record import GeneRecord
 from niagads.common.genomic.regions.models import GenomicRegion
-from niagads.common.models.base import CustomBaseModel
+
 from pydantic import Field
 
 
-# FIXME: this needs to be a common.model without the RowModel b/c it is used in
-# components/niagads/common/models/composite_attributes/variant.py
-# which creates an api dependency in alembic builds
-class GeneFeature(CustomBaseModel):
+class GeneDescriptor(GeneRecord, ORMCompatabileMixin):
     id: str = Field(title="Ensembl ID", description="Ensembl gene identifier")
     gene_symbol: Optional[str] = Field(
         default=None,
@@ -21,23 +20,21 @@ class GeneFeature(CustomBaseModel):
         description="official gene symbol",
         serialization_alias="symbol",
     )
+    location: Optional[GenomicRegion] = Field(
+        default=None,
+        title="Location",
+        description="genomic location delimiting the footprint (span) of the gene",
+    )
 
     def __str__(self):
         return self.id
 
-    # should allow to fill from SQLAlchemy ORM model
-    # model_config = ConfigDict(from_attributes=True, serialize_by_alias=True)
 
-
-class Gene(GeneFeature):
+class Gene(GeneDescriptor):
     gene_type: Optional[str] = Field(default=None, serialization_alias="type")
     gene_name: Optional[str] = Field(default=None, serialization_alias="name")
     synonyms: Optional[List[str]] = Field(
         default=None, title="Aliases", descriptions="gene symbol synonyms or aliases"
-    )
-    location: GenomicRegion = Field(
-        title="Location",
-        description="genomic location delimiting the footprint (span) of the gene",
     )
     cytogenic_location: Optional[str] = Field(
         default=None,
@@ -48,110 +45,12 @@ class Gene(GeneFeature):
     def __str__(self):
         return self.to_info_string()
 
-    def flat_dump(self, null_free=False, delimiter="|"):
-        obj = super().flat_dump(null_free, delimiter=delimiter)
-        if self.synonyms is not None:
-            obj["synonyms"] = self._flatten_list_to_string(
-                self.synonyms, delimiter=delimiter
-            )
-
-        # promote the location fields
-        del obj["location"]
-        obj.update(self.location.flat_dump())
-        return obj
-
-    @classmethod
-    def list_model_fields(cls, as_str=False):
-        fields = super().list_model_fields()
-        del fields["location"]
-        fields.update(GenomicRegion.list_model_fields())
-
-        return list(fields.keys()) if as_str else fields
-
 
 class AnnotatedGene(Gene):
     nomenclature: Optional[Dict[str, Union[str, int]]] = None
     go_annotation: Optional[List[GOAssociation]] = None
     pathway_membership: Optional[List[PathwayMembership]] = None
 
-    def to_info_string(self):
-        raise NotImplementedError("Not implemented for Annotated Genes")
 
-    def as_list(self, fields=None):
-        raise NotImplementedError("Not implemented for Annotated Genes")
-
-    def as_table_row(self, **kwargs):
-        raise NotImplementedError("Not implemented for Annotated Genes")
-
-
-class GeneFunction(GOAssociation):
-    def __str__(self):
-        return self.to_info_string()
-
-    def flat_dump(self, null_free=False, delimiter="|"):
-        obj = super().flat_dump(null_free, delimiter=delimiter)
-        if self.evidence is not None:
-            obj["evidence"] = self._flatten_list_to_string(
-                self.evidence, delimiter=delimiter
-            )
-        return obj
-
-
-class GenePathwayMembership(PathwayMembership):
-    def __str__(self):
-        return self.to_info_string()
-
-
-class GeneAnnotationResponse(BaseResponseModel):
-    data: Union[
-        List[GenePathwayMembership],
-        List[GeneFunction],
-    ]
-
-
-class AbridgedGeneResponse(BaseResponseModel):
-    data: List[Gene]
-
-
-class GeneResponse(BaseResponseModel):
-    data: List[AnnotatedGene]
-
-    def to_table(self, id=None, title=None):
-        raise NotImplementedError("Table views not avaialble for `FULL` gene records.")
-
-    def to_text(self, incl_header=False, null_str=None):
-        raise NotImplementedError(
-            "Plain text responses not available for `FULL` gene records."
-        )
-
-
-class RegionGene(CustomBaseModel):
-    gene: GeneFeature = Field(title="Gene")
-    gene_type: str = Field(title="Gene Type")
-    location: GenomicRegion
-    range_relation: str = Field(
-        title="Range Relation",
-        description="indicates location of gene relative to the queries region",
-    )
-
-    def flat_dump(self, null_free=False, delimiter="|"):
-        obj = super().flat_dump(null_free, delimiter=delimiter)
-
-        # promote the location fields
-        del obj["location"]
-        obj.update(self.location.flat_dump())
-
-        del obj["gene"]
-        obj.update(self.gene.flat_dump())
-
-        return obj
-
-    @classmethod
-    def list_model_fields(cls, as_str=False):
-        fields = super().list_model_fields()
-        del fields["location"]
-        fields.update(GenomicRegion.list_model_fields())
-        del fields["gene"]
-        fields.update(GeneFeature.list_model_fields())
-
-        return list(fields.keys()) if as_str else fields
+# want to see if this can work for pathways, go etc
+class GeneAnnotation(ORMCompatibleRecord, DynamicMixin): ...

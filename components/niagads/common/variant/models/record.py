@@ -27,18 +27,45 @@ class VariantIdentifier(CustomBaseModel):
 
 
 class VariantRecord(VariantIdentifier):
-    chromosome: HumanGenome
-    position: int
-    length: Optional[int] = None
-    ref: str
-    alt: str
-    variant_class: VariantClass = None
+    chromosome: HumanGenome = Field(..., title="Chromosome")
+    position: int = Field(
+        ...,
+        description="1-based position of the variant on the chromosome",
+        title="Position",
+    )
+    length: Optional[int] = Field(
+        default=None, description="Length of the variant (in bases)", title="Length"
+    )
+    ref: str = Field(
+        ...,
+        description="Reference allele sequence",
+        title="Reference Allele",
+    )
+    alt: str = Field(
+        ..., description="Alternate allele sequence", title="Alternate Allele"
+    )
+    variant_class: VariantClass = Field(
+        default=None,
+        description="Variant class (e.g., SNV, INDEL, SV)",
+        title="Variant Class",
+    )
 
-    ga4gh_vrs: Optional[Allele] = None
+    ga4gh_vrs: Optional[Allele] = Field(
+        default=None,
+        description="GA4GH VRS Allele object representation",
+        title="GA4GH VRS Allele",
+    )
 
-    positional_id: Optional[str] = None
+    positional_id: Optional[str] = Field(
+        default=None,
+        description="Positional variant identifier (chrom:pos:ref:alt)",
+        title="Positional ID",
+    )
     normalized_positional_id: Optional[str] = Field(
-        default=None, pattern=RegularExpressions.NORMALIZED_POSITIONAL_VARIANT_ID
+        default=None,
+        pattern=RegularExpressions.NORMALIZED_POSITIONAL_VARIANT_ID,
+        description="Normalized positional variant identifier",
+        title="Normalized Positional ID",
     )
 
     def __str__(self):
