@@ -6,7 +6,7 @@ from fastapi import Depends
 from niagads.api.common.models.domain.parameters.internal import (
     InternalRequestParameters,
 )
-from niagads.api.common.models.domain.parameters.text_search import (
+from niagads.api.common.models.domain.parameters.filters.text_search import (
     TextSearchFilterParameter,
 )
 from niagads.database import DatabaseSessionManager

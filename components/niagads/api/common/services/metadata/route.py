@@ -3,7 +3,7 @@ from typing import Optional
 from niagads.api.common.models.domain.parameters.internal import (
     InternalRequestParameters,
 )
-from niagads.api.common.models.domain.parameters.response import ResponseContent
+from niagads.api.common.models.domain.parameters.response.content import ResponseContent
 from niagads.api.common.models.service.cache import CacheKeyQualifier
 from niagads.api.common.services.metadata.query import MetadataQueryService
 from niagads.api.common.services.route import (
@@ -58,7 +58,9 @@ class MetadataEndpointService(EndpointService):
         if raw_response:
             # cache the raw response
             await self._managers.cache_service.set(
-                cache_key, result, namespace=self._managers.cache_service.cache_key.namespace
+                cache_key,
+                result,
+                namespace=self._managers.cache_service.cache_key.namespace,
             )
 
             return result
@@ -98,7 +100,9 @@ class MetadataEndpointService(EndpointService):
         if raw_response:
             # cache the raw response
             await self._managers.cache_service.set(
-                cache_key, result, namespace=self._managers.cache_service.cache_key.namespace
+                cache_key,
+                result,
+                namespace=self._managers.cache_service.cache_key.namespace,
             )
             return result
 
@@ -163,7 +167,9 @@ class MetadataEndpointService(EndpointService):
             return await self.generate_response(result, is_cached=False)
         else:  # cache the raw response before returning
             await self._managers.cache_service.set(
-                cache_key, result, namespace=self._managers.cache_service.cache_key.namespace
+                cache_key,
+                result,
+                namespace=self._managers.cache_service.cache_key.namespace,
             )
             return result
 

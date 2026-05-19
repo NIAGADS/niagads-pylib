@@ -1,5 +1,5 @@
 from fastapi import Query
-from niagads.api.common.models.domain.parameters.expression_filter import (
+from niagads.api.common.models.domain.parameters.filters.expression_filter import (
     FilterParameter,
 )
 from niagads.enums.core import CaseInsensitiveEnum

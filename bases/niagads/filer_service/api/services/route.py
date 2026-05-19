@@ -6,7 +6,7 @@ from typing import List, Union
 
 
 from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
-from niagads.api.common.models.domain.parameters.response import ResponseContent
+from niagads.api.common.models.domain.parameters.response.content import ResponseContent
 from niagads.api.common.models.service.cache import CacheKeyDataModel, CacheNamespace
 from niagads.api.common.services.metadata.query import MetadataQueryService
 from niagads.api.common.services.metadata.route import MetadataEndpointService

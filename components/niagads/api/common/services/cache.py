@@ -1,6 +1,6 @@
 from typing import Any, Optional, Tuple
 
-from niagads.api.common.models.domain.parameters.response import ResponseView
+from niagads.api.common.models.domain.parameters.response.content import ResponseView
 from niagads.api.common.models.service.cache import (
     CacheKeyDataModel,
     CacheKeyQualifier,

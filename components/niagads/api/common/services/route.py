@@ -5,7 +5,7 @@ from niagads.api.common.constants import DEFAULT_PAGE_SIZE
 from niagads.api.common.models.domain.parameters.internal import (
     InternalRequestParameters,
 )
-from niagads.api.common.models.domain.parameters.response import (
+from niagads.api.common.models.domain.parameters.response.content import (
     ResponseContent,
     ResponseFormat,
     ResponseView,
