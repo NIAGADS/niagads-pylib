@@ -1,6 +1,5 @@
 from typing import Any, Dict
 
-from fastapi import Response
 from niagads.api.common.constants import DEFAULT_PAGE_SIZE
 from niagads.api.common.models.domain.parameters.internal import (
     InternalRequestParameters,
@@ -8,7 +7,6 @@ from niagads.api.common.models.domain.parameters.internal import (
 from niagads.api.common.models.domain.parameters.response.content import (
     ResponseContent,
     ResponseFormat,
-    ResponseView,
 )
 from niagads.api.common.models.response.base import BaseResponseModel
 from niagads.api.common.models.response.views.table import TableViewResponse
@@ -16,10 +14,9 @@ from niagads.api.common.services.features import FeatureQueryService
 from niagads.api.common.services.pagination import PaginationService
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.exceptions.core import ValidationError
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 _INTERNAL_PARAMETERS = ["span", "_tracks"]
-_ALLOWABLE_VIEW_RESPONSE_CONTENTS = [ResponseContent.FULL, ResponseContent.BRIEF]
 
 
 class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
@@ -27,30 +24,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
 
     format: ResponseFormat = ResponseFormat.JSON
     content: ResponseContent = ResponseContent.FULL
-    view: ResponseView = ResponseView.DEFAULT
     model: BaseResponseModel = None
-
-    @model_validator(mode="after")
-    def validate_config(self, __context):
-        if (
-            self.content not in _ALLOWABLE_VIEW_RESPONSE_CONTENTS
-            and self.view != ResponseView.DEFAULT
-        ):
-            raise ValidationError(
-                f"Can only generate a `{str(self.view)}` `view` of query result for "
-                f"`{','.join(_ALLOWABLE_VIEW_RESPONSE_CONTENTS)}` response content (see `content`)"
-            )
-
-        if self.content != ResponseContent.FULL and self.format in [
-            ResponseFormat.VCF,
-            ResponseFormat.BED,
-        ]:
-
-            raise ValidationError(
-                f"Can only generate a `{self.format}` response for a `FULL` data query (see `content`)"
-            )
-
-        return self
 
     # from https://stackoverflow.com/a/67366461
     # allows ensurance that model is always a child of RecordResponse
@@ -75,13 +49,6 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
             return ResponseFormat(format)
         except NameError:
             raise ValidationError(f"Invalid value provided for `format`: {format}")
-
-    @field_validator("view")
-    def validate_view(cls, view):
-        try:
-            return ResponseView(view)
-        except NameError:
-            raise ValidationError(f"Invalid value provided for `view`: {format}")
 
 
 class RequestParameters(BaseModel):
@@ -130,26 +97,27 @@ class EndpointService:
         self._pagination_service.set_result_size(result_size)
 
     async def generate_table_response(self, response: BaseResponseModel):
-        cache_key, view_response = await self._managers.cache_service.get_view_response(
-            ResponseView.TABLE
-        )
+        pass
+        # cache_key, view_response = await self._managers.cache_service.get_view_response(
+        #     ResponseView.TABLE
+        # )
 
-        if view_response:
-            return view_response
+        # if view_response:
+        #     return view_response
 
-        self._managers.request_data.set_request_id(cache_key)
+        # self._managers.request_data.set_request_id(cache_key)
 
-        view_response = TableViewResponse(
-            table=response.to_table(id=cache_key),
-            request=self._managers.request_data,
-            pagination=response.pagination,
-        )
+        # view_response = TableViewResponse(
+        #     table=response.to_table(id=cache_key),
+        #     request=self._managers.request_data,
+        #     pagination=response.pagination,
+        # )
 
-        await self._managers.cache_service.set_view_response(
-            ResponseView.TABLE, view_response
-        )
+        # await self._managers.cache_service.set_view_response(
+        #     ResponseView.TABLE, view_response
+        # )
 
-        return view_response
+        # return view_response
 
     async def generate_response(self, result: Any, is_cached: bool = False):
         response: BaseResponseModel = result if is_cached else None
@@ -194,24 +162,9 @@ class EndpointService:
             # cache the response
             await self._managers.cache_service.set_response(response)
 
-        match self._response_config.view:
-            case ResponseView.TABLE:
-                return await self.generate_table_response(response)
-
-            case ResponseView.DEFAULT:
-                match self._response_config.format:
-                    case ResponseFormat.TEXT:
-                        return Response(
-                            response.to_text(incl_header=True),
-                            media_type="text/plain",
-                        )
-                    case _:  # JSON
-                        return response
-
-            case _:  # IGV_BROWSER
-                raise NotImplementedError(
-                    f"A response for view of type {str(self._response_config.view)} is coming soon."
-                )
+        # match self._response_config.view:
+        # case ResponseView.TABLE:
+        #    return await self.generate_table_response(response)
 
     async def get_feature_location(self, feature: GenomicFeature):
         return await FeatureQueryService(
