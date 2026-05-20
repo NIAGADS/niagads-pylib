@@ -19,7 +19,7 @@ VCF_HEADER_FIELDS = [
 
 
 class VCFEntry(BaseModel):
-    chrom: str
+    chrom: HumanGenome
     pos: int
     id: str
     ref: str
@@ -86,7 +86,7 @@ class VCFEntry(BaseModel):
                     f"Can not parse VCFEntry -> invalid alt allele: {alt_allele}; {variant}"
                 )
         return cls(
-            chrom=variant.CHROM,
+            chrom=HumanGenome(variant.CHROM),
             pos=variant.POS,
             id=variant.ID or ".",
             ref=variant.REF,
