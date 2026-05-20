@@ -44,7 +44,11 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         super().__init__(debug=debug, verbose=verbose, logger=logger)
         # self.logger.propagate = True
         self._vrs_service: GA4GHVRSService = GA4GHVRSService(
-            genome_build, seqrepo_service_url, debug=debug, verbose=verbose
+            genome_build,
+            seqrepo_service_url,
+            debug=debug,
+            verbose=verbose,
+            logger=logger,
         )
 
     @property
@@ -245,7 +249,7 @@ class GA4GHVRSService(ComponentBaseMixin):
         ).to_zero_based_region()
 
         vrs_location = self.create_vrs_sequence_location(
-            region, normalize=False, compute_id=False
+            region, normalize=False, compute_id=True
         )
 
         state = LiteralSequenceExpression(sequence=variant.alt)
@@ -510,6 +514,7 @@ class GA4GHVRSService(ComponentBaseMixin):
             refget_accession = self._seqrepo_data_proxy.translate_sequence_identifier(
                 key, "ga4gh"
             )[0]
+            self._refget_accession_cache[key] = refget_accession
         if not refget_accession:
             raise ValueError(
                 f"Unable to map chromosome {chromosome} to a GA4GH RefGet Accession"
@@ -610,6 +615,7 @@ class GA4GHVRSService(ComponentBaseMixin):
 
         if compute_id:
             location.id = ga4gh_identify(location)  # compute ga4gh identifier
+
         return vrs_normalize(location) if normalize else location
 
     def normalize_positional_variant(
