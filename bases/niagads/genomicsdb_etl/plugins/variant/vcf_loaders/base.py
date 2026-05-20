@@ -1,7 +1,7 @@
 from typing import Dict, Iterator, Optional
 import cyvcf2
 from niagads.common.variant.models.ga4gh_vrs import Allele
-from niagads.common.variant.models.record import VariantRecord
+from niagads.common.variant.models.record import VariantIdentifier, VariantRecord
 from niagads.common.variant.types import VariantClass
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.etl.plugins.parameters import PathValidatorMixin
@@ -28,12 +28,8 @@ class BaseVCFLoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
         description="URL to seqrepo service for GA4GH VRS",
     )
 
-    seqrepo_batch_size: Optional[int] = Field(
-        default=50,
-        description="number of parallel requests to seqrepo service for GA4GH VRS and stable ID Generation",
-    )
-
     validate_file_exists = PathValidatorMixin.validator("file")
+
 
 
 class BaseVCFLoader(BaseFeatureLoaderPlugin):
@@ -80,10 +76,18 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
     def _generate_variant_identifier_record(
         self, entry: VCFEntry, require_validation: bool = True
     ):
-        positional_id = f"{entry.chrom}:{entry.pos}:{entry.ref}:{entry.alt}"
-        record: VariantRecord = VariantRecord.from_positional_id(positional_id)
+        positional_id = f"{entry.chrom.value}:{entry.pos}:{entry.ref}:{entry.alt}"
+        try:               
+            record: VariantRecord = VariantRecord.from_positional_id(positional_id)
+        except Exception as err:
+            if 'String should match pattern' in str(err):
+                self.logger.debug(f"Invalid allele string: {positional_id}")
+                return None
+            raise
+            
+        entry_id = entry.id.lower()
         record.ref_snp_id = (
-            entry.id.lower() if entry.id.lower().startswith("rs") else None
+            entry_id if entry_id.startswith("rs") else None
         )
 
         # generate the GA4GH VRS allele

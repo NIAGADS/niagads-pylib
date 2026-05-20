@@ -8,8 +8,9 @@ Loads DBSNP variants from VCF file into variant table.
 """
 
 import asyncio
+from time import perf_counter
 from typing import Iterator, Optional
-
+from niagads.utils.logging import async_timed
 
 import cyvcf2
 from niagads.common.types import ETLOperation
@@ -38,7 +39,7 @@ metadata = PluginMetadata(
 )
 
 
-class dbSNPRecord(VariantRecord):
+class ALFAAnnotatedVariantRecord(VariantRecord):
     allele_frequency: Optional[dict] = None
 
 
@@ -77,7 +78,6 @@ class dbSNPVCFLoader(BaseVCFLoader):
     def extract(self) -> Iterator[list[VCFEntry]]:
         """Extract variants from VCF in seqrepo_batch_size batches."""
         reader = cyvcf2.Reader(self._params.file)
-        batch = []
         try:
             for entry in reader:
                 # index starts at 1 b/c ref is 0 in lists in INFO annotations
@@ -89,34 +89,27 @@ class dbSNPVCFLoader(BaseVCFLoader):
                         )
                     else:
                         vcf_entry.info["FREQ"] = None
-                    batch.append(vcf_entry)
 
-                    if len(batch) >= self._params.seqrepo_batch_size:
-                        yield batch
-                        batch = []
-
-            # yield residual batch
-            if batch:
-                yield batch
+                    yield vcf_entry
 
         finally:
             reader.close()
 
-    async def transform(self, entries: list[VCFEntry]) -> list[dbSNPRecord]:
-        """Transform VCF variants to Variant records (with standardized IDs) concurrently."""
-
-        async def process_entry(entry: VCFEntry) -> dbSNPRecord:
-            record: dbSNPRecord = dbSNPRecord(
-                **self._generate_variant_identifier_record(
-                    entry, require_validation=False  # trust dbSNP
-                ).model_dump()
+    async def transform(self, entry: VCFEntry) -> ALFAAnnotatedVariantRecord:
+        """Transform VCF variant to Variant record (with standardized IDs)."""
+        
+        variant_record = self._generate_variant_identifier_record(
+                entry, require_validation=False  # trust dbSNP
             )
-            record.allele_frequency = entry.info["FREQ"]
-            return record
+        if variant_record is None:
+            return None
+        
+        return ALFAAnnotatedVariantRecord(
+            **variant_record.model_dump(), allele_frequency=entry.info["FREQ"]
+        )
+    
 
-        return await asyncio.gather(*[process_entry(entry) for entry in entries])
-
-    def __is_duplicate(self, variant: dbSNPRecord):
+    def __is_duplicate(self, variant: ALFAAnnotatedVariantRecord):
         """
         Checks if the given variant is a duplicate within the current bin.
 
@@ -131,16 +124,20 @@ class dbSNPVCFLoader(BaseVCFLoader):
                 return True
 
     async def load(
-        self, session: AsyncSession, records: list[dbSNPRecord]
+        self, session: AsyncSession, records: list[ALFAAnnotatedVariantRecord]
     ) -> Optional[ResumeCheckpoint]:
+        
         variants = []
-
         for record in records:
+            if record is None:
+                self.inc_tx_count(Variant, ETLOperation.SKIP) # invalid variant
+                continue
             if self.__is_duplicate(record):
-                self.logger.warning(
-                    f"Skipping Duplicate Variant: NIAGADS_ID = {record.id}; RECORD = {record.positional_id} / {record.ref_snp_id} / DUPLICATES {self._current_bin_variants[record.id]}"
-                )
-                self.inc_tx_count(Variant, ETLOperation.INSERT)
+                if self._verbose:
+                    self.logger.warning(
+                        f"Skipping Duplicate Variant: NIAGADS_ID = {record.id}; RECORD = {record.positional_id} / {record.ref_snp_id} / DUPLICATES {self._current_bin_variants[record.id]}"
+                    )
+                self.inc_tx_count(Variant, ETLOperation.SKIP)
                 continue
 
             variant = Variant.from_variant_record(record)
@@ -157,5 +154,7 @@ class dbSNPVCFLoader(BaseVCFLoader):
                 self._current_bin_variants = {}
             self._current_bin_variants[record.id] = record.ref_snp_id
 
+        # as long as batches are small this is faster than copy
         await Variant.submit_many(session, variants)
+
         return self.create_checkpoint(record=records[-1])
