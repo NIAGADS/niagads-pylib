@@ -1,4 +1,3 @@
-import io
 import json
 from datetime import datetime
 from typing import Self
@@ -6,7 +5,7 @@ from typing import Self
 from niagads.common.models.types import Range
 from niagads.database.decorators import CompressedJson, RangeType
 from niagads.utils.string import xstr
-from sqlalchemy import ARRAY, TypeDecorator, exists, func, inspect, select
+from sqlalchemy import ARRAY, exists, func, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.exc import ProgrammingError
@@ -20,6 +19,10 @@ class TransactionTableMixin(DeclarativeBase):
     @classmethod
     def table_name(cls):
         return f"{cls._schema}.{cls.__tablename__}"
+
+    @classmethod
+    def primary_key_column(cls):
+        return cls.__mapper__.primary_key[0].name
 
     async def stage(self, session: AsyncSession):
         """
@@ -166,7 +169,7 @@ class TransactionTableMixin(DeclarativeBase):
         return result.scalars().count()
 
     @staticmethod
-    def __value_to_str(value: any, col_type=None):
+    def __record_value_to_string(value: any, col_type=None):
         """
         Convert a value to its string representation for COPY bulk loading, handling custom and PostgreSQL types.
 
@@ -184,43 +187,33 @@ class TransactionTableMixin(DeclarativeBase):
             - JSON, JSONB, ARRAY: Serializes to JSON string.
             - dict/list: Serializes to JSON string if not empty, else NULL.
             - None: Returns 'NULL'.
-
-        Source: AI-generated, see https://github.com/NIAGADS/niagads-pylib
         """
-        str_value = None
 
         if value is not None:
             if isinstance(col_type, RangeType):
                 value: Range
-                str_value = value.to_range_string()
-            elif isinstance(col_type, CompressedJson):
+                return value.to_range_string()
+            if isinstance(col_type, CompressedJson):
                 compressed_value = col_type.process_bind_param(value, None)
-                str_value = "\\x" + compressed_value.hex()
-            elif isinstance(col_type, Ltree):
-                str_value = str(value)
-            elif isinstance(col_type, (JSON, JSONB, ARRAY)):
-                str_value = json.dumps(value)
+                return "\\x" + compressed_value.hex()
+            if isinstance(col_type, Ltree):
+                return str(value)
+            if isinstance(col_type, (JSON, JSONB, ARRAY)):
+                return json.dumps(value)
+            if isinstance(value, (dict, list)):
+                if len(value) == 0:
+                    value = None
+                else:
+                    return json.dumps(value)
+            if isinstance(value, Ltree):
+                return str(value)
 
-        if isinstance(value, (dict, list)):
-            if len(value) == 0:
-                value = None
-            else:
-                str_value = json.dumps(value)
-        elif isinstance(value, Ltree):
-            str_value = str(value)
-
-        if str_value is None:
-            str_value = xstr(value, null_str="NULL")
-
-        return str_value
+        return xstr(value, null_str="NULL")
 
     @classmethod
     async def copy(cls, session: AsyncSession, records: list[Self]):
         """
         Batch insert records using PostgreSQL COPY for high performance.
-
-        Uses COPY FROM STDIN with pipe-delimited format for fast bulk loading.
-        Handles NULL values, escaping, and JSONB field serialization.
 
         Args:
             session (AsyncSession): SQLAlchemy async session.
@@ -235,30 +228,43 @@ class TransactionTableMixin(DeclarativeBase):
 
         cls.verify_record_type(records)
 
+        excluded_columns = [
+            cls.primary_key_column(),
+            "creation_date",
+            "modification_date",
+        ]
+
         # Get column metadata
         mapper = inspect(cls)
         columns = mapper.columns
-        column_names = [c.name for c in columns]
+        column_names = [c.name for c in columns if c.name not in excluded_columns]
 
         # Build pipe-delimited buffer
-        async def record_generator():
+        async def byte_generator():
             for record in records:
                 row = []
                 for col_name in column_names:
                     value = getattr(record, col_name, None)
                     col_type = columns[col_name].type
-                    str_value = cls.__value_to_str(value, col_type)
+
+                    str_value = cls.__record_value_to_string(value, col_type)
                     row.append(str_value)
 
-                yield "|".join(row) + "\n"
+                yield ("|".join(row) + "\n").encode("utf-8")
 
-        table_name = cls.table_name()
-        columns_str = ",".join(column_names)
-        copy_sql = f"COPY {table_name} ({columns_str}) FROM STDIN WITH (DELIMITER '|', NULL 'NULL')"
-
-        print(copy_sql)
+        schema_name, table_name = cls.table_name().split(".")
 
         # Execute COPY via raw connection
         session_connection = await session.connection()
-        raw_connection = await session_connection.get_raw_connection()
-        await raw_connection.copy_in(copy_sql, record_generator())
+        sqlalchemy_proxy_connection = await session_connection.get_raw_connection()
+        asyncpg_raw_connection = sqlalchemy_proxy_connection.driver_connection
+
+        await asyncpg_raw_connection.copy_to_table(
+            table_name,
+            schema_name=schema_name,
+            columns=column_names,
+            source=byte_generator(),
+            format="text",
+            delimiter="|",
+            null="NULL",
+        )
