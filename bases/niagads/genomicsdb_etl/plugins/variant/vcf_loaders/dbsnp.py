@@ -55,7 +55,7 @@ class dbSNPVCFLoader(BaseVCFLoader):
         verbose: bool = False,
     ):
         super().__init__(params, name, log_path, debug, verbose)
-        self._skip_normalization = True
+        self._skip_normalization = False
 
     def __parse_allele_frequencies(self, freq_str: str, allele_index: int):
 
@@ -97,17 +97,16 @@ class dbSNPVCFLoader(BaseVCFLoader):
 
     async def transform(self, entry: VCFEntry) -> ALFAAnnotatedVariantRecord:
         """Transform VCF variant to Variant record (with standardized IDs)."""
-        
+
         variant_record = self._generate_variant_identifier_record(
-                entry, require_validation=False  # trust dbSNP
-            )
+            entry, require_validation=False  # trust dbSNP
+        )
         if variant_record is None:
             return None
-        
+
         return ALFAAnnotatedVariantRecord(
             **variant_record.model_dump(), allele_frequency=entry.info["FREQ"]
         )
-    
 
     def __is_duplicate(self, variant: ALFAAnnotatedVariantRecord):
         """
@@ -126,11 +125,11 @@ class dbSNPVCFLoader(BaseVCFLoader):
     async def load(
         self, session: AsyncSession, records: list[ALFAAnnotatedVariantRecord]
     ) -> Optional[ResumeCheckpoint]:
-        
+
         variants = []
         for record in records:
             if record is None:
-                self.inc_tx_count(Variant, ETLOperation.SKIP) # invalid variant
+                self.inc_tx_count(Variant, ETLOperation.SKIP)  # invalid variant
                 continue
             if self.__is_duplicate(record):
                 if self._verbose:

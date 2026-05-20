@@ -139,7 +139,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             )
 
         primary_key = variant.positional_id
-        if len(variant.ref) + len(variant.alt) > 20:
+        if len(variant.ref) + len(variant.alt) > 50:
             # too long to be human readable and indexable
             # Hash the entire Allele (includes ref/alt), not just location
             allele = (
@@ -338,12 +338,22 @@ class GA4GHVRSService(ComponentBaseMixin):
         )  # validate variant string
 
         if variant_id_type == VariantNomenclature.POSITIONAL:
-            allele = self._allele_translator.translate_from(
-                VariantNomenclature.convert_positional_to_gnomad(variant_id),
-                VariantNomenclature.GNOMAD.value,
+            chrm, pos, ref, alt = variant_id.split(":")
+            # basically save time of the refget accession lookup
+            refget_accession = self.get_refget_accession(chrm).replace("ga4gh:", "")
+            start = int(pos) - 1
+            variant_json = {
+                "refget_accession": refget_accession,
+                "start": start,
+                "end": start + len(ref),
+                "literal_sequence": alt,
+            }
+            allele = self._allele_translator._create_allele(
+                variant_json,
                 require_validation=require_validation,
                 do_normalize=normalize,
             )
+
         else:
             allele = self._allele_translator.translate_from(
                 variant_id,
@@ -383,14 +393,20 @@ class GA4GHVRSService(ComponentBaseMixin):
                 ref = self.get_sequence(vrs_allele.location)
             alt = vrs_allele.state.sequence.root
         elif vrs_allele.state.type == "ReferenceLengthExpression":
-            if (
+            ref = self.get_sequence(vrs_allele.location)
+            if vrs_allele.state.length == 0:
+                alt = "-"
+            elif (
                 vrs_allele.state.sequence is None
                 or vrs_allele.state.sequence.root == ""
-            ):  # happens sometimes for repeats
-                ref = self.get_sequence(vrs_allele.location)
+            ):
+                repeat_length = vrs_allele.state.repeatSubunitLength
+                repeat_sequence = ref[:repeat_length]
+                alt = (
+                    repeat_sequence * ((vrs_allele.state.length // repeat_length) + 1)
+                )[: vrs_allele.state.length]
             else:
-                ref = vrs_allele.state.sequence.root * vrs_allele.state.length
-            alt = "-"
+                alt = vrs_allele.state.sequence.root
         elif vrs_allele.state.type == "LengthExpression":
             raise ValueError(
                 "Cannot convert: allele type is a `LengthExpression`.  "
@@ -656,3 +672,21 @@ class GA4GHVRSService(ComponentBaseMixin):
         )
 
         return self.allele_to_positional_variant(allele)
+
+    def fast_normalize_variant(self, positional_id: str) -> str:
+        chrom, pos, ref, alt = positional_id.split(":")
+        ref = "" if ref == "-" else ref
+        alt = "" if alt == "-" else alt
+
+        # trim shared suffix
+        while ref and alt and ref[-1] == alt[-1] and (len(ref) > 1 or len(alt) > 1):
+            ref = ref[:-1]
+            alt = alt[:-1]
+
+        # trim shared prefix
+        while ref and alt and ref[0] == alt[0] and (len(ref) > 1 or len(alt) > 1):
+            ref = ref[1:]
+            alt = alt[1:]
+            pos = int(pos) + 1
+
+        return f"{chrom}:{pos}:{ref or '-'}:{alt or '-'}"

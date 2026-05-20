@@ -31,7 +31,6 @@ class BaseVCFLoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
     validate_file_exists = PathValidatorMixin.validator("file")
 
 
-
 class BaseVCFLoader(BaseFeatureLoaderPlugin):
     _params: BaseVCFLoaderParams
 
@@ -77,18 +76,16 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
         self, entry: VCFEntry, require_validation: bool = True
     ):
         positional_id = f"{entry.chrom.value}:{entry.pos}:{entry.ref}:{entry.alt}"
-        try:               
+        try:
             record: VariantRecord = VariantRecord.from_positional_id(positional_id)
         except Exception as err:
-            if 'String should match pattern' in str(err):
+            if "String should match pattern" in str(err):
                 self.logger.debug(f"Invalid allele string: {positional_id}")
                 return None
             raise
-            
+
         entry_id = entry.id.lower()
-        record.ref_snp_id = (
-            entry_id if entry_id.startswith("rs") else None
-        )
+        record.ref_snp_id = entry_id if entry_id.startswith("rs") else None
 
         # generate the GA4GH VRS allele
         ga4gh_allele = self._pk_generator.ga4gh_service.variant_to_vrs_allele(
@@ -100,14 +97,11 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
 
         # if a short indel use the normalized GA4GH VRS allele to generate the normalized positional id
         if not self._skip_normalization and record.variant_class.is_short_indel():
-            try:
-                record.normalized_positional_id = (
-                    self._pk_generator.ga4gh_service.allele_to_positional_variant(
-                        ga4gh_allele
-                    )
+            record.normalized_positional_id = (
+                self._pk_generator.ga4gh_service.fast_normalize_variant(
+                    record.positional_id
                 )
-            except:  # most likely a repeat so the normalized sequence is longer than expected
-                pass
+            )
         else:
             record.normalized_positional_id = positional_id
 
