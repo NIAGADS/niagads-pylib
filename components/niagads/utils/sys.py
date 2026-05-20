@@ -18,6 +18,8 @@ from typing import IO, Union
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.dict import print_dict
 from niagads.utils.string import ascii_safe_str
+from contextlib import asynccontextmanager
+from time import perf_counter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -27,6 +29,20 @@ class ClassProperties(CaseInsensitiveEnum):
 
     METHODS = auto()
     MEMBERS = auto()
+
+
+@asynccontextmanager
+async def timer(label: str):
+    """usage:
+    async with timer("thing I am timing"):
+        ...
+    """
+
+    start = perf_counter()
+    try:
+        yield
+    finally:
+        print(f"{label}: {perf_counter() - start:.3f}s")
 
 
 def file_chunker(buffer: IO, chunkSize: int):
