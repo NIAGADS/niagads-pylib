@@ -8,8 +8,11 @@ from typing import List, Union
 from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
 from niagads.api.common.models.domain.parameters.response.content import ResponseContent
 from niagads.api.common.models.service.cache import CacheKeyDataModel, CacheNamespace
-from niagads.api.common.services.metadata.query import MetadataQueryService
-from niagads.api.common.services.metadata.route import MetadataEndpointService
+from niagads.api.common.services.metadata.query import (
+    MetadataQueryService,
+    TrackDatabase,
+)
+from niagads.api.common.services.metadata.route import TrackMetadataEndpointService
 from niagads.api.common.services.pagination import TrackDataPaginationCursor
 from niagads.api.common.services.route import (
     RequestParameters,
@@ -35,7 +38,7 @@ CACHEDB_PARALLEL_TIMEOUT = 30
 TRACKS_PER_API_REQUEST_LIMIT = 50
 
 
-class FILEREndpointService(MetadataEndpointService):
+class FILEREndpointService(TrackMetadataEndpointService):
 
     def __init__(
         self,
@@ -44,9 +47,7 @@ class FILEREndpointService(MetadataEndpointService):
         params: RequestParameters,
     ):
         super().__init__(
-            managers,
-            responseConfig,
-            params,
+            managers, responseConfig, params, track_database=TrackDatabase.FILER
         )
         self._pagination_service = FILERTrackDataPaginationService(
             self._parameters,

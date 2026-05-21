@@ -22,19 +22,9 @@ _INTERNAL_PARAMETERS = ["span", "_tracks"]
 class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     """Captures response-related parameter values (format, content, view) and model"""
 
-    format: ResponseFormat = ResponseFormat.JSON
+    format: ResponseFormat = ResponseFormat.DEFAULT
     content: ResponseContent = ResponseContent.FULL
-    model: BaseResponseModel = None
-
-    # from https://stackoverflow.com/a/67366461
-    # allows ensurance that model is always a child of RecordResponse
-    @field_validator("model")
-    def validate_model(cls, model):
-        if issubclass(model, BaseResponseModel):
-            return model
-        raise RuntimeError(
-            f"Wrong type for `model` : `{model}`; must be subclass of `AbstractResponse`"
-        )
+    model: type[BaseResponseModel] = None
 
     @field_validator("content")
     def validate_content(cls, content):

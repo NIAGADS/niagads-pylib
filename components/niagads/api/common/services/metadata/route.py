@@ -5,7 +5,10 @@ from niagads.api.common.models.domain.parameters.internal import (
 )
 from niagads.api.common.models.domain.parameters.response.content import ResponseContent
 from niagads.api.common.models.service.cache import CacheKeyQualifier
-from niagads.api.common.services.metadata.query import MetadataQueryService
+from niagads.api.common.services.metadata.query import (
+    MetadataQueryService,
+    TrackDatabase,
+)
 from niagads.api.common.services.route import (
     EndpointService,
     RequestParameters,
@@ -15,16 +18,22 @@ from niagads.api.common.services.route import (
 # FIXME: data_store -> is_filer_track
 
 
-class MetadataEndpointService(EndpointService):
-    """EndpointService extended w/Metadata queries"""
+class TrackMetadataEndpointService(EndpointService):
+    "Endpoint service for querying track metadata"
 
     def __init__(
         self,
         managers: InternalRequestParameters,
         response_config: ResponseConfiguration,
         params: RequestParameters,
+        track_database: TrackDatabase = TrackDatabase.OPEN_ACCESS,
     ):
         super().__init__(managers, response_config, params)
+        self.__metadata_query_service = MetadataQueryService(
+            self._managers.database_session,
+            self._managers.request_data,
+            track_database=track_database,
+        )
 
     async def get_track_metadata(self, raw_response=False):
         """fetch track metadata; expects a list of track identifiers in the parameters"""
@@ -44,9 +53,9 @@ class MetadataEndpointService(EndpointService):
             tracks = tracks.split(",") if isinstance(tracks, str) else tracks
             tracks = sorted(tracks)  # best for caching & pagination
 
-            result = await MetadataQueryService(
-                self._managers.database_session, data_store=self._data_store
-            ).get_track_metadata(tracks, response_type=self._response_config.content)
+            result = await self.__metadata_query_service.get_track_metadata(
+                tracks, response_type=self._response_config.content
+            )
 
             if not raw_response:
                 self.set_result_size(len(result))
@@ -82,9 +91,7 @@ class MetadataEndpointService(EndpointService):
         if result is None:
             is_cached = False
 
-            result = await MetadataQueryService(
-                self._managers.database_session, self._managers.request_data
-            ).get_collection_track_metadata(
+            result = await self.__metadata_query_service.get_collection_track_metadata(
                 self._parameters.get("collection"),
                 self._parameters.get("track"),
                 response_type=self._response_config.content,
@@ -134,9 +141,7 @@ class MetadataEndpointService(EndpointService):
         limit = None
         if raw_response is None:
             # get counts to either return or determine pagination
-            result = await MetadataQueryService(
-                self._managers.database_session, data_store=self._data_store
-            ).query_track_metadata(
+            result = await self.__metadata_query_service.query_track_metadata(
                 self._parameters.get("genome_build"),
                 self._parameters.get("filter", None),
                 self._parameters.get("keyword", None),
@@ -152,9 +157,7 @@ class MetadataEndpointService(EndpointService):
                 offset = self._pagination_service.offset()
                 limit = self.page_size
 
-        result = await MetadataQueryService(
-            self._managers.database_session, data_store=self._data_store
-        ).query_track_metadata(
+        result = await self.__metadata_query_service.query_track_metadata(
             self._parameters.get("genome_build"),
             self._parameters.get("filter", None),
             self._parameters.get("keyword", None),

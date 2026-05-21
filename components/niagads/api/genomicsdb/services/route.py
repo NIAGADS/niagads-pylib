@@ -21,7 +21,7 @@ from niagads.api.common.parameters.internal import InternalRequestParameters
 from niagads.api.common.parameters.response import ResponseContent
 from niagads.api.common.services.features import FeatureQueryService
 from niagads.api.common.services.metadata.query import MetadataQueryService
-from niagads.api.common.services.metadata.route import MetadataEndpointService
+from niagads.api.common.services.metadata.route import TrackMetadataEndpointService
 from niagads.api.common.services.route import Parameters, ResponseConfiguration
 from niagads.api.genomicsdb.queries.track_data import (
     TrackGWASSumStatQuery,
@@ -43,7 +43,7 @@ class QueryOptions(BaseModel):
     range: Optional[Range] = None
 
 
-class GenomicsEndpointService(MetadataEndpointService):
+class GenomicsEndpointService(TrackMetadataEndpointService):
 
     def __init__(
         self,

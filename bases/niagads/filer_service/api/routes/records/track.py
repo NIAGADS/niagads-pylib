@@ -18,6 +18,7 @@ from niagads.api.common.models.response.entities.dataset import (
     TrackMetadataResponse,
 )
 from niagads.api.common.models.response.entities.features.bed import BEDResponse
+from niagads.api.common.services.metadata.query import TrackDatabase
 from niagads.api.common.services.route import (
     RequestParameters,
     ResponseConfiguration,

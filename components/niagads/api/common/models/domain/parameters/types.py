@@ -29,7 +29,7 @@ class EnumParameter(CaseInsensitiveEnum):
             )
 
     @classmethod
-    def subset(cls: Self, names: list[str]) -> Self:
+    def subset(cls: Self, name: str, members: list) -> Self:
         """Create a subset enum with only the specified member names.
 
         Args:
@@ -39,7 +39,5 @@ class EnumParameter(CaseInsensitiveEnum):
         Returns:
             EnumParameter: new enum generated from the included members
         """
-        subset_members = {
-            member.name: member.value for member in cls if member.name in names
-        }
-        return EnumParameter(cls.__name__, subset_members)
+
+        return EnumParameter(name, members)

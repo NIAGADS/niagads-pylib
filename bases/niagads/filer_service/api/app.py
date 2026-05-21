@@ -4,6 +4,7 @@ from niagads.filer_service.api.documentation import APP_NAMESPACE, OPEN_API_SPEC
 from niagads.settings.core import get_service_environment
 
 from niagads.filer_service.api.routes.root import router as StatusRouter
+from niagads.filer_service.api.routes.records.track import router as TrackRecordRouter
 
 # generate the app
 app_factory = AppFactory(
@@ -12,6 +13,7 @@ app_factory = AppFactory(
 
 # add the child routes
 app_factory.add_router(StatusRouter)
+app_factory.add_router(TrackRecordRouter)
 
 
 # app_factory.add_router(QTLRouter)
