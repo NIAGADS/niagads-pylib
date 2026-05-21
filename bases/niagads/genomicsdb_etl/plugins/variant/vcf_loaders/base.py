@@ -55,6 +55,7 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
         self._pk_generator = PrimaryKeyGenerator(
             genome_build=self._params.genome_build,
             seqrepo_service_url=self._params.seqrepo_service_url,
+            bin_index_reference=self.bin_index_reference,
             logger=self.logger if self._verbose else None,
         )
 

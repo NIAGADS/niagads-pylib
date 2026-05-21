@@ -47,6 +47,10 @@ class BaseFeatureLoaderPlugin(AbstractBasePlugin):
     def external_database_id(self):
         return self.__external_database.external_database_id
 
+    @property
+    def bin_index_reference(self):
+        return self.__bin_index_reference
+
     async def __fetch_bin_index_map(self, session):
         stmt = select(IntervalBin).order_by(
             IntervalBin.chromosome,

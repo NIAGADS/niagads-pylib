@@ -1,8 +1,9 @@
-from ast import Dict
+from bisect import bisect_right
+from collections import OrderedDict
 import hashlib
 import json
 import logging
-from typing import Union
+from typing import Optional, Union
 
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs.dataproxy import DataProxyValidationError, create_dataproxy
@@ -37,6 +38,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         self,
         genome_build: GenomeBuild,
         seqrepo_service_url: str,
+        bin_index_reference: Optional[dict] = None,
         debug: bool = False,
         verbose: bool = False,
         logger=None,
@@ -46,6 +48,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         self._vrs_service: GA4GHVRSService = GA4GHVRSService(
             genome_build,
             seqrepo_service_url,
+            bin_index_reference=bin_index_reference,
             debug=debug,
             verbose=verbose,
             logger=logger,
@@ -170,6 +173,168 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         variant.id = primary_key
 
 
+class BinCachedSeqRepoDataProxy:
+    def __init__(
+        self,
+        data_proxy,
+        genome_build: GenomeBuild,
+        bin_index_reference: Optional[dict] = None,
+        max_cached_bin_width: int = 1_000_000,
+        max_cache_size: int = 8,
+    ):
+        self._data_proxy = data_proxy
+        self._assembly = genome_build
+        self._bin_index_reference = bin_index_reference
+        self._max_cached_bin_width = max_cached_bin_width
+        self._sequence_cache = OrderedDict()
+        self._max_cache_size = max_cache_size
+        self._refget_chromosome_cache = {}
+        self._identifier_refget_cache = {}
+
+    def __getattr__(self, name):
+        return getattr(self._data_proxy, name)
+
+    def validate_ref_seq(
+        self,
+        sequence_id: str,
+        start_pos: int,
+        end_pos: int,
+        ref: str,
+        require_validation: bool = True,
+    ) -> None:
+        correct_ref = self.get_sequence(sequence_id, start_pos, end_pos)
+        if correct_ref != ref:
+            err_msg = (
+                f"Reference mismatch at {sequence_id} position {start_pos}-{end_pos} "
+                f"(input gave '{ref}' but correct ref is '{correct_ref}')"
+            )
+            logging.getLogger("ga4gh.vrs.dataproxy").warning(err_msg)
+            if require_validation:
+                raise DataProxyValidationError(err_msg)
+
+    def get_sequence(
+        self, identifier: str, start: Optional[int] = None, end: Optional[int] = None
+    ) -> str:
+        if start is None or end is None:
+            return self._data_proxy.get_sequence(identifier, start=start, end=end)
+        if not isinstance(start, int) or not isinstance(end, int):
+            return self._data_proxy.get_sequence(identifier, start=start, end=end)
+
+        sequence_ref = self._resolve_sequence_reference(identifier)
+        if sequence_ref is None:
+            return self._data_proxy.get_sequence(identifier, start=start, end=end)
+
+        chromosome, refget_accession = sequence_ref
+        bin_match = self._find_cached_bin(chromosome, start, end)
+        if bin_match is None:
+            return self._data_proxy.get_sequence(identifier, start=start, end=end)
+
+        bin_index, bin_start, bin_end = bin_match
+        cache_key = (refget_accession, str(bin_index))
+
+        cached = self._sequence_cache.get(cache_key)
+        if cached is None:
+            sequence = self._data_proxy.get_sequence(
+                refget_accession, start=bin_start, end=bin_end
+            )
+            cached = (bin_start, bin_end, sequence)
+            self._sequence_cache[cache_key] = cached
+            if len(self._sequence_cache) > self._max_cache_size:
+                self._sequence_cache.popitem(last=False)
+        else:
+            self._sequence_cache.move_to_end(cache_key)
+
+        cached_start, _, sequence = cached
+        return sequence[start - cached_start : end - cached_start]
+
+    def _resolve_sequence_reference(
+        self, identifier: str
+    ) -> Optional[tuple[str, str]]:
+        chromosome = self._identifier_to_chromosome(identifier)
+        if chromosome is None:
+            return None
+
+        refget_accession = self._identifier_to_refget_accession(identifier)
+        if refget_accession is None:
+            return None
+
+        return chromosome, refget_accession
+
+    def _identifier_to_chromosome(self, identifier: str) -> Optional[str]:
+        assembly_prefix = f"{self._assembly}:"
+        if identifier.startswith(assembly_prefix):
+            return identifier.split(":", maxsplit=1)[1]
+
+        cache_key = (
+            identifier if identifier.startswith("ga4gh:") else f"ga4gh:{identifier}"
+        )
+        if cache_key in self._refget_chromosome_cache:
+            return self._refget_chromosome_cache[cache_key]
+
+        try:
+            chromosome = self._data_proxy.translate_sequence_identifier(
+                cache_key, self._assembly
+            )[0].split(":", maxsplit=1)[1]
+        except Exception:
+            return None
+
+        self._refget_chromosome_cache[cache_key] = chromosome
+        return chromosome
+
+    def _identifier_to_refget_accession(self, identifier: str) -> Optional[str]:
+        if identifier.startswith("ga4gh:"):
+            return identifier
+
+        if identifier.startswith("SQ."):
+            return f"ga4gh:{identifier}"
+
+        if identifier in self._identifier_refget_cache:
+            return self._identifier_refget_cache[identifier]
+
+        try:
+            refget_accession = self._data_proxy.translate_sequence_identifier(
+                identifier, "ga4gh"
+            )[0]
+        except Exception:
+            return None
+
+        self._identifier_refget_cache[identifier] = refget_accession
+        return refget_accession
+
+    def _find_cached_bin(
+        self, chromosome: str, start: int, end: int
+    ) -> Optional[tuple[str, int, int]]:
+        if not self._bin_index_reference:
+            return None
+
+        chromosome_bins = self._bin_index_reference.get(chromosome)
+        if not chromosome_bins:
+            return None
+
+        one_based_start = start + 1
+        one_based_end = max(one_based_start, end)
+
+        matches = []
+        for level, level_bins in chromosome_bins.items():
+            starts = level_bins["starts"]
+            bins = level_bins["bins"]
+            split_index = bisect_right(starts, one_based_start) - 1
+            if split_index < 0:
+                continue
+            bin_start = starts[split_index]
+            bin_end, bin_index = bins[split_index]
+            if one_based_end <= bin_end:
+                width = bin_end - bin_start + 1
+                if width <= self._max_cached_bin_width:
+                    matches.append((width, level, bin_index, bin_start, bin_end))
+
+        if not matches:
+            return None
+
+        _, _, bin_index, bin_start, bin_end = min(matches, key=lambda match: match[0])
+        return bin_index, bin_start - 1, bin_end
+
+
 class GA4GHVRSService(ComponentBaseMixin):
     """
     this normalizes, generates primary keys, and validates, standardizes using ga4gh.vrs
@@ -179,12 +344,18 @@ class GA4GHVRSService(ComponentBaseMixin):
         self,
         genome_build: GenomeBuild,
         seqrepo_service_url: str,
+        bin_index_reference: Optional[dict] = None,
         debug: bool = False,
         verbose: bool = False,
         logger=None,
     ):
         super().__init__(debug=debug, verbose=verbose, logger=logger)
-        self._seqrepo_data_proxy = create_dataproxy(f"seqrepo+{seqrepo_service_url}")
+        seqrepo_data_proxy = create_dataproxy(f"seqrepo+{seqrepo_service_url}")
+        self._seqrepo_data_proxy = BinCachedSeqRepoDataProxy(
+            seqrepo_data_proxy,
+            genome_build,
+            bin_index_reference=bin_index_reference,
+        )
         self._assembly: GenomeBuild = genome_build
         self._refget_accession_cache: dict = {}
 
