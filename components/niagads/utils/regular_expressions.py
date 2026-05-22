@@ -34,7 +34,7 @@ class RegularExpressions(StrEnum):
     NORMALIZED_POSITIONAL_VARIANT_ID = r"^.+:\d+:[ACGT-]+:[ACGT-]+$"
     REF_SNP_ID = r"^rs\d+$"
     STRUCTUAL_VARIANT_ID = (
-        r"^(INDEL|DEL|INS|DUP|INV|CNV|TRA)_CHR(MT|\d{1,2}|[XYM])_([A-Z]|\d){8}$"
+        r"^(MNV|INDEL|DEL|INS|DUP|INV|CNV|TRA)_CHR(MT|\d{1,2}|[XYM])_([A-Z]|\d){8}$"
     )
     SPDI = r"^[^:]+:\d+:[ACGTNacgtn-]+:[ACGTNacgtn-]+$"
     GNOMAD_VARIANT_ID = rf"^{CHROM_PATTERN}-\d+-[ACGTN]+-[ACGTN]+$"

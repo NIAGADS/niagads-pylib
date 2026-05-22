@@ -19,6 +19,7 @@ class VariantClass(CaseInsensitiveEnum):
     CNV = "copy-number variation"
     MEI = "mobile-element insertion"
     SV = "structural variant"
+    LONG_MNV = "long multi-nucleotide variant"
 
     def __str__(self):
         return self.name
@@ -27,7 +28,7 @@ class VariantClass(CaseInsensitiveEnum):
         return self.name.startswith("SHORT")
 
     def is_structural_variant(self):
-        return self.name in qw("DEL INS INDEL DUP INV TRANS CNV MEI SV")
+        return self.name in qw("DEL INS INDEL DUP INV TRANS CNV MEI SV LONG_MNV")
 
 
 class ConsequenceImpact(CaseInsensitiveEnum):

@@ -914,6 +914,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         finally:
             if self.__execution_status != ProcessStatus.SUCCESS:
                 await self.__summarize_transactions()
+
+            if self.__execution_status == ProcessStatus.IN_PROGRESS:
+                # if you got here w/out flagging a SUCCESS or FAIL it is most likely from a logger.critical
+                self.__execution_status = ProcessStatus.FAIL
+
             await self.__finalize_etl_run(error_message)
             self.logger.status(self.__status_report)
 

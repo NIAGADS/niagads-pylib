@@ -1,3 +1,4 @@
+import os
 from typing import Optional, Union
 
 from niagads.etl.plugins.types import ResumeCheckpoint
@@ -12,7 +13,7 @@ class BasePluginParams(BaseModel):
     Attributes:
         batch_size (int): Number of records to buffer before each load/commit in streaming mode.
         log_file (str): Path to the JSON log file for this plugin invocation.
-        resume_at (Optional[ResumeFrom]): Resume checkpoint hints, interpreted by plugins (extract/transform).
+        resume_after (Optional[ResumeFrom]): Resume checkpoint hints, interpreted by plugins (extract/transform).
         run_id (Optional[str]): Pipeline run identifier, provided by the pipeline.
         connection_string (Optional[str]): Database connection string, if needed.
 
@@ -57,9 +58,20 @@ class BasePluginParams(BaseModel):
         logger.exception("Failed to initializing plugin.")
 
 
+class EnvVariableMixin:
+    """
+    Mixin for parameter models that set environmental variables
+    """
+
+    def creaete_environment(self):
+        settings = self.model_dump()
+        for variable, value in settings.items():
+            os.environ[variable.upper()] = value
+
+
 class PathValidatorMixin:
     """
-    Mixin for Pydantic models to provide a reusable file or directory existence validator.
+    Mixin for parameter models to provide a reusable file or directory existence validator.
 
     Usage:
         - Inherit from this mixin in your parameter model.

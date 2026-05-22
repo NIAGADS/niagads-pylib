@@ -36,7 +36,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
     def __init__(
         self,
         genome_build: GenomeBuild,
-        seqrepo_service_url: str,
+        seqrepo_data_proxy: str,
         debug: bool = False,
         verbose: bool = False,
         logger=None,
@@ -45,7 +45,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         # self.logger.propagate = True
         self._vrs_service: GA4GHVRSService = GA4GHVRSService(
             genome_build,
-            seqrepo_service_url,
+            seqrepo_data_proxy,
             debug=debug,
             verbose=verbose,
             logger=logger,
@@ -93,7 +93,6 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
 
         location: SequenceLocation = self._vrs_service.create_vrs_sequence_location(
             variant.genomic_region.to_zero_based_region(),
-            compute_id=False,
             normalize=False,
         )
         hashed_location_id = hashlib.sha512(
@@ -101,7 +100,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         ).hexdigest()
 
         primary_key = (
-            f"{str(variant.variant_class)}_"
+            f"{str(variant.variant_class).replace('LONG_', '')}_"
             f"{variant.chromosome.name.upper()}_"
             f"{hashed_location_id[:8].upper()}"
         )
@@ -158,7 +157,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             ).hexdigest()
 
             primary_key = (
-                f"{str(variant.variant_class).replace('SHORT_', '')}_"
+                f"{str(variant.variant_class).replace('SHORT_', '').replace('LONG_','')}_"
                 f"{variant.chromosome.name.upper()}_"
                 f"{hashed_allele_id[:8].upper()}"
             )
@@ -178,13 +177,18 @@ class GA4GHVRSService(ComponentBaseMixin):
     def __init__(
         self,
         genome_build: GenomeBuild,
-        seqrepo_service_url: str,
+        seqrepo_data_proxy: str,
         debug: bool = False,
         verbose: bool = False,
         logger=None,
     ):
         super().__init__(debug=debug, verbose=verbose, logger=logger)
-        self._seqrepo_data_proxy = create_dataproxy(f"seqrepo+{seqrepo_service_url}")
+        if seqrepo_data_proxy.startswith("http"):
+            self._seqrepo_data_proxy = create_dataproxy(f"seqrepo+{seqrepo_data_proxy}")
+        else:
+            self._seqrepo_data_proxy = create_dataproxy(
+                f"seqrepo+file://{seqrepo_data_proxy}"
+            )
         self._assembly: GenomeBuild = genome_build
         self._refget_accession_cache: dict = {}
 
@@ -248,9 +252,7 @@ class GA4GHVRSService(ComponentBaseMixin):
             end=variant.span.end,
         ).to_zero_based_region()
 
-        vrs_location = self.create_vrs_sequence_location(
-            region, normalize=False, compute_id=True
-        )
+        vrs_location = self.create_vrs_sequence_location(region, normalize=False)
 
         state = LiteralSequenceExpression(sequence=variant.alt)
         allele = Allele(location=vrs_location, state=state)
@@ -289,9 +291,7 @@ class GA4GHVRSService(ComponentBaseMixin):
             end=variant.span.end,
         ).to_zero_based_region()
 
-        vrs_location = self.create_vrs_sequence_location(
-            region, normalize=False, compute_id=False
-        )
+        vrs_location = self.create_vrs_sequence_location(region, normalize=False)
 
         if variant.variant_class == "DEL":
             state = ReferenceLengthExpression(length=variant.length)
@@ -590,7 +590,6 @@ class GA4GHVRSService(ComponentBaseMixin):
         self,
         region: ZeroBasedGenomicRegion,
         normalize: bool = True,
-        compute_id: bool = True,
     ):
         """
         Create a GA4GH VRS SequenceLocation object for a given genomic region and
@@ -606,8 +605,6 @@ class GA4GHVRSService(ComponentBaseMixin):
         Args:
             region (ZeroBasedGenomicRegion): Genomic region with chromosome, start, and end coordinates.
             normalize (bool, optional): If True, normalize the SequenceLocation. Default is True.
-            compute_id (bool, optional): If True, compute and assign a GA4GH identifier.
-                Default is True.
 
         Returns:
             SequenceLocation: Normalized GA4GH VRS SequenceLocation object for the region
@@ -629,8 +626,7 @@ class GA4GHVRSService(ComponentBaseMixin):
             end=region.end,
         )
 
-        if compute_id:
-            location.id = ga4gh_identify(location)  # compute ga4gh identifier
+        location.id = ga4gh_identify(location)  # compute ga4gh identifier
 
         return vrs_normalize(location) if normalize else location
 

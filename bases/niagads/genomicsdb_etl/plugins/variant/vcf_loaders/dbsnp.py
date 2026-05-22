@@ -7,12 +7,11 @@ Loads DBSNP variants from VCF file into variant table.
 **ASSUMES EMPTY TABLE**
 """
 
-import asyncio
-from time import perf_counter
 from typing import Iterator, Optional
-from niagads.utils.logging import async_timed
+
 
 import cyvcf2
+from niagads.common.models.base import SerializationOptions
 from niagads.common.types import ETLOperation
 from niagads.common.variant.models.record import VariantRecord
 from niagads.database.genomicsdb.schema.variant.documents import Variant
@@ -36,6 +35,7 @@ metadata = PluginMetadata(
     operation=ETLOperation.INSERT,
     is_large_dataset=True,
     parameter_model=BaseVCFLoaderParams,
+    can_resume=True,
 )
 
 
@@ -73,10 +73,18 @@ class dbSNPVCFLoader(BaseVCFLoader):
             if pop_allele_freq is not None:
                 frequencies[pop] = pop_allele_freq
 
-        return frequencies
+        return frequencies if len(frequencies) > 0 else None
 
     def extract(self) -> Iterator[list[VCFEntry]]:
         """Extract variants from VCF in seqrepo_batch_size batches."""
+        resume_skip_count = 0
+        resume = self._params.resume_after is None
+
+        if not resume:
+            self.logger.info(
+                f"Scanning for Resume After Point {self._params.resume_after}"
+            )
+
         reader = cyvcf2.Reader(self._params.file)
         try:
             for entry in reader:
@@ -90,7 +98,22 @@ class dbSNPVCFLoader(BaseVCFLoader):
                     else:
                         vcf_entry.info["FREQ"] = None
 
-                    yield vcf_entry
+                    if resume:
+                        yield vcf_entry
+
+                    else:
+                        if resume_skip_count % 10000 == 0:
+                            self.logger.info(
+                                f"Resume Check: Skipped {resume_skip_count} entries."
+                            )
+                        if vcf_entry.id == self._params.resume_after:
+                            resume = True
+                            self.logger.info(
+                                f"Resume Check: Skipped {resume_skip_count} entries."
+                            )
+                            self.logger.info("Resume Point Found: Starting ETL.")
+                        else:
+                            resume_skip_count += 1
 
         finally:
             reader.close()
@@ -139,7 +162,15 @@ class dbSNPVCFLoader(BaseVCFLoader):
                 self.inc_tx_count(Variant, ETLOperation.SKIP)
                 continue
 
-            variant = Variant.from_variant_record(record)
+            try:
+                variant = Variant.from_variant_record(record)
+            except:
+                self.logger.critical(f"Malformed Variant Record: {
+                    record.model_dump(
+                        exclude_none=True,
+                        context={SerializationOptions.ENUMS_AS_NAME: True},
+                    )}")
+
             variant.allele_frequency = record.allele_frequency
             variant.run_id = self.run_id
             variant.bin_index = self._find_bin_index(
@@ -157,3 +188,6 @@ class dbSNPVCFLoader(BaseVCFLoader):
         await Variant.submit_many(session, variants)
 
         return self.create_checkpoint(record=records[-1])
+
+    def get_record_id(self, record: Variant) -> str:
+        return f"{record.ref_snp_id} | {record.id}"

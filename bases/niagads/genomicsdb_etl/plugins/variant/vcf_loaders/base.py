@@ -4,7 +4,7 @@ from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.models.record import VariantIdentifier, VariantRecord
 from niagads.common.variant.types import VariantClass
 from niagads.database.genomicsdb.schema.variant.documents import Variant
-from niagads.etl.plugins.parameters import PathValidatorMixin
+from niagads.etl.plugins.parameters import EnvVariableMixin, PathValidatorMixin
 from niagads.ga4gh.annotators import PrimaryKeyGenerator
 from niagads.genome_reference.human import GenomeBuild
 from niagads.genomicsdb_etl.plugins.common.bases.features import (
@@ -15,7 +15,9 @@ from niagads.vcf.types import VCFEntry
 from pydantic import Field
 
 
-class BaseVCFLoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
+class BaseVCFLoaderParams(
+    BaseFeatureLoaderParams, PathValidatorMixin, EnvVariableMixin
+):
     file: str = Field(..., description="Full path to VCF file")
 
     genome_build: Optional[GenomeBuild] = Field(
@@ -23,9 +25,23 @@ class BaseVCFLoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
         description=f"Reference genome build, one of {GenomeBuild.list()}",
     )
 
-    seqrepo_service_url: Optional[str] = Field(
-        default="http://localhost:5000/seqrepo",
-        description="URL to seqrepo service for GA4GH VRS",
+    seqrepo_data_proxy: Optional[str] = Field(
+        default=None,
+        description="URL to seqrepo service or full path to seqrepo cache for GA4GH VRS",
+    )
+
+    skip_ga4gh_vrs: Optional[bool] = Field(
+        defualt=False,
+        description="Skip generating GA4GH VRS representation; note: GA4GH VRS calls with still be made to generate SV stable IDs",
+    )
+
+    seqrepo_lru_cache_maxsize: Optional[str] = Field(
+        default="none",
+        description="Maximum number of SeqRepo lookup results kept in the in-memory LRU cache. Use an integer or 'none' for unlimited.",
+    )
+    seqrepo_fd_cache_maxsize: Optional[int] = Field(
+        default=100,
+        description="Maximum number of sequence file handles SeqRepo keeps open. Higher values reduce repeated file open/close overhead.",
     )
 
     validate_file_exists = PathValidatorMixin.validator("file")
@@ -54,7 +70,7 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
         await super().on_run_start(session)
         self._pk_generator = PrimaryKeyGenerator(
             genome_build=self._params.genome_build,
-            seqrepo_service_url=self._params.seqrepo_service_url,
+            seqrepo_data_proxy=self._params.seqrepo_data_proxy,
             logger=self.logger if self._verbose else None,
         )
 
@@ -68,9 +84,6 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
 
         finally:
             reader.close()
-
-    def get_record_id(self, record: Variant) -> str:
-        return record.id
 
     def _generate_variant_identifier_record(
         self, entry: VCFEntry, require_validation: bool = True
@@ -95,22 +108,28 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
             as_json=False,
         )
 
-        # if a short indel use the normalized GA4GH VRS allele to generate the normalized positional id
-        if not self._skip_normalization and record.variant_class.is_short_indel():
-            record.normalized_positional_id = (
-                self._pk_generator.ga4gh_service.fast_normalize_variant(
-                    record.positional_id
-                )
-            )
-        else:
-            record.normalized_positional_id = positional_id
-
-        if self._verbose:
-            self.logger.debug(
-                f"{positional_id} | {record.variant_class} | {ga4gh_allele.model_dump(exclude_none=True)}"
-            )
-
         record.ga4gh_vrs = Allele(**ga4gh_allele.model_dump(exclude_none=True))
         self._pk_generator.set_primary_key(record, require_validation=False)
+        # if a short indel use the normalized GA4GH VRS allele to generate the normalized positional id
+        if (
+            not self._skip_normalization
+            and not record.variant_class == VariantClass.SNV
+        ):
+            if record.ref is not None and record.alt is not None:
+                record.normalized_positional_id = (
+                    self._pk_generator.ga4gh_service.fast_normalize_variant(
+                        record.positional_id
+                    )
+                )
+        else:
+            record.normalized_positional_id = record.id
+
+        if self._verbose:
+            self.logger.debug(f"{record.id} | {record.model_dump(exclude_none=True)}")
+
+        if len(record.id) > 150:
+            self.logger.critical(
+                f"Invalid Stable ID Generated - {record.id}: {record.model_dump()}"
+            )
 
         return record
