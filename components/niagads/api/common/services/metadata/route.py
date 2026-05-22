@@ -1,5 +1,9 @@
 from typing import Optional
 
+from niagads.api.common.models.domain.entities.dataset.track import (
+    TrackMetadata,
+    TrackMetadataBrief,
+)
 from niagads.api.common.models.domain.parameters.internal import (
     InternalRequestParameters,
 )
@@ -58,35 +62,38 @@ class TrackMetadataEndpointService(EndpointService):
             )
 
             if not raw_response:
+                content = self._response_config.content
+                if content == ResponseContent.FULL:
+                    track_records = [TrackMetadata(**t.model_dump()) for t in result]
+                elif content == ResponseContent.BRIEF:
+                    track_records = [
+                        TrackMetadataBrief(**t.model_dump()) for t in result
+                    ]
+                elif content == ResponseContent.IDS:
+                    track_records = [t.id for t in result]
+                elif content == ResponseContent.COUNTS:
+                    track_records = {"num_results": len(result)}
+                elif content == ResponseContent.URLS:
+                    track_records = []
+                    for t in result:
+                        record: TrackMetadata = TrackMetadata(**t.model_dump())
+                        track_records.append(record.file_properties.url)
+
                 self.set_result_size(len(result))
                 is_paged = self._pagination_service.initialize_pagination()
                 if is_paged:
                     sliceRange = self._pagination_service.slice_result_by_page()
                     result = result[sliceRange.start : sliceRange.end]
-                    
-                    
-                  if response_type == ResponseContent.FULL:
-            track_records = [TrackMetadata(**t.model_dump()) for t in result]
-        elif response_type == ResponseContent.BRIEF:
-            track_records = [TrackMetadataBrief(**t.model_dump()) for t in result]
-        elif response_type == ResponseContent.IDS:
-            track_records = [t.id for t in result]
-        elif response_type == ResponseContent.COUNTS:
-            track_records = {"num_results": len(result)}
-        elif response_type == ResponseContent.URLS:
-            track_records = []
-            for t in result:
-                record: TrackMetadata = TrackMetadata(**t.model_dump())
-                track_records.append(record.file_properties.url)
 
+        # FIXME: what is a raw_response? list[Tracks] - is this still valid
+        # also think about making it a reponse_config.content
         if raw_response:
-            # cache the raw response
+            # cache the raw response and return
             await self._managers.cache_service.set(
                 cache_key,
                 result,
                 namespace=self._managers.cache_service.cache_key.namespace,
             )
-
             return result
 
         return await self.generate_response(result, is_cached=is_cached)
