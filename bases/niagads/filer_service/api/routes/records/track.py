@@ -71,6 +71,7 @@ async def get_track_metadata_bulk(
         "Retrieve track metadata for the FILER record "
         "identified by the track specified in the path."
     ),
+    response_model_exclude_none=True,
 )
 async def get_track_metadata(
     track_id: str = Depends(track_id),

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from niagads.api.common.models.domain.base import ORMCompatibleRecord
 from niagads.api.common.models.domain.mixins import (
@@ -11,7 +11,7 @@ from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.track.models import TrackRecord
 from niagads.common.track.models.samples import BiosampleCharacteristics
 from niagads.genome_reference.human import GenomeBuild
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 
 
 class BiosampleCharacteristicsReport(BiosampleCharacteristics):
@@ -58,6 +58,30 @@ class TrackMetadataBrief(ORMCompatibleRecord):
         title="Download URL",
         description="URL for NIAGADS-standardized file",
     )
+
+    @model_validator(mode="before")
+    def extract_nested_fields(cls, values: Union[dict, any]):
+        """
+        Extract nested fields from ORM object and assign to top-level fields.
+
+        Handles both ORM objects and dictionaries, extracting data_source
+        from provenance, and url from file_properties.
+        """
+        if isinstance(values, dict):
+            # Handle dictionary input
+            provenance = values.get("provenance")
+            if isinstance(provenance, dict):
+                values.setdefault("data_source", provenance.get("data_source"))
+            elif hasattr(provenance, "data_source"):  # ORM object
+                values.setdefault("data_source", provenance.data_source)
+
+            file_props = values.get("file_properties")
+            if isinstance(file_props, dict):
+                values.setdefault("url", file_props.get("url"))
+            elif hasattr(file_props, "url"):  # ORM object
+                values.setdefault("url", file_props.url)
+
+        return values
 
 
 class TrackMetadata(TrackRecord, ORMCompatabileMixin):
