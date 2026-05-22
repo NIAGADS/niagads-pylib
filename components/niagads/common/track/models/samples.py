@@ -44,6 +44,11 @@ class BiosampleCharacteristics(CustomBaseModel):
         """Serialize BiosampleType enum values to their model_dump representation."""
         if value is None:
             return None
-        if isinstance(value, list):
-            return [v.value.model_dump(exclude_none=True) for v in value]
-        return value.value.model_dump(exclude_none=True)
+        if isinstance(value[0], BiosampleType):
+            if isinstance(value, list):
+                return [v.value.model_dump(exclude_none=True) for v in value]
+            return value.value.model_dump(exclude_none=True)
+        else:  # ontology term
+            if isinstance(value, list):
+                return [v.model_dump(exclude_none=True) for v in value]
+            return v.model_dump(exclude_none=True)

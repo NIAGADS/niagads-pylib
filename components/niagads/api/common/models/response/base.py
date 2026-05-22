@@ -81,11 +81,12 @@ class DataResponse(BaseResponseModel):
                         DynamicRecordModel(**row) for row in candidate_data
                     ]
                     new_obj = {**candidate_obj, "data": data}
-                    return cls(**new_obj)
+                    return new_obj
 
         # otherwise, assume object can be serialized by this response model
         # and or should fail serialization and raise a valid error
         # fall back to normal Pydantic validation
+        return candidate_obj
 
     @property
     def row_data_model(self):

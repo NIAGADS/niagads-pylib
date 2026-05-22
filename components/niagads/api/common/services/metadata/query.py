@@ -235,12 +235,8 @@ class MetadataQueryService:
             await self.validate_tracks(tracks)
 
         track_records: list[Track] = (
-            (await self.__database_session.execute(statement)).mappings().all()
+            (await self.__database_session.execute(statement)).scalars().all()
         )
-        if response_type == ResponseContent.FULL:
-            return [TrackMetadata(**t) for t in track_records]
-        elif response_type == ResponseContent.BRIEF:
-            return [TrackMetadataBrief(**t) for t in track_records]
 
         return track_records
 

@@ -1,4 +1,8 @@
-from niagads.api.common.models.domain.mixins import DynamicMixin, ORMCompatabileMixin
+from niagads.api.common.models.domain.mixins import (
+    DynamicMixin,
+    ORMCompatabileMixin,
+    ResultMetricsMixin,
+)
 from niagads.common.models.base import CustomBaseModel
 
 

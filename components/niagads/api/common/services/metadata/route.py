@@ -63,6 +63,21 @@ class TrackMetadataEndpointService(EndpointService):
                 if is_paged:
                     sliceRange = self._pagination_service.slice_result_by_page()
                     result = result[sliceRange.start : sliceRange.end]
+                    
+                    
+                  if response_type == ResponseContent.FULL:
+            track_records = [TrackMetadata(**t.model_dump()) for t in result]
+        elif response_type == ResponseContent.BRIEF:
+            track_records = [TrackMetadataBrief(**t.model_dump()) for t in result]
+        elif response_type == ResponseContent.IDS:
+            track_records = [t.id for t in result]
+        elif response_type == ResponseContent.COUNTS:
+            track_records = {"num_results": len(result)}
+        elif response_type == ResponseContent.URLS:
+            track_records = []
+            for t in result:
+                record: TrackMetadata = TrackMetadata(**t.model_dump())
+                track_records.append(record.file_properties.url)
 
         if raw_response:
             # cache the raw response

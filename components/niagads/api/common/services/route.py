@@ -151,6 +151,7 @@ class EndpointService:
 
             # cache the response
             await self._managers.cache_service.set_response(response)
+        return response
 
         # match self._response_config.view:
         # case ResponseView.TABLE:
