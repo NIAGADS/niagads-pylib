@@ -46,57 +46,61 @@ class TrackMetadataEndpointService(EndpointService):
         if raw_response:
             cache_key += CacheKeyQualifier.RAW
 
-        result = await self._managers.cache_service.get(
+        cached_response = await self._managers.cache_service.get(
             cache_key, namespace=self._managers.cache_service.cache_key.namespace
         )
 
-        if result is None:
+        if cached_response is None:
             is_cached = False
 
             tracks = self._parameters.get("_tracks", self._parameters.get("track"))
             tracks = tracks.split(",") if isinstance(tracks, str) else tracks
             tracks = sorted(tracks)  # best for caching & pagination
 
-            result = await self.__metadata_query_service.get_track_metadata(
+            query_result = await self.__metadata_query_service.get_track_metadata(
                 tracks, response_type=self._response_config.content
             )
 
-            if not raw_response:
+            if raw_response:
+                # cache the raw response and return
+                await self._managers.cache_service.set(
+                    cache_key,
+                    query_result,
+                    namespace=self._managers.cache_service.cache_key.namespace,
+                )
+                return query_result
+
+            else:
                 content = self._response_config.content
                 if content == ResponseContent.FULL:
-                    track_records = [TrackMetadata(**t.model_dump()) for t in result]
+                    track_records = [
+                        TrackMetadata(**t.model_dump()) for t in query_result
+                    ]
                 elif content == ResponseContent.BRIEF:
                     track_records = [
-                        TrackMetadataBrief(**t.model_dump()) for t in result
+                        TrackMetadataBrief(**t.model_dump()) for t in query_result
                     ]
                 elif content == ResponseContent.IDS:
-                    track_records = [t.id for t in result]
+                    track_records = [t.id for t in query_result]
                 elif content == ResponseContent.COUNTS:
-                    track_records = {"num_results": len(result)}
+                    track_records = {"num_results": len(query_result)}
                 elif content == ResponseContent.URLS:
                     track_records = []
-                    for t in result:
+                    for t in query_result:
                         record: TrackMetadata = TrackMetadata(**t.model_dump())
                         track_records.append(record.file_properties.url)
 
-                self.set_result_size(len(result))
+                self.set_result_size(len(query_result))
                 is_paged = self._pagination_service.initialize_pagination()
                 if is_paged:
                     sliceRange = self._pagination_service.slice_result_by_page()
-                    result = result[sliceRange.start : sliceRange.end]
+                    paged_result = track_records[sliceRange.start : sliceRange.end]
+                else:
+                    paged_result = track_records
 
-        # FIXME: what is a raw_response? list[Tracks] - is this still valid
-        # also think about making it a reponse_config.content
-        if raw_response:
-            # cache the raw response and return
-            await self._managers.cache_service.set(
-                cache_key,
-                result,
-                namespace=self._managers.cache_service.cache_key.namespace,
-            )
-            return result
+                return await self.generate_response(paged_result, is_cached=is_cached)
 
-        return await self.generate_response(result, is_cached=is_cached)
+        return cached_response
 
     # FIXME: not sure if this will ever need a "raw_response"
     async def get_collection_track_metadata(self, raw_response=False):
