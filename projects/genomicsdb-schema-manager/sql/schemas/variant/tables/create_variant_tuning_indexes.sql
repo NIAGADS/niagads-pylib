@@ -1,0 +1,4 @@
+-- TUNING INDEXES BUILT AFTER BIG LOAD, SEE create_variant_tuning_indexes.sql FILE
+-- EMBEDDING INDEXES BUILD AFTER BIG LOAD, don't forget to make them partial (i.e., embedding not null)
+
+CREATE INDEX IX_VARIANT_VARIANT__EMBEDDING_RUN_ID ON Variant.Variant(EMBEDDING_RUN_ID) WHERE EMBEDDING_RUN_ID IS NOT NULL;
