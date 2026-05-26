@@ -1,6 +1,6 @@
 SET maintenance_work_mem="16GB";
-SET max_parallel_maintenance_workers TO 8;
-SET max_parallel_workers TO 8;
+SET max_parallel_maintenance_workers TO 3;
+SET max_parallel_workers TO 3;
 
 CREATE INDEX IX_VARIANT_VARIANT__NIAGADS_ID ON Variant.Variant(NIAGADS_ID);
 CREATE INDEX IX_VARIANT_VARIANT__REF_SNP_ID ON Variant.Variant(REF_SNP_ID) WHERE REF_SNP_ID IS NOT NULL;
