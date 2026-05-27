@@ -164,11 +164,17 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
                 pathway.pathway_info.pathway_name,
             )
 
+            if self._verbose:
+                self.logger.debug(f"Loading pathway: {pathway.pathway_id}|{pathway_pk}")
+
             memberships = []
             for gene in pathway.member_genes:
                 gene_pk = await self._lookup_gene_primary_key(
                     session, gene.gene_id, gene_id_type
                 )
+
+                if self._verbose:
+                    self.logger.debug(f"Mapped {gene.gene_id}|{gene_pk}")
 
                 # skip records with bad genes, if flagged
                 # not to fail on missing genes; failure is handled in the
