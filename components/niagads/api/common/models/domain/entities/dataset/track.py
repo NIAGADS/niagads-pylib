@@ -6,12 +6,12 @@ from niagads.api.common.models.domain.mixins import (
     ResultMetricsMixin,
 )
 from niagads.common.genomic.features.models import GenomicFeatureType
-from niagads.common.models.base import CustomBaseModel
+from niagads.common.models.base import CustomBaseModel, SerializationOptions
 from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.track.models import TrackRecord
 from niagads.common.track.models.samples import BiosampleCharacteristics
 from niagads.genome_reference.human import GenomeBuild
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, field_serializer, model_validator
 
 
 class BiosampleCharacteristicsReport(BiosampleCharacteristics):

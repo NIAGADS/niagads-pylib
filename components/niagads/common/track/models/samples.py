@@ -46,9 +46,19 @@ class BiosampleCharacteristics(CustomBaseModel):
             return None
         if isinstance(value[0], BiosampleType):
             if isinstance(value, list):
-                return [v.value.model_dump(exclude_none=True) for v in value]
-            return value.value.model_dump(exclude_none=True)
+                return [
+                    v.value.model_dump(
+                        exclude_none=True, exclude=["term_iri", "definition"]
+                    )
+                    for v in value
+                ]
+            return value.value.model_dump(
+                exclude_none=True, exclude=["term_iri", "definition"]
+            )
         else:  # ontology term
             if isinstance(value, list):
-                return [v.model_dump(exclude_none=True) for v in value]
-            return v.model_dump(exclude_none=True)
+                return [
+                    v.model_dump(exclude_none=True, exclude=["term_iri", "definition"])
+                    for v in value
+                ]
+            return v.model_dump(exclude_none=True, exclude=["term_iri", "definition"])

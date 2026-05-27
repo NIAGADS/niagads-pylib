@@ -1,54 +1,58 @@
-from enum import auto
-from typing import Self
+from niagads.api.common.models.domain.parameters.types import (
+    EnumParameter,
+    ResponseContent,
+    ResponseFormat,
+)
 
-from niagads.api.common.models.domain.parameters.types import EnumParameter
 
-
-class ResponseContent(EnumParameter):
+class DefaultRContentParam(EnumParameter):
     """enum for allowable response types"""
 
-    FULL = auto()
-    BRIEF = auto()
-    URLS = auto()
-    COUNTS = auto()
-    IDS = auto()
+    FULL = ResponseContent.FULL.value
+    BRIEF = ResponseContent.BRIEF.value
+    URLS = ResponseContent.URLS.value
+    COUNTS = ResponseContent.COUNTS.value
+    IDS = ResponseContent.IDS.value
 
     @classmethod
-    def description(cls, include_values=True):
+    def description(cls):
+        message = "Response content (Full response or selected data summaries).  "
+        return message + f"{super().description()}"
+
+    @classmethod
+    def validate(cls, value):
+        return super().validate(value, ResponseContent)
+
+
+class RContentParamNoCounts(EnumParameter):
+    """enum for allowable response types"""
+
+    FULL = ResponseContent.FULL.value
+    BRIEF = ResponseContent.BRIEF.value
+    URLS = ResponseContent.URLS.value
+    IDS = ResponseContent.IDS.value
+
+    @classmethod
+    def description(cls):
         message = "Response content (full vs selected subset)"
-        return message + f"{super().description()}" if include_values else message
+        return message + f"{super().description()}"
 
     @classmethod
-    def label(cls):
-        return "content"
-
-    @classmethod
-    def entity_record(cls, has_urls=False) -> Self:
-        """return descriptive formats only (usually for metadata)"""
-        members = [ResponseContent.FULL, ResponseContent.BRIEF, ResponseContent.IDS]
-        if has_urls:
-            members.append(ResponseContent.URLS)
-        return cls.subset("record_document", members)
-
-    @classmethod
-    def feature_record(cls) -> Self:
-        """return data formats only"""
-        members = [ResponseContent.FULL, ResponseContent.COUNTS]
-        return cls.subset("data_only_content", members)
+    def validate(cls, value):
+        return super().validate(value, ResponseContent)
 
 
-class ResponseFormat(EnumParameter):
+class DefaultRFormatParam(EnumParameter):
     """enum for allowable response / output formats"""
 
-    DEFAULT = auto()
-    TEXT = auto()
-    TABLE = auto()  # reformat for a NIAGADS UI Table
+    TEXT = ResponseFormat.TEXT.value
+    JSON = ResponseFormat.JSON.value
 
     @classmethod
-    def label(cls):
-        return "format"
-
-    @classmethod
-    def description(cls, include_values=True):
+    def description(cls):
         message = "Response format."
-        return message + f" {super().description()}" if include_values else message
+        return message + f" {super().description()}"
+
+    @classmethod
+    def validate(cls, value):
+        return super().validate(value, ResponseFormat)

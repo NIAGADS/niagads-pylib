@@ -1,7 +1,32 @@
-from typing import Self
+from enum import auto
+from typing import Self, Type
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError
+
+
+class ResponseContent(CaseInsensitiveEnum):
+    """enum for allowable response types"""
+
+    FULL = auto()
+    BRIEF = auto()
+    URLS = auto()
+    COUNTS = auto()
+    IDS = auto()
+
+
+class ResponseFormat(CaseInsensitiveEnum):
+    """enum for allowable response / output formats"""
+
+    JSON = auto()
+    TEXT = auto()
+
+
+class ResponseView(CaseInsensitiveEnum):
+    TABLE = auto()
+    IGV_CONFIG = auto()
+    IGV_TRACK_SELECTOR = auto()
+    CHART = auto()
 
 
 class EnumParameter(CaseInsensitiveEnum):
@@ -12,32 +37,10 @@ class EnumParameter(CaseInsensitiveEnum):
         return f"Allowable values are: {','.join(cls.list(return_enum_names=False))}."
 
     @classmethod
-    def label(cls):
-        raise NotImplementedError(
-            "This method needs to be overridden in child EnumParameters"
-        )
-
-    @classmethod
-    def validate(cls, value):
+    def validate(cls, value, enum_type: Type[CaseInsensitiveEnum]):
         from niagads.api.common.utils import sanitize  # avoid circular import
 
         try:
-            return cls(sanitize(value))
+            return enum_type(sanitize(value))
         except Exception as err:
-            raise ValidationError(
-                f"Invalid value provided for `{cls.label}`: {value}.  {cls.description()}"
-            )
-
-    @classmethod
-    def subset(cls: Self, name: str, members: list) -> Self:
-        """Create a subset enum with only the specified member names.
-
-        Args:
-            cls (Self): the enum class
-            names (list[str]): list of enum member names to include in subset
-
-        Returns:
-            EnumParameter: new enum generated from the included members
-        """
-
-        return EnumParameter(name, members)
+            raise ValidationError(f"Invalid value: {cls.description()}")

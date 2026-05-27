@@ -9,11 +9,17 @@ from niagads.api.common.models.domain.parameters.entity import (
 )
 from niagads.api.common.models.domain.parameters.location import loc_param
 from niagads.api.common.models.domain.parameters.response.content import (
+    DefaultRFormatParam,
+    DefaultRContentParam,
+    RContentParamNoCounts,
+)
+
+from niagads.api.common.models.domain.parameters.response.pagination import page_param
+from niagads.api.common.models.domain.parameters.types import (
     ResponseContent,
     ResponseFormat,
 )
-from niagads.api.common.models.domain.parameters.response.pagination import page_param
-from niagads.api.common.models.response.base import DataResponse
+from niagads.api.common.models.response.base import DataResponse, ListResponse
 from niagads.api.common.models.response.entities.dataset import (
     TrackMetadataResponse,
 )
@@ -42,19 +48,19 @@ router = APIRouter(
 )
 async def get_track_metadata_bulk(
     track_ids: list[str] = Depends(multi_track_id_query_param),
-    content: str = Query(
+    content: DefaultRContentParam = Query(
         ResponseContent.FULL,
-        description=ResponseContent.entity_record(has_urls=True).description(),
+        description=DefaultRContentParam.description(),
     ),
-    format: str = Query(
-        ResponseFormat.DEFAULT,
-        description=ResponseFormat.description(),
+    format: DefaultRFormatParam = Query(
+        ResponseFormat.JSON,
+        description=DefaultRFormatParam.description(),
     ),
     internal: FILEREndpointRequestParameters = Depends(),
 ):
-    response_content = ResponseContent.entity_record(has_urls=True).validate(content)
+    response_content = DefaultRContentParam.validate(content)
     response_config = ResponseConfiguration(
-        format=ResponseFormat.validate(format),
+        format=DefaultRFormatParam.validate(format),
         content=response_content,
         model=TrackMetadataResponse,
     )
@@ -65,7 +71,7 @@ async def get_track_metadata_bulk(
 
 @router.get(
     "/{track_id}",
-    response_model=TrackMetadataResponse,
+    response_model=Union[TrackMetadataResponse, ListResponse],
     summary="get-track-metadata",
     description=(
         "Retrieve track metadata for the FILER record "
@@ -75,24 +81,28 @@ async def get_track_metadata_bulk(
 )
 async def get_track_metadata(
     track_id: str = Depends(track_id),
-    content: str = Query(
+    content: RContentParamNoCounts = Query(
         ResponseContent.FULL,
-        description=ResponseContent.entity_record().description(),
+        description=RContentParamNoCounts.description(),
     ),
-    format: str = Query(
-        ResponseFormat.DEFAULT,
-        description=ResponseFormat.description(),
+    format: DefaultRFormatParam = Query(
+        ResponseFormat.JSON,
+        description=DefaultRFormatParam.description(),
     ),
     internal: FILEREndpointRequestParameters = Depends(),
-) -> TrackMetadataResponse:
-    response_content = ResponseContent.entity_record().validate(content)
-    response_format = ResponseFormat.validate(
+) -> Union[TrackMetadataResponse, ListResponse]:
+    response_content = RContentParamNoCounts.validate(content)
+    response_format = DefaultRFormatParam.validate(
         format,
     )
     response_config = ResponseConfiguration(
         content=response_content,
         format=response_format,
-        model=TrackMetadataResponse,
+        model=(
+            ListResponse
+            if response_content in [ResponseContent.IDS, ResponseContent.URLS]
+            else TrackMetadataResponse
+        ),
     )
     params = RequestParameters(track=track_id)
     service = FILEREndpointService(internal, response_config, params)
@@ -112,20 +122,23 @@ async def get_track_data(
     track_id: str = Depends(track_id),
     span: str = Depends(loc_param),
     page: int = Depends(page_param),
-    content: str = Query(
+    content: DefaultRContentParam = Query(
         ResponseContent.FULL,
-        description=ResponseContent.feature_record().description(),
+        description=DefaultRContentParam.description(),
     ),
-    format: str = Query(
-        ResponseFormat.DEFAULT,
-        description=ResponseFormat.description(),
+    format: DefaultRFormatParam = Query(
+        ResponseFormat.JSON,
+        description=DefaultRFormatParam.description(),
     ),
     internal: FILEREndpointRequestParameters = Depends(),
 ) -> Union[BEDResponse, DataResponse]:
-    response_content = ResponseContent.feature_record().validate(content)
+    response_content = DefaultRContentParam.validate(content)
+    response_format = DefaultRFormatParam.validate(
+        format,
+    )
     response_config = ResponseConfiguration(
         content=response_content,
-        format=ResponseFormat.validate(format),
+        format=response_format,
         model=(
             BEDResponse if response_content == ResponseContent.FULL else DataResponse
         ),

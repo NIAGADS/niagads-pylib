@@ -16,11 +16,11 @@ async def collection_id(
 
 
 async def track_id(
-    track: str = Path(
+    track_id: str = Path(
         description="Track (data file) identifier (FILER Accession or DSS File ID)"
     ),
 ) -> str:
-    return sanitize(track)
+    return sanitize(track_id)
 
 
 async def track_id_query_param(

@@ -10,7 +10,7 @@ from niagads.api.common.models.domain.parameters.location import (
     assembly_param,
     span_param,
 )
-from niagads.api.common.models.domain.parameters.response.content import (
+from niagads.api.common.models.domain.parameters.response.types import (
     ResponseContent,
     ResponseFormat,
 )
@@ -55,8 +55,8 @@ async def search_tracks(
         description=ResponseContent.entity_record(has_urls=True).description(),
     ),
     format: str = Query(
-        ResponseFormat.DEFAULT,
-        description=ResponseFormat.description(),
+        ResponseFormat.JSON,
+        description=DefaultResponseFormatParam.description(),
     ),
     internal: FILEREndpointRequestParameters = Depends(),
 ) -> TrackMetadataResponse:
@@ -98,8 +98,8 @@ async def search_track_data(
         description=ResponseContent.feature_record().description(),
     ),
     format: str = Query(
-        ResponseFormat.DEFAULT,
-        description=ResponseFormat.description(),
+        ResponseFormat.JSON,
+        description=DefaultResponseFormatParam.description(),
     ),
     internal: FILEREndpointRequestParameters = Depends(),
 ) -> Union[BEDResponse, DataResponse]:

@@ -4,7 +4,8 @@ from niagads.api.common.constants import DEFAULT_PAGE_SIZE
 from niagads.api.common.models.domain.parameters.internal import (
     InternalRequestParameters,
 )
-from niagads.api.common.models.domain.parameters.response.content import (
+
+from niagads.api.common.models.domain.parameters.types import (
     ResponseContent,
     ResponseFormat,
 )
@@ -22,7 +23,7 @@ _INTERNAL_PARAMETERS = ["span", "_tracks"]
 class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     """Captures response-related parameter values (format, content, view) and model"""
 
-    format: ResponseFormat = ResponseFormat.DEFAULT
+    format: ResponseFormat = ResponseFormat.JSON
     content: ResponseContent = ResponseContent.FULL
     model: type[BaseResponseModel] = None
 

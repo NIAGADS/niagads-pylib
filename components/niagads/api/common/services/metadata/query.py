@@ -9,7 +9,7 @@ from niagads.api.common.models.domain.entities.dataset.track import (
     TrackMetadataBrief,
 )
 from niagads.api.common.models.domain.parameters.filters.expression_filter import Triple
-from niagads.api.common.models.domain.parameters.response.content import ResponseContent
+from niagads.api.common.models.domain.parameters.types import ResponseContent
 from niagads.api.common.models.service.request import RequestDataModel
 from niagads.common.track.models import (
     ExperimentalDesign,

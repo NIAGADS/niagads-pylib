@@ -7,7 +7,8 @@ from niagads.api.common.models.domain.entities.dataset.track import (
 from niagads.api.common.models.domain.parameters.internal import (
     InternalRequestParameters,
 )
-from niagads.api.common.models.domain.parameters.response.content import ResponseContent
+
+from niagads.api.common.models.domain.parameters.types import ResponseContent
 from niagads.api.common.models.service.cache import CacheKeyQualifier
 from niagads.api.common.services.metadata.query import (
     MetadataQueryService,
@@ -81,14 +82,11 @@ class TrackMetadataEndpointService(EndpointService):
                         TrackMetadataBrief(**t.model_dump()) for t in query_result
                     ]
                 elif content == ResponseContent.IDS:
-                    track_records = [t.id for t in query_result]
+                    track_records = query_result
                 elif content == ResponseContent.COUNTS:
                     track_records = {"num_results": len(query_result)}
                 elif content == ResponseContent.URLS:
-                    track_records = []
-                    for t in query_result:
-                        record: TrackMetadata = TrackMetadata(**t.model_dump())
-                        track_records.append(record.file_properties.url)
+                    track_records = query_result
 
                 self.set_result_size(len(query_result))
                 is_paged = self._pagination_service.initialize_pagination()
