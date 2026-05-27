@@ -70,10 +70,6 @@ class BaseFeatureLoaderPlugin(AbstractBasePlugin):
             # validate the xdbref against the database
             self.__external_database = await self._params.fetch_xdbref(session)
 
-            self.logger.debug(
-                f"XDBREF ID = {self.__external_database.external_database_id}"
-            )
-
             # fetch bin index reference
             await self.__fetch_bin_index_map(session)
 

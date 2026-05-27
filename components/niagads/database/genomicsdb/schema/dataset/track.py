@@ -9,6 +9,8 @@ from niagads.common.track.models import (
     Phenotype,
     Provenance,
 )
+from niagads.common.track.models.curation import CurationEvent
+from niagads.common.track.models.phenotypes import PhenotypeCount
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.database.mixins import GenomicRegionMixin
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
@@ -17,7 +19,7 @@ from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
-from sqlalchemy import TEXT, Column, Index, Integer, String
+from sqlalchemy import TEXT, Column, ForeignKey, Index, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -30,20 +32,7 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
         enum_constraint("genome_build", GenomeBuild),
         enum_constraint("shard_chromosome", HumanGenome),
         Index(
-            "ix_metadata_track_shard_root_track_id",
-            "shard_root_track_id",
-            postgresql_where=(Column("shard_root_track_id").isnot(None)),
-        ),
-        Index(
-            "ix_metadata_track_searchable_text",
-            "searchable_text",
-            postgresql_using="gin",
-            postgresql_ops={
-                "searchable_text": "gin_trgm_ops",
-            },
-        ),
-        Index(
-            "ix_metadata_track_is_filer_track_true",
+            "ix_dataset_track_is_filer_track_true",
             "is_filer_track",
             postgresql_where=(Column("is_filer_track") == True),
         ),
@@ -52,7 +41,9 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
 
     track_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    is_filer_track: Mapped[bool] = mapped_column(default=False)
+    is_filer_track: Mapped[bool] = mapped_column()
+
+    # FIXME: when we revisit ontology terms
     dataset_type_id: Mapped[int] = ontology_term_fk_column()
 
     name: Mapped[str]
@@ -61,15 +52,12 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     genome_build: Mapped[str] = enum_column(GenomeBuild)
 
     feature_type: Mapped[str] = mapped_column(String(50), index=True)
-    is_download_only: Mapped[bool] = mapped_column(default=False, index=True)
-
-    searchable_text: Mapped[str] = mapped_column(TEXT)
+    is_download_only: Mapped[bool] = mapped_column(index=True, nullable=True)
 
     is_shard: Mapped[Optional[bool]]
     shard_chromosome: Mapped[str] = enum_column(
         HumanGenome, index=False, nullable=True, native_enum=True, use_enum_names=True
     )
-    shard_root_track_id: Mapped[Optional[str]] = mapped_column()
 
     cohorts: Mapped[Optional[List[str]]] = mapped_column(ARRAY(String))
 
@@ -84,6 +72,12 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     )
     provenance: Mapped[Provenance] = mapped_column(JSONB(none_as_null=True))
     file_properties: Mapped[Optional[FileProperties]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    study_diagnosis: Mapped[Optional[List[PhenotypeCount]]] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    curation_history: Mapped[Optional[List[CurationEvent]]] = mapped_column(
         JSONB(none_as_null=True)
     )
 

@@ -10,6 +10,7 @@ from aiohttp import (
     TraceRequestExceptionParams,
 )
 from aiohttp.connector import TCPConnector
+from niagads.common.core import ComponentBaseMixin
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import BaseModel
 
@@ -28,18 +29,22 @@ class HttpRequest(BaseModel):
     method: HttpRequestMethod = HttpRequestMethod.GET
 
 
-class HttpClientSessionManager:
+class HttpClientSessionManager(ComponentBaseMixin):
     """Create Http connection pool and request a session"""
 
     def __init__(
-        self, baseUrl: str, timeout: int = _HTTP_CLIENT_TIMEOUT, debug: bool = False
+        self,
+        base_url: str,
+        timeout: int = _HTTP_CLIENT_TIMEOUT,
+        debug: bool = False,
+        verbose: bool = False,
+        logger=None,
     ):
-        self._debug = debug
-        self.logger = logging.getLogger(__name__)
-        self.__baseUrl = baseUrl
+        super().__init__(debug=debug, verbose=verbose, logger=logger)
+        self.__base_url = base_url
         self.__connector: TCPConnector = TCPConnector(limit=50)
         self.__session: ClientSession = ClientSession(
-            self.__baseUrl,
+            self.__base_url,
             connector=self.__connector,
             timeout=ClientTimeout(total=timeout),
             raise_for_status=True,
@@ -71,12 +76,12 @@ class HttpClientSessionManager:
             config.on_request_exception.append(self.__on_request_exception)
         return [config]
 
-    async def send_request(self, params: HttpRequest, returnJson: bool = False):
+    async def send_request(self, params: HttpRequest, return_json: bool = False):
         try:
             async with self.__session.request(
                 params.method, params.endpoint, params=params.params
             ) as response:
-                if returnJson:
+                if return_json:
                     result = await response.json()
                 else:
                     result = await response
@@ -88,8 +93,8 @@ class HttpClientSessionManager:
     async def fetch_json(self, endpoint: str, params: dict):
         """wrapper for send_request that does a fetch (get) and retrieves JSON response
         errors are handled in send_request"""
-        requestParams = HttpRequest(params=params, endpoint=endpoint)
-        result = await self.send_request(requestParams, returnJson=True)
+        request_params = HttpRequest(params=params, endpoint=endpoint)
+        result = await self.send_request(request_params, return_json=True)
         return result
 
     async def close(self):
@@ -98,9 +103,15 @@ class HttpClientSessionManager:
         if self.__connector is not None:
             await self.__connector.close()
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
+
     async def __call__(self) -> ClientSession:
         if self.__session is None:
             raise Exception(
-                f"HTTP client session manager for {self.__baseUrl} not initialized"
+                f"HTTP client session manager for {self.__base_url} not initialized"
             )
         return self.__session

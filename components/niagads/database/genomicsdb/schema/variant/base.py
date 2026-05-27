@@ -8,7 +8,7 @@ from niagads.database.genomicsdb.schema.mixins import GenomicsDBTableMixin
 
 class VariantTableBase(GenomicsDBSchemaBase, GenomicsDBTableMixin):
     __abstract__ = True
-    _stable_id = "positional_id"
+    _stable_id = "niagads_id"
     _schema = "variant"
 
     __table_args__ = {"schema": _schema}

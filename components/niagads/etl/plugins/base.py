@@ -247,9 +247,9 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         ...
 
     @abstractmethod
-    def transform(self, data):
+    async def transform(self, data):
         """
-        Transform extracted data.
+        Transform extracted data. Async b/c sometimes we need to process in parallel
 
         Resume Behavior:
             If self.params.get('checkpoint', {}).get('id') is set, you may return
@@ -628,7 +628,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             self.__attach_etl_transaction_listener(session)
             for records in self.extract():
-                processed_records = self.transform(records)
+                processed_records = await self.transform(records)
 
                 if session is not None:  # load
                     # chunked can yield one or a list of records
@@ -659,7 +659,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
     async def __process_bulk_load(self) -> ResumeCheckpoint:
         records = self.extract()
-        processed_records = self.transform(records)
+        processed_records = await self.transform(records)
 
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             if session is not None:
@@ -673,7 +673,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
     async def __process_bulk_in_batch_load(self):
         records = self.extract()
-        processed_records = self.transform(records)
+        processed_records = await self.transform(records)
         batches = chunker(processed_records, self._batch_size, return_iterator=True)
         async with self.session_ctx(allow_null_if_unintialized=True) as session:
             if session is not None:

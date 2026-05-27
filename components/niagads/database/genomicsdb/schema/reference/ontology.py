@@ -50,6 +50,9 @@ class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
     synonyms: Mapped[list[str]] = mapped_column(ARRAY(String(250)), nullable=True)
     is_deprecated: Mapped[bool] = mapped_column(Boolean, nullable=True)
 
+    # overloading from mixin b/c cell ontology has some long ones
+    source_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+
     @hybrid_property
     def curie(self):
         return self.source_id

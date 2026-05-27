@@ -231,7 +231,7 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
         elif gene_identifier_type == GeneIdentifierType.SYMBOL:
             if require_exact_match:
                 return await GeneModel.find_primary_key(
-                    session, {"gene_symbol", id}, allow_multiple=allow_multiple
+                    session, {"gene_symbol": id}, allow_multiple=allow_multiple
                 )
             else:
                 return await cls.resolve_symbol(

@@ -374,7 +374,7 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
 
         return exon
 
-    def transform(self, entry: GFF3Entry) -> GeneFeature:
+    async def transform(self, entry: GFF3Entry) -> GeneFeature:
         """
         Convert a parsed GFF3Entry gene record (with children) into a GeneFeature object.
 

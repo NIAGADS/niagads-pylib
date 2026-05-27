@@ -15,7 +15,7 @@ from pydantic import Field, field_validator
 
 
 class VariantFeature(RowModel):
-    variant_id: str = Field(title="Variant", order=1, serialization_alias="id")
+    positional_id: str = Field(title="Variant", order=1, serialization_alias="id")
     ref_snp_id: Optional[str] = Field(default=None, title="Ref SNP ID", order=1)
 
 

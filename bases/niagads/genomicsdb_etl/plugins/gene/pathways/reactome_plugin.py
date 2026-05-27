@@ -105,7 +105,9 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         self.logger.info(f"Data extraction complete with {len(filtered_df)} filtered rows")
         return [ReactomeEntry(**entry) for entry in filtered_df.to_dict(orient="records")]
 
-    def transform(self, data: list[ReactomeEntry]) -> list[PathwayGeneAssociations]:
+    async def transform(
+        self, data: list[ReactomeEntry]
+    ) -> list[PathwayGeneAssociations]:
         """
         Transforms the list of ReactomeEntries into a list of PathwayGeneAssociations.
         """

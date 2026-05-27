@@ -16,6 +16,7 @@ The main goal of this project is to define and orchestrate containers for:
 
 - **UTA (Universal Transcript Archive)**: Provides transcript and alignment data for variant normalization and annotation.
 - **SeqRepo**: Offers fast, local access to biological sequence data, required for VRS-based normalization and annotation.
+- **Ensembl VEP**: Variant Annotation (Ensembl VEP)
 
 These services are essential for tools and APIs that implement or depend on GA4GH VRS, enabling consistent and reproducible variant representation.
 
@@ -46,19 +47,11 @@ Once inside the `variant-annotator` directory, follow the configuration and serv
 
 ### Configuration
 
-Copy `sample.env` to `.env`.  **If working within the `niagads-pylib` monorepo, please COPY the file; DO NOT RENAME to avoid accidentally removing `sample.env` from the repository.**
+Copy `service.env.sample` to `service.env`.  **If working within the `niagads-pylib` monorepo, please COPY the file; DO NOT RENAME to avoid accidentally removing `service.env.sample` from the repository.**
 
-- Modify the following values in the `.env` as needed for your system:
+- Modify the `.env` as needed for your system and the service you want to run.
 
-  - `HOST_SEQREPO_DATA_DIR`: Absolute path to the SeqRepo data directory on the host machine. This directory contains the biological sequence data required by the SeqRepo services.
-  - `HOST_UTA_DATA_DIR`: Absolute path to the UTA data directory on the host machine. This directory stores the PostgreSQL database files for the UTA service.
-  - `HOST_SEQREPO_SERVICE_PORT`: The port on the host machine to bind the SeqRepo REST service. Default is `5000`.
-  - `HOST_UTA_SERVICE_PORT`: The port on the host machine to bind the UTA service. Default is `5432`.
-  - `UTA_PGADMIN_PWD`: The password for the PostgreSQL database used by the UTA service. You can replace `UtaVar1a` with a secure password or leave as is if service is only deployed locally.
-  - `UTA_UID`: user ID on the host machine (`id -u`); specify to ensure database volume is non-root
-  - `UTA_GID`: user group ID on the host mahcine (`id -g`); specify to ensure database volume is non-root
-
-> For ownership of the mounted volumes files to be correct (i.e., non-root), please **create the volumne target paths in full** _before_ building the containers.
+> Note that unless otherwise specified, data/cache directories will be created in `/tmp`
 
 ### Run the Services
 
@@ -82,7 +75,55 @@ The `docker-compose.yaml` defines the following services:
    - PostgresSQL data volume is mounted in the directory specified by the `HOST_UTA_DATA_DIR` environment variable.
    - Runs on the port specified by the `HOST_UTA_SERVICE_PORT` environment variable (default: 5432). Recommend changing this value as it is likely that the ETL target database will also be on port 5432.
    - Test (assuming psql installed on system): `psql -XAt postgres://anonymous@localhost/uta -c 'select count(*) from uta_20241220.transcript'` (expect 314227)
+  
+4. **Ensembl VEP**"
+   - Predicts the effect of your variants (SNPs, insertions, deletions, CNVs or structural variants) on gene transcripts and protein sequence.
 
+    **General Usage**
+
+   - Run in `install` mode to do one-off installation of cache database for your taxon and assembly
+     - Default: Human/GRCh38
+  
+      ```bash
+      docker compose run -e MODE=install --rm vep 
+      ```
+
+   - Run annotation job as follows:
+  
+    ```bash
+    docker compose run --rm -v ${LOCAL_DATA_DIR}:/working vep -i input/my_input.vcf -o input/my_output.vcf --cache --offline$
+    ```
+  
+    > `-v` mounts your local data directory `LOCAL_DATA_DIR` to :/data in the docker container
+
+    - to run the vep container interactively (for debugging):
+
+    ```bash
+    docker compose run --rm --it --entrypoint sh vep
+    ```
+
+    **GenomicsDB VEP Analysis**
+
+    - ensure that the following environmental variables are set:
+        `$DATA_DIR`: data directory on host
+        `PROJECT_DIR`: full path to the parent directory in which the `niagads-pylib` project exists
+
+    - single file
+
+    ```bash
+    source $PROJECT_DIR/niagads-pylib/projects/variant-annotator/bin/vep.sh --file <file_name> 
+    ```
+
+    > defaults to use `--fork 4`.  To set a different number of forks, add the `--fork N` option to the command above
+
+    - multiple files in a single directory
+
+    ```bash
+    source $PROJECT_DIR/niagads-pylib/projects/variant-annotator/bin/run_vep_parallel.sh <directory> <max_parallel> <fork>
+    ```
+
+    > `<max_parallel>` and `<fork>` are optional, defaulting to 4, and 3 respectively.  Max parallel is the number of files (jobs) to process in parallel; fork is the VEP fork parameter.
+  
 ### System Clean-up and Monitoring
 
 The `seqrepo` service is used to download and install the SeqRepo data. This service only needs to be run once. After the data is downloaded and installed, the container and image can be removed to free up resources.
@@ -125,8 +166,23 @@ To run the script in the background and monitor `seqrepo` and `uta` containers w
 nohup ./monitor_idle_containers.sh --days 3 --check-interval 7200 --containers "seqrepo,uta" > monitor_idle.log 2>&1 &
 ```
 
+## Useful `bash` commands
+
+- extract all significant LD from gzipped LD panel
+
+```bash
+gunzip -c yourfile.gz | awk '$9 >= 0.2' | gzip > yourfile-sig.gz
+```
+
+- extract the vcf (non sample) fields from the SV files
+
+```bash
+zcat yourfile.vcf.gz | cut -f1-9 | bgzip > yourfile.1-9.vcf.gz
+```
+
 ## References
 
 - [GA4GH VRS PyPI](https://pypi.org/project/ga4gh.vrs/0.8.4/)
 - [UTA Documentation](https://github.com/biocommons/uta)
 - [SeqRepo Documentation](https://github.com/biocommons/seqrepo)
+- [VEP Documentation](https://www.ensembl.org/info/docs/tools/vep/script/index.html)

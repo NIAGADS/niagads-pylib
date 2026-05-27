@@ -98,7 +98,7 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
             )
         elif gene_identifier_type == GeneIdentifierType.SYMBOL and require_exact_match:
             return await GeneModel.find_primary_key(
-                session, {"gene_symbol", id}, allow_multiple=allow_multiple
+                session, {"gene_symbol": id}, allow_multiple=allow_multiple
             )
 
         else:  # ditto

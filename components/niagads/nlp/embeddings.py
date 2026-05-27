@@ -40,7 +40,7 @@ class TextEmbeddingGenerator:
         text: Union[str, list[str]],
         normalize: bool = True,
         as_list: bool = True,
-    ) -> list[float]:
+    ) -> list:
         """
         Calculate a text embedding using SentenceTransformer.
 

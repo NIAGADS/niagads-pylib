@@ -80,52 +80,38 @@ class GenomicRegion(Range):
 class OneBasedGenomicRegion(GenomicRegion):
     inclusive_end: ClassVar[bool] = True
 
-    @classmethod
-    def from_zero_based_region(cls, region: GenomicRegion) -> GenomicRegion:
+    def to_zero_based_region(self) -> "ZeroBasedGenomicRegion":
         """
-        Convert a ZeroBasedGenomicRegion to a OneBasedGenomicRegion.
-
-        Args:
-            region (ZeroBasedGenomicRegion): The zero-based region to convert.
+        Convert this OneBasedGenomicRegion to a ZeroBasedGenomicRegion.
 
         Returns:
-            OneBasedGenomicRegion: The converted 1-based region.
+            ZeroBasedGenomicRegion: The converted 0-based region.
         """
 
-        if region.inclusive_end:
-            return region  # already 1-based
-
-        return cls(
-            chromosome=region.chromosome,
-            start=region.start + 1,
-            end=region.end,
-            length=region.length,
-            strand=region.strand,
+        return ZeroBasedGenomicRegion(
+            chromosome=self.chromosome,
+            start=self.start - 1,
+            end=self.end,
+            length=self.length,
+            strand=self.strand,
         )
 
 
 class ZeroBasedGenomicRegion(GenomicRegion):
     inclusive_end: ClassVar[bool] = False
 
-    @classmethod
-    def from_one_based_region(cls, region: GenomicRegion) -> GenomicRegion:
+    def to_one_based_region(self) -> "OneBasedGenomicRegion":
         """
-        Convert a 1-based GenomicRegion to a ZeroBasedGenomicRegion.
-
-        Args:
-            region (GenomicRegion): The 1-based region to convert.
+        Convert this ZeroBasedGenomicRegion to a OneBasedGenomicRegion.
 
         Returns:
-            ZeroBasedGenomicRegion: The converted 0-based region.
+            OneBasedGenomicRegion: The converted 1-based region.
         """
 
-        if not region.inclusive_end:  # already 0-based
-            return region
-
-        return cls(
-            chromosome=region.chromosome,
-            start=region.start - 1,
-            end=region.end,
-            length=region.length,
-            strand=region.strand,
+        return OneBasedGenomicRegion(
+            chromosome=self.chromosome,
+            start=self.start + 1,
+            end=self.end,
+            length=self.length,
+            strand=self.strand,
         )

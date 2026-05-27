@@ -2,6 +2,7 @@ from typing import Optional, Union
 
 from niagads.etl.plugins.types import ResumeCheckpoint
 from niagads.etl.types import ETLExecutionMode
+from niagads.nlp.llm_types import LLM, NLPModelType
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 
@@ -91,3 +92,34 @@ class PathValidatorMixin:
             return value
 
         return file_exists
+
+
+class EmbeddingParameterMixin:
+    """
+    Mixin for ETL plugin parameter models to add embedding model configuration.
+
+    Provides fields and validation for specifying the LLM embedding model and batch size
+    for text embedding generation in ETL workflows.
+
+    Attributes:
+        embedding_model (Optional[LLM]): LLM model for generating text embeddings.
+        embedding_batch_size (Optional[int]): Batch size for calculating embeddings.
+
+    Methods:
+        validate_embedding_model: Validates that the embedding model is allowed for embedding tasks.
+    """
+
+    embedding_model: Optional[LLM] = Field(
+        LLM.ALL_MINILM_L6_V2,
+        description="LLM model for generating text embeddings",
+    )
+    embedding_batch_size: Optional[int] = Field(
+        default=128, description="batch size for calculating embeddings"
+    )
+
+    @field_validator("embedding_model")
+    @classmethod
+    def validate_embedding_model(cls, v: LLM) -> LLM:
+        """Validate that embedding_model is in allowed embedding models list."""
+        LLM.validate(v, NLPModelType.EMBEDDING)
+        return LLM(v)
