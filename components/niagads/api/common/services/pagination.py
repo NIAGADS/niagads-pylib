@@ -182,7 +182,7 @@ class TrackDataPaginationService(PaginationService, ABC):
 
         if cursors is None or self.result_size is None:
             cumulative_sum_by_track = cumulative_sum(
-                [t.num_results for t in sorted_track_result_summary]
+                [t.count for t in sorted_track_result_summary]
             )
             self.set_result_size(cumulative_sum_by_track[-1])
 
@@ -211,13 +211,13 @@ class TrackDataPaginationService(PaginationService, ABC):
                             cursors.append(f"{index}:{offset}")
 
                             residual_records = (
-                                sorted_track_result_summary[index].num_results - offset
+                                sorted_track_result_summary[index].count - offset
                             )
                             prior_track_index = index
                             break
 
             cursors.append(
-                f"{len(sorted_track_result_summary)-1}:{sorted_track_result_summary[-1].num_results}"
+                f"{len(sorted_track_result_summary)-1}:{sorted_track_result_summary[-1].count}"
             )
 
             await self._cache_service.set(

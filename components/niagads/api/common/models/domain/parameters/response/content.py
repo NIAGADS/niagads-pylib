@@ -42,6 +42,22 @@ class RContentParamNoCounts(EnumParameter):
         return super().validate(value, ResponseContent)
 
 
+class RContentData(EnumParameter):
+    """enum for allowable response types"""
+
+    FULL = ResponseContent.FULL.value
+    COUNTS = ResponseContent.COUNTS.value
+
+    @classmethod
+    def description(cls):
+        message = "Response content (full or counts only)"
+        return message + f"{super().description()}"
+
+    @classmethod
+    def validate(cls, value):
+        return super().validate(value, ResponseContent)
+
+
 class DefaultRFormatParam(EnumParameter):
     """enum for allowable response / output formats"""
 

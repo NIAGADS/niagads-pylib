@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.models.domain.base import DynamicRecordModel
+from niagads.api.common.models.domain.base import CountRecordModel, DynamicRecordModel
 from niagads.api.common.models.service.request import RequestDataModel
 from niagads.common.models.base import CustomBaseModel
 from niagads.utils.string import xstr
@@ -149,3 +149,7 @@ class ListResponse(BaseResponseModel):
             return ""
 
         return "\n".join([xstr(v) for v in self.data if v is not None])
+
+
+class CountResponse(BaseResponseModel):
+    data: List[CountRecordModel]  # FIXME - may need to be Type[CountRecordModel]

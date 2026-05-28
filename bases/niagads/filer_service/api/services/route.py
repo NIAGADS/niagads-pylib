@@ -359,7 +359,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
                     self._parameters.track, feature.feature_id
                 )
                 counts = TrackResultMetrics(
-                    id=self._parameters.track, num_results=len(data.features)
+                    id=self._parameters.track, count=len(data.features)
                 )
 
                 if self._response_config.content == ResponseContent.COUNTS:

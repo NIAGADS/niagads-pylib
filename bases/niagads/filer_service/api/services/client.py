@@ -76,7 +76,7 @@ class FILERClientService:
                 FILERApiEndpoint.OVERLAPS, {"track": ",".join(tracks), "span": span}
             )
             return [
-                TrackResultMetrics(id=t["Identifier"], num_results=len(t["features"]))
+                TrackResultMetrics(id=t["Identifier"], count=len(t["features"]))
                 for t in response
             ]
 
@@ -94,7 +94,7 @@ class FILERClientService:
             )  # informative tracks in the requested list
 
             return [tc for tc in response if tc.id in informativeTracks] + [
-                TrackResultMetrics(id=t, num_results=0) for t in nonInformativeTracks
+                TrackResultMetrics(id=t, count=0) for t in nonInformativeTracks
             ]
 
     async def get_track_hits(
@@ -139,7 +139,7 @@ class FILERClientService:
             {"span": span, "genome_build": assembly},
         )
         result = [
-            TrackResultMetrics(id=t["Identifier"], num_results=t["numOverlaps"])
+            TrackResultMetrics(id=t["Identifier"], count=t["numOverlaps"])
             for t in result
         ]
         return TrackResultMetrics.sort(result) if sort else result

@@ -49,12 +49,12 @@ class ORMCompatabileMixin:
 
 
 class ResultMetricsMixin:
-    num_results: int = Field(
-        title="Num. Results",
-        description="number of search results",
+    count: int = Field(
+        title="Count",
+        description="number of matching records or hits in a data track",
     )
 
     @staticmethod
     def sort(results: List[Self], reverse=True) -> List[Self]:
         """sorts a list of results"""
-        return sorted(results, key=lambda item: item.num_results, reverse=reverse)
+        return sorted(results, key=lambda item: item.count, reverse=reverse)

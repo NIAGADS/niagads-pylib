@@ -84,7 +84,7 @@ class TrackMetadataEndpointService(EndpointService):
                 elif content == ResponseContent.IDS:
                     track_records = query_result
                 elif content == ResponseContent.COUNTS:
-                    track_records = {"num_results": len(query_result)}
+                    track_records = [{"num_results": len(query_result)}]
                 elif content == ResponseContent.URLS:
                     track_records = query_result
 

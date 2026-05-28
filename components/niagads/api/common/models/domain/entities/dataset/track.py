@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from niagads.api.common.models.domain.base import ORMCompatibleRecord
+from niagads.api.common.models.domain.base import CountRecordModel, ORMCompatibleRecord
 from niagads.api.common.models.domain.mixins import (
     ORMCompatabileMixin,
     ResultMetricsMixin,
@@ -92,7 +92,7 @@ class TrackMetadata(TrackRecord, ORMCompatabileMixin):
     )
 
 
-class TrackResultMetrics(CustomBaseModel, ResultMetricsMixin):
+class TrackResultMetrics(CountRecordModel):
     id: str = Field(
         title="Track ID",
         description="stable track identifier",
