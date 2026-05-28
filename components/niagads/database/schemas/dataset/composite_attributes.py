@@ -172,20 +172,20 @@ class Provenance(TransformableModel):
                     )
         return values
 
-    @computed_field
-    @property
-    def data_source_url(self) -> str:
-        dsKey = (
-            f"{self.data_source}|{self.release_version}"
-            if self.release_version is not None
-            else self.data_source
-        )
-        try:
-            return ThirdPartyResources[dsKey].value
-        except:
-            raise ValueError(
-                f"Data source URL not found for {dsKey}. Please add to external_resources.ThirdParty."
-            )
+    #@computed_field
+    #@property
+    # def data_source_url(self) -> str:
+    #    dsKey = (
+    #        f"{self.data_source}|{self.release_version}"
+    #      if self.release_version is not None
+    #        else self.data_source
+    #    )
+    #    try:
+    #        return ThirdPartyResources[dsKey].value
+    #    except:
+    #        raise ValueError(
+    #           f"Data source URL not found for {dsKey}. Please add to external_resources.ThirdParty."
+    #       )
 
 
 class FileProperties(TransformableModel):

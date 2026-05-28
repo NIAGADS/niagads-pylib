@@ -19,18 +19,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 TARGET_TABLE = f"{Track.metadata.schema}.{Track.__tablename__}"
 SKIP_DATASOURCES = [
-    "Repeats",
-    "Reference",
-    "1k",
-    "PhastCons",
-    "dbSNP",
-    "DASHR2",
-    "RefSeq",
-    "HOMER",
-    "Inferno",
-    "Centromeres",
-    "Gencode",
-    "Telomeres",
+       "RefSeq",
+        "1K Genome Phase3",
+        "dbSNP",
+        "RefSeq",
+        "HOMER",
+        "Inferno",
+        "Gencode",
+        "CADD",
+        "GWAS_Catalog",
+        "Ensembl",
+        "CADD",
+        "UCSC",
+        "DASHR2",  # FIXME: something is wrong w/their name generation 
 ]
 
 
@@ -86,7 +87,7 @@ class TrackMetadataLoader(AbstractDataLoader):
     async def fetch_live_track_ids(self):
         """Fetch live FILER track identifiers reference."""
 
-        sessionManager = HttpClientSessionManager(self.__apiUrl, debug=self._debug)
+        sessionManager = HttpClientSessionManager(self.__apiUrl, debug=self._debug, timeout=300)
         params = {"genomeBuild": self.__genomeBuild.hg_label()}
         response: dict = await sessionManager.fetch_json("get_metadata.php", params)
         await sessionManager.close()
@@ -114,17 +115,27 @@ class TrackMetadataLoader(AbstractDataLoader):
         if track.name.startswith("GWAS_Catalog"):
             return True
 
-        dataSource = track.provenance.get("data_source")
-        if dataSource in SKIP_DATASOURCES:
-            return True
-
-        if dataSource.startswith("Ensembl"):
+        data_source = track.provenance.get("data_source")
+        matched_excluded_datasource = False
+        if data_source is not None and data_source in SKIP_DATASOURCES:
+            matched_excluded_datasource = data_source
+        else:
+            matched_excluded_datasource = next(
+                (
+                    s
+                    for s in SKIP_DATASOURCES
+                    if track.name.startswith(s)
+                ),
+                None,
+            )
+        if matched_excluded_datasource:
             return True
 
         if "Not applicable" in track.name:
-            raise ValueError(
-                f"Malformed track name.  Please review and correct or update skip_track criteria to proceed."
-            )
+            return True
+            #raise ValueError(
+            #    f"Malformed track name.  Please review and correct or update skip_track criteria to proceed."
+            #)
 
         if not self.__skipLiveValidation:
             if track.track_id not in self.__liveTracks:

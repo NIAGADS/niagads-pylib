@@ -3,6 +3,7 @@ from os.path import basename
 from typing import List, Set, Union
 from urllib.parse import unquote
 
+from niagads.common.constants.external_resources import ThirdPartyResources
 from niagads.common.constants.ontologies import BiosampleType
 from niagads.common.models.ontology import OntologyTerm
 from niagads.database.schemas.dataset.composite_attributes import (
@@ -30,6 +31,17 @@ from niagads.utils.string import (
 
 import requests
 
+DATASOURCES_WITH_COLLECTIONS = [
+    "RefSeq",
+    "EpiMap",
+    "ROADMAP",
+    "Ensembl",
+    "FANTOM5",
+    "DASHR2",
+    "Inferno",
+]
+
+UCSC_TRACKS = ["Centromeres", "Repeats", "PhastCons", "Reference_Genome", "Telomeres"]
 
 class MetadataTemplateParser:
     """Parser for FILER metadata templates.
@@ -270,9 +282,9 @@ class MetadataEntryParser:
         self.__metadata.update({"track_id": self.get_entry_attribute("identifier")})
         self.parse_descriptive_attributes()
         self.parse_genome_build()
-        self.__metadata.update(
-            {"is_download_only": self.get_entry_attribute("download_only", False)}
-        )
+        if self.get_entry_attribute("track_type") == "downloadOnly":
+            self.__metadata.update({"is_download_only": True})
+ 
 
     def parse_descriptive_attributes(self):
         """parse name and description"""
@@ -672,23 +684,32 @@ class MetadataEntryParser:
     def __parse_data_source(self):
         # FIXME: most of the SKIP_DATASOURCE list in the loader gets parsed incorrectly here
         source = self.get_entry_attribute("data_source")
-        if source.startswith("ADSP"):
+        version = None
+
+        if source.islower():
+            source = source.title()
+
+        if source in UCSC_TRACKS:
+            source = "UCSC"
+
+
+        try:
+            # we are good
+            ThirdPartyResources(source)
             source = source.replace("_", " ")
-            version = None
-        else:
+        except:
+            # there is versioning info in the source
             dsInfo = source.split("_", 1)
             source = dsInfo[0]
-            version = dsInfo[1] if len(dsInfo) > 1 and dsInfo[0] else None
+            version = dsInfo[1] if len(dsInfo) > 1 else None
 
-            if source == "FANTOM5" and "slide" in self.get_entry_attribute(
-                "link_out_url"
-            ):
-                version = version + "_SlideBase"
-
-            if array_in_string(source, ["INFERNO", "eQTL"]):
-                # don't split on the _
-                source = self.get_entry_attribute("data_source").replace("_", " ")
-                version = None
+            if source.startswith(tuple(DATASOURCES_WITH_COLLECTIONS)):
+                if source == "FANTOM5" and "slide" in self.get_entry_attribute(
+                    "link_out_url"
+                ):
+                    version = "SlideBase"
+                else:
+                    version = None
 
         return source, version
 
