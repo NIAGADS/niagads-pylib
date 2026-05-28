@@ -158,6 +158,10 @@ class EndpointService:
                     data=result,  # self._sqa_row2dict(result),
                 )
 
+            if len(self._messages) > 0:
+                response.message = self._messages
+                # FIXME: ? potentially reset messages here? is there anycase where same service generates multiple responses?
+
             # cache the response
             await self._managers.cache_service.set_response(response)
         return response
