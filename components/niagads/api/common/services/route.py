@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 from niagads.api.common.constants import DEFAULT_PAGE_SIZE
 from niagads.api.common.models.domain.parameters.internal import (
@@ -71,6 +71,11 @@ class EndpointService:
         self._response_config: ResponseConfiguration = response_config
         self._parameters: RequestParameters = params
         self._pagination_service = PaginationService(params, page_size=page_size)
+        self._messages: list[Union[str, dict]] = []
+
+    @property
+    def messages(self):
+        return self._messages
 
     @property
     def pagination(self):
@@ -83,6 +88,9 @@ class EndpointService:
     @property
     def result_size(self):
         return self._pagination_service.result_size
+
+    def add_message(self, message: Union[str, dict]):
+        self._messages.append(message)
 
     def set_result_size(self, result_size: int):
         self._pagination_service.set_result_size(result_size)
