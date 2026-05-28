@@ -20,3 +20,5 @@
       "url": "https://tf.lisanwanglab.org/GADB/Annotationtracks/ENCODE/data/ATAC-seq/narrowpeak/hg38/ENCFF413XCR.bed.gz"
     },
 ```
+
+- messaging for invalid tracks in bulk lookup needs to be propagated
