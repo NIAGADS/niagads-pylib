@@ -227,7 +227,3 @@ class CustomBaseModel(BaseModel):
 
     def __repr__(self):
         return self.to_info_string()
-
-    @property
-    def model_fields(self):
-        return self.get_model_fields()

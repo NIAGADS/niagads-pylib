@@ -80,7 +80,7 @@ asyncpg = "^0.30.0"
 boto3 = "^1.38.36"
 cyvcf2 = "^0.31.1"
 email-validator = "^2.2.0"
-fastapi = "^0.115.12"
+fastapi = "^0.136.3"
 fastapi-cors = "^0.0.6"
 ga4gh-vrs = {extras = [
     "extras"
@@ -113,6 +113,7 @@ typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
 wtforms = "^3.2.1"
+starlette = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
