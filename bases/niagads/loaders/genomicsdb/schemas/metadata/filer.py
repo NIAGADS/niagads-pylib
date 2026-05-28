@@ -87,13 +87,14 @@ class TrackMetadataLoader(AbstractDataLoader):
     async def fetch_live_track_ids(self):
         """Fetch live FILER track identifiers reference."""
 
+        self.logger.info("Fetching live tracks for validaiton")
         sessionManager = HttpClientSessionManager(self.__apiUrl, debug=self._debug, timeout=300)
         params = {"genomeBuild": self.__genomeBuild.hg_label()}
         response: dict = await sessionManager.fetch_json("get_metadata.php", params)
         await sessionManager.close()
 
         self.__liveTracks = {
-            t["Identifier"] if "Identifier" in t else t["#Identifier"]: True
+            t["identifier"] : True
             for t in response
         }
 
