@@ -59,6 +59,10 @@ class TrackMetadataBrief(ORMCompatibleRecord):
         description="URL for NIAGADS-standardized file",
     )
 
+    @field_serializer("is_download_only")
+    def serialize_download_only_boolean(self, is_download_only, _info):
+        return self.boolean_null_check(is_download_only)
+
     @model_validator(mode="before")
     def extract_nested_fields(cls, values: Union[dict, any]):
         """
@@ -80,6 +84,14 @@ class TrackMetadataBrief(ORMCompatibleRecord):
                 values.setdefault("url", file_props.get("url"))
             elif hasattr(file_props, "url"):  # ORM object
                 values.setdefault("url", file_props.url)
+
+            experimental_design = values.get("experimental_design")
+            if isinstance(experimental_design, dict):
+                values.setdefault(
+                    "data_category", experimental_design.get("data_category")
+                )
+            elif hasattr(experimental_design, "data_category"):  # ORM object
+                values.setdefault("data_category", experimental_design.data_category)
 
         return values
 

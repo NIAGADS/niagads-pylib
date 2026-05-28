@@ -4,9 +4,9 @@
 
 ### FILER Track Metadata Brief Response
 
-- `data_category` is always null
-- `is_download_only` should be `True` or `False` not `null`
-  
+- `data_category` is always null --> was not pulled; added it to the before model validator (untested)
+- `is_download_only` should be `True` or `False` not `null` --> added field serializer (untested)
+
 ```json
   {
       "id": "NGENCQBEJ2TZUV",
