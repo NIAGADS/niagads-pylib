@@ -199,4 +199,4 @@ class FileProperties(TransformableModel):
 
     file_format: Optional[str] = None
     file_schema: Optional[str] = None
-    release_date: Optional[str] = Field(exclude=True)
+    release_date: Optional[str] = Field(default=None,exclude=True)
