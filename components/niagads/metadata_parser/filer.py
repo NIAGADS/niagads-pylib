@@ -191,6 +191,7 @@ class MetadataEntryParser:
         if self.__metadata is None:
             self.parse()
 
+
         return Track(**self.__metadata)
 
     def parse_value(self, key: str, value):
@@ -276,6 +277,8 @@ class MetadataEntryParser:
 
         if self._debug:
             self.logger.debug(f"Done parsing metadata entry: {self.__metadata}")
+            
+
 
     def parse_basic_attributes(self):
         """Basic attributes, including setting track_id"""
@@ -386,7 +389,7 @@ class MetadataEntryParser:
             )
 
             self.__metadata.update(
-                {"biosample_characteristics": characteristics.model_dump()}
+                {"biosample_characteristics": characteristics.model_dump(exclude_none=True)}
             )
 
             # pull out searchable text values
@@ -415,7 +418,7 @@ class MetadataEntryParser:
             antibody_target=self.get_entry_attribute("antibody_target"),
         )
 
-        self.__metadata.update({"experimental_design": design.model_dump()})
+        self.__metadata.update({"experimental_design": design.model_dump(exclude_none=True)})
         self.update_searchable_text(
             [value for value in design.model_dump().values() if not is_bool(value)]
         )
@@ -478,7 +481,7 @@ class MetadataEntryParser:
                 )
             )
 
-        self.__metadata.update({"provenance": provenance.model_dump()})
+        self.__metadata.update({"provenance": provenance.model_dump(exclude_none=True)})
         self.update_searchable_text(
             [provenance.study, provenance.project, provenance.data_source]
         )
@@ -500,7 +503,7 @@ class MetadataEntryParser:
             release_date=self.get_entry_attribute("filer_release_date"),
         )
 
-        self.__metadata.update({"file_properties": props.model_dump()})
+        self.__metadata.update({"file_properties": props.model_dump(exclude_none=True)})
 
     def __assign_feature_by_assay(self):
         assay = self.__metadata["experimental_design"].get("assay")
