@@ -138,7 +138,7 @@ class Provenance(TransformableModel):
     release_version: Optional[str] = None
     release_date: Optional[str] = None
     download_date: Optional[str] = None
-    download_url: Optional[str] = Field(exclude=True)
+    download_url: Optional[str] = None # Field(exclude=True)
 
     study: Optional[str] = None
     project: Optional[str] = None
