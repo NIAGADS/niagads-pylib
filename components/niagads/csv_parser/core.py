@@ -151,13 +151,9 @@ class CSVFileParser(AbstractFlatfileParser):
         if "delimiter" not in kwargs:
             kwargs["delimiter"] = self.sniff()
 
-        if "header" not in kwargs:
+        if "names" not in kwargs:
             if self.__header_fields is not None:
-                kwargs["header"] = self.__header_fields
-            elif self.__header is None:
-                kwargs["header"] = None
-            else:
-                kwargs["header"] = 0
+                kwargs["names"] = self.__header_fields
 
         # raise error if False
         df: DataFrame = read_csv(self._file, **kwargs)

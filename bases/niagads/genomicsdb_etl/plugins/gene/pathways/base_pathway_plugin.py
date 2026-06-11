@@ -165,7 +165,10 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
             )
 
             if self._verbose:
-                self.logger.debug(f"Loading pathway: {pathway.pathway_id}|{pathway_pk}")
+                self.logger.debug(
+                    f"Loading pathway: {pathway.pathway_id}|{pathway_pk} "
+                    f"with {len(pathway.member_genes)} gene members"
+                )
 
             memberships = []
             for gene in pathway.member_genes:
@@ -191,6 +194,12 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
                         run_id=self.run_id,
                         external_database_id=self.external_database_id,
                     )
+                )
+
+            if self._verbose:
+                self.logger.debug(
+                    f"Submitting pathway memberships for {pathway.pathway_id} "
+                    f"(pathway_pk={pathway_pk}, records={len(memberships)})"
                 )
 
             # submit pathway-memberships in bulk

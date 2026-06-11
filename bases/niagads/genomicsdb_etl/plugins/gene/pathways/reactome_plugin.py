@@ -15,11 +15,10 @@ from niagads.common.types import ETLOperation
 from niagads.csv_parser.core import CSVFileParser
 from niagads.database.genomicsdb.schema.gene.annotation import PathwayMembership
 from niagads.database.genomicsdb.schema.reference.pathway import Pathway
-from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.parameters import PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-from niagads.genomicsdb_etl.plugins.common.mixins.parameters import ExternalDatabaseRefMixin
+from niagads.genomicsdb_etl.plugins.gene.pathways.base_pathway_plugin import PathwayMembershipLoaderPlugin, PathwayMembershipLoaderPluginParams
 from niagads.genomicsdb_etl.plugins.gene.pathways.types import MembershipAnnotation, PathwayGeneAssociations, PathwayInfo
 from pydantic import BaseModel, Field, field_validator
 from niagads.etl.plugins.metadata import PluginMetadata
@@ -41,7 +40,7 @@ class ReactomeEntry(BaseModel):
         return list(cls.model_fields.keys())
 
 
-class ReactomeLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin):
+class ReactomeLoaderParams(PathwayMembershipLoaderPluginParams):
     """Parameter model for ReactomeLoader plugin."""
 
     file: str = Field(..., description="Reactome CSV file to load")
@@ -73,14 +72,14 @@ metadata = PluginMetadata(
     version="1.0",
     description=("ETL Plugin to load REACTOME pathway data from file."),
     affected_tables=[PathwayMembership, Pathway],
-    load_strategy=ETLLoadStrategy.BULK,
+    load_strategy=ETLLoadStrategy.BATCH,
     operation=ETLOperation.INSERT,
     is_large_dataset=False,
     parameter_model=ReactomeLoaderParams,
     )
 
-@PluginRegistry.register(metadata={"version": 1.0})
-class ReactomeLoaderPlugin(AbstractBasePlugin):
+@PluginRegistry.register(metadata=metadata)
+class ReactomeLoaderPlugin(PathwayMembershipLoaderPlugin):
     """
     Plugin for loading Reactome data.
     """
@@ -94,13 +93,23 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
         """
         self.logger.info(f"Parsing Reactome file: {self._params.file}")
         parser = CSVFileParser(self._params.file)
-        df = parser.to_pandas_df(header=ReactomeEntry.column_names())
-
+        df = parser.to_pandas_df(names=ReactomeEntry.column_names(),header=None,delimiter="\t")
         self.logger.info(f"File loaded with {len(df)} rows and {len(df.columns)} columns")
-        self.logger.critical(f"DataFrame header: {list(df.columns)}")  # Added critical logging
+       
 
         filtered_df = df[df["species"] == "Homo sapiens"]
         filtered_df = filtered_df[filtered_df["gene_id"].str.startswith("ENSG", na=False)]
+
+        if self._verbose:
+            exact = int(filtered_df.duplicated(keep=False).sum())
+            pair = int(
+                filtered_df.duplicated(subset=["pathway_id", "gene_id"], keep=False).sum()
+            )
+            # are there exact duplicate rows and are there pathway/gene repeats with different annotations?
+            self.logger.debug("Reactome has exact duplicate rows: %s", exact > 0)
+            self.logger.debug(
+                "Reactome has pathway/gene repeats with differing annotations: %s", (pair - exact) > 0
+            )
 
         self.logger.info(f"Data extraction complete with {len(filtered_df)} filtered rows")
         return [ReactomeEntry(**entry) for entry in filtered_df.to_dict(orient="records")]
@@ -122,9 +131,9 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
                         pathway_id=record.pathway_id,
                         pathway_name=record.pathway_name,
                     ),
-                    genes=[],
+                    member_genes=[],
                 )
-            pathway_map[pathway_id].genes.append(
+            pathway_map[pathway_id].member_genes.append(
                 MembershipAnnotation(
                     gene_id=record.gene_id,
                     #TODO: Include evidence code if needed
@@ -137,8 +146,7 @@ class ReactomeLoaderPlugin(AbstractBasePlugin):
 
     async def load(self, session, transformed: List[PathwayGeneAssociations]):
         """
-        Load transformed records into the database.
-        """
+        Load transformed records into the database.    """
         checkpoint = await self._load_pathway_membership(
             session, transformed, GeneIdentifierType.ENSEMBL
         )
