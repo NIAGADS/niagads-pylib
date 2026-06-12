@@ -3,11 +3,11 @@ from typing import Any, Dict, Optional
 
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.track.models.record import TrackRecord
-from niagads.common.types import ETLOperation
+
 from niagads.database.genomicsdb.schema.dataset.track import Track
 
 from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.metadata import PluginMetadata
+
 from niagads.etl.plugins.mixins import (
     EmbeddingGeneratorContextMixin,
     ExternalDatabaseContextMixin,
@@ -16,8 +16,7 @@ from niagads.etl.plugins.parameters import (
     BasePluginParams,
     EmbeddingParameterMixin,
 )
-from niagads.etl.plugins.registry import PluginRegistry
-from niagads.etl.plugins.types import ETLLoadStrategy
+
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
@@ -62,15 +61,3 @@ class TrackLoaderBase(
         return erecord.track.id
 
 
-@PluginRegistry.register(
-    metadata=PluginMetadata(
-        version="1.0",
-        description=f"Loads a {TrackRecord}-compliant JSON file in to {Track.table_name()}.",
-        affected_tables=[Track],
-        load_strategy=ETLLoadStrategy.BULK,
-        operation=ETLOperation.INSERT,
-        is_large_dataset=False,
-        parameter_model=TrackLoaderBaseParams,
-    )
-)
-class TrackJSONLoader(TrackLoaderBase): ...
