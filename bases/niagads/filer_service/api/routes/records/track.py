@@ -22,7 +22,6 @@ from niagads.api.common.models.domain.parameters.types import (
 )
 from niagads.api.common.models.response.base import (
     CountResponse,
-    DataResponse,
     ListResponse,
 )
 from niagads.api.common.models.response.entities.dataset import (

@@ -8,11 +8,11 @@ from niagads.exceptions.core import ValidationError
 
 
 async def collection_id(
-    collection: str = Path(
+    collection_id: str = Path(
         description="Unique, stable identifier (e.g., NIAGADS acccesion number) identifying a track collection."
     ),
 ) -> str:
-    return sanitize(collection)
+    return sanitize(collection_id)
 
 
 async def track_id(
@@ -38,7 +38,7 @@ async def track_id_query_param(
 
 
 async def multi_track_id_query_param(
-    track: str = Query(
+    track_ids: str = Query(
         description="Comma separated list of one or more Track (data file) identifier (FILER Accession or DSS File ID)",
     )
 ) -> list[str]:

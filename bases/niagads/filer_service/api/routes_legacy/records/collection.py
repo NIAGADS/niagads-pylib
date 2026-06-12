@@ -60,7 +60,7 @@ async def get_collections(
 
     result = await MetadataQueryService(
         internal.session, data_store=[TrackDataStore.FILER, TrackDataStore.SHARED]
-    ).get_collections()
+    ).get_collection()
     return await helper.generate_response(result)
 
 

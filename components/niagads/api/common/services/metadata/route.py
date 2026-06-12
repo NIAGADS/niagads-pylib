@@ -1,5 +1,8 @@
 from typing import Optional
 
+from niagads.api.common.models.domain.entities.dataset.collection import (
+    CollectionMetadata,
+)
 from niagads.api.common.models.domain.entities.dataset.track import (
     TrackMetadata,
     TrackMetadataBrief,
@@ -40,6 +43,23 @@ class TrackMetadataEndpointService(EndpointService):
             track_database=track_database,
         )
 
+    async def __resolve_track_metadata_response_content(
+        self, query_result: list[TrackMetadata]
+    ):
+        content = self._response_config.content
+        if content == ResponseContent.FULL:
+            track_records = [TrackMetadata(**t.model_dump()) for t in query_result]
+        elif content == ResponseContent.BRIEF:
+            track_records = [TrackMetadataBrief(**t.model_dump()) for t in query_result]
+        elif content == ResponseContent.IDS:
+            track_records = query_result
+        elif content == ResponseContent.COUNTS:
+            track_records = [{"num_results": len(query_result)}]
+        elif content == ResponseContent.URLS:
+            track_records = query_result
+
+        return track_records
+
     async def get_track_metadata(self, raw_response=False):
         """fetch track metadata; expects a list of track identifiers in the parameters"""
         is_cached = True  # assuming true from the start
@@ -72,21 +92,9 @@ class TrackMetadataEndpointService(EndpointService):
                 return query_result
 
             else:
-                content = self._response_config.content
-                if content == ResponseContent.FULL:
-                    track_records = [
-                        TrackMetadata(**t.model_dump()) for t in query_result
-                    ]
-                elif content == ResponseContent.BRIEF:
-                    track_records = [
-                        TrackMetadataBrief(**t.model_dump()) for t in query_result
-                    ]
-                elif content == ResponseContent.IDS:
-                    track_records = query_result
-                elif content == ResponseContent.COUNTS:
-                    track_records = [{"num_results": len(query_result)}]
-                elif content == ResponseContent.URLS:
-                    track_records = query_result
+                track_records = self.__resolve_track_metadata_response_content(
+                    query_result
+                )
 
                 self.set_result_size(len(query_result))
                 is_paged = self._pagination_service.initialize_pagination()
@@ -100,13 +108,9 @@ class TrackMetadataEndpointService(EndpointService):
 
         return cached_response
 
-    # FIXME: not sure if this will ever need a "raw_response"
-    async def get_collection_track_metadata(self, raw_response=False):
-        """fetch track metadata for a specific collection"""
+    async def get_collections(self):
         is_cached = True  # assuming true from the start
         cache_key = self._managers.cache_service.cache_key.encrypt()
-        if raw_response:
-            cache_key += CacheKeyQualifier.RAW + "_" + str(raw_response)
 
         result = await self._managers.cache_service.get(
             cache_key, namespace=self._managers.cache_service.cache_key.namespace
@@ -115,29 +119,61 @@ class TrackMetadataEndpointService(EndpointService):
         if result is None:
             is_cached = False
 
-            result = await self.__metadata_query_service.get_collection_track_metadata(
-                self._parameters.get("collection"),
-                self._parameters.get("track"),
-                response_type=self._response_config.content,
+            result = await self.__metadata_query_service.get_collection(
+                collection_id=self._parameters.get("collection_id")
+            )
+            collection_records = [CollectionMetadata(**c.model_dump()) for c in result]
+
+        return await self.generate_response(collection_records, is_cached=is_cached)
+
+    # FIXME: not sure if this will ever need a "raw_response"
+    async def get_collection_track_metadata(self, raw_response=False):
+        """fetch track metadata for a specific collection"""
+        is_cached = True  # assuming true from the start
+        cache_key = self._managers.cache_service.cache_key.encrypt()
+        if raw_response:
+            cache_key += CacheKeyQualifier.RAW + "_" + str(raw_response)
+
+        cached_response = await self._managers.cache_service.get(
+            cache_key, namespace=self._managers.cache_service.cache_key.namespace
+        )
+
+        if cached_response is None:
+            is_cached = False
+
+            query_result = (
+                await self.__metadata_query_service.get_collection_track_metadata(
+                    self._parameters.get("collection"),
+                    self._parameters.get("track"),
+                    response_type=self._response_config.content,
+                )
             )
 
-            if not raw_response:
-                self.set_result_size(len(result))
+            if raw_response:
+                # cache the raw response and return
+                await self._managers.cache_service.set(
+                    cache_key,
+                    query_result,
+                    namespace=self._managers.cache_service.cache_key.namespace,
+                )
+                return query_result
+
+            else:
+                track_records = self.__resolve_track_metadata_response_content(
+                    query_result
+                )
+
+                self.set_result_size(len(query_result))
                 is_paged = self._pagination_service.initialize_pagination()
                 if is_paged:
                     sliceRange = self._pagination_service.slice_result_by_page()
-                    result = result[sliceRange.start : sliceRange.end]
+                    paged_result = track_records[sliceRange.start : sliceRange.end]
+                else:
+                    paged_result = track_records
 
-        if raw_response:
-            # cache the raw response
-            await self._managers.cache_service.set(
-                cache_key,
-                result,
-                namespace=self._managers.cache_service.cache_key.namespace,
-            )
-            return result
+                return await self.generate_response(paged_result, is_cached=is_cached)
 
-        return await self.generate_response(result, is_cached=is_cached)
+        return cached_response
 
     async def search_track_metadata(
         self, raw_response: Optional[ResponseContent] = None

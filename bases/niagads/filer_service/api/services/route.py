@@ -65,6 +65,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
 
     async def __validate_tracks(self, tracks: List[str]):
         """by setting validate=True, the service runs .validate_tracks before validating the genome build"""
+        # FIXME: why is this instantiating a new query service instead of using self.__metadata_query_service
         assembly = await MetadataQueryService(
             self._managers.database_session, data_store=self._data_store
         ).get_genome_build(tracks, validate=True)

@@ -4,10 +4,6 @@ from typing import Any, List, Optional
 from fastapi import HTTPException
 from niagads.api.common.constants import SHARD_PATTERN
 
-from niagads.api.common.models.domain.entities.dataset.track import (
-    TrackMetadata,
-    TrackMetadataBrief,
-)
 from niagads.api.common.models.domain.parameters.filters.expression_filter import Triple
 from niagads.api.common.models.domain.parameters.types import ResponseContent
 from niagads.api.common.models.service.request import RequestDataModel
@@ -122,8 +118,8 @@ class MetadataQueryService:
         result = (await self.__database_session.execute(statement)).scalars().first()
         return result
 
-    async def get_collections(self) -> List[Collection]:
-        stmt = select(
+    async def get_collection(self, collection_id: str = None) -> List[Collection]:
+        stmt: Select = select(
             Collection.collection_key,
             Collection.name,
             Collection.description,
@@ -135,8 +131,14 @@ class MetadataQueryService:
             TrackCollectionLink.collection_id == Collection.collection_id,
         )
         stmt = self.__apply_filter(stmt)
+
+        if collection_id is not None:
+            self.validate_collection(collection_id)
+            stmt = stmt.where(Collection.source_id == collection_id)
+
         stmt = stmt.group_by(Collection).order_by(Collection.collection_id)
-        result = (await self.__database_session.execute(stmt)).mappings().all()
+        result = (await self.__database_session.execute(stmt)).scalars().all()
+
         return result
 
     # FIXME: shard_root_id no longer exists
@@ -175,35 +177,42 @@ class MetadataQueryService:
         return result
 
     async def get_collection_track_metadata(
-        self, collectionName: str, track: str = None, response_type=ResponseContent.FULL
+        self,
+        collection_name: str,
+        response_type=ResponseContent.FULL,
     ) -> List[Track]:
 
-        collection: Collection = await self.validate_collection(collectionName)
+        collection: Collection = await self.validate_collection(collection_name)
 
         # if sharded URLs need to be mapped through IDS to find all shards
         target = (
             self.__set_query_target(ResponseContent.IDS)
-            if response_type == ResponseContent.URLS and collection.tracks_are_sharded
+            if response_type == ResponseContent.URLS
+            and collection.is_sharded_collection
             else self.__set_query_target(response_type)
         )
 
-        statement = (
+        stmt = (
             select(target)
             .join(TrackCollectionLink, TrackCollectionLink.id == Track.source_id)
             .where(TrackCollectionLink.collection_id == collection.collection_id)
-            .filter(Track.data_store.in_(self.__data_store))
             .order_by(Track.source_id)
         )
 
-        if track is not None:
-            statement = statement.where(Track.source_id == track)
+        stmt = self.__apply_filter(stmt, Collection)
 
-        result = (await self.__database_session.execute(statement)).scalars().all()
+        result = (await self.__database_session.execute(stmt)).scalars().all()
+
+        # TODO: RESUME - HERE --> messaging -> class member w/accessor function so that it can
+        # be accessed by parent endpoint service
+
         if response_type == ResponseContent.COUNTS:
-            return {"num_tracks": result[0]}
-        if collection.tracks_are_sharded:
+            return {"count": result[0]}
+
+        if collection.is_sharded_collection:
             if response_type == ResponseContent.IDS:
                 # FIXME: I think this has changed
+                self.__request
                 self.__request.add_message(
                     "Data are split by chromosome into 22 files per track.  For every `track` in the collection, there are 22 track identifiers and metadata are linked to the `id` of the first shard (`chr1`)."
                 )
@@ -350,7 +359,7 @@ class MetadataQueryService:
         result = await self.__database_session.execute(statement)
 
         if response_type == ResponseContent.COUNTS:
-            return {"num_tracks": result.scalars().one()}
+            return {"count": result.scalars().one()}
         else:
             return result.scalars().all()
 

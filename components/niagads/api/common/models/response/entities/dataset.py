@@ -18,7 +18,7 @@ class TrackMetadataResponse(DataResponse):
     )
 
 
-class CollectionMetadataResponse(DataResponse):
+class TrackCollectionResponse(DataResponse):
     data: List[CollectionMetadata] = Field(
         description="List of track collections meeting the query criteria."
     )

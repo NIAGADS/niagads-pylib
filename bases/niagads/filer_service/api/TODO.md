@@ -21,4 +21,17 @@
     },
 ```
 
+## Conventions
+
+- query params `_id` ? --> this needs be resolved ASAP/disconnect w/refactor parameter names and expectations in endpoint services
+
+## Refactor Targets
+
+- centralize in MetadataQueryService transformations of Tracks to APIRecords (b/c needed for direct and indirect [e.g., collection] queries) <-- DONE/untested
 - messaging for invalid tracks in bulk lookup needs to be propagated
+
+## Messaging
+
+- `message` has been bumped to `BaseResponseModel`
+  - endpoint services need to have a class member that is a list of messages; assign to response model in the `generate_response` function <- DONE
+  - metadata query service needs to store messages as well (sharded collections)
