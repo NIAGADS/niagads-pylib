@@ -19,7 +19,7 @@ class BaseVCFLoaderParams(
     BaseFeatureLoaderParams, PathValidatorMixin, EnvVariableMixin
 ):
     file: str = Field(..., description="Full path to VCF file")
-
+    
     genome_build: Optional[GenomeBuild] = Field(
         default=GenomeBuild.GRCh38,
         description=f"Reference genome build, one of {GenomeBuild.list()}",
@@ -133,3 +133,4 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
             )
 
         return record
+
