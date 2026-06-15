@@ -4,10 +4,11 @@ External Database Loader Plugin
 """
 
 import json
-from typing import Any, Dict, Iterator, Optional
+from typing import Iterator
 
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
+from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
@@ -16,6 +17,7 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.utils.string import matches
 from pydantic import Field
 
 
@@ -95,7 +97,19 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         """
         return record.database_key
 
-    async def load(self, session, transformed: ExternalDatabase):
+    async def __set_dataset_type(self, session, record: ExternalDatabase):
+        if record.database_type_id is not None:
+            try:
+                term_pk = await OntologyTerm.find_primary_key(
+                    session, curie=record.database_type_id
+                )
+            except:
+                raise ValueError(
+                    f"Invalid dataset_type: {record.database_type_id} - CURIE not found in DB"
+                )
+        record.database_type_id = term_pk
+
+    async def load(self, session, record: ExternalDatabase):
         """
         Insert a single ExternalDatabase record into the database.
 
@@ -106,14 +120,16 @@ class ExternalDatabaseLoader(AbstractBasePlugin):
         Returns:
             ETLLoadResult: checkpoint and transaction count
         """
+
         if not await ExternalDatabase.record_exists(
-            session, {"name": transformed.name, "version": transformed.version}
+            session, {"name": record.name, "version": record.version}
         ):
-            await transformed.submit(session)
+            await self.__set_dataset_type(session, record)
+            await record.submit(session)
         else:
             self.logger.warning(
-                f"External Database Reference {transformed.database_key}: {transformed.name}|{transformed.version} already exists"
+                f"External Database Reference {record.database_key}: {record.name}|{record.version} already exists"
             )
             self.inc_tx_count(ExternalDatabase, ETLOperation.SKIP)
 
-        return self.create_checkpoint(record=transformed)
+        return self.create_checkpoint(record=record)

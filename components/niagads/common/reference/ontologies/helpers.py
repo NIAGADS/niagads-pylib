@@ -30,7 +30,10 @@ def get_field_iri(field: str, preferred=True) -> str:
             else:
                 return AnnotationPropertyIRI.LABEL
         case "definition":
-            return AnnotationPropertyIRI.DEFINITION
+            if preferred:
+                return AnnotationPropertyIRI.OBO_DEFINITION
+            else:
+                return AnnotationPropertyIRI.DEFINITION
         case "curie":
             return AnnotationPropertyIRI.ID
         case "synonym":

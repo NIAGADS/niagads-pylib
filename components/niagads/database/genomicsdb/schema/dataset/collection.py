@@ -15,12 +15,17 @@ class Collection(DatasetTableBase, IdAliasMixin):
     __tablename__ = "collection"
     __table_args__ = (
         Index(
-            "ix_metadata_collection_key_unique",
+            "ix_dataset_collection_key_unique",
             "collection_key",
             unique=True,
         ),
         Index(
-            "ix_metadata_collection_is_filer_collection_true",
+            "ix_dataset_collection_name",
+            "name",
+            unique=True,
+        ),
+        Index(
+            "ix_dataset_collection_is_filer_collection_true",
             "is_filer_collection",
             postgresql_where=(Column("is_filer_collection") == True),
         ),
@@ -31,7 +36,7 @@ class Collection(DatasetTableBase, IdAliasMixin):
     collection_key: Mapped[str]
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
-    tracks_are_sharded: Mapped[Optional[bool]] = mapped_column(default=False)
+    is_sharded_collection: Mapped[Optional[bool]] = mapped_column(default=False)
     is_filer_collection: Mapped[bool] = mapped_column(default=False)
 
     # not using ExternalDatabaseMixin here b/c these can be nullable

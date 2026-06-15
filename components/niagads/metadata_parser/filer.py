@@ -1,23 +1,20 @@
-import logging
 from os.path import basename
-from typing import List, Union
+from typing import Iterator, Union
 from urllib.parse import unquote
 
-from niagads.common.reference.xrefs.data_sources import ThirdPartyResources
-from niagads.common.reference.ontologies.types import BiosampleType
+import requests
+from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.types import BiosampleType
+from niagads.common.reference.xrefs.data_sources import ThirdPartyResources
 from niagads.common.track.models import (
     BiosampleCharacteristics,
     ExperimentalDesign,
     FileProperties,
     Provenance,
 )
-from niagads.database.genomicsdb.schema.dataset.track import Track
-from niagads.utils.dict import print_dict
-from niagads.utils.list import remove_duplicates
-from niagads.utils.logging import FunctionContextAdapter
+from niagads.common.track.models.record import TrackRecord
 from niagads.utils.string import (
-    is_bool,
     is_date,
     is_null,
     is_number,
@@ -28,8 +25,7 @@ from niagads.utils.string import (
     to_numeric,
     to_snake_case,
 )
-
-import requests
+from niagads.utils.sys import read_open_ctx
 
 UCSC_TRACKS = ["Centromeres", "Repeats", "PhastCons", "Reference_Genome", "Telomeres"]
 DATASOURCES_WITH_COLLECTIONS = [
@@ -43,119 +39,83 @@ DATASOURCES_WITH_COLLECTIONS = [
 ]
 
 
-class MetadataTemplateParser:
+class MetadataTemplateParser(ComponentBaseMixin):
     """Parser for FILER metadata templates.
     cleans and transforms to a JSON object that can be mapped to a track record"""
 
     def __init__(
         self,
-        templateFile: str,
-        filerDownloadUrl: str,
-        datesAsStrings: bool = True,
+        template_file: str,
+        filer_download_url: str,
         debug: bool = False,
         verbose: bool = False,
+        logger=None,
     ):
-        self.logger: logging.Logger = FunctionContextAdapter(
-            logging.getLogger(__name__), {}
-        )
+        super().__init__(debug=debug, verbose=verbose, logger=logger)
 
-        self._debug = debug
-        self._verbose = verbose
+        self.__template_file: str = template_file
+        self.__filer_download_url: str = filer_download_url
+        self.__metadata_template: dict = None
 
-        self.__template = None
-        self.__templateFile: str = templateFile
-        self.__templateHeader = None
-        self.__metadata: dict = None
-        self.__filerDownloadUrl = filerDownloadUrl
-        self.__datesAsStrings = datesAsStrings
-        self.__load_template()
-
-    def __load_template(self):
-        if not self.__templateFile.startswith("http"):
-            with open(self.__templateFile, "r") as fh:
-                self.__template = fh.read().splitlines()
-
-        else:
-            response = requests.get(self.__templateFile)
+    def parse(self):
+        if self.__template_file.startswith("http"):
+            response = requests.get(self.__template_file)
             response.raise_for_status()
-            self.__template = response.text.split("\n")
+            template = response.text.split("\n")
+        else:  # local file
+            with read_open_ctx(self.__template_file) as fh:
+                template = fh.read().splitlines()
 
-        self.__templateHeader = self.__template.pop(0).split("\t")
-        if self.__template[-1] == "":  # sometimes extra line is present
-            self.__template.pop()
+        header = template.pop(0).split("\t")
+        if template[-1] == "":  # sometimes extra line is present
+            template.pop()
 
-        if self._debug:
-            self.logger.debug(
-                f"Done loading template (n = {len(self.__template)} entries)."
-            )
-            self.logger.debug(f"First row in template: {self.__template[0]}")
-
-    def get_template_file_name(self):
-        return self.__templateFile
-
-    def get_metadata(self):
-        return self.__metadata
-
-    def log_section_header(self, label: str, **kwargs):
-        # TODO: abstract  out into custom logger class
-        self.logger.info("=" * 40, **kwargs)
-        self.logger.info(label.center(40), **kwargs)
-        self.logger.info("=" * 40, **kwargs)
-
-    def parse(self, asTrackList: bool = False):
-        """iterate over list of one or more raw metadata
-        objects from FILER API and standardize; returns array of standardized metadata objects
-        """
-        self.log_section_header("Running Template Parser")
-
-        entries = [
-            dict(zip(self.__templateHeader, line.split("\t")))
-            for line in self.__template
+        self.__metadata_template = [
+            dict(zip(header, line.split("\t"))) for line in template
         ]
-        self.__metadata = [
-            (
-                MetadataEntryParser(
-                    e,
-                    self.__filerDownloadUrl,
-                    datesAsStrings=self.__datesAsStrings,
-                    debug=self._debug,
-                    verbose=self._verbose,
-                ).to_track_record()
-                if asTrackList
-                else MetadataEntryParser(
-                    e,
-                    self.__filerDownloadUrl,
-                    datesAsStrings=self.__datesAsStrings,
-                    debug=self._debug,
-                    verbose=self._verbose,
-                ).to_json()
+
+        if self._verbose:
+            self.logger.info(
+                f"Parsed {len(self.__metadata_template)} track entries from the metadata template."
             )
-            for e in entries
-        ]
-        return self.__metadata
+
+    def to_track_records(self) -> Iterator[TrackRecord]:
+        for entry in self.__metadata_template:
+            if self._verbose:
+                self.logger.debug(f"{entry}")
+            record = MetadataEntryParser(
+                entry,
+                self.__filer_download_url,
+                debug=self._debug,
+                verbose=self._verbose,
+                logger=self.logger,
+            ).to_track_record()
+
+            if self._verbose:
+                self.logger.debug(f"{record}")
+            yield record
 
 
-class MetadataEntryParser:
-    """parser for a FILER metadata entry from a template file:
-    standardizes keys, extracts non-name info from name, cleans up
+class MetadataEntryParser(ComponentBaseMixin):
+    """parser for a FILER metadata entry from a template file
 
-        keys:
-            -- replace spaces with _
-            -- lower case
-            -- camelCase to snake_case
-            -- rename fields, e.g., antibody -> antibody_target
-            -- remove (s)
-            -- identifier -> track_id
+    keys:
+        -- replace spaces with _
+        -- lower case
+        -- camelCase to snake_case
+        -- rename fields, e.g., antibody -> antibody_target
+        -- remove (s)
+        -- identifier -> id
 
-        values:
-            -- genome build: hg38 -> GRCh38, hg19 -> GRCh37
-            -- build biosample object
-            -- build file info object
-            -- build data source object
-            -- extract [] fields from trackName
-            -- original trackName --> description
-            -- add feature type
-            -- remove TF etc from assay
+    values:
+        -- genome build: hg38 -> GRCh38, hg19 -> GRCh37
+        -- build biosample object
+        -- build file info object
+        -- build data source object
+        -- extract [] fields from trackName
+        -- original trackName --> description
+        -- add feature type
+        -- remove TF etc from assay
 
     """
 
@@ -163,23 +123,16 @@ class MetadataEntryParser:
         self,
         entry: dict,
         filerDownloadUrl: str,
-        datesAsStrings: bool = True,
         debug: bool = False,
         verbose: bool = False,
+        logger=None,
     ):
-        self.logger = logging.getLogger(__name__)
-        self._debug = debug
-        self._verbose = verbose
+        super().__init__(debug=debug, verbose=verbose, logger=logger)
         self.__entry = None
         self.__metadata = None
-        self.__searchableTextValues = []
-        self.__datesAsStrings = datesAsStrings
-        self.__filerDownloadUrl = filerDownloadUrl
+        self.__filer_download_url = filerDownloadUrl
 
         self.set_entry(entry)
-
-        if self._debug:
-            self.logger.debug(f"Parsing: {print_dict(entry, pretty=False)}")
 
     def to_json(self):
         if self.__metadata is None:
@@ -191,7 +144,7 @@ class MetadataEntryParser:
         if self.__metadata is None:
             self.parse()
 
-        return Track(**self.__metadata)
+        return TrackRecord(**self.__metadata)
 
     def parse_value(self, key: str, value):
         """catch numbers, booleans, nulls and html entities (b/c of text search)"""
@@ -211,17 +164,17 @@ class MetadataEntryParser:
             return value.replace("Not applicable;", "")
 
         if "date" in key.lower() and is_date(value):
-            return to_date(value, returnStr=self.__datesAsStrings)
+            return to_date(value, return_str=True)
 
         return unquote(value)  # html entities
 
     def transform_key(self, key: str):
         # camel -> snake + lower case
-        tValue: str = to_snake_case(key)
-        tValue = tValue.replace(" ", "_")
-        tValue = tValue.replace("(s)", "s")
-        tValue = tValue.replace("#", "")
-        return self.__rename_key(tValue)
+        new_key: str = to_snake_case(key)
+        new_key = new_key.replace(" ", "_")
+        new_key = new_key.replace("(s)", "s")
+        new_key = new_key.replace("#", "")
+        return self.__rename_key(new_key)
 
     def set_entry(self, entry: dict):
         """clean keys and since iterating over
@@ -246,7 +199,6 @@ class MetadataEntryParser:
 
         """
         feature_type
-        searchable_text
 
         experimental_design
         provenance
@@ -262,29 +214,19 @@ class MetadataEntryParser:
         self.parse_provenance()
         self.parse_file_properties()
 
-        # clean up and then add searchable text
-        self.__metadata.update(
-            {
-                "searchable_text": ";".join(
-                    remove_duplicates(self.__searchableTextValues, ignore_case=True)
-                )
-            }
-        )
-
         # patches on assembled metadata
         self.__final_patches()
 
-        if self._debug:
+        if self._verbose:
             self.logger.debug(f"Done parsing metadata entry: {self.__metadata}")
 
     def parse_basic_attributes(self):
-        """Basic attributes, including setting track_id"""
-        self.__metadata.update({"track_id": self.get_entry_attribute("identifier")})
+        """Basic attributes, including setting id"""
+        self.__metadata.update({"id": self.get_entry_attribute("identifier")})
         self.parse_descriptive_attributes()
         self.parse_genome_build()
-        self.__metadata.update(
-            {"is_download_only": self.get_entry_attribute("download_only", False)}
-        )
+        if self.get_entry_attribute("track_type") == "downloadOnly":
+            self.__metadata.update({"is_download_only": True})
 
     def parse_descriptive_attributes(self):
         """parse name and description"""
@@ -321,20 +263,11 @@ class MetadataEntryParser:
                 }
             )
 
-            self.__searchableTextValues.append(
-                self.__clean_text(self.__metadata["name"])
-            )
-
     def parse_genome_build(self):
         genomeBuild = self.get_entry_attribute("genome_build")
         if genomeBuild is not None:
             genomeBuild = "GRCh38" if "hg38" in genomeBuild else "GRCh37"
         self.__metadata.update({"genome_build": genomeBuild})
-
-    def update_searchable_text(self, terms: List[str]):
-        self.__searchableTextValues = self.__searchableTextValues + [
-            self.__clean_text(v) for v in terms if v is not None
-        ]
 
     # Possible Load-time TODOs
     # TODO map ontology terms to correct
@@ -364,8 +297,7 @@ class MetadataEntryParser:
 
             bsType = self.get_entry_attribute("biosample_type")
 
-            if self._debug:
-                self.logger.debug(f"term = {term}; term_id = {termId}; type = {bsType}")
+            # self.logger.debug(f"term = {term}; term_id = {termId}; type = {bsType}")
 
             if bsType in ["Fractionation", "Timecourse"]:
                 if self._verbose:
@@ -376,31 +308,39 @@ class MetadataEntryParser:
                     )
                 bsType = "cell line"
 
+            tissue = self.get_entry_attribute("tissue_category")
+            system = self.get_entry_attribute("system_category")
+            lifestage = self.get_entry_attribute("life_stage")
+
             # TODO handle tissue categories, systems to be list
             characteristics = BiosampleCharacteristics(
-                biosample=[OntologyTerm(term=term, curie=termId)],
-                tissue=[self.get_entry_attribute("tissue_category")],
-                system=[self.get_entry_attribute("system_category")],
-                life_stage=self.get_entry_attribute("life_stage"),
-                biosample_type=None if bsType is None else str(BiosampleType(bsType)),
+                biosample=[
+                    OntologyTerm(
+                        term=term,
+                        curie=f"#FILER-biosample:{term}" if termId is None else termId,
+                    )
+                ],
+                tissue=(
+                    None
+                    if tissue is None
+                    else [OntologyTerm(term=tissue, curie=f"#FILER-tissue:{tissue}")]
+                ),
+                system=None if system is None else [system],
+                life_stage=(
+                    None
+                    if lifestage is None
+                    else OntologyTerm(
+                        term=lifestage, curie=f"FILER-lifestage:{lifestage}"
+                    )
+                ),
+                biosample_type=None if bsType is None else [BiosampleType(bsType)],
             )
 
             self.__metadata.update(
-                {"biosample_characteristics": characteristics.model_dump(exclude=None)}
+                {
+                    "biosample_characteristics": characteristics
+                }  # .model_dump(exclude=None)}
             )
-
-            # pull out searchable text values
-            searchableText: List[str] = (
-                [
-                    characteristics.life_stage,
-                    str(characteristics.biosample_type),
-                ]
-                + characteristics.tissue
-                + characteristics.system
-                + [ot.term for ot in characteristics.biosample]
-            )
-
-            self.update_searchable_text(searchableText)
 
     def parse_experimental_design(self):
         assay = self.__parse_assay()  # parse out `assays` and `analyses`
@@ -416,13 +356,6 @@ class MetadataEntryParser:
         )
 
         self.__metadata.update({"experimental_design": design.model_dump(exclude=None)})
-        self.update_searchable_text(
-            [
-                value
-                for value in design.model_dump(exclude=None).values()
-                if not is_bool(value)
-            ]
-        )
 
     # FIXME: see NGEQC01308 -> getting a cell type instead
     def parse_cohorts(self):
@@ -434,7 +367,6 @@ class MetadataEntryParser:
             if cohorts is not None:
                 clist = cohorts.split(",")
                 self.__metadata.update({"cohorts": clist})
-                self.update_searchable_text(clist)
 
     def parse_provenance(self):
         dataSource, version = self.__parse_data_source()
@@ -485,12 +417,10 @@ class MetadataEntryParser:
 
         # FIXME temporary patches
         if dataSource == "MiGA":
-            self.logger.info("Patching NIAGADS DSS Accession Provenance: MiGA")
             provenance.data_source = "NIAGADS DSS"
             provenance.accession = "NG00105"
             provenance.study = "MiGA - Microglia Genomic Atlas"
         if dataSource.startswith("NG00102"):
-            self.logger.info("Patching NIAGADS DSS Accession Provenance: NG000102")
             provenance.accession = provenance.data_source
             provenance.data_source = "NIAGADS DSS"
             provenance.study = provenance.release_version
@@ -500,9 +430,6 @@ class MetadataEntryParser:
             provenance.accession = self.get_entry_attribute("data_source")
 
         self.__metadata.update({"provenance": provenance.model_dump(exclude=None)})
-        self.update_searchable_text(
-            [provenance.study, provenance.project, provenance.data_source]
-        )
 
     def parse_file_properties(self):
         format, schema = self.__parse_file_format()
@@ -551,7 +478,7 @@ class MetadataEntryParser:
             if analysis == "annotation":
                 # check output type
                 if "gene" in outputType.lower():
-                    return "gene"
+                    return "GENE"
 
                 if "variant" in outputType.lower():
                     return "variant"
@@ -632,33 +559,8 @@ class MetadataEntryParser:
         return None
 
     def parse_feature_type(self):
-        if "experimental_design" not in self.__metadata:
-            self.parse_experimental_design()
-
-        feature = self.__assign_feature_by_assay()
-        if feature is None:
-            feature = self.__assign_feature_by_analysis()
-        if feature is None:
-            feature = self.__assign_feature_by_classification()
-        if feature is None:
-            feature = self.__assign_feature_by_output_type()
-
-        if feature is None:
-            raise ValueError("No feature type mapped for track: ", self.__metadata)
-
-        # variants have unnecessary prefixes
-        # SAS GIH INDEL
-        # SAS GIH SNV
-        # SAS GIH SV
-        # SAS SV
-        if feature.endswith(" INDEL"):
-            feature = "insertion/deletion variant (INDEL)"
-        if feature.endswith(" SNV"):
-            feature = "single nucleotide variant (SNV)"
-        if feature.endswith(" SV"):
-            feature = "structural variant (SV)"
-
-        self.__metadata.update({"feature_type": feature})
+        # FIXME: this is now genomics db only, much improved data category captures this
+        self.__metadata.update({"feature_type": "REGION"})
 
     def __parse_data_category(self):
         category = self.get_entry_attribute("data_category")
@@ -762,7 +664,7 @@ class MetadataEntryParser:
     def __parse_internal_url(self, url):
         """correct domain and other formatting issues"""
         url = self.__parse_generic_url(url)
-        return regex_replace(r"^[^GADB]*\/GADB", self.__filerDownloadUrl, url)
+        return regex_replace(r"^[^GADB]*\/GADB", self.__filer_download_url, url)
 
     def __parse_is_lifted(self):
         genomeBuild = self.get_entry_attribute("genome_build")
@@ -848,9 +750,6 @@ class MetadataEntryParser:
                         f"{featureType} {featureType}", featureType
                     ),
                     "description": self.__metadata["description"].replace(
-                        f"{featureType} {featureType}", featureType
-                    ),
-                    "searchable_text": self.__metadata["searchable_text"].replace(
                         f"{featureType} {featureType}", featureType
                     ),
                 }

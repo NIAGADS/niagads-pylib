@@ -74,7 +74,9 @@ class TableCatalog(AdminTableBase):
     async def get_table_ref(cls, session: AsyncSession, table_identifier) -> TableRef:
         if isinstance(table_identifier, str):  # fully qualified name
             schema_name, table_name = table_identifier.split(".")
-            table_class = TableRef.get_table_class(schema=schema_name, table=table_name)
+            table_class = TableRef.get_table_class(
+                schema_name=schema_name, table_name=table_name
+            )
 
         else:  # its a table class
             schema_name, table_name = table_identifier.table_name().split(".")

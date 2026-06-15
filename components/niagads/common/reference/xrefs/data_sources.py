@@ -21,8 +21,8 @@ class NIAGADSResources(CaseInsensitiveEnum):
     NIAGADS_DSS = "https://dss.niagads.org"
     ADVP = "https://advp.niagads.org"
     FILER = "https://tf.lisanwanglab.org/FILER"
-    FILER_API = "https://tf.lisanwanglab.org/FILER2/"
-    FILER_DOWNLOADS = "https://tf.lisanwanglab.org/GADB"
+    FILER_SERVICE_URL = "https://tf.lisanwanglab.org/FILER2/"
+    FILER_DOWNLOAD_URL = "https://tf.lisanwanglab.org/GADB"
     GENOMICSDB = "https://www.niagads.org/genomics"
 
     @classmethod
@@ -49,6 +49,7 @@ class ThirdPartyResources(CaseInsensitiveEnum):
     HOMER = "http://homer.ucsd.edu/homer"
     ROADMAP = "http://www.roadmapepigenomics.org"
     TARGETSCAN_V7P2 = "http://www.targetscan.org/vert_72"
+    TARGETSCAN = "https://www.targetscan.org"
     ENSEMBL = "https://www.ensembl.org"
     CEEHRC = "http://epigenomesportal.ca/ihec"
     IHEC_EPIGENOMES = "https://ihec-epigenomes.org/"
@@ -66,6 +67,25 @@ class ThirdPartyResources(CaseInsensitiveEnum):
     TF_FOOTPRINT_ATLAS = "https://doi.org/10.1016/j.celrep.2020.108029"
     KEGG = "https://www.kegg.jp"
 
+    FOUR_DNUCLEOME = "https://data.4dnucleome.org/"
+    ATACDB = "https://bio.liclab.net/ATACdb/"
+    OSF = "https://osf.io"
+    GEO = "https://www.ncbi.nlm.nih.gov/geo"
+
+    # PROBLEMATIC FILER
+    # --- defunct
+    FOUR_DGENOME = "https://4dgenome.research.chop.edu/"
+
+    # --methods
+    HIPPIE2 = "https://bitbucket.org/wanglab-upenn/HIPPIE2"
+
+    # --papers
+    JAVIERRE = "https://osf.io/u8tzp/"
+    JUNG = "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE86189"
+    NASSER = "https://www.engreitzlab.org/resources"
+    NOTT = "http://homer.ucsd.edu/iholtman/Nuclei_project/interaction/MAPS/"
+    SONG = "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE113483"
+
     def __replace_leading_digit_with_word(s: str) -> str:
         digit_map = {
             "1": "ONE",
@@ -78,6 +98,7 @@ class ThirdPartyResources(CaseInsensitiveEnum):
             "8": "EIGHT",
             "9": "NINE",
         }
+
         if s and s[0] in digit_map:
             return f"{digit_map[s[0]]}_{s[1:]}"
         return s
@@ -88,6 +109,8 @@ class ThirdPartyResources(CaseInsensitiveEnum):
         key = cls.__replace_leading_digit_with_word(
             value.upper().replace("|", "_").replace("-", "_").replace(" ", "_")
         )
+        if key.startswith("ROADMAP"):
+            key = "ROADMAP"
         try:
             return cls.__members__[key]
         except ValueError as err:
