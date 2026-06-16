@@ -32,17 +32,27 @@ class ClassProperties(CaseInsensitiveEnum):
 
 
 @asynccontextmanager
-async def timer(label: str):
-    """usage:
-    async with timer("thing I am timing"):
-        ...
+async def timer(msg: str, logger: logging.Logger = None):
+    """Context manager to time code execution.
+
+    Args:
+        label (str): Label for the timed operation.
+        logger (logging.Logger, optional): Logger instance for output. If None, prints to stdout.
+
+    Usage:
+        async with timer("thing I am timing"):
+            ...
     """
 
     start = perf_counter()
     try:
         yield
     finally:
-        print(f"{label}: {perf_counter() - start:.3f}s")
+        elapsed = f"Execution time for - {msg}: {perf_counter() - start:.3f}s"
+        if logger is not None:
+            logger.debug(elapsed)
+        else:
+            print(elapsed)
 
 
 def file_chunker(buffer: IO, chunkSize: int):
