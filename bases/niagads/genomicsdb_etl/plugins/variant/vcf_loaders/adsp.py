@@ -92,15 +92,16 @@ class ADSPVCFLoader(BaseVCFLoader):
                 matched_variant_ids.append(variant_id)
                 continue
             
-            # switch alleles and try again
-            variant_key = (entry.pos, entry.alt, entry.ref)
-            variant_id = reference_variants.get(variant_key)
-            if variant_id is not None:
-                matched_variant_ids.append(variant_id)
-                continue
+            # if SNV switch alleles and try again (trust INDEL directions)
+            if len(entry.ref) == len(entry.alt) == 1:
+                variant_key = (entry.pos, entry.alt, entry.ref)
+                variant_id = reference_variants.get(variant_key)
+                if variant_id is not None:
+                    matched_variant_ids.append(variant_id)
+                    continue
 
             variant_record = self._generate_variant_identifier_record(entry)
-            if variant_record is None:
+            if variant_record is None: # TODO: possibly log and skip; let's see if this occurs first
                 raise ValueError(f"Unable to generate variant record for ADSP entry: {entry}")
 
             variant = Variant.from_variant_record(variant_record)
