@@ -5,14 +5,14 @@ from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.genome_reference.human import HumanGenome
 from niagads.genomicsdb_etl.plugins.variant.vcf_loaders.base import BaseVCFLoader, BaseVCFLoaderParams
+from niagads.utils.list import chunker
+from niagads.utils.sys import timer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from niagads.vcf.types import VCFEntry
 
-
-class ADSPVariantRecord(VariantRecord):
-    qc: dict
 
 
 metadata = PluginMetadata(
@@ -39,13 +39,14 @@ chr8    72569329        chr8_72569329_G_C;chr8_72569329_G_T;chr8_72569329_GA_G  
 """
 @PluginRegistry.register(metadata)
 class ADSPVCFLoader(BaseVCFLoader):
+    
     async def transform(self, entry: VCFEntry):
         return entry
     
     def _get_lookup_region(self, entries: list[VCFEntry]):
         min_position = min(entries, key=lambda entry: entry.pos).pos
         max_position = max(entries, key=lambda entry: entry.pos).pos
-        return OneBasedGenomicRegion(start=min_position, end=max_position, chromosome=entries[0].chrom)
+        return OneBasedGenomicRegion(start=min_position, end=max_position, chromosome=HumanGenome(entries[0].chrom))
 
     async def _retrieve_variants_in_span(self, session: AsyncSession, region: OneBasedGenomicRegion):
         """
@@ -64,7 +65,7 @@ class ADSPVCFLoader(BaseVCFLoader):
                 Variant.alt_allele,
             )
             .where(
-                Variant.chromosome == region.chromosome,
+                Variant.chromosome == str(region.chromosome),
                 Variant.position.between(region.start, region.end),
             )
         )
@@ -80,7 +81,9 @@ class ADSPVCFLoader(BaseVCFLoader):
         # for missing (new variants), use parent functions to generate primary keys/GA4GH VRS and insert
         # lookup against DB
         lookup_region = self._get_lookup_region(entries)
-        reference_variants = await self._retrieve_variants_in_span(session, lookup_region)
+        self.logger.debug(f"Lookup Region: {str(lookup_region)}")
+        async with timer("Fetch variants in span", logger=self.logger):
+            reference_variants = await self._retrieve_variants_in_span(session, lookup_region)
 
         matched_variant_ids = []
         new_variants = []
@@ -114,16 +117,24 @@ class ADSPVCFLoader(BaseVCFLoader):
             new_variants.append(variant)
 
         if matched_variant_ids:
-            stmt = (
-                update(Variant)
-                .where(Variant.variant_id.in_(matched_variant_ids))
-                .values(is_adsp_variant=True)
-            )
-            result = await session.execute(stmt)
-            self.inc_tx_count(Variant, ETLOperation.UPDATE, result.rowcount)
+            num_matched_variants = len(matched_variant_ids)
+            self.logger.debug(f"Found {num_matched_variants} existing variants - updating")
+            async with timer("Bulk updates", logger=self.logger):
+                # sqlalchemy asyncpg dialect limits number of args in a statement to 32,767
+                chunks = chunker(matched_variant_ids, 25000)
+                for chunk in chunks:
+                    stmt = (
+                        update(Variant)
+                        .where(Variant.variant_id.in_(chunk))
+                        .values(is_adsp_variant=True)
+                    )
+                    result = await session.execute(stmt)
+                    self.inc_tx_count(Variant, ETLOperation.UPDATE, result.rowcount)
 
         if new_variants:
-            await Variant.submit_many(session, new_variants)
+            self.logger.debug(f"Found {len(new_variants)} novel variants - inserting")
+            async with timer("Bulk inserts", logger=self.logger):
+                await Variant.submit_many(session, new_variants)
 
         return self.create_checkpoint(record=entries[-1])
 
