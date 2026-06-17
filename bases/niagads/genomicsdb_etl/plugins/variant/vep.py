@@ -1,3 +1,11 @@
+import json
+from typing import Optional
+from niagads.common.types import ETLOperation
+from niagads.database.genomicsdb.schema.variant.documents import Variant
+from niagads.etl.plugins.metadata import PluginMetadata
+from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.types import ETLLoadStrategy
+from pydantic import Field
 # need to filter consequences for variant allele != variant alt allele
 # ditto for allele frequencies
 
@@ -7,13 +15,6 @@
 
 
 
-from typing import Optional
-from niagads.common.types import ETLOperation
-from niagads.database.genomicsdb.schema.variant.documents import Variant
-from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
-from niagads.etl.plugins.types import ETLLoadStrategy
-from pydantic import Field
 
 
 class VEPJSONLoaderParams(BasePluginParams, PathValidatorMixin):

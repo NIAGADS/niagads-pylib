@@ -7,6 +7,7 @@ from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genome_reference.human import HumanGenome
+from niagads.genomicsdb_etl.plugins.variant.base import VariantLookupMixin
 from niagads.genomicsdb_etl.plugins.variant.vcf_loaders.base import BaseVCFLoader, BaseVCFLoaderParams
 from niagads.utils.list import chunker
 from niagads.utils.sys import timer
@@ -42,44 +43,12 @@ chr8    72569327        chr8_72569327_G_A;chr8_72569327_G_C     G       A,C     
 chr8    72569329        chr8_72569329_G_C;chr8_72569329_G_T;chr8_72569329_GA_G  GA      CA,TA,G 781     .       AF=1.7e-05,1.7e-05,9e-06;AQ=781,718,277;AC=2,2,1;AN=116990      GT
 """
 @PluginRegistry.register(metadata)
-class ADSPVCFLoader(BaseVCFLoader):
-    _params: ADSPVCFLoaderParams
+class ADSPVCFLoader(BaseVCFLoader, VariantLookupMixin):
     
     async def transform(self, entry: VCFEntry):
         return entry
     
-    def _get_lookup_region(self, entries: list[VCFEntry]):
-        min_position = min(entries, key=lambda entry: entry.pos).pos
-        max_position = max(entries, key=lambda entry: entry.pos).pos
-        return OneBasedGenomicRegion(start=min_position, end=max_position, chromosome=HumanGenome(entries[0].chrom))
-
-    async def _retrieve_variants_in_span(self, session: AsyncSession, region: OneBasedGenomicRegion):
-        """
-        Retrieve all variants in the specified genomic region
-    
-        Args:
-            session (AsyncSession): session
-            entries (list[VCFEntry]): list of vcf entries
-        """
-
-        stmt = (
-            select(
-                Variant.variant_id,
-                Variant.position,
-                Variant.ref_allele,
-                Variant.alt_allele,
-            )
-            .where(
-                Variant.chromosome == str(region.chromosome),
-                Variant.position.between(region.start, region.end),
-            )
-        )
-        result = (await session.execute(stmt)).all()
-        return {
-            (row.position, row.ref_allele, row.alt_allele): row.variant_id
-            for row in result
-        }
-    
+  
     async def load(self, session: AsyncSession, entries: list[VCFEntry]):
         # iterate over the entries finding matching variant or variants in case of multi-allelic entries
         # update matches to set is_adsp_variant to true

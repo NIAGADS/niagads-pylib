@@ -1,9 +1,8 @@
 from typing import Dict, Iterator, Optional
 import cyvcf2
 from niagads.common.variant.models.ga4gh_vrs import Allele
-from niagads.common.variant.models.record import VariantIdentifier, VariantRecord
+from niagads.common.variant.models.record import VariantRecord
 from niagads.common.variant.types import VariantClass
-from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.etl.plugins.parameters import EnvVariableMixin, PathValidatorMixin
 from niagads.ga4gh.annotators import PrimaryKeyGenerator
 from niagads.genome_reference.human import GenomeBuild
