@@ -17,7 +17,7 @@ from niagads.vcf.types import VCFEntry
 from pydantic import Field
 
 class ADSPVCFLoaderParams(BaseVCFLoaderParams):
-    no_updates: Optional[bool] = Field(default=False, description="Insert novel variants only; skip flagging existing variants as is_adsp_variant")
+    insert_only: Optional[bool] = Field(default=False, description="Insert novel variants only; skip flagging existing variants as is_adsp_variant")
 
 
 metadata = PluginMetadata(
@@ -44,7 +44,7 @@ chr8    72569329        chr8_72569329_G_C;chr8_72569329_G_T;chr8_72569329_GA_G  
 """
 @PluginRegistry.register(metadata)
 class ADSPVCFLoader(BaseVCFLoader, VariantLookupMixin):
-    _params = ADSPVCFLoaderParams
+    _params: ADSPVCFLoaderParams
     
     async def transform(self, entry: VCFEntry):
         return entry
@@ -57,50 +57,46 @@ class ADSPVCFLoader(BaseVCFLoader, VariantLookupMixin):
         lookup_region = self._get_lookup_region(entries)
         self.logger.debug(f"Lookup Region: {str(lookup_region)}")
         async with timer("Fetch variants in span", logger=self.logger):
-            reference_variants = await self._retrieve_variants_in_span(session, lookup_region)
+            reference_variants = await self._retrieve_variants_in_span(session, lookup_region, incl_adsp_flag=True)
 
-        matched_variant_ids = []
+        update_variant_ids = []
         new_variants = []
         for entry in entries:
             variant_key = (entry.pos, entry.ref, entry.alt)
-            variant_id = reference_variants.get(variant_key)
+            db_record = reference_variants.get(variant_key)
             
-            if variant_id is not None:
-                if self._params.no_updates:
+            if db_record is None:
+                # if SNV switch alleles and try again (trust INDEL directions)
+                if len(entry.ref) == len(entry.alt) == 1:
+                    variant_key = (entry.pos, entry.alt, entry.ref)
+                    db_record = reference_variants.get(variant_key)
+    
+            if db_record is not None:
+                if not self._params.insert_only and not db_record['is_adsp_variant']:
+                    update_variant_ids.append(db_record['id'])
+                else:
                     self.inc_tx_count(Variant, ETLOperation.SKIP)
-                    continue
-                
-                matched_variant_ids.append(variant_id)
-                continue
-            
-            # if SNV switch alleles and try again (trust INDEL directions)
-            if len(entry.ref) == len(entry.alt) == 1:
-                variant_key = (entry.pos, entry.alt, entry.ref)
-                variant_id = reference_variants.get(variant_key)
-                if variant_id is not None:
 
-                    matched_variant_ids.append(variant_id)
-                    continue
+            else:         
+                variant_record = self._generate_variant_identifier_record(entry)
+                if variant_record is None: # TODO: possibly log and skip; let's see if this occurs first
+                    raise ValueError(f"Unable to generate variant record for ADSP entry: {entry}")
 
-            variant_record = self._generate_variant_identifier_record(entry)
-            if variant_record is None: # TODO: possibly log and skip; let's see if this occurs first
-                raise ValueError(f"Unable to generate variant record for ADSP entry: {entry}")
+                variant = Variant.from_variant_record(variant_record)
+                variant.is_adsp_variant = True
+                variant.run_id = self.run_id
+                variant.bin_index = self._find_bin_index(
+                    str(variant_record.chromosome), variant_record.span
+                )
+                variant.external_database_id = self.external_database_id
+                new_variants.append(variant)
 
-            variant = Variant.from_variant_record(variant_record)
-            variant.is_adsp_variant = True
-            variant.run_id = self.run_id
-            variant.bin_index = self._find_bin_index(
-                str(variant_record.chromosome), variant_record.span
-            )
-            variant.external_database_id = self.external_database_id
-            new_variants.append(variant)
-
-        if matched_variant_ids:
-            num_matched_variants = len(matched_variant_ids)
-            self.logger.debug(f"Found {num_matched_variants} existing variants - updating")
+        if update_variant_ids:
+            num_updateable_variants = len(update_variant_ids)
+            self.logger.debug(f"Found {num_updateable_variants} existing variants to update")
             async with timer("Bulk updates", logger=self.logger):
                 # sqlalchemy asyncpg dialect limits number of args in a statement to 32,767
-                chunks = chunker(matched_variant_ids, 25000)
+                chunks = chunker(update_variant_ids, 25000)
                 for chunk in chunks:
                     stmt = (
                         update(Variant)
