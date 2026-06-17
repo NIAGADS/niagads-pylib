@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json
 import logging
 from abc import ABC, abstractmethod
@@ -165,9 +166,21 @@ class CSVTableValidator(CSVValidator):
     """
 
     def __init__(
-        self, file_name, schema, case_insensitive: bool = False, debug: bool = False
+        self, file_name, schema, case_insensitive: bool = False, 
+        promote_error_cutoff: int = 5, debug: bool = False
     ):
+        """
+        Initialize CSVTableValidator.
+
+        Args:
+            file_name: Path to the CSV or EXCEL file to validate.
+            schema: JSON schema (file path, JSON string, or dict) for validation.
+            case_insensitive (bool): Enable case-insensitive field matching. Defaults to False.
+            promote_error_cutoff (int): Threshold for promoting row errors to file level. Defaults to 5.
+            debug (bool): Enable debug logging. Defaults to False.
+        """
         super().__init__(file_name, schema, case_insensitive, debug)
+        self._promote_error_cutoff = promote_error_cutoff
 
     def get_field_values(self, field: str, exclude_nulls: bool = False):
         """
@@ -284,34 +297,45 @@ class CSVTableValidator(CSVValidator):
             jsonschema.exceptions.ValidationError if `fail_on_error` = True
         """
 
-        INVALID_FIELD_ERRORS = [
-            "Additional properties are not allowed",
-            "is a required property",
-        ]
-
-        file_errors = []  # for file-level errors
-        result = []
+        error_occurrences = defaultdict(list)
         validator = JSONValidator(None, self._schema, self._debug)
         validator.case_insensitive(enable=self._case_insensitive)
-        for index, row in enumerate(self._metadata):
+        for row_index, row in enumerate(self._metadata, start = 1):
             validator.set_json(row)
-            row_errors = validator.run()
-            if row_errors:
+            validation_result = validator.run()
+            if validation_result:
                 if fail_on_error:
                     validator.validation_error(
-                        row_errors, prefix="row " + xstr(index) + " - " + xstr(row)
+                        validation_result, prefix="row " + xstr(row_index) + " - " + xstr(row)
                     )
                 else:
-                    filtered_row_errors = []
-                    for err in row_errors:
-                        if any(msg in err for msg in INVALID_FIELD_ERRORS):
-                            file_errors.append(err)
-                        else:
-                            filtered_row_errors.append(err)
-                    if filtered_row_errors:
-                        result.append({index + 1: filtered_row_errors})
+                    for err in validation_result:
+                        error_occurrences[err].append(row_index)
+                        
+        # isolate file level errors (missing fields, invalid fields, other systemic user errors) 
+        # that occur on every row from frequently recurring errors and row-level errors
+        file_level_errors = []
+        row_level_errors = defaultdict(list)
+        recurring_errors = []
+        num_rows = len(self._metadata)
+        for err, row_indices in error_occurrences.items():   
+            err_repeat_count = len(row_indices)
+            if err_repeat_count >= self._promote_error_cutoff:
+                if err_repeat_count == num_rows:
+                    file_level_errors.append(err)
+                else:
+                    recurring_errors.append({err: row_indices})
+            else:
+                for row_index in row_indices:
+                    row_level_errors[row_index].append(err)
 
-        if file_errors:
-            result.insert(0, {"file": list(set(file_errors))})
+        # assemble result
+        result = []
+        if row_level_errors:
+            result = [{index: errors} for index, errors in row_level_errors.items()]
+        if recurring_errors:
+            result.insert(0, {'recurring', recurring_errors})
+        if file_level_errors:
+            result.insert(0, {'file': file_level_errors})
 
         return {"errors": result}  # empty array; all rows passed
