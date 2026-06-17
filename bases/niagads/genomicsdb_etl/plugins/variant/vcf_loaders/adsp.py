@@ -44,11 +44,11 @@ chr8    72569329        chr8_72569329_G_C;chr8_72569329_G_T;chr8_72569329_GA_G  
 """
 @PluginRegistry.register(metadata)
 class ADSPVCFLoader(BaseVCFLoader, VariantLookupMixin):
+    _params = ADSPVCFLoaderParams
     
     async def transform(self, entry: VCFEntry):
         return entry
     
-  
     async def load(self, session: AsyncSession, entries: list[VCFEntry]):
         # iterate over the entries finding matching variant or variants in case of multi-allelic entries
         # update matches to set is_adsp_variant to true
