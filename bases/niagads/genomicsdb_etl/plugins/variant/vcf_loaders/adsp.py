@@ -1,3 +1,4 @@
+from typing import Optional
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.types import ETLOperation
 from niagads.common.variant.models.record import VariantRecord
@@ -12,7 +13,10 @@ from niagads.utils.sys import timer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from niagads.vcf.types import VCFEntry
+from pydantic import Field
 
+class ADSPVCFLoaderParams(BaseVCFLoaderParams):
+    no_updates: Optional[bool] = Field(default=False, description="Insert novel variants only; skip flagging existing variants as is_adsp_variant")
 
 
 metadata = PluginMetadata(
@@ -22,8 +26,8 @@ metadata = PluginMetadata(
     load_strategy=ETLLoadStrategy.CHUNKED,
     operation=ETLOperation.LOAD,
     is_large_dataset=True,
-    parameter_model=BaseVCFLoaderParams,
-    can_resume=True,
+    parameter_model=ADSPVCFLoaderParams,
+    can_resume=True, # TODO: implement resume
 )
 
 
@@ -39,6 +43,7 @@ chr8    72569329        chr8_72569329_G_C;chr8_72569329_G_T;chr8_72569329_GA_G  
 """
 @PluginRegistry.register(metadata)
 class ADSPVCFLoader(BaseVCFLoader):
+    _params: ADSPVCFLoaderParams
     
     async def transform(self, entry: VCFEntry):
         return entry
@@ -92,6 +97,10 @@ class ADSPVCFLoader(BaseVCFLoader):
             variant_id = reference_variants.get(variant_key)
             
             if variant_id is not None:
+                if self._params.no_updates:
+                    self.inc_tx_count(Variant, ETLOperation.SKIP)
+                    continue
+                
                 matched_variant_ids.append(variant_id)
                 continue
             
@@ -100,6 +109,7 @@ class ADSPVCFLoader(BaseVCFLoader):
                 variant_key = (entry.pos, entry.alt, entry.ref)
                 variant_id = reference_variants.get(variant_key)
                 if variant_id is not None:
+
                     matched_variant_ids.append(variant_id)
                     continue
 
