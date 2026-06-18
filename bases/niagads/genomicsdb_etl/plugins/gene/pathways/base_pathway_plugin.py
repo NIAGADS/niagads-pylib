@@ -140,7 +140,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
     async def _load_pathway_membership(
         self,
         session,
-        annotations: List[PathwayGeneAssociations],
+        associations: List[PathwayGeneAssociations],
         gene_id_type: GeneIdentifierType,
     ):
         """
@@ -154,24 +154,24 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
         Returns:
             ResumeCheckpoint: The checkpoint for resuming the ETL process.
         """
-        self.logger.debug(f"Initiating batch load; n={len(annotations)} records.")
+        self.logger.debug(f"Initiating batch load; n={len(associations)} records.")
 
-        for pathway in annotations:
+        for assoc in associations:
             # Lookup / possibly load pathway and get its primary key
             pathway_pk = await self._retrieve_or_load_pathway(
                 session,
-                pathway.pathway_info.pathway_id,
-                pathway.pathway_info.pathway_name,
+                assoc.pathway_info.pathway_id,
+                assoc.pathway_info.pathway_name,
             )
 
             if self._verbose:
                 self.logger.debug(
-                    f"Loading pathway: {pathway.pathway_id}|{pathway_pk} "
-                    f"with {len(pathway.member_genes)} gene members"
+                    f"Loading pathway: {assoc.pathway_info.pathway_id}|{pathway_pk} "
+                    f"with {len(assoc.member_genes)} gene members"
                 )
 
             memberships = []
-            for gene in pathway.member_genes:
+            for gene in assoc.member_genes:
                 gene_pk = await self._lookup_gene_primary_key(
                     session, gene.gene_id, gene_id_type
                 )
@@ -198,7 +198,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
 
             if self._verbose:
                 self.logger.debug(
-                    f"Submitting pathway memberships for {pathway.pathway_id} "
+                    f"Submitting pathway memberships for {assoc.pathway_id} "
                     f"(pathway_pk={pathway_pk}, records={len(memberships)})"
                 )
 
@@ -206,7 +206,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
             await PathwayMembership.submit_many(session, memberships)
 
         # checkpoint is that last successful submit
-        return self.create_checkpoint(record=annotations[-1])
+        return self.create_checkpoint(record=associations[-1])
 
     async def on_run_complete(self):
         num_skipped = len(self._unmapped_genes)
