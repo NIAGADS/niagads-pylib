@@ -15,9 +15,8 @@ from pydantic import Field
 
 
 
-
-
 class VEPJSONLoaderParams(BasePluginParams, PathValidatorMixin):
+    file: str = Field(description="Path to VEP JSON file")
     is_adsp: Optional[bool] = Field(default=False, description="Insert novel variants only; skip flagging existing variants as is_adsp_variant")
 
     validate_file_exists = PathValidatorMixin.validator("file")
