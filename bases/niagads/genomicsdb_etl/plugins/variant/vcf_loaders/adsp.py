@@ -1,4 +1,5 @@
 from typing import Optional
+
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.types import ETLOperation
 from niagads.common.variant.models.record import VariantRecord
@@ -8,16 +9,23 @@ from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genome_reference.human import HumanGenome
 from niagads.genomicsdb_etl.plugins.variant.base import VariantLookupMixin
-from niagads.genomicsdb_etl.plugins.variant.vcf_loaders.base import BaseVCFLoader, BaseVCFLoaderParams
+from niagads.genomicsdb_etl.plugins.variant.vcf_loaders.base import (
+    BaseVCFLoader,
+    BaseVCFLoaderParams,
+)
 from niagads.utils.list import chunker
 from niagads.utils.sys import timer
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
 from niagads.vcf.types import VCFEntry
 from pydantic import Field
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 class ADSPVCFLoaderParams(BaseVCFLoaderParams):
-    insert_only: Optional[bool] = Field(default=False, description="Insert novel variants only; skip flagging existing variants as is_adsp_variant")
+    insert_only: Optional[bool] = Field(
+        default=False,
+        description="Insert novel variants only; skip flagging existing variants as is_adsp_variant",
+    )
 
 
 metadata = PluginMetadata(
@@ -28,7 +36,7 @@ metadata = PluginMetadata(
     operation=ETLOperation.LOAD,
     is_large_dataset=True,
     parameter_model=ADSPVCFLoaderParams,
-    can_resume=True, # TODO: implement resume
+    can_resume=True,  # TODO: implement resume
 )
 
 
@@ -42,13 +50,15 @@ chr8    72569326        chr8_72569326_C_T       C       T       1647    .       
 chr8    72569327        chr8_72569327_G_A;chr8_72569327_G_C     G       A,C     1470    .       AF=0.004077,3.4e-05;AQ=1470,806;AC=477,4;AN=116994      GT
 chr8    72569329        chr8_72569329_G_C;chr8_72569329_G_T;chr8_72569329_GA_G  GA      CA,TA,G 781     .       AF=1.7e-05,1.7e-05,9e-06;AQ=781,718,277;AC=2,2,1;AN=116990      GT
 """
+
+
 @PluginRegistry.register(metadata)
 class ADSPVCFLoader(BaseVCFLoader, VariantLookupMixin):
     _params: ADSPVCFLoaderParams
-    
+
     async def transform(self, entry: VCFEntry):
         return entry
-    
+
     async def load(self, session: AsyncSession, entries: list[VCFEntry]):
         # iterate over the entries finding matching variant or variants in case of multi-allelic entries
         # update matches to set is_adsp_variant to true
@@ -57,30 +67,36 @@ class ADSPVCFLoader(BaseVCFLoader, VariantLookupMixin):
         lookup_region = self._get_lookup_region(entries)
         self.logger.debug(f"Lookup Region: {str(lookup_region)}")
         async with timer("Fetch variants in span", logger=self.logger):
-            reference_variants = await self._retrieve_variants_in_span(session, lookup_region, incl_adsp_flag=True)
+            reference_variants = await self._retrieve_variants_in_span(
+                session, lookup_region, incl_adsp_flag=True
+            )
 
         update_variant_ids = []
         new_variants = []
         for entry in entries:
             variant_key = (entry.pos, entry.ref, entry.alt)
             db_record = reference_variants.get(variant_key)
-            
+
             if db_record is None:
                 # if SNV switch alleles and try again (trust INDEL directions)
                 if len(entry.ref) == len(entry.alt) == 1:
                     variant_key = (entry.pos, entry.alt, entry.ref)
                     db_record = reference_variants.get(variant_key)
-    
+
             if db_record is not None:
-                if not self._params.insert_only and not db_record['is_adsp_variant']:
-                    update_variant_ids.append(db_record['id'])
+                if not self._params.insert_only and not db_record["is_adsp_variant"]:
+                    update_variant_ids.append(db_record["id"])
                 else:
                     self.inc_tx_count(Variant, ETLOperation.SKIP)
 
-            else:         
+            else:
                 variant_record = self._generate_variant_identifier_record(entry)
-                if variant_record is None: # TODO: possibly log and skip; let's see if this occurs first
-                    raise ValueError(f"Unable to generate variant record for ADSP entry: {entry}")
+                if (
+                    variant_record is None
+                ):  # TODO: possibly log and skip; let's see if this occurs first
+                    raise ValueError(
+                        f"Unable to generate variant record for ADSP entry: {entry}"
+                    )
 
                 variant = Variant.from_variant_record(variant_record)
                 variant.is_adsp_variant = True
@@ -93,7 +109,9 @@ class ADSPVCFLoader(BaseVCFLoader, VariantLookupMixin):
 
         if update_variant_ids:
             num_updateable_variants = len(update_variant_ids)
-            self.logger.debug(f"Found {num_updateable_variants} existing variants to update")
+            self.logger.debug(
+                f"Found {num_updateable_variants} existing variants to update"
+            )
             async with timer("Bulk updates", logger=self.logger):
                 # sqlalchemy asyncpg dialect limits number of args in a statement to 32,767
                 chunks = chunker(update_variant_ids, 25000)
