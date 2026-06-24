@@ -121,7 +121,7 @@ class CSVFileParser(AbstractFlatfileParser):
         try:
             if self.__delimiter is None:
                 with self.open_ctx() as fh:
-                    dialect: Dialect = Sniffer().sniff(fh.read(bytes))
+                    dialect: Dialect = Sniffer().sniff(fh.read(bytes), delimiters=[",", "\t", ";", "|"])
                     fh.seek(0)
                     self.__delimiter = dialect.delimiter
                 return self.__delimiter
