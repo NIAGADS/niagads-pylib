@@ -26,6 +26,11 @@ class Phenotype(CustomBaseModel):
         title="Neuropathology",
         description="pathology or classification of the degree of pathology",
     )
+    symptom: Optional[List[OntologyTerm]] = Field(
+        default=None,
+        title="Symptom",
+        description="observed or reported characteristic used to describe an individual's health state",
+    )
     ethnicity: Optional[List[OntologyTerm]] = Field(
         default=None,
         title="Ethnicity",
