@@ -310,7 +310,8 @@ class CSVTableValidator(CSVValidator):
                     )
                 else:
                     for err in validation_result:
-                        error_occurrences[err].append(row_index)
+                        err_key = json.dumps(err, sort_keys=True) if isinstance(err, dict) else err
+                        error_occurrences[err_key].append(row_index)
                         
         # isolate file level errors (missing fields, invalid fields, other systemic user errors) 
         # that occur on every row from frequently recurring errors and row-level errors
@@ -331,11 +332,20 @@ class CSVTableValidator(CSVValidator):
 
         # assemble result
         result = []
-        if row_level_errors:
-            result = [{index: errors} for index, errors in row_level_errors.items()]
-        if recurring_errors:
-            result.insert(0, {'recurring', recurring_errors})
-        if file_level_errors:
-            result.insert(0, {'file': file_level_errors})
+        result.append({
+            "file": file_level_errors
+        })
 
+        result.append({
+            "recurring": recurring_errors
+        })
+
+        if row_level_errors:
+            result.append({
+                "row_level": dict(row_level_errors)
+            })
+        else:
+            result.append({
+                "row_level": []
+            })
         return {"errors": result}  # empty array; all rows passed

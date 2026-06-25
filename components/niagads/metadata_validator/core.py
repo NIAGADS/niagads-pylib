@@ -15,12 +15,23 @@ class FileManifestValidator(CSVTableValidator):
     """
 
     def __init__(
-        self, file_name, schema, case_insensitive: bool = False,
-        promote_error_cutoff: int = 5, debug: bool = False
+        self,
+        file_name,
+        schema,
+        case_insensitive: bool = False,
+        promote_error_cutoff: int = 5,
+        debug: bool = False,
     ):
         self.__sample_reference: List[str] = None
         self.__sample_field: str = "sample_id"
-        super().__init__(file_name, schema, case_insensitive, promote_error_cutoff, debug)
+
+        super().__init__(
+            file_name,
+            schema,
+            case_insensitive=case_insensitive,
+            promote_error_cutoff=promote_error_cutoff,
+            debug=debug,
+        )
 
     def set_sample_reference(self, samples: List[str]):
         self.__sample_reference = samples
@@ -90,10 +101,21 @@ class BiosourcePropertiesValidator(CSVTableValidator):
     """
 
     def __init__(
-        self, file_name, schema, case_insensitive: bool = False,
-        promote_error_cutoff: int = 5,  debug: bool = False
+        self,
+        file_name,
+        schema,
+        case_insensitive: bool = False,
+        promote_error_cutoff: int = 5,
+        debug: bool = False,
     ):
-        super().__init__(file_name, schema, case_insensitive, promote_error_cutoff, debug)
+        super().__init__(
+            file_name,
+            schema,
+            case_insensitive=case_insensitive,
+            promote_error_cutoff=promote_error_cutoff,
+            debug=debug,
+        )
+        
         self._biosource_id = "sample_id"
         self.__require_unique_ids = False
 
