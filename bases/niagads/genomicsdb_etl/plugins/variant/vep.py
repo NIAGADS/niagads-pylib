@@ -1,6 +1,7 @@
 import json
 from copy import deepcopy
-from typing import Any, Iterator, Optional
+from enum import auto
+from typing import Any, Iterator, Optional, Union
 
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.variant.documents import Variant
@@ -13,84 +14,10 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-from niagads.genome_reference.human import HumanGenome
 from niagads.nlp.llm_types import LLM, NLPModelType
 from niagads.utils.sys import read_open_ctx
-from niagads.vcf.types import VCFEntry
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-SCORE_FIELDS = [
-    "cadd_raw",
-    "cadd_phred",
-    "enformer_sad",
-    "enformer_sar",
-]
-
-IMPACTED_GENE_FIELDS = [
-    "gene_symbol",
-    "gene_symbol_source",
-    "hgnc_id",
-    "biotype",
-    "loftool",
-]
-
-
-class ImpactedGene(BaseModel):
-    gene_id: str
-    gene_symbol: Optional[str] = None
-    loftool: Optional[float] = None
-
-    model_config = ConfigDict(extra="forbid")
-
-
-class ConsequenceArrays(BaseModel):
-    transcript_consequences: Optional[list[dict]] = None
-    intergenic_consequences: Optional[list[dict]] = None
-    regulatory_feature_consequences: Optional[list[dict]] = None
-    motif_feature_consequences: Optional[list[dict]] = None
-
-
-class Annotation(BaseModel, ConsequenceArrays):
-    scores: Optional[dict] = None
-
-
-class AnnotationEntry(BaseModel):
-    positional_id: str
-    chrom: HumanGenome
-    pos: int
-    ref: str
-    alt: str
-    impacted_genes: Optional[list[ImpactedGene]] = None
-    most_severe_consequence: Optional[dict[str, Any]] = None
-    allele_frequency: Optional[dict[str, Any]] = None
-    annotation: Optional[Annotation] = None
-
-    model_config = ConfigDict(extra="forbid")
-
-
-class VEPEntry(ConsequenceArrays):
-    id: str
-    seq_region_name: str
-    start: int
-    end: int
-    strand: int
-    allele_string: str
-    assembly_name: str
-    variant_class: str
-    most_severe_consequence: str
-    input: VCFEntry
-    colocated_variants: Optional[list[dict]] = None
-
-    model_config = ConfigDict(extra="forbid")
-
-    @field_validator("input", mode="before")
-    @classmethod
-    def parse_input_to_vcf_entry(cls, v: Any) -> VCFEntry:
-        """transform VCF input string into VCFEntry object."""
-        if isinstance(v, VCFEntry):
-            return v
-        if isinstance(v, str):
-            return VCFEntry.from_line(v)
+from niagads.vep_json_parser.core import VariantVEPAnnotationEntry, VEPJSONParser
+from pydantic import Field, field_validator
 
 
 class VEPAnnotationLoaderParams(
@@ -135,30 +62,20 @@ class VEPAnnotationLoader(AbstractBasePlugin):
         # initialize embedding models
         ...
 
-    def extract(self) -> Iterator[AnnotationEntry]:
+    def extract(self) -> Iterator[VariantVEPAnnotationEntry]:
+        parser = VEPJSONParser()
         with read_open_ctx(self._params.file) as fh:
+            line: str
             for line in enumerate(fh):
-                annotation = VEPEntry(**json.loads(line.rstrip()))
+                allele_annotations: dict[str, VariantVEPAnnotationEntry] = parser.parse(
+                    line.rstrip()
+                )
+                for annotation in allele_annotations.values():
+                    yield annotation
 
-                chromosome = annotation.input.chrom
-                position = annotation.input.pos
-                ref = annotation.input.ref
-                alt_alleles: list[str] = annotation.input.alt
-
-                for alt in alt_alleles:
-                    entry = AnnotationEntry(
-                        positional_id=f"{chromosome}:{position}:{ref}:{alt}",
-                        chromosome=chromosome,
-                        position=position,
-                        ref=ref,
-                        alt=alt,
-                    )
-
-                    # extract variant specific annotations
-
-    async def transform(self, data): ...
+    async def transform(self, entry: VariantVEPAnnotationEntry): ...
 
     async def load(self, session, transformed): ...
 
-    def get_record_id(self, record: AnnotationEntry) -> str:
+    def get_record_id(self, record: VariantVEPAnnotationEntry) -> str:
         return record.positional_id
