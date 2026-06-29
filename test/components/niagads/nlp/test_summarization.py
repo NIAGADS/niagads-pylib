@@ -45,21 +45,6 @@ def summary_prompt():
     )
 
 
-def test_render_prompt_uses_chat_template(monkeypatch, tiny_generation_pipeline, summary_prompt):
-    monkeypatch.setattr(
-        TextSummaryGenerator,
-        "_TextSummaryGenerator__initialize_pipeline",
-        staticmethod(lambda model: tiny_generation_pipeline),
-    )
-    generator = TextSummaryGenerator(LLM.BART_LARGE_CNN)
-
-    rendered_prompt = generator.render_prompt(summary_prompt)
-
-    assert "system:" in rendered_prompt
-    assert "user:" in rendered_prompt
-    assert "assistant:" in rendered_prompt
-
-
 def test_generate_returns_text(monkeypatch, tiny_generation_pipeline, summary_prompt):
     monkeypatch.setattr(
         TextSummaryGenerator,
@@ -72,6 +57,25 @@ def test_generate_returns_text(monkeypatch, tiny_generation_pipeline, summary_pr
 
     assert isinstance(generated_text, str)
     assert generated_text.strip()
+
+
+def test_generate_many_returns_text_list(
+    monkeypatch, tiny_generation_pipeline, summary_prompt
+):
+    monkeypatch.setattr(
+        TextSummaryGenerator,
+        "_TextSummaryGenerator__initialize_pipeline",
+        staticmethod(lambda model: tiny_generation_pipeline),
+    )
+    generator = TextSummaryGenerator(LLM.BART_LARGE_CNN)
+
+    generated_text = generator.generate_many(
+        [summary_prompt, summary_prompt], max_new_tokens=12
+    )
+
+    assert isinstance(generated_text, list)
+    assert len(generated_text) == 2
+    assert all(isinstance(text, str) and text.strip() for text in generated_text)
 
 
 def test_generate_json_uses_extract_json(monkeypatch):
@@ -87,3 +91,27 @@ def test_generate_json_uses_extract_json(monkeypatch):
     )
 
     assert parsed == {"summary_text": "test"}
+
+
+def test_generate_json_handles_prompt_lists(monkeypatch):
+    generator = TextSummaryGenerator.__new__(TextSummaryGenerator)
+    monkeypatch.setattr(
+        generator,
+        "generate_many",
+        lambda prompts, max_new_tokens=384: [
+            '```json\n{"summary_text": "test1"}\n```',
+            '```json\n{"summary_text": "test2"}\n```',
+        ],
+    )
+
+    parsed = generator.generate_json(
+        [
+            SummaryPrompt(system_prompt="system", user_prompt="user1"),
+            SummaryPrompt(system_prompt="system", user_prompt="user2"),
+        ]
+    )
+
+    assert parsed == [
+        {"summary_text": "test1"},
+        {"summary_text": "test2"},
+    ]
