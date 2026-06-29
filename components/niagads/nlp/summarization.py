@@ -9,7 +9,7 @@ import json
 import logging
 import re
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, Union
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.nlp.llm_types import LLM, NLPModelType
@@ -130,15 +130,47 @@ class TextSummaryGenerator(ComponentBaseMixin):
         )
         return result[0]["generated_text"].strip()
 
-    def generate_json(self, prompt: SummaryPrompt, max_new_tokens: int = 384) -> dict:
+    def generate_many(
+        self, prompts: list[SummaryPrompt], max_new_tokens: int = 384
+    ) -> list[str]:
         """
-        Generate text from a prompt and parse the response as JSON.
+        Generate text for multiple prompts.
 
         Args:
-            prompt (SummaryPrompt): Prompt payload for summary generation.
+            prompts (list[SummaryPrompt]): Prompt payloads for summary generation.
             max_new_tokens (int): Maximum number of tokens to generate. Defaults to 384.
 
         Returns:
-            dict: Parsed JSON extracted from the generated text.
+            list[str]: Raw generated text for each prompt.
         """
+        self.logger.debug("Generating summaries in bulk.")
+        rendered_prompts = [self.__build_prompt(prompt) for prompt in prompts]
+        result = self.__pipeline(
+            rendered_prompts,
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+            return_full_text=False,
+        )
+        return [entry[0]["generated_text"].strip() for entry in result]
+
+    def generate_json(
+        self,
+        prompt: Union[SummaryPrompt, list[SummaryPrompt]],
+        max_new_tokens: int = 384,
+    ) -> Union[dict, list[dict]]:
+        """
+        Generate text from one or more prompts and parse the response as JSON.
+
+        Args:
+            prompt (SummaryPrompt or list[SummaryPrompt]): Prompt payload(s) for
+                summary generation.
+            max_new_tokens (int): Maximum number of tokens to generate. Defaults to 384.
+
+        Returns:
+            dict or list[dict]: Parsed JSON extracted from the generated text.
+        """
+        if isinstance(prompt, list):
+            generated = self.generate_many(prompt, max_new_tokens=max_new_tokens)
+            return [self.extract_json(text) for text in generated]
+
         return self.extract_json(self.generate(prompt, max_new_tokens=max_new_tokens))
