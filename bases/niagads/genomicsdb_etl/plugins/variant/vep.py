@@ -1,7 +1,4 @@
-import json
-from copy import deepcopy
-from enum import auto
-from typing import Any, Iterator, Optional, Union
+from typing import Iterator, Optional
 
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.variant.documents import Variant
@@ -17,7 +14,12 @@ from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.nlp.llm_types import LLM, NLPModelType
 from niagads.utils.sys import read_open_ctx
 from niagads.vep_json_parser.core import VariantVEPAnnotationEntry, VEPJSONParser
-from pydantic import Field, field_validator
+from pydantic import BaseModel, Field, field_validator
+
+
+class AnnotationSummary(BaseModel):
+    summary_text: str
+    search_terms: list[str]
 
 
 class VEPAnnotationLoaderParams(
