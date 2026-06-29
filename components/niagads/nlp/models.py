@@ -1,6 +1,6 @@
 """Pydantic models for NLP operations."""
 
-from typing import Optional
+from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 
@@ -25,3 +25,27 @@ class EmbeddingMatch(BaseModel):
     embedding: Optional[list[float]] = Field(
         None, description="The embedding vector for the matched text."
     )
+
+
+class SummaryRequestPacket(BaseModel):
+    """
+    Normalized request payload for prompt-driven summary generation.
+    """
+
+    entity_type: str = Field(..., description="Entity type being summarized.")
+    subject_id: Optional[str] = Field(
+        default=None, description="Optional identifier for the summarized entity."
+    )
+    payload: dict[str, Any] = Field(
+        ..., description="Normalized structured payload supplied to the summarizer."
+    )
+
+
+class SummaryPrompt(BaseModel):
+    """
+    Prompt payload for model-driven summary generation.
+    """
+
+    system_prompt: str = Field(..., description="System prompt text.")
+    user_prompt: str = Field(..., description="User prompt text.")
+
