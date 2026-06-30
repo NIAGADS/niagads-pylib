@@ -17,7 +17,12 @@ from niagads.nlp.llm_types import LLM, NLPModelType
 from niagads.nlp.models import SummaryPrompt
 from niagads.nlp.summarization import TextSummaryGenerator
 from niagads.utils.sys import read_open_ctx
-from niagads.vep_json_parser.core import VariantVEPAnnotationEntry, VEPJSONParser
+from niagads.vep_json_parser.core import (
+    Consequence,
+    ConsequenceType,
+    VariantVEPAnnotationEntry,
+    VEPJSONParser,
+)
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -92,9 +97,283 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
                 # yield residuals
                 yield batch
 
+    def __tss_distance_phrases(self, tssdistance: int | None) -> list[str]:
+        if tssdistance is None:
+            return []
+
+        if tssdistance <= 1000:
+            return ["Near transcription start site.", "Within 1kb of TSS."]
+
+        if tssdistance <= 10000:
+            return ["Near transcription start site.", "Within 10kb of TSS."]
+
+        if tssdistance <= 100000:
+            return [
+                "Proximal to transcription start site.",
+                "Within 100kb of TSS.",
+            ]
+
+        return [
+            "Distal from transcription start site.",
+            "More than 100kb from TSS.",
+        ]
+
+    def __gene_distance_phrases(self, distance: int | None) -> list[str]:
+        if distance is None:
+            return []
+
+        if distance <= 1000:
+            return ["Near gene.", "Within 1kb of gene."]
+
+        if distance <= 10000:
+            return ["Near gene.", "Within 10kb of gene."]
+
+        if distance <= 100000:
+            return ["Proximal to gene.", "Within 100kb of gene."]
+
+        return ["Distal from gene.", "More than 100kb from gene."]
+
+    def __af_class(self, value: float | int) -> str:
+        if value < 0.001:
+            return "rare"
+
+        if value < 0.01:
+            return "low_frequency"
+
+        return "common"
+
+    def __af_phrases(self, allele_frequency: dict | None) -> list[str]:
+        if allele_frequency is None:
+            return []
+
+        phrases = []
+
+        for source, populations in allele_frequency.items():
+            values = [value for value in populations.values() if value is not None]
+            if not values:
+                continue
+
+            af_class = self.__af_class(max(values))
+            phrases.append(f"{source} allele frequency {af_class}.")
+
+        return phrases
+
+    def __deleteriousness_phrases_from_cadd(
+        self, cadd_phred: float | int | None
+    ) -> list[str]:
+        if cadd_phred is None:
+            return []
+
+        if cadd_phred >= 30:
+            return [
+                "Very strong predicted deleteriousness.",
+                "Top 0.1 percent of possible reference variants.",
+            ]
+
+        if cadd_phred >= 20:
+            return [
+                "Strong predicted deleteriousness.",
+                "Top 1 percent of possible reference variants.",
+            ]
+
+        if cadd_phred >= 10:
+            return [
+                "Moderate predicted deleteriousness.",
+                "Top 10 percent of possible reference variants.",
+            ]
+
+        return [
+            "Weak predicted deleteriousness.",
+            "Below top 10 percent of possible reference variants.",
+        ]
+
+    def __regulatory_effect_phrases_from_enformer(
+        self, sad: float | int | None, sar: float | int | None
+    ) -> list[str]:
+        values = [abs(value) for value in (sad, sar) if value is not None]
+        if not values:
+            return []
+
+        max_abs = max(values)
+
+        if max_abs < 0.01:
+            return ["Minimal predicted regulatory effect."]
+
+        if max_abs < 0.1:
+            return ["Small predicted regulatory effect."]
+
+        return ["Strong predicted regulatory effect."]
+
+    def __loftool_phrases(self, loftool: float | int | None) -> list[str]:
+        if loftool is None:
+            return []
+
+        if loftool < 0.1:
+            return ["Gene shows high loss-of-function intolerance."]
+
+        if loftool < 0.5:
+            return ["Gene shows moderate loss-of-function intolerance."]
+
+        return ["Gene shows low loss-of-function intolerance."]
+
+    def __unique_regulatory_biotypes(
+        self, entry: VariantVEPAnnotationEntry
+    ) -> list[str]:
+        if entry.predicted_annotations is None:
+            return []
+
+        regulatory_consequences = (
+            entry.predicted_annotations.predicted_consequences.get(
+                ConsequenceType.REGULATORY_FEATURE
+            )
+        )
+        if regulatory_consequences is None:
+            return []
+
+        biotypes = {
+            consequence.feature.biotype
+            for consequence in regulatory_consequences
+            if consequence.feature is not None
+        }
+
+        return sorted(biotypes)
+
+    def __transcript_msc_phrases(self, consequence: Consequence) -> list[str]:
+        phrases = []
+        feature = consequence.feature
+        gene = feature.gene
+        protein = feature.protein
+
+        if consequence.consequence_terms:
+            phrases.append(
+                f"Transcript consequence {', '.join(consequence.consequence_terms)}."
+            )
+
+        if consequence.impact:
+            phrases.append(f"Impact {consequence.impact}.")
+
+        if consequence.is_coding is True:
+            phrases.append("Coding consequence.")
+        elif consequence.is_coding is False:
+            phrases.append("Noncoding consequence.")
+
+        if feature.id:
+            phrases.append(f"Transcript {feature.id}.")
+
+        if gene.gene_symbol:
+            phrases.append(f"Gene {gene.gene_symbol}.")
+
+        if gene.id:
+            phrases.append(f"Gene ID {gene.id}.")
+
+        if gene.biotype:
+            phrases.append(f"Gene biotype {gene.biotype}.")
+
+        phrases.extend(self.__loftool_phrases(gene.loftool))
+
+        if protein is not None:
+            phrases.append("Protein consequence.")
+
+            if protein.id:
+                phrases.append(f"Protein {protein.id}.")
+
+        phrases.extend(self.__tss_distance_phrases(feature.tssdistance))
+        phrases.extend(self.__gene_distance_phrases(feature.distance))
+
+        return phrases
+
+    def __regulatory_biotype_phrases(self, biotypes: list[str]) -> list[str]:
+        if not biotypes:
+            return []
+
+        return ["Regulatory feature biotypes " + ", ".join(biotypes) + "."]
+
+    def __intergenic_msc_phrases(self, consequence: Consequence) -> list[str]:
+        phrases = []
+
+        if consequence.consequence_terms:
+            phrases.append(
+                f"Intergenic consequence {', '.join(consequence.consequence_terms)}."
+            )
+
+        if consequence.impact:
+            phrases.append(f"Impact {consequence.impact}.")
+
+        return phrases
+
+    def __consequence_phrases(self, consequence: Consequence) -> list[str]:
+        phrases = []
+
+        if consequence.consequence_terms:
+            phrases.append(f"Consequence {', '.join(consequence.consequence_terms)}.")
+
+        if consequence.impact:
+            phrases.append(f"Impact {consequence.impact}.")
+
+        return phrases
+
+    def __predictor_score_phrases(self, entry: VariantVEPAnnotationEntry) -> list[str]:
+        if entry.predicted_annotations is None:
+            return []
+
+        scores = entry.predicted_annotations.predictor_scores
+        if scores is None:
+            return []
+
+        phrases = self.__deleteriousness_phrases_from_cadd(scores.get("cadd_phred"))
+        phrases.extend(
+            self.__regulatory_effect_phrases_from_enformer(
+                scores.get("enformer_sad"),
+                scores.get("enformer_sar"),
+            )
+        )
+        return phrases
+
+    def __most_severe_consequence_phrases(
+        self, entry: VariantVEPAnnotationEntry
+    ) -> list[str]:
+        msc = entry.most_severe_consequence
+        if msc is None:
+            return []
+
+        consequence_type = msc.consequence_type
+
+        if consequence_type == ConsequenceType.INTERGENIC:
+            return self.__intergenic_msc_phrases(msc)
+
+        if consequence_type == ConsequenceType.TRANSCRIPT:
+            msc_phrases = self.__transcript_msc_phrases(msc)
+            msc_phrases.extend(
+                self.__regulatory_biotype_phrases(
+                    self.__unique_regulatory_biotypes(entry)
+                )
+            )
+            return msc_phrases
+
+        if consequence_type == ConsequenceType.REGULATORY_FEATURE:
+            return self.__regulatory_biotype_phrases(
+                self.__unique_regulatory_biotypes(entry)
+            )
+
+        return self.__consequence_phrases(msc)
+
     def __generate_chunk_text(self, entry: VariantVEPAnnotationEntry):
         # return AnnotationRecord with embedded text (chunk_text) and chunk hash
-        ...
+        annotation_phrases = []
+        annotation_phrases.extend(self.__most_severe_consequence_phrases(entry))
+        annotation_phrases.extend(self.__af_phrases(entry.allele_frequency))
+        annotation_phrases.extend(self.__predictor_score_phrases(entry))
+
+        chunk_text = " ".join(annotation_phrases)
+
+        if self._verbose:
+            self.logger.debug(f"Chunk Text: {chunk_text}")
+
+        return AnnotationRecord(
+            annotation=entry,
+            chunk_text=chunk_text,
+            chunk_hash=self._embedding_generator.hash_text(chunk_text),
+        )
 
     async def transform(self, entries: list[VariantVEPAnnotationEntry]):
         records: list[AnnotationRecord] = []
