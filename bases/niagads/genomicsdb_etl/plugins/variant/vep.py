@@ -20,6 +20,7 @@ from niagads.utils.sys import read_open_ctx
 from niagads.vep_json_parser.core import (
     Consequence,
     ConsequenceType,
+    TranscriptContext,
     VariantVEPAnnotationEntry,
     VEPJSONParser,
 )
@@ -133,12 +134,15 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
 
         return ["Distal from gene.", "More than 100kb from gene."]
 
-    def __af_class(self, value: float | int) -> str:
+    def __af_descriptor(self, value: float) -> str:
         if value < 0.001:
-            return "rare"
+            return "very rare"
 
         if value < 0.01:
-            return "low_frequency"
+            return "rare"
+
+        if value < 0.05:
+            return "low frequency"
 
         return "common"
 
@@ -148,18 +152,23 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
 
         phrases = []
 
+        source: str
         for source, populations in allele_frequency.items():
-            values = [value for value in populations.values() if value is not None]
-            if not values:
-                continue
+            population: str
+            for population, value in (populations or {}).items():
+                if value == 0:
+                    continue
 
-            af_class = self.__af_class(max(values))
-            phrases.append(f"{source} allele frequency {af_class}.")
+                af_qualifier = self.__af_descriptor(value)
+
+                phrases.append(
+                    f"{source} {population.upper()} allele frequency {af_qualifier}."
+                )
 
         return phrases
 
     def __deleteriousness_phrases_from_cadd(
-        self, cadd_phred: float | int | None
+        self, cadd_phred: float | None
     ) -> list[str]:
         if cadd_phred is None:
             return []
@@ -188,7 +197,7 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
         ]
 
     def __regulatory_effect_phrases_from_enformer(
-        self, sad: float | int | None, sar: float | int | None
+        self, sad: float | None, sar: float | None
     ) -> list[str]:
         values = [abs(value) for value in (sad, sar) if value is not None]
         if not values:
@@ -219,8 +228,6 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
     def __unique_regulatory_biotypes(
         self, entry: VariantVEPAnnotationEntry
     ) -> list[str]:
-        if entry.predicted_annotations is None:
-            return []
 
         regulatory_consequences = (
             entry.predicted_annotations.predicted_consequences.get(
@@ -238,38 +245,45 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
 
         return sorted(biotypes)
 
-    def __transcript_msc_phrases(self, consequence: Consequence) -> list[str]:
+    def __coding_change_phrases(feature: TranscriptContext) -> list[str] | None:
         phrases = []
-        feature = consequence.feature
-        gene = feature.gene
+
+        if feature.codons:
+            phrases.append(f"Codon change {feature.codons}")
+
         protein = feature.protein
 
-        if consequence.consequence_terms:
-            phrases.append(
-                f"Transcript consequence {', '.join(consequence.consequence_terms)}."
-            )
+        if protein and protein.amino_acids:
+            phrases.append(f"Amino acid change {protein.amino_acids}")
 
-        if consequence.impact:
-            phrases.append(f"Impact {consequence.impact}.")
+        return phrases
+
+    def __transcript_msc_phrases(self, consequence: Consequence) -> list[str]:
+        phrases = []
+        transcript = consequence.feature
+        gene = transcript.gene
+        protein = transcript.protein
+
+        phrases.append(f"Transcript ID {transcript.id}.")
+        phrases.append(
+            f"Transcript consequence {', '.join(consequence.consequence_terms)}."
+        )
+        phrases.append(f"Impact {consequence.impact}.")
 
         if consequence.is_coding is True:
             phrases.append("Coding consequence.")
+            phrases.append(self.__coding_change_phrases(transcript))
+
         elif consequence.is_coding is False:
             phrases.append("Noncoding consequence.")
 
-        if feature.id:
-            phrases.append(f"Transcript {feature.id}.")
-
-        if gene.gene_symbol:
-            phrases.append(f"Gene {gene.gene_symbol}.")
-
-        if gene.id:
+        if gene is not None:  # should never be false
             phrases.append(f"Gene ID {gene.id}.")
-
-        if gene.biotype:
             phrases.append(f"Gene biotype {gene.biotype}.")
+            if gene.gene_symbol:
+                phrases.append(f"Gene {gene.gene_symbol}.")
 
-        phrases.extend(self.__loftool_phrases(gene.loftool))
+            phrases.extend(self.__loftool_phrases(gene.loftool))
 
         if protein is not None:
             phrases.append("Protein consequence.")
@@ -277,8 +291,8 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
             if protein.id:
                 phrases.append(f"Protein {protein.id}.")
 
-        phrases.extend(self.__tss_distance_phrases(feature.tssdistance))
-        phrases.extend(self.__gene_distance_phrases(feature.distance))
+        phrases.extend(self.__tss_distance_phrases(transcript.tssdistance))
+        phrases.extend(self.__gene_distance_phrases(transcript.distance))
 
         return phrases
 
@@ -313,9 +327,6 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
         return phrases
 
     def __predictor_score_phrases(self, entry: VariantVEPAnnotationEntry) -> list[str]:
-        if entry.predicted_annotations is None:
-            return []
-
         scores = entry.predicted_annotations.predictor_scores
         if scores is None:
             return []
@@ -332,9 +343,7 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
     def __most_severe_consequence_phrases(
         self, entry: VariantVEPAnnotationEntry
     ) -> list[str]:
-        msc = entry.most_severe_consequence
-        if msc is None:
-            return []
+        msc: Consequence = entry.most_severe_consequence
 
         consequence_type = msc.consequence_type
 
@@ -364,10 +373,12 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
         annotation_phrases.extend(self.__af_phrases(entry.allele_frequency))
         annotation_phrases.extend(self.__predictor_score_phrases(entry))
 
-        chunk_text = " ".join(annotation_phrases)
+        chunk_text = "\n".join(annotation_phrases)
 
         if self._verbose:
             self.logger.debug(f"Chunk Text: {chunk_text}")
+
+        # TODO - possibly add human readable summary
 
         return AnnotationRecord(
             annotation=entry,
