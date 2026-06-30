@@ -31,6 +31,7 @@ from niagads.vep_json_parser.core import (
 )
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import update, func
+import json
 
 
 class AnnotationSummary(BaseModel):
@@ -457,6 +458,60 @@ class VEPAnnotationLoader(
 
         return records
 
+    def _json_to_jsonb(self, value):
+        """Convert dict/list to escaped SQL JSONB literal string."""
+        json_str = json.dumps(value).replace("'", "''")
+        return f"'{json_str}'::jsonb"
+
+    def _build_batch_update_sql(self, chunk: list[AnnotationRecord]) -> list[str]:
+        """Build individual UPDATE statements for chunk."""
+        sql_statements = []
+        table_name: str = Variant.table_name()
+
+        for record in chunk:
+            if record.db_primary_key is None:
+                continue
+
+            set_clauses = []
+
+            # most_severe_consequence
+            msc = record.annotation.most_severe_consequence.model_dump(
+                exclude_none=True
+            )
+            set_clauses.append(f"most_severe_consequence = {self._json_to_jsonb(msc)}")
+
+            # functional_annotation
+            fa = record.annotation.predicted_annotations.model_dump(exclude_none=True)
+            set_clauses.append(f"functional_annotation = {self._json_to_jsonb(fa)}")
+
+            # allele_frequency
+            af = record.annotation.allele_frequency or {}
+            set_clauses.append(f"allele_frequency = {self._json_to_jsonb(af)}")
+
+            # functional_annotation_summary
+            fas = record.functional_annotation_summary.model_dump(exclude_none=True)
+            set_clauses.append(
+                f"functional_annotation_summary = {self._json_to_jsonb(fas)}"
+            )
+
+            # embedding_hash
+            hex_str = record.embedding_hash.hex()
+            set_clauses.append(f"embedding_hash = '\\x{hex_str}'::bytea")
+
+            # embedding
+            set_clauses.append(f"embedding = {self._json_to_jsonb(record.embedding)}")
+
+            # embedding_run_id
+            set_clauses.append(f"embedding_run_id = {self.run_id}")
+
+            set_clauses.append("modification_date = NOW()")
+            set_clause = ", ".join(set_clauses)
+
+            sql = f"UPDATE {table_name} SET {set_clause} WHERE variant_id = {record.db_primary_key};"
+            sql_statements.append(sql)
+
+        return sql_statements
+
     async def load(self, session, embedded_records: list[AnnotationRecord]):
         # sort by position
         sorted_records = sorted(
@@ -498,45 +553,22 @@ class VEPAnnotationLoader(
                     record.db_primary_key = primary_key
                     num_updateable_variants += 1
 
-            self.logger.debug(
-                f"Found {num_updateable_variants} existing variants to update"
-            )
-            async with timer("Bulk updates", logger=self.logger):
-                chunks = chunker(embedded_records, 25000)
+        self.logger.debug(
+            f"Found {num_updateable_variants} existing variants to update"
+        )
 
+        async with timer("Bulk updates", logger=self.logger):
+            chunks = chunker(embedded_records, 25000)
+
+            async with self.session_manager().raw_connection() as raw_conn:
                 for chunk in chunks:
-                    for record in chunk:
-                        if record.db_primary_key is None:
-                            continue
+                    sql_statements = self._build_batch_update_sql(chunk)
+                    # self.logger.critical(sql_statements[0])
 
-                        stmt = (
-                            update(Variant)
-                            .where(Variant.variant_id == record.db_primary_key)
-                            .values(
-                                most_severe_consequence=record.annotation.most_severe_consequence.model_dump(
-                                    exclude_none=True
-                                ),
-                                functional_annotation=record.annotation.predicted_annotations.model_dump(
-                                    exclude_none=True
-                                ),
-                                allele_frequency=func.coalesce(
-                                    Variant.allele_frequency,
-                                    func.cast({}, type_=Variant.allele_frequency.type),
-                                )
-                                | func.cast(
-                                    record.annotation.allele_frequency or {},
-                                    type_=Variant.allele_frequency.type,
-                                ),
-                                functional_annotation_summary=record.functional_annotation_summary.model_dump(
-                                    exclude_none=True
-                                ),
-                                embedding_hash=record.embedding_hash,
-                                embedding=record.embedding,
-                                modification_date=func.now(),
-                            )
-                        )
-                        result = await session.execute(stmt)
-                        self.inc_tx_count(Variant, ETLOperation.UPDATE, result.rowcount)
+                    if not sql_statements:
+                        continue
 
-    def get_record_id(self, record: VariantVEPAnnotationEntry) -> str:
-        return record.positional_id
+                    for sql in sql_statements:
+                        await raw_conn.execute(sql)
+
+                    self.inc_tx_count(Variant, ETLOperation.UPDATE, len(sql_statements))
