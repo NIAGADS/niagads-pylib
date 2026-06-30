@@ -579,3 +579,8 @@ class VEPAnnotationLoader(
                         await raw_conn.execute(sql)
 
                     self.inc_tx_count(Variant, ETLOperation.UPDATE, len(sql_statements))
+
+        return self.create_checkpoint(record=embedded_records[-1].annotation)
+
+    def get_record_id(self, record: AnnotationRecord):
+        return f"{record.annotation.chromosome}:{record.annotation.position}:{record.annotation.ref}:{record.annotation.alt} / {record.db_primary_key}"
