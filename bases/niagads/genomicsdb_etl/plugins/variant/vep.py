@@ -456,6 +456,8 @@ class VEPAnnotationLoader(
                 "summary_text"
             ]
 
+            self.logger.critical(f"Embedded Record: {record.model_dump()}")
+
         self.__processed_record_count += self._params.embedding_batch_size
         self.logger.info(
             f"Calculated embeddings for {self.__processed_record_count} annotations."
