@@ -60,21 +60,33 @@ class RegulatoryFeature(BaseModel):
     biotype: str
 
 
-class Gene(BaseModel):
+class GeneContext(BaseModel):
     id: str
     gene_symbol: str
     biotype: str
     loftool: Optional[float] = None
 
 
-class Protein(BaseModel):
+class ProteinContext(BaseModel):
     id: str
+
     trembl: Optional[list[str]] = None
     swissprot: Optional[list[str]] = None
 
+    protein_start: Optional[int] = None
+    protein_end: Optional[int] = None
+    amino_acids: Optional[str] = None
+    hgvsp: Optional[str] = None
 
-class Transcript(BaseModel):
+    sift_score: Optional[float] = None
+    sift_prediction: Optional[str] = None
+    polyphen_score: Optional[float] = None
+    polyphen_prediction: Optional[str] = None
+
+
+class TranscriptContext(BaseModel):
     id: str
+
     canonical: Optional[bool] = None
     appris: Optional[str] = None
     tsl: Optional[int] = None
@@ -82,11 +94,23 @@ class Transcript(BaseModel):
     mane: Optional[list[str]] = None
     mane_select: Optional[str] = None
     ccds: Optional[str] = None
+
     distance: Optional[int] = None
     tssdistance: Optional[int] = None
 
-    gene: Gene
-    protein: Optional[Protein]
+    cdna_start: Optional[int] = None
+    cdna_end: Optional[int] = None
+    cds_start: Optional[int] = None
+    cds_end: Optional[int] = None
+
+    exon: Optional[str] = None
+    intron: Optional[str] = None
+
+    codons: Optional[str] = None
+    hgvsc: Optional[str] = None
+
+    gene: GeneContext
+    protein: Optional[ProteinContext] = None
 
 
 class Consequence(BaseModel):
@@ -94,7 +118,9 @@ class Consequence(BaseModel):
     consequence_terms: list[str]
     impact: str
     is_coding: Optional[bool] = None
-    feature: Optional[Union[Transcript, RegulatoryFeature, MotifFeature]] = None
+    hgvsg: Optional[str] = None
+    feature: Optional[Union[TranscriptContext, RegulatoryFeature, MotifFeature]] = None
+
     flags: Optional[list[str]] = None
 
 
@@ -110,7 +136,7 @@ class VariantVEPAnnotationEntry(BaseModel):
     ref: str
     alt: str
 
-    most_severe_consequence: Optional[dict] = None
+    most_severe_consequence: Optional[Consequence] = None
     allele_frequency: Optional[dict] = None
     predicted_annotations: Optional[PredictedAnnotation] = None
 
@@ -329,7 +355,7 @@ class VEPJSONParser(ComponentBaseMixin):
         )
 
     def __build_transcript_feature(self, conseq: dict):
-        gene = Gene(
+        gene = GeneContext(
             id=conseq["gene_id"],
             gene_symbol=conseq.get("gene_symbol"),
             biotype=conseq["biotype"],
@@ -338,13 +364,13 @@ class VEPJSONParser(ComponentBaseMixin):
 
         protein = None
         if "protein_id" in conseq:
-            protein = Protein(
+            protein = ProteinContext(
                 id=conseq["protein_id"],
                 trembl=conseq.get("trembl"),
                 swissprot=conseq.get("swissprot"),
             )
 
-        return Transcript(
+        return TranscriptContext(
             id=conseq["transcript_id"],
             canonical=bool(conseq.get("canonical", 0)),
             appris=conseq.get("appris"),
