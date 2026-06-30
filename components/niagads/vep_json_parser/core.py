@@ -325,7 +325,9 @@ class VEPJSONParser(ComponentBaseMixin):
                     feature = self.__build_motif_feature(raw_conseq)
 
                 # Create Consequence object
-                consequence_terms = raw_conseq["consequence_terms"]
+                consequence_terms = [
+                    term.replace("_", " ") for term in raw_conseq["consequence_terms"]
+                ]
                 is_coding = (
                     self.__is_coding_consequence(consequence_terms)
                     if ctype == ConsequenceType.TRANSCRIPT
