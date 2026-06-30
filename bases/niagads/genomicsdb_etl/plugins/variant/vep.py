@@ -1,3 +1,4 @@
+import json
 from typing import Iterator, Optional
 
 from niagads.common.types import ETLOperation
@@ -12,6 +13,7 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.exceptions.core import ParserError
 from niagads.genome_reference.human import HumanGenome
 from niagads.genomicsdb_etl.plugins.variant.base import (
     VariantLookupBlock,
@@ -30,8 +32,6 @@ from niagads.vep_json_parser.core import (
     VEPJSONParser,
 )
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import update, func
-import json
 
 
 class AnnotationSummary(BaseModel):
@@ -90,6 +90,7 @@ class VEPAnnotationLoader(
     def __init__(self, params, name=None, log_path=None, debug=False, verbose=False):
         super().__init__(params, name, log_path, debug, verbose)
         self._summary_generator: Optional[TextSummaryGenerator] = None
+        self.__processed_record_count = 0
 
     async def on_run_start(self, session):
         await EmbeddingGeneratorContextMixin.on_run_start(self, session)
@@ -105,10 +106,14 @@ class VEPAnnotationLoader(
         parser = VEPJSONParser()
         with read_open_ctx(self._params.file) as fh:
             line: str
-            for line in enumerate(fh):
-                allele_annotations: dict[str, VariantVEPAnnotationEntry] = parser.parse(
-                    line.rstrip()
-                )
+            for line_num, line in enumerate(fh):
+                try:
+                    allele_annotations: dict[str, VariantVEPAnnotationEntry] = (
+                        parser.parse(line.rstrip())
+                    )
+                except Exception as err:
+                    raise ParserError(f"Error parsing line {line_num} - {line}: {err}")
+
                 batch = []
                 for annotation in allele_annotations.values():
                     batch.append(annotation)
