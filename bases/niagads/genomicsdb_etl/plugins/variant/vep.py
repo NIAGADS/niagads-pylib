@@ -32,7 +32,7 @@ class AnnotationRecord(BaseModel, arbitrary_types_allowed=True):
     chunk_text: str
     chunk_hash: bytes
     embedding: Optional[list] = None  # so it can be set in batch
-    summart_text: Optional[str] = None
+    summary_text: Optional[str] = None
 
 
 class VEPAnnotationLoaderParams(
@@ -366,6 +366,26 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
 
         return self.__consequence_phrases(msc)
 
+    def __build_summary_prompt(self, chunk_text: str) -> SummaryPrompt:
+        return SummaryPrompt(
+            system_prompt=(
+                "You summarize Variant Effect Predictor annotation facts for genomics "
+                "users.\n\n"
+                "Write 1-2 concise sentences using only the provided facts. Do not "
+                "infer pathogenicity, disease relevance, clinical significance, "
+                "mechanism, or causality unless explicitly stated. Preserve key "
+                "context when present: consequence, impact, gene, transcript/protein "
+                "context, allele-frequency category, predicted deleteriousness, and "
+                "regulatory effect.\n\n"
+                "Return only valid JSON:\n"
+                '{"summary_text": "..."}'
+            ),
+            user_prompt=(
+                "Summarize the following VEP annotation facts.\n\n"
+                f"Facts:\n{chunk_text}"
+            ),
+        )
+
     def __generate_chunk_text(self, entry: VariantVEPAnnotationEntry):
         # return AnnotationRecord with embedded text (chunk_text) and chunk hash
         annotation_phrases = []
@@ -377,8 +397,6 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
 
         if self._verbose:
             self.logger.debug(f"Chunk Text: {chunk_text}")
-
-        # TODO - possibly add human readable summary
 
         return AnnotationRecord(
             annotation=entry,
@@ -397,13 +415,21 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
 
         embeddings = self._embedding_generator.generate(text, as_list=False)
 
+        summary_prompts = [
+            self.__build_summary_prompt(record.chunk_text) for record in records
+        ]
+        summaries = self._summary_generator.generate_json(
+            summary_prompts, max_new_tokens=160
+        )
+
         record: AnnotationRecord
         for index, record in enumerate(records):
             record.embedding = embeddings[index].tolist()
+            record.summary_text = summaries[index]["summary_text"]
 
         self.__processed_record_count += self._params.embedding_batch_size
         self.logger.info(
-            f"Calcualted embeddings for {self.__processed_record_count} annotations."
+            f"Calculated embeddings for {self.__processed_record_count} annotations."
         )
 
         return records
