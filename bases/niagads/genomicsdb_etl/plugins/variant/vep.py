@@ -1,4 +1,3 @@
-import json
 from typing import Iterator, Optional
 
 from niagads.common.types import ETLOperation
@@ -13,10 +12,16 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.genome_reference.human import HumanGenome
+from niagads.genomicsdb_etl.plugins.variant.base import (
+    VariantLookupBlock,
+    VariantLookupMixin,
+)
 from niagads.nlp.llm_types import LLM, NLPModelType
 from niagads.nlp.models import SummaryPrompt
 from niagads.nlp.summarization import TextSummaryGenerator
-from niagads.utils.sys import read_open_ctx
+from niagads.utils.list import chunker
+from niagads.utils.sys import read_open_ctx, timer
 from niagads.vep_json_parser.core import (
     Consequence,
     ConsequenceType,
@@ -25,14 +30,23 @@ from niagads.vep_json_parser.core import (
     VEPJSONParser,
 )
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import update, func
+
+
+class AnnotationSummary(BaseModel):
+    summary_text: Optional[str] = None
+    embedded_text: list[str]
 
 
 class AnnotationRecord(BaseModel, arbitrary_types_allowed=True):
     annotation: VariantVEPAnnotationEntry
-    chunk_text: str
-    chunk_hash: bytes
+    functional_annotation_summary: AnnotationSummary
+    embedding_hash: bytes
     embedding: Optional[list] = None  # so it can be set in batch
     summary_text: Optional[str] = None
+    chromosome: HumanGenome
+    position: int  # for sorting and lookups
+    db_primary_key: Optional[int]
 
 
 class VEPAnnotationLoaderParams(
@@ -67,7 +81,9 @@ metadata = PluginMetadata(
 
 
 @PluginRegistry.register(metadata=metadata)
-class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
+class VEPAnnotationLoader(
+    AbstractBasePlugin, EmbeddingGeneratorContextMixin, VariantLookupMixin
+):
     _params: VEPAnnotationLoaderParams
 
     def __init__(self, params, name=None, log_path=None, debug=False, verbose=False):
@@ -75,6 +91,8 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
         self._summary_generator: Optional[TextSummaryGenerator] = None
 
     async def on_run_start(self, session):
+        await EmbeddingGeneratorContextMixin.on_run_start(self, session)
+
         self._summary_generator = TextSummaryGenerator(
             model=self._params.summarization_model,
             debug=self._debug,
@@ -386,8 +404,8 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
             ),
         )
 
-    def __generate_chunk_text(self, entry: VariantVEPAnnotationEntry):
-        # return AnnotationRecord with embedded text (chunk_text) and chunk hash
+    def __generate_embedding_text(self, entry: VariantVEPAnnotationEntry):
+        # return AnnotationRecord with embedded text and hash
         annotation_phrases = []
         annotation_phrases.extend(self.__most_severe_consequence_phrases(entry))
         annotation_phrases.extend(self.__af_phrases(entry.allele_frequency))
@@ -400,23 +418,26 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
 
         return AnnotationRecord(
             annotation=entry,
-            chunk_text=chunk_text,
-            chunk_hash=self._embedding_generator.hash_text(chunk_text),
+            annotation_summary=AnnotationSummary(embedded_text=chunk_text),
+            embedding_hash=self._embedding_generator.hash_text(chunk_text),
+            chromosome=entry.chromosome,
+            position=entry.position,
         )
 
     async def transform(self, entries: list[VariantVEPAnnotationEntry]):
         records: list[AnnotationRecord] = []
         text = []
         for entry in entries:
-            annotation_record: AnnotationRecord = self.__generate_chunk_text(entry)
+            annotation_record: AnnotationRecord = self.__generate_embedding_text(entry)
 
             records.append(annotation_record)
-            text.append(annotation_record.chunk_text)
+            text.append(annotation_record.functional_annotation_summary)
 
         embeddings = self._embedding_generator.generate(text, as_list=False)
 
         summary_prompts = [
-            self.__build_summary_prompt(record.chunk_text) for record in records
+            self.__build_summary_prompt(record.functional_annotation_summary)
+            for record in records
         ]
         summaries = self._summary_generator.generate_json(
             summary_prompts, max_new_tokens=160
@@ -425,7 +446,9 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
         record: AnnotationRecord
         for index, record in enumerate(records):
             record.embedding = embeddings[index].tolist()
-            record.summary_text = summaries[index]["summary_text"]
+            record.functional_annotation_summary.summary_text = summaries[index][
+                "summary_text"
+            ]
 
         self.__processed_record_count += self._params.embedding_batch_size
         self.logger.info(
@@ -434,7 +457,86 @@ class VEPAnnotationLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
 
         return records
 
-    async def load(self, session, transformed): ...
+    async def load(self, session, embedded_records: list[AnnotationRecord]):
+        # sort by position
+        sorted_records = sorted(
+            embedded_records,
+            key=lambda r: r.position,
+        )
+        lookup_blocks: list[VariantLookupBlock] = self._get_lookup_blocks(
+            sorted_records, max_span=100000
+        )
+
+        num_updateable_variants = 0
+
+        for block in lookup_blocks:
+            reference_variants = await self._retrieve_variants_in_span(
+                session, block.region
+            )
+
+            for record in sorted_records[block.start_idx : block.end_idx]:
+                variant_key = (
+                    record.annotation.position,
+                    record.annotation.ref,
+                    record.annotation.alt,
+                )
+                primary_key = reference_variants.get(variant_key)
+
+                if primary_key is None:
+                    # if SNV switch alleles and try again (trust INDEL directions)
+                    if len(record.annotation.ref) == len(record.annotation.alt) == 1:
+                        variant_key = (
+                            record.annotation.position,
+                            record.annotation.alt,
+                            record.annotation.ref,
+                        )
+                        primary_key = reference_variants.get(variant_key)
+
+                if primary_key is None:
+                    self.inc_tx_count(Variant, ETLOperation.SKIP)
+                else:
+                    record.db_primary_key = primary_key
+                    num_updateable_variants += 1
+
+            self.logger.debug(
+                f"Found {num_updateable_variants} existing variants to update"
+            )
+            async with timer("Bulk updates", logger=self.logger):
+                chunks = chunker(embedded_records, 25000)
+
+                for chunk in chunks:
+                    for record in chunk:
+                        if record.db_primary_key is None:
+                            continue
+
+                        stmt = (
+                            update(Variant)
+                            .where(Variant.variant_id == record.db_primary_key)
+                            .values(
+                                most_severe_consequence=record.annotation.most_severe_consequence.model_dump(
+                                    exclude_none=True
+                                ),
+                                functional_annotation=record.annotation.predicted_annotations.model_dump(
+                                    exclude_none=True
+                                ),
+                                allele_frequency=func.coalesce(
+                                    Variant.allele_frequency,
+                                    func.cast({}, type_=Variant.allele_frequency.type),
+                                )
+                                | func.cast(
+                                    record.annotation.allele_frequency or {},
+                                    type_=Variant.allele_frequency.type,
+                                ),
+                                functional_annotation_summary=record.functional_annotation_summary.model_dump(
+                                    exclude_none=True
+                                ),
+                                embedding_hash=record.embedding_hash,
+                                embedding=record.embedding,
+                                modification_date=func.now(),
+                            )
+                        )
+                        result = await session.execute(stmt)
+                        self.inc_tx_count(Variant, ETLOperation.UPDATE, result.rowcount)
 
     def get_record_id(self, record: VariantVEPAnnotationEntry) -> str:
         return record.positional_id
