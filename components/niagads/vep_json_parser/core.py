@@ -337,6 +337,7 @@ class VEPJSONParser(ComponentBaseMixin):
                     consequence_terms=consequence_terms,
                     impact=raw_conseq["impact"],
                     is_coding=is_coding,
+                    hgvsg=raw_conseq.get("hgvsg"),
                     feature=feature,
                     flags=raw_conseq.get("flags"),
                 )
@@ -368,6 +369,14 @@ class VEPJSONParser(ComponentBaseMixin):
                 id=conseq["protein_id"],
                 trembl=conseq.get("trembl"),
                 swissprot=conseq.get("swissprot"),
+                protein_start=conseq.get("protein_start"),
+                protein_end=conseq.get("protein_end"),
+                amino_acids=conseq.get("amino_acids"),
+                hgvsp=conseq.get("hgvsp"),
+                sift_score=conseq.get("sift_score"),
+                sift_prediction=conseq.get("sift_prediction"),
+                polyphen_score=conseq.get("polyphen_score"),
+                polyphen_prediction=conseq.get("polyphen_prediction"),
             )
 
         return TranscriptContext(
@@ -381,6 +390,14 @@ class VEPJSONParser(ComponentBaseMixin):
             ccds=conseq.get("ccds"),
             distance=conseq.get("distance"),
             tssdistance=conseq.get("tssdistance"),
+            cdna_start=conseq.get("cdna_start"),
+            cdna_end=conseq.get("cdna_end"),
+            cds_start=conseq.get("cds_start"),
+            cds_end=conseq.get("cds_end"),
+            exon=conseq.get("exon"),
+            intron=conseq.get("intron"),
+            codons=conseq.get("codons"),
+            hgvsc=conseq.get("hgvsc"),
             gene=gene,
             protein=protein,
         )
