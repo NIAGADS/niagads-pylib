@@ -23,35 +23,42 @@ class TextSummaryGenerator(ComponentBaseMixin):
     def __init__(
         self,
         model: LLM = LLM.QWEN2_5_7B_INSTRUCT,
+        force_cpu: bool = False,
         debug: bool = False,
         verbose: bool = False,
         logger: Optional[logging.Logger] = None,
     ):
         super().__init__(debug=debug, verbose=verbose, logger=logger)
         self.__model = LLM(model)
-        self.__pipeline = self.__initialize_pipeline(self.__model)
+        self.__force_cpu = force_cpu
+        self.__pipeline = self.__initialize_pipeline()
         self.logger.debug(f"Initialized text summary generator: {self.__model}")
 
     def __repr__(self) -> str:
-        return f"TextSummaryGenerator(model={self.__model!r})"
+        return (
+            f"TextSummaryGenerator(model={self.__model!r}, "
+            f"force_cpu={self.__force_cpu!r})"
+        )
 
-    @staticmethod
     @lru_cache(maxsize=3)
-    def __initialize_pipeline(model: LLM):
+    def __initialize_pipeline(self):
         """
         Get or load a cached text-generation pipeline for summarization.
 
-        Args:
-            model (LLM): The summarization model to load.
 
         Returns:
             Pipeline: Cached Hugging Face text-generation pipeline.
         """
-        LLM.validate(model, NLPModelType.SUMMARIZATION)
+        LLM.validate(self.__model, NLPModelType.SUMMARIZATION)
+        pipeline_kwargs = {}
+        if self.__force_cpu:
+            pipeline_kwargs["device"] = -1
+
         return pipeline(
             task="text-generation",
-            model=str(model),
-            tokenizer=str(model),
+            model=str(self.__model),
+            tokenizer=str(self.__model),
+            **pipeline_kwargs,
         )
 
     def __build_prompt(self, prompt: SummaryPrompt) -> str:
