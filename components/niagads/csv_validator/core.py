@@ -166,8 +166,12 @@ class CSVTableValidator(CSVValidator):
     """
 
     def __init__(
-        self, file_name, schema, case_insensitive: bool = False, 
-        promote_error_cutoff: int = 5, debug: bool = False
+        self,
+        file_name,
+        schema,
+        case_insensitive: bool = False,
+        promote_error_cutoff: int = 5,
+        debug: bool = False,
     ):
         """
         Initialize CSVTableValidator.
@@ -300,52 +304,47 @@ class CSVTableValidator(CSVValidator):
         error_occurrences = defaultdict(list)
         validator = JSONValidator(None, self._schema, self._debug)
         validator.case_insensitive(enable=self._case_insensitive)
-        for row_index, row in enumerate(self._metadata, start = 1):
+        for row_index, row in enumerate(self._metadata, start=1):
             validator.set_json(row)
             validation_result = validator.run()
             if validation_result:
                 if fail_on_error:
                     validator.validation_error(
-                        validation_result, prefix="row " + xstr(row_index) + " - " + xstr(row)
+                        validation_result,
+                        prefix="row " + xstr(row_index) + " - " + xstr(row),
                     )
                 else:
+                    # expected error format: {property_name: msg}
                     for err in validation_result:
-                        err_key = json.dumps(err, sort_keys=True) if isinstance(err, dict) else err
+                        err_key = (
+                            json.dumps(err, sort_keys=True)
+                            if isinstance(err, dict)
+                            else err
+                        )
                         error_occurrences[err_key].append(row_index)
-                        
-        # isolate file level errors (missing fields, invalid fields, other systemic user errors) 
+
+        # isolate file level errors (missing fields, invalid fields, other systemic user errors)
         # that occur on every row from frequently recurring errors and row-level errors
         file_level_errors = []
-        row_level_errors = defaultdict(list)
         recurring_errors = []
+        row_specific_errors = defaultdict(list)
         num_rows = len(self._metadata)
-        for err, row_indices in error_occurrences.items():   
+        for err, row_indices in error_occurrences.items():
             err_repeat_count = len(row_indices)
+            json_err = json.loads(err)
             if err_repeat_count >= self._promote_error_cutoff:
                 if err_repeat_count == num_rows:
-                    file_level_errors.append(err)
+                    file_level_errors.append(json_err)
                 else:
-                    recurring_errors.append({err: row_indices})
+                    recurring_errors.append({**json_err, "rows": row_indices})
             else:
                 for row_index in row_indices:
-                    row_level_errors[row_index].append(err)
+                    row_specific_errors[row_index].append(json_err)
 
-        # assemble result
-        result = []
-        result.append({
-            "file": file_level_errors
-        })
-
-        result.append({
-            "recurring": recurring_errors
-        })
-
-        if row_level_errors:
-            result.append({
-                "row_level": dict(row_level_errors)
-            })
-        else:
-            result.append({
-                "row_level": []
-            })
-        return {"errors": result}  # empty array; all rows passed
+        return {
+            "errors": [
+                {"file": file_level_errors},
+                {"recurring": recurring_errors},
+                {"row_specific": row_specific_errors},
+            ]
+        }
