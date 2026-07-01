@@ -1,7 +1,7 @@
-import logging
 import json
 
 from csv import Sniffer, Dialect, Error as CSVError
+from niagads.common.core import ComponentBaseMixin
 from niagads.exceptions.core import FileFormatError
 from pandas import read_csv, DataFrame
 
@@ -9,7 +9,7 @@ from niagads.utils.dict import convert_str2numeric_values
 from niagads.utils.pandas import strip_df
 
 
-class CSVFileParser:
+class CSVFileParser(ComponentBaseMixin):
     """
     parser for CSV files; mainly to add the following functionality:
 
@@ -17,7 +17,14 @@ class CSVFileParser:
     * to_json (leveraging pandas)
     """
 
-    def __init__(self, file: str, sep: str = None, debug: bool = False):
+    def __init__(
+        self,
+        file: str,
+        sep: str = None,
+        debug: bool = False,
+        verbose: bool = False,
+        logger=None,
+    ):
         """
         init new CSVParser
 
@@ -26,8 +33,7 @@ class CSVFileParser:
             sep (str, optional): delimiter; if None will attempt to infer.  Defaults to None.
             debug (bool, optional): enable debug mode. Defaults to False.
         """
-        self._debug = debug
-        self.logger = logging.getLogger(__name__)
+        super().__init__(debug=debug, verbose=verbose, logger=logger)
         self.__file = file
         self.__sep = sep
         self.__na = None  # missing value string representation
@@ -96,7 +102,9 @@ class CSVFileParser:
                 return self.__sep
             else:
                 with open(self.__file, "r", encoding="utf-8", errors="ignore") as fh:
-                    dialect: Dialect = Sniffer().sniff(fh.read(bytes), delimiters=[",", "\t", ";", "|"])
+                    dialect: Dialect = Sniffer().sniff(
+                        fh.read(bytes), delimiters=[",", "\t", ";", "|"]
+                    )
                     fh.seek(0)
                     return dialect.delimiter
         except CSVError as err:
