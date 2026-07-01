@@ -280,7 +280,7 @@ class VEPJSONParser(ComponentBaseMixin):
                 if "_" in key:
                     source, pop = key.split("_")
                 else:
-                    pop = "global"
+                    pop = "genomes"
                 gnomad[pop] = value
             elif key in ESP_KEYS:
                 esp[key] = value
