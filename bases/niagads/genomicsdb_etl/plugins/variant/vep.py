@@ -532,9 +532,11 @@ class VEPAnnotationLoader(
             )
             set_clauses.append(f"functional_annotation = {self._json_to_jsonb(fa)}")
 
-            # allele_frequency
-            af = record.annotation.allele_frequency or {}
-            set_clauses.append(f"allele_frequency = {self._json_to_jsonb(af)}")
+            # allele_frequency - only update if new data exists
+            if record.annotation.allele_frequency:
+                af_new = self._json_to_jsonb(record.annotation.allele_frequency)
+                af_case = f"CASE WHEN allele_frequency IS NOT NULL THEN jsonb_build_object('ALFA', allele_frequency) || {af_new} ELSE {af_new} END"
+                set_clauses.append(f"allele_frequency = {af_case}")
 
             # functional_annotation_summary
             fas = record.functional_annotation_summary.model_dump(exclude_none=True)
@@ -614,10 +616,12 @@ class VEPAnnotationLoader(
             async with self.session_manager().raw_connection() as raw_conn:
                 for chunk in chunks:
                     sql_statements = self._build_batch_update_sql(chunk)
-                    self.logger.debug(
-                        f"{chunk[0].db_primary_key} // {chunk[0].annotation.chromosome}:{chunk[0].annotation.position}:{chunk[0].annotation.ref}:{chunk[0].annotation.alt}"
-                    )
-                    self.logger.critical(sql_statements[0])
+                    for index, stmt in enumerate(sql_statements):
+                        if "freq" in stmt:
+                            self.logger.debug(
+                                f"{chunk[index].db_primary_key} // {chunk[index].annotation.chromosome}:{chunk[index].annotation.position}:{chunk[index].annotation.ref}:{chunk[index].annotation.alt}"
+                            )
+                            self.logger.critical(sql_statements[index])
 
                     if not sql_statements:
                         continue
