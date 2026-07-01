@@ -32,6 +32,7 @@ from niagads.vep_json_parser.core import (
     VEPJSONParser,
 )
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import text
 
 
 class AnnotationSummary(BaseModel):
@@ -494,8 +495,9 @@ class VEPAnnotationLoader(
                     "summary_text"
                 ]
 
-        self._embedded_record_count += self._params.embedding_batch_size
-        self.logger.debug(f"Embedding {self._embedded_record_count} records.")
+        if self._verbose:
+            self._embedded_record_count += self._params.embedding_batch_size
+            self.logger.debug(f"Embedding {self._embedded_record_count} records.")
 
         return records
 
@@ -565,6 +567,17 @@ class VEPAnnotationLoader(
 
         return sql_statements
 
+    async def __bulk_update(self, session, sql_statements: list[str]):
+        # get raw connection through session to utilize its transaction management
+        if (
+            sql_statements
+        ):  # should always be true b/c we map and load missing before loading vep from the input vcf
+            conn = await session.connection()
+            raw = await conn.get_raw_connection()
+            driver_conn = raw.driver_connection
+            await driver_conn.execute(";".join(sql_statements))
+            self.inc_tx_count(Variant, ETLOperation.UPDATE, len(sql_statements))
+
     async def load(self, session, embedded_records: list[AnnotationRecord]):
         # sort by position
         sorted_records = sorted(
@@ -610,26 +623,12 @@ class VEPAnnotationLoader(
             f"Found {num_updateable_variants} existing variants to update"
         )
 
-        async with timer("Bulk updates", logger=self.logger):
-            chunks = chunker(embedded_records, 25000)
-
-            async with self.session_manager().raw_connection() as raw_conn:
-                for chunk in chunks:
-                    sql_statements = self._build_batch_update_sql(chunk)
-                    for index, stmt in enumerate(sql_statements):
-                        if "freq" in stmt:
-                            self.logger.debug(
-                                f"{chunk[index].db_primary_key} // {chunk[index].annotation.chromosome}:{chunk[index].annotation.position}:{chunk[index].annotation.ref}:{chunk[index].annotation.alt}"
-                            )
-                            self.logger.critical(sql_statements[index])
-
-                    if not sql_statements:
-                        continue
-
-                    for sql in sql_statements:
-                        await raw_conn.execute(sql)
-
-                    self.inc_tx_count(Variant, ETLOperation.UPDATE, len(sql_statements))
+        chunk_size = 10000
+        chunks = chunker(embedded_records, chunk_size)
+        for chunk in chunks:
+            sql_statements = self._build_batch_update_sql(chunk)
+            await self.__bulk_update(session, sql_statements)
+            self.logger.critical(self.get_record_id(embedded_records[-1].annotation))
 
         return self.create_checkpoint(record=embedded_records[-1].annotation)
 
