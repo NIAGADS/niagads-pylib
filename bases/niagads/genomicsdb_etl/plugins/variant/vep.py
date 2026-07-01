@@ -307,7 +307,7 @@ class VEPAnnotationLoader(
 
         return sorted(biotypes)
 
-    def __coding_change_phrases(feature: TranscriptContext) -> list[str] | None:
+    def __coding_change_phrases(self, feature: TranscriptContext) -> list[str] | None:
         phrases = []
 
         if feature.codons:
@@ -504,6 +504,11 @@ class VEPAnnotationLoader(
         json_str = json.dumps(value).replace("'", "''")
         return f"'{json_str}'::jsonb"
 
+    def _list_to_vector(self, value: list) -> str:
+        """Convert list to SQL vector literal string."""
+        json_str = json.dumps(value).replace("'", "''")
+        return f"'{json_str}'::vector"
+
     def _build_batch_update_sql(self, chunk: list[AnnotationRecord]) -> list[str]:
         """Build individual UPDATE statements for chunk."""
         sql_statements = []
@@ -542,10 +547,13 @@ class VEPAnnotationLoader(
             set_clauses.append(f"embedding_hash = '\\x{hex_str}'::bytea")
 
             # embedding
-            set_clauses.append(f"embedding = {self._json_to_jsonb(record.embedding)}")
+            set_clauses.append(f"embedding = {self._list_to_vector(record.embedding)}")
 
             # embedding_run_id
             set_clauses.append(f"embedding_run_id = {self.run_id}")
+
+            # is annotated flag
+            set_clauses.append("is_annotated = TRUE")
 
             set_clauses.append("modification_date = NOW()")
             set_clause = ", ".join(set_clauses)
@@ -606,6 +614,9 @@ class VEPAnnotationLoader(
             async with self.session_manager().raw_connection() as raw_conn:
                 for chunk in chunks:
                     sql_statements = self._build_batch_update_sql(chunk)
+                    self.logger.debug(
+                        f"{chunk[0].db_primary_key} // {chunk[0].annotation.chromosome}:{chunk[0].annotation.position}:{chunk[0].annotation.ref}:{chunk[0].annotation.alt}"
+                    )
                     self.logger.critical(sql_statements[0])
 
                     if not sql_statements:
