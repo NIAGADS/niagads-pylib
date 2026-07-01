@@ -1,6 +1,7 @@
 import json
 from typing import Iterator, Optional
 
+from niagads.common.models.base import SerializationOptions
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.etl.plugins.base import AbstractBasePlugin
@@ -13,7 +14,6 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-from niagads.exceptions.core import ParserError
 from niagads.genome_reference.human import HumanGenome
 from niagads.genomicsdb_etl.plugins.variant.base import (
     VariantLookupBlock,
@@ -36,7 +36,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class AnnotationSummary(BaseModel):
     summary_text: Optional[str] = None
-    embedded_text: list[str]
+    embedded_text: str
 
 
 class AnnotationRecord(BaseModel, arbitrary_types_allowed=True):
@@ -47,7 +47,7 @@ class AnnotationRecord(BaseModel, arbitrary_types_allowed=True):
     summary_text: Optional[str] = None
     chromosome: HumanGenome
     position: int  # for sorting and lookups
-    db_primary_key: Optional[int]
+    db_primary_key: Optional[int] = None
 
 
 class VEPAnnotationLoaderParams(
@@ -55,10 +55,16 @@ class VEPAnnotationLoaderParams(
 ):
     file: str = Field(description="Path to VEP JSON file")
     summarization_model: Optional[LLM] = Field(
-        default=LLM.BART_LARGE_CNN,
+        default=LLM.MISTRAL_7B_INSTRUCT_V0_3,
         description="LLM model for generating textual summaries of the VEP annotation",
     )
     validate_file_exists = PathValidatorMixin.validator("file")
+    skip_summarization: Optional[bool] = Field(
+        default=False, description="skip summarization"
+    )
+    summarization_only: Optional[bool] = Field(
+        default=False, description="summarization only"
+    )
 
     @field_validator("summarization_model")
     @classmethod
@@ -90,37 +96,52 @@ class VEPAnnotationLoader(
     def __init__(self, params, name=None, log_path=None, debug=False, verbose=False):
         super().__init__(params, name, log_path, debug, verbose)
         self._summary_generator: Optional[TextSummaryGenerator] = None
-        self.__processed_record_count = 0
+
+        if self._params.summarization_only:
+            raise NotImplementedError("Summarization Only Run not yet implemented")
 
     async def on_run_start(self, session):
         await EmbeddingGeneratorContextMixin.on_run_start(self, session)
 
-        self._summary_generator = TextSummaryGenerator(
-            model=self._params.summarization_model,
-            debug=self._debug,
-            verbose=self._verbose,
-            logger=self.logger,
-        )
+        if not self._params.skip_summarization:
+            self._summary_generator = TextSummaryGenerator(
+                model=self._params.summarization_model,
+                debug=self._debug,
+                verbose=self._verbose,
+                logger=self.logger,
+            )
 
     def extract(self) -> Iterator[VariantVEPAnnotationEntry]:
-        parser = VEPJSONParser()
+        parser = VEPJSONParser(logger=self.logger)
+        batch = []
         with read_open_ctx(self._params.file) as fh:
             line: str
-            for line_num, line in enumerate(fh):
+            for line_num, line in enumerate(fh, start=1):
+                self.logger.debug(f"{line_num} - ENTRY: {json.loads(line.rstrip())}")
                 try:
                     allele_annotations: dict[str, VariantVEPAnnotationEntry] = (
                         parser.parse(line.rstrip())
                     )
-                except Exception as err:
-                    raise ParserError(f"Error parsing line {line_num} - {line}: {err}")
+                except:
+                    raise RuntimeError(f"Error parsing line {line_num}")
 
-                batch = []
+                self.logger.debug(
+                    [
+                        v.model_dump(
+                            context={SerializationOptions.ENUMS_AS_VALUE: True}
+                        )
+                        for v in allele_annotations.values()
+                    ]
+                )
+
                 for annotation in allele_annotations.values():
                     batch.append(annotation)
                     if len(batch) == self._params.embedding_batch_size:
                         yield batch
-                # yield residuals
-                yield batch
+                        batch = []
+        # yield residuals
+        if batch:
+            yield batch
 
     def __tss_distance_phrases(self, tssdistance: int | None) -> list[str]:
         if tssdistance is None:
@@ -296,7 +317,7 @@ class VEPAnnotationLoader(
 
         if consequence.is_coding is True:
             phrases.append("Coding consequence.")
-            phrases.append(self.__coding_change_phrases(transcript))
+            phrases.extend(self.__coding_change_phrases(transcript))
 
         elif consequence.is_coding is False:
             phrases.append("Noncoding consequence.")
@@ -313,7 +334,7 @@ class VEPAnnotationLoader(
             phrases.append("Protein consequence.")
 
             if protein.id:
-                phrases.append(f"Protein {protein.id}.")
+                phrases.append(f"Protein ID {protein.id}.")
 
         phrases.extend(self.__tss_distance_phrases(transcript.tssdistance))
         phrases.extend(self.__gene_distance_phrases(transcript.distance))
@@ -419,12 +440,9 @@ class VEPAnnotationLoader(
 
         chunk_text = "\n".join(annotation_phrases)
 
-        if self._verbose:
-            self.logger.debug(f"Chunk Text: {chunk_text}")
-
         return AnnotationRecord(
             annotation=entry,
-            annotation_summary=AnnotationSummary(embedded_text=chunk_text),
+            functional_annotation_summary=AnnotationSummary(embedded_text=chunk_text),
             embedding_hash=self._embedding_generator.hash_text(chunk_text),
             chromosome=entry.chromosome,
             position=entry.position,
@@ -433,35 +451,36 @@ class VEPAnnotationLoader(
     async def transform(self, entries: list[VariantVEPAnnotationEntry]):
         records: list[AnnotationRecord] = []
         text = []
+        summary_prompts = []
         for entry in entries:
             annotation_record: AnnotationRecord = self.__generate_embedding_text(entry)
 
             records.append(annotation_record)
-            text.append(annotation_record.functional_annotation_summary)
+            embedded_text = (
+                annotation_record.functional_annotation_summary.embedded_text
+            )
+            text.append(embedded_text)
+            summary_prompts.append(self.__build_summary_prompt(embedded_text))
 
-        embeddings = self._embedding_generator.generate(text, as_list=False)
-
-        summary_prompts = [
-            self.__build_summary_prompt(record.functional_annotation_summary)
-            for record in records
-        ]
-        summaries = self._summary_generator.generate_json(
-            summary_prompts, max_new_tokens=160
-        )
+        async with timer("Embeddings and Summaries", logger=self.logger):
+            embeddings = self._embedding_generator.generate(text, as_list=False)
+            if not self._params.skip_summarization:
+                summaries = self._summary_generator.generate_json(
+                    summary_prompts, max_new_tokens=160
+                )
 
         record: AnnotationRecord
         for index, record in enumerate(records):
             record.embedding = embeddings[index].tolist()
-            record.functional_annotation_summary.summary_text = summaries[index][
-                "summary_text"
-            ]
+            if not self._params.skip_summarization:
+                record.functional_annotation_summary.summary_text = summaries[index][
+                    "summary_text"
+                ]
 
-            self.logger.critical(f"Embedded Record: {record.model_dump()}")
-
-        self.__processed_record_count += self._params.embedding_batch_size
-        self.logger.info(
-            f"Calculated embeddings for {self.__processed_record_count} annotations."
-        )
+            if record.annotation.allele_frequency is not None:
+                self.logger.critical(
+                    f"Embedded Record: {record.model_dump(context={SerializationOptions.ENUMS_AS_VALUE: True})}"
+                )
 
         return records
 
@@ -483,12 +502,14 @@ class VEPAnnotationLoader(
 
             # most_severe_consequence
             msc = record.annotation.most_severe_consequence.model_dump(
-                exclude_none=True
+                exclude_none=True, context={SerializationOptions.ENUMS_AS_VALUE: True}
             )
             set_clauses.append(f"most_severe_consequence = {self._json_to_jsonb(msc)}")
 
             # functional_annotation
-            fa = record.annotation.predicted_annotations.model_dump(exclude_none=True)
+            fa = record.annotation.predicted_annotations.model_dump(
+                exclude_none=True, context={SerializationOptions.ENUMS_AS_VALUE: True}
+            )
             set_clauses.append(f"functional_annotation = {self._json_to_jsonb(fa)}")
 
             # allele_frequency

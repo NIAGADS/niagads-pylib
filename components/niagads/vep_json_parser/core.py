@@ -3,16 +3,13 @@ utils for parsing and manipulating the JSON output of [Ensembl's Variant
 Effect Predictor (VEP) software](https://useast.ensembl.org/info/docs/tools/vep/index.html)
 """
 
-import logging
-
-from operator import itemgetter
-from copy import deepcopy
+import json
 from typing import Optional, Union
 
 from niagads.common.core import ComponentBaseMixin
+from niagads.common.models.base import CustomBaseModel
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome_reference.human import HumanGenome
-from niagads.utils.string import xstr
 from niagads.utils.list import is_overlapping_list, qw
 from niagads.vcf.types import VCFEntry
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -42,32 +39,33 @@ EXCLUDED_ANNOTATION_FIELDS = [
 
 
 class ConsequenceType(CaseInsensitiveEnum):
-    TRANSCRIPT = "transcript_consequences"
-    REGULATORY_FEATURE = "regulatory_feature_consequences"
-    MOTIF_FEATURE = "motif_feature_consequences"
-    INTERGENIC = "intergenic_consequences"
+    TRANSCRIPT = "transcript"
+    REGULATORY_FEATURE = "regulatory_feature"
+    MOTIF_FEATURE = "motif_feature"
+    INTERGENIC = "intergenic"
 
 
-class MotifFeature(BaseModel):
+class MotifFeature(CustomBaseModel):
     id: str
     motif_name: str
     motif_pos: int
     motif_score_chang: float
 
 
-class RegulatoryFeature(BaseModel):
+class RegulatoryFeature(CustomBaseModel):
     id: str
     biotype: str
 
 
-class GeneContext(BaseModel):
+class GeneContext(CustomBaseModel):
     id: str
-    gene_symbol: str
+    gene_symbol: Optional[str] = None
     biotype: str
     loftool: Optional[float] = None
+    gene_pheno: Optional[bool] = None
 
 
-class ProteinContext(BaseModel):
+class ProteinContext(CustomBaseModel):
     id: str
 
     trembl: Optional[list[str]] = None
@@ -84,7 +82,7 @@ class ProteinContext(BaseModel):
     polyphen_prediction: Optional[str] = None
 
 
-class TranscriptContext(BaseModel):
+class TranscriptContext(CustomBaseModel):
     id: str
 
     canonical: Optional[bool] = None
@@ -113,7 +111,7 @@ class TranscriptContext(BaseModel):
     protein: Optional[ProteinContext] = None
 
 
-class Consequence(BaseModel):
+class Consequence(CustomBaseModel):
     consequence_type: ConsequenceType
     consequence_terms: list[str]
     impact: str
@@ -124,12 +122,12 @@ class Consequence(BaseModel):
     flags: Optional[list[str]] = None
 
 
-class PredictedAnnotation(BaseModel):
+class PredictedAnnotation(CustomBaseModel):
     predictor_scores: Optional[dict] = None
-    predicted_consequences: dict[ConsequenceType, list[Consequence]]
+    predicted_consequences: dict[str, list[Consequence]]
 
 
-class VariantVEPAnnotationEntry(BaseModel):
+class VariantVEPAnnotationEntry(CustomBaseModel):
     positional_id: str
     chromosome: HumanGenome
     position: int
@@ -141,7 +139,7 @@ class VariantVEPAnnotationEntry(BaseModel):
     predicted_annotations: Optional[PredictedAnnotation] = None
 
 
-class VEPEntry:
+class VEPEntry(BaseModel):
     id: str
     seq_region_name: str
     start: int
@@ -173,7 +171,11 @@ class VEPJSONParser(ComponentBaseMixin):
     def __init__(self, debug=False, verbose=False, initialize_logger=True, logger=None):
         super().__init__(debug, verbose, initialize_logger, logger)
 
-    def parse(self, vep_json: dict):
+    def parse(self, vep_output: Union[dict, str]):
+        vep_json = (
+            vep_output if isinstance(vep_output, dict) else json.loads(vep_output)
+        )
+
         raw_annotation = VEPEntry(**vep_json)
         chromosome = raw_annotation.input.chrom
         position = raw_annotation.input.pos
@@ -203,8 +205,7 @@ class VEPJSONParser(ComponentBaseMixin):
             if allele_annotation.predicted_annotations is not None:
                 allele_annotation.most_severe_consequence = (
                     self.__extract_most_severe_consequence(
-                        allele_annotation.predicted_annotations.predicted_consequences,
-                        alt,
+                        allele_annotation.predicted_annotations.predicted_consequences
                     )
                 )
             else:
@@ -216,7 +217,7 @@ class VEPJSONParser(ComponentBaseMixin):
             variant_annotations[alt] = allele_annotation
         return variant_annotations
 
-    def __is_coding_consequence(conseqs):
+    def __is_coding_consequence(self, conseqs):
         """returns True if any consequence term is a `CODING CONSEQUENCE`"""
         conseq_list = conseqs.split(",") if isinstance(conseqs, str) else conseqs
         return is_overlapping_list(conseq_list, CODING_CONSEQUENCES)
@@ -250,7 +251,7 @@ class VEPJSONParser(ComponentBaseMixin):
                 }
         ]
         """
-        allele_freqs = None
+
         for variant in colocated_variants:
             if variant["allele_string"] == "COSMIC_MUTATION":
                 continue
@@ -259,6 +260,7 @@ class VEPJSONParser(ComponentBaseMixin):
                 # positional check is to weed out incorrectly matched normalized/overlapping variants
                 return self.__organize_allele_frequencies(allele_freqs)
                 # the same allele may occur in another colocated variant, but the freqs will be the same
+        return None
 
     def __organize_allele_frequencies(self, frequencies: dict):
         """group frequencies by data source"""
@@ -271,15 +273,21 @@ class VEPJSONParser(ComponentBaseMixin):
 
         key: str
         for key, value in frequencies.items():
+            if value == 0:
+                continue
+
             if "gnomad" in key:
-                source, pop = key.split("_")
+                if "_" in key:
+                    source, pop = key.split("_")
+                else:
+                    pop = "global"
                 gnomad[pop] = value
             elif key in ESP_KEYS:
                 esp[key] = value
             else:
                 genomes[key] = value
 
-        return {
+        result = {
             k: v
             for k, v in [
                 ("GnomAD", gnomad),
@@ -288,14 +296,18 @@ class VEPJSONParser(ComponentBaseMixin):
             ]
             if v
         }
+        return result if result else None
 
     def __extract_predicted_annotations(self, entry: VEPEntry, allele: str):
-        consequence_types = ConsequenceType.list()
+        consequence_types: list[ConsequenceType] = [
+            ConsequenceType(c) for c in ConsequenceType.list()
+        ]
         predicted_consequences: dict[ConsequenceType, list[Consequence]] = {}
         predictor_scores = {}
 
         for ctype in consequence_types:
-            raw_consequences = getattr(entry, ctype.value, None)
+            conseq_array_name = f"{ctype.value}_consequences"
+            raw_consequences = getattr(entry, conseq_array_name, None)
             if raw_consequences is None:
                 continue
 
@@ -325,18 +337,19 @@ class VEPJSONParser(ComponentBaseMixin):
                     feature = self.__build_motif_feature(raw_conseq)
 
                 # Create Consequence object
-                consequence_terms = [
-                    term.replace("_", " ") for term in raw_conseq["consequence_terms"]
-                ]
+
                 is_coding = (
-                    self.__is_coding_consequence(consequence_terms)
+                    self.__is_coding_consequence(raw_conseq["consequence_terms"])
                     if ctype == ConsequenceType.TRANSCRIPT
                     else None
                 )
 
                 consequence = Consequence(
                     consequence_type=ctype,
-                    consequence_terms=consequence_terms,
+                    consequence_terms=[
+                        term.replace("_", " ")
+                        for term in raw_conseq["consequence_terms"]
+                    ],
                     impact=raw_conseq["impact"],
                     is_coding=is_coding,
                     hgvsg=raw_conseq.get("hgvsg"),
@@ -346,7 +359,7 @@ class VEPJSONParser(ComponentBaseMixin):
                 consequence_objs.append(consequence)
 
             if consequence_objs:
-                predicted_consequences[ctype] = consequence_objs
+                predicted_consequences[conseq_array_name] = consequence_objs
 
         return (
             PredictedAnnotation(
@@ -361,8 +374,9 @@ class VEPJSONParser(ComponentBaseMixin):
         gene = GeneContext(
             id=conseq["gene_id"],
             gene_symbol=conseq.get("gene_symbol"),
-            biotype=conseq["biotype"],
+            biotype=conseq["biotype"].replace("_", " "),
             loftool=conseq.get("loftool"),
+            gene_pheno=True if bool(conseq.get("gene_pheno", 0)) else None,
         )
 
         protein = None
@@ -407,7 +421,7 @@ class VEPJSONParser(ComponentBaseMixin):
     def __build_regulatory_feature(self, conseq: dict):
         return RegulatoryFeature(
             id=conseq["regulatory_feature_id"],
-            biotype=conseq["biotype"],
+            biotype=conseq["biotype"].replace("_", " "),
         )
 
     def __build_motif_feature(self, conseq: dict):
@@ -432,7 +446,7 @@ class VEPJSONParser(ComponentBaseMixin):
         Returns:
             First Consequence object found, or None if no consequences exist.
         """
-        consequence_types = ConsequenceType.list()
+        consequence_types = [f"{ct}_consequences" for ct in ConsequenceType.list()]
         for ctype in consequence_types:
             ctype_consequences = conseqs.get(ctype, None)
             if ctype_consequences is not None:
