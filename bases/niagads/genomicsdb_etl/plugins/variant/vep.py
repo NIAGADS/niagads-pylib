@@ -65,6 +65,9 @@ class VEPAnnotationLoaderParams(
     summarization_only: Optional[bool] = Field(
         default=False, description="summarization only"
     )
+    summarization_force_cpu: Optional[bool] = Field(
+        default=False, description="force CPU use for summarization"
+    )
 
     @field_validator("summarization_model")
     @classmethod
@@ -96,6 +99,7 @@ class VEPAnnotationLoader(
     def __init__(self, params, name=None, log_path=None, debug=False, verbose=False):
         super().__init__(params, name, log_path, debug, verbose)
         self._summary_generator: Optional[TextSummaryGenerator] = None
+        self._embedded_record_count = 0
 
         if self._params.summarization_only:
             raise NotImplementedError("Summarization Only Run not yet implemented")
@@ -104,10 +108,20 @@ class VEPAnnotationLoader(
         await EmbeddingGeneratorContextMixin.on_run_start(self, session)
 
         if not self._params.skip_summarization:
+            force_cpu = self._params.summarization_force_cpu
+            model = (
+                LLM.QWEN2_5_1_5B_INSTRUCT
+                if self._params.summarization_model == LLM.MISTRAL_7B_INSTRUCT_V0_3
+                and force_cpu
+                else LLM(self._params.summarization_model)
+            )
+            if model != self._params.summarization_model:
+                self.logger.warning(f"Using alternative summarization model: {model}")
             self._summary_generator = TextSummaryGenerator(
                 model=self._params.summarization_model,
                 debug=self._debug,
                 verbose=self._verbose,
+                force_cpu=force_cpu,
                 logger=self.logger,
             )
 
@@ -117,22 +131,25 @@ class VEPAnnotationLoader(
         with read_open_ctx(self._params.file) as fh:
             line: str
             for line_num, line in enumerate(fh, start=1):
-                self.logger.debug(f"{line_num} - ENTRY: {json.loads(line.rstrip())}")
                 try:
                     allele_annotations: dict[str, VariantVEPAnnotationEntry] = (
                         parser.parse(line.rstrip())
                     )
                 except:
-                    raise RuntimeError(f"Error parsing line {line_num}")
+                    raise RuntimeError(f"Error parsing line {line_num}: {line}")
 
-                self.logger.debug(
-                    [
-                        v.model_dump(
-                            context={SerializationOptions.ENUMS_AS_VALUE: True}
-                        )
-                        for v in allele_annotations.values()
-                    ]
-                )
+                # if "regulatory_feature_consequences" in line:
+                #     self.logger.debug(
+                #         f"{line_num} - ENTRY: {json.loads(line.rstrip())}"
+                #     )
+                #     self.logger.debug("\n-----")
+                #     for v in allele_annotations.values():
+                #         self.logger.debug(
+                #             v.model_dump(
+                #                 context={SerializationOptions.ENUMS_AS_VALUE: True}
+                #             )
+                #         )
+                #         self.logger.debug("\n-----")
 
                 for annotation in allele_annotations.values():
                     batch.append(annotation)
@@ -276,7 +293,7 @@ class VEPAnnotationLoader(
 
         regulatory_consequences = (
             entry.predicted_annotations.predicted_consequences.get(
-                ConsequenceType.REGULATORY_FEATURE
+                f"{ConsequenceType.REGULATORY_FEATURE.value}_consequences"
             )
         )
         if regulatory_consequences is None:
@@ -459,15 +476,15 @@ class VEPAnnotationLoader(
             embedded_text = (
                 annotation_record.functional_annotation_summary.embedded_text
             )
+
             text.append(embedded_text)
             summary_prompts.append(self.__build_summary_prompt(embedded_text))
 
-        async with timer("Embeddings and Summaries", logger=self.logger):
-            embeddings = self._embedding_generator.generate(text, as_list=False)
-            if not self._params.skip_summarization:
-                summaries = self._summary_generator.generate_json(
-                    summary_prompts, max_new_tokens=160
-                )
+        embeddings = self._embedding_generator.generate(text, as_list=False)
+        if not self._params.skip_summarization:
+            summaries = self._summary_generator.generate_json(
+                summary_prompts, max_new_tokens=160
+            )
 
         record: AnnotationRecord
         for index, record in enumerate(records):
@@ -477,10 +494,8 @@ class VEPAnnotationLoader(
                     "summary_text"
                 ]
 
-            if record.annotation.allele_frequency is not None:
-                self.logger.critical(
-                    f"Embedded Record: {record.model_dump(context={SerializationOptions.ENUMS_AS_VALUE: True})}"
-                )
+        self._embedded_record_count += self._params.embedding_batch_size
+        self.logger.debug(f"Embedding {self._embedded_record_count} records.")
 
         return records
 
@@ -591,7 +606,7 @@ class VEPAnnotationLoader(
             async with self.session_manager().raw_connection() as raw_conn:
                 for chunk in chunks:
                     sql_statements = self._build_batch_update_sql(chunk)
-                    # self.logger.critical(sql_statements[0])
+                    self.logger.critical(sql_statements[0])
 
                     if not sql_statements:
                         continue
