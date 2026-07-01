@@ -537,7 +537,7 @@ class VEPAnnotationLoader(
             # allele_frequency - only update if new data exists
             if record.annotation.allele_frequency:
                 af_new = self._json_to_jsonb(record.annotation.allele_frequency)
-                af_case = f"CASE WHEN allele_frequency IS NOT NULL THEN jsonb_build_object('ALFA', allele_frequency) || {af_new} ELSE {af_new} END"
+                af_case = f"CASE WHEN allele_frequency IS NOT NULL AND allele_frequency ? 'ALFA' THEN allele_frequency || {af_new} WHEN allele_frequency IS NOT NULL THEN jsonb_build_object('ALFA', allele_frequency) || {af_new} ELSE {af_new} END"
                 set_clauses.append(f"allele_frequency = {af_case}")
 
             # functional_annotation_summary
