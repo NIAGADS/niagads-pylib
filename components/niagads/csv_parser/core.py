@@ -23,7 +23,7 @@ for record in parser:
 
 import json
 
-from csv import Sniffer, Dialect, Error as CSVError
+from csv import Sniffer, Error as CSVError
 from typing import Optional
 from niagads.exceptions.core import FileFormatError
 from niagads.flatfile.base import AbstractFlatfileParser
@@ -138,6 +138,8 @@ class CSVFileParser(AbstractFlatfileParser):
                         Sniffer().sniff(sample, delimiters=[",", "\t"]).delimiter
                     )
 
+                # so repeated calls don't have to sniff again
+                self.__delimiter = delimiter
                 return delimiter
 
         except CSVError as err:
