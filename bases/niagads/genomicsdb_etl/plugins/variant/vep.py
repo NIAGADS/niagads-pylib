@@ -587,7 +587,6 @@ class VEPAnnotationLoader(
         lookup_blocks: list[VariantLookupBlock] = self._get_lookup_blocks(
             sorted_records, max_span=100000
         )
-
         num_updateable_variants = 0
 
         for block in lookup_blocks:
@@ -619,18 +618,16 @@ class VEPAnnotationLoader(
                     record.db_primary_key = primary_key
                     num_updateable_variants += 1
 
-        self.logger.debug(
-            f"Found {num_updateable_variants} existing variants to update"
-        )
-
-        chunk_size = 10000
+        chunk_size = 5000  # 25000 slows down, 5000-10000 same rate, going w/smaller because of parallel
         chunks = chunker(embedded_records, chunk_size)
         for chunk in chunks:
             sql_statements = self._build_batch_update_sql(chunk)
-            await self.__bulk_update(session, sql_statements)
-            self.logger.critical(self.get_record_id(embedded_records[-1].annotation))
+            async with timer(
+                f"Bulk update w/chunk size={chunk_size}", logger=self.logger
+            ):
+                await self.__bulk_update(session, sql_statements)
 
-        return self.create_checkpoint(record=embedded_records[-1].annotation)
+        return self.create_checkpoint(record=embedded_records[-1])
 
     def get_record_id(self, record: AnnotationRecord):
         return f"{record.annotation.chromosome}:{record.annotation.position}:{record.annotation.ref}:{record.annotation.alt} / {record.db_primary_key}"
