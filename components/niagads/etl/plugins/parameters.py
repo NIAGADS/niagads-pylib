@@ -128,6 +128,9 @@ class EmbeddingParameterMixin:
     embedding_batch_size: Optional[int] = Field(
         default=128, description="batch size for calculating embeddings"
     )
+    embedding_force_cpu: Optional[bool] = Field(
+        default=False, description="force CPU use for calculating embeddings"
+    )
 
     @field_validator("embedding_model")
     @classmethod
