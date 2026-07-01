@@ -32,6 +32,8 @@ from pandas import read_csv, DataFrame
 from niagads.utils.dict import convert_str2numeric_values
 from niagads.utils.pandas import strip_df
 
+LIST_DELIMITERS = ["|", "/", ";", "="]
+
 
 class CSVFileParser(AbstractFlatfileParser):
     """
@@ -121,20 +123,34 @@ class CSVFileParser(AbstractFlatfileParser):
         Raises:
             FileFormatError: If the delimiter cannot be determined.
         """
+        invalid_delimiter = None
         try:
-            if self.__delimiter is None:
-                with self.open_ctx() as fh:
-                    dialect: Dialect = Sniffer().sniff(fh.read(bytes))
-                    fh.seek(0)
-                    self.__delimiter = dialect.delimiter
+            if self.__delimiter is not None:
                 return self.__delimiter
+            else:
+                with open(self._file, "r", encoding="utf-8", errors="ignore") as fh:
+                    sample = fh.read(bytes)
+
+                delimiter: str = Sniffer().sniff(sample).delimiter
+                if delimiter in LIST_DELIMITERS or delimiter.isalnum():
+                    invalid_delimiter = delimiter
+                    delimiter = (
+                        Sniffer().sniff(sample, delimiters=[",", "\t"]).delimiter
+                    )
+
+                return delimiter
+
         except CSVError as err:
             if bytes < 4096:  # try a larger section of the file
                 return self.sniff(bytes=4096)
+            if invalid_delimiter is not None:
+                raise FileFormatError(
+                    f"Invalid delimiter detected: {invalid_delimiter!r}."
+                )
             raise FileFormatError(
                 "Unable to determine file delimiter."
                 "File may have inconsistent numbers of columns, sparse data, "
-                "or use inconsistent or non-standard delimiters. "
+                "or use inconsistent delimiters."
             ) from err
 
     def to_pandas_df(self, transpose=False, **kwargs) -> DataFrame:
