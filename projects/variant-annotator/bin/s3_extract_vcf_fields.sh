@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Downloads VCF files from S3 and extracts fields 1-9 to .vcf files (ignoring sample data)
+# Downloads VCF files from S3 and extracts fields 1-8 to .vcf files (ignoring sample data)
 # Usage: extract_vcf_fields.sh <s3_path> <extension> [parallel_jobs]
 
 set -euo pipefail
@@ -21,7 +21,7 @@ process_file() {
     local name=$(basename "$file" | sed "s/\.$ext$//")
     name="${name//:/_}"
     local tmp=$(mktemp -p .)
-    aws s3 cp --no-progress "s3://$s3_bucket/$file" - | pigz -dc | cut -f1-9 > "$name"
+    aws s3 cp --no-progress "s3://$s3_bucket/$file" - | pigz -dc | cut -f1-8 > "$name"
     echo "$name" >> "$logfile"
 }
 

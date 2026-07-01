@@ -46,8 +46,8 @@ class PipelineRunner:
             manager.only = args.only
         if args.skip:
             manager.skip = args.skip
-        if args.resume_at:
-            manager.resume_point = args.resume_at
+        if args.resume_after:
+            manager.resume_point = args.resume_after
         if args.resume_checkpoint:
             manager.checkpoint = args.resume_checkpoint
 

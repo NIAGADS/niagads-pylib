@@ -85,7 +85,7 @@ class Variant(AbridgedVariant):
     allele_string: Optional[str] = Field(default=None, title="Allele String")
 
     is_structural_variant: bool = Field(
-        default=False,
+        default=None,
         title="Is SV?",
         description="flag indicating whether the variant is a structural variant",
     )
