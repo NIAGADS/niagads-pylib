@@ -5,17 +5,7 @@ from niagads.utils.string import to_json
 from pydantic import BaseModel
 import cyvcf2 as cyvcf
 
-VCF_HEADER_FIELDS = [
-    "chrom",
-    "pos",
-    "id",
-    "ref",
-    "alt",
-    "qual",
-    "filter",
-    "info",
-    "format",
-]
+VCF_HEADER_FIELDS = ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"]
 
 
 class VCFEntry(BaseModel):
@@ -24,10 +14,9 @@ class VCFEntry(BaseModel):
     id: str
     ref: str
     alt: Union[list, str] = "."  # for structural variants
-    qual: str = "."
+    qual: Union[str | int] = "."
     filter: str = "."
     info: Union[dict, str] = "."
-    format: str = "."
 
     @staticmethod
     def format_dict(obj: dict, skip: List[str] = []):
