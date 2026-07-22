@@ -345,9 +345,9 @@ class CSVTableValidator(CSVValidator):
                     row_specific_errors[row_index].append(json_err)
 
         return {
-            "errors": [
-                {"file": file_level_errors},
-                {"recurring": recurring_errors},
-                {"row_specific": row_specific_errors},
-            ]
+            "errors": {
+                "file": file_level_errors,
+                "recurring": recurring_errors,
+                "row_specific": row_specific_errors,
+            }
         }
