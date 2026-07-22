@@ -75,7 +75,7 @@ class ChromosomeMapLoader(AbstractBasePlugin):
         Yields:
             Dictionary with chromosome name and length
         """
-        parser = CSVFileParser(file=self._params.file, header=False)
+        parser = CSVFileParser(file=self._params.file, header=False, logger=self.logger)
         parser.header_fields(["chr", "length"])
         for row in parser:
             if row["chr"] == "chrMT":

@@ -23,7 +23,7 @@ for record in parser:
 
 import json
 
-from csv import Sniffer, Dialect, Error as CSVError
+from csv import Sniffer, Error as CSVError
 from typing import Optional
 from niagads.exceptions.core import FileFormatError
 from niagads.flatfile.base import AbstractFlatfileParser
@@ -31,6 +31,8 @@ from pandas import read_csv, DataFrame
 
 from niagads.utils.dict import convert_str2numeric_values
 from niagads.utils.pandas import strip_df
+
+LIST_DELIMITERS = ["|", "/", ";", "="]
 
 
 class CSVFileParser(AbstractFlatfileParser):
@@ -57,8 +59,11 @@ class CSVFileParser(AbstractFlatfileParser):
         encoding="utf-8",
         debug: bool = False,
         verbose: bool = False,
+        logger=None,
     ):
-        super().__init__(file, encoding=encoding, debug=debug, verbose=verbose)
+        super().__init__(
+            file, encoding=encoding, debug=debug, verbose=verbose, logger=logger
+        )
 
         self.__delimiter = delimiter
         self.__na = None  # missing value string representation
@@ -94,16 +99,16 @@ class CSVFileParser(AbstractFlatfileParser):
         """
 
         # orient='records' returns indexes; e.g. [index: {row data}] so need to extract the values
-        jsonStr = self.to_pandas_df(transpose, **kwargs).to_json(orient="records")
+        json_str = self.to_pandas_df(transpose, **kwargs).to_json(orient="records")
 
         # convert strings to numeric so can do typing validation
-        jsonObj = json.loads(jsonStr)
-        if isinstance(jsonObj, list):
-            jsonObj = [convert_str2numeric_values(r) for r in json.loads(jsonStr)]
+        json_obj = json.loads(json_str)
+        if isinstance(json_obj, list):
+            json_obj = [convert_str2numeric_values(r) for r in json.loads(json_str)]
         else:
-            jsonObj = convert_str2numeric_values(jsonObj)
+            json_obj = convert_str2numeric_values(json_obj)
 
-        return json.dumps(jsonObj) if return_str else json.loads(jsonStr)
+        return json.dumps(json_obj) if return_str else json.loads(json_str)
 
     def sniff(self, bytes: int = 1024):
         """
@@ -118,20 +123,36 @@ class CSVFileParser(AbstractFlatfileParser):
         Raises:
             FileFormatError: If the delimiter cannot be determined.
         """
+        invalid_delimiter = None
         try:
-            if self.__delimiter is None:
-                with self.open_ctx() as fh:
-                    dialect: Dialect = Sniffer().sniff(fh.read(bytes))
-                    fh.seek(0)
-                    self.__delimiter = dialect.delimiter
+            if self.__delimiter is not None:
                 return self.__delimiter
+            else:
+                with open(self._file, "r", encoding="utf-8", errors="ignore") as fh:
+                    sample = fh.read(bytes)
+
+                delimiter: str = Sniffer().sniff(sample).delimiter
+                if delimiter in LIST_DELIMITERS or delimiter.isalnum():
+                    invalid_delimiter = delimiter
+                    delimiter = (
+                        Sniffer().sniff(sample, delimiters=[",", "\t"]).delimiter
+                    )
+
+                # so repeated calls don't have to sniff again
+                self.__delimiter = delimiter
+                return delimiter
+
         except CSVError as err:
             if bytes < 4096:  # try a larger section of the file
                 return self.sniff(bytes=4096)
+            if invalid_delimiter is not None:
+                raise FileFormatError(
+                    f"Invalid delimiter detected: {invalid_delimiter!r}."
+                )
             raise FileFormatError(
                 "Unable to determine file delimiter."
                 "File may have inconsistent numbers of columns, sparse data, "
-                "or use inconsistent or non-standard delimiters. "
+                "or use inconsistent delimiters."
             ) from err
 
     def to_pandas_df(self, transpose=False, **kwargs) -> DataFrame:
