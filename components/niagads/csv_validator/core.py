@@ -331,7 +331,10 @@ class CSVTableValidator(CSVValidator):
         num_rows = len(self._metadata)
         for err, row_indices in error_occurrences.items():
             err_repeat_count = len(row_indices)
-            json_err = json.loads(err)
+            try:
+                json_err = json.loads(err)
+            except:
+                json_err = err
             if err_repeat_count >= self._promote_error_cutoff:
                 if err_repeat_count == num_rows:
                     file_level_errors.append(json_err)
