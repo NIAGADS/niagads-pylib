@@ -2,7 +2,6 @@
 **/dist
 !/projects/open-access-api/dist/
 !/projects/metadata-builder/dist/
-!/projects/niagads-metadata-validator/dist/
 
 # ai
 .codex
