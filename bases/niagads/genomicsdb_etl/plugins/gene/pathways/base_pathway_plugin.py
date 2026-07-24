@@ -197,9 +197,9 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
                 )
 
             if self._verbose:
-                #changed assoc.pathway_id to assoc.pathway_info
+                #changed assoc.pathway_id to assoc.pathway_info.pathway_id
                 self.logger.debug(
-                    f"Submitting pathway memberships for {assoc.pathway_info} "
+                    f"Submitting pathway memberships for {assoc.pathway_info.pathway_id} "
                     f"(pathway_pk={pathway_pk}, records={len(memberships)})"
                 )
 
