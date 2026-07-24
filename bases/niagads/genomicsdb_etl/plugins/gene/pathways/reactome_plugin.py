@@ -124,27 +124,30 @@ class ReactomeLoaderPlugin(PathwayMembershipLoaderPlugin):
         duplicate_pair = set() #to track the pathway_id,gene_id pairs
         duplicates_removed = 0
         pathway_map = {}
+        
         for record in data:
             pair = (record.pathway_id, record.gene_id)
+            
             if pair not in duplicate_pair:
                 duplicate_pair.add(pair) 
-            pathway_id = record.pathway_id
-            if pathway_id not in pathway_map:
-                pathway_map[pathway_id] = PathwayGeneAssociations(
-                    pathway_info=PathwayInfo(
-                        pathway_id=record.pathway_id,
-                        pathway_name=record.pathway_name,
-                    ),
-                    member_genes=[],
+                pathway_id = record.pathway_id
+            
+                if pathway_id not in pathway_map:
+                    pathway_map[pathway_id] = PathwayGeneAssociations(
+                        pathway_info=PathwayInfo(
+                            pathway_id=record.pathway_id,
+                            pathway_name=record.pathway_name,
+                        ),
+                        member_genes=[],
+                    )
+                pathway_map[pathway_id].member_genes.append(
+                    MembershipAnnotation(
+                        gene_id=record.gene_id,
+                        #TODO: Include evidence code if needed
+                    )
                 )
-            pathway_map[pathway_id].member_genes.append(
-                MembershipAnnotation(
-                    gene_id=record.gene_id,
-                    #TODO: Include evidence code if needed
-                )
-            )
-        else: 
-            duplicates_removed += 1
+            else: 
+                duplicates_removed += 1
 
         transformed = list(pathway_map.values())
         self.logger.info(f"Transformation complete with {len(transformed)} records and {duplicates_removed} duplicates removed.")
