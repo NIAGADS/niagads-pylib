@@ -6,6 +6,13 @@ Keep routes simple while splitting the current route helper stack into clearer l
 
 Routes should still call one endpoint-facing service. They should not need to pass around many helper objects.
 
+## Implementation and Planning Rules & Guidelines
+
+    - respect existing code patterns especially for encapsulation (private v protected members).  
+    - no added bloat.  do not add wrappers, getters, setters, etc that were not in the original design without asking or giving good justification beyond boilerplate.  
+    - keep answers short, brief.  I dont' need to be taught.  
+    - only do what I ask do not go further and anticiapte needs and use cases that don't exist
+
 ## Core Naming
 
 - `RouteHelperService` -> `EndpointService`
