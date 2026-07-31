@@ -197,10 +197,10 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
                 )
 
             if not memberships:
-                self.logger.debug(
-                    f"Pathway {pathway_pk}:{assoc.pathway_info.pathway_id}"
-                )
-                self.logger.critical(f"Genes: {assoc.member_genes}")
+                # TODO: log that all member genes (provide count) for the pathway (pathway_id) do not map database
+                # FIXME: should technically not load empty pathway in pathway table, but need to think about how to
+                # roll back just that one entry - possibly keep list and delete from db in on_run_complete
+                continue
 
             if self._verbose:
                 # changed assoc.pathway_id to assoc.pathway_info.pathway_id
