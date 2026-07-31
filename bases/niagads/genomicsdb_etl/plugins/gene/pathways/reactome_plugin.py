@@ -1,31 +1,32 @@
 """
-Updated Reactome Plugin Code
+Reactome Plugin Code
 """
-"""
-TODOs:
 
-* remove bad (not unused, but bad) imports
-* clean up the logging statements, review them and make sure info, vs debug, vs "verbose"
-   * add a temporary critical logging statement in extract to make sure dataframe header is as expected
-* remove unused imports
-* review w/EGA and identify places to streamline / polish
-"""
-from typing import List
+from typing import Dict, List
+
 from niagads.common.types import ETLOperation
 from niagads.csv_parser.core import CSVFileParser
 from niagads.database.genomicsdb.schema.gene.annotation import PathwayMembership
+from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType
 from niagads.database.genomicsdb.schema.reference.pathway import Pathway
+from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-from niagads.genomicsdb_etl.plugins.gene.pathways.base_pathway_plugin import PathwayMembershipLoaderPlugin, PathwayMembershipLoaderPluginParams
-from niagads.genomicsdb_etl.plugins.gene.pathways.types import MembershipAnnotation, PathwayGeneAssociations, PathwayInfo
+from niagads.genomicsdb_etl.plugins.gene.pathways.base_pathway_plugin import (
+    PathwayMembershipLoaderPlugin,
+    PathwayMembershipLoaderPluginParams,
+)
+from niagads.genomicsdb_etl.plugins.gene.pathways.types import (
+    MembershipAnnotation,
+    PathwayGeneAssociations,
+    PathwayInfo,
+)
 from pydantic import BaseModel, Field, field_validator
-from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType
 
 # Removed unused imports and bad imports
 # Removed sqlalchemy.exc imports and other unused imports
+
 
 class ReactomeEntry(BaseModel):
     gene_id: str
@@ -68,6 +69,7 @@ class ReactomeLoaderParams(PathwayMembershipLoaderPluginParams):
 
         return file_name
 
+
 metadata = PluginMetadata(
     version="1.0",
     description=("ETL Plugin to load REACTOME pathway data from file."),
@@ -76,7 +78,8 @@ metadata = PluginMetadata(
     operation=ETLOperation.INSERT,
     is_large_dataset=False,
     parameter_model=ReactomeLoaderParams,
-    )
+)
+
 
 @PluginRegistry.register(metadata=metadata)
 class ReactomeLoaderPlugin(PathwayMembershipLoaderPlugin):
@@ -86,33 +89,44 @@ class ReactomeLoaderPlugin(PathwayMembershipLoaderPlugin):
 
     _params: ReactomeLoaderParams
 
-
     def extract(self):
         """
         Extract Reactome data from file.
         """
         self.logger.info(f"Parsing Reactome file: {self._params.file}")
         parser = CSVFileParser(self._params.file)
-        df = parser.to_pandas_df(names=ReactomeEntry.column_names(),header=None,delimiter="\t")
-        self.logger.info(f"File loaded with {len(df)} rows and {len(df.columns)} columns")
-       
+        df = parser.to_pandas_df(
+            names=ReactomeEntry.column_names(), header=None, delimiter="\t"
+        )
+        self.logger.info(
+            f"File loaded with {len(df)} rows and {len(df.columns)} columns"
+        )
 
         filtered_df = df[df["species"] == "Homo sapiens"]
-        filtered_df = filtered_df[filtered_df["gene_id"].str.startswith("ENSG", na=False)]
+        filtered_df = filtered_df[
+            filtered_df["gene_id"].str.startswith("ENSG", na=False)
+        ]
 
         if self._verbose:
             exact = int(filtered_df.duplicated(keep=False).sum())
             pair = int(
-                filtered_df.duplicated(subset=["pathway_id", "gene_id"], keep=False).sum()
+                filtered_df.duplicated(
+                    subset=["pathway_id", "gene_id"], keep=False
+                ).sum()
             )
             # are there exact duplicate rows and are there pathway/gene repeats with different annotations?
             self.logger.debug("Reactome has exact duplicate rows: %s", exact > 0)
             self.logger.debug(
-                "Reactome has pathway/gene repeats with differing annotations: %s", (pair - exact) > 0
+                "Reactome has pathway/gene repeats with differing annotations: %s",
+                (pair - exact) > 0,
             )
 
-        self.logger.info(f"Data extraction complete with {len(filtered_df)} filtered rows")
-        return [ReactomeEntry(**entry) for entry in filtered_df.to_dict(orient="records")]
+        self.logger.info(
+            f"Data extraction complete with {len(filtered_df)} filtered rows"
+        )
+        return [
+            ReactomeEntry(**entry) for entry in filtered_df.to_dict(orient="records")
+        ]
 
     async def transform(
         self, data: list[ReactomeEntry]
@@ -121,17 +135,17 @@ class ReactomeLoaderPlugin(PathwayMembershipLoaderPlugin):
         Transforms the list of ReactomeEntries into a list of PathwayGeneAssociations.
         """
         self.logger.info(f"Starting transformation with {len(data)} input rows")
-        duplicate_pair = set() #to track the pathway_id,gene_id pairs
+        duplicate_pair = set()  # to track the pathway_id,gene_id pairs
         duplicates_removed = 0
-        pathway_map = {}
-        
+        pathway_map: Dict[str, PathwayGeneAssociations] = {}
+
         for record in data:
             pair = (record.pathway_id, record.gene_id)
-            
+
             if pair not in duplicate_pair:
-                duplicate_pair.add(pair) 
+                duplicate_pair.add(pair)
                 pathway_id = record.pathway_id
-            
+
                 if pathway_id not in pathway_map:
                     pathway_map[pathway_id] = PathwayGeneAssociations(
                         pathway_info=PathwayInfo(
@@ -143,19 +157,21 @@ class ReactomeLoaderPlugin(PathwayMembershipLoaderPlugin):
                 pathway_map[pathway_id].member_genes.append(
                     MembershipAnnotation(
                         gene_id=record.gene_id,
-                        #TODO: Include evidence code if needed
+                        # TODO: Include evidence code if needed
                     )
                 )
-            else: 
+            else:
                 duplicates_removed += 1
 
         transformed = list(pathway_map.values())
-        self.logger.info(f"Transformation complete with {len(transformed)} records and {duplicates_removed} duplicates removed.")
+        self.logger.info(
+            f"Transformation complete with {len(transformed)} records and {duplicates_removed} duplicates removed."
+        )
         return transformed
 
     async def load(self, session, transformed: List[PathwayGeneAssociations]):
         """
-        Load transformed records into the database.    """
+        Load transformed records into the database."""
         checkpoint = await self._load_pathway_membership(
             session, transformed, GeneIdentifierType.ENSEMBL
         )
@@ -165,4 +181,4 @@ class ReactomeLoaderPlugin(PathwayMembershipLoaderPlugin):
         """
         Get unique identifier for a record.
         """
-        return f"{record.pathway_info.pathway_id}:{record.genes[0].gene_id}"
+        return f"{record.pathway_info.pathway_id}:{record.member_genes[0].gene_id}"
