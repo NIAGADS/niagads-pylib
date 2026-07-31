@@ -196,8 +196,14 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
                     )
                 )
 
+            if not memberships:
+                self.logger.debug(
+                    f"Pathway {pathway_pk}:{assoc.pathway_info.pathway_id}"
+                )
+                self.logger.critical(f"Genes: {assoc.member_genes}")
+
             if self._verbose:
-                #changed assoc.pathway_id to assoc.pathway_info.pathway_id
+                # changed assoc.pathway_id to assoc.pathway_info.pathway_id
                 self.logger.debug(
                     f"Submitting pathway memberships for {assoc.pathway_info.pathway_id} "
                     f"(pathway_pk={pathway_pk}, records={len(memberships)})"
