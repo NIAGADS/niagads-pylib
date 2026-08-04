@@ -591,7 +591,7 @@ class VEPAnnotationLoader(
 
         for block in lookup_blocks:
             reference_variants = await self._retrieve_variants_in_span(
-                session, block.region
+                session, block.region, incl_is_annotated_flag=True
             )
 
             for record in sorted_records[block.start_idx : block.end_idx]:
@@ -600,7 +600,8 @@ class VEPAnnotationLoader(
                     record.annotation.ref,
                     record.annotation.alt,
                 )
-                primary_key = reference_variants.get(variant_key)
+                primary_key = reference_variants.get(variant_key)["id"]
+                is_annotated = reference_variants.get(variant_key)["is_annotated"]
 
                 if primary_key is None:
                     # if SNV switch alleles and try again (trust INDEL directions)

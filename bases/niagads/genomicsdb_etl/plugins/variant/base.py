@@ -105,6 +105,7 @@ class VariantLookupMixin:
         session: AsyncSession,
         region: OneBasedGenomicRegion,
         incl_adsp_flag: bool = False,
+        incl_is_annotated_flag: bool = False,
     ):
         """
         Retrieve all variants in the specified genomic region
@@ -120,6 +121,7 @@ class VariantLookupMixin:
             Variant.ref_allele,
             Variant.alt_allele,
             Variant.is_adsp_variant,
+            Variant.is_annotated,
         ).where(
             Variant.chromosome == str(region.chromosome),
             Variant.position.between(region.start, region.end),
@@ -130,6 +132,14 @@ class VariantLookupMixin:
                 (row.position, row.ref_allele, row.alt_allele): {
                     "id": row.variant_id,
                     "is_adsp_variant": row.is_adsp_variant,
+                }
+                for row in result
+            }
+        if incl_is_annotated_flag:
+            return {
+                (row.position, row.ref_allele, row.alt_allele): {
+                    "id": row.variant_id,
+                    "is_annotated": row.is_annotated,
                 }
                 for row in result
             }
