@@ -78,6 +78,8 @@ class OntologyTerm(CustomBaseModel):
             return cls(term=values)
 
         for field, v in values.items():
+            if isinstance(values, list):
+                continue  # synonyms, probably
             if v is not None and not isinstance(v, bool):
                 if field == "curie":
                     values[field] = str(v).replace("_", ":")
