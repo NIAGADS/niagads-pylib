@@ -4,12 +4,7 @@ WITH annotations AS (
         g.gene_id,
         gt.source_id AS term_id,
         gt.term,
-        UPPER(
-    array_to_string(
-        ARRAY(
-            SELECT LEFT(word, 1)
-            FROM UNNEST(string_to_array(gt.namespace, '_')) AS word
-        ), '')) AS aspect,
+        gt.namespace AS aspect,
         (
             SELECT value
             FROM unnest(eco.synonyms) AS value
@@ -32,10 +27,10 @@ WITH annotations AS (
 terms AS (
 SELECT
     gene_id,
+    aspect,
     jsonb_build_object(
         'term_id', term_id,
         'term', term,
-        'aspect', aspect,
         'evidence',
         jsonb_agg(DISTINCT evidence_code)
             FILTER (WHERE evidence_code IS NOT NULL)
@@ -43,7 +38,14 @@ SELECT
 FROM annotations
 GROUP BY gene_id, term_id, term, aspect),
 goassociations AS (
-SELECT gene_id, jsonb_agg(term) 
+SELECT 
+gene_id, jsonb_agg(aspect_terms) AS goa
+FROM (SELECT
+gene_id, 
+aspect,
+jsonb_build_object(aspect, jsonb_agg(term)) as aspect_terms
 FROM 
-terms GROUP BY gene_id)
-SELECT * FROM goassociations;
+terms
+GROUP BY gene_id, aspect) g
+GROUP BY gene_id)
+SELECT * FROM goassociations
