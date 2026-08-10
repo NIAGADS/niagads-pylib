@@ -8,20 +8,15 @@ from niagads.common.reference.ontologies.types import (
     EntityTypeIRI,
     RDFPropertyIRI,
 )
+from niagads.ontology_parsers.rdf import RDFParser
 from rdflib import BNode, Graph, Literal, URIRef
 
 
-class OWLParser(ComponentBaseMixin):
+class OWLParser(RDFParser):
     def __init__(
         self, owl_file: str, logger=None, debug: bool = False, verbose: bool = False
     ):
-        super().__init__(debug=debug, verbose=verbose)
-        if logger is not None:
-            self.logger = logger
-        self._graph = Graph()
-        if self._verbose:
-            self.logger.info("Parsing Ontology Graph")
-        self._graph.parse(owl_file, format="xml")
+        super().__init__(file=owl_file, logger=logger, debug=debug, verbose=verbose)
 
     def __resolve_entity_type(self, node) -> EntityTypeIRI:
         assigned_types = [
