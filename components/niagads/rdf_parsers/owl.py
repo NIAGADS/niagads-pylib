@@ -1,6 +1,5 @@
 from typing import Iterator
 
-from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.helpers import get_field_iri
 from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.reference.ontologies.types import (
@@ -8,15 +7,17 @@ from niagads.common.reference.ontologies.types import (
     EntityTypeIRI,
     RDFPropertyIRI,
 )
-from niagads.ontology_parsers.rdf import RDFParser
-from rdflib import BNode, Graph, Literal, URIRef
+from niagads.rdf_parsers.rdf import RDFParser
+from rdflib import BNode, Literal, URIRef
 
 
 class OWLParser(RDFParser):
     def __init__(
         self, owl_file: str, logger=None, debug: bool = False, verbose: bool = False
     ):
-        super().__init__(file=owl_file, logger=logger, debug=debug, verbose=verbose)
+        super().__init__(
+            file=owl_file, format="xml", logger=logger, debug=debug, verbose=verbose
+        )
 
     def __resolve_entity_type(self, node) -> EntityTypeIRI:
         assigned_types = [

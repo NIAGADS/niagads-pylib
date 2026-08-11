@@ -30,7 +30,7 @@ from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
-from niagads.ontology_parsers import OWLParser
+from niagads.rdf_parsers import OWLParser
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import NoResultFound
 
