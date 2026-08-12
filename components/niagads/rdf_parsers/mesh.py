@@ -24,7 +24,7 @@ class MeSHParser(NTriplesParser):
 
     # self._namespace.TopicalDescriptor
 
-    def extract_descriptors(self) -> Iterator[dict]:
+    def extract_topical_descriptors(self) -> Iterator[dict]:
         """q"""
         pass
 

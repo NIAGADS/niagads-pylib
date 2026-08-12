@@ -249,3 +249,119 @@ The plugin is the right place to know about:
 - [MeSH RDF descriptors](https://hhs.github.io/meshrdf/descriptors)
 - [MeSH RDF concepts](https://hhs.github.io/meshrdf/concepts)
 - [MeSH RDF terms](https://hhs.github.io/meshrdf/terms)
+
+```python
+from collections.abc import Iterator
+from pathlib import Path
+
+from pydantic import BaseModel, Field
+from rdflib import Graph, Namespace, RDF, RDFS
+
+MESHV = Namespace("http://id.nlm.nih.gov/mesh/vocab#")
+
+
+class MeshTerm(BaseModel):
+    iri: str
+    identifier: str
+    label: str
+    alt_labels: list[str] = Field(default_factory=list)
+
+
+class MeshConcept(BaseModel):
+    iri: str
+    identifier: str
+    label: str
+    preferred_term: str
+    scope_note: str | None
+    terms: list[MeshTerm]
+
+
+class MeshTopicalDescriptor(BaseModel):
+    iri: str
+    identifier: str
+    label: str
+    preferred_concept: str
+    tree_numbers: list[str]
+```
+
+```python
+class MeshParser:
+    def __init__(self, mesh_file: str | Path):
+        self.graph = Graph()
+        self.graph.parse(mesh_file, format="nt")
+
+    def extract_descriptors(
+        self,
+    ) -> Iterator[MeshTopicalDescriptor]:
+        for descriptor in self.graph.subjects(
+            RDF.type, MESHV.TopicalDescriptor
+        ):
+            yield MeshTopicalDescriptor(
+                iri=str(descriptor),
+                identifier=str(
+                    self.graph.value(descriptor, MESHV.identifier)
+                ),
+                label=str(
+                    self.graph.value(descriptor, RDFS.label)
+                ),
+                preferred_concept=str(
+                    self.graph.value(
+                        descriptor, MESHV.preferredConcept
+                    )
+                ),
+                tree_numbers=[
+                    str(self.graph.value(tree_number, RDFS.label))
+                    for tree_number in self.graph.objects(
+                        descriptor, MESHV.treeNumber
+                    )
+                ],
+            )
+
+    def extract_concepts(self) -> Iterator[MeshConcept]:
+        for concept in self.graph.subjects(
+            RDF.type, MESHV.Concept
+        ):
+            yield MeshConcept(
+                iri=str(concept),
+                identifier=str(
+                    self.graph.value(concept, MESHV.identifier)
+                ),
+                label=str(
+                    self.graph.value(concept, RDFS.label)
+                ),
+                preferred_term=str(
+                    self.graph.value(concept, MESHV.preferredTerm)
+                ),
+                scope_note=next(
+                    (
+                        str(note)
+                        for note in self.graph.objects(
+                            concept, MESHV.scopeNote
+                        )
+                    ),
+                    None,
+                ),
+                terms=[
+                    MeshTerm(
+                        iri=str(term),
+                        identifier=str(
+                            self.graph.value(
+                                term, MESHV.identifier
+                            )
+                        ),
+                        label=str(
+                            self.graph.value(term, RDFS.label)
+                        ),
+                        alt_labels=[
+                            str(label)
+                            for label in self.graph.objects(
+                                term, MESHV.altLabel
+                            )
+                        ],
+                    )
+                    for term in self.graph.objects(
+                        concept, MESHV.term
+                    )
+                ],
+            )
+```
