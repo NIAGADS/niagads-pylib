@@ -51,10 +51,10 @@ class BasePluginParams(BaseModel):
 
     @staticmethod
     def log_validation_errors(validation_error: ValidationError, logger) -> str:
-        errors = [f"--{e['loc'][0]} - {e["msg"]}" for e in validation_error.errors()]
+        errors = [f"--{e['loc'][0]} - {e['msg']}" for e in validation_error.errors()]
         logger.warning("Invalid parameter values found:")
         for e in validation_error.errors():
-            logger.warning(f"--{e['loc'][0]}: {e["msg"]}")
+            logger.warning(f"--{e['loc'][0]}: {e['msg']}")
         logger.exception("Failed to initializing plugin.")
 
 

@@ -84,7 +84,7 @@ class ShardCollectionLoader(AbstractBasePlugin):
             )
             if track.collection_name not in records:
                 collection_key = f"SHARD_GROUP_{
-                    hashlib.sha512(track.collection_name.encode("utf-8"))
+                    hashlib.sha512(track.collection_name.encode('utf-8'))
                     .hexdigest()[:6]
                     .upper()}"
 
