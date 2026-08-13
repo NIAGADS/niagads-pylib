@@ -27,21 +27,15 @@ class FILERClientService:
     def __init__(self, session):
         self.__session: ClientSession = session
 
-    def __map_genome_build(self, assembly: GenomeBuild):
-        """return genome build value FILER expects"""
-        return assembly.hg_label()
-
     def __build_request_params(self, parameters: dict):
         """map request params to format expected by FILER"""
         requestParams = {"outputFormat": "json"}
 
-        if "genome_build" in parameters:
-            requestParams["genomeBuild"] = self.__map_genome_build(
-                parameters["genome_build"]
-            )
+        genome_build: GenomeBuild = parameters.get("genome_build", GenomeBuild.GRCh38)
+        requestParams["genomeBuild"] = genome_build.hg_label()
 
         if "track" in parameters:
-            # key = "trackIDs" if ',' in params['track_id'] else "trackID"
+            # FIXME: not sure about this -> key = "trackIDs" if ',' in params['track_id'] else "trackID"
             requestParams["trackIDs"] = parameters["track"]
 
         if "span" in parameters:
@@ -69,9 +63,8 @@ class FILERClientService:
         self, span: str, assembly: str, tracks: List[str]
     ) -> List[TrackResultMetrics]:
         # TODO: new FILER endpoint, count overlaps for specific track ID?
-        if (
-            len(tracks) <= 3
-        ):  # for now, probably faster to retrieve the data and count, but may depend on span
+        # for now, probably faster to retrieve the data and count, but may depend on span
+        if len(tracks) <= 3:
             response = await self.__fetch(
                 FILERApiEndpoint.OVERLAPS, {"track": ",".join(tracks), "span": span}
             )

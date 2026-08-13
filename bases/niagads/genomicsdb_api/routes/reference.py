@@ -55,3 +55,12 @@ async def get_content():
 )
 async def get_views():
     pass
+
+
+@router.get(
+    "/ontology-terms",
+    summary="get-ontology-terms",
+    description="Exact match searches against ontology terms and synoynms",
+)
+async def query_track_data():
+    pass
