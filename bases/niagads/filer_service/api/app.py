@@ -1,10 +1,9 @@
+import uvicorn
 from niagads.api.common.app.factory import AppFactory
-
 from niagads.filer_service.api.documentation import APP_NAMESPACE, OPEN_API_SPEC
-from niagads.settings.core import get_service_environment
-
-from niagads.filer_service.api.routes.root import router as StatusRouter
 from niagads.filer_service.api.routes.records.track import router as TrackRecordRouter
+from niagads.filer_service.api.routes.root import router as StatusRouter
+from niagads.settings.core import get_service_environment
 
 # generate the app
 app_factory = AppFactory(
