@@ -1,7 +1,7 @@
 from typing import Union
 from fastapi import APIRouter, Depends, Query
-from niagads.filer_service.api.dependencies import FILEREndpointRequestParameters
-from niagads.filer_service.api.services.route import FILEREndpointService
+from niagads.filer_api.dependencies import FILEREndpointRequestParameters
+from niagads.filer_api.services.route import FILEREndpointService
 
 from niagads.api.common.models.domain.parameters.entity import collection_id
 from niagads.api.common.models.domain.parameters.response.content import (

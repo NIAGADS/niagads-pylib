@@ -19,14 +19,14 @@ from niagads.api.common.services.route import (
     ResponseConfiguration,
 )
 
-from niagads.filer_service.api.dependencies import FILEREndpointRequestParameters
-from niagads.filer_service.api.services.pagination import (
+from niagads.filer_api.dependencies import FILEREndpointRequestParameters
+from niagads.filer_api.services.pagination import (
     FILERTrackDataPaginationService,
 )
 from niagads.exceptions.core import ValidationError
 from niagads.common.genomic.features.models import GenomicFeature, GenomicFeatureType
 from niagads.database.genomicsdb.schema.dataset.track import Track
-from niagads.filer_service.api.services.client import (
+from niagads.filer_api.services.client import (
     FILERClientService,
     FILERApiDataResponse,
     FILERApiEndpoint,
@@ -46,6 +46,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
         responseConfig: ResponseConfiguration,
         params: RequestParameters,
     ):
+
         super().__init__(
             managers, responseConfig, params, track_database=TrackDatabase.FILER
         )

@@ -32,8 +32,8 @@ from niagads.api.common.services.route import (
     RequestParameters,
     ResponseConfiguration,
 )
-from niagads.filer_service.api.dependencies import FILEREndpointRequestParameters
-from niagads.filer_service.api.services.route import FILEREndpointService
+from niagads.filer_api.dependencies import FILEREndpointRequestParameters
+from niagads.filer_api.services.route import FILEREndpointService
 
 router = APIRouter(
     prefix="/record/track",

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Union
+from typing import Any, Dict, Type, Union
 
 from niagads.api.common.constants import DEFAULT_PAGE_SIZE
 from niagads.api.common.models.domain.parameters.internal import (
@@ -65,12 +65,12 @@ class EndpointService:
         managers: InternalRequestParameters,
         response_config: ResponseConfiguration,
         params: RequestParameters,
-        page_size: int = DEFAULT_PAGE_SIZE,
+        pagination_service: Type[PaginationService],
     ):
         self._managers: InternalRequestParameters = managers
         self._response_config: ResponseConfiguration = response_config
         self._parameters: RequestParameters = params
-        self._pagination_service = PaginationService(params, page_size=page_size)
+        self._pagination_service = pagination_service
         self._messages: list[Union[str, dict]] = []
 
     @property

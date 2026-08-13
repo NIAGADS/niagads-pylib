@@ -33,7 +33,7 @@
 			"request": "launch",
 			"module": "uvicorn",
 			"args": [
-				"niagads.filer_service.api.app:app",
+				"niagads.filer_api.app:app",
 				"--reload",
 				"--env-file",
 				"${workspaceFolder}/../env_files/filer.env"

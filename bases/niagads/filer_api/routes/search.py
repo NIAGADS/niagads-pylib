@@ -27,11 +27,11 @@ from niagads.api.common.services.route import (
     ResponseConfiguration,
 )
 from niagads.exceptions.core import ValidationError
-from niagads.filer_service.api.dependencies import (
+from niagads.filer_api.dependencies import (
     TEXT_FILTER_PARAMETER,
     FILEREndpointRequestParameters,
 )
-from niagads.filer_service.api.services.route import FILEREndpointService
+from niagads.filer_api.services.route import FILEREndpointService
 
 router = APIRouter(
     prefix="/search",
