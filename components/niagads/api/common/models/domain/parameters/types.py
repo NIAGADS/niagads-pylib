@@ -5,8 +5,8 @@ from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError
 
 
-class ResponseContent(CaseInsensitiveEnum):
-    """enum for allowable response types"""
+class ResponseView(CaseInsensitiveEnum):
+    """enum for allowable response views"""
 
     FULL = auto()
     BRIEF = auto()
@@ -22,7 +22,7 @@ class ResponseFormat(CaseInsensitiveEnum):
     TEXT = auto()
 
 
-class ResponseView(CaseInsensitiveEnum):
+class ResponseLayout(CaseInsensitiveEnum):
     TABLE = auto()
     IGV_CONFIG = auto()
     IGV_TRACK_SELECTOR = auto()
