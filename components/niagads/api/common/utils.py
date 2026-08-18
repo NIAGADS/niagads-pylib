@@ -1,18 +1,22 @@
 import nh3
 
 
-def sanitize(htmlStr: str) -> str:
+def sanitize(html_str: str) -> str:
     """
     ammonia sanitization that turns a string into unformatted HTML.
     used to sanitize incoming API query and path arguments
 
     Args:
-        htmlStr (str): string to be cleaned
+        html_str (str): string to be cleaned
 
     Returns:
         str: cleaned string
     """
-    if htmlStr is not None:
-        return nh3.clean_text(htmlStr.strip())
+    if html_str is not None:
+        return nh3.clean_text(html_str.strip())
 
-    return htmlStr
+    return html_str
+
+
+def get_none():  # for placeholder dependency injection
+    return None
