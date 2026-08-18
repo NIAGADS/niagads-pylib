@@ -1,12 +1,12 @@
 from typing import List, Union
 
-from niagads.api.common.models.entities.genes.gene import (
+from niagads.api.common.models.entities.gene.records import (
     AnnotatedGene,
     Gene,
     GeneAnnotation,
     GeneDescriptor,
 )
-from niagads.api.common.models.response.base import DataResponse
+from niagads.api.common.models.responses.data import DataResponse
 
 
 class GeneResponse(DataResponse):

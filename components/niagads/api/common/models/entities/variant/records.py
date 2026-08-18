@@ -1,13 +1,9 @@
 from typing import List, Optional, Union
 
-from niagads.api.common.models.data.mixins import ORMCompatabileMixin
-from niagads.common.genomic.regions.models import GenomicRegion
+from niagads.api.common.models.records.base import ORMCompatibleRecord
+from niagads.api.common.models.records.mixins import DynamicMixin, ORMCompatabileMixin
 from niagads.common.models.base import CustomBaseModel
-from niagads.common.variant.models.annotations import (
-    CADDScore,
-    PredictedConsequenceSummary,
-    QCStatus,
-)
+from niagads.common.variant.models.annotations import PredictedConsequenceSummary
 from niagads.common.variant.models.record import VariantIdentifier, VariantRecord
 from pydantic import Field, field_validator
 
@@ -73,31 +69,3 @@ class AnnotatedVariant(AnnotatedVariantBrief):
 
 
 class VariantAnnotation(ORMCompatibleRecord, DynamicMixin): ...
-
-
-# TODO: come back to this
-# class ColocatedVariants(CustomBaseModel):
-#    alternative_alleles: Optional[List[str]] = None
-#    colocated_variants: Optional[List[str]] = None
-
-
-class VariantAnnotationResponse(BaseResponseModel):
-    data: Union[
-        List[ColocatedVariants],
-        List[VariantFunction],
-        List[AlleleFrequencies],
-        List[CustomBaseModel],
-    ]
-
-
-class AbridgedVariantResponse(BaseResponseModel):
-    data: List[VariantOld]
-
-
-class VariantResponse(BaseResponseModel):
-    data: List[AnnotatedVariant]
-
-    def to_text(self, incl_header=False, null_str=""):
-        raise NotImplementedError(
-            "TEXT formatted output not available for a FULL variant response; set `content=brief` to get a plain text table."
-        )

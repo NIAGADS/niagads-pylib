@@ -6,7 +6,7 @@ FIXME: remove front end rendering and place in configuration JSON
 from enum import StrEnum, auto
 from typing import Any, Dict, List, Optional, Union
 
-from niagads.api.common.models.response.base import BaseResponseModel
+from niagads.api.common.models.responses.base import BaseResponseModel
 from pydantic import BaseModel, ConfigDict, model_serializer
 
 
@@ -78,5 +78,6 @@ class Table(BaseModel):
     columns: List[TableColumn]
 
 
-class TableViewResponse(BaseResponseModel):
+# FIXME: does not belong here
+class TableLayoutResponse(BaseResponseModel):
     table: Union[Table, dict]

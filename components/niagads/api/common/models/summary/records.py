@@ -6,18 +6,18 @@ from niagads.common.types import T_PubMedID
 from pydantic import Field
 
 
-class EntityMetrics(CustomBaseModel):
+class EntityCounts(CustomBaseModel):
     entity: Entity
     num_records: int
 
 
-class RouteDescriptor(CustomBaseModel):
+class APISummray(CustomBaseModel):
     name: str = Field(..., description="Route name.")
     description: str = Field(..., description="Short description of the route.")
     publications: Optional[Set[T_PubMedID]] = Field(
         None, description="Set of PubMed IDs for supporting publications."
     )
     url: str = Field(..., description="URL for the route.")
-    records: List[EntityMetrics] = Field(
+    records: List[EntityCounts] = Field(
         ..., description="List of entity record statistics for this route."
     )

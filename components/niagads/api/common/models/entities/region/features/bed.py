@@ -1,11 +1,11 @@
 from typing import Any, Optional, Union
 
-from niagads.api.common.models.records.base import DynamicRecordModel
+from niagads.api.common.models.records.base import DynamicRecord
 from niagads.utils.string import dict_to_info_string, xstr
 from pydantic import Field
 
 
-class BEDFeature(DynamicRecordModel):
+class BEDFeature(DynamicRecord):
     chrom: str = Field(title="Chromosome", description="name of the chromosome")
     chromStart: int = Field(
         title="Start",

@@ -1,6 +1,6 @@
 from typing import List
 
-from niagads.api.common.models.responses.base import DataResponse
+from niagads.api.common.models.responses.data import DataResponse
 from niagads.api.common.models.search.records import SearchResult
 
 
