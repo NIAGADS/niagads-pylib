@@ -4,9 +4,8 @@ from itertools import groupby
 from operator import itemgetter
 from typing import List, Union
 
-
 from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
-from niagads.api.common.models.domain.parameters.types import ResponseContent
+from niagads.api.common.models.domain.parameters.types import ResponseView
 from niagads.api.common.models.service.cache import CacheKeyDataModel, CacheNamespace
 from niagads.api.common.services.metadata.query import (
     MetadataQueryService,
@@ -18,18 +17,17 @@ from niagads.api.common.services.route import (
     RequestParameters,
     ResponseConfiguration,
 )
-
-from niagads.filer_api.dependencies import FILEREndpointRequestParameters
-from niagads.filer_api.services.pagination import (
-    FILERTrackDataPaginationService,
-)
-from niagads.exceptions.core import ValidationError
 from niagads.common.genomic.features.models import GenomicFeature, GenomicFeatureType
 from niagads.database.genomicsdb.schema.dataset.track import Track
+from niagads.exceptions.core import ValidationError
+from niagads.filer_api.dependencies import FILEREndpointRequestParameters
 from niagads.filer_api.services.client import (
-    FILERClientService,
     FILERApiDataResponse,
     FILERApiEndpoint,
+    FILERClientService,
+)
+from niagads.filer_api.services.pagination import (
+    FILERTrackDataPaginationService,
 )
 from niagads.utils.list import chunker
 
@@ -172,7 +170,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
             tracks, assembly, span, True
         )
 
-        if self._response_config.content == ResponseContent.FULL:
+        if self._response_config.content == ResponseView.FULL:
             return await self.__get_paged_track_data(
                 trackResultSummary, span=span, validate=validate
             )
@@ -186,29 +184,29 @@ class FILEREndpointService(TrackMetadataEndpointService):
         sliceRange = self._pagination_service.slice_result_by_page()
 
         match self._response_config.content:
-            case ResponseContent.IDS:
+            case ResponseView.IDS:
                 result = [
                     t["id"]
                     for t in sortedTrackResultSummary[sliceRange.start : sliceRange.end]
                 ]
                 return await self.generate_response(result)
 
-            case ResponseContent.COUNTS:
+            case ResponseView.COUNTS:
                 # sort by counts to ensure pagination order
                 return await self.generate_response(
                     sortedTrackResultSummary[sliceRange.start : sliceRange.end]
                 )
 
-            case ResponseContent.BRIEF | ResponseContent.URLS:
+            case ResponseView.BRIEF | ResponseView.URLS:
                 metadata: List[Track] = await self.get_track_metadata(
-                    raw_response=ResponseContent.BRIEF
+                    raw_response=ResponseView.BRIEF
                 )
                 summary = self.__generate_track_overlap_summary(
                     metadata, sortedTrackResultSummary
                 )
                 result = (
                     [t["url"] for t in summary[sliceRange.start : sliceRange.end]]
-                    if self._response_config.content == ResponseContent.URLS
+                    if self._response_config.content == ResponseView.URLS
                     else summary[sliceRange.start : sliceRange.end]
                 )
                 return await self.generate_response(result)
@@ -246,9 +244,9 @@ class FILEREndpointService(TrackMetadataEndpointService):
         # apply metadata filters, if valid
         if hasMetadataFilters:
             # get list of tracks that match the search filter
-            raw_response = ResponseContent.IDS
-            if self._response_config.content == ResponseContent.BRIEF:
-                raw_response = ResponseContent.BRIEF
+            raw_response = ResponseView.IDS
+            if self._response_config.content == ResponseView.BRIEF:
+                raw_response = ResponseView.BRIEF
             matchingTracks: List[Track] = await self.search_track_metadata(
                 raw_response=raw_response
             )
@@ -292,7 +290,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
             # filter for tracks that match the filter
             matchingTrackIds = (
                 [t.id for t in matchingTracks]
-                if raw_response != ResponseContent.IDS
+                if raw_response != ResponseView.IDS
                 else matchingTracks
             )
             informativeTrackIds = [t.id for t in informativeTrackOverlaps]
@@ -303,7 +301,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
                 t for t in informativeTrackOverlaps if t.id in targetTrackIds
             ]
 
-        if self._response_config.content == ResponseContent.FULL:
+        if self._response_config.content == ResponseView.FULL:
             return await self.__get_paged_track_data(
                 targetTrackResultMetrics, span=span
             )
@@ -317,24 +315,24 @@ class FILEREndpointService(TrackMetadataEndpointService):
         sliceRange = self._pagination_service.slice_result_by_page()
 
         match self._response_config.content:
-            case ResponseContent.IDS:
+            case ResponseView.IDS:
                 result = [t.id for t in result[sliceRange.start : sliceRange.end]]
                 return await self.generate_response(result)
 
-            case ResponseContent.COUNTS:
+            case ResponseView.COUNTS:
                 # sort by counts to ensure pagination order
                 return await self.generate_response(
                     result[sliceRange.start : sliceRange.end]
                 )
 
-            case ResponseContent.BRIEF | ResponseContent.URLS:
+            case ResponseView.BRIEF | ResponseView.URLS:
                 metadata: List[Track] = [
                     t for t in matchingTracks if t.id in targetTrackIds
                 ]
                 summary = self.__generate_track_overlap_summary(metadata, result)
                 result = (
                     [t["url"] for t in summary[sliceRange.start : sliceRange.end]]
-                    if self._response_config.content == ResponseContent.URLS
+                    if self._response_config.content == ResponseView.URLS
                     else summary[sliceRange.start : sliceRange.end]
                 )
                 return await self.generate_response(result)
@@ -364,7 +362,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
                     id=self._parameters.track, count=len(data.features)
                 )
 
-                if self._response_config.content == ResponseContent.COUNTS:
+                if self._response_config.content == ResponseView.COUNTS:
                     return await self.generate_response(counts)
 
                 cursor: TrackDataPaginationCursor = (

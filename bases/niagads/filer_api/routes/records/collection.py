@@ -1,16 +1,14 @@
 from typing import Union
-from fastapi import APIRouter, Depends, Query
-from niagads.filer_api.dependencies import FILEREndpointRequestParameters
-from niagads.filer_api.services.route import FILEREndpointService
 
+from fastapi import APIRouter, Depends, Query
 from niagads.api.common.models.domain.parameters.entity import collection_id
 from niagads.api.common.models.domain.parameters.response.content import (
     DefaultRContentParam,
     DefaultRFormatParam,
 )
 from niagads.api.common.models.domain.parameters.types import (
-    ResponseContent,
     ResponseFormat,
+    ResponseView,
 )
 from niagads.api.common.models.response.base import CountResponse, ListResponse
 from niagads.api.common.models.response.entities.dataset import (
@@ -18,6 +16,8 @@ from niagads.api.common.models.response.entities.dataset import (
     TrackMetadataResponse,
 )
 from niagads.api.common.services.route import RequestParameters, ResponseConfiguration
+from niagads.filer_api.dependencies import FILEREndpointRequestParameters
+from niagads.filer_api.services.route import FILEREndpointService
 
 router = APIRouter(prefix="/record/collection", tags=["Records", "Collections"])
 
@@ -37,7 +37,7 @@ async def get_collections(
 ) -> TrackCollectionResponse:
 
     response_config = ResponseConfiguration(
-        content=ResponseContent.FULL,
+        content=ResponseView.FULL,
         format=DefaultRFormatParam.validate(format),
         model=TrackCollectionResponse,
     )
@@ -61,7 +61,7 @@ async def get_collection(
     internal: FILEREndpointRequestParameters = Depends(),
 ) -> TrackCollectionResponse:
     response_config = ResponseConfiguration(
-        content=ResponseContent.FULL,
+        content=ResponseView.FULL,
         format=DefaultRFormatParam.validate(format),
         model=TrackCollectionResponse,
     )
@@ -80,7 +80,7 @@ async def get_collection(
 async def get_collection_record(
     collection_id: str = Depends(collection_id),
     content: DefaultRContentParam = Query(
-        ResponseContent.FULL,
+        ResponseView.FULL,
         description=DefaultRContentParam.description(),
     ),
     format: DefaultRFormatParam = Query(
@@ -96,10 +96,10 @@ async def get_collection_record(
         content=response_content,
         model=(
             ListResponse
-            if response_content in [ResponseContent.IDS, ResponseContent.URLS]
+            if response_content in [ResponseView.IDS, ResponseView.URLS]
             else (
                 CountResponse
-                if response_content == ResponseContent.COUNTS
+                if response_content == ResponseView.COUNTS
                 else TrackMetadataResponse
             )
         ),

@@ -10,8 +10,7 @@ from niagads.api.common.models.domain.entities.dataset.track import (
 from niagads.api.common.models.domain.parameters.internal import (
     InternalRequestParameters,
 )
-
-from niagads.api.common.models.domain.parameters.types import ResponseContent
+from niagads.api.common.models.domain.parameters.types import ResponseView
 from niagads.api.common.models.service.cache import CacheKeyQualifier
 from niagads.api.common.services.metadata.query import (
     MetadataQueryService,
@@ -47,15 +46,15 @@ class TrackMetadataEndpointService(EndpointService):
         self, query_result: list[TrackMetadata]
     ):
         content = self._response_config.content
-        if content == ResponseContent.FULL:
+        if content == ResponseView.FULL:
             track_records = [TrackMetadata(**t.model_dump()) for t in query_result]
-        elif content == ResponseContent.BRIEF:
+        elif content == ResponseView.BRIEF:
             track_records = [TrackMetadataBrief(**t.model_dump()) for t in query_result]
-        elif content == ResponseContent.IDS:
+        elif content == ResponseView.IDS:
             track_records = query_result
-        elif content == ResponseContent.COUNTS:
+        elif content == ResponseView.COUNTS:
             track_records = [{"num_results": len(query_result)}]
-        elif content == ResponseContent.URLS:
+        elif content == ResponseView.URLS:
             track_records = query_result
 
         return track_records
@@ -175,9 +174,7 @@ class TrackMetadataEndpointService(EndpointService):
 
         return cached_response
 
-    async def search_track_metadata(
-        self, raw_response: Optional[ResponseContent] = None
-    ):
+    async def search_track_metadata(self, raw_response: Optional[ResponseView] = None):
         """retrieve track metadata based on filter/keyword searches"""
         cache_key = self._managers.cache_service.cache_key.encrypt()
         content = self._response_config.content
@@ -205,10 +202,10 @@ class TrackMetadataEndpointService(EndpointService):
                 self._parameters.get("genome_build"),
                 self._parameters.get("filter", None),
                 self._parameters.get("keyword", None),
-                ResponseContent.COUNTS,
+                ResponseView.COUNTS,
             )
 
-            if content == ResponseContent.COUNTS:
+            if content == ResponseView.COUNTS:
                 return await self.generate_response(result, is_cached=False)
 
             self.set_result_size(result["num_tracks"])

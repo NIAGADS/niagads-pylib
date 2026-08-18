@@ -1,7 +1,6 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.domain.parameters.entity import (
     multi_track_id_query_param,
@@ -9,16 +8,15 @@ from niagads.api.common.models.domain.parameters.entity import (
 )
 from niagads.api.common.models.domain.parameters.location import loc_param
 from niagads.api.common.models.domain.parameters.response.content import (
-    DefaultRFormatParam,
     DefaultRContentParam,
+    DefaultRFormatParam,
     RContentData,
     RContentParamNoCounts,
 )
-
 from niagads.api.common.models.domain.parameters.response.pagination import page_param
 from niagads.api.common.models.domain.parameters.types import (
-    ResponseContent,
     ResponseFormat,
+    ResponseView,
 )
 from niagads.api.common.models.response.base import (
     CountResponse,
@@ -51,7 +49,7 @@ router = APIRouter(
 async def get_track_metadata_bulk(
     track_ids: list[str] = Depends(multi_track_id_query_param),
     content: DefaultRContentParam = Query(
-        ResponseContent.FULL,
+        ResponseView.FULL,
         description=DefaultRContentParam.description(),
     ),
     format: DefaultRFormatParam = Query(
@@ -67,10 +65,10 @@ async def get_track_metadata_bulk(
         content=response_content,
         model=(
             ListResponse
-            if response_content in [ResponseContent.IDS, ResponseContent.URLS]
+            if response_content in [ResponseView.IDS, ResponseView.URLS]
             else (
                 CountResponse
-                if response_content == ResponseContent.COUNTS
+                if response_content == ResponseView.COUNTS
                 else TrackMetadataResponse
             )
         ),
@@ -93,7 +91,7 @@ async def get_track_metadata_bulk(
 async def get_track_metadata(
     track_id: str = Depends(track_id),
     content: RContentParamNoCounts = Query(
-        ResponseContent.FULL,
+        ResponseView.FULL,
         description=RContentParamNoCounts.description(),
     ),
     format: DefaultRFormatParam = Query(
@@ -111,7 +109,7 @@ async def get_track_metadata(
         format=response_format,
         model=(
             ListResponse
-            if response_content in [ResponseContent.IDS, ResponseContent.URLS]
+            if response_content in [ResponseView.IDS, ResponseView.URLS]
             else TrackMetadataResponse
         ),
     )
@@ -134,7 +132,7 @@ async def get_track_data(
     span: str = Depends(loc_param),
     page: int = Depends(page_param),
     content: RContentData = Query(
-        ResponseContent.FULL,
+        ResponseView.FULL,
         description=RContentData.description(),
     ),
     format: DefaultRFormatParam = Query(
@@ -150,9 +148,7 @@ async def get_track_data(
     response_config = ResponseConfiguration(
         content=response_content,
         format=response_format,
-        model=(
-            BEDResponse if response_content == ResponseContent.FULL else CountResponse
-        ),
+        model=(BEDResponse if response_content == ResponseView.FULL else CountResponse),
     )
     params = RequestParameters(track=track_id, span=span, page=page)
     service = FILEREndpointService(internal, response_config, params)

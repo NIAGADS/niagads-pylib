@@ -1,18 +1,18 @@
 from niagads.api.common.models.domain.parameters.types import (
     EnumParameter,
-    ResponseContent,
     ResponseFormat,
+    ResponseView,
 )
 
 
 class DefaultRContentParam(EnumParameter):
     """enum for allowable response types"""
 
-    FULL = ResponseContent.FULL.value
-    BRIEF = ResponseContent.BRIEF.value
-    URLS = ResponseContent.URLS.value
-    COUNTS = ResponseContent.COUNTS.value
-    IDS = ResponseContent.IDS.value
+    FULL = ResponseView.FULL.value
+    BRIEF = ResponseView.BRIEF.value
+    URLS = ResponseView.URLS.value
+    COUNTS = ResponseView.COUNTS.value
+    IDS = ResponseView.IDS.value
 
     @classmethod
     def description(cls):
@@ -21,16 +21,16 @@ class DefaultRContentParam(EnumParameter):
 
     @classmethod
     def validate(cls, value):
-        return super().validate(value, ResponseContent)
+        return super().validate(value, ResponseView)
 
 
 class RContentParamNoCounts(EnumParameter):
     """enum for allowable response types"""
 
-    FULL = ResponseContent.FULL.value
-    BRIEF = ResponseContent.BRIEF.value
-    URLS = ResponseContent.URLS.value
-    IDS = ResponseContent.IDS.value
+    FULL = ResponseView.FULL.value
+    BRIEF = ResponseView.BRIEF.value
+    URLS = ResponseView.URLS.value
+    IDS = ResponseView.IDS.value
 
     @classmethod
     def description(cls):
@@ -39,14 +39,14 @@ class RContentParamNoCounts(EnumParameter):
 
     @classmethod
     def validate(cls, value):
-        return super().validate(value, ResponseContent)
+        return super().validate(value, ResponseView)
 
 
 class RContentData(EnumParameter):
     """enum for allowable response types"""
 
-    FULL = ResponseContent.FULL.value
-    COUNTS = ResponseContent.COUNTS.value
+    FULL = ResponseView.FULL.value
+    COUNTS = ResponseView.COUNTS.value
 
     @classmethod
     def description(cls):
@@ -55,7 +55,7 @@ class RContentData(EnumParameter):
 
     @classmethod
     def validate(cls, value):
-        return super().validate(value, ResponseContent)
+        return super().validate(value, ResponseView)
 
 
 class DefaultRFormatParam(EnumParameter):

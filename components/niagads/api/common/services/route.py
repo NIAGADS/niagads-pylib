@@ -4,10 +4,9 @@ from niagads.api.common.constants import DEFAULT_PAGE_SIZE
 from niagads.api.common.models.domain.parameters.internal import (
     InternalRequestParameters,
 )
-
 from niagads.api.common.models.domain.parameters.types import (
-    ResponseContent,
     ResponseFormat,
+    ResponseView,
 )
 from niagads.api.common.models.response.base import BaseResponseModel
 from niagads.api.common.models.response.views.table import TableViewResponse
@@ -24,13 +23,13 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     """Captures response-related parameter values (format, content, view) and model"""
 
     format: ResponseFormat = ResponseFormat.JSON
-    content: ResponseContent = ResponseContent.FULL
+    content: ResponseView = ResponseView.FULL
     model: type[BaseResponseModel] = None
 
     @field_validator("content")
     def validate_content(cls, content):
         try:
-            return ResponseContent(content)
+            return ResponseView(content)
         except NameError:
             raise ValidationError(f"Invalid value provided for `content`: {content}")
 

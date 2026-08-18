@@ -3,16 +3,14 @@ from typing import Any, List, Optional
 
 from fastapi import HTTPException
 from niagads.api.common.constants import SHARD_PATTERN
-
 from niagads.api.common.models.domain.parameters.filters.expression_filter import Triple
-from niagads.api.common.models.domain.parameters.types import ResponseContent
+from niagads.api.common.models.domain.parameters.types import ResponseView
 from niagads.api.common.models.service.request import RequestDataModel
 from niagads.common.track.models import (
     ExperimentalDesign,
     Phenotype,
     Provenance,
 )
-
 from niagads.database.genomicsdb.schema.dataset.collection import (
     Collection,
     TrackCollectionLink,
@@ -179,16 +177,15 @@ class MetadataQueryService:
     async def get_collection_track_metadata(
         self,
         collection_name: str,
-        response_type=ResponseContent.FULL,
+        response_type=ResponseView.FULL,
     ) -> List[Track]:
 
         collection: Collection = await self.validate_collection(collection_name)
 
         # if sharded URLs need to be mapped through IDS to find all shards
         target = (
-            self.__set_query_target(ResponseContent.IDS)
-            if response_type == ResponseContent.URLS
-            and collection.is_sharded_collection
+            self.__set_query_target(ResponseView.IDS)
+            if response_type == ResponseView.URLS and collection.is_sharded_collection
             else self.__set_query_target(response_type)
         )
 
@@ -206,11 +203,11 @@ class MetadataQueryService:
         # TODO: RESUME - HERE --> messaging -> class member w/accessor function so that it can
         # be accessed by parent endpoint service
 
-        if response_type == ResponseContent.COUNTS:
+        if response_type == ResponseView.COUNTS:
             return {"count": result[0]}
 
         if collection.is_sharded_collection:
-            if response_type == ResponseContent.IDS:
+            if response_type == ResponseView.IDS:
                 # FIXME: I think this has changed
                 self.__request
                 self.__request.add_message(
@@ -218,7 +215,7 @@ class MetadataQueryService:
                 )
                 result = [await self.get_sharded_ids(t) for t in result]
                 return sum(result, [])  # unnest nested list
-            if response_type == ResponseContent.URLS:
+            if response_type == ResponseView.URLS:
                 self.__request.add_message(
                     "Data are split by chromosome into 22 files per track, differentiated by `_chrN_` in the file name."
                 )
@@ -233,7 +230,7 @@ class MetadataQueryService:
         return result
 
     async def get_track_metadata(
-        self, tracks: List[str], response_type=ResponseContent.FULL, validate=True
+        self, tracks: List[str], response_type=ResponseView.FULL, validate=True
     ) -> List[Track]:
         target = self.__set_query_target(response_type)
         statement = (
@@ -312,13 +309,13 @@ class MetadataQueryService:
         return statement
 
     @staticmethod
-    def __set_query_target(response_type: ResponseContent):
+    def __set_query_target(response_type: ResponseView):
         match response_type:
-            case ResponseContent.IDS:
+            case ResponseView.IDS:
                 return Track.source_id
-            case ResponseContent.COUNTS:
+            case ResponseView.COUNTS:
                 return func.count(Track.source_id)
-            case ResponseContent.URLS:
+            case ResponseView.URLS:
                 return Track.file_properties["url"]
             case _:
                 return Track
@@ -328,7 +325,7 @@ class MetadataQueryService:
         genome_build: str,
         filters: Optional[List[str]],
         keyword: Optional[str],
-        response_type: ResponseContent,
+        response_type: ResponseView,
         limit: int = None,
         offset: int = None,
     ) -> List[Track]:
@@ -347,7 +344,7 @@ class MetadataQueryService:
                 Track.searchable_text.regexp_match(keyword, "i"),
             )
 
-        if response_type != ResponseContent.COUNTS:
+        if response_type != ResponseView.COUNTS:
             statement = statement.order_by(Track.source_id)
 
         if limit != None:
@@ -358,7 +355,7 @@ class MetadataQueryService:
 
         result = await self.__database_session.execute(statement)
 
-        if response_type == ResponseContent.COUNTS:
+        if response_type == ResponseView.COUNTS:
             return {"count": result.scalars().one()}
         else:
             return result.scalars().all()
