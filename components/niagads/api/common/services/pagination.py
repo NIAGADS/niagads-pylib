@@ -1,16 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional, Union
 
-from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
-from niagads.api.common.models.context.cache import (
-    CacheKeyDataModel,
-    CacheKeyQualifier,
-    CacheNamespace,
-)
-from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
-from niagads.api.common.models.domain.entities.features.bed import BEDFeature
-from niagads.api.common.models.response.base import PaginationDataModel
-from niagads.api.common.services.cache import CacheService
+from niagads.api.common.constants import DEFAULT_PAGE_SIZE
+from niagads.api.common.models.responses.pagination import PaginationState
 from niagads.common.models.types import Range
 from niagads.exceptions.core import ValidationError
 from niagads.utils.list import cumulative_sum
@@ -22,25 +14,26 @@ class PaginationCursor(BaseModel):
     offset: Optional[int] = None
 
 
-class TrackDataPaginationCursor(BaseModel):
-    tracks: List[str]
-    start: PaginationCursor
-    end: PaginationCursor
-
-
 class PaginationService:
 
     def __init__(
         self,
-        parameters=None,
         page_size: int = DEFAULT_PAGE_SIZE,
-        result_size: Optional[int] = None,
-        pagination: Optional[PaginationDataModel] = None,
     ):
         self._parameters = parameters
         self._page_size = page_size
         self._result_size = result_size
         self._pagination = pagination
+
+    def initialize_pagination(self):
+        self._pagination = PaginationDataModel(
+            page=self.page(),
+            total_num_pages=self.total_num_pages(),
+            paged_num_records=None,
+            total_num_records=self._result_size,
+        )
+
+        return self.validate_page(self._pagination.page)
 
     @property
     def pagination(self) -> Optional[PaginationDataModel]:
@@ -109,16 +102,6 @@ class PaginationService:
             )
             - 1
         )
-
-    def initialize_pagination(self):
-        self._pagination = PaginationDataModel(
-            page=self.page(),
-            total_num_pages=self.total_num_pages(),
-            paged_num_records=None,
-            total_num_records=self._result_size,
-        )
-
-        return self.validate_page(self._pagination.page)
 
     def set_paged_num_records(self, num_records: int):
         self.pagination_exists()

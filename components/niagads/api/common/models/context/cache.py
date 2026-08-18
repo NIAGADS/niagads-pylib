@@ -32,7 +32,7 @@ class CacheKeyQualifier(StrEnum):
         return f"_{self.value}"
 
 
-class CacheKeyDataModel(BaseModel, arbitrary_types_allowed=True):
+class CacheKey(BaseModel, arbitrary_types_allowed=True):
     """Generates and stores cache key for the response, given the originating request.
 
     includes member and static functions for

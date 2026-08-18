@@ -1,60 +1,35 @@
-from typing import Any, Dict, Type, Union
+from typing import Any, Dict, Optional, Type, Union
 
-from niagads.api.common.constants import DEFAULT_PAGE_SIZE
-from niagads.api.common.models.domain.parameters.internal import (
-    InternalRequestParameters,
-)
-from niagads.api.common.models.domain.parameters.types import (
+from fastapi import Response
+from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
+from niagads.api.common.models.context.request import Parameters
+from niagads.api.common.models.context.response import ResponseConfiguration
+from niagads.api.common.models.layouts.table import TableLayoutResponse
+from niagads.api.common.models.responses.base import BaseResponseModel
+from niagads.api.common.models.responses.pagination import PaginationState
+from niagads.api.common.parameters.internal import InternalRequestParameters
+from niagads.api.common.parameters.types import (
     ResponseFormat,
+    ResponseLayout,
     ResponseView,
 )
-from niagads.api.common.models.response.base import BaseResponseModel
-from niagads.api.common.models.response.views.table import TableViewResponse
 from niagads.api.common.services.features import FeatureQueryService
-from niagads.api.common.services.pagination import PaginationService
 from niagads.common.genomic.features.models import GenomicFeature
+from niagads.common.models.types import Range
 from niagads.exceptions.core import ValidationError
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel
+from sqlalchemy import CacheKey
 
 _INTERNAL_PARAMETERS = ["span", "_tracks"]
 
 
-class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
-    """Captures response-related parameter values (format, content, view) and model"""
+class PaginationCursor(BaseModel):
+    """pagination cursor"""
 
-    format: ResponseFormat = ResponseFormat.JSON
-    content: ResponseView = ResponseView.FULL
-    model: type[BaseResponseModel] = None
-
-    @field_validator("content")
-    def validate_content(cls, content):
-        try:
-            return ResponseView(content)
-        except NameError:
-            raise ValidationError(f"Invalid value provided for `content`: {content}")
-
-    @field_validator("format")
-    def validate_foramt(cls, format):
-        try:
-            return ResponseFormat(format)
-        except NameError:
-            raise ValidationError(f"Invalid value provided for `format`: {format}")
+    key: Union[str, int]
+    offset: Optional[int] = None
 
 
-class RequestParameters(BaseModel):
-    """arbitrary namespace to store request parameters and pass them to helpers"""
-
-    __pydantic_extra__: Dict[str, Any]
-    model_config = ConfigDict(extra="allow")
-
-    def get(self, attribute: str, default: Any = None):
-        if attribute in self.model_extra:
-            return self.model_extra[attribute]
-        else:
-            return default
-
-    def update(self, attribute: str, value: Any):
-        self.model_extra[attribute] = value
 
 
 class EndpointService:
@@ -117,6 +92,137 @@ class EndpointService:
 
         # return view_response
 
+    
+    async def get_feature_location(self, feature: GenomicFeature):
+        return await FeatureQueryService(
+            self._managers.database_session
+        ).get_feature_location(feature)
+
+
+
+class PaginationService:
+    
+
+
+class RouteHelperService:
+
+    def __init__(
+        self,
+        managers: InternalRequestParameters,
+        responseConfig: ResponseConfiguration,
+        params: Parameters,
+    ):
+        self._managers: InternalRequestParameters = managers
+        self._response_config: ResponseConfiguration = responseConfig
+        self._pagination: PaginationState = None
+        self._parameters: Parameters = params
+        self._pageSize: int = DEFAULT_PAGE_SIZE
+        self._result_size: int = None
+
+    def set_page_size(self, pageSize: int):
+        self._pageSize = pageSize
+
+    async def _get_cached_response(self):
+        cache_key = self._managers.cache_key.encrypt()
+        response = await self._managers.cache.get(
+            cache_key, namespace=self._managers.cache_key.namespace
+        )
+
+        if response is not None:
+            return await self.generate_response(response, is_cached=True)
+
+        return None
+
+    def _pagination_exists(self, raiseError: bool = True):
+        if self._pagination is None:
+            if raiseError:
+                raise RuntimeError(
+                    "Attempting to modify or access pagination before initializing"
+                )
+            else:
+                return False
+        return True
+
+    def _is_valid_page(self, page: int):
+        """test if the page is valid (w/in range of expected number of pages)"""
+
+        self._pagination_exists()
+
+        if self._pagination.total_num_pages is None:
+            raise RuntimeError(
+                "Attempting fetch a page before estimating total number of pages"
+            )
+
+        if page > self._pagination.total_num_pages:
+            raise ValidationError(
+                f"Request `page` {page} does not exist; this query generates a maximum of {self._pagination.total_num_pages} pages"
+            )
+
+        return True
+
+    def page(self):
+        if self._parameters is not None:
+            return self._parameters.get("page", 1)
+        return 1
+
+    def total_num_pages(self):
+        if self._result_size is None:
+            raise RuntimeError("Attempting to page before estimating result size.")
+
+        if self._result_size > self._pageSize * MAX_NUM_PAGES:
+            raise ValidationError(
+                f"Result size ({self._result_size}) is too large; filter for fewer tracks or narrow the queried genomic region."
+            )
+
+        return (
+            1
+            if self._result_size < self._pageSize
+            else next(
+                (
+                    p
+                    for p in range(1, MAX_NUM_PAGES)
+                    if (p - 1) * self._pageSize > self._result_size
+                )
+            )
+            - 1
+        )
+
+    def initialize_pagination(self):
+        self._pagination = PaginationState(
+            page=self.page(),
+            total_num_pages=self.total_num_pages(),
+            paged_num_records=None,
+            total_num_records=self._result_size,
+        )
+
+        return self._is_valid_page(self._pagination.page)
+
+    def set_paged_num_records(self, numRecords: int):
+        self._pagination_exists()
+        self._pagination.paged_num_records = numRecords
+
+    def offset(self):
+        """calculate offset for SQL pagination"""
+        self._pagination_exists()
+        return (
+            None
+            if self._pagination.page == 1
+            else (self._pagination.page - 1) * self._pageSize
+        )
+
+    def slice_result_by_page(self, page: int = None) -> Range:
+        """calculates start and end indexes for paging an array"""
+        self._pagination_exists()
+        targetPage = self._pagination.page if page is None else page
+        start = (targetPage - 1) * self._pageSize
+        end = (
+            start + self._pageSize
+        )  # don't subtract 1 b/c python slices are not end-range inclusive
+        if end > self._result_size:
+            end = self._result_size
+
+        return Range(start=start, end=end)
+    
     async def generate_response(self, result: Any, is_cached: bool = False):
         response: BaseResponseModel = result if is_cached else None
         if response is None:
@@ -169,7 +275,13 @@ class EndpointService:
         # case ResponseView.TABLE:
         #    return await self.generate_table_response(response)
 
+
+    
+
     async def get_feature_location(self, feature: GenomicFeature):
-        return await FeatureQueryService(
-            self._managers.database_session
-        ).get_feature_location(feature)
+        return await FeatureQueryService(self._managers.session).get_feature_location(
+            feature
+        )
+
+
+

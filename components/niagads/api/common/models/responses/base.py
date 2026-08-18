@@ -2,18 +2,16 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.models.context.pagination import PaginationDataModel
-from niagads.api.common.models.context.request import RequestDataModel
+from niagads.api.common.models.context.request import RequestDetails
+from niagads.api.common.models.responses.pagination import PaginationState
 from niagads.common.models.base import CustomBaseModel
 from niagads.utils.string import xstr
 from pydantic import Field, model_validator
 
 
 class BaseResponseModel(CustomBaseModel):
-    request: RequestDataModel = Field(
-        description="details about the originating request"
-    )
-    pagination: Optional[PaginationDataModel] = Field(
+    request: RequestDetails = Field(description="details about the originating request")
+    pagination: Optional[PaginationState] = Field(
         default=None, description="pagination status, if the result is paged"
     )
     message: Optional[list[Union[str, dict]]] = Field(

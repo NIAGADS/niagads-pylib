@@ -1,6 +1,7 @@
 from typing import Optional
+
 from fastapi import Path, Query
-from niagads.api.common.models.domain.parameters.utils import parse_comma_separated_list
+from niagads.api.common.parameters.helpers import parse_comma_separated_list
 from niagads.api.common.utils import sanitize
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.common.genomic.features.types import GenomicFeatureType
@@ -43,7 +44,7 @@ async def multi_track_id_query_param(
     )
 ) -> list[str]:
     """required track_list parameter"""
-    return parse_comma_separated_list(sanitize(track))
+    return parse_comma_separated_list(sanitize(track_ids))
 
 
 async def gene_id(

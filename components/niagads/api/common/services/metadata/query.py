@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 
 from fastapi import HTTPException
 from niagads.api.common.constants import SHARD_PATTERN
-from niagads.api.common.models.context.request import RequestDataModel
+from niagads.api.common.models.context.request import RequestDetails
 from niagads.api.common.models.domain.parameters.filters.expression_filter import Triple
 from niagads.api.common.models.domain.parameters.types import ResponseView
 from niagads.common.track.models import (
@@ -33,7 +33,7 @@ class MetadataQueryService:
     def __init__(
         self,
         session: AsyncSession,
-        request: RequestDataModel = None,
+        request: RequestDetails = None,
         track_database: TrackDatabase = TrackDatabase.OPEN_ACCESS,
     ):
         self.__database_session = session

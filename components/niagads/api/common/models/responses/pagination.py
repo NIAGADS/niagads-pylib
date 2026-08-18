@@ -4,7 +4,7 @@ from niagads.common.models.base import CustomBaseModel
 from pydantic import Field
 
 
-class PaginationDataModel(CustomBaseModel):
+class PaginationState(CustomBaseModel):
     """Captures pagination status."""
 
     page: int = Field(

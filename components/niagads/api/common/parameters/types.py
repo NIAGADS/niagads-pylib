@@ -9,7 +9,7 @@ class ResponseView(CaseInsensitiveEnum):
     """enum for allowable response views"""
 
     FULL = auto()
-    BRIEF = auto()
+    SUMMARY = auto()
     URLS = auto()
     COUNTS = auto()
     IDS = auto()
@@ -27,6 +27,7 @@ class ResponseLayout(CaseInsensitiveEnum):
     IGV_CONFIG = auto()
     IGV_TRACK_SELECTOR = auto()
     CHART = auto()
+    DEFAULT = auto()
 
 
 class EnumParameter(CaseInsensitiveEnum):

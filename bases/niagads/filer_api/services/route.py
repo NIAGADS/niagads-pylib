@@ -4,7 +4,7 @@ from itertools import groupby
 from operator import itemgetter
 from typing import List, Union
 
-from niagads.api.common.models.context.cache import CacheKeyDataModel, CacheNamespace
+from niagads.api.common.models.context.cache import CacheKey, CacheNamespace
 from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
 from niagads.api.common.models.domain.parameters.types import ResponseView
 from niagads.api.common.services.metadata.query import (
@@ -77,7 +77,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
     async def __get_track_data_task(
         self, tracks: List[str], assembly: str, span: str, countsOnly: bool
     ):
-        cache_key = CacheKeyDataModel.encrypt_key(
+        cache_key = CacheKey.encrypt_key(
             f"/{FILERApiEndpoint.OVERLAPS}?genome_build={assembly}&countsOnly={countsOnly}"
             + f"&span={span}&tracks={','.join(tracks)}"
         )
@@ -94,7 +94,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
         return result
 
     async def __get_gene_qtl_data_task(self, track: str, gene: str):
-        cache_key = CacheKeyDataModel.encrypt_key(
+        cache_key = CacheKey.encrypt_key(
             f"/{FILERApiEndpoint.GENE_QTLS}?" + f"&gene={gene}&track={track}"
         )
         result = await self._managers.cache_service.get(
@@ -261,7 +261,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
 
         # get informative tracks from the FILER API & cache
         cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?genome_build={self._parameters.get('assembly')}&span={span}"
-        cache_key = CacheKeyDataModel.encrypt_key(cache_key.replace(":", "_"))
+        cache_key = CacheKey.encrypt_key(cache_key.replace(":", "_"))
 
         informativeTrackOverlaps: List[TrackResultMetrics] = (
             await self._managers.cache_service.get(

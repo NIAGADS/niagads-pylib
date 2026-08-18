@@ -1,14 +1,31 @@
 """Models defining custom types for Response Model class attributes"""
 
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 from fastapi import Request
+from niagads.common.models.base import CustomBaseModel
 from niagads.utils.dict import prune
 from niagads.utils.string import dict_to_string
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class RequestDataModel(BaseModel):
+class Parameters(BaseModel):
+    """arbitrary namespace to store request parameters and pass them to helpers"""
+
+    __pydantic_extra__: Dict[str, Any]
+    model_config = ConfigDict(extra="allow")
+
+    def get(self, attribute: str, default: Any = None):
+        if attribute in self.model_extra:
+            return self.model_extra[attribute]
+        else:
+            return default
+
+    def update(self, attribute: str, value: Any):
+        self.model_extra[attribute] = value
+
+
+class RequestDetails(CustomBaseModel):
     """Captures cleaned user-centric information about the origining request."""
 
     request_id: str = Field(description="unique request identifier")
@@ -20,7 +37,7 @@ class RequestDataModel(BaseModel):
     def set_request_id(self, id):
         self.request_id = id
 
-    def update_parameters(self, params: BaseModel, exclude: List[str] = []) -> str:
+    def update_parameters(self, params: Parameters, exclude: List[str] = []) -> str:
         """add default parameter values that are not included in the originating request"""
         exclude = exclude + [
             "filter"

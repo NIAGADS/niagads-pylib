@@ -1,5 +1,6 @@
 from typing import Any, Callable, Dict, List, Optional, Union
-from niagads.api.common.models.domain.entities.entity import Entity
+
+from niagads.api.common.types import Entity
 from pydantic import BaseModel
 from sqlalchemy import bindparam, text
 
