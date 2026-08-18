@@ -7,13 +7,13 @@ from niagads.api.common.models.domain.parameters.entity import (
     track_id,
 )
 from niagads.api.common.models.domain.parameters.location import loc_param
-from niagads.api.common.models.domain.parameters.response.content import (
-    DefaultRContentParam,
-    DefaultRFormatParam,
-    RContentData,
-    RContentParamNoCounts,
-)
 from niagads.api.common.models.domain.parameters.response.pagination import page_param
+from niagads.api.common.models.domain.parameters.response.view import (
+    DataQueryResponseViewEnumParam,
+    RContentParamNoCounts,
+    ResponseFormatEnumParam,
+    ResponseViewEnumParam,
+)
 from niagads.api.common.models.domain.parameters.types import (
     ResponseFormat,
     ResponseView,
@@ -48,18 +48,18 @@ router = APIRouter(
 )
 async def get_track_metadata_bulk(
     track_ids: list[str] = Depends(multi_track_id_query_param),
-    content: DefaultRContentParam = Query(
+    content: ResponseViewEnumParam = Query(
         ResponseView.FULL,
-        description=DefaultRContentParam.description(),
+        description=ResponseViewEnumParam.description(),
     ),
-    format: DefaultRFormatParam = Query(
+    format: ResponseFormatEnumParam = Query(
         ResponseFormat.JSON,
-        description=DefaultRFormatParam.description(),
+        description=ResponseFormatEnumParam.description(),
     ),
     internal: FILEREndpointRequestParameters = Depends(),
 ) -> Union[TrackMetadataResponse, ListResponse]:
-    response_content = DefaultRContentParam.validate(content)
-    response_format = DefaultRFormatParam.validate(format)
+    response_content = ResponseViewEnumParam.validate(content)
+    response_format = ResponseFormatEnumParam.validate(format)
     response_config = ResponseConfiguration(
         format=response_format,
         content=response_content,
@@ -94,14 +94,14 @@ async def get_track_metadata(
         ResponseView.FULL,
         description=RContentParamNoCounts.description(),
     ),
-    format: DefaultRFormatParam = Query(
+    format: ResponseFormatEnumParam = Query(
         ResponseFormat.JSON,
-        description=DefaultRFormatParam.description(),
+        description=ResponseFormatEnumParam.description(),
     ),
     internal: FILEREndpointRequestParameters = Depends(),
 ) -> Union[TrackMetadataResponse, ListResponse]:
     response_content = RContentParamNoCounts.validate(content)
-    response_format = DefaultRFormatParam.validate(
+    response_format = ResponseFormatEnumParam.validate(
         format,
     )
     response_config = ResponseConfiguration(
@@ -131,18 +131,18 @@ async def get_track_data(
     track_id: str = Depends(track_id),
     span: str = Depends(loc_param),
     page: int = Depends(page_param),
-    content: RContentData = Query(
+    content: DataQueryResponseViewEnumParam = Query(
         ResponseView.FULL,
-        description=RContentData.description(),
+        description=DataQueryResponseViewEnumParam.description(),
     ),
-    format: DefaultRFormatParam = Query(
+    format: ResponseFormatEnumParam = Query(
         ResponseFormat.JSON,
-        description=DefaultRFormatParam.description(),
+        description=ResponseFormatEnumParam.description(),
     ),
     internal: FILEREndpointRequestParameters = Depends(),
 ) -> Union[BEDResponse, CountResponse]:
-    response_content = RContentData.validate(content)
-    response_format = DefaultRFormatParam.validate(
+    response_content = DataQueryResponseViewEnumParam.validate(content)
+    response_format = ResponseFormatEnumParam.validate(
         format,
     )
     response_config = ResponseConfiguration(

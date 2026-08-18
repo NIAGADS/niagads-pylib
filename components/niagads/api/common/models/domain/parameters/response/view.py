@@ -5,7 +5,7 @@ from niagads.api.common.models.domain.parameters.types import (
 )
 
 
-class DefaultRContentParam(EnumParameter):
+class ResponseViewEnumParam(EnumParameter):
     """enum for allowable response types"""
 
     FULL = ResponseView.FULL.value
@@ -24,25 +24,7 @@ class DefaultRContentParam(EnumParameter):
         return super().validate(value, ResponseView)
 
 
-class RContentParamNoCounts(EnumParameter):
-    """enum for allowable response types"""
-
-    FULL = ResponseView.FULL.value
-    BRIEF = ResponseView.BRIEF.value
-    URLS = ResponseView.URLS.value
-    IDS = ResponseView.IDS.value
-
-    @classmethod
-    def description(cls):
-        message = "Response content (full vs selected subset)"
-        return message + f"{super().description()}"
-
-    @classmethod
-    def validate(cls, value):
-        return super().validate(value, ResponseView)
-
-
-class RContentData(EnumParameter):
+class DataQueryResponseViewEnumParam(EnumParameter):
     """enum for allowable response types"""
 
     FULL = ResponseView.FULL.value
@@ -58,7 +40,7 @@ class RContentData(EnumParameter):
         return super().validate(value, ResponseView)
 
 
-class DefaultRFormatParam(EnumParameter):
+class ResponseFormatEnumParam(EnumParameter):
     """enum for allowable response / output formats"""
 
     TEXT = ResponseFormat.TEXT.value

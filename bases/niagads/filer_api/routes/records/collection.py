@@ -2,9 +2,9 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, Query
 from niagads.api.common.models.domain.parameters.entity import collection_id
-from niagads.api.common.models.domain.parameters.response.content import (
-    DefaultRContentParam,
-    DefaultRFormatParam,
+from niagads.api.common.models.domain.parameters.response.view import (
+    ResponseFormatEnumParam,
+    ResponseViewEnumParam,
 )
 from niagads.api.common.models.domain.parameters.types import (
     ResponseFormat,
@@ -29,16 +29,16 @@ router = APIRouter(prefix="/record/collection", tags=["Records", "Collections"])
     description="List all available FILER track collections.",
 )
 async def get_collections(
-    format: DefaultRFormatParam = Query(
+    format: ResponseFormatEnumParam = Query(
         ResponseFormat.JSON,
-        description=DefaultRFormatParam.description(),
+        description=ResponseFormatEnumParam.description(),
     ),
     internal: FILEREndpointRequestParameters = Depends(),
 ) -> TrackCollectionResponse:
 
     response_config = ResponseConfiguration(
         content=ResponseView.FULL,
-        format=DefaultRFormatParam.validate(format),
+        format=ResponseFormatEnumParam.validate(format),
         model=TrackCollectionResponse,
     )
 
@@ -54,15 +54,15 @@ async def get_collections(
 )
 async def get_collection(
     collection_id: str = Depends(collection_id),
-    format: DefaultRFormatParam = Query(
+    format: ResponseFormatEnumParam = Query(
         ResponseFormat.JSON,
-        description=DefaultRFormatParam.description(),
+        description=ResponseFormatEnumParam.description(),
     ),
     internal: FILEREndpointRequestParameters = Depends(),
 ) -> TrackCollectionResponse:
     response_config = ResponseConfiguration(
         content=ResponseView.FULL,
-        format=DefaultRFormatParam.validate(format),
+        format=ResponseFormatEnumParam.validate(format),
         model=TrackCollectionResponse,
     )
     params = RequestParameters(collection_id=collection_id)
@@ -79,18 +79,18 @@ async def get_collection(
 )
 async def get_collection_record(
     collection_id: str = Depends(collection_id),
-    content: DefaultRContentParam = Query(
+    content: ResponseViewEnumParam = Query(
         ResponseView.FULL,
-        description=DefaultRContentParam.description(),
+        description=ResponseViewEnumParam.description(),
     ),
-    format: DefaultRFormatParam = Query(
+    format: ResponseFormatEnumParam = Query(
         ResponseFormat.JSON,
-        description=DefaultRFormatParam.description(),
+        description=ResponseFormatEnumParam.description(),
     ),
     internal: FILEREndpointRequestParameters = Depends(),
 ) -> Union[TrackMetadataResponse, ListResponse]:
-    response_content = DefaultRContentParam.validate(content)
-    response_format = DefaultRFormatParam.validate(format)
+    response_content = ResponseViewEnumParam.validate(content)
+    response_format = ResponseFormatEnumParam.validate(format)
     response_config = ResponseConfiguration(
         format=response_format,
         content=response_content,
