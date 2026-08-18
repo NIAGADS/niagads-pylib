@@ -1,14 +1,13 @@
 from typing import Dict, List, Optional, Union
 
-from niagads.api.common.models.domain.base import ORMCompatibleRecord
-from niagads.api.common.models.domain.mixins import DynamicMixin, ORMCompatabileMixin
+from niagads.api.common.models.data.base import ORMCompatibleRecord
+from niagads.api.common.models.data.mixins import DynamicMixin, ORMCompatabileMixin
 from niagads.common.gene.models.annotation import (
     GOAssociation,
     PathwayMembership,
 )
 from niagads.common.gene.models.record import GeneRecord
 from niagads.common.genomic.regions.models import GenomicRegion
-
 from pydantic import Field
 
 

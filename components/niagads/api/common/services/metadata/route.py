@@ -1,5 +1,6 @@
 from typing import Optional
 
+from niagads.api.common.models.context.cache import CacheKeyQualifier
 from niagads.api.common.models.domain.entities.dataset.collection import (
     CollectionMetadata,
 )
@@ -11,7 +12,6 @@ from niagads.api.common.models.domain.parameters.internal import (
     InternalRequestParameters,
 )
 from niagads.api.common.models.domain.parameters.types import ResponseView
-from niagads.api.common.models.service.cache import CacheKeyQualifier
 from niagads.api.common.services.metadata.query import (
     MetadataQueryService,
     TrackDatabase,

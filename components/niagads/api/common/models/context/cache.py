@@ -1,8 +1,7 @@
 from enum import StrEnum, auto
 
 from fastapi import Request
-
-from niagads.api.common.models.service.request import RequestDataModel
+from niagads.api.common.models.context.request import RequestDataModel
 from niagads.utils.string import blake2b_hash, regex_replace
 from pydantic import BaseModel, Field
 
@@ -13,8 +12,7 @@ class CacheNamespace(StrEnum):
     FILER = auto()  # FILER endpoints
     EXTERNAL_API = auto()  # external FILER API endpoints
     GENOMICS = auto()  # genomics endpoints
-    ADVP = auto()  # advp endpoints
-    VIEW = auto()  # view redirect endpoints
+    LAYOUT = auto()  # view redirect endpoints
     ROOT = auto()  # root api
     QUERY_CACHE = auto()  # for server-side pagination, sorting, filtering
 

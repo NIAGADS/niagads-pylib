@@ -1,9 +1,9 @@
 from typing import List, Optional, Union
 
-from niagads.api.common.models.domain.base import CountRecordModel, ORMCompatibleRecord
-from niagads.api.common.models.domain.mixins import (
+from niagads.api.common.models.data.base import CountRecordModel, ORMCompatibleRecord
+from niagads.api.common.models.data.mixins import (
+    CountsMixin,
     ORMCompatabileMixin,
-    ResultMetricsMixin,
 )
 from niagads.common.genomic.features.models import GenomicFeatureType
 from niagads.common.models.base import CustomBaseModel, SerializationOptions

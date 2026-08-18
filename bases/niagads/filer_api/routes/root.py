@@ -1,9 +1,10 @@
 import functools
+
 from fastapi import APIRouter, Depends, Request, Response
 from niagads.api.common.app.factory import AppFactory
 from niagads.api.common.models.domain.entities.entity import Entity, EntityMetrics
-from niagads.api.common.models.domain.routes import RouteDescriptor
 from niagads.api.common.models.response.base import DataResponse
+from niagads.api.common.models.summary.routes import RouteDescriptor
 from niagads.api.common.services.metadata.query import MetadataQueryService
 from niagads.filer_api.dependencies import FILEREndpointRequestParameters
 from niagads.filer_api.documentation import APP_NAME, OPEN_API_TAGS, PUBMED_IDS

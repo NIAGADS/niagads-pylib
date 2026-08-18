@@ -1,5 +1,6 @@
 from typing import List, Union
-from niagads.api.common.models.domain.entities.gene import (
+
+from niagads.api.common.models.entities.genes.gene import (
     AnnotatedGene,
     Gene,
     GeneAnnotation,

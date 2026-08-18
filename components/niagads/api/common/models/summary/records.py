@@ -1,10 +1,14 @@
 from typing import List, Optional, Set
 
-
-from niagads.api.common.models.domain.entities.entity import EntityMetrics
-from pydantic import Field
+from niagads.api.common.types import Entity
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.types import T_PubMedID
+from pydantic import Field
+
+
+class EntityMetrics(CustomBaseModel):
+    entity: Entity
+    num_records: int
 
 
 class RouteDescriptor(CustomBaseModel):

@@ -48,7 +48,7 @@ class ORMCompatabileMixin:
         return {k: v for k, v in data.items() if k in fields or k.startswith("num_")}
 
 
-class ResultMetricsMixin:
+class CountsMixin:
     count: int = Field(
         title="Count",
         description="number of matching records or hits in a data track",
@@ -58,3 +58,16 @@ class ResultMetricsMixin:
     def sort(results: List[Self], reverse=True) -> List[Self]:
         """sorts a list of results"""
         return sorted(results, key=lambda item: item.count, reverse=reverse)
+
+
+class VCFSerializationMixin:
+    def to_vcf(self):
+        pass
+
+
+class BEDSerializationMixin:
+    def to_bed(self):
+        # get valid model fields, make sure they include genomic region or chrm, start, end etc
+        # print header
+        # for each row in data, print row w/bed fields
+        pass

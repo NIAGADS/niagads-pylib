@@ -4,9 +4,9 @@ from itertools import groupby
 from operator import itemgetter
 from typing import List, Union
 
+from niagads.api.common.models.context.cache import CacheKeyDataModel, CacheNamespace
 from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
 from niagads.api.common.models.domain.parameters.types import ResponseView
-from niagads.api.common.models.service.cache import CacheKeyDataModel, CacheNamespace
 from niagads.api.common.services.metadata.query import (
     MetadataQueryService,
     TrackDatabase,

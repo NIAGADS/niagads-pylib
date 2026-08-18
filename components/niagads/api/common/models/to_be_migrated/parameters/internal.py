@@ -2,13 +2,12 @@ from typing import Annotated, Optional
 
 from aiohttp import ClientSession
 from fastapi import Depends, Request
-from niagads.api.common.models.service.cache import CacheKeyDataModel
-from niagads.api.common.models.service.request import RequestDataModel
-from niagads.api.common.services.cache import CacheService
-from niagads.cache.core import KeyDBCacheManager, CacheSerializer
 from niagads.api.common.config import Settings
 from niagads.api.common.dependencies import get_none
-
+from niagads.api.common.models.context.cache import CacheKeyDataModel
+from niagads.api.common.models.context.request import RequestDataModel
+from niagads.api.common.services.cache import CacheService
+from niagads.cache.core import CacheSerializer, KeyDBCacheManager
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 

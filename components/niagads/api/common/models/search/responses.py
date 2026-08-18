@@ -1,11 +1,11 @@
 from typing import List
 
-from niagads.api.common.models.response.base import DataResponse
-from niagads.api.common.models.domain.entities.entity import EntityRecordMatch
+from niagads.api.common.models.responses.base import DataResponse
+from niagads.api.common.models.search.records import SearchResult
 
 
 class EntityMatchResponse(DataResponse):
-    data: List[EntityRecordMatch]
+    data: List[SearchResult]
 
     def to_text(self, incl_header=False, null_str="NA"):
         raise NotImplementedError(

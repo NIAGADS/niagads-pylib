@@ -1,5 +1,6 @@
 from typing import Any, Optional, Tuple
-from niagads.api.common.models.service.cache import (
+
+from niagads.api.common.models.context.cache import (
     CacheKeyDataModel,
     CacheKeyQualifier,
     CacheNamespace,
@@ -42,11 +43,11 @@ class CacheService:
         cache_key = CacheKeyDataModel.encrypt_key(
             self._cache_key.key + str(CacheKeyQualifier.VIEW) + str(view)
         )
-        response = await self.get(cache_key, namespace=CacheNamespace.VIEW)
+        response = await self.get(cache_key, namespace=CacheNamespace.LAYOUT)
         return cache_key, response
 
     async def set_view_response(self, view, response: Any):
         cache_key = CacheKeyDataModel.encrypt_key(
             self._cache_key.key + str(CacheKeyQualifier.VIEW) + str(view)
         )
-        await self.set(cache_key, response, namespace=CacheNamespace.VIEW)
+        await self.set(cache_key, response, namespace=CacheNamespace.LAYOUT)

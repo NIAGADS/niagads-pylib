@@ -1,13 +1,13 @@
 from typing import List, Optional, Union
 
-from niagads.api.common.models.domain.mixins import ORMCompatabileMixin
+from niagads.api.common.models.data.mixins import ORMCompatabileMixin
 from niagads.common.genomic.regions.models import GenomicRegion
+from niagads.common.models.base import CustomBaseModel
 from niagads.common.variant.models.annotations import (
     CADDScore,
     PredictedConsequenceSummary,
     QCStatus,
 )
-from niagads.common.models.base import CustomBaseModel
 from niagads.common.variant.models.record import VariantIdentifier, VariantRecord
 from pydantic import Field, field_validator
 
