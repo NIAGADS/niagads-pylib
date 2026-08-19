@@ -45,7 +45,10 @@ class ResumeCheckpoint(CustomBaseModel):
 
     def to_info_string(self, debug: bool = False):
         if debug:  # debug -> return all not nulls
-            values = self.model_dump(exclude_none=True)
+            try:
+                values = self.model_dump(exclude_none=True)
+            except Exception as err:
+                values = {"record_id": self.record_id, "warning": str(err)}
         else:  # not debug, only include record if others are null
             if self.line is None and self.record_id is None:
                 values = self.model_dump(exclude_none=True)

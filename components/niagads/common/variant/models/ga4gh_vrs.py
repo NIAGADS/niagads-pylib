@@ -94,9 +94,6 @@ class SequenceLocation(BaseModel):
     end: int | tuple[Optional[int], Optional[int]] = Field(
         ..., description="The end coordinate or range"
     )
-    sequence: Optional[str] = Field(
-        default=None, description="The literal sequence at this location"
-    )
 
 
 class Allele(BaseModel):

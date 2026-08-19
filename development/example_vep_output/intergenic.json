@@ -1,0 +1,21 @@
+{
+	"allele_string": "G/A",
+	"intergenic_consequences": [
+		{
+			"variant_allele": "A",
+			"cadd_raw": 0.166115,
+			"cadd_phred": 2.017,
+			"impact": "MODIFIER",
+			"consequence_terms": ["intergenic_variant"]
+		}
+	],
+	"input": "chr7\t42484\tchr7_42484_G_A\tG\tA\t479\t.\tAF=8.54759e-06;AQ=479;AC=1;AN=116992",
+	"end": 42484,
+	"most_severe_consequence": "intergenic_variant",
+	"start": 42484,
+	"assembly_name": "GRCh38",
+	"seq_region_name": "chr7",
+	"variant_class": "SNV",
+	"strand": 1,
+	"id": "chr7_42484_G_A"
+}

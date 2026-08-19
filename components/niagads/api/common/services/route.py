@@ -30,8 +30,6 @@ class PaginationCursor(BaseModel):
     offset: Optional[int] = None
 
 
-
-
 class EndpointService:
 
     def __init__(
@@ -92,16 +90,13 @@ class EndpointService:
 
         # return view_response
 
-    
     async def get_feature_location(self, feature: GenomicFeature):
         return await FeatureQueryService(
             self._managers.database_session
         ).get_feature_location(feature)
 
 
-
-class PaginationService:
-    
+class PaginationService: ...
 
 
 class RouteHelperService:
@@ -222,7 +217,7 @@ class RouteHelperService:
             end = self._result_size
 
         return Range(start=start, end=end)
-    
+
     async def generate_response(self, result: Any, is_cached: bool = False):
         response: BaseResponseModel = result if is_cached else None
         if response is None:
@@ -275,13 +270,7 @@ class RouteHelperService:
         # case ResponseView.TABLE:
         #    return await self.generate_table_response(response)
 
-
-    
-
     async def get_feature_location(self, feature: GenomicFeature):
         return await FeatureQueryService(self._managers.session).get_feature_location(
             feature
         )
-
-
-

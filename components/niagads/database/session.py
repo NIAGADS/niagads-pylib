@@ -130,6 +130,9 @@ class DatabaseSessionManager:
             async with manager.raw_connection() as conn:
                 await conn.execute(sql)
         """
+        self.logger.warning(
+            "Using RAW CONNECTION - this will autocommit changes unless in transaction"
+        )
         if self.__engine is None:
             raise RuntimeError("DatabaseSessionManager is not initialized")
 

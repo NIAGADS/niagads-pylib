@@ -36,7 +36,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
     def __init__(
         self,
         genome_build: GenomeBuild,
-        seqrepo_service_url: str,
+        seqrepo_data_proxy: str,
         debug: bool = False,
         verbose: bool = False,
         logger=None,
@@ -44,7 +44,11 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         super().__init__(debug=debug, verbose=verbose, logger=logger)
         # self.logger.propagate = True
         self._vrs_service: GA4GHVRSService = GA4GHVRSService(
-            genome_build, seqrepo_service_url, debug=debug, verbose=verbose
+            genome_build,
+            seqrepo_data_proxy,
+            debug=debug,
+            verbose=verbose,
+            logger=logger,
         )
 
     @property
@@ -89,7 +93,6 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
 
         location: SequenceLocation = self._vrs_service.create_vrs_sequence_location(
             variant.genomic_region.to_zero_based_region(),
-            compute_id=False,
             normalize=False,
         )
         hashed_location_id = hashlib.sha512(
@@ -97,7 +100,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
         ).hexdigest()
 
         primary_key = (
-            f"{str(variant.variant_class)}_"
+            f"{str(variant.variant_class).replace('LONG_', '')}_"
             f"{variant.chromosome.name.upper()}_"
             f"{hashed_location_id[:8].upper()}"
         )
@@ -135,7 +138,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             )
 
         primary_key = variant.positional_id
-        if len(variant.ref) + len(variant.alt) > 20:
+        if len(variant.ref) + len(variant.alt) > 50:
             # too long to be human readable and indexable
             # Hash the entire Allele (includes ref/alt), not just location
             allele = (
@@ -154,7 +157,7 @@ class PrimaryKeyGenerator(ComponentBaseMixin):
             ).hexdigest()
 
             primary_key = (
-                f"{str(variant.variant_class).replace('SHORT_', '')}_"
+                f"{str(variant.variant_class).replace('SHORT_', '').replace('LONG_','')}_"
                 f"{variant.chromosome.name.upper()}_"
                 f"{hashed_allele_id[:8].upper()}"
             )
@@ -174,13 +177,18 @@ class GA4GHVRSService(ComponentBaseMixin):
     def __init__(
         self,
         genome_build: GenomeBuild,
-        seqrepo_service_url: str,
+        seqrepo_data_proxy: str,
         debug: bool = False,
         verbose: bool = False,
         logger=None,
     ):
         super().__init__(debug=debug, verbose=verbose, logger=logger)
-        self._seqrepo_data_proxy = create_dataproxy(f"seqrepo+{seqrepo_service_url}")
+        if seqrepo_data_proxy.startswith("http"):
+            self._seqrepo_data_proxy = create_dataproxy(f"seqrepo+{seqrepo_data_proxy}")
+        else:
+            self._seqrepo_data_proxy = create_dataproxy(
+                f"seqrepo+file://{seqrepo_data_proxy}"
+            )
         self._assembly: GenomeBuild = genome_build
         self._refget_accession_cache: dict = {}
 
@@ -244,9 +252,7 @@ class GA4GHVRSService(ComponentBaseMixin):
             end=variant.span.end,
         ).to_zero_based_region()
 
-        vrs_location = self.create_vrs_sequence_location(
-            region, normalize=False, compute_id=False
-        )
+        vrs_location = self.create_vrs_sequence_location(region, normalize=False)
 
         state = LiteralSequenceExpression(sequence=variant.alt)
         allele = Allele(location=vrs_location, state=state)
@@ -285,9 +291,7 @@ class GA4GHVRSService(ComponentBaseMixin):
             end=variant.span.end,
         ).to_zero_based_region()
 
-        vrs_location = self.create_vrs_sequence_location(
-            region, normalize=False, compute_id=False
-        )
+        vrs_location = self.create_vrs_sequence_location(region, normalize=False)
 
         if variant.variant_class == "DEL":
             state = ReferenceLengthExpression(length=variant.length)
@@ -334,12 +338,22 @@ class GA4GHVRSService(ComponentBaseMixin):
         )  # validate variant string
 
         if variant_id_type == VariantNomenclature.POSITIONAL:
-            allele = self._allele_translator.translate_from(
-                VariantNomenclature.convert_positional_to_gnomad(variant_id),
-                VariantNomenclature.GNOMAD.value,
+            chrm, pos, ref, alt = variant_id.split(":")
+            # basically save time of the refget accession lookup
+            refget_accession = self.get_refget_accession(chrm).replace("ga4gh:", "")
+            start = int(pos) - 1
+            variant_json = {
+                "refget_accession": refget_accession,
+                "start": start,
+                "end": start + len(ref),
+                "literal_sequence": alt,
+            }
+            allele = self._allele_translator._create_allele(
+                variant_json,
                 require_validation=require_validation,
                 do_normalize=normalize,
             )
+
         else:
             allele = self._allele_translator.translate_from(
                 variant_id,
@@ -379,14 +393,20 @@ class GA4GHVRSService(ComponentBaseMixin):
                 ref = self.get_sequence(vrs_allele.location)
             alt = vrs_allele.state.sequence.root
         elif vrs_allele.state.type == "ReferenceLengthExpression":
-            if (
+            ref = self.get_sequence(vrs_allele.location)
+            if vrs_allele.state.length == 0:
+                alt = "-"
+            elif (
                 vrs_allele.state.sequence is None
                 or vrs_allele.state.sequence.root == ""
-            ):  # happens sometimes for repeats
-                ref = self.get_sequence(vrs_allele.location)
+            ):
+                repeat_length = vrs_allele.state.repeatSubunitLength
+                repeat_sequence = ref[:repeat_length]
+                alt = (
+                    repeat_sequence * ((vrs_allele.state.length // repeat_length) + 1)
+                )[: vrs_allele.state.length]
             else:
-                ref = vrs_allele.state.sequence.root * vrs_allele.state.length
-            alt = "-"
+                alt = vrs_allele.state.sequence.root
         elif vrs_allele.state.type == "LengthExpression":
             raise ValueError(
                 "Cannot convert: allele type is a `LengthExpression`.  "
@@ -510,6 +530,7 @@ class GA4GHVRSService(ComponentBaseMixin):
             refget_accession = self._seqrepo_data_proxy.translate_sequence_identifier(
                 key, "ga4gh"
             )[0]
+            self._refget_accession_cache[key] = refget_accession
         if not refget_accession:
             raise ValueError(
                 f"Unable to map chromosome {chromosome} to a GA4GH RefGet Accession"
@@ -569,7 +590,6 @@ class GA4GHVRSService(ComponentBaseMixin):
         self,
         region: ZeroBasedGenomicRegion,
         normalize: bool = True,
-        compute_id: bool = True,
     ):
         """
         Create a GA4GH VRS SequenceLocation object for a given genomic region and
@@ -585,8 +605,6 @@ class GA4GHVRSService(ComponentBaseMixin):
         Args:
             region (ZeroBasedGenomicRegion): Genomic region with chromosome, start, and end coordinates.
             normalize (bool, optional): If True, normalize the SequenceLocation. Default is True.
-            compute_id (bool, optional): If True, compute and assign a GA4GH identifier.
-                Default is True.
 
         Returns:
             SequenceLocation: Normalized GA4GH VRS SequenceLocation object for the region
@@ -608,8 +626,8 @@ class GA4GHVRSService(ComponentBaseMixin):
             end=region.end,
         )
 
-        if compute_id:
-            location.id = ga4gh_identify(location)  # compute ga4gh identifier
+        location.id = ga4gh_identify(location)  # compute ga4gh identifier
+
         return vrs_normalize(location) if normalize else location
 
     def normalize_positional_variant(
@@ -650,3 +668,21 @@ class GA4GHVRSService(ComponentBaseMixin):
         )
 
         return self.allele_to_positional_variant(allele)
+
+    def fast_normalize_variant(self, positional_id: str) -> str:
+        chrom, pos, ref, alt = positional_id.split(":")
+        ref = "" if ref == "-" else ref
+        alt = "" if alt == "-" else alt
+
+        # trim shared suffix
+        while ref and alt and ref[-1] == alt[-1] and (len(ref) > 1 or len(alt) > 1):
+            ref = ref[:-1]
+            alt = alt[:-1]
+
+        # trim shared prefix
+        while ref and alt and ref[0] == alt[0] and (len(ref) > 1 or len(alt) > 1):
+            ref = ref[1:]
+            alt = alt[1:]
+            pos = int(pos) + 1
+
+        return f"{chrom}:{pos}:{ref or '-'}:{alt or '-'}"

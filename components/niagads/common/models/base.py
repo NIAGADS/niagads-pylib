@@ -21,6 +21,7 @@ from pydantic import (
 
 class SerializationOptions(CaseInsensitiveEnum):
     ENUMS_AS_NAME = auto()  # return enums as names instead of default value
+    ENUMS_AS_VALUE = auto()
     EXCLUDE_EMPTY_OBJECTS = auto()  # exclude empty dicts and lists
     EMBEDDED_TEXT = auto()  # return only fields relevant for generating embeddings
 
@@ -46,6 +47,13 @@ class CustomBaseModel(BaseModel):
         ):
             if isinstance(v, (Enum, CaseInsensitiveEnum)):
                 return v.name
+
+        if (
+            _info.context is not None
+            and _info.context.get(SerializationOptions.ENUMS_AS_VALUE) is True
+        ):
+            if isinstance(v, (Enum, CaseInsensitiveEnum)):
+                return v.value
 
         return v
 

@@ -1,0 +1,14 @@
+- [x] `Parameters` -> `RequestParameters`
+- [ ] `RouteHelperService` -> `EndpointService`
+- [ ] `MetadataRouteHelperService` -> `MetadataEndpointService`
+- [ ] `ApiWrapperService` -> `FILERClient`
+- [ ] `FILERRouteHelper` -> `FILEREndpointService`
+- [ ] Extract `PaginationService`
+- [ ] Extract `RepresentationService`
+- [ ] Extract `CacheService`
+- [ ] Switch GenomicsDB imports from `RequestParameters`
+- [ ] Carry forward FILER pagination invariants:
+- [ ] sorted track-result summary order
+- [ ] cursor/result-size cache keys and namespaces
+- [ ] per-page track subset boundaries
+- [ ] per-track slice start/end behavior

@@ -9,16 +9,16 @@ from sentence_transformers import SentenceTransformer
 class TextEmbeddingGenerator:
     """Calculate and cache text embeddings using SentenceTransformer."""
 
-    def __init__(self, model: LLM = LLM.ALL_MINILM_L6_V2):
-        self.__model = self.__initialize_model(model)
+    def __init__(self, model: LLM = LLM.ALL_MINILM_L6_V2, force_cpu: bool = False):
+        self.__model = self.__initialize_model(model, force_cpu)
 
     @property
     def is_cpu_limited(self):
         return str(self.__model.device).startswith("cpu")
 
     @staticmethod
-    @lru_cache(maxsize=1)
-    def __initialize_model(model: LLM) -> SentenceTransformer:
+    @lru_cache(maxsize=2)
+    def __initialize_model(model: LLM, force_cpu: bool) -> SentenceTransformer:
         """
         Get or load a cached SentenceTransformer model.
 
@@ -29,7 +29,10 @@ class TextEmbeddingGenerator:
             SentenceTransformer: The loaded model instance (cached).
         """
         LLM.validate(model, NLPModelType.EMBEDDING)
-        return SentenceTransformer(str(model))
+        if force_cpu:
+            return SentenceTransformer(str(model), device="cpu")
+        else:
+            return SentenceTransformer(str(model))
 
     @staticmethod
     def list_registered_models():

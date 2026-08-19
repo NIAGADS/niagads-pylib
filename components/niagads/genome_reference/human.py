@@ -78,7 +78,7 @@ class HumanGenome(CaseInsensitiveEnum):
     chr22 = "22"
     chrX = "X"
     chrY = "Y"
-    chrM = "M"
+    chrM = "MT"
 
     # after from https://stackoverflow.com/a/76131490
     @classmethod

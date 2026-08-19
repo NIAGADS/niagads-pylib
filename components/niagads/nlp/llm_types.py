@@ -33,6 +33,11 @@ class LLM(CaseInsensitiveEnum):
         PEGASUS_PUBMED: Biomedical summarization (google/pegasus-pubmed). Excellent for summarizing PubMed abstracts and biomedical literature.
         BART_LARGE_CNN: General summarization (facebook/bart-large-cnn). Strong for news and general domain summarization.
         LED_ARXIV: Long document summarization (allenai/led-base-16384-arxiv). Designed for summarizing long scientific documents, especially arXiv papers.
+        QWEN2_5_7B_INSTRUCT: Instruction-tuned summarization/generation model (Qwen/Qwen2.5-7B-Instruct). Strong for structured prompt-following and JSON-like output.
+        QWEN2_5_1_5B_INSTRUCT: Instruction-tuned summarization/generation model (Qwen/Qwen2.5-1.5B-Instruct). Smaller prompt-following model for constrained summarization.
+        QWEN2_5_0_5B_INSTRUCT: Instruction-tuned summarization/generation model (Qwen/Qwen2.5-0.5B-Instruct). Lightweight prompt-following model for constrained summarization.
+        GEMMA_2_9B_IT: Instruction-tuned summarization/generation model (google/gemma-2-9b-it). Suitable for concise controlled summarization tasks.
+        MISTRAL_7B_INSTRUCT_V0_3: Instruction-tuned summarization/generation model (mistralai/Mistral-7B-Instruct-v0.3). Useful fallback for prompt-driven summaries.
         ALL_MINILM_L6_V2: General-purpose sentence embedding (sentence-transformers/all-MiniLM-L6-v2). Fast, lightweight, and effective for semantic similarity and clustering.
         BIOBERT_MNLI_SNLI: Biomedical/scientific sentence embedding (pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb). Specialized for biomedical and scientific text embeddings.
         SPECTER: Scientific/biomedical paper embedding (sentence-transformers/allenai-specter). State-of-the-art for scientific document similarity and citation prediction.
@@ -50,6 +55,11 @@ class LLM(CaseInsensitiveEnum):
     PEGASUS_PUBMED = auto()
     BART_LARGE_CNN = auto()
     LED_ARXIV = auto()
+    QWEN2_5_7B_INSTRUCT = auto()
+    QWEN2_5_1_5B_INSTRUCT = auto()
+    QWEN2_5_0_5B_INSTRUCT = auto()
+    GEMMA_2_9B_IT = auto()
+    MISTRAL_7B_INSTRUCT_V0_3 = auto()
     ALL_MINILM_L6_V2 = auto()
     BIOBERT_MNLI_SNLI = auto()
     SPECTER = auto()
@@ -70,6 +80,16 @@ class LLM(CaseInsensitiveEnum):
             return "facebook/bart-large-cnn"
         elif self == LLM.LED_ARXIV:
             return "allenai/led-base-16384-arxiv"
+        elif self == LLM.QWEN2_5_7B_INSTRUCT:
+            return "Qwen/Qwen2.5-7B-Instruct"
+        elif self == LLM.QWEN2_5_1_5B_INSTRUCT:
+            return "Qwen/Qwen2.5-1.5B-Instruct"
+        elif self == LLM.QWEN2_5_0_5B_INSTRUCT:
+            return "Qwen/Qwen2.5-0.5B-Instruct"
+        elif self == LLM.GEMMA_2_9B_IT:
+            return "google/gemma-2-9b-it"
+        elif self == LLM.MISTRAL_7B_INSTRUCT_V0_3:
+            return "mistralai/Mistral-7B-Instruct-v0.3"
         elif self == LLM.ALL_MINILM_L6_V2:
             return "sentence-transformers/all-MiniLM-L6-v2"
         elif self == LLM.BIOBERT_MNLI_SNLI:
@@ -107,6 +127,16 @@ class LLM(CaseInsensitiveEnum):
         elif self == LLM.BART_LARGE_CNN:
             return NLPModelType.SUMMARIZATION
         elif self == LLM.LED_ARXIV:
+            return NLPModelType.SUMMARIZATION
+        elif self == LLM.QWEN2_5_7B_INSTRUCT:
+            return NLPModelType.SUMMARIZATION
+        elif self == LLM.QWEN2_5_1_5B_INSTRUCT:
+            return NLPModelType.SUMMARIZATION
+        elif self == LLM.QWEN2_5_0_5B_INSTRUCT:
+            return NLPModelType.SUMMARIZATION
+        elif self == LLM.GEMMA_2_9B_IT:
+            return NLPModelType.SUMMARIZATION
+        elif self == LLM.MISTRAL_7B_INSTRUCT_V0_3:
             return NLPModelType.SUMMARIZATION
         elif self == LLM.ALL_MINILM_L6_V2:
             return NLPModelType.EMBEDDING

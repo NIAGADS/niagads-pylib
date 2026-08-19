@@ -11,9 +11,9 @@ packages = [
     { include = "niagads/pd_dataframe", from = "../../components" },
     { include = "niagads/arg_parser", from = "../../components" },
     { include = "niagads/utils", from = "../../components" },
-    {include = "niagads/genome_reference",from = "../../components"},
-    {include = "niagads/common",from = "../../components"},
-    {include = "niagads/flatfile",from = "../../components"},
+    { include = "niagads/genome_reference", from = "../../components" },
+    { include = "niagads/common", from = "../../components" },
+    { include = "niagads/flatfile", from = "../../components" },
 ]
 
 [project]
@@ -21,7 +21,9 @@ name = "examples"
 description = "example usage of NIAGADS-pylib packages"
 version = "0.1.0"
 
-authors = [{ name = "fossilfriend", email = "egreenfest@gmail.com" }]
+authors = [
+    { name = "fossilfriend", email = "egreenfest@gmail.com" },
+]
 
 requires-python = ">=3.11,<4.0"
 
@@ -34,5 +36,7 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = [
+    "poetry-core>=1.0.0",
+]
 build-backend = "poetry.core.masonry.api"

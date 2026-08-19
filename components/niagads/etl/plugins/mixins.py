@@ -56,7 +56,9 @@ class EmbeddingGeneratorContextMixin:
 
     async def on_run_start(self, session):
         """on run start hook override"""
-        self._embedding_generator = TextEmbeddingGenerator(self._params.embedding_model)
+        self._embedding_generator = TextEmbeddingGenerator(
+            self._params.embedding_model, force_cpu=self._params.embedding_force_cpu
+        )
         if self._embedding_generator.is_cpu_limited:
             if self._params.embedding_batch_size > 128:
                 self.logger.warning(
