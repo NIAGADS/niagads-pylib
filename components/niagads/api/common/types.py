@@ -3,7 +3,34 @@
 This module defines small shared types used across the NIAGADS API,
 """
 
+from enum import auto
+
 from niagads.enums.core import CaseInsensitiveEnum
+
+
+class ResponseView(CaseInsensitiveEnum):
+    """enum for allowable response views"""
+
+    FULL = auto()
+    SUMMARY = auto()
+    URLS = auto()
+    COUNTS = auto()
+    IDS = auto()
+
+
+class ResponseFormat(CaseInsensitiveEnum):
+    """enum for allowable response / output formats"""
+
+    JSON = auto()
+    TEXT = auto()
+
+
+class ResponseLayout(CaseInsensitiveEnum):
+    TABLE = auto()
+    IGV_CONFIG = auto()
+    IGV_TRACK_SELECTOR = auto()
+    CHART = auto()
+    DEFAULT = auto()
 
 
 class Entity(CaseInsensitiveEnum):
