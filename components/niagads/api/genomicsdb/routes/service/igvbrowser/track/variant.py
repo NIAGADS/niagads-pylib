@@ -6,7 +6,7 @@ from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.features.region import GenomicRegion
 from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.parameters.igvbrowser import ADSPRelease, AnnotatedVariantTrack
-from niagads.api.common.parameters.location import loc_param
+from niagads.api.common.parameters.location import location_param
 from niagads.api.common.parameters.record.query import (
     adsp_release_param,
     variant_track_param,
@@ -39,7 +39,7 @@ router = APIRouter(
 async def get_variant_browser_track_data(
     track: str = Depends(variant_track_param),
     release: Optional[str] = Depends(adsp_release_param),
-    span: GenomicFeature = Depends(loc_param),
+    span: GenomicFeature = Depends(location_param),
     internal: InternalRequestParameters = Depends(),
 ):
 

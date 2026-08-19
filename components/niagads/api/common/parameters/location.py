@@ -1,5 +1,12 @@
+from typing import Annotated
+
 from fastapi import Query
-from niagads.api.common.utils import sanitize
+from pydantic import BeforeValidator
+from components.niagads.api.common.parameters.validators import (
+    sanitize_enum_value,
+    sanitize_value,
+)
+
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.common.genomic.features.types import GenomicFeatureType
 from niagads.exceptions.core import ValidationError
@@ -7,60 +14,61 @@ from niagads.genome_reference.human import GenomeBuild, HumanGenome
 
 
 async def assembly_param(
-    genome_build: GenomeBuild = Query(
-        GenomeBuild.GRCh38, description="reference genome build"
-    )
+    assembly: Annotated[
+        GenomeBuild,
+        BeforeValidator(sanitize_enum_value(GenomeBuild)),
+        Query(
+            description=(
+                "Reference genome assembly used to interpret genomic coordinates. "
+                "Supported assemblies are GRCh37 and GRCh38; hg19 and hg38 are "
+                "accepted as aliases."
+            )
+        ),
+    ] = GenomeBuild.GRCh38,
 ):
-    return GenomeBuild.validate(genome_build, "Genome Build", GenomeBuild)
+    return assembly
 
 
 async def chromosome_param(
-    chromosome: str = Query(
-        HumanGenome.chr19.value,
-        enum=[c.name for c in HumanGenome],
-        description="chromosome, specificed as 1..22,X,Y,M,MT or chr1...chr22,chrX,chrY,chrM,chrMT",
+    chromosome: Annotated[
+        HumanGenome,
+        BeforeValidator(sanitize_enum_value(HumanGenome)),
+        Query(
+            alias="chr",
+            description=(
+                "Chromosome identifier. Use 1–22, X, Y, M, or MT, or the equivalent "
+                "chr-prefixed form (for example, chr19 or chrM)."
+            ),
+        ),
+    ] = HumanGenome.chr19,
+):
+    return chromosome
+
+
+async def location_param(
+    location: str = Query(
+        alias="loc",
+        description=(
+            "Location to query. Accepted values are Official Gene Symbols, "
+            "Ensembl or Entrez (NBCU) Gene identifiers, refSNP identifiers, positional variant identifiers "
+            "(chr:position:reference:alternate), or a genomic span specified as chrN:start-end or N:start-end."
+        ),
     )
 ):
-    try:
-        return HumanGenome.validate(sanitize(chromosome))
-    except KeyError:
-        raise ValidationError(f"Invalid chromosome {chromosome}.")
 
+    location = sanitize_value(location)
 
-async def span_param(
-    span: str = Query(
-        description="genomic region to query; ",
-        examples=["chr19:10000-40000", "19:10000-40000"],
-    )
-):
-    return GenomicFeature.validate_span(sanitize(span))
-
-
-async def loc_param(
-    loc: str = Query(
-        description="""genomic region to query, may be one of the following:
-                Official Gene Symbol, Ensembl ID, Entrez ID, refSNP ID, variant positional ID (chr:pos:ref:alt),
-                or genomic span. Please specific genomic spans as chrN:start-end or N:start-end"""
-    ),
-):
-
-    location = sanitize(loc)
-
-    try:
-        return GenomicFeature(
-            feature_id=location, feature_type=GenomicFeatureType.REGION
-        )
-    except ValidationError:
+    for feature_type in (
+        GenomicFeatureType.REGION,
+        GenomicFeatureType.VARIANT,
+        GenomicFeatureType.GENE,
+    ):
         try:
             return GenomicFeature(
-                feature_id=location, feature_type=GenomicFeatureType.VARIANT
+                feature_id=location,
+                feature_type=feature_type,
             )
-        except ValidationError:
-            try:
-                return GenomicFeature(
-                    feature_id=location, feature_type=GenomicFeatureType.GENE
-                )
-            except ValidationError:
-                raise ValidationError(
-                    f"Invalid genomic location or feature identifier: {loc}"
-                )
+        except ValueError:
+            continue
+
+    raise ValueError(f"Invalid genomic location or feature identifier: {location}")

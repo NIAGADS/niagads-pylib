@@ -9,7 +9,7 @@ from niagads.api.common.models.features.variant import (
     VariantResponse,
 )
 from niagads.api.common.models.response.record import BaseResponseModel
-from niagads.api.common.parameters.location import loc_param
+from niagads.api.common.parameters.location import location_param
 from niagads.api.common.parameters.record.filters import (
     VariantType,
     variant_type_param,
@@ -50,7 +50,7 @@ MAX_SPAN = Settings.from_env().MAX_SPAN_SIZE
     description=f"Retrieve variants by region (length < {MAX_SPAN:,}) and filter for variant type or impacted gene; this endpoint is in beta, future versions will allow more extended filtering on predicted consequence and variant class",
 )
 async def search_varinats(
-    loc: GenomicFeature = Depends(loc_param),
+    loc: GenomicFeature = Depends(location_param),
     variantType: VariantType = Depends(variant_type_param),
     impactedGene: str = Depends(vep_impacted_gene_param),
     internal: InternalRequestParameters = Depends(),

@@ -83,6 +83,8 @@ class HumanGenome(CaseInsensitiveEnum):
     # after from https://stackoverflow.com/a/76131490
     @classmethod
     def _missing_(cls, value: str):  # allow 'X' or 'chrX'
+        if isinstance(value, str) and value.lower() == "m":
+            return cls.chrM
         for member in cls:
             if value == member.name:
                 return member
@@ -99,19 +101,3 @@ class HumanGenome(CaseInsensitiveEnum):
     def sort_order(self):
         """returns a {chr:order} mapping to faciliate chr based sorting"""
         return {chr: index for index, chr in enumerate(self.__members__)}
-
-    @classmethod
-    def validate(self, value: str, inclPrefix: bool = True):
-        """
-        validate a chromosome value against the enum; if match found will return match
-
-        Args:
-            value (str): value to match
-            inclPrefix (bool, optional): include 'chr' prefix in the return. Defaults to True.
-        """
-        # make sure X,Y,M are uppercase; MT -> M
-        cv = str(value).upper().replace("CHR", "").replace("MT", "M")
-        if cv in self._value2member_map_:
-            return "chr" + cv if inclPrefix else cv
-        else:
-            raise KeyError(f"Invalid chromosome: {value}")
