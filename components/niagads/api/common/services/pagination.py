@@ -1,71 +1,98 @@
-from abc import ABC, abstractmethod
-from typing import List, Optional, Union
+from typing import Optional, Union
 
-from niagads.api.common.constants import DEFAULT_PAGE_SIZE
+from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from niagads.api.common.models.responses.pagination import PaginationState
 from niagads.common.models.types import Range
-from niagads.exceptions.core import ValidationError
-from niagads.utils.list import cumulative_sum
 from pydantic import BaseModel
 
 
 class PaginationCursor(BaseModel):
+    """Identifies a position within a paginated result."""
+
     key: Union[str, int]
     offset: Optional[int] = None
 
 
 class PaginationService:
+    """Track pagination state and calculate page boundaries for results."""
 
     def __init__(
         self,
         page_size: int = DEFAULT_PAGE_SIZE,
     ):
-        self._parameters = parameters
-        self._page_size = page_size
-        self._result_size = result_size
-        self._pagination = pagination
+        """Initialize the pagination service.
 
-    def initialize_pagination(self):
-        self._pagination = PaginationDataModel(
-            page=self.page(),
-            total_num_pages=self.total_num_pages(),
+        Args:
+            page_size: Maximum number of records returned per page.
+        """
+        self._page_size = page_size
+        self._pagination: PaginationState = None
+
+    def initialize(self, page: int, result_size: int):
+        """Initialize pagination state for a result set.
+
+        Args:
+            page: One-based page number requested by the caller.
+            result_size: Total number of records in the result set.
+
+        Returns:
+            ``True`` when the requested page is valid.
+        """
+        self._pagination = PaginationState(
+            page=1 if page is None else page,
+            total_num_pages=self._calculate_total_num_pages(result_size),
             paged_num_records=None,
-            total_num_records=self._result_size,
+            total_num_records=result_size,
         )
 
-        return self.validate_page(self._pagination.page)
+        return self.is_valid_page(self._pagination.page)
 
-    @property
-    def pagination(self) -> Optional[PaginationDataModel]:
-        return self._pagination
+    def set_paged_num_records(self, num_records: int):
+        """Record the number of records returned for the current page.
 
-    @property
-    def page_size(self) -> int:
-        return self._page_size
+        Args:
+            num_records: Number of records in the current page.
+        """
+        self.exists()
+        self._pagination.paged_num_records = num_records
 
-    @property
-    def result_size(self) -> Optional[int]:
-        return self._result_size
+    def exists(self, raise_error: bool = True):
+        """Check whether pagination has been initialized.
 
-    def set_result_size(self, result_size: Optional[int]):
-        self._result_size = result_size
+        Args:
+            raise_error: Whether to raise an error when pagination is absent.
 
-    def page(self):
-        if self._parameters is not None:
-            return self._parameters.get("page", 1)
-        return 1
+        Returns:
+            ``True`` when initialized, otherwise ``False`` when ``raise_error``
+            is false.
 
-    def pagination_exists(self, raise_error: bool = True):
+        Raises:
+            RuntimeError: If pagination is absent and ``raise_error`` is true.
+        """
         if self._pagination is None:
             if raise_error:
                 raise RuntimeError(
                     "Attempting to modify or access pagination before initializing"
                 )
-            return False
+            else:
+                return False
         return True
 
-    def validate_page(self, page: int):
-        self.pagination_exists()
+    def is_valid_page(self, page: int):
+        """Validate that a page falls within the available page range.
+
+        Args:
+            page: One-based page number to validate.
+
+        Returns:
+            ``True`` when the page is valid.
+
+        Raises:
+            ValueError: If the page exceeds the total number of pages.
+            RuntimeError: If pagination has not been initialized.
+        """
+
+        self.exists()
 
         if self._pagination.total_num_pages is None:
             raise RuntimeError(
@@ -73,165 +100,81 @@ class PaginationService:
             )
 
         if page > self._pagination.total_num_pages:
-            raise ValidationError(
-                f"Request `page` {page} does not exist; this query generates a maximum of "
-                f"{self._pagination.total_num_pages} pages"
+            raise ValueError(
+                f"Request `page` {page} does not exist; this query generates a maximum "
+                f"of {self._pagination.total_num_pages} pages"
             )
 
         return True
 
-    def total_num_pages(self):
-        if self._result_size is None:
+    def _calculate_total_num_pages(self, result_size: int):
+        """Calculate the total number of pages for a result set.
+
+        Args:
+            result_size: Total number of records in the result set.
+
+        Returns:
+            The number of pages, with at least one page for an empty result.
+
+        Raises:
+            RuntimeError: If ``result_size`` is not provided.
+            ValueError: If the result exceeds the maximum page limit.
+        """
+        if result_size is None:
             raise RuntimeError("Attempting to page before estimating result size.")
 
-        if self._result_size > self._page_size * MAX_NUM_PAGES:
-            raise ValidationError(
-                f"Result size ({self._result_size}) is too large; filter for fewer tracks "
-                "or narrow the queried genomic region."
+        if result_size > self._page_size * MAX_NUM_PAGES:
+            raise ValueError(
+                f"Result size ({result_size}) is too large; please add additional filters or narrow the queried genomic region."
             )
 
-        return (
-            1
-            if self._result_size < self._page_size
-            else next(
-                (
-                    p
-                    for p in range(1, MAX_NUM_PAGES)
-                    if (p - 1) * self._page_size > self._result_size
-                )
-            )
-            - 1
+        return max(
+            1,
+            (result_size + self._page_size - 1) // self._page_size,
         )
 
-    def set_paged_num_records(self, num_records: int):
-        self.pagination_exists()
-        self._pagination.paged_num_records = num_records
+    def slice_result(self, page: int = None) -> Range:
+        """Calculate slice boundaries for a page of an in-memory result.
+
+        Args:
+            page: Optional one-based page number. Uses the initialized page
+                when omitted.
+
+        Returns:
+            A ``Range`` containing the zero-based start index and exclusive end
+            index for the requested page.
+
+        Raises:
+            ValueError: If an explicitly supplied page is invalid.
+            RuntimeError: If pagination has not been initialized.
+        """
+        self.exists()
+        if page is not None:
+            if self.is_valid_page(page):
+                target_page = page
+        else:
+            target_page = self._pagination.page
+        start = (target_page - 1) * self._page_size
+        # don't subtract 1 from end b/c python slices are not end-range inclusive
+        end = start + self._page_size
+        if end > self._pagination.total_num_records:
+            end = self._pagination.total_num_records
+
+        return Range(start=start, end=end)
 
     def offset(self):
-        self.pagination_exists()
+        """Calculate the SQL offset for the initialized page.
+
+        Returns:
+            ``None`` for the first page; otherwise, the zero-based record
+            offset for the current page.
+
+        Raises:
+            RuntimeError: If pagination has not been initialized.
+        """
+        self.exists()
         return (
             None
             if self._pagination.page == 1
             else (self._pagination.page - 1) * self._page_size
         )
-
-    def slice_result_by_page(self, page: int = None) -> Range:
-        self.pagination_exists()
-        target_page = self._pagination.page if page is None else page
-        start = (target_page - 1) * self._page_size
-        end = start + self._page_size
-        if end > self._result_size:
-            end = self._result_size
-
-        return Range(start=start, end=end)
-
-
-class TrackDataPaginationService(PaginationService, ABC):
-
-    def __init__(
-        self,
-        parameters,
-        cache_service: CacheService,
-        page_size: int = DEFAULT_PAGE_SIZE,
-    ):
-        super().__init__(parameters, page_size=page_size)
-        self._cache_service = cache_service
-
-    async def build_page_cursor(
-        self, track_result_summary: List[TrackResultMetrics]
-    ) -> TrackDataPaginationCursor:
-        sorted_track_result_summary: List[TrackResultMetrics] = TrackResultMetrics.sort(
-            track_result_summary
-        )
-        no_page_cache_key = self._cache_service.cache_key.no_page()
-
-        cursor_cache_key = CacheKeyDataModel.encrypt_key(
-            no_page_cache_key + CacheKeyQualifier.CURSOR
-        )
-        result_size_cache_key = CacheKeyDataModel.encrypt_key(
-            no_page_cache_key + CacheKeyQualifier.RESULT_SIZE
-        )
-
-        cursors = await self._cache_service.get(
-            cursor_cache_key,
-            namespace=CacheNamespace.QUERY_CACHE,
-        )
-        self.set_result_size(
-            await self._cache_service.get(
-                result_size_cache_key,
-                namespace=CacheNamespace.QUERY_CACHE,
-            )
-        )
-
-        if cursors is None or self.result_size is None:
-            cumulative_sum_by_track = cumulative_sum(
-                [t.count for t in sorted_track_result_summary]
-            )
-            self.set_result_size(cumulative_sum_by_track[-1])
-
-            await self._cache_service.set(
-                result_size_cache_key,
-                self.result_size,
-                namespace=CacheNamespace.QUERY_CACHE,
-            )
-
-            self.initialize_pagination()
-
-            cursors = ["0:0"]
-            if self.result_size > self.page_size:
-                residual_records = 0
-                prior_track_index = 0
-                offset = 0
-                for page in range(1, self.pagination.total_num_pages):
-                    slice_range = self.slice_result_by_page(page)
-                    for index, counts in enumerate(cumulative_sum_by_track):
-                        if counts > slice_range.end:
-                            offset = (
-                                offset + self.page_size
-                                if prior_track_index == index
-                                else self.page_size - residual_records
-                            )
-                            cursors.append(f"{index}:{offset}")
-
-                            residual_records = (
-                                sorted_track_result_summary[index].count - offset
-                            )
-                            prior_track_index = index
-                            break
-
-            cursors.append(
-                f"{len(sorted_track_result_summary)-1}:{sorted_track_result_summary[-1].count}"
-            )
-
-            await self._cache_service.set(
-                cursor_cache_key,
-                cursors,
-                namespace=CacheNamespace.QUERY_CACHE,
-            )
-        else:
-            self.initialize_pagination()
-
-        start_track_index, start_offset = [
-            int(x) for x in cursors[self.pagination.page - 1].split(":")
-        ]
-        end_track_index, end_index = [
-            int(x) for x in cursors[self.pagination.page].split(":")
-        ]
-        paged_tracks = [
-            t.id
-            for t in sorted_track_result_summary[
-                start_track_index : end_track_index + 1
-            ]
-        ]
-
-        return TrackDataPaginationCursor(
-            tracks=paged_tracks,
-            start=PaginationCursor(key=0, offset=start_offset),
-            end=PaginationCursor(
-                key=end_track_index - start_track_index, offset=end_index
-            ),
-        )
-
-    @abstractmethod
-    def page_data(self, cursor: TrackDataPaginationCursor, data: List) -> List:
-        raise NotImplementedError
