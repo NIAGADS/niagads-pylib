@@ -66,9 +66,9 @@ class FileManifestValidator(CSVTableValidator):
             if fail_on_error:
                 raise error
             else:
-                validation_result["errors"].append(
-                    {f"invalid_{self.__sample_field.upper()}": invalid_samples}
-                )
+                validation_result["errors"][
+                     f"invalid_{self.__sample_field.upper()}"
+                ] = invalid_samples
 
         if len(missing_samples) > 0:
             warning = {f"no_file_for_{self.__sample_field.upper()}": missing_samples}
@@ -137,9 +137,10 @@ class BiosourcePropertiesValidator(CSVTableValidator):
             if fail_on_error:
                 raise error
             else:
-                validation_result["errors"].append(
-                    {f"duplicate_{self._biosource_id.upper()}": duplicates}
-                )
+                validation_result["errors"][
+                   f"duplicate_{self._biosource_id.upper()}"
+                ] = duplicates
+
         return validation_result
 
     def get_biosource_ids(self):
