@@ -11,11 +11,10 @@ import asyncio
 import secrets
 import string
 
-from niagads.arg_parser.core import case_insensitive_enum_type
-from niagads.database import DatabaseSessionManager
-
 from helpers.config import Settings
 from helpers.types import DBRole
+from niagads.arg_parser.core import case_insensitive_enum_type
+from niagads.database import DatabaseSessionManager
 
 
 async def run():
@@ -75,9 +74,6 @@ async def run():
         # Grant role to user
         grant_role_sql = f'GRANT {role} TO "{args.user}";'
         await conn.execute(grant_role_sql)
-
-        # commit
-        await conn.commit()
 
     await session_manager.close()
 
