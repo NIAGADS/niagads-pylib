@@ -20,7 +20,7 @@ from niagads.api.common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
-from niagads.api.common.services.route import (
+from components.niagads.api.common.services.endpoint import (
     Parameters,
     ResponseConfiguration,
 )

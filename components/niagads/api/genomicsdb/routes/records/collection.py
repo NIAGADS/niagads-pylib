@@ -17,7 +17,7 @@ from niagads.api.common.parameters.response import (
     ResponseView,
 )
 from niagads.api.common.services.metadata.query import MetadataQueryService
-from niagads.api.common.services.route import (
+from components.niagads.api.common.services.endpoint import (
     Parameters,
     ResponseConfiguration,
 )

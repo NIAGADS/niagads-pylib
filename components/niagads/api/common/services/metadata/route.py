@@ -16,7 +16,7 @@ from niagads.api.common.services.metadata.query import (
     MetadataQueryService,
     TrackDatabase,
 )
-from niagads.api.common.services.route import (
+from components.niagads.api.common.services.endpoint import (
     EndpointService,
     RequestParameters,
     ResponseConfiguration,

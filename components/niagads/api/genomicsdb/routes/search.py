@@ -20,7 +20,10 @@ from niagads.api.common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
-from niagads.api.common.services.route import Parameters, ResponseConfiguration
+from components.niagads.api.common.services.endpoint import (
+    Parameters,
+    ResponseConfiguration,
+)
 from niagads.api.genomicsdb.dependencies import InternalRequestParameters
 from niagads.api.genomicsdb.documentation import APP_NAME
 from niagads.api.genomicsdb.queries.records.region import (

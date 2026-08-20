@@ -17,12 +17,15 @@ from niagads.api.common.models.services.query import (
     QueryDefinition,
     QueryFilter,
 )
-from niagads.api.common.parameters.internal import InternalRequestParameters
+from niagads.api.common.parameters.internal import EndpointContext
 from niagads.api.common.parameters.response import ResponseContent
 from niagads.api.common.services.features import FeatureQueryService
 from niagads.api.common.services.metadata.query import MetadataQueryService
 from niagads.api.common.services.metadata.route import TrackMetadataEndpointService
-from niagads.api.common.services.route import Parameters, ResponseConfiguration
+from components.niagads.api.common.services.endpoint import (
+    Parameters,
+    ResponseConfiguration,
+)
 from niagads.api.genomicsdb.queries.track_data import (
     TrackGWASSumStatQuery,
     TrackQTLGeneQuery,
@@ -47,7 +50,7 @@ class GenomicsEndpointService(TrackMetadataEndpointService):
 
     def __init__(
         self,
-        managers: InternalRequestParameters,
+        managers: EndpointContext,
         response_config: ResponseConfiguration,
         params: Parameters,
         query: QueryDefinition = None,
@@ -184,7 +187,7 @@ class GenomicsEndpointService(TrackMetadataEndpointService):
 
     async def get_query_response(self, opts: QueryOptions = QueryOptions()):
         # fetchCounts ->  get counts only
-        cached_response = await self._get_cached_response()
+        cached_response = await self.get_cached_response()
         if cached_response is not None:
             return cached_response
 
@@ -235,7 +238,7 @@ class GenomicsEndpointService(TrackMetadataEndpointService):
         return await self.generate_response(filtered_result, False)
 
     async def get_region_record(self, opts: QueryOptions = QueryOptions()):
-        cached_response = await self._get_cached_response()
+        cached_response = await self.get_cached_response()
         if cached_response is not None:
             return cached_response
 
@@ -311,7 +314,7 @@ class GenomicsEndpointService(TrackMetadataEndpointService):
         return result[0]
 
     async def get_track_data_query_response(self):
-        cached_response = await self._get_cached_response()
+        cached_response = await self.get_cached_response()
         if cached_response is not None:
             return cached_response
 
