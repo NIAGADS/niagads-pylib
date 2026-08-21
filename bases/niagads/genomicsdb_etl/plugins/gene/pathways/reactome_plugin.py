@@ -24,9 +24,6 @@ from niagads.genomicsdb_etl.plugins.gene.pathways.types import (
 )
 from pydantic import BaseModel, Field, field_validator
 
-# Removed unused imports and bad imports
-# Removed sqlalchemy.exc imports and other unused imports
-
 
 class ReactomeEntry(BaseModel):
     gene_id: str
@@ -137,7 +134,7 @@ class ReactomeLoaderPlugin(PathwayMembershipLoaderPlugin):
         self.logger.info(f"Starting transformation with {len(data)} input rows")
         duplicate_pair = set()  # to track the pathway_id,gene_id pairs
         duplicates_removed = 0
-        pathway_map: Dict[str, PathwayGeneAssociations] = {}
+        pathway_map: Dict[str, PathwayGeneAssociations] = {} 
 
         for record in data:
             pair = (record.pathway_id, record.gene_id)
