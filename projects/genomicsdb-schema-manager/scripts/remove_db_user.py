@@ -31,6 +31,12 @@ async def run():
         metavar="URI",
         help="PostgreSQL connection URI; if not set, reads DATABASE_URI from .env",
     )
+    parser.add_argument(
+        "--commit",
+        action="store_true",
+        type=bool,
+        help="commit the new user",
+    )
 
     args = parser.parse_args()
 
@@ -45,15 +51,13 @@ async def run():
     # Retrieve user's roles using a SQLAlchemy session
     async with session_manager.session_ctx() as session:
         result = await session.execute(
-            text(
-                """
+            text("""
                 SELECT r.rolname
                 FROM pg_auth_members m
                 JOIN pg_roles r ON m.roleid = r.oid
                 JOIN pg_roles u ON m.member = u.oid
                 WHERE u.rolname = :username
-                """
-            ),
+                """),
             {"username": args.user},
         )
         roles = [row[0] for row in result.fetchall()]
@@ -68,12 +72,18 @@ async def run():
         print("Aborted: username did not match.")
         return
 
-    async with session_manager.raw_connection() as conn:
+    async with session_manager.raw_connection() as (connection, transaction):
         # Drop owned objects and the user
         drop_owned_sql = f'DROP OWNED BY "{args.user}" CASCADE;'
         drop_user_sql = f'DROP USER IF EXISTS "{args.user}";'
-        await conn.execute(drop_owned_sql)
-        await conn.execute(drop_user_sql)
+        await connection.execute(drop_owned_sql)
+        await connection.execute(drop_user_sql)
+
+        if args.commit:
+            await transaction.commit()
+            print(f"Done - Dropped user {args.user}")
+        else:
+            print(f"DRY RUN - Dropped user {args.user}")
 
     await session_manager.close()
     print(f"Done - removed user `{args.user}`")

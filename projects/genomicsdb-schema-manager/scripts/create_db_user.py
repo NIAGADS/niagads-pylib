@@ -15,6 +15,7 @@ from helpers.config import Settings
 from helpers.types import DBRole
 from niagads.arg_parser.core import case_insensitive_enum_type
 from niagads.database import DatabaseSessionManager
+from niagads.etl.pipeline import manager
 
 
 async def run():
@@ -29,6 +30,12 @@ async def run():
         required=True,
         metavar="USERNAME",
         help="username to create",
+    )
+    parser.add_argument(
+        "--commit",
+        action="store_true",
+        type=bool,
+        help="commit the new user",
     )
     parser.add_argument(
         "--role",
@@ -64,20 +71,26 @@ async def run():
     )
 
     # Use raw connection for multiple statements
-    async with session_manager.raw_connection() as conn:
+    async with session_manager.raw_connection() as (connection, transaction):
         # Create user
         sql = f"""
             CREATE USER "{args.user}" WITH PASSWORD '{password}';
         """
-        await conn.execute(sql)
+        await connection.execute(sql)
 
         # Grant role to user
         grant_role_sql = f'GRANT {role} TO "{args.user}";'
-        await conn.execute(grant_role_sql)
+        await connection.execute(grant_role_sql)
+
+        if args.commit:
+            await transaction.commit()
+            print(f"Done - created {str(role).upper()} user `{args.user}` : {password}")
+        else:
+            print(
+                f"DRY RUN - for creating {str(role).upper()} user `{args.user}` : {password}"
+            )
 
     await session_manager.close()
-
-    print(f"Done - created {str(role).upper()} user `{args.user}` : {password}")
 
 
 def main():  # handle poetry script usage / poetry calls main directly
