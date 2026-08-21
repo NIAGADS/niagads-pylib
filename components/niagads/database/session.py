@@ -115,7 +115,7 @@ class DatabaseSessionManager:
         await self.__engine.dispose()
 
     @asynccontextmanager
-    async def raw_connection(self):
+    async def raw_connection_ctx(self):
         """Provide a raw asyncpg connection with explicit transaction control.
 
         Bypasses SQLAlchemy's prepared statement protocol, allowing execution

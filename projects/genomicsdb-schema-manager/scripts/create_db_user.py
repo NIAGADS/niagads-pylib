@@ -71,7 +71,7 @@ async def run():
     )
 
     # Use raw connection for multiple statements
-    async with session_manager.raw_connection() as (connection, transaction):
+    async with session_manager.raw_connection_ctx() as (connection, transaction):
         # Create user
         sql = f"""
             CREATE USER "{args.user}" WITH PASSWORD '{password}';

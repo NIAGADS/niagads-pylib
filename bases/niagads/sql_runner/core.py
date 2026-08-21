@@ -81,7 +81,7 @@ class SqlRunner(ComponentBaseMixin):
         )
 
         try:
-            async with manager.raw_connection() as (conn, transaction):
+            async with manager.raw_connection_ctx() as (conn, transaction):
                 self.logger.info(f"Executing SQL from: {self.__sql_file}")
                 await conn.execute(self.__sql)
 

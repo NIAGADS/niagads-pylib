@@ -72,7 +72,7 @@ async def run():
         print("Aborted: username did not match.")
         return
 
-    async with session_manager.raw_connection() as (connection, transaction):
+    async with session_manager.raw_connection_ctx() as (connection, transaction):
         # Drop owned objects and the user
         drop_owned_sql = f'DROP OWNED BY "{args.user}" CASCADE;'
         drop_user_sql = f'DROP USER IF EXISTS "{args.user}";'
