@@ -1,9 +1,16 @@
+import json
 from datetime import datetime
 from typing import Self
-from sqlalchemy import exists, func, select
+
+from niagads.common.models.types import Range
+from niagads.database.decorators import CompressedJson, RangeType
+from niagads.utils.string import xstr
+from sqlalchemy import ARRAY, exists, func, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.dialects.postgresql import JSON, JSONB
+from sqlalchemy_utils.types.ltree import Ltree
 
 
 class TransactionTableMixin(DeclarativeBase):
@@ -12,6 +19,10 @@ class TransactionTableMixin(DeclarativeBase):
     @classmethod
     def table_name(cls):
         return f"{cls._schema}.{cls.__tablename__}"
+
+    @classmethod
+    def primary_key_column(cls):
+        return cls.__mapper__.primary_key[0].name
 
     async def stage(self, session: AsyncSession):
         """
@@ -156,3 +167,104 @@ class TransactionTableMixin(DeclarativeBase):
         stmt = select(cls).where(getattr(cls, run_id_field) == run_id)
         result = await session.execute(stmt)
         return result.scalars().count()
+
+    @staticmethod
+    def __record_value_to_string(value: any, col_type=None):
+        """
+        Convert a value to its string representation for COPY bulk loading, handling custom and PostgreSQL types.
+
+        Args:
+            value (any): The value to convert.
+            col_type: The SQLAlchemy column type or custom decorator.
+
+        Returns:
+            str: The string representation of the value, suitable for COPY input.
+
+        Handles:
+            - RangeType: Converts to PostgreSQL range string.
+            - CompressedJson: Serializes and hex-encodes compressed JSON.
+            - Ltree: Converts to string.
+            - JSON, JSONB, ARRAY: Serializes to JSON string.
+            - dict/list: Serializes to JSON string if not empty, else NULL.
+            - None: Returns 'NULL'.
+        """
+
+        if value is not None:
+            if isinstance(col_type, RangeType):
+                value: Range
+                return value.to_range_string()
+            if isinstance(col_type, CompressedJson):
+                compressed_value = col_type.process_bind_param(value, None)
+                return "\\x" + compressed_value.hex()
+            if isinstance(col_type, Ltree):
+                return str(value)
+            if isinstance(col_type, (JSON, JSONB, ARRAY)):
+                return json.dumps(value)
+            if isinstance(value, (dict, list)):
+                if len(value) == 0:
+                    value = None
+                else:
+                    return json.dumps(value)
+            if isinstance(value, Ltree):
+                return str(value)
+
+        return xstr(value, null_str="NULL")
+
+    @classmethod
+    async def copy(cls, session: AsyncSession, records: list[Self]):
+        """
+        Batch insert records using PostgreSQL COPY for high performance.
+
+        Args:
+            session (AsyncSession): SQLAlchemy async session.
+            records (list[Self]): Records to insert.
+
+        Raises:
+            ValueError: If records list is empty.
+            TypeError: If records contain unexpected types.
+        """
+        if not records:
+            raise ValueError("Record list is empty; nothing to submit")
+
+        cls.verify_record_type(records)
+
+        excluded_columns = [
+            cls.primary_key_column(),
+            "creation_date",
+            "modification_date",
+        ]
+
+        # Get column metadata
+        mapper = inspect(cls)
+        columns = mapper.columns
+        column_names = [c.name for c in columns if c.name not in excluded_columns]
+
+        # Build pipe-delimited buffer
+        async def byte_generator():
+            for record in records:
+                row = []
+                for col_name in column_names:
+                    value = getattr(record, col_name, None)
+                    col_type = columns[col_name].type
+
+                    str_value = cls.__record_value_to_string(value, col_type)
+                    row.append(str_value)
+
+                yield ("|".join(row) + "\n").encode("utf-8")
+
+        schema_name, table_name = cls.table_name().split(".")
+
+        # Execute COPY via raw connection
+        session_connection = await session.connection()
+        sqlalchemy_proxy_connection = await session_connection.get_raw_connection()
+        asyncpg_raw_connection = sqlalchemy_proxy_connection.driver_connection
+
+        await asyncpg_raw_connection.copy_to_table(
+            table_name,
+            schema_name=schema_name,
+            columns=column_names,
+            source=byte_generator(),
+            format="text",
+            delimiter="|",
+            null="NULL",
+        )

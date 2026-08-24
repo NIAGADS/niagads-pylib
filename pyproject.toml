@@ -51,9 +51,9 @@ packages = [
     {from = "components", include = "niagads/metadata_validator"},
     {from = "components", include = "niagads/nlp"},
     {from = "components", include = "niagads/objects"},
-    {from = "components", include = "niagads/ontology_parsers"},
     {from = "components", include = "niagads/parquet"},
     {from = "components", include = "niagads/postgres_dbi"},
+    {from = "components", include = "niagads/rdf_parsers"},
     {from = "components", include = "niagads/requests"},
     {from = "components", include = "niagads/s3"},
     {from = "components", include = "niagads/sequence"},
@@ -107,19 +107,19 @@ sentence-transformers = "^5.2.2"
 spacy = "^3.8.11"
 sqlalchemy = "^2.0.40"
 sqlalchemy-utils = "^0.41.2"
+starlette = "^1.2.0"
 streamlit = "^1.55.0"
 strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
 wtforms = "^3.2.1"
-starlette = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
-black = "^25.1.0"
+black = "^26.5.1"
 flake8 = "^7.0.0"
 ipykernel = "^6.29.5"
-isort = "^5.13.2"
+isort = "^8.0.1"
 lazydoc = "^1.0.1"
 mypy = "^1.8.0"
 pydocstyle = "^6.3.0"

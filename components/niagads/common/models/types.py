@@ -25,6 +25,10 @@ class Range(BaseModel):
     def __str__(self):
         return f"{self.start}-{self.end}"
 
+    def to_range_string(self):
+        end_brace = "]" if self.inclusive_end else ")"
+        return f"[{self.start},{self.end}{end_brace}"
+
     def bracket_notation(self):
         return f"[{self.start}, {self.end}{']' if self.inclusive_end else ')'}"
 

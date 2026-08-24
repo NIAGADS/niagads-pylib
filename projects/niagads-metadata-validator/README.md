@@ -182,7 +182,7 @@ Validator initialization fully encapsulated.  Returns validation result.
 
 **Returns:**
  
- - <b>`list`</b>:  list of validation errors 
+ - <b>`dict`</b>:  validation errors, separated by frequency of occurrence into `file` (affecting every row, such as missing required column), `recurring`: occuring in 5 or more rows and `row_specific`
 
 
 ---

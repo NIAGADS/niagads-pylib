@@ -8,7 +8,9 @@ from niagads.enums.core import CaseInsensitiveEnum
 
 
 class PipelineSettings(CustomSettings):
-    DATABASE_URI: Optional[str] = Field(None, pattern=RegularExpressions.POSTGRES_URI)
+    DATABASE_URI: Optional[str] = Field(
+        None
+    )  # , pattern=RegularExpressions.POSTGRES_URI)
     PROJECT: str = "GENOMICSDB"
     PLUGIN_PACKAGES: Optional[list[str]] = None
 

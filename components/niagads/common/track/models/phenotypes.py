@@ -7,7 +7,7 @@ from pydantic import Field, field_serializer
 
 
 class PhenotypeCount(CustomBaseModel):
-    phenotype: Optional[OntologyTerm] = None
+    phenotype: Optional[list[OntologyTerm]] = None
     num_cases: int
     num_controls: Optional[int] = None
 

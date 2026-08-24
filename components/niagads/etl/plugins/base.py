@@ -556,9 +556,17 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         # if transaction is successful, can update the checkpoint
         self.__checkpoint = checkpoint
-        self.logger.info(
-            f"{msg} - CHECKPOINT: {self.__checkpoint.to_info_string(self._debug)}"
-        )
+        try:
+            self.logger.info(
+                f"{msg} - CHECKPOINT: {self.__checkpoint.as_info_string(self._debug and self._verbose)}"
+            )
+        except Exception as err:
+            if self._debug:  # sometimes part of the object is not json serializable
+                self.logger.info(
+                    f"{msg} - CHECKPOINT: {self.__checkpoint.as_info_string(False)}"
+                )
+            else:
+                raise err
 
     async def __execute_load(self, session, buffer) -> ResumeCheckpoint:
         """
@@ -914,6 +922,11 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         finally:
             if self.__execution_status != ProcessStatus.SUCCESS:
                 await self.__summarize_transactions()
+
+            if self.__execution_status == ProcessStatus.IN_PROGRESS:
+                # if you got here w/out flagging a SUCCESS or FAIL it is most likely from a logger.critical
+                self.__execution_status = ProcessStatus.FAIL
+
             await self.__finalize_etl_run(error_message)
             self.logger.status(self.__status_report)
 
