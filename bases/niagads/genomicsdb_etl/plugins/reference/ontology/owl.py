@@ -5,23 +5,15 @@ terms into the reference ontology term table and their embeddings into the RAG
 document tables.
 """
 
-from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, Optional
 
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
-from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
-from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.mixins import (
-    EmbeddingGeneratorContextMixin,
-    ExternalDatabaseContextMixin,
-)
-from niagads.etl.plugins.parameters import EmbeddingParameterMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.reference.ontology.base import (
@@ -31,7 +23,6 @@ from niagads.genomicsdb_etl.plugins.reference.ontology.base import (
 )
 from niagads.rdf_parsers import OWLParser
 from pydantic import Field
-from sqlalchemy.exc import NoResultFound
 
 
 class OWLLoaderParams(BaseOntologyLoaderParams):
