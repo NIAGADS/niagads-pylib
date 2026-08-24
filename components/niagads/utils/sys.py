@@ -8,18 +8,18 @@ import logging
 import os
 import shutil
 import subprocess
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from enum import auto
 from glob import glob
 from pathlib import Path
 from sys import exit, stderr
+from time import perf_counter
 from typing import IO, Union
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.dict import print_dict
 from niagads.utils.string import ascii_safe_str
-from contextlib import asynccontextmanager
-from time import perf_counter
+from tqdm import tqdm
 
 LOGGER = logging.getLogger(__name__)
 
@@ -493,3 +493,137 @@ class FakeSecHead(object):
                 self.sechead = None
         else:
             return self.fp.readline()
+
+
+# ------------------------------------------------------------------------------------------------------------
+
+
+class ProgressReader:
+    """Wrapper for file objects that tracks read progress with a progress bar.
+
+    Provides a transparent wrapper around file-like objects that updates a tqdm
+    progress bar as data is read. Implements the file interface by delegating
+    read operations to the wrapped file object while tracking bytes read.
+    """
+
+    def __init__(self, file_obj, progress):
+        """Initialize the ProgressReader.
+
+        Args:
+            file_obj: An open file object (text or binary mode) to wrap.
+            progress: A tqdm progress bar instance to update on read operations.
+        """
+        self.file_obj = file_obj
+        self.progress = progress
+
+    def _update(self, data):
+        """Update progress bar with bytes/characters read.
+
+        Args:
+            data: The data read from the file object.
+
+        Returns:
+            The data unchanged.
+        """
+        self.progress.update(len(data))
+        return data
+
+    def read(self, size=-1):
+        """Read and track data from the file object.
+
+        Args:
+            size (int, optional): Maximum number of bytes to read. If -1 or omitted,
+                read until EOF. Defaults to -1.
+
+        Returns:
+            Bytes or string data read from the file, depending on file mode.
+        """
+        return self._update(self.file_obj.read(size))
+
+    def readline(self, size=-1):
+        """Read and track a single line from the file object.
+
+        Args:
+            size (int, optional): Maximum number of bytes to read. If -1 or omitted,
+                read until newline or EOF. Defaults to -1.
+
+        Returns:
+            A single line from the file.
+        """
+        return self._update(self.file_obj.readline(size))
+
+    def readlines(self, hint=-1):
+        """Read and track multiple lines from the file object.
+
+        Args:
+            hint (int, optional): Approximate number of bytes to read. If -1 or omitted,
+                read all remaining lines. Defaults to -1.
+
+        Returns:
+            A list of lines read from the file.
+        """
+        lines = self.file_obj.readlines(hint)
+        self.progress.update(sum(len(line) for line in lines))
+        return lines
+
+    def __iter__(self):
+        """Return self as an iterator.
+
+        Returns:
+            This ProgressReader instance.
+        """
+        return self
+
+    def __next__(self):
+        """Get the next line from the file object and update progress.
+
+        Returns:
+            The next line from the wrapped file object.
+
+        Raises:
+            StopIteration: When the end of file is reached.
+        """
+        return self._update(next(self.file_obj))
+
+    def __getattr__(self, name):
+        """Delegate attribute access to the wrapped file object.
+
+        Args:
+            name (str): Attribute name to retrieve.
+
+        Returns:
+            The requested attribute from the wrapped file object.
+        """
+        return getattr(self.file_obj, name)
+
+    @classmethod
+    @contextmanager
+    def track(cls, path, desc="Reading"):
+        """Context manager for reading a file with progress tracking.
+
+        Opens a file and provides a ProgressReader wrapper with an associated
+        progress bar that updates as the file is read.
+
+        Args:
+            path (str): Path to the file to open and read.
+            desc (str, optional): Description label for the progress bar.
+                Defaults to "Reading".
+
+        Yields:
+            ProgressReader: A wrapper around the opened file with progress tracking.
+
+        Example:
+            with ProgressReader.track("large_file.txt") as reader:
+                for line in reader:
+                    process(line)
+        """
+        with (
+            open(path, "rb") as file_obj,
+            tqdm(
+                total=os.path.getsize(path),
+                unit="B",
+                unit_scale=True,
+                desc=desc,
+            ) as progress,
+        ):
+            yield cls(file_obj, progress)
