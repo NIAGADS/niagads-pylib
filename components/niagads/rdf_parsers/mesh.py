@@ -16,7 +16,8 @@ from typing import Generator, Iterator, Optional
 
 from niagads.common.models.base import CustomBaseModel
 from niagads.rdf_parsers.rdf import NTriplesParser
-from rdflib import RDF, RDFS, URIRef
+from rdflib import RDF, RDFS, Literal, URIRef
+from rdflib.exceptions import UniquenessError
 
 MeSHV = "http://id.nlm.nih.gov/mesh/vocab#"
 
@@ -164,7 +165,21 @@ class MeSHParser(NTriplesParser):
         preferred_label = self.get_value(
             subject=term, predicate=self._namespace.prefLabel, as_string=True
         )
-        label = self.get_value(subject=term, predicate=RDFS.label, as_string=True)
+
+        try:
+            label = self.get_value(subject=term, predicate=RDFS.label, as_string=True)
+        except UniquenessError:
+            # if there are multiple labels, they are distinguished by language
+            # get the English label
+            label = next(
+                (
+                    str(label)
+                    for label in self._graph.objects(term, RDFS.label)
+                    if isinstance(label, Literal) and label.language == "en"
+                ),
+                None,
+            )
+
         alt_labels = [
             str(alt_label)
             for alt_label in self._graph.objects(term, self._namespace.altLabel)
@@ -209,6 +224,7 @@ class MeSHParser(NTriplesParser):
         preferred_term = self.get_value(
             subject=concept, predicate=self._namespace.preferredTerm
         )
+        terms = [self.extract_term(term) for term in self._get_linked_terms(concept)]
         return MeSHConcept(
             iri=str(concept),
             id=self.get_value(
@@ -225,7 +241,7 @@ class MeSHParser(NTriplesParser):
                 subject=concept, predicate=self._namespace.scopeNote, as_string=True
             ),
             preferred_term=self.extract_term(preferred_term),
-            terms=[self.extract_term(term) for term in self._get_linked_terms(concept)],
+            terms=terms if len(terms) > 0 else None,
         )
 
     def extract_concepts(self) -> Iterator[MeSHConcept]:
