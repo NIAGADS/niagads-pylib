@@ -504,6 +504,8 @@ class FileReadProgressTracker:
     Provides a transparent wrapper around file-like objects that updates a tqdm
     progress bar as data is read. Implements the file interface by delegating
     read operations to the wrapped file object while tracking bytes read.
+
+    #TODO: handle gzipped files? or at least throw error
     """
 
     def __init__(self, file_obj, progress):
