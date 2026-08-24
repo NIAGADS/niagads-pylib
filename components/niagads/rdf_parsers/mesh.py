@@ -130,7 +130,10 @@ class MeSHParser(NTriplesParser):
                     subject=descriptor, predicate=RDFS.label, as_string=True
                 ),
                 is_active=self.get_value(
-                    subject=descriptor, predicate=self._namespace.active, as_string=True
+                    subject=descriptor,
+                    predicate=self._namespace.active,
+                    default=True,
+                    as_string=True,
                 ),
                 preferred_concept=self.extract_concept(preferred_concept),
             )
@@ -170,8 +173,9 @@ class MeSHParser(NTriplesParser):
         # if preferred label is not none and label is not the preferred label,
         # # then preferred label = label, label gets appended to alt_labels
         if preferred_label is not None and preferred_label != label:
-            if label not in alt_labels:
-                alt_labels.append(label)
+            if label is not None:
+                if label not in alt_labels:
+                    alt_labels.append(label)
             label = preferred_label
 
         return MeSHTerm(
@@ -181,7 +185,10 @@ class MeSHParser(NTriplesParser):
             ),
             label=label,
             is_active=self.get_value(
-                subject=term, predicate=self._namespace.active, as_string=True
+                subject=term,
+                predicate=self._namespace.active,
+                default=True,
+                as_string=True,
             ),
             alt_labels=alt_labels,
             abbreviation=self.get_value(
@@ -209,7 +216,10 @@ class MeSHParser(NTriplesParser):
             ),
             label=self.get_value(subject=concept, predicate=RDFS.label, as_string=True),
             is_active=self.get_value(
-                subject=concept, predicate=self._namespace.active, as_string=True
+                subject=concept,
+                predicate=self._namespace.active,
+                default=True,
+                as_string=True,
             ),
             scope_note=self.get_value(
                 subject=concept, predicate=self._namespace.scopeNote, as_string=True
