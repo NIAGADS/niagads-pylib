@@ -558,12 +558,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.__checkpoint = checkpoint
         try:
             self.logger.info(
-                f"{msg} - CHECKPOINT: {self.__checkpoint.as_info_string(self._debug and self._verbose)}"
+                f"{msg} - CHECKPOINT: {self.__checkpoint.to_info_string(self._debug and self._verbose)}"
             )
         except Exception as err:
             if self._debug:  # sometimes part of the object is not json serializable
                 self.logger.info(
-                    f"{msg} - CHECKPOINT: {self.__checkpoint.as_info_string(False)}"
+                    f"{msg} - CHECKPOINT: {self.__checkpoint.to_info_string(False)}"
                 )
             else:
                 raise err
