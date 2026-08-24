@@ -1,7 +1,8 @@
-"""
-Ontology Loader Plugins
-- Parse OWL files and load ontology terms into Reference.OntologyTerm or the (Public).OntologyGraph
-Loads an ontology from an OWL file into the reference ontology graph schema.
+"""Load ontology terms and embeddings from OWL files.
+
+This module provides the ETL plugin that parses an OWL file and loads ontology
+terms into the reference ontology term table and their embeddings into the RAG
+document tables.
 """
 
 from datetime import datetime
@@ -20,52 +21,27 @@ from niagads.etl.plugins.mixins import (
     EmbeddingGeneratorContextMixin,
     ExternalDatabaseContextMixin,
 )
-from niagads.etl.plugins.parameters import (
-    BasePluginParams,
-    EmbeddingParameterMixin,
-    PathValidatorMixin,
-)
+from niagads.etl.plugins.parameters import EmbeddingParameterMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
+from niagads.genomicsdb_etl.plugins.reference.ontology.base import (
+    BaseOntologyLoader,
+    BaseOntologyLoaderParams,
+    EmbeddedOntologyTerm,
 )
 from niagads.rdf_parsers import OWLParser
-from pydantic import BaseModel, Field
+from pydantic import Field
 from sqlalchemy.exc import NoResultFound
 
 
-class EmbeddedOntologyTerm(BaseModel, arbitrary_types_allowed=True):
-    term: OntologyTerm
-    chunk_text: str
-    chunk_hash: bytes
-    embedding: Optional[list] = None  # so it can be set in batch
+class OWLLoaderParams(BaseOntologyLoaderParams):
+    """Configuration parameters for loading ontology terms from an OWL file."""
 
-
-# FIXME - just use ontologygraphtriple
-class Triple(BaseModel):
-    subject: str
-    predicate: str
-    object: str
-
-    def __str__(self):
-        return f"{str(self.subject)} -> {str(self.predicate)} -> {str(self.object)}"
-
-
-class OWLLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin):
-    file: str = Field(..., description="full path to OWL file")
-    update_existing: Optional[bool] = Field(
-        default=False,
-        description="if term already exists in the table, attempts to update defintion and synonyms if necessary; if set to false, just skips existing terms",
-    )
-    validate_file_exists = PathValidatorMixin.validator("file")
     curie_prefix: Optional[str] = Field(
         default=None,
-        description="prefix for curie for ontologies that don't include the namespace in the curie; e.g., EDAM -> topic:001 => EDAM:topic_001",
+        description="prefix for curie for ontologies that don't include the namespace in "
+        "the curie; e.g., EDAM -> topic:001 => EDAM:topic_001",
     )
-
-
-class OntologyTermReferenceLoaderParams(OWLLoaderParams, EmbeddingParameterMixin): ...
 
 
 @PluginRegistry.register(
@@ -79,17 +55,17 @@ class OntologyTermReferenceLoaderParams(OWLLoaderParams, EmbeddingParameterMixin
         load_strategy=ETLLoadStrategy.CHUNKED,
         operation=ETLOperation.LOAD,
         is_large_dataset=False,
-        parameter_model=OntologyTermReferenceLoaderParams,
+        parameter_model=OWLLoaderParams,
     )
 )
-class OntologyTermLoader(
-    AbstractBasePlugin, EmbeddingGeneratorContextMixin, ExternalDatabaseContextMixin
-):
-    """
-    ETL plugin for loading ontology terms from an OWL file into the reference ontologyterm table
+class OntologyTermLoader(BaseOntologyLoader):
+    """Load ontology terms and embeddings from an OWL file.
+
+    The plugin parses OWL entities, optionally prefixes their CURIEs, creates
+    embeddings, and persists new or updated ontology terms and RAG documents.
     """
 
-    _params: OntologyTermReferenceLoaderParams  # type annotation
+    _params: OWLLoaderParams  # type annotation
 
     def __init__(
         self,
@@ -99,34 +75,25 @@ class OntologyTermLoader(
         debug: bool = False,
         verbose: bool = False,
     ):
+        """Initialize the ontology term loader.
+
+        Args:
+            params: Plugin configuration parameters.
+            name: Optional plugin name.
+            log_path: Optional path for plugin log output.
+            debug: If True, enable debug logging and behavior.
+            verbose: If True, enable verbose logging.
+        """
         super().__init__(params, name, log_path, debug, verbose)
         self.__processed_record_count = 0
 
-    async def __fetch_existing_term(
-        self, session, source_id: str
-    ) -> Optional[OntologyTerm]:
-        try:
-            return await OntologyTerm.fetch_record(
-                session, filters={"source_id": source_id}
-            )
-        except NoResultFound:
-            return None
-
-    async def on_run_start(self, session):
-        """on run start hook override"""
-        await ExternalDatabaseContextMixin.on_run_start(self, session)
-        await EmbeddingGeneratorContextMixin.on_run_start(self, session)
-
-        # get the table catalog reference for the OntologyTerm table
-        await self.set_table_ref(session, OntologyTerm)
-
-    def get_record_id(self, record: OntologyTerm) -> str:
-        """
-        Returns a unique identifier for a record (subject URI).
-        """
-        return record.source_id
-
     def extract(self) -> Iterator[Any]:
+        """Extract ontology terms from the configured OWL file in batches.
+
+        Returns:
+            Iterator[Any]: Batches of parsed ontology term dictionaries sized
+                according to the configured embedding batch size.
+        """
         parser = OWLParser(
             self._params.file,
             logger=self.logger,
@@ -144,39 +111,18 @@ class OntologyTermLoader(
         if len(batch) > 0:  # residuals
             yield batch
 
-    def __generate_chunk_text(self, term: OntologyTerm) -> EmbeddedOntologyTerm:
-        chunk_text: str = (
-            f"Term: {term.term}\nLabel: {term.label}"
-            f"\nCURIE: {term.source_id}\nDefinition: {term.definition}"
-        )
-        if term.synonyms:
-            for s in term.synonyms:
-                chunk_text += f"\nSynonym: {s}"
-
-        if term.namespace:
-            chunk_text += f"\nNamespace: {term.namespace}"
-
-        if self._verbose:
-            self.logger.debug(f"Chunk Text: {chunk_text}")
-
-        return EmbeddedOntologyTerm(
-            term=term,
-            chunk_text=chunk_text,
-            chunk_hash=self._embedding_generator.hash_text(chunk_text),
-        )
-
-    def __generate_embedded_term(self, term: OntologyTerm) -> EmbeddedOntologyTerm:
-        """generate embeddings for a single term"""
-        embedded_term = self.__generate_chunk_text(term)
-        embedded_term.embedding = self._embedding_generator.generate(
-            embedded_term.chunk_text, as_list=True
-        )
-        return embedded_term
-
     async def transform(self, records: list[dict]) -> EmbeddedOntologyTerm:
-        """
-        Convert a list of record (OWL entity) dicts to an OntologyTerms and generate embeddings
-        in batches
+        """Convert parsed OWL records to ontology terms and generate embeddings.
+
+        Args:
+            records: Batch of dictionaries representing parsed OWL entities.
+
+        Returns:
+            list[EmbeddedOntologyTerm]: Transformed ontology terms with
+                embeddings.
+
+        Raises:
+            RuntimeError: If ``records`` is None or an empty list.
         """
         if records is None or (isinstance(records, list) and len(records) == 0):
             raise RuntimeError(
@@ -201,7 +147,7 @@ class OntologyTermLoader(
             if self._verbose:
                 self.logger.debug(f"Term: {term.model_dump()}")
 
-            embedded_term = self.__generate_chunk_text(term)
+            embedded_term = self._generate_chunk_text(term)
             embedded_ontology_terms.append(embedded_term)
             text.append(embedded_term.chunk_text)
 
@@ -217,120 +163,3 @@ class OntologyTermLoader(
         )
 
         return embedded_ontology_terms
-
-    def __generate_chunk_metadata(self, term_records: list[EmbeddedOntologyTerm]):
-        return [
-            ChunkMetadata(
-                table_id=self._table_ref.table_id,
-                row_id=embedded_term.term.ontology_term_id,
-                document_type=str(RAGDocType.ONTOLOGY),
-                document_hash=embedded_term.chunk_hash,
-                chunk_hash=embedded_term.chunk_hash,
-                chunk_text=embedded_term.chunk_text,
-                run_id=self.run_id,
-            )
-            for embedded_term in term_records
-        ]
-
-    def __generate_chunk_embeddings(
-        self, metadata: list[ChunkMetadata], term_records: list[EmbeddedOntologyTerm]
-    ):
-        return [
-            ChunkEmbedding(
-                chunk_metadata_id=chunk_metadata.chunk_metadata_id,
-                chunk_hash=chunk_metadata.chunk_hash,
-                embedding_model=str(self._params.embedding_model),
-                embedding=term_records[index].embedding,
-                embedding_date=datetime.now().isoformat(),
-                embedding_run_id=self.run_id,
-                run_id=self.run_id,
-            )
-            for index, chunk_metadata in enumerate(metadata)
-        ]
-
-    async def __update_embedding(self, session, embedded_term: EmbeddedOntologyTerm):
-
-        # pull records to update from the database
-        chunk_metadata: ChunkMetadata = await ChunkMetadata.fetch_record(
-            session,
-            filters={
-                "table_id": self._table_ref.table_id,
-                "row_id": embedded_term.term.ontology_term_id,
-            },
-        )
-
-        chunk_embedding: ChunkEmbedding = await ChunkEmbedding.fetch_record(
-            session,
-            filters={
-                "chunk_metadata_id": chunk_metadata.chunk_metadata_id,
-                "chunk_hash": chunk_metadata.chunk_hash,
-            },
-        )
-
-        # update
-        chunk_metadata.document_hash = embedded_term.chunk_hash
-        chunk_metadata.chunk_hash = embedded_term.chunk_hash
-        chunk_metadata.chunk_text = embedded_term.chunk_text
-        await chunk_metadata.update(session)
-
-        chunk_embedding.chunk_hash = embedded_term.chunk_hash
-        chunk_embedding.embedding = embedded_term.embedding
-        chunk_embedding.embedding_model = str(self._params.embedding_model)
-        chunk_embedding.embedding_date = datetime.now().isoformat()
-        chunk_embedding.embedding_run_id = self.run_id
-        await chunk_embedding.update(session)
-
-    async def load(self, session, embedded_terms: List[EmbeddedOntologyTerm]):
-        new_term_records: list[EmbeddedOntologyTerm] = []
-        for e_term in embedded_terms:
-            term: OntologyTerm = e_term.term
-            existing_record = await self.__fetch_existing_term(session, term.source_id)
-
-            if existing_record is None:
-                await term.submit(
-                    session
-                )  # submitting terms one-by-one b/c one OWL file may have duplicates
-                new_term_records.append(e_term)
-                continue
-
-            if self._params.update_existing:
-                # if exists, update defintion, synonyms if need be
-                updated_definitions = await existing_record.resolve_definition(
-                    session,
-                    term.definition,
-                    namespace=self._external_database.database_key,
-                )
-
-                updated_synonyms = await existing_record.resolve_synonyms(
-                    session, term.synonyms
-                )
-
-                if updated_definitions or updated_synonyms:
-                    self.inc_tx_count(OntologyTerm, ETLOperation.UPDATE)
-
-                    # if the term was defined in the current namespace, update
-                    # the external db reference as well
-                    if await existing_record.in_namespace(
-                        session, self._external_database.database_key
-                    ):
-                        existing_record.external_database_id = self.external_database_id
-                        await existing_record.update(session)
-
-                    updated_term = self.__generate_embedded_term(existing_record)
-                    await self.__update_embedding(session, updated_term)
-                else:
-                    self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
-            else:
-                self.inc_tx_count(OntologyTerm, ETLOperation.SKIP)
-
-        # bulk submit embeddings
-        if len(new_term_records) > 0:
-            chunk_metadata = self.__generate_chunk_metadata(new_term_records)
-            await ChunkMetadata.submit_many(session, chunk_metadata)
-
-            chunk_embeddings = self.__generate_chunk_embeddings(
-                chunk_metadata, new_term_records
-            )
-            await ChunkEmbedding.submit_many(session, chunk_embeddings)
-
-        return self.create_checkpoint(record=embedded_terms[-1].term)
