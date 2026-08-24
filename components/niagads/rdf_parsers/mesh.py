@@ -127,9 +127,7 @@ class MeSHParser(NTriplesParser):
                     predicate=self._namespace.identifier,
                     as_string=True,
                 ),
-                label=self.get_value(
-                    subject=descriptor, predicate=RDFS.label, as_string=True
-                ),
+                label=self._get_label(descriptor),
                 is_active=self.get_value(
                     subject=descriptor,
                     predicate=self._namespace.active,
@@ -150,6 +148,25 @@ class MeSHParser(NTriplesParser):
         """
         return self._graph.objects(subject=object, predicate=self._namespace.terms)
 
+    def _get_label(self, subject: URIRef):
+        try:
+            label = self.get_value(
+                subject=subject, predicate=RDFS.label, as_string=True
+            )
+        except UniquenessError:
+            # if there are multiple labels, they are distinguished by language
+            # get the English label
+            label = next(
+                (
+                    str(label)
+                    for label in self._graph.objects(subject, RDFS.label)
+                    if isinstance(label, Literal) and label.language == "en"
+                ),
+                None,
+            )
+
+        return label
+
     def extract_term(self, term: URIRef):
         """Extract a MeSH term from the graph.
 
@@ -166,19 +183,7 @@ class MeSHParser(NTriplesParser):
             subject=term, predicate=self._namespace.prefLabel, as_string=True
         )
 
-        try:
-            label = self.get_value(subject=term, predicate=RDFS.label, as_string=True)
-        except UniquenessError:
-            # if there are multiple labels, they are distinguished by language
-            # get the English label
-            label = next(
-                (
-                    str(label)
-                    for label in self._graph.objects(term, RDFS.label)
-                    if isinstance(label, Literal) and label.language == "en"
-                ),
-                None,
-            )
+        label = self._get_label(term)
 
         alt_labels = [
             str(alt_label)
@@ -230,7 +235,7 @@ class MeSHParser(NTriplesParser):
             id=self.get_value(
                 subject=concept, predicate=self._namespace.identifier, as_string=True
             ),
-            label=self.get_value(subject=concept, predicate=RDFS.label, as_string=True),
+            label=self._get_label(concept),
             is_active=self.get_value(
                 subject=concept,
                 predicate=self._namespace.active,
