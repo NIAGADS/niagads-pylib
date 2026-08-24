@@ -89,6 +89,14 @@ class NTriplesParser(RDFParser):
 
     A specialized parser that handles RDF data in N-Triples format
     (plaintext, line-based RDF representation).
+
+    Using store="Oxigraph" swaps RDFLib's native Python engine for a pre-compiled
+    Rust engine to handle file parsing and memory management. This approach
+    allows us to process large graph datasets up to 60 times faster while
+    drastically reducing your system's RAM consumption.  This functionality
+    comes from the `oxrdflib` package which uses pyoxigraph to provide rdflib stores.
+
+    Note: this will work for plain RDF files as well, but not for OWL.
     """
 
     def __init__(
@@ -108,11 +116,12 @@ class NTriplesParser(RDFParser):
             debug: If True, enable debug mode for verbose output.
             verbose: If True, enable verbose logging output.
         """
-        super().__init__(
-            file=file,
-            format="nt",
-            namespace=namespace,
-            logger=logger,
-            debug=debug,
-            verbose=verbose,
+        ComponentBaseMixin.__init__(self, logger=logger, debug=debug, verbose=verbose)
+        self._namespace = Namespace(namespace)
+        self._graph = Graph(store="Oxigraph")  # tells rdflib to use oxrdflib to
+        self.logger.debug("Parsing N-Triples Graph")
+        self._graph.parse(file, format="nt")
+        self.logger.debug(
+            f"Done parsing N-Triples Graph.  Found {len(set(self._graph.subjects()))}"
+            f" subjects and {len(set(self._graph.predicates()))} relationships"
         )
