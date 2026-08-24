@@ -298,7 +298,7 @@ class OntologyTermLoader(
                 updated_definitions = await existing_record.resolve_definition(
                     session,
                     term.definition,
-                    namespace=self.__external_database.database_key,
+                    namespace=self._external_database.database_key,
                 )
 
                 updated_synonyms = await existing_record.resolve_synonyms(
@@ -311,7 +311,7 @@ class OntologyTermLoader(
                     # if the term was defined in the current namespace, update
                     # the external db reference as well
                     if await existing_record.in_namespace(
-                        session, self.__external_database.database_key
+                        session, self._external_database.database_key
                     ):
                         existing_record.external_database_id = self.external_database_id
                         await existing_record.update(session)
