@@ -498,7 +498,7 @@ class FakeSecHead(object):
 # ------------------------------------------------------------------------------------------------------------
 
 
-class ProgressReader:
+class FileReadProgressTracker:
     """Wrapper for file objects that tracks read progress with a progress bar.
 
     Provides a transparent wrapper around file-like objects that updates a tqdm
@@ -598,7 +598,7 @@ class ProgressReader:
 
     @classmethod
     @contextmanager
-    def track(cls, path, desc="Reading"):
+    def track_ctx(cls, path, desc="Reading"):
         """Context manager for reading a file with progress tracking.
 
         Opens a file and provides a ProgressReader wrapper with an associated
