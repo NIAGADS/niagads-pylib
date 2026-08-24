@@ -145,7 +145,7 @@ class BaseOntologyLoader(
             return None
 
     def _generate_chunk_text(self, term: OntologyTerm) -> EmbeddedOntologyTerm:
-        """Create searchable chunk text for an ontology term.
+        """Create embeddable chunk text for an ontology term.
 
         Args:
             term: Ontology term from which chunk text should be generated.
