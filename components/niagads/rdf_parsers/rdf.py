@@ -10,6 +10,7 @@ from typing import Iterator
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.helpers import get_field_iri
 from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.utils.sys import FileReadProgressTracker
 from rdflib import Graph, Namespace, URIRef
 
 
@@ -120,7 +121,13 @@ class NTriplesParser(RDFParser):
         self._namespace = Namespace(namespace)
         self._graph = Graph(store="Oxigraph")  # tells rdflib to use oxrdflib to
         self.logger.debug("Parsing N-Triples Graph")
-        self._graph.parse(file, format="nt")
+        with FileReadProgressTracker.track_ctx(
+            file,
+            desc=f"Parsing N-Triples File: {file}",
+            logger=self.logger,
+            log_interval=10,
+        ) as tracked_file:
+            self._graph.parse(tracked_file, format="nt")
         self.logger.debug(
             f"Done parsing N-Triples Graph.  Found {len(set(self._graph.subjects()))}"
             f" subjects and {len(set(self._graph.predicates()))} relationships"

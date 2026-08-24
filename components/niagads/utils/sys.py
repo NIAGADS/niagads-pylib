@@ -499,24 +499,38 @@ class FakeSecHead(object):
 
 
 class FileReadProgressTracker:
-    """Wrapper for file objects that tracks read progress with a progress bar.
+    """Wrap a file object and track read progress with a progress bar.
 
-    Provides a transparent wrapper around file-like objects that updates a tqdm
-    progress bar as data is read. Implements the file interface by delegating
-    read operations to the wrapped file object while tracking bytes read.
+    Provides a transparent wrapper around file-like objects that updates a
+    ``tqdm`` progress bar as data is read. Read operations are delegated to the
+    wrapped file object while the number of bytes or characters read is tracked.
+
+    When a logger is provided, the tracker also logs an ``INFO`` message when
+    progress increases by ``log_interval`` percentage points. Messages use the
+    progress bar description and have the form ``"<description>: <percent>%
+    complete"``.
 
     #TODO: handle gzipped files? or at least throw error
     """
 
-    def __init__(self, file_obj, progress):
-        """Initialize the ProgressReader.
+    def __init__(
+        self, file_obj, progress, logger: logging.Logger = None, log_interval=10
+    ):
+        """Initialize the progress tracker.
 
         Args:
             file_obj: An open file object (text or binary mode) to wrap.
             progress: A tqdm progress bar instance to update on read operations.
+            logger: Optional logger used to emit percentage-complete progress
+                messages at INFO level.
+            log_interval: Minimum percentage-point increase between progress
+                messages. Defaults to 10.
         """
-        self.file_obj = file_obj
-        self.progress = progress
+        self.__file_obj = file_obj
+        self.__progress = progress
+        self.__logger = logger
+        self.__log_interval = log_interval
+        self.__last_logged = 0
 
     def _update(self, data):
         """Update progress bar with bytes/characters read.
@@ -527,7 +541,14 @@ class FileReadProgressTracker:
         Returns:
             The data unchanged.
         """
-        self.progress.update(len(data))
+        self.__progress.update(len(data))
+
+        if self.__logger is not None:  # log to file
+            percent = int(self.__progress.n / self.__progress.total * 100)
+            if percent >= self.__last_logged + self.__log_interval:
+                self.__last_logged = percent
+                self.__logger.info(f"{self.__progress.desc}:{percent}% complete")
+
         return data
 
     def read(self, size=-1):
@@ -540,7 +561,7 @@ class FileReadProgressTracker:
         Returns:
             Bytes or string data read from the file, depending on file mode.
         """
-        return self._update(self.file_obj.read(size))
+        return self._update(self.__file_obj.read(size))
 
     def readline(self, size=-1):
         """Read and track a single line from the file object.
@@ -552,7 +573,7 @@ class FileReadProgressTracker:
         Returns:
             A single line from the file.
         """
-        return self._update(self.file_obj.readline(size))
+        return self._update(self.__file_obj.readline(size))
 
     def readlines(self, hint=-1):
         """Read and track multiple lines from the file object.
@@ -564,8 +585,8 @@ class FileReadProgressTracker:
         Returns:
             A list of lines read from the file.
         """
-        lines = self.file_obj.readlines(hint)
-        self.progress.update(sum(len(line) for line in lines))
+        lines = self.__file_obj.readlines(hint)
+        self.__progress.update(sum(len(line) for line in lines))
         return lines
 
     def __iter__(self):
@@ -585,7 +606,7 @@ class FileReadProgressTracker:
         Raises:
             StopIteration: When the end of file is reached.
         """
-        return self._update(next(self.file_obj))
+        return self._update(next(self.__file_obj))
 
     def __getattr__(self, name):
         """Delegate attribute access to the wrapped file object.
@@ -596,11 +617,13 @@ class FileReadProgressTracker:
         Returns:
             The requested attribute from the wrapped file object.
         """
-        return getattr(self.file_obj, name)
+        return getattr(self.__file_obj, name)
 
     @classmethod
     @contextmanager
-    def track_ctx(cls, path, desc="Reading"):
+    def track_ctx(
+        cls, path, desc="Reading", logger: logging.Logger = None, log_interval=5
+    ):
         """Context manager for reading a file with progress tracking.
 
         Opens a file and provides a ProgressReader wrapper with an associated
@@ -610,12 +633,17 @@ class FileReadProgressTracker:
             path (str): Path to the file to open and read.
             desc (str, optional): Description label for the progress bar.
                 Defaults to "Reading".
+            logger (logging.Logger, optional): Logger used to emit progress
+                messages. If omitted, no progress messages are logged.
+            log_interval (int, optional): Minimum percentage-point increase
+                between progress messages. Defaults to 5.
 
         Yields:
             ProgressReader: A wrapper around the opened file with progress tracking.
+            progress bar will be printed to STDOUT only unless logger is passed.
 
         Example:
-            with ProgressReader.track("large_file.txt") as reader:
+            with FileReadProgressTracker.track_ctx("large_file.txt") as reader:
                 for line in reader:
                     process(line)
         """
@@ -628,4 +656,4 @@ class FileReadProgressTracker:
                 desc=desc,
             ) as progress,
         ):
-            yield cls(file_obj, progress)
+            yield cls(file_obj, progress, logger, log_interval)
