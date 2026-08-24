@@ -43,7 +43,12 @@ class RDFParser(ComponentBaseMixin):
         super().__init__(logger=logger, debug=debug, verbose=verbose)
         self._namespace = Namespace(namespace)
         self._graph = Graph()
+        self.logger.debug("Parsing RDF Graph")
         self._graph.parse(file, format=format)  # should auto detect format if None
+        self.logger.debug(
+            f"Done parsing RDF Graph.  Found {len(set(self._graph.subjects()))}"
+            f" subjects and {len(set(self._graph.predicates()))} relationships"
+        )
 
     def get_value(
         self,
