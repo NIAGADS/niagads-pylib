@@ -1,8 +1,15 @@
 """Parse MeSH N-Triples into descriptors, concepts, and terms.
 
 The parser extracts topical descriptors, preferred terms, preferred concepts,
-and synonyms for dataset annotation. See the MeSH retrieval documentation for
-background: https://www.nlm.nih.gov/mesh/intro_retrieval.html.
+and synonyms for dataset annotation. To leverage MeSH for additional search,
+it would probably be best to store it as a graph with a combination indexing
+table that includes the tree numbers (represented as an ltree when using
+PostgreSQL). See the MeSH retrieval documentation for background:
+https://www.nlm.nih.gov/mesh/intro_retrieval.html.
+
+For now, this module retrieves topical descriptors, preferred terms, and
+preferred concepts so they can be translated into ontology terms and synonyms;
+tree strings and other relationships are not currently extracted.
 """
 
 from typing import Generator, Iterator, Optional
