@@ -186,7 +186,7 @@ class OntologyTermLoader(
         embedded_ontology_terms = []
         text = []
         for record in records:
-            curie = record.pop("curie")
+            curie: str = record.pop("curie")
             if self._params.curie_prefix is not None:
                 curie = f"{self._params.curie_prefix}:{curie.replace(':', '_')}"
             record["source_id"] = curie
