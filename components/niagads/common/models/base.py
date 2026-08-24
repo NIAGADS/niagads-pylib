@@ -211,7 +211,7 @@ class CustomBaseModel(BaseModel):
         """
 
         # get fields, ignore those set to exclude=True
-        fields: dict = [
+        fields: list = [
             (k, v)
             for k, v in self.__class__.model_fields.items()
             if not getattr(v, "exclude", False)
@@ -224,11 +224,13 @@ class CustomBaseModel(BaseModel):
                 ),
             )
 
-        if self.has_extras():
-            extras = {k: Field() for k in self.model_extra.keys()}
-            fields.update(extras)
+        # _ hear means ignore and discard the other part of the tuple
+        field_names = [k for k, _ in fields]
 
-        return list(fields.keys())
+        if self.has_extras():
+            field_names.extend(self.model_extra.keys())
+
+        return field_names
 
     def __str__(self):
         return self.to_delimited_text()
