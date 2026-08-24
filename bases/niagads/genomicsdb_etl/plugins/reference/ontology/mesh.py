@@ -90,7 +90,7 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
         # split into "embedding" batch-sized batches to pass to transform
         batch: list[MeSHDescriptor] = []
         for descriptor in parser.extract_topical_descriptors():
-            self.logger.critical(descriptor)
+            self.logger.critical(descriptor.model_dump())
             batch.append(descriptor)
             if len(batch) >= self._params.embedding_batch_size:
                 yield batch
