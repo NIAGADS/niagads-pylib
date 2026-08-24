@@ -90,7 +90,8 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
         # split into "embedding" batch-sized batches to pass to transform
         batch: list[MeSHDescriptor] = []
         for descriptor in parser.extract_topical_descriptors():
-            self.logger.critical(descriptor.model_dump())
+            if descriptor.preferred_concept.terms is not None:
+                self.logger.critical(descriptor.model_dump())
             batch.append(descriptor)
             if len(batch) >= self._params.embedding_batch_size:
                 yield batch
@@ -99,8 +100,9 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
             yield batch
 
     # TODO: adapt for descriptors
-    async def transform(self, records: list[dict]) -> EmbeddedOntologyTerm:
-        """Convert parsed OWL records to ontology terms and generate embeddings.
+    async def transform(self, records: list[MeSHDescriptor]) -> EmbeddedOntologyTerm:
+        """Convert parsed MeSH descriptor records to ontology terms and generate embeddings.
+        -> term = descriptor, with preferred concepts and their preferred terms assigned as synonyms
 
         Args:
             records: Batch of dictionaries representing parsed OWL entities.
@@ -112,18 +114,52 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
         Raises:
             RuntimeError: If ``records`` is None or an empty list.
         """
+
         if records is None or (isinstance(records, list) and len(records) == 0):
             raise RuntimeError(
                 "No records provided to transform(). At least one record is required."
             )
 
+        """"   ontology_term_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+        namespace: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
+        term: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
+        term_iri: Mapped[str] = mapped_column(String(250), index=False, nullable=False)
+        entity_type: Mapped[str] = enum_column(EntityTypeIRI, use_enum_names=True)
+        label: Mapped[str] = mapped_column(String(512), nullable=True)
+        definition: Mapped[str] = mapped_column(TEXT, nullable=True)
+        synonyms: Mapped[list[str]] = mapped_column(ARRAY(String(250)), nullable=True)
+        is_deprecated: Mapped[bool] = mapped_column(Boolean, nullable=True)
+        """
         embedded_ontology_terms = []
         text = []
+
         for record in records:
-            curie: str = record.pop("curie")
-            if self._params.curie_prefix is not None:
-                curie = f"{self._params.curie_prefix}:{curie.replace(':', '_')}"
-            record["source_id"] = curie
+            # worse case try critical on this one: https://id.nlm.nih.gov/mesh/D000900.html
+            if record.preferred_concept.terms is not None:
+                self.logger.critical(record.model_dump())
+            else:
+                continue
+            if not record.is_active:
+                continue  # skip deprecated values
+
+            definition: str = (
+                (
+                    record.preferred_concept.scope_note
+                    if record.preferred_concept is not None
+                    else None
+                ),
+            )
+
+            # synonyms: list[str] = self._extract_synonyms(record.preferred_concept)
+
+            term = OntologyTerm(
+                namespace="MeSH_descriptor",
+                term=record.label,
+                label=record.label,
+                term_iri=record.iri,
+                source_id=f"MESH_{record.id}",
+                definition=definition,
+            )
 
             term: OntologyTerm = OntologyTerm(**record)
             if term.label is None:
@@ -139,6 +175,7 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
             embedded_ontology_terms.append(embedded_term)
             text.append(embedded_term.chunk_text)
 
+        return []  # debugging temp
         embeddings = self._embedding_generator.generate(text, as_list=False)
 
         eterm: EmbeddedOntologyTerm
