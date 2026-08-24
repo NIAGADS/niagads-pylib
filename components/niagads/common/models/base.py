@@ -106,9 +106,7 @@ class CustomBaseModel(BaseModel):
             return v
 
     def clean_model_dump(self, exclude_none: bool = True):
-        return self.model_dump(
-            exclude=True, exclude_none=exclude_none, exclude_unset=exclude_none
-        )
+        return self.model_dump(exclude_none=exclude_none, exclude_unset=exclude_none)
 
     def to_info_string(self):
         """Return a compact info string representation of the model.
@@ -142,7 +140,8 @@ class CustomBaseModel(BaseModel):
         """Return model as a delimited text row (e.g., tab-delimited).
 
         Args:
-            fields (list[str], optional): Field names to include and order. If None, uses all model fields sorted by 'order' metadata.
+            fields (list[str], optional): Field names to include and order.
+                If None, uses all model fields sorted by 'order' metadata.
             incl_header (bool): If True, include a header row with field names. Defaults to True.
             null_str (str): String to use for null/missing values. Defaults to "NA".
             delimiter (str): Delimiter to use between values. Defaults to tab ("\t").
@@ -151,7 +150,8 @@ class CustomBaseModel(BaseModel):
             str: Delimited string of field values (with optional header).
         """
 
-        values = self.to_value_list(fields=fields)
+        sorted_fields = self.get_model_fields(sort=True) if fields is None else fields
+        values = self.to_value_list(fields=sorted_fields)
         delimited_text = delimiter.join([xstr(v, null_str=null_str) for v in values])
 
         if incl_header:
@@ -233,7 +233,7 @@ class CustomBaseModel(BaseModel):
         return field_names
 
     def __str__(self):
-        return self.to_delimited_text()
+        return self.as_info_string()
 
     def __repr__(self):
         return self.to_info_string()
