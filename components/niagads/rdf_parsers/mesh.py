@@ -137,7 +137,7 @@ class MeSHParser(NTriplesParser):
                 preferred_concept=self.extract_concept(preferred_concept),
             )
 
-    def _get_linked_terms(self, object: URIRef) -> Generator:
+    def _get_linked_terms(self, subject: URIRef) -> Generator:
         """Return terms linked to a MeSH concept.
 
         Args:
@@ -146,7 +146,10 @@ class MeSHParser(NTriplesParser):
         Returns:
             Generator: Term IRIs linked through the MeSH ``terms`` predicate.
         """
-        return self._graph.objects(subject=object, predicate=self._namespace.term)
+        # note have to use bracket notation b/c namespace.term is a class method that is
+        # in fact, equivalent to the dot or bracket notation, i.e., self._namespace.term('term')
+        # == self._namespace['term'].  Cannot use dot notation due to the name collision
+        return self._graph.objects(subject=subject, predicate=self._namespace["term"])
 
     def _get_label(self, subject: URIRef):
         try:
