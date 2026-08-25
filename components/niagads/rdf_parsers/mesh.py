@@ -146,7 +146,7 @@ class MeSHParser(NTriplesParser):
         Returns:
             Generator: Term IRIs linked through the MeSH ``terms`` predicate.
         """
-        return self._graph.objects(subject=object, predicate=self._namespace.terms)
+        return self._graph.objects(subject=object, predicate=self._namespace.term)
 
     def _get_label(self, subject: URIRef):
         try:
