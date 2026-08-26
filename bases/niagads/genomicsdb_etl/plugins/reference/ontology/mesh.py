@@ -7,6 +7,7 @@ document tables.  Preferred concepts and their child terms are treated as synony
 
 from typing import Any, Dict, Iterator, Optional
 
+from niagads.common.reference.ontologies.types import EntityTypeIRI
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
@@ -26,6 +27,7 @@ from niagads.genomicsdb_etl.plugins.reference.ontology.base import (
     EmbeddedOntologyTerm,
 )
 from niagads.rdf_parsers.mesh import MeSHConcept, MeSHDescriptor, MeSHParser, MeSHTerm
+from niagads.utils.list import remove_duplicates
 
 
 @PluginRegistry.register(
@@ -133,9 +135,8 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
             for term in concept.terms:
                 if term.is_active:
                     synonyms.extend(self.__extract_term_labels(term))
-        return synonyms
+        return remove_duplicates(synonyms, ignore_case=True)
 
-    # TODO: adapt for descriptors
     async def transform(self, records: list[MeSHDescriptor]) -> EmbeddedOntologyTerm:
         """Convert parsed MeSH descriptor records to ontology terms and generate embeddings.
         -> term = descriptor, with preferred concepts and their preferred terms assigned as synonyms
@@ -160,15 +161,14 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
         text = []
 
         for record in records:
+
             if not record.is_active:
                 continue  # skip deprecated values
 
             definition: str = (
-                (
-                    record.preferred_concept.scope_note
-                    if record.preferred_concept is not None
-                    else None
-                ),
+                record.preferred_concept.scope_note
+                if record.preferred_concept is not None
+                else None
             )
 
             synonyms: list[str] = self.__extract_synonyms(record.preferred_concept)
@@ -181,10 +181,12 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
                 source_id=f"MESH_{record.id}",
                 definition=definition,
                 synonyms=synonyms,
+                entity_type=EntityTypeIRI.CLASS.name,
             )
 
-            term.run_id = self.run_id
-            term.external_database_id = self.external_database_id
+            if self.is_etl_run:  # catch dry runs
+                term.run_id = self.run_id
+                term.external_database_id = self.external_database_id
 
             if self._verbose:
                 self.logger.debug(f"Term: {term.model_dump()}")
