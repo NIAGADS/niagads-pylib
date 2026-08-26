@@ -250,10 +250,10 @@ This mapping intentionally simplifies the native MeSH structure for indexing and
 
 ```json
 {
-  "ontology_term_id": null,
   "namespace": "MeSH_descriptor",
   "term": "Alzheimer Disease",
   "term_iri": "http://id.nlm.nih.gov/mesh/2026/D000544",
+  "source_id": "MESH_D000544",
   "entity_type": "CLASS",
   "label": "Alzheimer Disease",
   "definition": "A degenerative disease of the BRAIN characterized by the insidious onset of DEMENTIA. Impairment of MEMORY, judgment, attention span, and problem solving skills are followed by severe APRAXIAS and a global loss of cognitive abilities. The condition primarily occurs after age 60, and is marked pathologically by severe cortical atrophy and the triad of SENILE PLAQUES; NEUROFIBRILLARY TANGLES; and NEUROPIL THREADS. (From Adams et al., Principles of Neurology, 6th ed, pp1049-57)",
@@ -281,13 +281,7 @@ This mapping intentionally simplifies the native MeSH structure for indexing and
     "Dementia, Alzheimer",
     "Alzheimer Dementias"
   ],
-  "is_deprecated": null,
-  "source_id": "MESH_D000544",
-  "run_id": null,
-  "creation_date": null,
-  "modification_date": null,
-  "external_database_id": null,
-  "id": "MESH_D000544"
+  "is_deprecated": False,
 }
 ```
 
