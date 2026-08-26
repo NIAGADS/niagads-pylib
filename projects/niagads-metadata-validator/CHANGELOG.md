@@ -5,6 +5,22 @@ All notable changes to the niagads-metadata-validator project will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-07-22
+
+### Fixed
+- **Validation error handling**: Preserved raw-string validation errors that cannot be decoded as JSON.
+- **Validation result structure**: Removed unnecessary nesting from the validation error response.
+
+## [0.3.0] - 2026-07-22
+
+### Added
+- **Recurring error promotion**: Added configurable promotion of validation errors that recur across multiple rows.
+- **Validation error categorization**: Separated validation errors into file-level, recurring, and row-specific errors.
+
+### Changed
+- **Validation result format**: Validation results now return a dictionary containing `file`, `recurring`, and `row_specific` error categories.
+- **CSV parsing**: Improved delimiter detection and whitespace handling for delimited metadata files.
+
 ## [0.2.3] - 2025-12-08
 
 ### Added
