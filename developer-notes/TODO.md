@@ -7,7 +7,7 @@
 
 ### Bugs
 
-`variant_id` (aliased as id) is not showing in table/text view (see recent email about SVs to Fanny)
+`variant_id` (aliased as id) is not showing in table/text view
 
 ### other
 
