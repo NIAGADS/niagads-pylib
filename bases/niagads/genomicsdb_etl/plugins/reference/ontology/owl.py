@@ -132,8 +132,9 @@ class OntologyTermLoader(BaseOntologyLoader):
             if term.label is None:
                 term.label = term.term.replace("_", " ")
 
-            term.run_id = self.run_id
-            term.external_database_id = self.external_database_id
+            if self.is_etl_run:  # catch dry runs
+                term.run_id = self.run_id
+                term.external_database_id = self.external_database_id
 
             if self._verbose:
                 self.logger.debug(f"Term: {term.model_dump()}")

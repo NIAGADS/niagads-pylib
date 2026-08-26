@@ -93,15 +93,15 @@ class BaseOntologyLoader(
         verbose: bool = False,
     ):
         super().__init__(params, name, log_path, debug, verbose)
-        self.__external_database: ExternalDatabase = None
+        self._external_database: ExternalDatabase = None
 
     @property
     def external_database_id(self):
-        return self.__external_database.external_database_id
+        return self._external_database.external_database_id
 
     @property
     def external_database_key(self):
-        return self.__external_database.database_key
+        return self._external_database.database_key
 
     async def on_run_start(self, session):
         """Initialize database and embedding contexts before the run.
@@ -113,7 +113,8 @@ class BaseOntologyLoader(
         await EmbeddingGeneratorContextMixin.on_run_start(self, session)
 
         # get the table catalog reference for the OntologyTerm table
-        await self.set_table_ref(session, OntologyTerm)
+        if self.is_etl_run:
+            await self.set_table_ref(session, OntologyTerm)
 
     def get_record_id(self, record: OntologyTerm) -> str:
         """Return the source identifier for an ontology term.
@@ -301,7 +302,7 @@ class BaseOntologyLoader(
                 updated_definitions = await existing_record.resolve_definition(
                     session,
                     term.definition,
-                    namespace=self._external_database.database_key,
+                    namespace=self.database_key,
                 )
 
                 updated_synonyms = await existing_record.resolve_synonyms(
@@ -313,9 +314,7 @@ class BaseOntologyLoader(
 
                     # if the term was defined in the current namespace, update
                     # the external db reference as well
-                    if await existing_record.in_namespace(
-                        session, self._external_database.database_key
-                    ):
+                    if await existing_record.in_namespace(session, self.database_key):
                         existing_record.external_database_id = self.external_database_id
                         await existing_record.update(session)
 
