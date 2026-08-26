@@ -1,7 +1,7 @@
 """Load MeSH Topical Descriptors from the MeSH N-Triples file as Ontology Terms.
 
 This module provides the ETL plugin that parses a MeSH RDF stored as a N-Triple and loads ontology
-terms based on the topical descriptors into the reference ontology term table and their embeddings into the RAG
+terms based on the topical descriptors ONLY into the reference ontology term table and their embeddings into the RAG
 document tables.  Preferred concepts and their child terms are treated as synonyms for the descriptor.
 """
 
@@ -25,7 +25,7 @@ from niagads.genomicsdb_etl.plugins.reference.ontology.base import (
     BaseOntologyLoaderParams,
     EmbeddedOntologyTerm,
 )
-from niagads.rdf_parsers.mesh import MeSHDescriptor, MeSHParser
+from niagads.rdf_parsers.mesh import MeSHConcept, MeSHDescriptor, MeSHParser, MeSHTerm
 
 
 @PluginRegistry.register(
@@ -90,14 +90,50 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
         # split into "embedding" batch-sized batches to pass to transform
         batch: list[MeSHDescriptor] = []
         for descriptor in parser.extract_topical_descriptors():
-            if descriptor.preferred_concept.terms is not None:
-                self.logger.critical(descriptor.model_dump())
             batch.append(descriptor)
             if len(batch) >= self._params.embedding_batch_size:
                 yield batch
                 batch = []
         if len(batch) > 0:  # residuals
             yield batch
+
+    def __extract_term_labels(self, term: MeSHTerm) -> list[str]:
+        """Collect the canonical label plus alternate name variants for a MeSH term.
+
+        Args:
+            term: A MeSH term instance containing the primary label and any
+                alternate labels or abbreviation metadata.
+
+        Returns:
+            A list of labels that can be used as search or synonym strings for the
+            term.
+        """
+        labels: list[str] = [term.label]
+        if term.alt_labels:
+            labels.extend(term.alt_labels)
+        if term.abbreviation:
+            labels.append(term.abbreviation)
+
+        return labels
+
+    def __extract_synonyms(self, concept: MeSHConcept):
+        """Build the synonym list for a MeSH concept from its preferred term and active child terms.
+
+        Args:
+            concept: A MeSH concept whose preferred term and active child terms are
+                used to generate searchable synonyms.
+
+        Returns:
+            A deduplicated-style list of concept labels and related term labels
+            suitable for ontology synonym assignment.
+        """
+        synonyms: list[str] = [concept.label]
+        synonyms.extend(self.__extract_term_labels(concept.preferred_term))
+        if concept.terms:
+            for term in concept.terms:
+                if term.is_active:
+                    synonyms.extend(self.__extract_term_labels(term))
+        return synonyms
 
     # TODO: adapt for descriptors
     async def transform(self, records: list[MeSHDescriptor]) -> EmbeddedOntologyTerm:
@@ -120,25 +156,10 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
                 "No records provided to transform(). At least one record is required."
             )
 
-        """"   ontology_term_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-        namespace: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
-        term: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
-        term_iri: Mapped[str] = mapped_column(String(250), index=False, nullable=False)
-        entity_type: Mapped[str] = enum_column(EntityTypeIRI, use_enum_names=True)
-        label: Mapped[str] = mapped_column(String(512), nullable=True)
-        definition: Mapped[str] = mapped_column(TEXT, nullable=True)
-        synonyms: Mapped[list[str]] = mapped_column(ARRAY(String(250)), nullable=True)
-        is_deprecated: Mapped[bool] = mapped_column(Boolean, nullable=True)
-        """
         embedded_ontology_terms = []
         text = []
 
         for record in records:
-            # worse case try critical on this one: https://id.nlm.nih.gov/mesh/D000900.html
-            if record.preferred_concept.terms is not None:
-                self.logger.critical(record.model_dump())
-            else:
-                continue
             if not record.is_active:
                 continue  # skip deprecated values
 
@@ -150,7 +171,7 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
                 ),
             )
 
-            # synonyms: list[str] = self._extract_synonyms(record.preferred_concept)
+            synonyms: list[str] = self.__extract_synonyms(record.preferred_concept)
 
             term = OntologyTerm(
                 namespace="MeSH_descriptor",
@@ -159,11 +180,8 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
                 term_iri=record.iri,
                 source_id=f"MESH_{record.id}",
                 definition=definition,
+                synonyms=synonyms,
             )
-
-            term: OntologyTerm = OntologyTerm(**record)
-            if term.label is None:
-                term.label = term.term.replace("_", " ")
 
             term.run_id = self.run_id
             term.external_database_id = self.external_database_id
@@ -175,7 +193,6 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
             embedded_ontology_terms.append(embedded_term)
             text.append(embedded_term.chunk_text)
 
-        return []  # debugging temp
         embeddings = self._embedding_generator.generate(text, as_list=False)
 
         eterm: EmbeddedOntologyTerm
@@ -184,7 +201,7 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
 
         self.__processed_record_count += self._params.embedding_batch_size
         self.logger.info(
-            f"Calcualted embeddings for {self.__processed_record_count} ontology terms."
+            f"Calcualted embeddings for {self.__processed_record_count} MeSH terms."
         )
 
         return embedded_ontology_terms
