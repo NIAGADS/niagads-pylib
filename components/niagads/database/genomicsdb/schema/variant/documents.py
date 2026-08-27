@@ -85,6 +85,8 @@ class Variant(VariantTableBase, IdAliasMixin, GenomicRegionMixin, EmbeddingMixin
             niagads_id=record.id,
             normalized_positional_id=record.normalized_positional_id,
             ref_snp_id=record.ref_snp_id,
-            ga4gh_vrs=record.ga4gh_vrs.model_dump(),
-            is_structural_variant=record.variant_class.is_structural_variant(),
+            ga4gh_vrs=record.ga4gh_vrs.model_dump(exclude_none=True),
+            is_structural_variant=(
+                True if record.variant_class.is_structural_variant() else None
+            ),
         )

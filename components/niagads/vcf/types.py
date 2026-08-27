@@ -5,29 +5,18 @@ from niagads.utils.string import to_json
 from pydantic import BaseModel
 import cyvcf2 as cyvcf
 
-VCF_HEADER_FIELDS = [
-    "chrom",
-    "pos",
-    "id",
-    "ref",
-    "alt",
-    "qual",
-    "filter",
-    "info",
-    "format",
-]
+VCF_HEADER_FIELDS = ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"]
 
 
 class VCFEntry(BaseModel):
-    chrom: str
+    chrom: HumanGenome
     pos: int
     id: str
     ref: str
     alt: Union[list, str] = "."  # for structural variants
-    qual: str = "."
+    qual: Union[str | int] = "."
     filter: str = "."
     info: Union[dict, str] = "."
-    format: str = "."
 
     @staticmethod
     def format_dict(obj: dict, skip: List[str] = []):
@@ -86,7 +75,7 @@ class VCFEntry(BaseModel):
                     f"Can not parse VCFEntry -> invalid alt allele: {alt_allele}; {variant}"
                 )
         return cls(
-            chrom=variant.CHROM,
+            chrom=HumanGenome(variant.CHROM),
             pos=variant.POS,
             id=variant.ID or ".",
             ref=variant.REF,

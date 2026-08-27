@@ -360,7 +360,7 @@ class GWASDataMigrator(ComponentBaseMixin):
 
         vrs_service: GA4GHVRSService = GA4GHVRSService(
             genome_build=GenomeBuild.GRCh38,
-            seqrepo_service_url=self._seqrepo_service_url,
+            seqrepo_data_proxy=self._seqrepo_service_url,
         )
         # not ideal, but hope solves dropped connection issue
         session_manager = DatabaseSessionManager(

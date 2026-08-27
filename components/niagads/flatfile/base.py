@@ -25,10 +25,11 @@ class AbstractFlatfileParser(ABC, ComponentBaseMixin):
         verbose: bool = False,
     ):
         super().__init__(
-            debug=debug, verbose=verbose, initialize_logger=logger is not None
+            debug=debug,
+            verbose=verbose,
+            initialize_logger=logger is not None,
+            logger=logger,
         )
-        if logger is not None:
-            self.logger = logger
 
         if not verify_path(file):
             raise ValueError(f"Cannot parse {file} - file does not exist.")

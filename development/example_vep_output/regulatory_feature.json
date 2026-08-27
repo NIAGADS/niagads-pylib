@@ -1,0 +1,179 @@
+{
+	"end": 10091,
+	"input": "chr7\t10091\tchr7_10091_A_G;chr7_10091_A_C\tA\tG,C\t90\t.\tAF=0,0;AQ=90,90;AC=0,0;AN=7166",
+	"regulatory_feature_consequences": [
+		{
+			"cadd_raw": 0.75676,
+			"variant_allele": "G",
+			"cadd_phred": 7.892,
+			"regulatory_feature_id": "ENSR7_94X",
+			"biotype": "enhancer",
+			"consequence_terms": ["regulatory_region_variant"],
+			"impact": "MODIFIER"
+		},
+		{
+			"cadd_phred": 7.675,
+			"regulatory_feature_id": "ENSR7_94X",
+			"consequence_terms": ["regulatory_region_variant"],
+			"biotype": "enhancer",
+			"impact": "MODIFIER",
+			"cadd_raw": 0.732474,
+			"variant_allele": "C"
+		}
+	],
+	"transcript_consequences": [
+		{
+			"cadd_raw": 0.75676,
+			"variant_allele": "G",
+			"strand": 1,
+			"impact": "MODIFIER",
+			"biotype": "lncRNA",
+			"canonical": 1,
+			"gene_id": "ENSG00000283061",
+			"cadd_phred": 7.892,
+			"transcript_id": "ENST00000635602",
+			"tsl": 5,
+			"consequence_terms": ["upstream_gene_variant"],
+			"distance": 2613,
+			"tssdistance": 2613
+		},
+		{
+			"canonical": 1,
+			"consequence_terms": ["upstream_gene_variant"],
+			"tssdistance": 2613,
+			"distance": 2613,
+			"tsl": 5,
+			"gene_id": "ENSG00000283061",
+			"transcript_id": "ENST00000635602",
+			"cadd_phred": 7.675,
+			"variant_allele": "C",
+			"cadd_raw": 0.732474,
+			"biotype": "lncRNA",
+			"impact": "MODIFIER",
+			"strand": 1
+		},
+		{
+			"biotype": "lncRNA",
+			"impact": "MODIFIER",
+			"strand": -1,
+			"gene_symbol_source": "HGNC",
+			"cadd_raw": 0.75676,
+			"variant_allele": "G",
+			"cadd_phred": 7.892,
+			"gene_id": "ENSG00000282572",
+			"transcript_id": "ENST00000822128",
+			"consequence_terms": ["downstream_gene_variant"],
+			"hgnc_id": "HGNC:56252",
+			"distance": 3388,
+			"canonical": 1,
+			"gene_symbol": "FAM157D"
+		},
+		{
+			"variant_allele": "C",
+			"cadd_raw": 0.732474,
+			"gene_symbol_source": "HGNC",
+			"biotype": "lncRNA",
+			"impact": "MODIFIER",
+			"strand": -1,
+			"gene_symbol": "FAM157D",
+			"canonical": 1,
+			"hgnc_id": "HGNC:56252",
+			"consequence_terms": ["downstream_gene_variant"],
+			"distance": 3388,
+			"transcript_id": "ENST00000822128",
+			"gene_id": "ENSG00000282572",
+			"cadd_phred": 7.675
+		},
+		{
+			"cadd_raw": 0.75676,
+			"variant_allele": "G",
+			"gene_symbol_source": "HGNC",
+			"biotype": "lncRNA",
+			"strand": -1,
+			"impact": "MODIFIER",
+			"gene_symbol": "FAM157D",
+			"consequence_terms": ["downstream_gene_variant"],
+			"distance": 3503,
+			"hgnc_id": "HGNC:56252",
+			"cadd_phred": 7.892,
+			"transcript_id": "ENST00000822129",
+			"gene_id": "ENSG00000282572"
+		},
+		{
+			"gene_symbol": "FAM157D",
+			"gene_id": "ENSG00000282572",
+			"transcript_id": "ENST00000822129",
+			"cadd_phred": 7.675,
+			"hgnc_id": "HGNC:56252",
+			"consequence_terms": ["downstream_gene_variant"],
+			"distance": 3503,
+			"gene_symbol_source": "HGNC",
+			"cadd_raw": 0.732474,
+			"variant_allele": "C",
+			"biotype": "lncRNA",
+			"strand": -1,
+			"impact": "MODIFIER"
+		},
+		{
+			"impact": "MODIFIER",
+			"strand": -1,
+			"biotype": "lncRNA",
+			"gene_symbol_source": "HGNC",
+			"variant_allele": "G",
+			"cadd_raw": 0.75676,
+			"gene_id": "ENSG00000282572",
+			"cadd_phred": 7.892,
+			"transcript_id": "ENST00000822130",
+			"consequence_terms": ["downstream_gene_variant"],
+			"hgnc_id": "HGNC:56252",
+			"distance": 3488,
+			"gene_symbol": "FAM157D"
+		},
+		{
+			"biotype": "lncRNA",
+			"strand": -1,
+			"impact": "MODIFIER",
+			"variant_allele": "C",
+			"cadd_raw": 0.732474,
+			"gene_symbol_source": "HGNC",
+			"distance": 3488,
+			"consequence_terms": ["downstream_gene_variant"],
+			"hgnc_id": "HGNC:56252",
+			"transcript_id": "ENST00000822130",
+			"gene_id": "ENSG00000282572",
+			"cadd_phred": 7.675,
+			"gene_symbol": "FAM157D"
+		}
+	],
+	"allele_string": "A/G/C",
+	"seq_region_name": "chr7",
+	"assembly_name": "GRCh38",
+	"variant_class": "SNV",
+	"most_severe_consequence": "upstream_gene_variant",
+	"start": 10091,
+	"strand": 1,
+	"id": "chr7_10091_A_G",
+	"colocated_variants": [
+		{
+			"frequencies": {
+				"G": {
+					"gnomadg_amr": 0,
+					"gnomadg_asj": 0,
+					"gnomadg": 0,
+					"gnomadg_eas": 0,
+					"gnomadg_nfe": 0,
+					"gnomadg_sas": 0,
+					"gnomadg_afr": 0,
+					"gnomadg_remaining": 0,
+					"gnomadg_fin": 0
+				}
+			},
+			"strand": 1,
+			"seq_region_name": "7",
+			"start": 10091,
+			"allele_string": "A/C/G",
+			"end": 10091,
+			"id": "rs1410112108"
+		}
+	]
+}

@@ -59,8 +59,14 @@ class VariantRecord(VariantIdentifier):
         len_alt = len(self.alt)
 
         is_SV: bool = len_ref >= 50 or len_alt >= 50
-        if is_SV and self.variant_class is not None:
-            return self  # trust it
+
+        if is_SV:
+            if self.variant_class is not None:
+                return self  # trust incoming
+            if len_ref == len_alt:
+                self.variant_class = VariantClass.LONG_MNV
+            elif len_ref > 0 and len_alt > 0:
+                self.variant_class = VariantClass.INDEL
 
         elif len_ref == 1 and len_alt == 1:
             self.variant_class = VariantClass.SNV
@@ -71,9 +77,7 @@ class VariantRecord(VariantIdentifier):
         elif len_ref > 0 and len_alt == 1:
             self.variant_class = VariantClass.DEL if is_SV else VariantClass.SHORT_DEL
         elif len_ref > 0 and len_alt > 0:
-            self.variant_class = (
-                VariantClass.INDEL if is_SV else VariantClass.SHORT_INDEL
-            )
+            self.variant_class = VariantClass.SHORT_INDEL
 
         return self
 
@@ -99,12 +103,13 @@ class VariantRecord(VariantIdentifier):
         helper function created b/c needs to be done at initialization and then recalculated
         after normalization
         """
-        if self.variant_class.is_structural_variant() and self.length is None:
+        if self.variant_class in [VariantClass.MNV, VariantClass.LONG_MNV]:
+            self.length = len(self.ref)
+        elif self.variant_class.is_structural_variant() and self.length is None:
             # ideally structural variant length is set, but if not
             self.length = abs(len(self.ref) - len(self.alt))
-
-        elif self.variant_class in [VariantClass.SNV, VariantClass.MNV]:
-            self.length = len(self.ref)
+        elif self.variant_class in [VariantClass.SNV]:
+            self.length = 1
         elif self.variant_class == VariantClass.SHORT_INS:
             self.length = len(self.alt) - len(self.ref)
         elif self.variant_class == VariantClass.SHORT_DEL:

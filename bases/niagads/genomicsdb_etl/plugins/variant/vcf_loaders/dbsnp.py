@@ -7,11 +7,11 @@ Loads DBSNP variants from VCF file into variant table.
 **ASSUMES EMPTY TABLE**
 """
 
-import asyncio
 from typing import Iterator, Optional
 
 
 import cyvcf2
+from niagads.common.models.base import SerializationOptions
 from niagads.common.types import ETLOperation
 from niagads.common.variant.models.record import VariantRecord
 from niagads.database.genomicsdb.schema.variant.documents import Variant
@@ -35,10 +35,11 @@ metadata = PluginMetadata(
     operation=ETLOperation.INSERT,
     is_large_dataset=True,
     parameter_model=BaseVCFLoaderParams,
+    can_resume=True,
 )
 
 
-class dbSNPRecord(VariantRecord):
+class ALFAAnnotatedVariantRecord(VariantRecord):
     allele_frequency: Optional[dict] = None
 
 
@@ -54,7 +55,7 @@ class dbSNPVCFLoader(BaseVCFLoader):
         verbose: bool = False,
     ):
         super().__init__(params, name, log_path, debug, verbose)
-        self._skip_normalization = True
+        self._skip_normalization = False
 
     def __parse_allele_frequencies(self, freq_str: str, allele_index: int):
 
@@ -72,12 +73,19 @@ class dbSNPVCFLoader(BaseVCFLoader):
             if pop_allele_freq is not None:
                 frequencies[pop] = pop_allele_freq
 
-        return frequencies
+        return frequencies if len(frequencies) > 0 else None
 
     def extract(self) -> Iterator[list[VCFEntry]]:
         """Extract variants from VCF in seqrepo_batch_size batches."""
+        resume_skip_count = 0
+        resume = self._params.resume_after is None
+
+        if not resume:
+            self.logger.info(
+                f"Scanning for Resume After Point {self._params.resume_after}"
+            )
+
         reader = cyvcf2.Reader(self._params.file)
-        batch = []
         try:
             for entry in reader:
                 # index starts at 1 b/c ref is 0 in lists in INFO annotations
@@ -89,34 +97,41 @@ class dbSNPVCFLoader(BaseVCFLoader):
                         )
                     else:
                         vcf_entry.info["FREQ"] = None
-                    batch.append(vcf_entry)
 
-                    if len(batch) >= self._params.seqrepo_batch_size:
-                        yield batch
-                        batch = []
+                    if resume:
+                        yield vcf_entry
 
-            # yield residual batch
-            if batch:
-                yield batch
+                    else:
+                        if resume_skip_count % 10000 == 0:
+                            self.logger.info(
+                                f"Resume Check: Skipped {resume_skip_count} entries."
+                            )
+                        if vcf_entry.id == self._params.resume_after:
+                            resume = True
+                            self.logger.info(
+                                f"Resume Check: Skipped {resume_skip_count} entries."
+                            )
+                            self.logger.info("Resume Point Found: Starting ETL.")
+                        else:
+                            resume_skip_count += 1
 
         finally:
             reader.close()
 
-    async def transform(self, entries: list[VCFEntry]) -> list[dbSNPRecord]:
-        """Transform VCF variants to Variant records (with standardized IDs) concurrently."""
+    async def transform(self, entry: VCFEntry) -> ALFAAnnotatedVariantRecord:
+        """Transform VCF variant to Variant record (with standardized IDs)."""
 
-        async def process_entry(entry: VCFEntry) -> dbSNPRecord:
-            record: dbSNPRecord = dbSNPRecord(
-                **self._generate_variant_identifier_record(
-                    entry, require_validation=False  # trust dbSNP
-                ).model_dump()
-            )
-            record.allele_frequency = entry.info["FREQ"]
-            return record
+        variant_record = self._generate_variant_identifier_record(
+            entry, require_validation=False  # trust dbSNP
+        )
+        if variant_record is None:
+            return None
 
-        return await asyncio.gather(*[process_entry(entry) for entry in entries])
+        return ALFAAnnotatedVariantRecord(
+            **variant_record.model_dump(), allele_frequency=entry.info["FREQ"]
+        )
 
-    def __is_duplicate(self, variant: dbSNPRecord):
+    def __is_duplicate(self, variant: ALFAAnnotatedVariantRecord):
         """
         Checks if the given variant is a duplicate within the current bin.
 
@@ -131,19 +146,31 @@ class dbSNPVCFLoader(BaseVCFLoader):
                 return True
 
     async def load(
-        self, session: AsyncSession, records: list[dbSNPRecord]
+        self, session: AsyncSession, records: list[ALFAAnnotatedVariantRecord]
     ) -> Optional[ResumeCheckpoint]:
-        variants = []
 
+        variants = []
         for record in records:
+            if record is None:
+                self.inc_tx_count(Variant, ETLOperation.SKIP)  # invalid variant
+                continue
             if self.__is_duplicate(record):
-                self.logger.warning(
-                    f"Skipping Duplicate Variant: NIAGADS_ID = {record.id}; RECORD = {record.positional_id} / {record.ref_snp_id} / DUPLICATES {self._current_bin_variants[record.id]}"
-                )
-                self.inc_tx_count(Variant, ETLOperation.INSERT)
+                if self._verbose:
+                    self.logger.warning(
+                        f"Skipping Duplicate Variant: NIAGADS_ID = {record.id}; RECORD = {record.positional_id} / {record.ref_snp_id} / DUPLICATES {self._current_bin_variants[record.id]}"
+                    )
+                self.inc_tx_count(Variant, ETLOperation.SKIP)
                 continue
 
-            variant = Variant.from_variant_record(record)
+            try:
+                variant = Variant.from_variant_record(record)
+            except:
+                self.logger.critical(f"Malformed Variant Record: {
+                    record.model_dump(
+                        exclude_none=True,
+                        context={SerializationOptions.ENUMS_AS_NAME: True},
+                    )}")
+
             variant.allele_frequency = record.allele_frequency
             variant.run_id = self.run_id
             variant.bin_index = self._find_bin_index(
@@ -157,5 +184,10 @@ class dbSNPVCFLoader(BaseVCFLoader):
                 self._current_bin_variants = {}
             self._current_bin_variants[record.id] = record.ref_snp_id
 
+        # as long as batches are small this is faster than copy
         await Variant.submit_many(session, variants)
+
         return self.create_checkpoint(record=records[-1])
+
+    def get_record_id(self, record: Variant) -> str:
+        return f"{record.ref_snp_id} | {record.id}"

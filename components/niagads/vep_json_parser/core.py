@@ -1,354 +1,455 @@
-"""@brief VEP JSON Output Parser"""
+"""
+utils for parsing and manipulating the JSON output of [Ensembl's Variant
+Effect Predictor (VEP) software](https://useast.ensembl.org/info/docs/tools/vep/index.html)
+"""
 
-##
-# @file vep_json.py
-#
-# @brief  VEP JSON Output Parser
-#
-# @section vep_parser Description
-# utils for parsing and manipulating the JSON output of [Ensembl's Variant
-# Effect Predictor (VEP) software](https://useast.ensembl.org/info/docs/tools/vep/index.html)
-#
-# @section todo_vep_parser TODO
-#
-# - clean vep result to remove info that has been extracted
-#
-# @section author_vep_parser Author(s)
-# - Created by Emily Greenfest-Allen (fossilfriend) 2019
-# - Modified to remove consequence ranking to the ConsequenceParser class by EGA 2022
+import json
+from typing import Optional, Union
 
-# pylint: disable=line-too-long,invalid-name,no-self-use
+from niagads.common.core import ComponentBaseMixin
+from niagads.common.models.base import CustomBaseModel
+from niagads.enums.core import CaseInsensitiveEnum
+from niagads.genome_reference.human import HumanGenome
+from niagads.utils.list import is_overlapping_list, qw
+from niagads.vcf.types import VCFEntry
+from pydantic import BaseModel, ConfigDict, field_validator
 
-import logging
-
-from operator import itemgetter
-from copy import deepcopy
-
-from niagads.utils.string import xstr
-from niagads.utils.list import qw
-from niagads.objects.core import AutoVivificationDict
-from niagads.adsp_annotation.core import VEPConsequenceParser as ConsequenceParser
-
-CONSEQUENCE_TYPES = qw("transcript regulatory_feature motif_feature intergenic")
 CODING_CONSEQUENCES = qw(
     "synonymous_variant missense_variant inframe_insertion inframe_deletion stop_gained stop_lost stop_retained_variant start_lost frameshift_variant coding_sequence_variant"
 )
 
 
-def is_coding_consequence(conseqs):
-    """check term against list of coding consequences and return
-    True if found"""
-    terms = conseqs.split(",") if isinstance(conseqs, str) else conseqs
+SCORE_FIELDS = [
+    "cadd_raw",
+    "cadd_phred",
+    "enformer_sad",
+    "enformer_sar",
+]
 
-    matches = [value for value in terms if value in CODING_CONSEQUENCES]
+IMPACTED_GENE_FIELDS = [
+    "gene_symbol",
+    "loftool",
+]
 
-    return len(matches) > 0
+EXCLUDED_ANNOTATION_FIELDS = [
+    "hgnc_id",
+    "uniparc",
+    "gene_symbol_source",
+]
 
 
-class VEPJSONParser(object):
+class ConsequenceType(CaseInsensitiveEnum):
+    TRANSCRIPT = "transcript"
+    REGULATORY_FEATURE = "regulatory_feature"
+    MOTIF_FEATURE = "motif_feature"
+    INTERGENIC = "intergenic"
+
+
+class MotifFeature(CustomBaseModel):
+    id: str
+    motif_name: str
+    motif_pos: int
+    motif_score_chang: float
+
+
+class RegulatoryFeature(CustomBaseModel):
+    id: str
+    biotype: str
+
+
+class GeneContext(CustomBaseModel):
+    id: str
+    gene_symbol: Optional[str] = None
+    biotype: str
+    loftool: Optional[float] = None
+    gene_pheno: Optional[bool] = None
+
+
+class ProteinContext(CustomBaseModel):
+    id: str
+
+    trembl: Optional[list[str]] = None
+    swissprot: Optional[list[str]] = None
+
+    protein_start: Optional[int] = None
+    protein_end: Optional[int] = None
+    amino_acids: Optional[str] = None
+    hgvsp: Optional[str] = None
+
+    sift_score: Optional[float] = None
+    sift_prediction: Optional[str] = None
+    polyphen_score: Optional[float] = None
+    polyphen_prediction: Optional[str] = None
+
+
+class TranscriptContext(CustomBaseModel):
+    id: str
+
+    canonical: Optional[bool] = None
+    appris: Optional[str] = None
+    tsl: Optional[int] = None
+    strand: Optional[int] = None
+    mane: Optional[list[str]] = None
+    mane_select: Optional[str] = None
+    ccds: Optional[str] = None
+
+    distance: Optional[int] = None
+    tssdistance: Optional[int] = None
+
+    cdna_start: Optional[int] = None
+    cdna_end: Optional[int] = None
+    cds_start: Optional[int] = None
+    cds_end: Optional[int] = None
+
+    exon: Optional[str] = None
+    intron: Optional[str] = None
+
+    codons: Optional[str] = None
+    hgvsc: Optional[str] = None
+
+    gene: GeneContext
+    protein: Optional[ProteinContext] = None
+
+
+class Consequence(CustomBaseModel):
+    consequence_type: ConsequenceType
+    consequence_terms: list[str]
+    impact: str
+    is_coding: Optional[bool] = None
+    hgvsg: Optional[str] = None
+    feature: Optional[Union[TranscriptContext, RegulatoryFeature, MotifFeature]] = None
+
+    flags: Optional[list[str]] = None
+
+
+class PredictedAnnotation(CustomBaseModel):
+    predictor_scores: Optional[dict] = None
+    predicted_consequences: dict[str, list[Consequence]]
+
+
+class VariantVEPAnnotationEntry(CustomBaseModel):
+    positional_id: str
+    chromosome: HumanGenome
+    position: int
+    ref: str
+    alt: str
+
+    most_severe_consequence: Optional[Consequence] = None
+    allele_frequency: Optional[dict] = None
+    predicted_annotations: Optional[PredictedAnnotation] = None
+
+
+class VEPEntry(BaseModel):
+    id: str
+    seq_region_name: str
+    start: int
+    end: int
+    strand: int
+    allele_string: str
+    assembly_name: str
+    variant_class: str
+    most_severe_consequence: str
+    input: VCFEntry
+    colocated_variants: Optional[list[dict]] = None
+    transcript_consequences: Optional[list[dict]] = None
+    regulatory_feature_consequences: Optional[list[dict]] = None
+    motif_feature_consequences: Optional[list[dict]] = None
+    intergenic_consequences: Optional[list[dict]] = None
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("input", mode="before")
+    @classmethod
+    def parse_input_str(cls, v: str) -> VCFEntry:
+        """transform VCF input string into VCFEntry object."""
+        return VCFEntry.from_line(v)
+
+
+class VEPJSONParser(ComponentBaseMixin):
     """class to organize utils for parsing VEP JSON output"""
 
-    def __init__(
-        self, rankingFileName, rankConsequencesOnLoad=False, verbose=False, debug=False
-    ):
-        self._debug = debug
-        self._verbose = verbose
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, debug=False, verbose=False, initialize_logger=True, logger=None):
+        super().__init__(debug, verbose, initialize_logger, logger)
 
-        self.__consequenceParser = ConsequenceParser(
-            rankingFileName, rankOnLoad=rankConsequencesOnLoad, verbose=verbose
+    def parse(self, vep_output: Union[dict, str]):
+        vep_json = (
+            vep_output if isinstance(vep_output, dict) else json.loads(vep_output)
         )
-        self.__annotation = None
-        self.__rankedConsequences = {}
 
-    def __find_matching_term(self, terms):
-        """wrapper for ConsequenceParser.find_matching_consequence
-        so that we can log new consequences when found
+        raw_annotation = VEPEntry(**vep_json)
+        chromosome = raw_annotation.input.chrom
+        position = raw_annotation.input.pos
+        ref = raw_annotation.input.ref
 
-        @param terms             list of terms in the consequence combination
-        @returns rank
-        """
-        try:
-            return self.__consequenceParser.find_matching_consequence(
-                terms, failOnMissing=True
+        variant_annotations: dict[str, VariantVEPAnnotationEntry] = {}
+        for alt in raw_annotation.input.alt:
+            allele_annotation = VariantVEPAnnotationEntry(
+                positional_id=f"{chromosome}:{position}:{ref}:{alt}",
+                chromosome=chromosome,
+                position=position,
+                ref=ref,
+                alt=alt,
             )
-        except IndexError as err:
-            return self.__consequenceParser.find_matching_consequence(terms)
 
-    def assign_adsp_consequence_rank(self, conseqDict):
-        """find and return rank and coding status for a consequence combination
-
-        @param conseqDict     dict (from VEP output) containing consequence that needs to be ranked
-        @returns updated conseqDict w/rank and is_coding flag
-        """
-
-        terms = conseqDict["consequence_terms"]
-        conseq = ",".join(terms)
-        if conseq not in self.__rankedConsequences:
-            value = {
-                "rank": self.__find_matching_term(terms),
-                "consequence_is_coding": is_coding_consequence(terms),
-            }
-            self.__rankedConsequences[conseq] = value
-
-        conseqDict.update(self.__rankedConsequences[conseq])
-
-        return conseqDict
-
-    def __verify_annotation(self):
-        """check that annotation is set"""
-        assert (
-            self.__annotation is not None
-        ), "DEBUG - must set value of _annotation in the VEP parser to access it"
-
-    def adsp_rank_and_sort_consequences(self):
-        """applies ADSP ranking to consequence, re orders the array and
-        and saves newly ordered list
-        """
-        for ctype in CONSEQUENCE_TYPES:
-            rankedConseqs = self.__adsp_rank_consequences(ctype)
-            if rankedConseqs is not None:
-                self.set(ctype + "_consequences", rankedConseqs)
-
-    # =========== modifiers ==================
-    def set_annotation(self, annotation):
-        """set the annotation json"""
-        self.__annotation = annotation
-
-    def set(self, key, value):
-        """set a value to annotation json"""
-        self.__verify_annotation()
-        self.__annotation[key] = value
-
-    # =========== accessors ==================
-
-    def get_added_conseq_summary(self):
-        """@returns summary of added consequences from the consequence parser"""
-        summary = "No new consequences added"
-        if self.__consequenceParser.new_consequences_added():
-            summary = " ".join(
-                (
-                    "Added",
-                    xstr(self.__consequenceParser.get_new_conseq_count()),
-                    "new consequences:",
-                    "["
-                    + "; ".join(self.__consequenceParser.get_added_consequences())
-                    + "]",
+            # allele frequencies
+            if raw_annotation.colocated_variants:
+                allele_annotation.allele_frequency = self.__extract_allele_frequencies(
+                    raw_annotation.colocated_variants, alt, position
                 )
-            )
-        return summary
 
-    def get_conseq_rank(self, conseq):
-        """@returns value from consequence rank map for the specified
-        consequence"""
-        return self.__consequenceParser.get_consequence_rank(conseq)
-
-    def get_consequence_parser(self):
-        return self.__consequenceParser
-
-    def __adsp_rank_consequences(self, conseqType):
-        """extract consequences and apply ranking and sort,
-        convert from list to list of dicts, keyed on allele
-        to ensure consequences are sorted per allele
-        @param conseqType         one of CONSEQUENCE_TYPES
-        @returns ranked consequences
-        """
-
-        result = None
-        consequences = self.get(conseqType + "_consequences")
-        if consequences is None:
-            return None
-
-        result = {}
-        for index, conseq in enumerate(consequences):
-            # need to build the hash pulling the key out of variant allele &
-            # appending to the list
-            va = conseq["variant_allele"]
-            conseq["vep_consequence_order_num"] = index
-
-            if va in result:
-                result[va].append(self.assign_adsp_consequence_rank(conseq))
-            else:
-                result[va] = [self.assign_adsp_consequence_rank(conseq)]
-
-        for va in result:  # sort by rank within each variant allele
-            # result[va] = sorted(result[va], key = lambda x: (x['rank'], x['vep_consequence_order_num']))
-            # itemgetter supposed to be orders of magnitude faster than lambda
-            result[va] = sorted(
-                result[va], key=itemgetter("rank", "vep_consequence_order_num")
+            # predicted annotations
+            allele_annotation.predicted_annotations = (
+                self.__extract_predicted_annotations(raw_annotation, alt)
             )
 
-        return result
-
-    def get_frequencies(self, matchingVariantId=None):
-        """extract frequencies from colocated_variants section
-        for dbSNP VEP run -- sometimes VEP matches to variants with
-        rsId different from current rsId; use matchingVariantId to ensure
-        extracting the correct frequency (e.g. overlapping indels & snvs)
-        """
-        self.__verify_annotation()
-        if "colocated_variants" not in self.__annotation:
-            return None
-
-        frequencies = None
-        cv = self.__annotation["colocated_variants"]
-
-        if len(cv) > 1:
-            # return first non-cosmic mutation that matches the expected variant id (if supplied)
-            fCount = 0
-            for covar in cv:
-                if covar["allele_string"] != "COSMIC_MUTATION":
-                    if "frequencies" in covar:
-                        if matchingVariantId is not None:
-                            if covar["id"] == matchingVariantId:
-                                frequencies = self.__extract_frequencies(covar)
-                        else:
-                            frequencies = self.__extract_frequencies(covar)
-                            fCount = fCount + 1
-            if fCount > 1:
-                # based on experience, when this happens, involves multiple refsnps mapped to location,
-                # so all frequencies should be equal
-                # let's just print a warning
-                inputVariant = self.__annotation["input"]["id"]
-                if self._verbose:
-                    self.logger.warn(
-                        "Variant "
-                        + inputVariant
-                        + " mapped to multiple refSNPs/frequencies based on location not alleles"
+            if allele_annotation.predicted_annotations is not None:
+                allele_annotation.most_severe_consequence = (
+                    self.__extract_most_severe_consequence(
+                        allele_annotation.predicted_annotations.predicted_consequences
                     )
-            # else:
-            return frequencies  # which may be None
+                )
+            else:
+                if allele_annotation.allele_frequency is None:
+                    # if both frequencies and predicted annotations are none for this allele,
+                    # there are no annotations
+                    continue
 
-        elif "frequencies" in cv[0]:
-            frequencies = self.__extract_frequencies(cv[0])
+            variant_annotations[alt] = allele_annotation
+        return variant_annotations
 
-        return frequencies
+    def __is_coding_consequence(self, conseqs):
+        """returns True if any consequence term is a `CODING CONSEQUENCE`"""
+        conseq_list = conseqs.split(",") if isinstance(conseqs, str) else conseqs
+        return is_overlapping_list(conseq_list, CODING_CONSEQUENCES)
 
-    def __extract_frequencies(self, covar):
-        """extract frequencies and update minor allele to include
-        1000 Genomes global allele frequency if present (stored in
-        colocated_variant field not frequencies array)
+    def __extract_allele_frequencies(
+        self, colocated_variants: dict, allele: str, position: int
+    ):
+        """extract frequencies from colocated_variants section - matching allele and end position
+
+        "colocated_variants": [
+                {
+                        "frequencies": {
+                                "G": {
+                                        "gnomadg_amr": 0,
+                                        "gnomadg_asj": 0,
+                                        "gnomadg": 0,
+                                        "gnomadg_eas": 0,
+                                        "gnomadg_nfe": 0,
+                                        "gnomadg_sas": 0,
+                                        "gnomadg_afr": 0,
+                                        "gnomadg_remaining": 0,
+                                        "gnomadg_fin": 0
+                                }
+                        },
+                        "strand": 1,
+                        "seq_region_name": "7",
+                        "start": 10091,
+                        "allele_string": "A/C/G",
+                        "end": 10091,
+                        "id": "rs1410112108"
+                }
+        ]
         """
 
-        frequencies = {}
-        if "minor_allele" in covar:
-            frequencies["minor_allele"] = covar["minor_allele"]
-            if "minor_allele_freq" in covar:
-                frequencies["minor_allele_freq"] = covar["minor_allele_freq"]
+        for variant in colocated_variants:
+            if variant["allele_string"] == "COSMIC_MUTATION":
+                continue
+            allele_freqs = variant.get("frequencies", {}).get(allele)
+            if allele_freqs is not None and variant["end"] == position:
+                # positional check is to weed out incorrectly matched normalized/overlapping variants
+                return self.__organize_allele_frequencies(allele_freqs)
+                # the same allele may occur in another colocated variant, but the freqs will be the same
+        return None
 
-        frequencies["values"] = self.__group_frequencies_by_source(covar["frequencies"])
-        return frequencies
+    def __organize_allele_frequencies(self, frequencies: dict):
+        """group frequencies by data source"""
 
-    def __group_frequencies_by_source(self, frequencies):
-        """group 1000Genomes and gnomAD frequencies"""
+        ESP_KEYS = ["aa", "ea"]
 
-        if frequencies is None:
-            return None
+        gnomad = {}
+        esp = {}
+        genomes = {}
 
-        result = AutoVivificationDict()  # needed to later add in minor allele freqs
-        espKeys = ["aa", "ea"]
-        for allele in frequencies:
-            gnomad = {
-                key: value
-                for key, value in frequencies[allele].items()
-                if "gnomad" in key
-            }
-            esp = {
-                key: value
-                for key, value in frequencies[allele].items()
-                if key in espKeys
-            }
-            genomes = {
-                key: value
-                for key, value in frequencies[allele].items()
-                if "gnomad" not in key and key not in espKeys
-            }
-            if bool(gnomad):
-                result[allele]["GnomAD"] = gnomad
-            if bool(genomes):
-                result[allele]["1000Genomes"] = genomes
-            if bool(esp):
-                result[allele]["ESP"] = esp
+        key: str
+        for key, value in frequencies.items():
+            if value == 0:
+                continue
 
-        return result
+            if "gnomad" in key:
+                if "_" in key:
+                    source, pop = key.split("_")
+                else:
+                    pop = "genomes"
+                gnomad[pop] = value
+            elif key in ESP_KEYS:
+                esp[key] = value
+            else:
+                genomes[key] = value
 
-    def __get_consequences(self, key):
-        """special getter for consequences b/c fields may be missing; don't want
-        to throw error"""
-        if key in self.__annotation:
-            return self.__annotation[key]
-        else:
-            return None
+        result = {
+            k: v
+            for k, v in [
+                ("GnomAD", gnomad),
+                ("1000Genomes", genomes),
+                ("ESP", esp),
+            ]
+            if v
+        }
+        return result if result else None
 
-    def get(self, key):
-        """get the annotation value associated with the key"""
-        self.__verify_annotation()
+    def __extract_predicted_annotations(self, entry: VEPEntry, allele: str):
+        consequence_types: list[ConsequenceType] = [
+            ConsequenceType(c) for c in ConsequenceType.list()
+        ]
+        predicted_consequences: dict[ConsequenceType, list[Consequence]] = {}
+        predictor_scores = {}
 
-        if key == "frequencies":
-            return self.get_frequencies()
-        if "consequences" in key:
-            return self.__get_consequences(key)
-        else:
-            return self.__annotation[key]
+        for ctype in consequence_types:
+            conseq_array_name = f"{ctype.value}_consequences"
+            raw_consequences = getattr(entry, conseq_array_name, None)
+            if raw_consequences is None:
+                continue
 
-    def get_annotation(self, deepCopy=False):
-        """return updated annotation"""
-        return deepcopy(self.__annotation) if deepCopy else self.__annotation
+            matching = [
+                c for c in raw_consequences if c.get("variant_allele") == allele
+            ]
+            if not matching:
+                continue
 
-    def __get_allele_consequences(self, allele, ctypeKey):
-        """get consequences of specified type for the allele, performs None checks
-        @param allele                    the allele to be matched
-        @param ctypeKey                  consequence type key (a CONSEQUENCE_TYPE + '_consequences'
-        @returns dict of all consequences of the specified type for the specified allele
-        """
+            consequence_objs = []
+            for raw_conseq in matching:
+                # Extract and promote scores on first occurrence
+                for score_field in SCORE_FIELDS:
+                    if (
+                        score_field not in predictor_scores
+                        and score_field in raw_conseq
+                    ):
+                        predictor_scores[score_field] = raw_conseq[score_field]
 
-        conseqs = self.get(ctypeKey)
-        if conseqs is None:
-            return None
+                # Build feature object based on consequence type
+                feature = None
+                if ctype == ConsequenceType.TRANSCRIPT:
+                    feature = self.__build_transcript_feature(raw_conseq)
+                elif ctype == ConsequenceType.REGULATORY_FEATURE:
+                    feature = self.__build_regulatory_feature(raw_conseq)
+                elif ctype == ConsequenceType.MOTIF_FEATURE:
+                    feature = self.__build_motif_feature(raw_conseq)
 
-        if allele in conseqs:
-            return conseqs[allele]
+                # Create Consequence object
 
-        return None  # allele not in conseqs
+                is_coding = (
+                    self.__is_coding_consequence(raw_conseq["consequence_terms"])
+                    if ctype == ConsequenceType.TRANSCRIPT
+                    else None
+                )
 
-    def get_allele_consequences(self, allele, conseqType=None):
-        """get dict of consequences for the specified allele
-        if called after ADSP ranking has been done, then retrieved
-        consequences will be ADSP ranked
+                consequence = Consequence(
+                    consequence_type=ctype,
+                    consequence_terms=[
+                        term.replace("_", " ")
+                        for term in raw_conseq["consequence_terms"]
+                    ],
+                    impact=raw_conseq["impact"],
+                    is_coding=is_coding,
+                    hgvsg=raw_conseq.get("hgvsg"),
+                    feature=feature,
+                    flags=raw_conseq.get("flags"),
+                )
+                consequence_objs.append(consequence)
 
-        @param allele                   allele to be matched
-        @param conseqType               consequence type (from CONSEQUENCE_TYPES) / if None, iterate over all types
-        @returns dict of consequences matched to the allele
-        """
-        if conseqType is None:  # get all conseqs / return nested dict
-            alleleConseqs = {}
-            for ctype in CONSEQUENCE_TYPES:
-                ctypeKey = ctype + "_consequences"
-                conseqs = self.get(ctypeKey)
-                if conseqs is not None and allele in conseqs:
-                    alleleConseqs[ctypeKey] = conseqs[allele]
+            if consequence_objs:
+                predicted_consequences[conseq_array_name] = consequence_objs
 
-            return None if len(alleleConseqs) == 0 else alleleConseqs
+        return (
+            PredictedAnnotation(
+                predictor_scores=predictor_scores if predictor_scores else None,
+                predicted_consequences=predicted_consequences,
+            )
+            if predicted_consequences
+            else None
+        )
 
-        else:
-            ctypeKey = conseqType + "_consequences"
-            conseqs = self.get(ctypeKey)
-            return (
-                conseqs[allele] if conseqs is not None and allele in conseqs else None
+    def __build_transcript_feature(self, conseq: dict):
+        gene = GeneContext(
+            id=conseq["gene_id"],
+            gene_symbol=conseq.get("gene_symbol"),
+            biotype=conseq["biotype"].replace("_", " "),
+            loftool=conseq.get("loftool"),
+            gene_pheno=True if bool(conseq.get("gene_pheno", 0)) else None,
+        )
+
+        protein = None
+        if "protein_id" in conseq:
+            protein = ProteinContext(
+                id=conseq["protein_id"],
+                trembl=conseq.get("trembl"),
+                swissprot=conseq.get("swissprot"),
+                protein_start=conseq.get("protein_start"),
+                protein_end=conseq.get("protein_end"),
+                amino_acids=conseq.get("amino_acids"),
+                hgvsp=conseq.get("hgvsp"),
+                sift_score=conseq.get("sift_score"),
+                sift_prediction=conseq.get("sift_prediction"),
+                polyphen_score=conseq.get("polyphen_score"),
+                polyphen_prediction=conseq.get("polyphen_prediction"),
             )
 
-    def get_most_severe_consequence(self, allele):
-        """retrieve most severe consequence from the VEP JSON Parser,
-        for the specified allele; returns None if no consequences are found
-        return first hit among transcript, then regulatory feature, then intergenic
-        consequences.  If called after ADSP ranking and sorting is done on the result,
-        the consequences will be ADSP ranked
-        @param           allele to be matched
-        @result          dict representation of most severe consequence
+        return TranscriptContext(
+            id=conseq["transcript_id"],
+            canonical=bool(conseq.get("canonical", 0)),
+            appris=conseq.get("appris"),
+            tsl=conseq.get("tsl"),
+            strand=conseq.get("strand"),
+            mane=conseq.get("mane"),
+            mane_select=conseq.get("mane_select"),
+            ccds=conseq.get("ccds"),
+            distance=conseq.get("distance"),
+            tssdistance=conseq.get("tssdistance"),
+            cdna_start=conseq.get("cdna_start"),
+            cdna_end=conseq.get("cdna_end"),
+            cds_start=conseq.get("cds_start"),
+            cds_end=conseq.get("cds_end"),
+            exon=conseq.get("exon"),
+            intron=conseq.get("intron"),
+            codons=conseq.get("codons"),
+            hgvsc=conseq.get("hgvsc"),
+            gene=gene,
+            protein=protein,
+        )
+
+    def __build_regulatory_feature(self, conseq: dict):
+        return RegulatoryFeature(
+            id=conseq["regulatory_feature_id"],
+            biotype=conseq["biotype"].replace("_", " "),
+        )
+
+    def __build_motif_feature(self, conseq: dict):
+        return MotifFeature(
+            id=conseq["motif_feature_id"],
+            motif_name=conseq.get("motif_name", ""),
+            motif_pos=conseq.get("motif_pos", 0),
+            motif_score_chang=conseq.get("motif_score_change", 0.0),
+        )
+
+    def __extract_most_severe_consequence(
+        self, conseqs: dict[ConsequenceType, list[Consequence]]
+    ):
+        """Retrieve the first (most severe) consequence from the consequences dict.
+
+        Iterates through consequence types in definition order (transcript, regulatory,
+        motif, intergenic) and returns the first consequence found.
+
+        Args:
+            conseqs: Dict mapping ConsequenceType to list of Consequence objects.
+
+        Returns:
+            First Consequence object found, or None if no consequences exist.
         """
-        for ctype in CONSEQUENCE_TYPES:
-            msConseq = self.get_allele_consequences(allele, conseqType=ctype)
-            if msConseq is not None:
-                return msConseq[0]
+        consequence_types = [f"{ct}_consequences" for ct in ConsequenceType.list()]
+        for ctype in consequence_types:
+            ctype_consequences = conseqs.get(ctype, None)
+            if ctype_consequences is not None:
+                return ctype_consequences[0]
 
         return None
