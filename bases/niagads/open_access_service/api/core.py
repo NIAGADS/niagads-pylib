@@ -8,7 +8,7 @@ from niagads.api.common.app.factory import AppFactory
 from niagads.api.common.config import Settings
 from niagads.api.open_access.documentation import OPEN_API_SPEC
 from niagads.api.open_access.routes.root import router as RootRouter
-from niagads.filer_service.api.core import app as FILERApp  # Import the FILER app
+from niagads.filer_service.api.app import app as FILERApp  # Import the FILER app
 from niagads.genomicsdb_service.api.core import app as GenomicsApp
 from niagads.settings.core import get_service_environment
 

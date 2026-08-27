@@ -60,7 +60,7 @@ class TrackCollectionLink(DatasetTableBase):
         ),
         DatasetTableBase.__table_args__,
     )
-    track_collection_link: Mapped[int] = mapped_column(
+    track_collection_link_id: Mapped[int] = mapped_column(
         primary_key=True, autoincrement=True
     )
     track_id: Mapped[int] = track_fk_column()

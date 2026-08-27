@@ -1,16 +1,18 @@
-from typing import List, Optional
+from enum import Enum, auto
+from typing import Any, List, Optional
 
 from fastapi import HTTPException
 from niagads.api.common.constants import SHARD_PATTERN
-from niagads.api.common.models.response.request import RequestDataModel
-from niagads.api.common.parameters.expression_filter import Triple
-from niagads.api.common.parameters.response import ResponseContent
+
+from niagads.api.common.models.domain.parameters.filters.expression_filter import Triple
+from niagads.api.common.models.domain.parameters.types import ResponseContent
+from niagads.api.common.models.service.request import RequestDataModel
 from niagads.common.track.models import (
     ExperimentalDesign,
     Phenotype,
     Provenance,
 )
-from niagads.common.constants.track import TrackDataStore
+
 from niagads.database.genomicsdb.schema.dataset.collection import (
     Collection,
     TrackCollectionLink,
@@ -18,9 +20,15 @@ from niagads.database.genomicsdb.schema.dataset.collection import (
 from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.utils.list import list_to_string
 from niagads.utils.string import regex_replace
-from sqlalchemy import Column, String, Values, column, distinct, func, select
+from sqlalchemy import Column, Select, String, Values, column, distinct, func, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
+
+
+class TrackDatabase(Enum):
+    FILER = auto()
+    GENOMICSDB = auto()
+    OPEN_ACCESS = auto()
 
 
 class MetadataQueryService:
@@ -28,34 +36,62 @@ class MetadataQueryService:
         self,
         session: AsyncSession,
         request: RequestDataModel = None,
-        data_store: List[TrackDataStore] = [TrackDataStore.SHARED],
+        track_database: TrackDatabase = TrackDatabase.OPEN_ACCESS,
     ):
-        self.__session = session
+        self.__database_session = session
         self.__request = request
-        self.__data_store = data_store
+        self.__track_database = track_database
+        self.__track_filter = self.__set_filter(Track)
+        self.__collection_filter = self.__set_filter(Collection)
+
+    def __set_filter(self, model):
+        """Generate database filter based on track database type.
+
+        Args:
+            model: SQLAlchemy model class (Track or Collection).
+
+        Returns:
+            BooleanClauseList filter expression or None for OPEN_ACCESS.
+        """
+        field = f"is_filer_{model.__name__.lower()}"
+        column = getattr(model, field)
+        if self.__track_database == TrackDatabase.FILER:
+            return column.is_(True)
+        if self.__track_database == TrackDatabase.GENOMICSDB:
+            return (column.is_(False)) | (column.is_(None))
+
+        return None
+
+    def __apply_table_filter(self, stmt: Select, filter) -> Select:
+        if filter is not None:
+            return stmt.where(filter)
+        return stmt
+
+    def __apply_filter(self, stmt: Select, model) -> Select:
+        # FIXME -> make filters a model -> value map
+        if model is Track:
+            return self.__apply_table_filter(stmt, self.__track_filter)
+        elif model is Collection:
+            return self.__apply_table_filter(stmt, self.__collection_filter)
+        else:
+            raise NotImplementedError("No filter handling implemented for this model")
 
     async def validate_tracks(self, tracks: List[str]):
         # solution for finding tracks not in the table adapted from
         # https://stackoverflow.com/a/73691503
 
-        if len(tracks) == 1:
-            statement = select(Track.track_id).where(Track.track_id == tracks[0])
-
-            result = (await self.__session.execute(statement)).fetchone()
-            if result is None:
-                raise HTTPException(status_code=404, detail="Track not found")
-
-        lookups = Values(Column("track_id", String), name="lookups").data(
+        lookups = Values(Column("id", String), name="lookups").data(
             [(t,) for t in tracks]
         )
-        statement = (
-            select(lookups.c.track_id)
-            .outerjoin(Track, Track.track_id == lookups.c.track_id)
-            .filter(Track.data_store.in_(self.__data_store))
-            .where(Track.track_id == None)
-        )
 
-        result = (await self.__session.execute(statement)).all()
+        stmt = (
+            select(lookups.c.id)
+            .outerjoin(Track, Track.source_id == lookups.c.id)
+            .where(Track.source_id == None)
+        )
+        stmt = self.__apply_filter(stmt, Track)
+        result = (await self.__database_session.execute(stmt)).all()
+
         if len(result) > 0:
             raise HTTPException(
                 status_code=404,
@@ -66,45 +102,48 @@ class MetadataQueryService:
 
     async def validate_collection(self, pk: str) -> int:
         """validate a collection by primary_key"""
-        statement = (
-            select(Collection)
-            .where(Collection.primary_key.ilike(pk))
-            .filter(Collection.data_store.in_(self.__data_store))
-        )
+        stmt = select(Collection).where(Collection.primary_key.ilike(pk))
+        stmt = self.__apply_filter(stmt, Collection)
         try:
-            collection = (await self.__session.execute(statement)).scalar_one()
+            collection = (await self.__database_session.execute(stmt)).scalar_one()
             return collection
         except NoResultFound as e:
             raise HTTPException(status_code=404, detail=f"Collection `{pk}` not found")
 
     async def get_track_count(self) -> int:
-        statement = select(func.count(Track.track_id)).where(
+        statement = select(func.count(Track.source_id)).where(
             Track.data_store.in_(self.__data_store)
         )
 
-        result = (await self.__session.execute(statement)).scalars().first()
+        result = (await self.__database_session.execute(statement)).scalars().first()
         return result
 
-    async def get_collections(self) -> List[Collection]:
-        statement = (
-            select(
-                Collection.primary_key,
-                Collection.name,
-                Collection.description,
-                func.count(TrackCollectionLink.track_id).label("num_tracks"),
-            )
-            .join(
-                TrackCollectionLink,
-                TrackCollectionLink.collection_id == Collection.collection_id,
-            )
-            .filter(Collection.data_store.in_(self.__data_store))
+    async def get_collection(self, collection_id: str = None) -> List[Collection]:
+        stmt: Select = select(
+            Collection.collection_key,
+            Collection.name,
+            Collection.description,
+            func.count(TrackCollectionLink.track_collection_link_id).label(
+                "num_tracks"
+            ),
+        ).join(
+            TrackCollectionLink,
+            TrackCollectionLink.collection_id == Collection.collection_id,
         )
-        statement = statement.group_by(Collection).order_by(Collection.collection_id)
-        result = (await self.__session.execute(statement)).mappings().all()
+        stmt = self.__apply_filter(stmt)
+
+        if collection_id is not None:
+            self.validate_collection(collection_id)
+            stmt = stmt.where(Collection.source_id == collection_id)
+
+        stmt = stmt.group_by(Collection).order_by(Collection.collection_id)
+        result = (await self.__database_session.execute(stmt)).scalars().all()
+
         return result
 
+    # FIXME: shard_root_id no longer exists
     def generate_sharded_track_metadata(self, t: Track):
-        t.track_id = t.shard_root_track_id
+        t.id = t.shard_root_id
         t.file_properties["url"] = regex_replace(
             SHARD_PATTERN, "$CHR", t.file_properties["url"]
         )
@@ -119,58 +158,65 @@ class MetadataQueryService:
 
         return t
 
-    async def get_sharded_track_ids(self, rootShardTrackId: str):
+    async def get_sharded_ids(self, rootShardTrackId: str):
         statement = (
-            select(Track.track_id)
-            .where(Track.shard_root_track_id == rootShardTrackId)
-            .order_by(Track.track_id)
+            select(Track.source_id)
+            .where(Track.shard_root_id == rootShardTrackId)
+            .order_by(Track.source_id)
         )
-        result = (await self.__session.execute(statement)).scalars().all()
+        result = (await self.__database_session.execute(statement)).scalars().all()
         return result
 
     async def get_sharded_track_urls(self, rootShardTrackId: str):
         statement = (
             select(Track.url)
-            .where(Track.shard_root_track_id == rootShardTrackId)
-            .order_by(Track.track_id)
+            .where(Track.shard_root_id == rootShardTrackId)
+            .order_by(Track.source_id)
         )
-        result = (await self.__session.execute(statement)).scalars().all()
+        result = (await self.__database_session.execute(statement)).scalars().all()
         return result
 
     async def get_collection_track_metadata(
-        self, collectionName: str, track: str = None, response_type=ResponseContent.FULL
+        self,
+        collection_name: str,
+        response_type=ResponseContent.FULL,
     ) -> List[Track]:
 
-        collection: Collection = await self.validate_collection(collectionName)
+        collection: Collection = await self.validate_collection(collection_name)
 
         # if sharded URLs need to be mapped through IDS to find all shards
         target = (
             self.__set_query_target(ResponseContent.IDS)
-            if response_type == ResponseContent.URLS and collection.tracks_are_sharded
+            if response_type == ResponseContent.URLS
+            and collection.is_sharded_collection
             else self.__set_query_target(response_type)
         )
 
-        statement = (
+        stmt = (
             select(target)
-            .join(TrackCollectionLink, TrackCollectionLink.track_id == Track.track_id)
+            .join(TrackCollectionLink, TrackCollectionLink.id == Track.source_id)
             .where(TrackCollectionLink.collection_id == collection.collection_id)
-            .filter(Track.data_store.in_(self.__data_store))
-            .order_by(Track.track_id)
+            .order_by(Track.source_id)
         )
 
-        if track is not None:
-            statement = statement.where(Track.track_id == track)
+        stmt = self.__apply_filter(stmt, Collection)
 
-        result = (await self.__session.execute(statement)).scalars().all()
+        result = (await self.__database_session.execute(stmt)).scalars().all()
+
+        # TODO: RESUME - HERE --> messaging -> class member w/accessor function so that it can
+        # be accessed by parent endpoint service
+
         if response_type == ResponseContent.COUNTS:
-            return {"num_tracks": result[0]}
-        if collection.tracks_are_sharded:
+            return {"count": result[0]}
+
+        if collection.is_sharded_collection:
             if response_type == ResponseContent.IDS:
                 # FIXME: I think this has changed
+                self.__request
                 self.__request.add_message(
-                    "Data are split by chromosome into 22 files per track.  For every `track` in the collection, there are 22 track identifiers and metadata are linked to the `track_id` of the first shard (`chr1`)."
+                    "Data are split by chromosome into 22 files per track.  For every `track` in the collection, there are 22 track identifiers and metadata are linked to the `id` of the first shard (`chr1`)."
                 )
-                result = [await self.get_sharded_track_ids(t) for t in result]
+                result = [await self.get_sharded_ids(t) for t in result]
                 return sum(result, [])  # unnest nested list
             if response_type == ResponseContent.URLS:
                 self.__request.add_message(
@@ -181,7 +227,7 @@ class MetadataQueryService:
 
             # otherwise full or summary result
             self.__request.add_message(
-                f"Track data are split by chromosome.  Summary metadata are linked to the `track_id` of the first shard (`chr1`)."
+                f"Track data are split by chromosome.  Summary metadata are linked to the `id` of the first shard (`chr1`)."
             )
             return [self.generate_sharded_track_metadata(t) for t in result]
         return result
@@ -191,14 +237,17 @@ class MetadataQueryService:
     ) -> List[Track]:
         target = self.__set_query_target(response_type)
         statement = (
-            select(target).filter(Track.track_id.in_(tracks)).order_by(Track.track_id)
+            select(target).where(Track.source_id.in_(tracks)).order_by(Track.source_id)
         )
 
         if validate:
             await self.validate_tracks(tracks)
 
-        result = (await self.__session.execute(statement)).scalars().all()
-        return result
+        track_records: list[Track] = (
+            (await self.__database_session.execute(statement)).scalars().all()
+        )
+
+        return track_records
 
     def __add_statement_filters(self, statement, filters: List[Triple]):
         column: Column = None
@@ -266,9 +315,9 @@ class MetadataQueryService:
     def __set_query_target(response_type: ResponseContent):
         match response_type:
             case ResponseContent.IDS:
-                return Track.track_id
+                return Track.source_id
             case ResponseContent.COUNTS:
-                return func.count(Track.track_id)
+                return func.count(Track.source_id)
             case ResponseContent.URLS:
                 return Track.file_properties["url"]
             case _:
@@ -299,7 +348,7 @@ class MetadataQueryService:
             )
 
         if response_type != ResponseContent.COUNTS:
-            statement = statement.order_by(Track.track_id)
+            statement = statement.order_by(Track.source_id)
 
         if limit != None:
             statement = statement.limit(limit)
@@ -307,10 +356,10 @@ class MetadataQueryService:
         if offset != None:
             statement = statement.offset(offset)
 
-        result = await self.__session.execute(statement)
+        result = await self.__database_session.execute(statement)
 
         if response_type == ResponseContent.COUNTS:
-            return {"num_tracks": result.scalars().one()}
+            return {"count": result.scalars().one()}
         else:
             return result.scalars().all()
 
@@ -323,16 +372,16 @@ class MetadataQueryService:
         valueCol = column(getattr(Track, modelField))
         if "biosample" in modelField:
             valueCol = valueCol["tissue_category"].astext
-        # statement = select(valueCol, Track.track_id).group_by(valueCol).count()
+        # statement = select(valueCol, Track.source_id).group_by(valueCol).count()
         statement = (
-            select(distinct(valueCol), func.count(Track.track_id))
+            select(distinct(valueCol), func.count(Track.source_id))
             .where(valueCol.is_not(None))
             .group_by(valueCol)
             if inclCounts
             else select(distinct(valueCol)).where(valueCol.is_not(None))
         )
 
-        result = (await self.__session.execute(statement)).all()
+        result = (await self.__database_session.execute(statement)).all()
         return (
             {row[0]: row[1] for row in result}
             if inclCounts
@@ -346,17 +395,17 @@ class MetadataQueryService:
             await self.validate_tracks(tracks)
 
         statement = select(distinct(Track.genome_build)).where(
-            Track.track_id.in_(tracks)
+            Track.source_id.in_(tracks)
         )
 
-        result = (await self.__session.execute(statement)).all()
+        result = (await self.__database_session.execute(statement)).all()
         if len(result) > 1:
             statement = (
-                select(Track.track_id, Track.genome_build)
-                .where(Track.track_id.in_(tracks))
-                .order_by(Track.genome_build, Track.track_id)
+                select(Track.source_id, Track.genome_build)
+                .where(Track.source_id.in_(tracks))
+                .order_by(Track.genome_build, Track.source_id)
             )
-            result = (await self.__session.execute(statement)).all()
+            result = (await self.__database_session.execute(statement)).all()
             return {row[0]: row[1] for row in result}
         else:
             return result[0][0]

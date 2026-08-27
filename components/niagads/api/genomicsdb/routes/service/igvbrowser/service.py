@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.features.region import GenomicRegion
-from niagads.api.common.models.response.record import RecordResponse
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.parameters.response import (
     ResponseContent,
     ResponseFormat,
@@ -41,7 +41,7 @@ async def get_browser_feature_region(
             format=ResponseFormat.JSON,
             content=ResponseContent.FULL,
             view=ResponseView.DEFAULT,
-            model=RecordResponse,
+            model=BaseResponseModel,
         ),
         Parameters(id=id),
         query=IGVFeatureLookupQuery,

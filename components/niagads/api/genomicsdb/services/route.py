@@ -11,7 +11,7 @@ from niagads.api.common.models.features.region import (
     AnnotatedGenomicRegion,
     GenomicRegion,
 )
-from niagads.api.common.models.records import Entity
+from niagads.api.common.models.entities import Entity
 from niagads.api.common.models.services.query import (
     PreparedStatement,
     QueryDefinition,
@@ -21,7 +21,7 @@ from niagads.api.common.parameters.internal import InternalRequestParameters
 from niagads.api.common.parameters.response import ResponseContent
 from niagads.api.common.services.features import FeatureQueryService
 from niagads.api.common.services.metadata.query import MetadataQueryService
-from niagads.api.common.services.metadata.route import MetadataRouteHelperService
+from niagads.api.common.services.metadata.route import TrackMetadataEndpointService
 from niagads.api.common.services.route import Parameters, ResponseConfiguration
 from niagads.api.genomicsdb.queries.track_data import (
     TrackGWASSumStatQuery,
@@ -43,7 +43,7 @@ class QueryOptions(BaseModel):
     range: Optional[Range] = None
 
 
-class GenomicsRouteHelper(MetadataRouteHelperService):
+class GenomicsEndpointService(TrackMetadataEndpointService):
 
     def __init__(
         self,
@@ -146,7 +146,11 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
 
         try:
             # .mappings() returns result as dict
-            result = (await self._managers.session.execute(statement)).mappings().all()
+            result = (
+                (await self._managers.database_session.execute(statement))
+                .mappings()
+                .all()
+            )
 
             if len(result) == 0:
                 raise NoResultFound()
@@ -286,18 +290,18 @@ class GenomicsRouteHelper(MetadataRouteHelperService):
         # verify feature; will raise a not found error
         if entity == Entity.GENE:
             await FeatureQueryService(
-                session=self._managers.session
+                session=self._managers.database_session
             ).get_gene_primary_key(self._parameters.get("id"))
         elif entity == Entity.VARIANT:
             await FeatureQueryService(
-                session=self._managers.session
+                session=self._managers.database_session
             ).get_variant_primary_key(self._parameters.get("id"))
 
         return await self.get_query_response(opts)
 
     async def __validate_track(self):
         result = await MetadataQueryService(
-            self._managers.session, data_store=self._data_store
+            self._managers.database_session, data_store=self._data_store
         ).get_track_metadata(tracks=[self._parameters.get("track")])
         if len(result) == 0:
             raise ValidationError(

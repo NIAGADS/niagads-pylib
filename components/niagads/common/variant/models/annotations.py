@@ -7,6 +7,27 @@ from niagads.common.variant.types import ConsequenceImpact
 from pydantic import BaseModel, Field
 
 
+class FrequencyPopulation(CustomBaseModel):
+    abbreviation: str = Field(title="Population")
+    population: str = Field(title="Population")
+    description: Optional[str] = None
+
+    def __str__(self):
+        return self.population
+
+
+class AlleleFrequencies(CustomBaseModel):
+    population: FrequencyPopulation = Field(title="Population", order=1)
+    allele: str = Field(title="Allele", order=3)
+
+    data_source: str = Field(
+        title="Resource",
+        description="original data source for the frequency information",
+        order=2,
+    )
+    frequency: str = Field(title="Frequency", order=4)
+
+
 class LDPartner(VariantIdentifier):
     """Represents a variant in linkage disequilibrium (LD) with another variant.
 
@@ -25,45 +46,6 @@ class LDPartner(VariantIdentifier):
     r: float
     d: float
     d_prime: float
-
-
-class QCStatus(CustomBaseModel):
-    status_code: str = Field(
-        title="QC Status Code",
-        description="specific QC status indicator; may vary with ADSP release",
-    )  #  b/c there are some arbitrary codes
-    passed: bool = Field(
-        title="QC Status",
-        description="flag indicating whether the variant passed QC",
-    )
-    release: str = Field(title="ADSP Release")
-    scores: dict = Field(
-        title="QC Scores",
-        description="scores and annotations related to the QC testing",
-    )
-
-    # TODO: bring these in after can annotate title/description
-    # add to info?
-    # qual: int
-    # format: Optional[str]
-
-
-class CADDScore(CustomBaseModel):
-    CADD_phred: float = Field(
-        serialization_alias="phred",
-        alias_priority=2,
-        title="CADD PHRED-scaled Score",
-        description=(
-            "Normalized score representing rank of variant in genome-wide distribution; "
-            "higher value suggests variant is more likely to be functionally significant. "
-            "For SNVs, score of 20 or higher is in the top 1% of all potential causal variants"
-        ),
-    )
-    CADD_raw_score: float = Field(
-        serialization_alias="raw",
-        title="CADD Raw Score",
-        description="initial, unscaled output from the CADD model; not directly comparable across experiments",
-    )
 
 
 class PredictedConsequenceSummary(CustomBaseModel):

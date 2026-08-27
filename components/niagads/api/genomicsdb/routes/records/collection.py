@@ -2,7 +2,7 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, Query
 from niagads.api.common.constants import SharedOpenAPITags
-from niagads.api.common.models.response.record import RecordResponse
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.models.datasets.collection import CollectionResponse
 from niagads.api.common.models.datasets.track import (
     AbridgedTrackResponse,
@@ -61,14 +61,14 @@ async def get_collections(
 
     result = await MetadataQueryService(
         internal.session, data_store=[TrackDataStore.GENOMICSDB, TrackDataStore.SHARED]
-    ).get_collections()
+    ).get_collection()
     return await helper.generate_response(result)
 
 
 @router.get(
     "/{collection}",
     response_model=Union[
-        RecordResponse,
+        BaseResponseModel,
         AbridgedTrackResponse,
         TrackResponse,
         TableViewResponse,
@@ -91,7 +91,7 @@ async def get_collection_track_metadata(
     ),
     internal: InternalRequestParameters = Depends(),
 ) -> Union[
-    RecordResponse,
+    BaseResponseModel,
     AbridgedTrackResponse,
     TrackResponse,
     TableViewResponse,
@@ -110,7 +110,7 @@ async def get_collection_track_metadata(
                 else (
                     AbridgedTrackResponse
                     if response_content == ResponseContent.BRIEF
-                    else RecordResponse
+                    else BaseResponseModel
                 )
             ),
         ),

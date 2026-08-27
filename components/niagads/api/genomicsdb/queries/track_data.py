@@ -1,6 +1,5 @@
-from niagads.api.common.models.records import Entity
+from niagads.api.common.models.entities import Entity
 from niagads.api.common.models.services.query import QueryDefinition
-
 
 _BUILD_VARIANT_DETAILS_SQL = """
     jsonb_build_object(

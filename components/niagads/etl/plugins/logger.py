@@ -171,7 +171,7 @@ class ETLLogger:
     def checkpoint(self, checkpoint: ResumeCheckpoint):
         self.report_section("ETL Resume Checkpoint")
         try:
-            self.info(f"CHECKPOINT: {checkpoint.as_info_string(self._debug)}")
+            self.info(f"CHECKPOINT: {checkpoint.to_info_string(self._debug)}")
         except Exception as err:
             self.warning(f"UNABLE TO CREATE CHECKPOINT: {err}")
         self.report_section_end("ETL Resume Checkpoint")
