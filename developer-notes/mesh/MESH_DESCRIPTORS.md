@@ -78,12 +78,13 @@ Descriptor != Concept != Term
 For this project, topical descriptors are the primary MeSH entities loaded as `OntologyTerm` records:
 
 ```text
-namespace   = MeSH_descriptor
-term        = descriptor label
-label       = descriptor label
-term_iri    = descriptor MeSH URI
-source_id   = MESH_<descriptor ID>
-entity_type = EntityTypeIRI.CLASS
+namespace     = MeSH_descriptor
+term          = descriptor label
+label         = descriptor label
+term_iri      = descriptor MeSH URI
+source_id     = MESH_<descriptor ID>
+is_deprecated = descriptor is not active
+entity_type   = EntityTypeIRI.CLASS
 ```
 
 `EntityTypeIRI.CLASS` is a project modeling choice for representing descriptors as ontology-level searchable entities.
