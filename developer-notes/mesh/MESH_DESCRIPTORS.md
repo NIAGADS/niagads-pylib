@@ -109,6 +109,8 @@ This mapping intentionally simplifies the native MeSH structure for indexing and
 
 ## Example source descriptor JSON
 
+> Note: this is a subset of source descriptor JSON, focusing only on attributes relevant to Ontology Term representation.  When we transition to storing ontology graphs, we will include qualifiers, related terms, and other relevant information.
+
 ```json
 {
   "iri": "http://id.nlm.nih.gov/mesh/2026/D000544",
