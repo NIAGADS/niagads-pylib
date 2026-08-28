@@ -1,6 +1,13 @@
+from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, Union
 
+from niagads.common.nlp.embedding.types import (
+    Embedding,
+    EmbeddingBatch,
+    EmbeddingFunction,
+)
+from niagads.common.search.models.record import SearchResultRecord
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
 from niagads.database.mixins.transactions import TransactionTableMixin
@@ -347,3 +354,68 @@ class GenomicsDBTableMixin(
 class GenomicsDBMVMixin(ModelDumpMixin, LookupTableMixin):
     _document_primary_key = None  # set to do pk lookups on RAG docs
     __abstract__ = True
+
+
+class SearchMixin(ABC):
+    @classmethod
+    @abstractmethod
+    async def search(
+        cls,
+        session: AsyncSession,
+        phrase: str,
+    ) -> list[SearchResultRecord]:
+        """Search for records using deterministic text matching.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            phrases (str): Text phrase to search for.
+        Returns:
+            Matching search result records.
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    async def semantic_search(
+        cls,
+        session: AsyncSession,
+        phrase: str,
+        embed: EmbeddingFunction,
+        *,
+        limit=10,
+    ) -> list[SearchResultRecord]:
+        """Search for semantically similar records using embedded query text.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            phrase: Text phrase to embed and use for semantic search.
+            embed (callable): Function used to generate embeddings, must match EmbeddingFunction protocol.
+            limit (int): Maximum number of results to return.
+
+        Returns:
+            Search result records ranked by semantic similarity.
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    async def semantic_search_by_embedding(
+        cls,
+        session: AsyncSession,
+        phrase: list[str],
+        embedding: Embedding,
+        *,
+        limit=10,
+    ) -> list[SearchResultRecord]:
+        """Search for semantically similar records using precomputed embeddings.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            phrase (str): Text phrase associated with the supplied embeddings.
+            embedding (Embedding): Precomputed embedding corresponding to the input phrase.
+            limit (int): Maximum number of results to return.
+
+        Returns:
+            Search result records ranked by semantic similarity.
+        """
+        ...
