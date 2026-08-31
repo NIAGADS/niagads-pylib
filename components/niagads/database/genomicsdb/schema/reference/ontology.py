@@ -9,14 +9,29 @@ from typing import Optional, Union
 from uuid import uuid4
 
 from niagads.common.reference.ontologies.types import EntityTypeIRI
+from niagads.common.search.models.record import SearchResultRecord
+from niagads.common.search.types import MatchType
 from niagads.database.helpers import enum_column, enum_constraint
-from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
+from niagads.database.genomicsdb.schema.mixins import IdAliasMixin, SearchMixin
 from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.utils.string import jaccard_word_similarity
 from pydantic import BaseModel, Field
-from sqlalchemy import TEXT, Boolean, Index, String, UniqueConstraint, select
+from sqlalchemy import (
+    TEXT,
+    Boolean,
+    Index,
+    String,
+    UniqueConstraint,
+    case,
+    func,
+    literal,
+    or_,
+    select,
+    true,
+    union,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
@@ -24,17 +39,29 @@ from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.dialects.postgresql import ARRAY
 
 
-class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
+class OntologyTerm(
+    ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin, SearchMixin
+):
     __tablename__ = "ontologyterm"
     __table_args__ = (
         *ExternalDatabaseMixin.__table_args__,
         UniqueConstraint("source_id", name="uq_ontology_term_id"),
         enum_constraint("entity_type", EntityTypeIRI, use_enum_names=True),
+        # trgm indexes for fuzzy querying
         Index(
             "ix_ontologyterm_term_trgm",
             "term",
             postgresql_using="gin",
             postgresql_ops={"term": "gin_trgm_ops"},
+        ),
+        # conditional trgm index on synonyms that concatenates all synonyms to gether
+        Index(
+            "ix_ontology_term_synonyms_trgm",
+            func.array_to_string(synonyms, " // "),
+            postgresql_using="gin",
+            postgresql_ops={
+                "array_to_string": "gin_trgm_ops",
+            },
         ),
         ReferenceTableBase.__table_args__,
     )
@@ -60,6 +87,172 @@ class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):
     @curie.expression
     def curie(cls):
         return cls.source_id
+
+    # -------------------------
+    # Search
+    # -------------------------
+
+    @classmethod
+    async def search(
+        cls,
+        session,
+        search_text,
+        allow_fuzzy,
+    ) -> SearchResultRecord:
+        # TODO: defintions? I'm thinking to leave for semantic queries?
+
+        exact_term_match_cte = cls._build_match_cte(
+            "exact_term_match",
+            MatchType.EXACT,
+            OntologyTerm.term,
+            OntologyTerm.term.ilike(search_text),
+        )
+
+        curies = [search_text, search_text.replace("_", ":")]
+        exact_curie_match_cte = cls._build_match_cte(
+            "exact_curie_match",
+            MatchType.EXACT,
+            OntologyTerm.source_id,
+            func.upper(OntologyTerm.source_id).in_(curies),
+        )
+
+        # temp table from unnested synonym arrays
+        synonyms = func.unnest(OntologyTerm.synonyms).table_valued("term").lateral()
+        exact_synonym_match_cte = cls._build_match_cte(
+            "exact synonym_match",
+            MatchType.SYNONYM,
+            synonyms.c.term,
+            synonyms.c.term.ilike(search_text),
+            join_clause=(synonyms, true()),
+        )
+
+        wildcard_phrase = f"%{search_text}%"
+        substring_match_cte = cls._build_match_cte(
+            "substring_match",
+            MatchType.SUBSTRING,
+            case(
+                (OntologyTerm.term.ilike(wildcard_phrase), OntologyTerm.term),
+                (synonyms.c.term.ilike(wildcard_phrase), synonyms.c.term),
+            ),
+            or_(
+                OntologyTerm.term.ilike(wildcard_phrase),
+                synonyms.c.term.ilike(wildcard_phrase),
+            ),
+            join_clause=(synonyms, true()),
+        )
+
+        fuzzy_term_match_cte = cls._build_match_cte(
+            "fuzzy_term_match",
+            MatchType.FUZZY,
+            OntologyTerm.term,
+            OntologyTerm.term.op("%")(search_text),
+            score=func.similarity(OntologyTerm.term, search_text),
+        )
+
+        # indexing on synonyms is to the concatenated string array
+        # find trgrm match to whole array, but calculate
+        # matched_text and score based on indivdiual synoynms
+        # filter result (second where) for trgm matches against this
+        # subset of synonyms
+        synonym_text = func.array_to_string(OntologyTerm.synonyms, " // ")
+        fuzzy_synonym_match_cte = cls._build_match_cte(
+            "fuzzy_synonym_match",
+            MatchType.FUZZY_SYNONYM,
+            synonyms.c.term,
+            synonym_text.op("%")(search_text),  # pre-filter (before join)
+            score=func.similarity(synonyms.c.term, search_text),
+            join_clause=(synonyms, true()),
+            post_action=lambda s: s.where(
+                synonyms.c.term.op("%")(search_text)
+            ).distinct(),
+        )
+
+        # UNION CTE across the types of searches
+        if allow_fuzzy:
+            matches_cte = union(
+                select(exact_term_match_cte),
+                select(exact_curie_match_cte),
+                select(exact_synonym_match_cte),
+                select(substring_match_cte),
+            ).cte("matches")
+        else:
+            matches_cte = union(
+                select(exact_term_match_cte),
+                select(exact_curie_match_cte),
+                select(exact_synonym_match_cte),
+                select(substring_match_cte),
+                select(fuzzy_synonym_match_cte),
+                select(fuzzy_term_match_cte),
+            ).cte("matches")
+
+        # windowing functons to find the top ranked/scored hit per matching term
+        # e.g., so that if a match is found to a term and its synonym, it is reported
+        # correctly
+        rank = (
+            func.first_value(matches_cte.c.rank).over(
+                partition_by=matches_cte.c.source_id,
+                order_by=(
+                    matches_cte.c.rank.asc(),
+                    matches_cte.c.score.desc(),
+                ),
+            )
+            - 1
+        ).label("rank")
+
+        score = (
+            func.first_value(matches_cte.c.score)
+            .over(
+                partition_by=matches_cte.c.source_id,
+                order_by=(
+                    matches_cte.c.match_ranking.asc(),
+                    matches_cte.c.score.desc(),
+                ),
+            )
+            .label("score")
+        )
+
+        matched_text = (
+            func.first_value(matches_cte.c.matched_text.cast(String))
+            .over(
+                partition_by=matches_cte.c.source_id,
+                order_by=matches_cte.c.rank.asc(),
+            )
+            .cast(String)
+            .label("matched_text")
+        )
+
+        stmt = (
+            select(
+                matches_cte.c.name.cast(String).label("ontology_term"),
+                matches_cte.c.source_id.cast(String).label("ontology_term_id"),
+                matches_cte.c.category.cast(String).label("category"),
+                matches_cte.c.definition.cast(String).label("description"),
+                rank,
+                score,
+                matched_text,
+            )
+            .distinct()
+            .order_by(rank.asc(), score.asc())
+        )
+
+        result = await session.execute(stmt)
+        rows = result.mappings().all()
+
+        if not rows:
+            return []
+
+        # TODO:transform to search result
+        return rows[0]
+
+    @classmethod
+    async def semantic_search(OntologyTerm, session, phrase, embed, *, limit=10):
+        raise NotImplementedError()
+
+    @classmethod
+    async def semantic_search_by_embedding(
+        cls, session, phrases, embeddings, *, limit=10
+    ):
+        raise NotImplementedError()
 
     # -------------------------
     # Term Lookups
