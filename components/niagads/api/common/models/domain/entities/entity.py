@@ -1,17 +1,7 @@
 from niagads.api.common.models.domain.base import ORMCompatibleRecord
+from niagads.common.types import Entity
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import BaseModel, Field
-
-
-class Entity(CaseInsensitiveEnum):
-    GENE = "gene"
-    VARIANT = "variant"
-    SPAN = "span"
-    TRACK = "track"
-    COLLECTION = "collection"
-
-    def __str__(self):
-        return self.value.title()
 
 
 class EntityMetrics(BaseModel):

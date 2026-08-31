@@ -1,9 +1,10 @@
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from niagads.api.common.models.records import Entity
+
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.search.types import MatchType
+from niagads.common.types import Entity
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import (
     Field,

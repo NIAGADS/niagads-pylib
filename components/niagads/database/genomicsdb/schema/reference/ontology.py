@@ -8,10 +8,10 @@ Intended for use alongside the ontology graph schema for comprehensive ontology 
 from typing import Optional, Union
 from uuid import uuid4
 
-from niagads.api.common.models.records import Entity
 from niagads.common.reference.ontologies.types import EntityTypeIRI
 from niagads.common.search.models.record import SearchResultRecord
 from niagads.common.search.types import MatchType
+from niagads.common.types import Entity
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin, SearchMixin
 from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
@@ -257,7 +257,8 @@ class OntologyTerm(
             .order_by(rank.asc(), score.asc())
         )
 
-        # DEBUG
+        # DEBUG - for optimizing the sql, prints with binds embedded
+        # TODO: create a wrapper function in the session manager to do this
         """      
         print(
             stmt.compile(
