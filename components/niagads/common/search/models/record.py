@@ -6,6 +6,12 @@ from niagads.common.search.types import MatchType
 from pydantic import Field
 
 
+class RecordSummary(CustomBaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+
+
 class SearchResultRecord(CustomBaseModel):
     record_id: str = Field(
         serialization_alias="id",
@@ -13,9 +19,11 @@ class SearchResultRecord(CustomBaseModel):
         description="unique record identifier",
     )
     # FIXME: define record summary for each record type -> display_id, description?
-    record_summary: dict = Field(title="Record Properties")
+    record_summary: RecordSummary = Field(
+        title="Basic identifying informatin for the record"
+    )
     record_type: Entity = Field(title="Record Type")
-    matched_phrase: str = Field(title="Matched", description="matched term or phrase")
+    matched_text: str = Field(title="Matched", description="matched term or phrase")
     match_type: MatchType = Field(
         title="Match Type", description=f"type of match, one of {MatchType.list()}"
     )
