@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from niagads.common.nlp.embedding.types import (
     Embedding,
@@ -8,10 +8,11 @@ from niagads.common.nlp.embedding.types import (
     EmbeddingFunction,
 )
 from niagads.common.search.models.record import SearchResultRecord
+from niagads.common.search.types import MatchType
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
 from niagads.database.mixins.transactions import TransactionTableMixin
-from sqlalchemy import exists, inspect, select
+from sqlalchemy import exists, inspect, literal, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.inspection import inspect
@@ -357,20 +358,77 @@ class GenomicsDBMVMixin(ModelDumpMixin, LookupTableMixin):
 
 
 class SearchMixin(ABC):
+
+    @classmethod
+    def _build_match_cte(
+        cls,
+        name: str,
+        match_type: MatchType,
+        matched_text_expr,
+        where_condition,
+        score: float = 1.0,
+        join_clause=None,
+        post_action: Optional[callable] = None,
+    ):
+        """Build a standardized SQLAlchemy SELECT statement for search context.
+
+        Constructs a select query that includes standard match metadata (type, rank,
+        score) along with the matched text. Handles optional joins for complex queries.
+
+        Args:
+            name (str): cte name - necessary for debugging purposes
+            match_type (MatchType): The match type enum value determining rank priority.
+            matched_text_expr (ColumnElement): SQLAlchemy column expression for the matched
+                text. Can be a simple column (e.g., OntologyTerm.term) or complex expression
+                (e.g., case() statement).
+            where_condition (ColumnElement): SQLAlchemy boolean column expression for
+                filtering records. Combined with AND conditions as appropriate to the
+                search context.
+            score (Union[float, ColumnElement], optional): Match score value. Can be a
+                literal float (e.g., 1.0 for exact matches) or a dynamic expression
+                (e.g., func.similarity(...) for fuzzy matches). Defaults to 1.0.
+            join_clause (Optional[tuple], optional): Tuple of (table, condition) for
+                joining an additional table to the base select. Used for queries
+                requiring lateral joins or derived tables. Defaults to None (no join).
+            post_action (Optional): additional expressions (applied using lambda function)
+                to further filter or revise result (e.g., .where or .distinct)
+
+        Returns:
+            Select: A SQLAlchemy Select statement with columns for the ORM object,
+                match_type, rank, score, and matched_text, filtered by the where_condition.
+
+        Example:
+            see components/niagads/database/genomicsdb/schema/reference/ontology.py
+        """
+        stmt = select(
+            cls,
+            literal(str(match_type)).label("match_type"),
+            literal(match_type.rank()).label("rank"),
+            literal(score).label("score"),
+            matched_text_expr.label("matched_text"),
+        )
+        if join_clause:
+            stmt = stmt.join(*join_clause)  # unpacks (table, condition) tuple
+
+        stmt.where(where_condition)
+
+        if post_action:
+            stmt = post_action(stmt)
+
+        return stmt.cte(name)
+
     @classmethod
     @abstractmethod
     async def search(
-        cls,
-        session: AsyncSession,
-        phrase: str,
+        cls, session: AsyncSession, search_text: str, allow_fuzzy: bool = False
     ) -> list[SearchResultRecord]:
         """Search for records using deterministic text matching.
 
         Args:
             session (AsyncSession): Active asynchronous database session.
-            phrases (str): Text phrase to search for.
+            search_text (str): Text phrase to search for.
         Returns:
-            Matching search result records.
+            Matching search result records.  Returns an empty list if no matches are found
         """
         ...
 
@@ -379,7 +437,7 @@ class SearchMixin(ABC):
     async def semantic_search(
         cls,
         session: AsyncSession,
-        phrase: str,
+        search_text: str,
         embed: EmbeddingFunction,
         *,
         limit=10,
@@ -388,12 +446,12 @@ class SearchMixin(ABC):
 
         Args:
             session (AsyncSession): Active asynchronous database session.
-            phrase: Text phrase to embed and use for semantic search.
+            search_text: Text phrase to embed and use for semantic search.
             embed (callable): Function used to generate embeddings, must match EmbeddingFunction protocol.
             limit (int): Maximum number of results to return.
 
         Returns:
-            Search result records ranked by semantic similarity.
+            Search result records ranked by semantic similarity. Returns an empty list if no matches are found
         """
         ...
 
