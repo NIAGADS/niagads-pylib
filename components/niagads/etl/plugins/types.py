@@ -43,7 +43,7 @@ class ResumeCheckpoint(CustomBaseModel):
             )
         return self
 
-    def as_info_string(self, debug: bool = False):
+    def to_info_string(self, debug: bool = False):
         if debug:  # debug -> return all not nulls
             try:
                 values = self.model_dump(exclude_none=True)
