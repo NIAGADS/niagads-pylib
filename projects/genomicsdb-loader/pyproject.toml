@@ -21,35 +21,35 @@ requires-python = ">=3.11,<4.0"
 version = "0.1.0"
 
 [project.scripts]
+filer-metadata-loader = "niagads.loaders.genomicsdb.schemas.metadata.filer:run_main"
 gdbpexec = "niagads.pipeline_service.runners.core:run_main"
 gdbpexec-plugin = "niagads.pipeline_service.runners.plugin:run_main"
-gwas-migration = "niagads.genomicsdb_service.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
-filer-metadata-loader = "niagads.loaders.genomicsdb.schemas.metadata.filer:run_main"
+gwas-migration = "niagads.genomicsdb_etl.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
 
 [tool.poetry]
 packages = [
-    { from = "../../bases", include = "niagads/genomicsdb_service/etl" },
-    { from = "../../bases", include = "niagads/pipeline_service/runners" },
     { from = "../../bases", include = "niagads/genomicsdb_service/data_migration" },
+    { from = "../../bases", include = "niagads/genomicsdb_service/etl" },
+    { from = "../../bases", include = "niagads/loaders" },
+    { from = "../../bases", include = "niagads/pipeline_service/runners" },
+    { from = "../../components", include = "niagads/api" },
     { from = "../../components", include = "niagads/arg_parser" },
-    { from = "../../components", include = "niagads/genomics" },
+    { from = "../../components", include = "niagads/assembly" },
     { from = "../../components", include = "niagads/cache" },
     { from = "../../components", include = "niagads/common" },
     { from = "../../components", include = "niagads/database" },
     { from = "../../components", include = "niagads/enums" },
+    { from = "../../components", include = "niagads/etl" },
     { from = "../../components", include = "niagads/exceptions" },
+    { from = "../../components", include = "niagads/genome_reference" },
+    { from = "../../components", include = "niagads/genomics" },
     { from = "../../components", include = "niagads/genomicsdb" },
     { from = "../../components", include = "niagads/metadata_parser" },
-    { from = "../../components", include = "niagads/etl" },
+    { from = "../../components", include = "niagads/nlp" },
     { from = "../../components", include = "niagads/requests" },
     { from = "../../components", include = "niagads/settings" },
     { from = "../../components", include = "niagads/utils" },
-    { include = "niagads/api", from = "../../components" },
-    {include = "niagads/assembly",from = "../../components"},
-    {include = "niagads/loaders",from = "../../bases"},
-    {include = "niagads/genome_reference",from = "../../components"},
 ]
-
 
 [tool.tomlsort]
 all = true

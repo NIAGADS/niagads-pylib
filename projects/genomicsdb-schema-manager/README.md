@@ -78,3 +78,23 @@ Reset all migration history (DANGEROUS):
 ```bash
 poetry run gdb_alembic --reset
 ```
+
+## Executing SQL Files
+
+### Require Transaction or Setting Config Variables (e.g., work_mem)
+
+Although there is a runner script `gdb_run_sql` for simple SQL statements, it is recommended to use `psql` to execute most `.sql` files in this project.
+
+This can be done with docker as follows (assuming exisiting tunneled database connection):
+
+```bash
+docker run --rm -it --network host -v <dir_on_host_with_sql_file>:/work postgres:18 psql -a -e $DATABASE_URI -f /work/<sql file to execute>
+```
+
+For example:
+
+```bash
+docker run --rm -it --network host -v $PROJECT_DIR/niagads-pylib/projects/genomicsdb-schema-manager/sql/schemas/variant/tables/:/work postgres:18 psql -a -e $DATABASE_URI -f /work/create_variant_lookup_indexes.sql
+```
+
+docker run --rm -it --network host -v $PROJECT_DIR/niagads-pylib/projects/genomicsdb-schema-manager/sql/schemas/variant/tables/:/work postgres:18 psql -a -e $DATABASE_URI -f /work/create_variant_tuning_indexes.sql

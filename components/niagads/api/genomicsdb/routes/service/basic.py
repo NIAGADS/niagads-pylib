@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from niagads.api.common.constants import SharedOpenAPITags
-from niagads.api.common.models.records import Entity
+from niagads.api.common.models.entities import Entity
 from niagads.api.common.models.search.records import RecordSearchResult
 from niagads.api.common.models.response.base import (
     RecordResponse,
@@ -30,7 +30,6 @@ from niagads.api.genomicsdb.services.route import (
 )
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
-
 
 router = APIRouter(prefix="/service", tags=BASE_TAGS + [str(SharedOpenAPITags.SERVICE)])
 

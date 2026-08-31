@@ -3,7 +3,7 @@ from niagads.api.common.models.annotations.associations import (
     GeneVariantAssociation,
     VariantAssociationSummary,
 )
-from niagads.api.common.models.records import Entity
+from niagads.api.common.models.entities import Entity
 from niagads.api.common.models.services.query import QueryDefinition
 from niagads.api.genomicsdb.queries.records.associations import (
     GWAS_COMMON_FIELDS,

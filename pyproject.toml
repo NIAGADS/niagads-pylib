@@ -51,9 +51,9 @@ packages = [
     {from = "components", include = "niagads/metadata_validator"},
     {from = "components", include = "niagads/nlp"},
     {from = "components", include = "niagads/objects"},
-    {from = "components", include = "niagads/ontology_parsers"},
     {from = "components", include = "niagads/parquet"},
     {from = "components", include = "niagads/postgres_dbi"},
+    {from = "components", include = "niagads/rdf_parsers"},
     {from = "components", include = "niagads/requests"},
     {from = "components", include = "niagads/s3"},
     {from = "components", include = "niagads/sequence"},
@@ -80,7 +80,7 @@ asyncpg = "^0.30.0"
 boto3 = "^1.38.36"
 cyvcf2 = "^0.31.1"
 email-validator = "^2.2.0"
-fastapi = "^0.115.12"
+fastapi = "^0.136.3"
 fastapi-cors = "^0.0.6"
 ga4gh-vrs = {extras = [
     "extras"
@@ -107,12 +107,14 @@ sentence-transformers = "^5.2.2"
 spacy = "^3.8.11"
 sqlalchemy = "^2.0.40"
 sqlalchemy-utils = "^0.41.2"
+starlette = "^1.2.0"
 streamlit = "^1.55.0"
 strenum = "^0.4.15"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
 wtforms = "^3.2.1"
+oxrdflib = "^0.5.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^26.5.1"

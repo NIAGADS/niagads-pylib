@@ -12,7 +12,7 @@ class PhenotypeCount(CustomBaseModel):
     num_controls: Optional[int] = None
 
     def __str__(self):
-        return self.as_info_string()
+        return self.to_info_string()
 
     @field_serializer("phenotype")
     def serialize_phenotype(self, phenotype: Optional[OntologyTerm], _info):

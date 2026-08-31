@@ -78,6 +78,8 @@ class OntologyTerm(CustomBaseModel):
             return cls(term=values)
 
         for field, v in values.items():
+            if isinstance(values, list):
+                continue  # synonyms, probably
             if v is not None and not isinstance(v, bool):
                 if field == "curie":
                     values[field] = str(v).replace("_", ":")
@@ -88,7 +90,7 @@ class OntologyTerm(CustomBaseModel):
     def __str__(self):
         return self.term
 
-    def as_info_string(self) -> str:
+    def to_info_string(self) -> str:
         info: dict = {"term": self.term}
         if self.curie:
             info.update({"curie": self.curie})

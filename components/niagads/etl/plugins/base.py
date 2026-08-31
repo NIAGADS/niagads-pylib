@@ -327,7 +327,7 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         This may include initialization, validation, or setup operations.
 
         Passes session to plugin instance to allow DB-based validations
-        (e.g., xdbref) if not DRY_RUN.  It is the responsiblity of the
+        (e.g., xdbref).  It is the responsiblity of the
         plugin developer to check run mode before attempting to validate against
         the database.
 
@@ -558,12 +558,12 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
         self.__checkpoint = checkpoint
         try:
             self.logger.info(
-                f"{msg} - CHECKPOINT: {self.__checkpoint.as_info_string(self._debug)}"
+                f"{msg} - CHECKPOINT: {self.__checkpoint.to_info_string(self._debug and self._verbose)}"
             )
         except Exception as err:
             if self._debug:  # sometimes part of the object is not json serializable
                 self.logger.info(
-                    f"{msg} - CHECKPOINT: {self.__checkpoint.as_info_string(False)}"
+                    f"{msg} - CHECKPOINT: {self.__checkpoint.to_info_string(False)}"
                 )
             else:
                 raise err
@@ -860,8 +860,8 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
     async def __run(self):
         if self.is_etl_run or self.is_dry_run:
             async with self.session_ctx(allow_null_if_unintialized=True) as session:
-                if session is not None:
-                    await self.on_run_start(session)
+                # ETL plugins must handle empty sessions (i.e. not is_etl_run) in on_run_start
+                await self.on_run_start(session)
 
             if self.load_strategy == ETLLoadStrategy.CHUNKED:
                 await self.__process_chunked_load()

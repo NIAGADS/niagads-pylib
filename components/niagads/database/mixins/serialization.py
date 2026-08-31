@@ -5,7 +5,6 @@ from sqlalchemy.dialects.postgresql import JSON, JSONB, ARRAY
 from sqlalchemy_utils import LtreeType
 from sqlalchemy_utils.types.ltree import Ltree
 
-
 COMPLEX_TYPES = (ARRAY, LtreeType, JSONB, JSON, Date, DateTime)
 
 
@@ -25,7 +24,13 @@ class ModelDumpMixin(object):
 
     def model_dump(self):
         """Return a dictionary of column names and their values for the model instance."""
-        return {
+        dump = {
             column.name: self.__format_value(column.name)
             for column in self.__table__.columns
         }
+
+        # Add 'id' property if available (e.g., from IdAliasMixin)
+        if hasattr(self, "id") and "id" not in dump:
+            dump["id"] = self.id
+
+        return dump

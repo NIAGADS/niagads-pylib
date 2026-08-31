@@ -21,11 +21,12 @@
 
 ## OWL ETL
 
-* add flag to include objectproperties (e.g., for loading the relation ontology)
-* resolve annotationproperties by skipping those not in the property iris
-* move term_category to triple
-* duplicates
-* placeholders
+* OBJECT PROPERTIES are not always parsing correctly - see example below where CURIE is extracted incorrectly; problematic example below appears to be UBERON, but appears to affect most ontologies.  Sometimes like this and sometimes missing prefix, e.g., sequence ontology has `so#` prefixed object properties; also affects some ANNOTATION PROPERTIES
+
+```text
+source_id ontology_term_id term term_iri entity_type label definition
+has_component 162250 has component http://purl.obolibrary.org/obo/RO_0002180 OBJECT_PROPERTY has component w 'has component' p if w 'has part' p and w is such that it can be directly disassembled into into n parts p, p2, p3, ..., pn, where these parts are of similar type.
+```
 
 ## Top Priority
 

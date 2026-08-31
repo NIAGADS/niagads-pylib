@@ -33,10 +33,10 @@
 			"request": "launch",
 			"module": "uvicorn",
 			"args": [
-				"niagads.filer_service.api.core:app",
+				"niagads.filer_service.api.app:app",
 				"--reload",
 				"--env-file",
-				"${workspaceFolder}/../dev.env"
+				"${workspaceFolder}/../env_files/filer.env"
 				//"--no-reload",
 			],
 			"jinja": true,
