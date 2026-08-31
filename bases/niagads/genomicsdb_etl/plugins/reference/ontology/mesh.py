@@ -178,7 +178,7 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
                 term=record.label,
                 label=record.label,
                 term_iri=record.iri,
-                source_id=f"MESH_{record.id}",
+                source_id=f"MESH:{record.id}",
                 definition=definition,
                 synonyms=synonyms,
                 entity_type=EntityTypeIRI.CLASS.name,
