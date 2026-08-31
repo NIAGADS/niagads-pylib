@@ -8,6 +8,7 @@ class Entity(CaseInsensitiveEnum):
     REGION = "region"
     TRACK = "track"
     COLLECTION = "collection"
+    ONTOLOGY_TERM = "term"
 
     def __str__(self):
         return self.value.title()

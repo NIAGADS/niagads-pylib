@@ -1,15 +1,21 @@
-from typing import Optional
+from enum import Enum
+from typing import Any, Dict, Optional
 
 from niagads.api.common.models.records import Entity
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.search.types import MatchType
-from pydantic import Field
+from niagads.enums.core import CaseInsensitiveEnum
+from pydantic import (
+    Field,
+    FieldSerializationInfo,
+    field_serializer,
+)
 
 
-class RecordSummary(CustomBaseModel):
-    id: str
-    name: str
+class RecordDetails(CustomBaseModel):
+    label: str
     description: Optional[str] = None
+    annotation: Optional[Dict[str, Any]] = None
 
 
 class SearchResultRecord(CustomBaseModel):
@@ -19,8 +25,8 @@ class SearchResultRecord(CustomBaseModel):
         description="unique record identifier",
     )
     # FIXME: define record summary for each record type -> display_id, description?
-    record_summary: RecordSummary = Field(
-        title="Basic identifying informatin for the record"
+    record_details: RecordDetails = Field(
+        title="Qualifying or descriptive information for the record"
     )
     record_type: Entity = Field(title="Record Type")
     matched_text: str = Field(title="Matched", description="matched term or phrase")
@@ -36,3 +42,15 @@ class SearchResultRecord(CustomBaseModel):
     score: Optional[float] = Field(
         default=None, title="Score", description="semantic similarity, if relevant"
     )
+
+    @field_serializer("*")
+    def serialize_types(self, v, _info: FieldSerializationInfo):
+        """custom field handlers
+        override base to always
+        - return enum names instead of values
+        """
+
+        if isinstance(v, (Enum, CaseInsensitiveEnum)):
+            return v.name
+
+        return v

@@ -8,6 +8,7 @@ Intended for use alongside the ontology graph schema for comprehensive ontology 
 from typing import Optional, Union
 from uuid import uuid4
 
+from niagads.api.common.models.records import Entity
 from niagads.common.reference.ontologies.types import EntityTypeIRI
 from niagads.common.search.models.record import SearchResultRecord
 from niagads.common.search.types import MatchType
@@ -32,6 +33,7 @@ from sqlalchemy import (
     true,
     union,
 )
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
@@ -43,6 +45,22 @@ class OntologyTerm(
     ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin, SearchMixin
 ):
     __tablename__ = "ontologyterm"
+    _stable_id = "source_id"
+
+    ontology_term_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    namespace: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
+    term: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
+    term_iri: Mapped[str] = mapped_column(String(250), index=False, nullable=False)
+    entity_type: Mapped[str] = enum_column(EntityTypeIRI, use_enum_names=True)
+    label: Mapped[str] = mapped_column(String(512), nullable=True)
+    definition: Mapped[str] = mapped_column(TEXT, nullable=True)
+    synonyms: Mapped[list[str]] = mapped_column(ARRAY(String(250)), nullable=True)
+    is_deprecated: Mapped[bool] = mapped_column(Boolean, nullable=True)
+
+    # overloading from ExternalDatabaseMixin b/c cell ontology has some long ones
+    source_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+
+    # moved below field definitions so we can reference synonyms in the index constructor
     __table_args__ = (
         *ExternalDatabaseMixin.__table_args__,
         UniqueConstraint("source_id", name="uq_ontology_term_id"),
@@ -65,20 +83,6 @@ class OntologyTerm(
         ),
         ReferenceTableBase.__table_args__,
     )
-    _stable_id = "source_id"
-
-    ontology_term_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    namespace: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
-    term: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
-    term_iri: Mapped[str] = mapped_column(String(250), index=False, nullable=False)
-    entity_type: Mapped[str] = enum_column(EntityTypeIRI, use_enum_names=True)
-    label: Mapped[str] = mapped_column(String(512), nullable=True)
-    definition: Mapped[str] = mapped_column(TEXT, nullable=True)
-    synonyms: Mapped[list[str]] = mapped_column(ARRAY(String(250)), nullable=True)
-    is_deprecated: Mapped[bool] = mapped_column(Boolean, nullable=True)
-
-    # overloading from mixin b/c cell ontology has some long ones
-    source_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
 
     @hybrid_property
     def curie(self):
@@ -116,8 +120,13 @@ class OntologyTerm(
             func.upper(OntologyTerm.source_id).in_(curies),
         )
 
-        # temp table from unnested synonym arrays
-        synonyms = func.unnest(OntologyTerm.synonyms).table_valued("term").lateral()
+        # Expose `unnest(synonyms)` as a lateral table with a PostgreSQL-recognized `term` column.
+        synonyms = (
+            func.unnest(OntologyTerm.synonyms)
+            .table_valued("term")
+            .render_derived()
+            .lateral()
+        )
         exact_synonym_match_cte = cls._build_match_cte(
             "exact synonym_match",
             MatchType.SYNONYM,
@@ -174,6 +183,8 @@ class OntologyTerm(
                 select(exact_curie_match_cte),
                 select(exact_synonym_match_cte),
                 select(substring_match_cte),
+                select(fuzzy_synonym_match_cte),
+                select(fuzzy_term_match_cte),
             ).cte("matches")
         else:
             matches_cte = union(
@@ -181,34 +192,33 @@ class OntologyTerm(
                 select(exact_curie_match_cte),
                 select(exact_synonym_match_cte),
                 select(substring_match_cte),
-                select(fuzzy_synonym_match_cte),
-                select(fuzzy_term_match_cte),
             ).cte("matches")
 
         # windowing functons to find the top ranked/scored hit per matching term
         # e.g., so that if a match is found to a term and its synonym, it is reported
         # correctly
+        match_sort_order = (
+            matches_cte.c.rank.asc(),
+            matches_cte.c.score.desc(),
+        )
+
         rank = (
             func.first_value(matches_cte.c.rank).over(
-                partition_by=matches_cte.c.source_id,
-                order_by=(
-                    matches_cte.c.rank.asc(),
-                    matches_cte.c.score.desc(),
-                ),
+                partition_by=matches_cte.c.source_id, order_by=match_sort_order
             )
             - 1
         ).label("rank")
 
         score = (
             func.first_value(matches_cte.c.score)
-            .over(
-                partition_by=matches_cte.c.source_id,
-                order_by=(
-                    matches_cte.c.match_ranking.asc(),
-                    matches_cte.c.score.desc(),
-                ),
-            )
+            .over(partition_by=matches_cte.c.source_id, order_by=match_sort_order)
             .label("score")
+        )
+
+        match_type = (
+            func.first_value(matches_cte.c.match_type)
+            .over(partition_by=matches_cte.c.source_id, order_by=match_sort_order)
+            .label("match_type")
         )
 
         matched_text = (
@@ -223,26 +233,48 @@ class OntologyTerm(
 
         stmt = (
             select(
-                matches_cte.c.name.cast(String).label("ontology_term"),
-                matches_cte.c.source_id.cast(String).label("ontology_term_id"),
-                matches_cte.c.category.cast(String).label("category"),
-                matches_cte.c.definition.cast(String).label("description"),
+                matches_cte.c.source_id.label("record_id"),
+                func.jsonb_build_object(
+                    "label",
+                    matches_cte.c.term,
+                    "description",
+                    matches_cte.c.definition,
+                    "annotation",
+                    func.jsonb_build_object(
+                        "iri",
+                        matches_cte.c.term_iri,
+                        "synonyms",
+                        matches_cte.c.synonyms,
+                    ),
+                ).label("record_details"),
+                literal(str(Entity.ONTOLOGY_TERM)).label("record_type"),
                 rank,
                 score,
                 matched_text,
+                match_type,
             )
             .distinct()
             .order_by(rank.asc(), score.asc())
         )
 
+        # DEBUG
+        """      
+        print(
+            stmt.compile(
+                dialect=postgresql.dialect(),
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+        """
+
         result = await session.execute(stmt)
         rows = result.mappings().all()
 
         if not rows:
+            # should never happen because there are literals that will be returned
             return []
 
-        # TODO:transform to search result
-        return rows[0]
+        return [SearchResultRecord(**r) for r in rows if r["record_id"] is not None]
 
     @classmethod
     async def semantic_search(OntologyTerm, session, phrase, embed, *, limit=10):

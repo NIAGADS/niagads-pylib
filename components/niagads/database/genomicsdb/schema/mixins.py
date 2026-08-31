@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, Optional, Union
 
@@ -12,7 +11,7 @@ from niagads.common.search.types import MatchType
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
 from niagads.database.mixins.transactions import TransactionTableMixin
-from sqlalchemy import exists, inspect, literal, select
+from sqlalchemy import ClauseElement, exists, inspect, literal, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.inspection import inspect
@@ -357,7 +356,12 @@ class GenomicsDBMVMixin(ModelDumpMixin, LookupTableMixin):
     __abstract__ = True
 
 
-class SearchMixin(ABC):
+class SearchMixin:
+    # DEVELOPER'S NOTE: Ideally, this should have been implemented as an Abstract Base Class
+    # but it causes conflicts with SQLAlchemy DeclarativeMeta class.  To avoid having
+    # define a custom abstract declarative metadata class and set it as metaclass for
+    # the SchemaBase, mixin functions will raise NotImplementedErrors, as no fallback can be
+    # defined, which is less than satisfactory, but the only viable solution at this time.
 
     @classmethod
     def _build_match_cte(
@@ -400,17 +404,19 @@ class SearchMixin(ABC):
         Example:
             see components/niagads/database/genomicsdb/schema/reference/ontology.py
         """
+        score_expr = score if isinstance(score, ClauseElement) else literal(score)
+
         stmt = select(
             cls,
-            literal(str(match_type)).label("match_type"),
+            literal(match_type.name).label("match_type"),
             literal(match_type.rank()).label("rank"),
-            literal(score).label("score"),
+            score_expr.label("score"),
             matched_text_expr.label("matched_text"),
         )
         if join_clause:
             stmt = stmt.join(*join_clause)  # unpacks (table, condition) tuple
 
-        stmt.where(where_condition)
+        stmt = stmt.where(where_condition)
 
         if post_action:
             stmt = post_action(stmt)
@@ -418,11 +424,11 @@ class SearchMixin(ABC):
         return stmt.cte(name)
 
     @classmethod
-    @abstractmethod
     async def search(
         cls, session: AsyncSession, search_text: str, allow_fuzzy: bool = False
     ) -> list[SearchResultRecord]:
         """Search for records using deterministic text matching.
+        No parent fallback provided, must be implemented in child class.
 
         Args:
             session (AsyncSession): Active asynchronous database session.
@@ -430,10 +436,12 @@ class SearchMixin(ABC):
         Returns:
             Matching search result records.  Returns an empty list if no matches are found
         """
-        ...
+        raise NotImplementedError(
+            "Database models using SearchMixin must implement "
+            "`search` for deterministic text search."
+        )
 
     @classmethod
-    @abstractmethod
     async def semantic_search(
         cls,
         session: AsyncSession,
@@ -443,6 +451,7 @@ class SearchMixin(ABC):
         limit=10,
     ) -> list[SearchResultRecord]:
         """Search for semantically similar records using embedded query text.
+        No parent fallback provided, must be implemented in child class.
 
         Args:
             session (AsyncSession): Active asynchronous database session.
@@ -453,10 +462,12 @@ class SearchMixin(ABC):
         Returns:
             Search result records ranked by semantic similarity. Returns an empty list if no matches are found
         """
-        ...
+        raise NotImplementedError(
+            "Database models using SearchMixin must implement "
+            "`semantic_search` for semantic text search (NL querying support)."
+        )
 
     @classmethod
-    @abstractmethod
     async def semantic_search_by_embedding(
         cls,
         session: AsyncSession,
@@ -476,4 +487,7 @@ class SearchMixin(ABC):
         Returns:
             Search result records ranked by semantic similarity.
         """
-        ...
+        raise NotImplementedError(
+            "Database models using SearchMixin must implement "
+            "`semantic_search`_by_embedding for semantic text search (NL querying support)."
+        )
