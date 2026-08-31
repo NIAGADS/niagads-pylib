@@ -425,7 +425,7 @@ class SearchMixin:
 
     @classmethod
     async def search(
-        cls, session: AsyncSession, search_text: str, allow_fuzzy: bool = False
+        cls, session: AsyncSession, search_text: str, *, allow_fuzzy: bool = False
     ) -> list[SearchResultRecord]:
         """Search for records using deterministic text matching.
         No parent fallback provided, must be implemented in child class.

@@ -67,10 +67,16 @@ class OntologyTerm(
         enum_constraint("entity_type", EntityTypeIRI, use_enum_names=True),
         # trgm indexes for fuzzy querying
         Index(
-            "ix_ontologyterm_term_trgm",
+            "ix_ontology_term_term_trgm",
             "term",
             postgresql_using="gin",
             postgresql_ops={"term": "gin_trgm_ops"},
+        ),
+        Index(
+            "ix_ontology_term_definition_trgm",
+            "definition",
+            postgresql_using="gin",
+            postgresql_ops={"definition": "gin_trgm_ops"},
         ),
         # conditional trgm index on synonyms that concatenates all synonyms to gether
         Index(
@@ -101,13 +107,16 @@ class OntologyTerm(
         cls,
         session,
         search_text,
-        allow_fuzzy,
+        *,
+        allow_fuzzy: bool = True,
+        include_ontology: list[str] = None,
+        exclude_ontology: list[str] = None,
     ) -> SearchResultRecord:
-        # TODO: defintions? I'm thinking to leave for semantic queries?
 
+        # exact matches
         exact_term_match_cte = cls._build_match_cte(
             "exact_term_match",
-            MatchType.EXACT,
+            MatchType.EXACT_ID,
             OntologyTerm.term,
             OntologyTerm.term.ilike(search_text),
         )
@@ -115,7 +124,7 @@ class OntologyTerm(
         curies = [search_text, search_text.replace("_", ":")]
         exact_curie_match_cte = cls._build_match_cte(
             "exact_curie_match",
-            MatchType.EXACT,
+            MatchType.EXACT_ID,
             OntologyTerm.source_id,
             func.upper(OntologyTerm.source_id).in_(curies),
         )
@@ -129,16 +138,16 @@ class OntologyTerm(
         )
         exact_synonym_match_cte = cls._build_match_cte(
             "exact synonym_match",
-            MatchType.SYNONYM,
+            MatchType.EXACT_SYNONYM,
             synonyms.c.term,
             synonyms.c.term.ilike(search_text),
             join_clause=(synonyms, true()),
         )
 
         wildcard_phrase = f"%{search_text}%"
-        substring_match_cte = cls._build_match_cte(
+        partial_term_match_cte = cls._build_match_cte(
             "substring_match",
-            MatchType.SUBSTRING,
+            MatchType.PARTIAL_ID,
             case(
                 (OntologyTerm.term.ilike(wildcard_phrase), OntologyTerm.term),
                 (synonyms.c.term.ilike(wildcard_phrase), synonyms.c.term),
@@ -150,12 +159,29 @@ class OntologyTerm(
             join_clause=(synonyms, true()),
         )
 
+        partial_definition_match_cte = cls._build_match_cte(
+            "substring_match_definition",
+            MatchType.PARTIAL_DESCRIPTIVE,
+            OntologyTerm.definition,
+            OntologyTerm.definition.ilike(wildcard_phrase),
+            join_clause=(synonyms, true()),
+        )
+
+        # fuzzy matches
         fuzzy_term_match_cte = cls._build_match_cte(
             "fuzzy_term_match",
             MatchType.FUZZY,
             OntologyTerm.term,
             OntologyTerm.term.op("%")(search_text),
             score=func.similarity(OntologyTerm.term, search_text),
+        )
+
+        fuzzy_definition_match_cte = cls._build_match_cte(
+            "fuzzy_definition_match",
+            MatchType.FUZZY_DESCRIPTIVE,
+            OntologyTerm.definition,
+            OntologyTerm.definition.op("%")(search_text),
+            score=func.similarity(OntologyTerm.definition, search_text),
         )
 
         # indexing on synonyms is to the concatenated string array
@@ -182,17 +208,27 @@ class OntologyTerm(
                 select(exact_term_match_cte),
                 select(exact_curie_match_cte),
                 select(exact_synonym_match_cte),
-                select(substring_match_cte),
+                select(partial_term_match_cte),
+                select(partial_definition_match_cte),
                 select(fuzzy_synonym_match_cte),
                 select(fuzzy_term_match_cte),
+                select(fuzzy_definition_match_cte),
             ).cte("matches")
         else:
             matches_cte = union(
                 select(exact_term_match_cte),
                 select(exact_curie_match_cte),
                 select(exact_synonym_match_cte),
-                select(substring_match_cte),
+                select(partial_term_match_cte),
+                select(partial_definition_match_cte),
             ).cte("matches")
+
+        if include_ontology:
+            ...
+            # TODO basically need to make existing matches_cte a sub query instead and then
+            # filter on join w/externaldatabase release -> or save time and filter each subquery on the join
+            # while can still benefit from indexing? using post_action? <- less readable but
+            # more efficient.
 
         # windowing functons to find the top ranked/scored hit per matching term
         # e.g., so that if a match is found to a term and its synonym, it is reported

@@ -2,14 +2,20 @@ from niagads.enums.core import CaseInsensitiveEnum
 
 
 class MatchType(CaseInsensitiveEnum):
-    EXACT = "exact match to term or identifier"
-    SYNONYM = (
+    EXACT_ID = "exact match to term or identifier"
+    EXACT_SYNONYM = (
         "exact match to a synonymous term or obsolete/aliased/deprecated identifier"
     )
-    SUBSTRING = "substring match to a term or other text"
-    FUZZY = "approximate lexical match to a term or related text, may match substrings"
+    PARTIAL_ID = "partial (exact substring) match to a term, identiifer, or synonym"
+    PARTIAL_DESCRIPTIVE = (
+        "partial (exact substring) match to a defintion or descriptive annotation field"
+    )
+    FUZZY = "approximate lexical match to a term or identifier, may match substrings"
     SEMANTIC = "semantic similarity match to term or related text"
     FUZZY_SYNONYM = "approximate lexical match to a synonymous term"
+    FUZZY_DESCRIPTIVE = (
+        "approximate lexical match to a definition or descriptive annotation field"
+    )
 
     def rank(self) -> int:
         """Return a ranking based on definition order (lower value = more specific match).
