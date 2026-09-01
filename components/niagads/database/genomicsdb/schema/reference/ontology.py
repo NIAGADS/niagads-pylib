@@ -12,11 +12,12 @@ from niagads.common.reference.ontologies.types import EntityTypeIRI
 from niagads.common.search.models.record import SearchResultRecord
 from niagads.common.search.types import MatchType
 from niagads.common.types import Entity
-from niagads.database.helpers import enum_column, enum_constraint
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin, SearchMixin
 from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
+from niagads.database.helpers import enum_column, enum_constraint
+from niagads.database.session import DatabaseSessionManager
 from niagads.utils.string import jaccard_word_similarity
 from pydantic import BaseModel, Field
 from sqlalchemy import (
@@ -25,20 +26,18 @@ from sqlalchemy import (
     Index,
     String,
     UniqueConstraint,
-    case,
+    and_,
     func,
     literal,
-    or_,
     select,
     true,
     union,
 )
-from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.exc import MultipleResultsFound, NoResultFound
-from sqlalchemy.dialects.postgresql import ARRAY
 
 
 class OntologyTerm(
@@ -105,7 +104,7 @@ class OntologyTerm(
     @classmethod
     async def search(
         cls,
-        session,
+        session: AsyncSession,
         search_text,
         *,
         allow_fuzzy: bool = True,
@@ -121,7 +120,7 @@ class OntologyTerm(
             OntologyTerm.term.ilike(search_text),
         )
 
-        curies = [search_text, search_text.replace("_", ":")]
+        curies = [search_text.upper(), search_text.replace("_", ":").upper()]
         exact_curie_match_cte = cls._build_match_cte(
             "exact_curie_match",
             MatchType.EXACT_ID,
@@ -137,7 +136,7 @@ class OntologyTerm(
             .lateral()
         )
         exact_synonym_match_cte = cls._build_match_cte(
-            "exact synonym_match",
+            "exact_synonym_match",
             MatchType.EXACT_SYNONYM,
             synonyms.c.term,
             synonyms.c.term.ilike(search_text),
@@ -146,33 +145,36 @@ class OntologyTerm(
 
         wildcard_phrase = f"%{search_text}%"
         partial_term_match_cte = cls._build_match_cte(
-            "substring_match",
+            "partial_term_match",
             MatchType.PARTIAL_ID,
-            case(
-                (OntologyTerm.term.ilike(wildcard_phrase), OntologyTerm.term),
-                (synonyms.c.term.ilike(wildcard_phrase), synonyms.c.term),
-            ),
-            or_(
-                OntologyTerm.term.ilike(wildcard_phrase),
-                synonyms.c.term.ilike(wildcard_phrase),
-            ),
+            OntologyTerm.term,
+            OntologyTerm.term.ilike(wildcard_phrase),
+        )
+
+        partial_synonym_match_cte = cls._build_match_cte(
+            "partial_synonym_match",
+            MatchType.PARTIAL_SYNONYM,
+            synonyms.c.term,
+            synonyms.c.term.ilike(wildcard_phrase),
             join_clause=(synonyms, true()),
         )
 
         partial_definition_match_cte = cls._build_match_cte(
-            "substring_match_definition",
+            "partial_annotation_match",
             MatchType.PARTIAL_DESCRIPTIVE,
             OntologyTerm.definition,
             OntologyTerm.definition.ilike(wildcard_phrase),
-            join_clause=(synonyms, true()),
         )
 
         # fuzzy matches
         fuzzy_term_match_cte = cls._build_match_cte(
             "fuzzy_term_match",
-            MatchType.FUZZY,
+            MatchType.FUZZY_ID,
             OntologyTerm.term,
-            OntologyTerm.term.op("%")(search_text),
+            and_(
+                OntologyTerm.term.op("%")(search_text),
+                func.similarity(OntologyTerm.term, search_text) >= 0.5,
+            ),
             score=func.similarity(OntologyTerm.term, search_text),
         )
 
@@ -180,7 +182,10 @@ class OntologyTerm(
             "fuzzy_definition_match",
             MatchType.FUZZY_DESCRIPTIVE,
             OntologyTerm.definition,
-            OntologyTerm.definition.op("%")(search_text),
+            and_(
+                OntologyTerm.definition.op("%")(search_text),
+                func.similarity(OntologyTerm.definition, search_text) >= 0.5,
+            ),
             score=func.similarity(OntologyTerm.definition, search_text),
         )
 
@@ -194,7 +199,10 @@ class OntologyTerm(
             "fuzzy_synonym_match",
             MatchType.FUZZY_SYNONYM,
             synonyms.c.term,
-            synonym_text.op("%")(search_text),  # pre-filter (before join)
+            and_(
+                synonym_text.op("%")(search_text),  # pre-filter (before join)
+                func.similarity(synonyms.c.term, search_text) >= 0.5,
+            ),
             score=func.similarity(synonyms.c.term, search_text),
             join_clause=(synonyms, true()),
             post_action=lambda s: s.where(
@@ -209,9 +217,10 @@ class OntologyTerm(
                 select(exact_curie_match_cte),
                 select(exact_synonym_match_cte),
                 select(partial_term_match_cte),
+                select(partial_synonym_match_cte),
                 select(partial_definition_match_cte),
-                select(fuzzy_synonym_match_cte),
                 select(fuzzy_term_match_cte),
+                select(fuzzy_synonym_match_cte),
                 select(fuzzy_definition_match_cte),
             ).cte("matches")
         else:
@@ -220,15 +229,9 @@ class OntologyTerm(
                 select(exact_curie_match_cte),
                 select(exact_synonym_match_cte),
                 select(partial_term_match_cte),
+                select(partial_synonym_match_cte),
                 select(partial_definition_match_cte),
             ).cte("matches")
-
-        if include_ontology:
-            ...
-            # TODO basically need to make existing matches_cte a sub query instead and then
-            # filter on join w/externaldatabase release -> or save time and filter each subquery on the join
-            # while can still benefit from indexing? using post_action? <- less readable but
-            # more efficient.
 
         # windowing functons to find the top ranked/scored hit per matching term
         # e.g., so that if a match is found to a term and its synonym, it is reported
@@ -261,48 +264,75 @@ class OntologyTerm(
             func.first_value(matches_cte.c.matched_text.cast(String))
             .over(
                 partition_by=matches_cte.c.source_id,
-                order_by=matches_cte.c.rank.asc(),
+                order_by=match_sort_order,
             )
             .cast(String)
             .label("matched_text")
         )
 
-        stmt = (
-            select(
-                matches_cte.c.source_id.label("record_id"),
+        stmt = select(
+            matches_cte.c.source_id.label("record_id"),
+            matches_cte.c.external_database_id,
+            func.jsonb_build_object(
+                "label",
+                matches_cte.c.term,
+                "description",
+                matches_cte.c.definition,
+                "annotation",
                 func.jsonb_build_object(
-                    "label",
-                    matches_cte.c.term,
-                    "description",
-                    matches_cte.c.definition,
-                    "annotation",
-                    func.jsonb_build_object(
-                        "iri",
-                        matches_cte.c.term_iri,
-                        "synonyms",
-                        matches_cte.c.synonyms,
-                    ),
-                ).label("record_details"),
-                literal(str(Entity.ONTOLOGY_TERM)).label("record_type"),
-                rank,
-                score,
-                matched_text,
-                match_type,
-            )
-            .distinct()
-            .order_by(rank.asc(), score.asc())
+                    "iri",
+                    matches_cte.c.term_iri,
+                    "synonyms",
+                    matches_cte.c.synonyms,
+                ),
+            ).label("record_details"),
+            literal(str(Entity.ONTOLOGY_TERM)).label("record_type"),
+            rank,
+            score,
+            matched_text,
+            match_type,
         )
 
-        # DEBUG - for optimizing the sql, prints with binds embedded
-        # TODO: create a wrapper function in the session manager to do this
-        """      
-        print(
-            stmt.compile(
-                dialect=postgresql.dialect(),
-                compile_kwargs={"literal_binds": True},
+        # filter for specific ontologies
+        if include_ontology or exclude_ontology:
+            filter_conditions = []
+
+            if include_ontology:
+                filter_conditions.append(
+                    func.upper(ExternalDatabase.database_key).in_(
+                        [ontology.upper() for ontology in include_ontology]
+                    )
+                )
+
+            if exclude_ontology:
+                filter_conditions.append(
+                    func.upper(ExternalDatabase.database_key).notin_(
+                        [ontology.upper() for ontology in exclude_ontology]
+                    )
+                )
+
+            matches_subquery = stmt.subquery("matches")
+            stmt = (
+                select(matches_subquery)
+                .join(
+                    ExternalDatabase,
+                    ExternalDatabase.external_database_id
+                    == matches_subquery.c.external_database_id,
+                )
+                .where(and_(*filter_conditions))
+                .distinct()
+                .order_by(
+                    matches_subquery.c.rank.asc(), matches_subquery.c.score.desc()
+                )
             )
-        )
-        """
+
+        else:
+            stmt = stmt.distinct().order_by(rank.asc(), score.desc())
+
+        # DEBUG - for optimizing the sql, prints with binds embedded
+        # print("--------------QUERY-------------")
+        # print(DatabaseSessionManager.compile_select_statement(stmt))
+        # print("--------------------------------")
 
         result = await session.execute(stmt)
         rows = result.mappings().all()

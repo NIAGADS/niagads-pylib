@@ -3,7 +3,6 @@ from typing import Any, Dict, Optional, Union
 
 from niagads.common.nlp.embedding.types import (
     Embedding,
-    EmbeddingBatch,
     EmbeddingFunction,
 )
 from niagads.common.search.models.record import SearchResultRecord
