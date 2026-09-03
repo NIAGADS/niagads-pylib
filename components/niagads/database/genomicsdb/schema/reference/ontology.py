@@ -129,6 +129,7 @@ class OntologyTerm(
         )
 
         # Expose `unnest(synonyms)` as a lateral table with a PostgreSQL-recognized `term` column.
+        # this will allow us to return exactly which synonym was matched
         synonyms = (
             func.unnest(OntologyTerm.synonyms)
             .table_valued("term")
@@ -189,8 +190,8 @@ class OntologyTerm(
             score=func.similarity(OntologyTerm.definition, search_text),
         )
 
-        # indexing on synonyms is to the concatenated string array
-        # find trgrm match to whole array, but calculate
+        # the index on the synonyms column is to a concatenated string array
+        # so we need to trgm match to whole array, but calculate
         # matched_text and score based on indivdiual synoynms
         # filter result (second where) for trgm matches against this
         # subset of synonyms
@@ -293,7 +294,7 @@ class OntologyTerm(
             match_type,
         )
 
-        # filter for specific ontologies
+        # optionally filter for specific ontologies
         if include_ontology or exclude_ontology:
             filter_conditions = []
 
@@ -337,10 +338,8 @@ class OntologyTerm(
         result = await session.execute(stmt)
         rows = result.mappings().all()
 
-        if not rows:
-            # should never happen because there are literals that will be returned
-            return []
-
+        # if no matches will get one result with all fields except literals as NULL
+        # if we filter for those, an empty result should be returned as []
         return [SearchResultRecord(**r) for r in rows if r["record_id"] is not None]
 
     @classmethod
