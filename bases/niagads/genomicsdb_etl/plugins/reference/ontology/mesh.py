@@ -13,12 +13,8 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
-
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
-
 from niagads.etl.plugins.metadata import PluginMetadata
-
-
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.reference.ontology.base import (
@@ -161,7 +157,6 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
         text = []
 
         for record in records:
-
             if not record.is_active:
                 continue  # skip deprecated values
 
@@ -183,6 +178,9 @@ class MeSHDescriptorLoader(BaseOntologyLoader):
                 synonyms=synonyms,
                 entity_type=EntityTypeIRI.CLASS.name,
             )
+
+            if term.synonyms is not None:
+                term.synonym_list_str = " // ".join(term.synonyms)
 
             if self.is_etl_run:  # catch dry runs
                 term.run_id = self.run_id

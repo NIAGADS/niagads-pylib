@@ -46,19 +46,6 @@ class OntologyTerm(
     __tablename__ = "ontologyterm"
     _stable_id = "source_id"
 
-    ontology_term_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    namespace: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
-    term: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
-    term_iri: Mapped[str] = mapped_column(String(250), index=False, nullable=False)
-    entity_type: Mapped[str] = enum_column(EntityTypeIRI, use_enum_names=True)
-    label: Mapped[str] = mapped_column(String(512), nullable=True)
-    definition: Mapped[str] = mapped_column(TEXT, nullable=True)
-    synonyms: Mapped[list[str]] = mapped_column(ARRAY(String(250)), nullable=True)
-    is_deprecated: Mapped[bool] = mapped_column(Boolean, nullable=True)
-
-    # overloading from ExternalDatabaseMixin b/c cell ontology has some long ones
-    source_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
-
     # moved below field definitions so we can reference synonyms in the index constructor
     __table_args__ = (
         *ExternalDatabaseMixin.__table_args__,
@@ -80,14 +67,31 @@ class OntologyTerm(
         # conditional trgm index on synonyms that concatenates all synonyms to gether
         Index(
             "ix_ontology_term_synonyms_trgm",
-            func.array_to_string(synonyms, " // "),
+            "synonym_list_str",
             postgresql_using="gin",
             postgresql_ops={
-                "array_to_string": "gin_trgm_ops",
+                "synonym_list_str": "gin_trgm_ops",
             },
         ),
         ReferenceTableBase.__table_args__,
     )
+
+    ontology_term_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    namespace: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
+    term: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
+    term_iri: Mapped[str] = mapped_column(String(250), index=False, nullable=False)
+    entity_type: Mapped[str] = enum_column(EntityTypeIRI, use_enum_names=True)
+    label: Mapped[str] = mapped_column(String(512), nullable=True)
+    definition: Mapped[str] = mapped_column(TEXT, nullable=True)
+    synonyms: Mapped[list[str]] = mapped_column(ARRAY(String(250)), nullable=True)
+    is_deprecated: Mapped[bool] = mapped_column(Boolean, nullable=True)
+
+    # have to create this column (concenation of synonyms into a list) b/c
+    # postgres treats array_to_string as stable, not immutable so can't index on it
+    synonym_list_str: Mapped[str] = mapped_column(TEXT, nullable=True)
+
+    # overloading from ExternalDatabaseMixin b/c cell ontology has some long ones
+    source_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
 
     @hybrid_property
     def curie(self):
@@ -195,13 +199,13 @@ class OntologyTerm(
         # matched_text and score based on indivdiual synoynms
         # filter result (second where) for trgm matches against this
         # subset of synonyms
-        synonym_text = func.array_to_string(OntologyTerm.synonyms, " // ")
         fuzzy_synonym_match_cte = cls._build_match_cte(
             "fuzzy_synonym_match",
             MatchType.FUZZY_SYNONYM,
             synonyms.c.term,
             and_(
-                synonym_text.op("%")(search_text),  # pre-filter (before join)
+                # pre-filter (before join)
+                OntologyTerm.synonym_list_str.op("%")(search_text),
                 func.similarity(synonyms.c.term, search_text) >= 0.5,
             ),
             score=func.similarity(synonyms.c.term, search_text),
