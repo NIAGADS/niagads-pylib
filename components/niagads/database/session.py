@@ -1,14 +1,14 @@
 """Database session management"""
 
-from contextlib import asynccontextmanager
 import logging
 from asyncio import current_task
+from contextlib import asynccontextmanager
 
 import asyncpg
 from asyncpg.transaction import Transaction
-
 from niagads.exceptions.core import AbstractMethodNotImplemented, ValidationError
-from sqlalchemy import text
+from sqlalchemy import Select, text
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -194,6 +194,23 @@ class DatabaseSessionManager:
                     await session.rollback()
                 if session.is_active:
                     await session.close()
+
+    @classmethod
+    def compile_select_statement(self, stmt: Select):
+        """Compile a SQLAlchemy SELECT statement with literal bind values.
+
+        Args:
+            stmt (Select): The SQLAlchemy SELECT statement to compile.
+
+        Returns:
+            str: The PostgreSQL SQL statement with bound values embedded.
+        """
+        return str(
+            stmt.compile(
+                dialect=postgresql.dialect(),
+                compile_kwargs={"literal_binds": True},
+            )
+        )
 
     async def __call__(self):
         """Provide an async database session; cannot be used as a context manager.

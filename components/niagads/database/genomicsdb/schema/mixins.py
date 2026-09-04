@@ -1,10 +1,16 @@
 from datetime import datetime
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
+from niagads.common.nlp.embedding.types import (
+    Embedding,
+    EmbeddingFunction,
+)
+from niagads.common.search.models.record import SearchResultRecord
+from niagads.common.search.types import MatchType
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
 from niagads.database.mixins.transactions import TransactionTableMixin
-from sqlalchemy import exists, inspect, select
+from sqlalchemy import ClauseElement, exists, inspect, literal, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.inspection import inspect
@@ -347,3 +353,140 @@ class GenomicsDBTableMixin(
 class GenomicsDBMVMixin(ModelDumpMixin, LookupTableMixin):
     _document_primary_key = None  # set to do pk lookups on RAG docs
     __abstract__ = True
+
+
+class SearchMixin:
+    # DEVELOPER'S NOTE: Ideally, this should have been implemented as an Abstract Base Class
+    # but it causes conflicts with SQLAlchemy DeclarativeMeta class.  To avoid having
+    # define a custom abstract declarative metadata class and set it as metaclass for
+    # the SchemaBase, mixin functions will raise NotImplementedErrors, as no fallback can be
+    # defined, which is less than satisfactory, but the only viable solution at this time.
+
+    @classmethod
+    def _build_match_cte(
+        cls,
+        name: str,
+        match_type: MatchType,
+        matched_text_expr,
+        where_condition,
+        score: float = 1.0,
+        join_clause=None,
+        post_action: Optional[callable] = None,
+    ):
+        """Build a standardized SQLAlchemy SELECT statement for search context.
+
+        Constructs a select query that includes standard match metadata (type, rank,
+        score) along with the matched text. Handles optional joins for complex queries.
+
+        Args:
+            name (str): cte name - necessary for debugging purposes
+            match_type (MatchType): The match type enum value determining rank priority.
+            matched_text_expr (ColumnElement): SQLAlchemy column expression for the matched
+                text. Can be a simple column (e.g., OntologyTerm.term) or complex expression
+                (e.g., case() statement).
+            where_condition (ColumnElement): SQLAlchemy boolean column expression for
+                filtering records. Combined with AND conditions as appropriate to the
+                search context.
+            score (Union[float, ColumnElement], optional): Match score value. Can be a
+                literal float (e.g., 1.0 for exact matches) or a dynamic expression
+                (e.g., func.similarity(...) for fuzzy matches). Defaults to 1.0.
+            join_clause (Optional[tuple], optional): Tuple of (table, condition) for
+                joining an additional table to the base select. Used for queries
+                requiring lateral joins or derived tables. Defaults to None (no join).
+            post_action (Optional): additional expressions (applied using lambda function)
+                to further filter or revise result (e.g., .where or .distinct)
+
+        Returns:
+            Select: A SQLAlchemy Select statement with columns for the ORM object,
+                match_type, rank, score, and matched_text, filtered by the where_condition.
+
+        Example:
+            see components/niagads/database/genomicsdb/schema/reference/ontology.py
+        """
+        score_expr = score if isinstance(score, ClauseElement) else literal(score)
+
+        stmt = select(
+            cls,
+            literal(match_type.name).label("match_type"),
+            literal(match_type.rank()).label("rank"),
+            score_expr.label("score"),
+            matched_text_expr.label("matched_text"),
+        )
+        if join_clause:
+            stmt = stmt.join(*join_clause)  # unpacks (table, condition) tuple
+
+        stmt = stmt.where(where_condition)
+
+        if post_action:
+            stmt = post_action(stmt)
+
+        return stmt.cte(name)
+
+    @classmethod
+    async def search(
+        cls, session: AsyncSession, search_text: str, *, allow_fuzzy: bool = False
+    ) -> list[SearchResultRecord]:
+        """Search for records using deterministic text matching.
+        No parent fallback provided, must be implemented in child class.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            search_text (str): Text phrase to search for.
+        Returns:
+            Matching search result records.  Returns an empty list if no matches are found
+        """
+        raise NotImplementedError(
+            "Database models using SearchMixin must implement "
+            "`search` for deterministic text search."
+        )
+
+    @classmethod
+    async def semantic_search(
+        cls,
+        session: AsyncSession,
+        search_text: str,
+        embed: EmbeddingFunction,
+        *,
+        limit=10,
+    ) -> list[SearchResultRecord]:
+        """Search for semantically similar records using embedded query text.
+        No parent fallback provided, must be implemented in child class.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            search_text: Text phrase to embed and use for semantic search.
+            embed (callable): Function used to generate embeddings, must match EmbeddingFunction protocol.
+            limit (int): Maximum number of results to return.
+
+        Returns:
+            Search result records ranked by semantic similarity. Returns an empty list if no matches are found
+        """
+        raise NotImplementedError(
+            "Database models using SearchMixin must implement "
+            "`semantic_search` for semantic text search (NL querying support)."
+        )
+
+    @classmethod
+    async def semantic_search_by_embedding(
+        cls,
+        session: AsyncSession,
+        phrase: list[str],
+        embedding: Embedding,
+        *,
+        limit=10,
+    ) -> list[SearchResultRecord]:
+        """Search for semantically similar records using precomputed embeddings.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            phrase (str): Text phrase associated with the supplied embeddings.
+            embedding (Embedding): Precomputed embedding corresponding to the input phrase.
+            limit (int): Maximum number of results to return.
+
+        Returns:
+            Search result records ranked by semantic similarity.
+        """
+        raise NotImplementedError(
+            "Database models using SearchMixin must implement "
+            "`semantic_search`_by_embedding for semantic text search (NL querying support)."
+        )
