@@ -45,14 +45,15 @@ class PluginRunner(ComponentBaseMixin):
         plugin_name,
         argument_parser,
         list_only: bool = False,
-        undo: bool = False,
+        mode: ETLExecutionMode = ETLExecutionMode.RUN,
         run_id: int = None,
         log_path: str = None,
         debug: bool = False,
         verbose: bool = False,
     ):
         super().__init__(debug=debug, verbose=verbose)
-        self._undo = undo
+        self._undo = mode == ETLExecutionMode.UNDO
+        self._mode = mode
         self._run_id = run_id
         self._log_path = log_path
 
@@ -203,6 +204,8 @@ class PluginRunner(ComponentBaseMixin):
         if self._undo:
             self._params["mode"] = ETLExecutionMode.UNDO
             self._params["run_id"] = self._run_id
+        else:
+            self._params["mode"] = self._mode
 
     async def run(self):
         self._set_runtime_parameters()
@@ -248,7 +251,24 @@ async def main():
     parser.add_argument("--list", action="store_true", help="List registered plugins")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
-    parser.add_argument("--undo", action="store_true", help="Run in UNDO mode")
+    parser.add_argument(
+        "--undo",
+        action="store_const",
+        const=ETLExecutionMode.UNDO,
+        help="Run in UNDO mode",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_const",
+        const=ETLExecutionMode.DRY_RUN,
+        help="Run in DRY-RUN mode",
+    )
+    parser.add_argument(
+        "--preprocess",
+        action="store_const",
+        const=ETLExecutionMode.PREPROCESS,
+        help="Run in PREPROCESS mode",
+    )
     parser.add_argument(
         "--run-id", type=int, help="ETL run identifier; required for UNDO mode"
     )
@@ -273,12 +293,27 @@ async def main():
         parser.print_help()
         sys.exit(0)
 
+    # Ensure only one mutually-exclusive mode flag is provided
+    selected_modes = [
+        m
+        for m in (known_args.preprocess, known_args.undo, known_args.dry_run)
+        if m is not None
+    ]
+    if len(selected_modes) > 1:
+        parser.error("Only one of --preprocess, --undo, or --dry-run may be specified")
+    mode: ETLExecutionMode = (
+        selected_modes[0] if selected_modes else ETLExecutionMode.RUN
+    )
+
+    if mode == ETLExecutionMode.UNDO and known_args.run_id is None:
+        parser.error("--run-id is required when --undo is set")
+
     # Instantiate runner and dynamically add plugin params
     runner = PluginRunner(
         known_args.plugin,
         argument_parser=parser,
         list_only=known_args.list,
-        undo=known_args.undo,
+        mode=mode,
         run_id=known_args.run_id,
         log_path=known_args.log_path,
         debug=known_args.debug,
