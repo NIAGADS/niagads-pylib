@@ -1,8 +1,8 @@
-from typing import Optional, Union
+from typing import Any, Optional, Set, Union
 from niagads.common.models.base import CustomBaseModel
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import dict_to_info_string, matches
-from pydantic import Field, ValidationInfo, field_validator, model_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
 
 
 class OntologyTerm(CustomBaseModel):
@@ -95,3 +95,28 @@ class OntologyTerm(CustomBaseModel):
         if self.curie:
             info.update({"curie": self.curie})
         return dict_to_info_string(info)
+
+    @classmethod
+    def extract_from_obj(self, value: Any) -> list["OntologyTerm"]:
+        """
+        Extract all formally defined OntologyTerm objects from a Pydantic Model and nested models.
+
+        Returns unique list of OntologyTerms.
+        """
+        terms: Set[tuple] = set()
+
+        if value is None:
+            return terms
+        if isinstance(value, OntologyTerm):
+            terms.add((value.term, value.curie))
+        elif isinstance(value, BaseModel):
+            for field_name in value.__class__.model_fields:
+                terms.update(self.extract_from_obj(getattr(value, field_name, None)))
+        elif isinstance(value, dict):
+            for item in value.values():
+                terms.update(self.extract_from_obj(item))
+        elif isinstance(value, (list, tuple, set)):
+            for item in value:
+                terms.update(self.extract_from_obj(item))
+
+        return [OntologyTerm(term=term, curie=curie) for term, curie in terms]

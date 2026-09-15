@@ -55,9 +55,8 @@ class TrackLoaderBase(
         await ExternalDatabaseContextMixin.on_run_start(self, session)
         await EmbeddingGeneratorContextMixin.on_run_start(self, session)
 
-        await self.set_table_ref(session, Track)
+        if self.is_etl_run:
+            await self.set_table_ref(session, Track)
 
     def get_record_id(self, erecord: EmbeddedTrackRecord):
         return erecord.track.id
-
-
