@@ -4,7 +4,7 @@
 !/projects/metadata-builder/dist/
 
 # ai
-.codex
+# .codex
 
 # env files
 db.env

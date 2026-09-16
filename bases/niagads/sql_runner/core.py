@@ -81,16 +81,15 @@ class SqlRunner(ComponentBaseMixin):
         )
 
         try:
-            async with manager.raw_connection() as conn:
+            async with manager.raw_connection_ctx() as (conn, transaction):
                 self.logger.info(f"Executing SQL from: {self.__sql_file}")
+                await conn.execute(self.__sql)
 
                 if self.__commit:
-                    await conn.execute(self.__sql)
+                    await transaction.commit()
                     self.logger.info("Transaction committed.")
                 else:
-                    async with conn.transaction():
-                        await conn.execute(self.__sql)
-                        raise Exception("dry-run rollback")
+                    self.logger.info("Dry Run: transaction rolled back.")
 
         except Exception as err:
             if "dry-run rollback" in str(err):

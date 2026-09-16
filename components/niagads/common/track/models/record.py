@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from niagads.common.genomic.features.types import GenomicFeatureType
 from niagads.common.models.base import CustomBaseModel
+from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.track.models import (
     BiosampleCharacteristics,
     CurationEvent,
@@ -28,6 +29,11 @@ class TrackRecord(CustomBaseModel):
         default=GenomeBuild.GRCh38,
         title="Genome Build",
         description="reference genome build",
+    )
+    keywords: Optional[list[OntologyTerm]] = Field(
+        default=None,
+        title="Keywords",
+        description="Keywords (MeSH topical descriptors) describing this data track.",
     )
     feature_type: Optional[GenomicFeatureType] = Field(
         default=None,

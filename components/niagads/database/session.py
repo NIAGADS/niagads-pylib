@@ -1,13 +1,14 @@
 """Database session management"""
 
-from contextlib import asynccontextmanager
 import logging
 from asyncio import current_task
+from contextlib import asynccontextmanager
 
 import asyncpg
-
+from asyncpg.transaction import Transaction
 from niagads.exceptions.core import AbstractMethodNotImplemented, ValidationError
-from sqlalchemy import text
+from sqlalchemy import Select, text
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool.base import PoolProxiedConnection
 
 CONNECTION_POOL_SIZE = 10
 POOL_RECYCLE = 1800  # 30 minutes
@@ -113,32 +115,52 @@ class DatabaseSessionManager:
         await self.__engine.dispose()
 
     @asynccontextmanager
-    async def raw_connection(self):
-        """Provide an async context manager for a raw asyncpg connection.
+    async def raw_connection_ctx(self):
+        """Provide a raw asyncpg connection with explicit transaction control.
 
         Bypasses SQLAlchemy's prepared statement protocol, allowing execution
         of multi-statement SQL strings and `$$`-quoted procedural blocks
         (e.g., PL/pgSQL function definitions).
 
+        A transaction is started before the connection is yielded. The
+        transaction is rolled back when the context exits unless the caller
+        explicitly commits it. This prevents raw statements from being
+        autocommitted and makes accidental writes non-persistent.
+
         Yields:
-            asyncpg.Connection: The underlying asyncpg driver connection.
+            tuple[asyncpg.Connection, asyncpg.transaction.Transaction]: The
+                underlying asyncpg driver connection and its active
+                transaction.
 
         Raises:
             RuntimeError: If the engine is not initialized.
 
         Example:
-            async with manager.raw_connection() as conn:
+            async with manager.raw_connection() as (conn, transaction):
                 await conn.execute(sql)
+                await transaction.commit()  # omit to roll back on exit
         """
         self.logger.warning(
-            "Using RAW CONNECTION - this will autocommit changes unless in transaction"
+            "Using RAW CONNECTION - changes require an explicit transaction commit"
         )
         if self.__engine is None:
             raise RuntimeError("DatabaseSessionManager is not initialized")
 
         async with self.__engine.connect() as conn:
-            raw = await conn.get_raw_connection()
-            yield raw.driver_connection
+            raw: PoolProxiedConnection = await conn.get_raw_connection()
+            connection: asyncpg.Connection = raw.driver_connection
+            transaction: Transaction = connection.transaction()
+            await transaction.start()
+
+            try:
+                yield connection, transaction
+            except BaseException:
+                if connection.is_in_transaction():
+                    await transaction.rollback()
+                raise
+            else:
+                if connection.is_in_transaction():
+                    await transaction.rollback()
 
     @asynccontextmanager
     async def session_ctx(self):
@@ -172,6 +194,23 @@ class DatabaseSessionManager:
                     await session.rollback()
                 if session.is_active:
                     await session.close()
+
+    @classmethod
+    def compile_select_statement(self, stmt: Select):
+        """Compile a SQLAlchemy SELECT statement with literal bind values.
+
+        Args:
+            stmt (Select): The SQLAlchemy SELECT statement to compile.
+
+        Returns:
+            str: The PostgreSQL SQL statement with bound values embedded.
+        """
+        return str(
+            stmt.compile(
+                dialect=postgresql.dialect(),
+                compile_kwargs={"literal_binds": True},
+            )
+        )
 
     async def __call__(self):
         """Provide an async database session; cannot be used as a context manager.

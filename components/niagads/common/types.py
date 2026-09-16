@@ -14,6 +14,18 @@ T_RefSNP = Annotated[str, Field(pattern=RegularExpressions.REF_SNP_ID)]
 PrimitiveType = Union[str, int, float, bool, None]
 
 
+class Entity(CaseInsensitiveEnum):
+    GENE = "gene"
+    VARIANT = "variant"
+    REGION = "region"
+    TRACK = "track"
+    COLLECTION = "collection"
+    ONTOLOGY_TERM = "term"
+
+    def __str__(self):
+        return self.value.title()
+
+
 class ProcessStatus(CaseInsensitiveEnum):
     """
     Enum representing the overall outcome of a process or workflow step.

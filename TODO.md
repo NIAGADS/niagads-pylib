@@ -6,6 +6,10 @@
 * replace flat_dump w/context based serialization (will get passed to all children)
 * can we move casesensitiveenum to common.types ? circular imports?!
 
+## Project wide
+
+* systematically review all function defintions and use `"*, "` before named parameters to enforce using they keywords
+
 ## ETL
 
 ### FILER
@@ -20,14 +24,18 @@ NGENC7VGJXPUQ5  ENCODE  ENCFF078YRQ.bed.gz      3700    728458  IDR thresholded 
 ### Bugs
 
 * make wrappers for sqlalchemy.exc errors NoResultFound, MultipleResultFound so errors can be handled w/out importing from sqlalchemy?
+* OWL plugin loading ORCID's as terms -> why? manually patched db but need to fix (maybe skip NAMED_INDIVIDUALS?)
+
+```0000-0002-3734-1859 150819 Carlo Tornial https://orcid.org/0000-0002-3734-1859```
 
 ## OWL ETL
 
-* add flag to include objectproperties (e.g., for loading the relation ontology)
-* resolve annotationproperties by skipping those not in the property iris
-* move term_category to triple
-* duplicates
-* placeholders
+* OBJECT PROPERTIES are not always parsing correctly - see example below where CURIE is extracted incorrectly; problematic example below appears to be UBERON, but appears to affect most ontologies.  Sometimes like this and sometimes missing prefix, e.g., sequence ontology has `so#` prefixed object properties; also affects some ANNOTATION PROPERTIES
+
+```text
+source_id ontology_term_id term term_iri entity_type label definition
+has_component 162250 has component http://purl.obolibrary.org/obo/RO_0002180 OBJECT_PROPERTY has component w 'has component' p if w 'has part' p and w is such that it can be directly disassembled into into n parts p, p2, p3, ..., pn, where these parts are of similar type.
+```
 
 ## Top Priority
 

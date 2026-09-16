@@ -1,5 +1,6 @@
 """`Track` (metadata) database model"""
 
+from enum import auto
 from typing import List, Optional
 
 from niagads.common.track.models import (
@@ -13,13 +14,14 @@ from niagads.common.track.models.curation import CurationEvent
 from niagads.common.track.models.phenotypes import PhenotypeCount
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.database.mixins import GenomicRegionMixin
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.database.genomicsdb.schema.dataset.base import DatasetTableBase
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
-from sqlalchemy import TEXT, Column, ForeignKey, Index, Integer, String
+from sqlalchemy import Column, Index, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -80,6 +82,38 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     curation_history: Mapped[Optional[List[CurationEvent]]] = mapped_column(
         JSONB(none_as_null=True)
     )
+
+
+class TrackConcept(DatasetTableBase):
+    """linking table between Track and OntologyTerm, for MeSH keywords/concepts"""
+
+    _stable_id = None
+    __tablename__ = "trackconcept"
+    __table_args__ = (DatasetTableBase.__table_args__,)
+    track_concept_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    term_id: Mapped[str] = ontology_term_fk_column()
+
+
+class TrackContextType(CaseInsensitiveEnum):
+    """Defines the metadata context in which an ontology term is associated with a track."""
+
+    BIOSAMPLE = auto()
+    PHENOTYPE = auto()
+    EXPERIMENT = auto()
+
+
+class TrackContext(DatasetTableBase):
+    """linking table for deterministic search OntologyTerms nested in metadata JSONB nexted contextual blocks"""
+
+    _stable_id = None
+    __tablename__ = "trackcontext"
+    __table_args__ = (
+        enum_constraint("context", TrackContextType),
+        DatasetTableBase.__table_args__,
+    )
+    track_context_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    term_id: Mapped[str] = ontology_term_fk_column()
+    context: Mapped[str] = enum_column(TrackContextType, nullable=False)
 
 
 class TrackInterval(DatasetTableBase, GenomicRegionMixin):

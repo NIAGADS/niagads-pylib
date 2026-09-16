@@ -140,7 +140,7 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
     async def _load_pathway_membership(
         self,
         session,
-        annotations: List[PathwayGeneAssociations],
+        associations: List[PathwayGeneAssociations],
         gene_id_type: GeneIdentifierType,
     ):
         """
@@ -154,21 +154,30 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
         Returns:
             ResumeCheckpoint: The checkpoint for resuming the ETL process.
         """
-        self.logger.debug(f"Initiating batch load; n={len(annotations)} records.")
+        self.logger.debug(f"Initiating batch load; n={len(associations)} records.")
 
-        for pathway in annotations:
+        for assoc in associations:
             # Lookup / possibly load pathway and get its primary key
             pathway_pk = await self._retrieve_or_load_pathway(
                 session,
-                pathway.pathway_info.pathway_id,
-                pathway.pathway_info.pathway_name,
+                assoc.pathway_info.pathway_id,
+                assoc.pathway_info.pathway_name,
             )
 
+            if self._verbose:
+                self.logger.debug(
+                    f"Loading pathway: {assoc.pathway_info.pathway_id}|{pathway_pk} "
+                    f"with {len(assoc.member_genes)} gene members"
+                )
+
             memberships = []
-            for gene in pathway.member_genes:
+            for gene in assoc.member_genes:
                 gene_pk = await self._lookup_gene_primary_key(
                     session, gene.gene_id, gene_id_type
                 )
+
+                if self._verbose:
+                    self.logger.debug(f"Mapped {gene.gene_id}|{gene_pk}")
 
                 # skip records with bad genes, if flagged
                 # not to fail on missing genes; failure is handled in the
@@ -187,11 +196,27 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
                     )
                 )
 
+            if not memberships:
+                self.logger.info(
+                        f" Pathway memberships were not loaded for for {assoc.pathway_info.pathway_id}: "
+                         f"all {len(assoc.member_genes)} member genes failed to map to the database."
+                ) 
+                # FIXME: should technically not load empty pathway in pathway table, but need to think about how to
+                # roll back just that one entry - possibly keep list and delete from db in on_run_complete
+                continue
+
+            if self._verbose:
+                # changed assoc.pathway_id to assoc.pathway_info.pathway_id
+                self.logger.debug(
+                    f"Submitting pathway memberships for {assoc.pathway_info.pathway_id} "
+                    f"(pathway_pk={pathway_pk}, records={len(memberships)})"
+                )
+
             # submit pathway-memberships in bulk
             await PathwayMembership.submit_many(session, memberships)
 
         # checkpoint is that last successful submit
-        return self.create_checkpoint(record=annotations[-1])
+        return self.create_checkpoint(record=associations[-1])
 
     async def on_run_complete(self):
         num_skipped = len(self._unmapped_genes)
