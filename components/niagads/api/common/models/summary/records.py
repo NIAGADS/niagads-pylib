@@ -11,7 +11,7 @@ class EntityCounts(CustomBaseModel):
     num_records: int
 
 
-class APISummray(CustomBaseModel):
+class APISummary(CustomBaseModel):
     name: str = Field(..., description="Route name.")
     description: str = Field(..., description="Short description of the route.")
     publications: Optional[Set[T_PubMedID]] = Field(

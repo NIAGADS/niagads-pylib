@@ -1,12 +1,10 @@
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
 from niagads.api.common.models.context.request import RequestDetails
 from niagads.api.common.models.responses.pagination import PaginationState
 from niagads.common.models.base import CustomBaseModel
-from niagads.utils.string import xstr
-from pydantic import Field, model_validator
+from pydantic import Field
 
 
 class BaseResponseModel(CustomBaseModel):
@@ -36,7 +34,7 @@ class BaseResponseModel(CustomBaseModel):
 class MessageResponse(BaseResponseModel):
     data: Dict[str, Any]
 
-    def to_text(self, incl_header=False, null_str=DEFAULT_NULL_STRING):
+    def to_delimited_text(self, incl_header=False, null_str=DEFAULT_NULL_STRING):
         raise NotImplementedError(
-            "`to_text` conversion not implemented for MessageResponse"
+            "`to_delimited_text` conversion not implemented for MessageResponse"
         )

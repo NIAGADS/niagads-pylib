@@ -1,7 +1,7 @@
-from typing import Any, Dict, List, Union
+from typing import Any, List, Union
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.models.records.base import CountExtendedRecord, DynamicRecord
+from niagads.api.common.models.records.base import DynamicRecord
 from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.common.models.base import CustomBaseModel
 from niagads.utils.string import xstr

@@ -1,7 +1,7 @@
 from enum import StrEnum, auto
 
 from fastapi import Request
-from niagads.api.common.models.context.request import RequestDataModel
+from niagads.api.common.models.context.request import RequestDetails
 from niagads.utils.string import blake2b_hash, regex_replace
 from pydantic import BaseModel, Field
 
@@ -45,7 +45,7 @@ class CacheKey(BaseModel, arbitrary_types_allowed=True):
     @classmethod
     async def from_request(cls, request: Request):
         endpoint = str(request.url.path)  # endpoint includes path parameters
-        parameters = RequestDataModel.sort_query_parameters(
+        parameters = RequestDetails.sort_query_parameters(
             dict(request.query_params), exclude=["format", "view"]
         )
         rawKey = (

@@ -5,7 +5,7 @@ from niagads.common.nlp.embedding.types import (
     Embedding,
     EmbeddingFunction,
 )
-from niagads.common.search.models.record import SearchResultRecord
+from niagads.common.search.models.record import LookupMatch
 from niagads.common.search.types import MatchType
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
@@ -425,7 +425,7 @@ class SearchMixin:
     @classmethod
     async def search(
         cls, session: AsyncSession, search_text: str, *, allow_fuzzy: bool = False
-    ) -> list[SearchResultRecord]:
+    ) -> list[LookupMatch]:
         """Search for records using deterministic text matching.
         No parent fallback provided, must be implemented in child class.
 
@@ -448,7 +448,7 @@ class SearchMixin:
         embed: EmbeddingFunction,
         *,
         limit=10,
-    ) -> list[SearchResultRecord]:
+    ) -> list[LookupMatch]:
         """Search for semantically similar records using embedded query text.
         No parent fallback provided, must be implemented in child class.
 
@@ -474,7 +474,7 @@ class SearchMixin:
         embedding: Embedding,
         *,
         limit=10,
-    ) -> list[SearchResultRecord]:
+    ) -> list[LookupMatch]:
         """Search for semantically similar records using precomputed embeddings.
 
         Args:

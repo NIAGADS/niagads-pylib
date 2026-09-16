@@ -13,23 +13,23 @@ from pydantic import (
 )
 
 
-class RecordDetails(CustomBaseModel):
+class MatchedRecordDetails(CustomBaseModel):
     label: str
     description: Optional[str] = None
     annotation: Optional[Dict[str, Any]] = None
 
 
-class SearchResultRecord(CustomBaseModel):
-    record_id: str = Field(
+class LookupMatch(CustomBaseModel):
+    matched_record_id: str = Field(
         serialization_alias="id",
         title="Record ID",
         description="unique record identifier",
     )
     # FIXME: define record summary for each record type -> display_id, description?
-    record_details: RecordDetails = Field(
+    matched_record_details: MatchedRecordDetails = Field(
         title="Qualifying or descriptive information for the record"
     )
-    record_type: Entity = Field(title="Record Type")
+    matched_record_type: Entity = Field(title="Record Type")
     matched_text: str = Field(title="Matched", description="matched term or phrase")
     match_type: MatchType = Field(
         title="Match Type", description=f"type of match, one of {MatchType.list()}"

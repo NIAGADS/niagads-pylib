@@ -1,9 +1,5 @@
 from niagads.api.common.models.responses.base import BaseResponseModel
-from niagads.api.common.parameters.types import (
-    ResponseFormat,
-    ResponseLayout,
-    ResponseView,
-)
+from niagads.api.common.types import ResponseFormat, ResponseLayout, ResponseView
 from niagads.exceptions.core import ValidationError
 from pydantic import BaseModel, field_validator, model_validator
 

@@ -6,12 +6,10 @@ from datetime import date, datetime
 from enum import Enum, auto
 
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.utils.dict import prune
 from niagads.utils.string import dict_to_info_string, xstr
 from pydantic import (
     BaseModel,
     ConfigDict,
-    Field,
     FieldSerializationInfo,
     SerializerFunctionWrapHandler,
     field_serializer,
@@ -135,7 +133,7 @@ class CustomBaseModel(BaseModel):
         return [data.get(f) for f in sorted_fields]
 
     def to_delimited_text(
-        self, fields=None, incl_header: bool = True, null_str="NA", delimiter="\t"
+        self, fields=None, *, incl_header: bool = True, null_str="NA", delimiter="\t"
     ):
         """Return model as a delimited text row (e.g., tab-delimited).
 
