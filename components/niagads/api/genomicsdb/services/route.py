@@ -19,8 +19,8 @@ from niagads.api.common.models.services.query import (
 )
 from niagads.api.common.parameters.internal import EndpointContext
 from niagads.api.common.parameters.response import ResponseContent
-from niagads.api.common.services.features import FeatureQueryService
-from niagads.api.common.services.metadata.query import MetadataQueryService
+from niagads.api.common.services.feature import FeatureQueryService
+from niagads.api.common.services.metadata import MetadataQueryService
 from niagads.api.common.services.metadata.route import TrackMetadataEndpointService
 from components.niagads.api.common.services.endpoint import (
     Parameters,

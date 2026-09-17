@@ -4,23 +4,8 @@ from itertools import groupby
 from operator import itemgetter
 from typing import List, Union
 
-from niagads.api.common.models.context.cache import CacheKey, CacheNamespace
-from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
-from niagads.api.common.models.domain.parameters.types import ResponseView
-from niagads.api.common.services.metadata.query import (
-    MetadataQueryService,
-    TrackDatabase,
-)
-from niagads.api.common.services.metadata.route import TrackMetadataEndpointService
-from niagads.api.common.services.pagination import TrackDataPaginationCursor
-from niagads.api.common.services.route import (
-    RequestParameters,
-    ResponseConfiguration,
-)
 from niagads.common.genomic.features.models import GenomicFeature, GenomicFeatureType
 from niagads.database.genomicsdb.schema.dataset.track import Track
-from niagads.exceptions.core import ValidationError
-from niagads.filer_api.dependencies import FILEREndpointRequestParameters
 from niagads.filer_api.services.client import (
     FILERApiDataResponse,
     FILERApiEndpoint,

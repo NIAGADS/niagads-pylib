@@ -16,7 +16,7 @@ from niagads.api.common.parameters.response import (
     ResponseFormat,
     ResponseView,
 )
-from niagads.api.common.services.metadata.query import MetadataQueryService
+from niagads.api.common.services.metadata import MetadataQueryService
 from niagads.api.common.services.route import Parameters, ResponseConfiguration
 from niagads.api.common.views.table import TableViewResponse
 from niagads.api.filer.dependencies import InternalRequestParameters

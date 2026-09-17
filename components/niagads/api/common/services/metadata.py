@@ -1,11 +1,10 @@
 from enum import Enum, auto
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from fastapi import HTTPException
 from niagads.api.common.constants import SHARD_PATTERN
 from niagads.api.common.models.context.request import RequestDetails
-from niagads.api.common.models.domain.parameters.filters.expression_filter import Triple
-from niagads.api.common.models.domain.parameters.types import ResponseView
+
 from niagads.common.track.models import (
     ExperimentalDesign,
     Phenotype,
@@ -98,22 +97,23 @@ class MetadataQueryService:
         else:
             return True
 
-    async def validate_collection(self, pk: str) -> int:
-        """validate a collection by primary_key"""
-        stmt = select(Collection).where(Collection.primary_key.ilike(pk))
+    async def validate_collection(self, stable_id: str) -> int:
+        """validate a collection by stable id"""
+        stmt = select(Collection).where(Collection.collection_key.ilike(stable_id))
         stmt = self.__apply_filter(stmt, Collection)
         try:
             collection = (await self.__database_session.execute(stmt)).scalar_one()
             return collection
         except NoResultFound as e:
-            raise HTTPException(status_code=404, detail=f"Collection `{pk}` not found")
+            raise HTTPException(
+                status_code=404, detail=f"Collection `{stable_id}` not found"
+            )
 
     async def get_track_count(self) -> int:
-        statement = select(func.count(Track.source_id)).where(
-            Track.data_store.in_(self.__data_store)
-        )
+        stmt = select(func.count(Track.source_id))
+        stmt = self.__apply_filter(stmt, Track)
 
-        result = (await self.__database_session.execute(statement)).scalars().first()
+        result = (await self.__database_session.execute(stmt)).scalars().first()
         return result
 
     async def get_collection(self, collection_id: str = None) -> List[Collection]:

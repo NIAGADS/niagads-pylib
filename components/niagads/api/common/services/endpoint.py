@@ -5,7 +5,7 @@ from niagads.api.common.models.context.response import ResponseConfiguration
 from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.api.common.models.responses.pagination import PaginationState
 from niagads.api.common.parameters.internal import EndpointContext
-from niagads.api.common.services.features import FeatureQueryService
+from niagads.api.common.services.feature import FeatureQueryService
 from niagads.common.genomic.features.models import GenomicFeature
 
 from components.niagads.api.common.services.pagination import PaginationService
@@ -95,8 +95,3 @@ class EndpointService:
         # match self._response_config.view:
         # case ResponseView.TABLE:
         #    return await self.generate_table_response(response)
-
-    async def get_feature_location(self, feature: GenomicFeature):
-        return await FeatureQueryService(self._context.session).get_feature_location(
-            feature
-        )

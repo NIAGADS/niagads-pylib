@@ -1,16 +1,17 @@
+from typing import Optional
+
 from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.api.common.types import ResponseFormat, ResponseLayout, ResponseView
-from niagads.exceptions.core import ValidationError
 from pydantic import BaseModel, field_validator, model_validator
 
 
 class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     """Captures parameter values (format, content, view) and model needed to build the response"""
 
-    format: ResponseFormat = ResponseFormat.JSON
-    view: ResponseView = ResponseView.FULL
-    layout: ResponseLayout = ResponseLayout.DEFAULT
-    model: type[BaseResponseModel] = None
+    format: Optional[ResponseFormat] = ResponseFormat.JSON
+    view: Optional[ResponseView] = ResponseView.FULL
+    layout: Optional[ResponseLayout] = ResponseLayout.DEFAULT
+    model: type[BaseResponseModel]
 
     @model_validator(mode="after")
     def validate_config(self, __context):
@@ -18,7 +19,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
             self.view not in [ResponseView.FULL, ResponseView.SUMMARY]
             and self.layout != ResponseLayout.DEFAULT
         ):
-            raise ValidationError(
+            raise ValueError(
                 f"Can only generate a `{str(self.layout)}` `layout` of the result for "
                 f"`full` and `summary` response `views`"
             )
@@ -40,18 +41,18 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
         try:
             return ResponseLayout(layout)
         except NameError:
-            raise ValidationError(f"Invalid value provided for `layout`: {layout}")
+            raise ValueError(f"Invalid value provided for `layout`: {layout}")
 
     @field_validator("format")
-    def validate_foramt(cls, format):
+    def validate_format(cls, format):
         try:
             return ResponseFormat(format)
         except NameError:
-            raise ValidationError(f"Invalid value provided for `format`: {format}")
+            raise ValueError(f"Invalid value provided for `format`: {format}")
 
     @field_validator("view")
     def validate_view(cls, view):
         try:
             return ResponseView(view)
         except NameError:
-            raise ValidationError(f"Invalid value provided for `view`: {format}")
+            raise ValueError(f"Invalid value provided for `view`: {format}")

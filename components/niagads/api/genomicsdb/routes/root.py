@@ -11,7 +11,7 @@ from niagads.api.common.models.response.base import (
     RecordResponse,
 )
 from niagads.api.common.models.routes import RouteDescription
-from niagads.api.common.services.metadata.query import MetadataQueryService
+from niagads.api.common.services.metadata import MetadataQueryService
 
 from niagads.api.genomicsdb.dependencies import (
     TRACK_DATA_STORES,

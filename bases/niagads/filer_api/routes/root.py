@@ -2,10 +2,8 @@ import functools
 
 from fastapi import APIRouter, Depends, Request, Response
 from niagads.api.common.app.factory import AppFactory
-from niagads.api.common.models.domain.entities.entity import Entity, EntityMetrics
-from niagads.api.common.models.response.base import DataResponse
-from niagads.api.common.models.summary.routes import RouteDescriptor
-from niagads.api.common.services.metadata.query import MetadataQueryService
+from niagads.api.common.models.summary.responses import APISummaryResponse
+from niagads.api.common.services.metadata import MetadataQueryService
 from niagads.filer_api.dependencies import FILEREndpointRequestParameters
 from niagads.filer_api.documentation import APP_NAME, OPEN_API_TAGS, PUBMED_IDS
 
@@ -16,7 +14,7 @@ router = APIRouter(tags=["Status"])
     "/status",
     summary="get-api-status",
     description="Retrieve basic FILER API status and service information.",
-    response_model=DataResponse,
+    response_model=APISummaryResponse,
 )
 async def get_status(
     internal: FILEREndpointRequestParameters = Depends(),
@@ -32,7 +30,7 @@ async def get_status(
         pubmed_id=PUBMED_IDS,
         records=[EntityMetrics(entity=Entity.TRACK, num_records=track_metrics)],
     )
-    return DataResponse(data=[result], request=internal.request_data)
+    return APISummaryResponse(data=result, request=internal.request_data)
 
 
 @functools.lru_cache()

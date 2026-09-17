@@ -7,7 +7,7 @@ from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.entities import Entity, EntityRecordStats
 from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.models.routes import RouteDescription
-from niagads.api.common.services.metadata.query import MetadataQueryService
+from niagads.api.common.services.metadata import MetadataQueryService
 
 from niagads.api.filer.dependencies import (
     TRACK_DATA_STORES,
