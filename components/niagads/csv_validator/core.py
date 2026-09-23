@@ -206,10 +206,10 @@ class CSVTableValidator(CSVValidator):
             raise TypeError(
                 "metadata not loaded; run `[validator].load()` before extracting sample IDs"
             )
-        
+
         if field not in self._metadata[0]:  # metadata is a list of dicts
-            return []
-            
+            raise KeyError(f"invalid metadata field `{field}`; cannot extract values")
+
         field_values = [r[field] for r in self._metadata]
         return drop_nulls(field_values) if exclude_nulls else field_values
 
