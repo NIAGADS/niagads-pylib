@@ -26,9 +26,9 @@ class Phenotype(CustomBaseModel):
         title="Neuropathology",
         description="pathology or classification of the degree of pathology",
     )
-    symptom: Optional[List[OntologyTerm]] = Field(
+    clinical_status: Optional[List[OntologyTerm]] = Field(
         default=None,
-        title="Symptom",
+        title="Clinical Status or Symptom",
         description="observed or reported characteristic used to describe an individual's health state",
     )
     ethnicity: Optional[List[OntologyTerm]] = Field(
@@ -49,6 +49,11 @@ class Phenotype(CustomBaseModel):
 
     genotype: Optional[List[OntologyTerm]] = Field(default=None, title="Genotype")
     gender: Optional[List[OntologyTerm]] = Field(default=None, title="Gender")
+    derived_phenotype: Optional[List[OntologyTerm]] = Field(
+        default=None,
+        title="Derived Phenotype",
+        description="phenotype inferred or calculated from one or more measured phenotypic variables",
+    )
 
     def get_ontology_terms(self) -> List[OntologyTerm]:
         """Extract all ontology terms from phenotype fields.
