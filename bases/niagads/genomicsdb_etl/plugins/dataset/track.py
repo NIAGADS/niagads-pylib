@@ -9,7 +9,12 @@ from typing import Any, Dict, Iterator, Optional, Union
 from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.track.models.record import TrackRecord
 from niagads.common.types import ETLOperation
-from niagads.database.genomicsdb.schema.dataset.track import Track, TrackConcept
+from niagads.database.genomicsdb.schema.dataset.track import (
+    Track,
+    TrackConcept,
+    TrackContext,
+    TrackContextType,
+)
 from niagads.database.genomicsdb.schema.reference.ontology import (
     OntologyTerm as DBOntologyTermRecord,
 )
@@ -175,6 +180,17 @@ class TrackJSONLoader(TrackLoaderBase):
     async def transform(self, record: TrackRecord) -> TrackRecord:
         return record
 
+    def __extract_contextual_ontology_terms(
+        self, context_type: TrackContextType, record: TrackRecord
+    ):
+        annotation = context_type.retrieve_context_from_record(record)
+        if annotation is None:
+            return None
+
+        self.logger.debug(f"context={context_type}; annotation={annotation}")
+
+        return OntologyTerm.extract_from_obj(annotation)
+
     async def load(self, session, records: list[TrackRecord]):
         """note: expects a list of records due to ETL plugin implementation (of size batch-size) but
         in reality will be getting 1"""
@@ -202,14 +218,29 @@ class TrackJSONLoader(TrackLoaderBase):
         for keyword in track_record.keywords:
             key = f"{keyword.curie}|{keyword.term}"
             keyword_pk: int = self._ontology_term_reference[key].ontology_term_id
+            self.logger.debug(f"Found Keyword: {key} - {keyword_pk}")
             concepts.append(
                 TrackConcept(track_id=track_id, ontology_term_id=keyword_pk)
             )
+        await TrackConcept.submit_many(session, concepts)
 
-        """
-        TrackConcept
-        TrackContext
-            -> term_id, concept_type (phenotype, biosample, experiment)
-        """
+        contexts: list[TrackContext] = []
+        context_type: TrackContextType
+        for context_type in TrackContextType:
+            ontology_terms: list[OntologyTerm] = (
+                self.__extract_contextual_ontology_terms(context_type, track_record)
+            )
+            for ot in ontology_terms:
+                key = f"{ot.curie}|{ot.term}"
+                ot_pk: int = self._ontology_term_reference[key].ontology_term_id
+                self.logger.debug(f"Found Contextual OT: {key} - {ot_pk}")
+                contexts.append(
+                    TrackContext(
+                        track_id=track_id,
+                        ontology_term_id=ot_pk,
+                        context=str(context_type),
+                    )
+                )
+        await TrackContext.submit_many(session, contexts)
 
         return self.create_checkpoint(record=track_record)

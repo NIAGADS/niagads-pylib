@@ -1,7 +1,7 @@
 """`Track` (metadata) database model"""
 
 from enum import auto
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from niagads.common.track.models import (
     BiosampleCharacteristics,
@@ -101,6 +101,16 @@ class TrackContextType(CaseInsensitiveEnum):
     BIOSAMPLE = auto()
     PHENOTYPE = auto()
     EXPERIMENT = auto()
+
+    def retrieve_context_from_record(
+        self, record: Track
+    ) -> Union[BiosampleCharacteristics, Phenotype, ExperimentalDesign]:
+        if self is TrackContextType.BIOSAMPLE:
+            return record.biosample_characteristics
+        if self is TrackContextType.PHENOTYPE:
+            return record.participant_phenotypes
+        if self is TrackContextType.EXPERIMENT:
+            return record.experimental_design
 
 
 class TrackContext(DatasetTableBase):
