@@ -163,6 +163,11 @@ class BiosourcePropertiesValidator(CSVTableValidator):
         result = super().run(fail_on_error)
 
         if self.__require_unique_ids:
-            result = self.validate_unqiue_identifiers(result, fail_on_error)
+            try:
+                result = self.validate_unqiue_identifiers(result, fail_on_error)
+            except KeyError:
+                # biosource_id field is missing, allow it to go uncaught and
+                # validator should return a required field missing error
+                pass
 
         return result
