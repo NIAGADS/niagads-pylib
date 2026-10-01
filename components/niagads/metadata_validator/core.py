@@ -67,7 +67,7 @@ class FileManifestValidator(CSVTableValidator):
                 raise error
             else:
                 validation_result["errors"][
-                     f"invalid_{self.__sample_field.upper()}"
+                    f"invalid_{self.__sample_field.upper()}"
                 ] = invalid_samples
 
         if len(missing_samples) > 0:
@@ -88,7 +88,12 @@ class FileManifestValidator(CSVTableValidator):
         result = super().run(fail_on_error)
 
         if self.__sample_reference is not None:
-            result = self.validate_samples(result, fail_on_error)
+            try:
+                result = self.validate_samples(result, fail_on_error)
+            except KeyError:
+                # sample_id field is missing, allow it to go uncaught and
+                # validator should return a required field missing error
+                pass
 
         return result
 
@@ -115,7 +120,7 @@ class BiosourcePropertiesValidator(CSVTableValidator):
             promote_error_cutoff=promote_error_cutoff,
             debug=debug,
         )
-        
+
         self._biosource_id = "sample_id"
         self.__require_unique_ids = False
 
@@ -138,7 +143,7 @@ class BiosourcePropertiesValidator(CSVTableValidator):
                 raise error
             else:
                 validation_result["errors"][
-                   f"duplicate_{self._biosource_id.upper()}"
+                    f"duplicate_{self._biosource_id.upper()}"
                 ] = duplicates
 
         return validation_result
@@ -158,6 +163,11 @@ class BiosourcePropertiesValidator(CSVTableValidator):
         result = super().run(fail_on_error)
 
         if self.__require_unique_ids:
-            result = self.validate_unqiue_identifiers(result, fail_on_error)
+            try:
+                result = self.validate_unqiue_identifiers(result, fail_on_error)
+            except KeyError:
+                # biosource_id field is missing, allow it to go uncaught and
+                # validator should return a required field missing error
+                pass
 
         return result
