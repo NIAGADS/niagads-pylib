@@ -22,9 +22,9 @@ class CurationEventType(CaseInsensitiveEnum):
 class CurationActorType(CaseInsensitiveEnum):
     """Actor types for curation events."""
 
-    USER = auto()
-    SERVICE = auto()
-    PIPELINE = auto()
+    PERSON = auto()  # idividual curator
+    ORGANIZATION = auto()  # institution or team
+    SOFTWARE = auto()  # automated tool or pipeline
 
 
 class CurationEvent(CustomBaseModel):
@@ -37,13 +37,18 @@ class CurationEvent(CustomBaseModel):
 
     event_date: str = Field(title="Event date")
     event_type: CurationEventType = Field(
-        default=CurationEventType.STANDARDIZE, title="Event type"
+        default=CurationEventType.STANDARDIZE, title="Event Type"
     )
     actor: Optional[str] = Field(
-        default="NIAGADS", title="Agent performing the event (user or service)"
+        default="NIAGADS", description="Agent performing the event (user or service)"
     )
     actor_type: Optional[CurationActorType] = Field(
-        default=CurationActorType.USER, description="user|service|pipeline"
+        default=CurationActorType.ORGANIZATION,
+        title="Actor Type",
+        description=f"One of {CurationActorType.list()}",
     )
-    tool: Optional[str] = Field(default=None, title="Software or pipeline name")
+    tool: Optional[str] = Field(default=None, description="Software or pipeline name")
     tool_version: Optional[str] = Field(default=None)
+    description: str = Field(
+        ...,
+    )
