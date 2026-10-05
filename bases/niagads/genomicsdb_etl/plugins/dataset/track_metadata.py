@@ -6,6 +6,7 @@ TrackJSONLoader Plugin
 import json
 from typing import Any, Dict, Iterator, Optional, Union
 
+from niagads.common.models.base import SerializationOptions
 from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.track.models.record import TrackRecord
 from niagads.common.types import ETLOperation
@@ -27,8 +28,8 @@ from niagads.genomicsdb_etl.plugins.dataset.base import (
     TrackLoaderBaseParams,
 )
 from niagads.utils.string import xstr
-from niagads.utils.sys import read_open_ctx
-from pydantic import Field
+from niagads.utils.sys import backup_file, read_open_ctx
+from pydantic import BaseModel, Field
 from sqlalchemy.exc import NoResultFound
 
 MESH_NAMESPACE = "MeSH_Descriptor"
@@ -80,6 +81,7 @@ class TrackJSONLoader(TrackLoaderBase):
         self._ontology_term_reference: dict[
             str, DBOntologyTermRecord
         ]  # map of provided value to DB record
+        self.__corrected_track_record: TrackRecord
 
     async def on_run_start(self, session):
         """Initialize dataset type and prepare for ETL run."""
@@ -131,7 +133,9 @@ class TrackJSONLoader(TrackLoaderBase):
         track_record = TrackRecord(**track_json)
 
         async with self.session_ctx() as session:
-            self.__validate_ontology_terms(session, track_record, fail_on_error=False)
+            await self.__validate_ontology_terms(
+                session, track_record, fail_on_error=False
+            )
 
         # Write terms to file
         output_file_name = f"{self._name}_ontology_terms.txt"
@@ -171,6 +175,16 @@ class TrackJSONLoader(TrackLoaderBase):
     def __extract_contextual_ontology_terms(
         self, context_type: TrackContextType, record: TrackRecord
     ):
+        """Extract ontology terms from a track's contextual annotation.
+
+        Args:
+            context_type: Context definition used to retrieve the annotation.
+            record: Track record containing the annotation.
+
+        Returns:
+            list[OntologyTerm] | None: Extracted terms, or None if no annotation
+                is present.
+        """
         annotation = context_type.retrieve_context_from_record(record)
         if annotation is None:
             return None
@@ -178,6 +192,40 @@ class TrackJSONLoader(TrackLoaderBase):
         self.logger.debug(f"context={context_type}; annotation={annotation}")
 
         return OntologyTerm.extract_from_obj(annotation)
+
+    def __update_nested_ontology_references(self, record: TrackRecord) -> None:
+        """Replace nested ontology terms with their canonical database values.
+
+        Updates each term's label and CURIE in place and adds its canonical key
+        to the reference map for subsequent lookups by recursively parsing
+        nested objects.
+
+        Args:
+            record: Track record to update.
+
+        Raises:
+            KeyError: If a term does not have a matching reference entry.
+        """
+
+        def update_ontology_terms(value: Any) -> None:
+            if isinstance(value, OntologyTerm):
+                key = f"{value.curie}|{value.term}"
+                reference = self._ontology_term_reference[key]
+                curie = reference.source_id.replace("_", ":")
+                self._ontology_term_reference[f"{curie}|{reference.term}"] = reference
+                value.term = reference.term
+                value.curie = curie
+            elif isinstance(value, BaseModel):
+                for field_name in value.__class__.model_fields:
+                    update_ontology_terms(getattr(value, field_name, None))
+            elif isinstance(value, dict):
+                for item in value.values():
+                    update_ontology_terms(item)
+            elif isinstance(value, (list, tuple, set)):
+                for item in value:
+                    update_ontology_terms(item)
+
+        update_ontology_terms(record)
 
     async def load(self, session, records: list[TrackRecord]):
         """note: expects a list of records due to ETL plugin implementation (of size batch-size) but
@@ -190,7 +238,8 @@ class TrackJSONLoader(TrackLoaderBase):
 
         # validate the ontology terms, and save mapping to DB
         # not point in continuing if not valid
-        self.__validate_ontology_terms(session, track_record)
+        await self.__validate_ontology_terms(session, track_record)
+        self.__update_nested_ontology_references(track_record)
 
         track_data = track_record.model_dump(exclude=["id"], exclude_none=True)
         track_data["source_id"] = track_record.id
@@ -232,3 +281,19 @@ class TrackJSONLoader(TrackLoaderBase):
         await TrackContext.submit_many(session, contexts)
 
         return self.create_checkpoint(record=track_record)
+
+    def on_run_complete(self):
+
+        # save old track-json file as backup
+        backup_file(self._params.file)
+
+        # export updated track-json file
+        print(
+            json.dumps(
+                self.__corrected_track_record.model_dump(
+                    exclude_none=True,
+                    context={SerializationOptions.ENUMS_AS_VALUE: True},
+                ),
+                indent=4,
+            )
+        )
