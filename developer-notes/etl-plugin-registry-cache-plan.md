@@ -4,7 +4,7 @@
 
 Registry performance could be improved with a manifest, but developers should only use `@PluginRegistry.register(...)`. A hand-maintained manifest is the wrong interface.
 
-The registry should maintain its own cache. Normal plugin execution should use the cache.  Cache misses should exit and request that a user perform `--refresh-registry` that can provide an explicit command to regenerate the registry or add newly developed plugins to the manifest, unless the cache does not exist (e.g., first run) in which case, the registry refresh should be excuted.
+The registry should maintain its own cache. Normal plugin execution should use the cache. If the cache does not exist, such as on the first run, the registry should refresh it automatically. If an existing cache does not contain the requested plugin, execution should exit and instruct the user to run `--refresh-registry` to regenerate the cache.
 
 ## Proposed behavior
 
@@ -18,9 +18,7 @@ The registry should maintain its own cache. Normal plugin execution should use t
 
   1. Load the indexed module only.
   2. Let the decorator populate the in-memory registry.
-  3. If the plugin is absent from the index, perform a full package discovery.
-  4. Retry the lookup once.
-  5. Raise the existing `KeyError` if it is still unavailable.
+  3. If the plugin is absent from an existing index, exit and instruct the user to run `--refresh-registry`.
 
 - When `--list-plugins` is used, load names from the index without importing every plugin module.
 
@@ -31,9 +29,9 @@ The registry should maintain its own cache. Normal plugin execution should use t
 The cache should be maintained automatically by the registry/utilities:
 
 - Update entries whenever a decorator registers a plugin.
-- Detect changed or newly added plugin files using package metadata or file signatures.
-- Automatically refresh on a plugin lookup miss.
-- Treat a missing, stale, corrupt, or incompatible cache as a cache miss and rebuild it.
+- Detect changed or newly added plugin files during an explicit registry refresh.
+- Refresh automatically when the cache does not exist.
+- Treat a stale, corrupt, or incompatible existing cache as unavailable and instruct the user to run `--refresh-registry`.
 - Store the cache outside source control, such as the application cache directory, rather than inside the repository.
 - Use an atomic write so concurrent ETL processes cannot leave a partial cache.
 
@@ -41,7 +39,7 @@ The explicit refresh option remains useful after deployment changes, packaging c
 
 ## Important limitation
 
-A decorator cannot register a class that has never been imported. Therefore, the first discovery after adding a plugin must still scan/import the package once. The cache eliminates that cost on subsequent processes, and the automatic lookup-miss refresh means developers do not need to remember any maintenance step.
+A decorator cannot register a class that has never been imported. Therefore, the first run, when no cache exists, must scan/import the package once. After a plugin is added, the existing cache remains unchanged until a user explicitly runs `--refresh-registry`.
 
 ## Scope of implementation
 
@@ -88,7 +86,7 @@ class MyPlugin(...):
     ...
 ```
 
-Adding a new plugin requires no manifest update and no explicit refresh; the first lookup miss triggers discovery and refreshes the temporary cache.
+Adding a new plugin requires no manifest update. The user must run `--refresh-registry` before the new plugin is available through an existing cache.
 
 ### Implementation changes
 
@@ -104,12 +102,12 @@ Adding a new plugin requires no manifest update and no explicit refresh; the fir
 
 - Cache is created outside the repository.
 - A cached plugin loads without scanning all modules.
-- Adding a plugin is detected automatically after a lookup miss.
+- Missing cache triggers an automatic refresh.
 - `--refresh-registry` replaces the temporary cache.
-- Deleted, stale, corrupt, and permission-denied cache files recover through discovery.
+- Existing stale, corrupt, and permission-denied cache files require `--refresh-registry`.
 - Separate virtual environments produce separate cache files.
 
-- New plugin file discovered automatically after a lookup miss.
+- New plugin file becomes available after `--refresh-registry`.
 - Cached plugin loads only its module.
 - `--refresh-registry` rebuilds the index.
 - Corrupt or stale cache triggers a rebuild.
