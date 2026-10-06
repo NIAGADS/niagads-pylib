@@ -355,7 +355,7 @@ class SimpleTextLoader(AbstractBasePlugin):
                 fields = line.strip().split("\t")
                 yield dict(zip(header, fields)) # yields one record
 
-    def transform(self, record):
+    async def transform(self, record):
         # .> one record -> one record
         # Example: convert all values to uppercase
         transformed_record = ToyTable(**{k: v.upper() for k, v in record.items()})
