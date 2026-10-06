@@ -6,12 +6,10 @@ from datetime import date, datetime
 from enum import Enum, auto
 
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.utils.dict import prune
 from niagads.utils.string import dict_to_info_string, xstr
 from pydantic import (
     BaseModel,
     ConfigDict,
-    Field,
     FieldSerializationInfo,
     SerializerFunctionWrapHandler,
     field_serializer,
