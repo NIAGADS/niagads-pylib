@@ -4,7 +4,7 @@ TrackJSONLoader Plugin
 """
 
 import json
-from typing import Any, Dict, Iterator, Optional, Union
+from typing import Any, Dict, Iterator, Optional
 
 from niagads.common.models.base import SerializationOptions
 from niagads.common.reference.ontologies.models import OntologyTerm
@@ -227,6 +227,26 @@ class TrackJSONLoader(TrackLoaderBase):
 
         update_ontology_terms(record)
 
+    def __validate_study_diagnosis_phenotypes(self, record: TrackRecord):
+        phenotype_terms = [
+            ot.term
+            for ot in self.__extract_contextual_ontology_terms(
+                TrackContextType.PHENOTYPE, record
+            )
+        ]
+        diagnosis_terms = [
+            phenotype
+            for diagnosis in record.study_diagnosis
+            for phenotype in diagnosis.phenotype
+        ]
+
+        mismatches = sorted(set(diagnosis_terms) - set(phenotype_terms))
+        if mismatches:
+            raise ValueError(
+                f"Study diagnosis phenotypes missing from contextual phenotypes: "
+                f"{mismatches}"
+            )
+
     async def load(self, session, records: list[TrackRecord]):
         """note: expects a list of records due to ETL plugin implementation (of size batch-size) but
         in reality will be getting 1"""
@@ -239,6 +259,7 @@ class TrackJSONLoader(TrackLoaderBase):
         # validate the ontology terms, and save mapping to DB
         # not point in continuing if not valid
         await self.__validate_ontology_terms(session, track_record)
+        self.__validate_study_diagnosis_phenotypes(track_record)
         self.__update_nested_ontology_references(track_record)
 
         track_data = track_record.model_dump(exclude=["id"], exclude_none=True)
