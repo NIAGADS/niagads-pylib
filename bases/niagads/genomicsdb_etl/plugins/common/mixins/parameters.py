@@ -13,7 +13,8 @@ See project documentation for usage patterns and integration details.
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
+from sqlalchemy.exc import NoResultFound
 
 
 class ExternalDatabaseRef(BaseModel):
@@ -21,7 +22,8 @@ class ExternalDatabaseRef(BaseModel):
     Pydantic model for an external database reference.
 
     Attributes:
-        name (str): Name of the external database.
+        name (str): Name or key (e.g., KEGG v Kyoto Enclyopedia of Genes and Genomes)
+            of the external database.
         version (str): Version of the external database.
     """
 
@@ -53,7 +55,14 @@ class ExternalDatabaseRefMixin(BaseModel):
         xdbref (str): External database reference string in the format 'name|version'.
     """
 
-    xdbref: str
+    xdbref: str = Field(
+        ...,
+        description=(
+            "External database reference string in format of `name|version` "
+            "or `key|version`. Put within quotes so | does not get interpreted "
+            "by the shell."
+        ),
+    )
 
     @field_validator("xdbref")
     def validate_xdbref_format(cls, value):
@@ -94,8 +103,17 @@ class ExternalDatabaseRefMixin(BaseModel):
         return ExternalDatabase.find_primary_key(session, self.xdbref_to_dict())
 
     async def fetch_xdbref(self, session):
-        record: ExternalDatabase = await ExternalDatabase.fetch_record(
-            session, self.xdbref_to_dict()
-        )
+        filters = self.xdbref_to_dict()
+        try:
+            record: ExternalDatabase = await ExternalDatabase.fetch_record(
+                session, filters
+            )
+        except NoResultFound:
+            # try against key instead of name
+            record: ExternalDatabase = await ExternalDatabase.fetch_record(
+                session,
+                {"version": filters["version"], "database_key": filters["name"]},
+            )
+
         await record.detach(session)
         return record
