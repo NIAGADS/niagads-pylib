@@ -228,6 +228,18 @@ class TrackJSONLoader(TrackLoaderBase):
         update_ontology_terms(record)
 
     def __validate_study_diagnosis_phenotypes(self, record: TrackRecord):
+        """Validate study diagnosis phenotypes against contextual phenotypes.
+
+        Args:
+            record: Track record to validate.
+
+        Raises:
+            ValueError: If a study diagnosis phenotype is missing from the
+                contextual phenotypes.
+
+        FIXME: Move this validation to TrackRecord model validation when
+        study_diagnosis is provided.
+        """
         phenotype_terms = [
             ot.term
             for ot in self.__extract_contextual_ontology_terms(
