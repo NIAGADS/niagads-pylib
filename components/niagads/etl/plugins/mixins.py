@@ -2,7 +2,6 @@ from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
 from niagads.database.genomicsdb.schema.admin.types import TableRef
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.nlp.embeddings import TextEmbeddingGenerator
-from pydantic import BaseModel
 
 
 class ExternalDatabaseContextMixin:
