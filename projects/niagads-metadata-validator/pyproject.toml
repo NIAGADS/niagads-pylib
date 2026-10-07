@@ -16,7 +16,7 @@ description = "JSON Schema based validation of dataset metadata developed to sup
 license = { text = "GNU GPLv3" }
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
-version = "0.3.1"
+version = "0.3.2"
 
 [project.scripts]
 metadata-validator = "niagads.metadata_validator_tool.core:main"
