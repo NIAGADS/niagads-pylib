@@ -12,17 +12,17 @@ from niagads.common.track.models import (
 )
 from niagads.common.track.models.curation import CurationEvent
 from niagads.common.track.models.phenotypes import PhenotypeCount
-from niagads.database.helpers import enum_column, enum_constraint
-from niagads.database.mixins import GenomicRegionMixin
-from niagads.enums.core import CaseInsensitiveEnum
-from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.database.genomicsdb.schema.dataset.base import DatasetTableBase
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
+from niagads.database.helpers import enum_column, enum_constraint
+from niagads.database.mixins import GenomicRegionMixin
+from niagads.enums.core import CaseInsensitiveEnum
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from sqlalchemy import Column, Index, Integer, String
-from sqlalchemy.dialects.postgresql import JSONB, ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 

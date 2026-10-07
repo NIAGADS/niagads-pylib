@@ -11,7 +11,9 @@ from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.track.models.record import TrackRecord
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.dataset.track import Track
-from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm as DBOntologyTerm
+from niagads.database.genomicsdb.schema.reference.ontology import (
+    OntologyTerm as DBOntologyTerm,
+)
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
@@ -37,7 +39,6 @@ class TrackJSONLoaderParams(TrackLoaderBaseParams, PathValidatorMixin):
     dataset_type_curie: str = Field(
         description="ontology term CURIE for the dataset type; if not specified, will use track's feature_type",
     )
-
 
 
 @PluginRegistry.register(
@@ -93,7 +94,7 @@ class TrackJSONLoader(TrackLoaderBase):
         """
         self.logger.info("Preprocessing: Extracting ontology terms from tracks...")
 
-        file_paths = self._params.file.split(',')
+        file_paths = self._params.file.split(",")
         term_count = 0
 
         # Extract terms from all files
@@ -173,9 +174,7 @@ class TrackJSONLoader(TrackLoaderBase):
         """Generate output file path for preprocessing results."""
         return f"{self._name}_ontology_terms.txt"
 
-    def _write_ontology_terms_file(
-        self, output_file: str, terms: Set[tuple]
-    ) -> None:
+    def _write_ontology_terms_file(self, output_file: str, terms: Set[tuple]) -> None:
         """Write ontology terms to tab-delimited file."""
         with open(output_file, "w") as f:
             f.write("term\tcurie\n")
@@ -191,7 +190,7 @@ class TrackJSONLoader(TrackLoaderBase):
         """
         total_records = 0
 
-        for file_path in self._params.file.split(','):
+        for file_path in self._params.file.split(","):
             self.logger.info(f"Extracting records from {file_path}")
             try:
                 records_data = self._load_json_file(file_path)
@@ -205,9 +204,7 @@ class TrackJSONLoader(TrackLoaderBase):
                         track_record = TrackRecord(**record_data)
                         total_records += 1
                         if self._verbose:
-                            self.logger.debug(
-                                f"Extracted record: {track_record.id}"
-                            )
+                            self.logger.debug(f"Extracted record: {track_record.id}")
                         yield track_record
                     except Exception as err:
                         self.logger.error(
@@ -219,7 +216,9 @@ class TrackJSONLoader(TrackLoaderBase):
                 self.logger.error(f"Failed to extract from {file_path}: {err}")
                 raise
 
-        self.logger.info(f"Extracted {total_records} track records from {len(self._params.file)} file(s)")
+        self.logger.info(
+            f"Extracted {total_records} track records from {len(self._params.file)} file(s)"
+        )
 
     async def transform(self, records: list[TrackRecord]) -> list[TrackRecord]:
         """
