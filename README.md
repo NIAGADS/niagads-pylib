@@ -62,6 +62,14 @@ poetry install
 
 > If working off a specific branch, checkout the branch before running `poetry install`.
 
+### PR Python Checks and Formatting
+
+The **Python quality** GitHub Action validates syntax in all tracked Python files, including malformed f-strings. Syntax errors are logged and fail the action before formatting. Ruff reports unused imports as warnings without fixing them or failing the action.
+
+For PRs from this repository, isort and Black apply the root `pyproject.toml` rules and commit formatting changes to the PR branch. Formatting excludes `development/**` and `**/alembic/versions/**`; these files still receive syntax and unused-import checks. Fork PRs run formatting checks without changing files.
+
+The **Python quality comment** workflow posts or updates a log comment mentioning the PR author, including when validation fails. Long logs are truncated in the comment, with the full report available as a workflow artifact. This reporting workflow must exist on the default branch to run.
+
 ### Polylith Architecture
 
 More Details TBA
