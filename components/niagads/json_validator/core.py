@@ -1,22 +1,17 @@
-import logging
 import json
-
-from jsonschema import (
-    Draft7Validator as DraftValidator,
-    exceptions as jsExceptions,
-    validators as jsValidators,
-)
+import logging
 from typing import List
 
-from niagads.utils.dict import print_dict
-from niagads.utils.list import list_to_string
-
-from niagads.json_validator.format_checkers import JSONSchemaFormatChecker
-
+from jsonschema import Draft7Validator as DraftValidator
+from jsonschema import exceptions as jsExceptions
+from jsonschema import validators as jsValidators
 from niagads.json_validator.custom_validators import (
     case_insensitive_enum_validator,
     one_of_enum_validator,
 )
+from niagads.json_validator.format_checkers import JSONSchemaFormatChecker
+from niagads.utils.dict import print_dict
+from niagads.utils.list import list_to_string
 
 
 class JSONValidator:
@@ -128,7 +123,7 @@ class JSONValidator:
             custom_validators["enum"] = case_insensitive_enum_validator
             custom_validators["oneOf"] = case_insensitive_enum_validator
         else:
-            custom_validators["oneOf"] = one_of_enum_validator 
+            custom_validators["oneOf"] = one_of_enum_validator
 
         self.__custom_validator_class = jsValidators.create(
             meta_schema=DraftValidator.META_SCHEMA, validators=custom_validators
@@ -191,7 +186,9 @@ class JSONValidator:
         )
 
         msg = error.message
-        property_name = error.path.popleft() if error.path else None # file-level error -> None
+        property_name = (
+            error.path.popleft() if error.path else None
+        )  # file-level error -> None
         if "is not of type 'null'" in msg:
             msg = f"unexpected value; check for an error in a related field or set to an empty string (text/EXCEL) or `null` (json)"
         elif msg.startswith("None is not of type"):
@@ -212,7 +209,7 @@ class JSONValidator:
             fail_on_error (bool, optional): fail on error.  Defaults to False.
 
         Returns:
-            
+
             raise a ValidationError or return list of errors depending on fail_on_erro flag
         Raises
             jsonschema.exceptions.ValidationError
@@ -222,7 +219,7 @@ class JSONValidator:
             for e in sorted(self.__schema_validator.iter_errors(self.__json), key=str)
         ]
 
-        if errors and fail_on_error :
+        if errors and fail_on_error:
             self.validation_error(errors)
 
         return errors

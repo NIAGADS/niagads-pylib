@@ -1,4 +1,5 @@
 from enum import Enum
+
 from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.enums.core import CaseInsensitiveEnum
 

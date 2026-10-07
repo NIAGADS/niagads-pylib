@@ -13,8 +13,8 @@ from niagads.database.genomicsdb.schema.mixins import GenomicsDBTableMixin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from sqlalchemy import INTEGER, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 # these only need an external_database_id, but not a source_id

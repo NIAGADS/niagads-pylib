@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from fastapi import Query
-
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import ValidationError, extract_exception_message
 from niagads.utils.string import is_number

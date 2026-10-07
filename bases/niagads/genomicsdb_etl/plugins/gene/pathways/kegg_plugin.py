@@ -14,8 +14,8 @@ from niagads.genomicsdb_etl.plugins.gene.pathways.base_pathway_plugin import (
     PathwayMembershipLoaderPluginParams,
 )
 from niagads.genomicsdb_etl.plugins.gene.pathways.types import (
-    PathwayGeneAssociations,
     MembershipAnnotation,
+    PathwayGeneAssociations,
     PathwayInfo,
 )
 from niagads.utils.sys import get_files_by_pattern

@@ -1,5 +1,6 @@
 from enum import auto
 from typing import List
+
 from niagads.enums.core import CaseInsensitiveEnum
 
 

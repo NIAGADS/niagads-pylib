@@ -4,7 +4,7 @@ Pydantic models for Ensembl gene structures parsed from GFF3 files.
 Represents the domain-specific structures: genes, transcripts, exons, CDS, and UTR regions.
 """
 
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from niagads.common.genomic.regions.models import GenomicRegion
 from niagads.common.models.base import CustomBaseModel

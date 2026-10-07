@@ -1,10 +1,10 @@
 """Manager for a KeyDB key-value cache store"""
 
-from typing_extensions import Self
-from aiocache import RedisCache
-
 from enum import Enum
-from aiocache.serializers import StringSerializer, JsonSerializer, PickleSerializer
+
+from aiocache import RedisCache
+from aiocache.serializers import JsonSerializer, PickleSerializer, StringSerializer
+from typing_extensions import Self
 
 # int or float in seconds specifying maximum timeout for the operations to last.
 # By default (aiocache) its 5. Use 0 or None if you want to disable it.

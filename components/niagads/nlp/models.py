@@ -1,6 +1,7 @@
 """Pydantic models for NLP operations."""
 
 from typing import Any, Optional
+
 from pydantic import BaseModel, Field
 
 

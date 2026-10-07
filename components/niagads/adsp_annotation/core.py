@@ -36,15 +36,15 @@ import logging
 from collections import OrderedDict
 from datetime import date
 
-from niagads.utils.sys import warning, verify_path
-from niagads.utils.string import to_numeric, int_to_alpha, xstr
 from niagads.utils.dict import print_dict
 from niagads.utils.list import (
-    is_equivalent_list,
-    qw,
     alphabetize_string_list,
+    is_equivalent_list,
     list_to_indexed_dict,
+    qw,
 )
+from niagads.utils.string import int_to_alpha, to_numeric, xstr
+from niagads.utils.sys import verify_path, warning
 
 from .consequence_groups import ConseqGroup
 

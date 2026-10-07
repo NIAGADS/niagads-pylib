@@ -1,4 +1,5 @@
 from typing import Dict, Optional
+
 from niagads.exceptions.core import ValidationError
 from pydantic import BaseModel, Field, model_validator
 

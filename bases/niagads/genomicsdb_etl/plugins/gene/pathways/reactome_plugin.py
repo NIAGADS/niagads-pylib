@@ -134,7 +134,7 @@ class ReactomeLoaderPlugin(PathwayMembershipLoaderPlugin):
         self.logger.info(f"Starting transformation with {len(data)} input rows")
         duplicate_pair = set()  # to track the pathway_id,gene_id pairs
         duplicates_removed = 0
-        pathway_map: Dict[str, PathwayGeneAssociations] = {} 
+        pathway_map: Dict[str, PathwayGeneAssociations] = {}
 
         for record in data:
             pair = (record.pathway_id, record.gene_id)

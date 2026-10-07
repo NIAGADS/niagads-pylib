@@ -1,4 +1,5 @@
 from typing import Optional
+
 from niagads.api.common.models.domain.base import ORMCompatibleRecord
 from niagads.common.genomic.regions.models import GenomicRegion
 from niagads.genome_reference.human import HumanGenome

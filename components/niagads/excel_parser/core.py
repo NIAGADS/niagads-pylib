@@ -1,16 +1,16 @@
-import logging
 import json
-
+import logging
 from os import path
 from typing import Union
-from niagads.exceptions.core import FileFormatError
-from pandas import read_excel, DataFrame
-from openpyxl import Workbook as wb, load_workbook
-from openpyxl.utils.exceptions import InvalidFileException
 
+from niagads.exceptions.core import FileFormatError
 from niagads.utils.dict import convert_str2numeric_values
-from niagads.utils.string import xstr, to_snake_case
 from niagads.utils.pandas import strip_df
+from niagads.utils.string import to_snake_case, xstr
+from openpyxl import Workbook as wb
+from openpyxl import load_workbook
+from openpyxl.utils.exceptions import InvalidFileException
+from pandas import DataFrame, read_excel
 
 
 class ExcelFileParser:

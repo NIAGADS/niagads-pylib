@@ -4,24 +4,22 @@ management
 """
 
 import logging
+from abc import ABC, abstractmethod
+from configparser import ConfigParser as SafeConfigParser  # renamed in Python 3.2
 from os import environ
 from sys import exc_info
+from threading import Semaphore
 
-from abc import ABC, abstractmethod
-
-from psycopg2 import DatabaseError, connect as db_connect
+from niagads.exceptions.core import IllegalArgumentError
+from niagads.utils.sys import verify_path
+from psycopg2 import DatabaseError
+from psycopg2 import connect as db_connect
 from psycopg2.extensions import QueryCanceledError
 from psycopg2.extras import DictCursor, RealDictCursor
 from psycopg2.pool import (
     SimpleConnectionPool,
-    ThreadedConnectionPool as _ThreadedConnectionPool,
 )
-from threading import Semaphore
-
-from configparser import ConfigParser as SafeConfigParser  # renamed in Python 3.2
-
-from niagads.exceptions.core import IllegalArgumentError
-from niagads.utils.sys import verify_path
+from psycopg2.pool import ThreadedConnectionPool as _ThreadedConnectionPool
 
 
 def initialize_cursor(dbh, name: str = None, realDict=False, withhold=False):

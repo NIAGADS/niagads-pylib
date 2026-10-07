@@ -1,9 +1,8 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-
 
 ROOT = Path(__file__).resolve().parents[4]
 for package_root in [ROOT / "components", ROOT / "bases"]:
@@ -16,7 +15,6 @@ from niagads.nlp.llm_types import LLM
 from niagads.nlp.models import SummaryPrompt
 from niagads.nlp.summarization import TextSummaryGenerator
 
-
 TEST_MODEL_NAME = "sshleifer/tiny-gpt2"
 CHAT_TEMPLATE = """{% for message in messages %}{{ message['role'] }}: {{ message['content'] }}\n{% endfor %}{% if add_generation_prompt %}assistant: {% endif %}"""
 
@@ -27,7 +25,9 @@ def tiny_generation_pipeline():
         tokenizer = AutoTokenizer.from_pretrained(TEST_MODEL_NAME)
         model = AutoModelForCausalLM.from_pretrained(TEST_MODEL_NAME)
     except Exception as err:
-        pytest.skip(f"Unable to load lightweight HF test model `{TEST_MODEL_NAME}`: {err}")
+        pytest.skip(
+            f"Unable to load lightweight HF test model `{TEST_MODEL_NAME}`: {err}"
+        )
 
     tokenizer.chat_template = CHAT_TEMPLATE
     return pipeline(

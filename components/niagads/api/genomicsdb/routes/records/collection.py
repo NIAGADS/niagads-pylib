@@ -2,12 +2,12 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, Query
 from niagads.api.common.constants import SharedOpenAPITags
-from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.models.datasets.collection import CollectionResponse
 from niagads.api.common.models.datasets.track import (
     AbridgedTrackResponse,
     TrackResponse,
 )
+from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.parameters.pagination import page_param
 from niagads.api.common.parameters.record.path import collection_param
 from niagads.api.common.parameters.record.query import optional_track_param

@@ -2,15 +2,15 @@ from enum import auto
 from typing import Dict, List, Optional, Union
 
 from niagads.api.common.models.features.variant import AbridgedVariant, Variant
+from niagads.api.common.models.mixins import RowModel
+from niagads.api.common.models.response.record import BaseResponseModel
+from niagads.api.common.parameters.enums import EnumParameter
 from niagads.common.reference.ontologies.models import OntologyTerm
-from niagads.common.types import T_PubMedID
 from niagads.common.track.models import (
     BiosampleCharacteristics,
     Phenotype,
 )
-from niagads.api.common.models.mixins import RowModel
-from niagads.api.common.models.response.record import BaseResponseModel
-from niagads.api.common.parameters.enums import EnumParameter
+from niagads.common.types import T_PubMedID
 from pydantic import Field, field_serializer, model_validator
 
 

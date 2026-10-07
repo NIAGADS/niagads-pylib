@@ -9,19 +9,19 @@ from typing import Optional, Union
 from uuid import uuid4
 
 from niagads.common.reference.ontologies.types import EntityTypeIRI
-from niagads.database.helpers import enum_column, enum_constraint
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
+from niagads.database.helpers import enum_column, enum_constraint
 from niagads.utils.string import jaccard_word_similarity
 from pydantic import BaseModel, Field
 from sqlalchemy import TEXT, Boolean, Index, String, UniqueConstraint, select
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.exc import MultipleResultsFound, NoResultFound
-from sqlalchemy.dialects.postgresql import ARRAY
 
 
 class OntologyTerm(ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin):

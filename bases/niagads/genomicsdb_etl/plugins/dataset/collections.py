@@ -1,6 +1,7 @@
-from fileinput import filename
 import hashlib
+from fileinput import filename
 from typing import Optional
+
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.dataset.collection import (
     Collection,

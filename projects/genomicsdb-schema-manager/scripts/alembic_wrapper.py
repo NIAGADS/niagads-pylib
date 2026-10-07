@@ -7,16 +7,16 @@ Usage:
 """
 
 import argparse
+import uuid
+from datetime import datetime
 from os import path
 
 from helpers.config import Settings
-from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
-from niagads.utils.logging import setup_root_logger
 from niagads.common.core import ComponentBaseMixin
+from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.utils.sys import create_dir, execute_cmd, verify_path, remove_path
-from datetime import datetime
-import uuid
+from niagads.utils.logging import setup_root_logger
+from niagads.utils.sys import create_dir, execute_cmd, remove_path, verify_path
 
 
 class MigrationAction(CaseInsensitiveEnum):

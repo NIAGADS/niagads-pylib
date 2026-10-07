@@ -3,8 +3,8 @@ from typing import Any, List
 from alembic import context
 from helpers.config import Settings
 from niagads.common.core import ComponentBaseMixin
-from sqlalchemy import Connection
 from niagads.database.genomicsdb.schema.core import GenomicsDBSchemaBase
+from sqlalchemy import Connection
 
 
 # can't get logging to wrok. alembic_wrapper will capture stdout and print

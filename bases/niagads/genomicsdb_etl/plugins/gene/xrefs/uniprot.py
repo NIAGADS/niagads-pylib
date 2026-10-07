@@ -11,8 +11,8 @@ Input file format:
     R4GNG1         Ensembl_TRS ENST00000467678.5
 """
 
-from enum import Enum, auto
 import re
+from enum import Enum, auto
 from typing import Any, Dict, Iterator, Optional
 
 from niagads.common.types import ETLOperation

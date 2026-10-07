@@ -8,7 +8,6 @@ GeneXRef.
 
 from typing import Any, Dict, Iterator, List, Optional, Union
 
-
 from niagads.common.models.annotations import (
     AnnotationEvidenceDescriptor,
     AnnotationEvidenceQualifier,

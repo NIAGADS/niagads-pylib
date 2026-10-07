@@ -1,12 +1,11 @@
 """Database session management"""
 
-from contextlib import asynccontextmanager
 import logging
 from asyncio import current_task
+from contextlib import asynccontextmanager
 
 import asyncpg
 from asyncpg.transaction import Transaction
-
 from niagads.exceptions.core import AbstractMethodNotImplemented, ValidationError
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (

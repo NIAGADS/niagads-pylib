@@ -1,9 +1,10 @@
 from typing import Any, List, Self, Union
+
+import cyvcf2 as cyvcf
 from niagads.genome_reference.human import HumanGenome
 from niagads.utils.dict import info_string_to_dict
 from niagads.utils.string import to_json
 from pydantic import BaseModel
-import cyvcf2 as cyvcf
 
 VCF_HEADER_FIELDS = ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"]
 

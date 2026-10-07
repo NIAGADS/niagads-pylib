@@ -1,9 +1,9 @@
 import logging
 
 from niagads.utils.logging import (
+    LOG_FORMAT_STR,
     ExitOnExceptionHandler,
     FunctionContextLoggerWrapper,
-    LOG_FORMAT_STR,
 )
 
 

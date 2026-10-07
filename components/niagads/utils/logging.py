@@ -38,20 +38,16 @@ class FunctionContextLoggerWrapper:
                     try:
                         caller_self = frame.f_locals["self"]
                         cls_name = caller_self.__class__.__name__
-                        if (
-                            func
-                            in {
-                                "debug",
-                                "info",
-                                "warning",
-                                "error",
-                                "exception",
-                                "critical",
-                                "log",
-                            }
-                            and cls_name.endswith(
-                                ("Logger", "Wrapper", "Adapter", "Handler")
-                            )
+                        if func in {
+                            "debug",
+                            "info",
+                            "warning",
+                            "error",
+                            "exception",
+                            "critical",
+                            "log",
+                        } and cls_name.endswith(
+                            ("Logger", "Wrapper", "Adapter", "Handler")
                         ):
                             continue
                     except Exception:

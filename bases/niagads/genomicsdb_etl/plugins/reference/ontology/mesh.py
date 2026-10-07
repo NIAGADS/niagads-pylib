@@ -13,12 +13,8 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
-
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
-
 from niagads.etl.plugins.metadata import PluginMetadata
-
-
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.reference.ontology.base import (

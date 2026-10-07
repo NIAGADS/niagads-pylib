@@ -12,11 +12,11 @@ from niagads.common.track.models.phenotypes import (
     PhenotypeCount,
 )
 from niagads.common.track.models.provenance import (
-    Provenance,
     FileProperties,
+    Provenance,
 )
-from niagads.common.track.models.samples import BiosampleCharacteristics
 from niagads.common.track.models.record import TrackRecord
+from niagads.common.track.models.samples import BiosampleCharacteristics
 
 __all__ = [
     "CurationActorType",

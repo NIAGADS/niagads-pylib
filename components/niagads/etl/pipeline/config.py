@@ -1,10 +1,10 @@
 from enum import auto
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
 
+from niagads.enums.core import CaseInsensitiveEnum
 from niagads.settings.core import CustomSettings
 from niagads.utils.regular_expressions import RegularExpressions
 from pydantic import BaseModel, Field, field_validator
-from niagads.enums.core import CaseInsensitiveEnum
 
 
 class PipelineSettings(CustomSettings):

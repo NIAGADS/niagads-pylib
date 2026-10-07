@@ -9,7 +9,6 @@ Loads DBSNP variants from VCF file into variant table.
 
 from typing import Iterator, Optional
 
-
 import cyvcf2
 from niagads.common.models.base import SerializationOptions
 from niagads.common.types import ETLOperation
@@ -19,7 +18,6 @@ from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import ResumeCheckpoint
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-
 from niagads.genomicsdb_etl.plugins.variant.vcf_loaders.base import (
     BaseVCFLoader,
     BaseVCFLoaderParams,

@@ -21,10 +21,9 @@ from niagads.common.genomic.regions.models import GenomicRegion
 from niagads.common.variant.types import VariantClass
 from niagads.database.session import DatabaseSessionManager
 from niagads.exceptions.core import ValidationError
-from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.ga4gh.annotators import GA4GHVRSService
 from niagads.ga4gh.models import GA4GHVariantRecord
-
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.utils.list import qw
 from niagads.utils.logging import ExitOnExceptionHandler, async_timed
 from niagads.utils.string import dict_to_info_string, xstr
