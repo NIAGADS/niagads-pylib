@@ -4,6 +4,12 @@
 
 ### Fixed
 
+- **Add missing dependency**: `tqdm` introduced in `utils` ; add as missing dependency.
+
+## [0.3.2] - 2026-10-07
+
+### Fixed
+
 - **Catch KeyError**: on invalid or missing sample or biosource id columns so that validation can proceed an accurately report missing required column.
 
 ## [0.3.1] - 2026-07-22
