@@ -5,8 +5,6 @@ import json
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from niagads.genomicsdb_etl.plugins.dataset.base import EmbeddedTrackRecord, TrackLoaderBase, TrackLoaderBaseParams
-
 from niagads.common.models.base import SerializationOptions
 from niagads.common.reference.xrefs.data_sources import NIAGADSResources
 from niagads.common.track.models.record import TrackRecord
@@ -18,18 +16,19 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
 )
 from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
-
 from niagads.etl.plugins.metadata import PluginMetadata
-
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-
+from niagads.genomicsdb_etl.plugins.dataset.base import (
+    EmbeddedTrackRecord,
+    TrackLoaderBase,
+    TrackLoaderBaseParams,
+)
 from niagads.metadata_parser.filer import MetadataTemplateParser
 from niagads.requests.core import HttpClientSessionManager
 from niagads.utils.list import chunker
 from niagads.utils.sys import read_open_ctx
 from pydantic import Field
-
 
 
 class FILERTrackLoaderParams(TrackLoaderBaseParams):
@@ -316,5 +315,3 @@ class FILERTrackLoader(TrackLoaderBase):
         await ChunkEmbedding.submit_many(session, chunk_embeddings)
 
         return self.create_checkpoint(record=records[-1])
-
-
