@@ -1,5 +1,6 @@
 from functools import wraps
 
+
 # adapted from https://stackoverflow.com/a/18078819
 class hybridmethod(object):
     """
@@ -8,7 +9,7 @@ class hybridmethod(object):
     Args:
         object: class or self; i.e., Pair.get() or p.get() if p is a Pair
     """
-    
+
     def __init__(self, func):
         self.func = func
 

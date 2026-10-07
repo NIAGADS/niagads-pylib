@@ -1,12 +1,12 @@
 import importlib
 import logging
 import pkgutil
+
 from helpers.config import Settings
 from helpers.types import DBRole
 from sqlalchemy import Connection, Table, event, text
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.orm import Session
-
 
 logger = logging.getLogger(__name__)
 

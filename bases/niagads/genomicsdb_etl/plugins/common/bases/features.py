@@ -1,6 +1,7 @@
 from bisect import bisect_right
 from collections import defaultdict
 from typing import Any, Dict, Optional
+
 from niagads.common.models.types import Range
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin

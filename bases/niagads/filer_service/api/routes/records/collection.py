@@ -1,8 +1,6 @@
 from typing import Union
-from fastapi import APIRouter, Depends, Query
-from niagads.filer_service.api.dependencies import FILEREndpointRequestParameters
-from niagads.filer_service.api.services.route import FILEREndpointService
 
+from fastapi import APIRouter, Depends, Query
 from niagads.api.common.models.domain.parameters.entity import collection_id
 from niagads.api.common.models.domain.parameters.response.content import (
     DefaultRContentParam,
@@ -18,6 +16,8 @@ from niagads.api.common.models.response.entities.dataset import (
     TrackMetadataResponse,
 )
 from niagads.api.common.services.route import RequestParameters, ResponseConfiguration
+from niagads.filer_service.api.dependencies import FILEREndpointRequestParameters
+from niagads.filer_service.api.services.route import FILEREndpointService
 
 router = APIRouter(prefix="/record/collection", tags=["Records", "Collections"])
 

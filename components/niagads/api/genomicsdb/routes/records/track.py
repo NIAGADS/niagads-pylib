@@ -1,18 +1,16 @@
-from fastapi import APIRouter, Depends, Path, Query
 from typing import Union
 
-from niagads.exceptions.core import ValidationError
+from fastapi import APIRouter, Depends, Path, Query
 from niagads.api.common.constants import SharedOpenAPITags
+from niagads.api.common.models.datasets.track import (
+    AbridgedTrackResponse,
+    TrackResponse,
+)
 from niagads.api.common.models.features.feature_score import (
     GWASSumStatResponse,
     QTLResponse,
 )
 from niagads.api.common.models.response.record import BaseResponseModel
-from niagads.api.common.models.datasets.track import (
-    AbridgedTrackResponse,
-    TrackResponse,
-)
-from niagads.api.common.views.table import TableViewResponse
 from niagads.api.common.parameters.pagination import page_param
 from niagads.api.common.parameters.record.path import track_param
 from niagads.api.common.parameters.response import (
@@ -24,6 +22,7 @@ from niagads.api.common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
+from niagads.api.common.views.table import TableViewResponse
 from niagads.api.genomicsdb.dependencies import InternalRequestParameters
 from niagads.api.genomicsdb.documentation import APP_NAME
 from niagads.api.genomicsdb.queries.track_data import (
@@ -32,6 +31,7 @@ from niagads.api.genomicsdb.queries.track_data import (
 )
 from niagads.api.genomicsdb.queries.track_metadata import TrackMetadataQuery
 from niagads.api.genomicsdb.services.route import GenomicsRouteHelper
+from niagads.exceptions.core import ValidationError
 
 router = APIRouter(
     prefix="/record/track",

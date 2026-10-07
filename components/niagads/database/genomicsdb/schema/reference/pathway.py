@@ -1,6 +1,7 @@
 """`Pathway` database model"""
 
 from typing import Optional
+
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin

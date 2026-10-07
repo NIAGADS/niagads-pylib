@@ -1,13 +1,14 @@
 """library of object / dictionary / hash manipulation functions"""
 
 import json
-from typing import Union
 import warnings
 from collections import abc
-from types import SimpleNamespace
 from copy import deepcopy
 from functools import reduce
+from types import SimpleNamespace
+from typing import Union
 
+from niagads.utils.list import all_elements_are_none as __list_is_none
 from niagads.utils.string import (
     is_bool,
     is_null,
@@ -16,7 +17,6 @@ from niagads.utils.string import (
     to_json,
     to_number,
 )
-from niagads.utils.list import all_elements_are_none as __list_is_none
 
 
 def deep_merge(a: dict, b: dict) -> dict:

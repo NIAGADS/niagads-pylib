@@ -1,7 +1,7 @@
-from ast import Dict
 import hashlib
 import json
 import logging
+from ast import Dict
 from typing import Union
 
 from ga4gh.core import ga4gh_identify
@@ -9,11 +9,11 @@ from ga4gh.vrs.dataproxy import DataProxyValidationError, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator
 from ga4gh.vrs.models import (
     Allele,
+    LengthExpression,
+    LiteralSequenceExpression,
+    ReferenceLengthExpression,
     SequenceLocation,
     SequenceReference,
-    LengthExpression,
-    ReferenceLengthExpression,
-    LiteralSequenceExpression,
 )
 from ga4gh.vrs.normalize import normalize as vrs_normalize
 from niagads.common.core import ComponentBaseMixin

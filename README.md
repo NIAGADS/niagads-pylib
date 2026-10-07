@@ -6,7 +6,7 @@ a collection of python packages, classes, and utility functions in support of NI
 
 ## Legacy Usage
 
-> This project has been recently migrated to the Polylith Architecture.  Until the migration is complete, 
+> This project has been recently migrated to the Polylith Architecture.  Until the migration is complete,
 > the old package-based version can be used as follows:
 
 ```bash
@@ -62,9 +62,53 @@ poetry install
 
 > If working off a specific branch, checkout the branch before running `poetry install`.
 
+### PR Python Checks and Formatting
+
+The **Python quality** GitHub Action validates syntax in tracked Python files, including malformed f-strings, excluding `development/**` and `**/alembic/versions/**` from all checks and formatting. Syntax errors are logged and fail the action before formatting. Ruff reports unused imports as warnings without fixing them or failing the action.
+
+For PRs from this repository, isort and Black apply the root `pyproject.toml` rules and commit formatting changes to the PR branch. Fork PRs run formatting checks without changing files.
+
+The **Python quality comment** workflow posts or updates a log comment mentioning the PR author, including when validation fails. Long logs are truncated in the comment, with the full report available as a workflow artifact. This reporting workflow must exist on the default branch to run.
+
 ### Polylith Architecture
 
-Details TBA
+More Details TBA
+
+#### Projects
+
+A Polylith project defines a deployable application, service, or library by combining reusable **components** (business logic) and **bases** (entry points). Each project lives in `projects/<project-name>/` and has its own `pyproject.toml` describing its name, version, dependencies, and included bricks. In this repository, the `[tool.poetry].packages` entries reference shared code in `../../components` and `../../bases`. See the [Polylith project documentation](https://davidvujic.github.io/python-polylith-docs/projects/).
+
+##### Building
+
+From the repository root, build a project using the Poetry Multiproject plugin installed above:
+
+```bash
+poetry build-project --directory projects/<project_name>
+```
+
+The build collects the configured bricks into a wheel and source distribution in that project's `dist/` directory. Use `build-project` to handle the relative package paths. See [Packaging & deploying](https://davidvujic.github.io/python-polylith-docs/deployment/).
+
+##### Versioning
+
+Projects can be versioned independently using the `version` field in their own `[project]` section. For releases, use `MAJOR.MINOR.PATCH`: increment the major version for breaking changes, minor for backward-compatible features, and patch for fixes. From the repository root, for example:
+
+```bash
+poetry version patch --directory projects/<project-name>
+```
+
+Use `minor`, `major`, or an explicit version instead of `patch` as needed. Update the project's changelog where present, and rebuild after changing its version. Changes to shared bricks may require new releases of each affected project. See [Poetry version](https://python-poetry.org/docs/cli/#version).
+
+##### Publishing
+
+Build with the Multiproject plugin, verify the release artifacts, then publish the project's existing distributions to PyPI using credentials configured for Poetry:
+
+```bash
+poetry build-project --directory projects/<project_name>
+# Verify the artifacts in the project's dist/ directory before publishing.
+poetry publish --directory projects/<project_name>
+```
+
+For a configured alternative package repository, add `--repository <repository-name>`. Ensure `dist/` contains only the intended release artifacts before publishing. Keep building and publishing as separate steps so the Multiproject plugin handles Polylith's relative brick paths. See [Poetry publish](https://python-poetry.org/docs/cli/#publish) and [repository configuration](https://python-poetry.org/docs/repositories/).
 
 ### TOML organization
 
@@ -115,7 +159,7 @@ All functions, classes and packages should have a doc-string.  For non-inuitive 
 * Use [Google style documentation](https://google.github.io/styleguide/pyguide.html#docstrings)
 
 > NOTE: you **MUST** give credit when pulling code from a third-party (e.g., StackOverflow, GitHub) or when generated using a chatbot (e.g., ChatGPT/Claude).  Please include the URL or link to the specific response (each StackOverflow response has a _share_ link) in your documentation.
-> for example: [niagads.utils.string.is_balanced](https://github.com/NIAGADS/niagads-pylib/blob/34f505b49332e95b14bdd9074ad4e5534d70bd3f/components/niagads/utils/string.py#L329C1-L351C28), 
+> for example: [niagads.utils.string.is_balanced](https://github.com/NIAGADS/niagads-pylib/blob/34f505b49332e95b14bdd9074ad4e5534d70bd3f/components/niagads/utils/string.py#L329C1-L351C28),
 > or [niagads.utils.list.chunker](https://github.com/NIAGADS/niagads-pylib/blob/34f505b49332e95b14bdd9074ad4e5534d70bd3f/components/niagads/utils/list.py#L66C1-L81C28)
 
 #### Logging
@@ -128,7 +172,7 @@ Please use `logging` to log script progress and debug statements. Details coming
 
 > Especially `Encapsulation` (a class's variables are hidden from other classes and can only be accessed by the methods of the class in which they are found):
 
-* all `class variables` should be `private` (`protected` if class using Inheritence and class has children) 
+* all `class variables` should be `private` (`protected` if class using Inheritence and class has children)
   * `private`: variable only accessible within the class
     * naming: starts with `__` (double underscore; e.g., `__size`)
   * `protected`: variable accesesible within class and any child classes
@@ -139,11 +183,10 @@ Please use `logging` to log script progress and debug statements. Details coming
 * when creating `class methods` consider usage of functions and make functions `private` or `protected` if they should not be directly accessed by the user (i.e., only used internally by the class) by prefixing with `__` or `_` as needed
 
 * all classes should have a `public` `logger` member variable
-* 
+*
 * all classes should have a `protected` `_debug` and `_verbose` member variable
 
 * override the `__str__` [dunder method](https://mathspp.com/blog/pydonts/dunder-methods) for the class so that users can debug or write class state as output (i.e., convert class to string)
-
 
 #### Other
 

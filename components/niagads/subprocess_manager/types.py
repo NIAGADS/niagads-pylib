@@ -1,8 +1,8 @@
 from typing import Optional
-from niagads.utils.string import is_bool
-from pydantic import BaseModel
 
+from niagads.utils.string import is_bool
 from niagads.utils.sys import execute_cmd
+from pydantic import BaseModel
 
 
 class Command(BaseModel):

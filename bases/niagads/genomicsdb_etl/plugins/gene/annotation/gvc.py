@@ -5,7 +5,7 @@ Loads ADSP Genome Variant Catalog (GVC) top genes into GeneListEntry and
 AnnotationEvidence tables, with optional ranking and scoring information.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
 from niagads.common.models.annotations import (
     AnnotationEvidenceQualifier,
@@ -32,10 +32,6 @@ from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
-from pydantic import Field
-
-
-from typing import Literal
 from pydantic import Field, model_validator
 
 

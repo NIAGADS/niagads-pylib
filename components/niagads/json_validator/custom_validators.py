@@ -1,12 +1,10 @@
-from jsonschema import (
-    exceptions as jsExceptions,
-    validators as jsValidators,
-)
+from jsonschema import exceptions as jsExceptions
+from jsonschema import validators as jsValidators
 
 
 def __resolve_oneof_enum(validator, allowed, instance, schema):
     """
-    Helper to extract allowed string values from a schema's oneOf section, 
+    Helper to extract allowed string values from a schema's oneOf section,
     or yield from the default oneOf validator if not a controlled vocabulary.
 
     Returns:
@@ -15,15 +13,24 @@ def __resolve_oneof_enum(validator, allowed, instance, schema):
     Yields:
         ValidationError: If the value does not match any allowed value and fallback is triggered.
     """
-    section = schema['oneOf'] # assuming got here b/c of custom validation assignment, want to raise the KeyError
-    if section and all(isinstance(s, dict) and "const" in s and isinstance(s["const"], str) or s["const"] is None for s in section):
+    section = schema[
+        "oneOf"
+    ]  # assuming got here b/c of custom validation assignment, want to raise the KeyError
+    if section and all(
+        isinstance(s, dict)
+        and "const" in s
+        and isinstance(s["const"], str)
+        or s["const"] is None
+        for s in section
+    ):
         return [item["const"] for item in section]
     return None
 
+
 def one_of_enum_validator(validator, allowed, instance, schema):
-    """ custom validator to yield appropriate error message when using a oneOf to
+    """custom validator to yield appropriate error message when using a oneOf to
     define an enum
-    
+
     Args:
         validator: The validator instance from jsonschema.
         enum (list): List of allowed values from the schema's enum.
@@ -37,22 +44,23 @@ def one_of_enum_validator(validator, allowed, instance, schema):
         - For non-string types, falls back to the default validation logic.
         - For string types, performs a comparison against allowed enum values.
     """
-    allowed_values = __resolve_oneof_enum(validator, allowed, instance, schema) 
+    allowed_values = __resolve_oneof_enum(validator, allowed, instance, schema)
     if allowed_values is None or not validator.is_type(instance, "string"):
-        yield from jsValidators.Draft7Validator.VALIDATORS["oneOf"](validator, allowed, instance, schema)
+        yield from jsValidators.Draft7Validator.VALIDATORS["oneOf"](
+            validator, allowed, instance, schema
+        )
 
     else:
         if instance is None:
             if None not in allowed_values:
-                yield jsExceptions.ValidationError(
-                    f"field cannot be empty / null"
-                )
-            return # if valid or after yielding if invalid
-        
+                yield jsExceptions.ValidationError(f"field cannot be empty / null")
+            return  # if valid or after yielding if invalid
+
         if not any(instance == str(v) for v in allowed_values):
             yield jsExceptions.ValidationError(
                 f"{instance!r} is not one of {allowed_values!r}"
             )
+
 
 def case_insensitive_enum_validator(validator, allowed, instance, schema):
     """
@@ -75,26 +83,28 @@ def case_insensitive_enum_validator(validator, allowed, instance, schema):
     allowed_values = []
     if "enum" in schema:
         if not validator.is_type(instance, "string"):
-            yield from jsValidators.Draft7Validator.VALIDATORS["enum"](validator, allowed, instance, schema)
+            yield from jsValidators.Draft7Validator.VALIDATORS["enum"](
+                validator, allowed, instance, schema
+            )
             return
-        
+
         allowed_values = schema["enum"]
-        
+
     elif "oneOf" in schema:
         allowed_values = __resolve_oneof_enum(validator, allowed, instance, schema)
-        
+
         if allowed_values is None or not validator.is_type(instance, "string"):
-            yield from jsValidators.Draft7Validator.VALIDATORS["oneOf"](validator, allowed, instance, schema)
+            yield from jsValidators.Draft7Validator.VALIDATORS["oneOf"](
+                validator, allowed, instance, schema
+            )
             return
-        
-    if allowed_values: 
+
+    if allowed_values:
         if instance is None:
             if None not in allowed_values:
-                yield jsExceptions.ValidationError(
-                    f"field cannot be empty / null"
-                )
-            return 
-        
+                yield jsExceptions.ValidationError(f"field cannot be empty / null")
+            return
+
         if not any(instance.lower() == str(v).lower() for v in allowed_values):
             yield jsExceptions.ValidationError(
                 f"{instance!r} is not one of (case-insensitive) {allowed_values!r}"

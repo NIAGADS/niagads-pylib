@@ -6,8 +6,8 @@ from niagads.arg_parser.core import (
     json_type,
 )
 from niagads.common.types import ProcessStatus
-from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.pipeline.manager import PipelineManager
+from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.types import ETLExecutionMode
 
 

@@ -1,10 +1,12 @@
 from io import StringIO
 
-from fastapi.openapi.utils import get_openapi
+import yaml
 from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.routing import APIRoute
+from niagads.api.common.app.openapi import OpenAPISpec
 from niagads.api.common.constants import RESPONSES
 from niagads.api.common.exception_handlers import (
     add_database_exception_handler,
@@ -14,9 +16,7 @@ from niagads.api.common.exception_handlers import (
     add_system_exception_handler,
     add_validation_exception_handler,
 )
-from niagads.api.common.app.openapi import OpenAPISpec
 from niagads.settings.core import ServiceEnvironment, get_service_environment
-import yaml
 
 
 class AppFactory:

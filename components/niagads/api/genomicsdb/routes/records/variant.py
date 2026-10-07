@@ -7,12 +7,12 @@ from niagads.api.common.models.annotations.associations import (
     AssociationTrait,
     GeneticAssociationResponse,
 )
+from niagads.api.common.models.entities import Entity
 from niagads.api.common.models.features.variant import (
     AbridgedVariantResponse,
     VariantAnnotationResponse,
     VariantResponse,
 )
-from niagads.api.common.models.entities import Entity
 from niagads.api.common.models.response.record import BaseResponseModel
 from niagads.api.common.models.services.query import QueryFilter
 from niagads.api.common.parameters.associations import (

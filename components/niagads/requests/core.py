@@ -1,13 +1,13 @@
-from enum import auto
 import logging
+from enum import auto
 
 from aiohttp import (
     ClientSession,
     ClientTimeout,
     TraceConfig,
-    TraceRequestStartParams,
     TraceRequestEndParams,
     TraceRequestExceptionParams,
+    TraceRequestStartParams,
 )
 from aiohttp.connector import TCPConnector
 from niagads.common.core import ComponentBaseMixin

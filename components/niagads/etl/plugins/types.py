@@ -5,9 +5,8 @@ from niagads.common.models.base import CustomBaseModel
 from niagads.common.types import ETLOperation, ProcessStatus
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.types import ETLExecutionMode
-from pydantic import BaseModel, Field, field_validator, model_validator
-
 from niagads.utils.string import dict_to_info_string
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ResumeCheckpoint(CustomBaseModel):

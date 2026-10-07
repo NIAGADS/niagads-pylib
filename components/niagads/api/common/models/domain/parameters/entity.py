@@ -1,4 +1,5 @@
 from typing import Optional
+
 from fastapi import Path, Query
 from niagads.api.common.models.domain.parameters.utils import parse_comma_separated_list
 from niagads.api.common.utils import sanitize

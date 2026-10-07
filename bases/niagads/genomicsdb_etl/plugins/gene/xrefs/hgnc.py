@@ -8,11 +8,9 @@ into the gene.xref table, mapping genes by their Ensembl gene ID (stable_id/sour
 import json
 from typing import Any, Dict, Iterator, List, Optional
 
-from niagads.database.genomicsdb.schema.gene.structure import GeneModel
-from sqlalchemy import select
-from sqlalchemy.exc import NoResultFound
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.gene.documents import Gene
+from niagads.database.genomicsdb.schema.gene.structure import GeneModel
 from niagads.database.genomicsdb.schema.gene.xrefs import (
     GeneIdentifierType,
     GeneXRef,
@@ -29,13 +27,15 @@ from niagads.etl.plugins.parameters import (
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.exceptions.core import ValidationError
-from niagads.genomicsdb_etl.plugins.gene.xrefs.mappings import HGNC_XREF_CATEGORY_MAP
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
+from niagads.genomicsdb_etl.plugins.gene.xrefs.mappings import HGNC_XREF_CATEGORY_MAP
 from niagads.utils.string import dict_to_info_string, xstr
 from niagads.utils.sys import read_open_ctx
 from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.exc import NoResultFound
 
 INVALID_XREFS = ["status", "uuid", "location_sortable", "curator_notes"]
 

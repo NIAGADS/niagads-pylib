@@ -1,10 +1,11 @@
 from typing import Optional
-from niagads.database.helpers import enum_column, enum_constraint
-from niagads.genome_reference.human import HumanGenome
+
 from niagads.common.models.types import Range
 from niagads.database import RangeType
+from niagads.database.helpers import enum_column, enum_constraint
+from niagads.genome_reference.human import HumanGenome
 from niagads.genome_reference.types import Strand
-from sqlalchemy import Index, ForeignKeyConstraint
+from sqlalchemy import ForeignKeyConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy_utils import LtreeType
 

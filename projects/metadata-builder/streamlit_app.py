@@ -1,5 +1,5 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 try:
     from niagads.common.track.models.record import TrackRecord

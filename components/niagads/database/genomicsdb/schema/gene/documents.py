@@ -10,11 +10,11 @@ from niagads.common.gene.models.annotation import (
     GOAssociation,
     PathwayMembership,
 )
-from niagads.database.genomicsdb.schema.gene.structure import GeneModel
-from niagads.database.mixins import GenomicRegionMixin
 from niagads.database.genomicsdb.schema.gene.base import GeneMaterializedViewBase
+from niagads.database.genomicsdb.schema.gene.structure import GeneModel
 from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType, GeneXRef
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
+from niagads.database.mixins import GenomicRegionMixin
 from sqlalchemy import ARRAY, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -2,8 +2,8 @@ from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.genome_reference.human import HumanGenome
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class VariantLookupBlock(BaseModel):

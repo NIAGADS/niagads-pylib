@@ -1,11 +1,11 @@
 from typing import List, Union
-from cyvcf2 import VCF
+
 import pysam
-
-# from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from cyvcf2 import VCF
 from niagads.genome_reference.human import HumanGenome
 from niagads.vcf.types import VCFEntry
+
+# from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 def file_search(

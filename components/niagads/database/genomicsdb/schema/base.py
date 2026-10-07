@@ -1,5 +1,6 @@
 import importlib
 import pkgutil
+
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 

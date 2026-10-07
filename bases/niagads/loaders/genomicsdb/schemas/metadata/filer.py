@@ -14,10 +14,9 @@ from niagads.common.track.models import (
     Phenotype,
     Provenance,
 )
-
 from niagads.database.genomicsdb.schema.dataset.track import Track
-from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.database.helpers import enum_column
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.loaders.core import AbstractDataLoader
 from niagads.metadata_parser.filer import MetadataTemplateParser
 from niagads.requests.core import HttpClientSessionManager

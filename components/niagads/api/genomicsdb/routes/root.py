@@ -1,10 +1,9 @@
 import functools
 from typing import Union
+
 from fastapi import APIRouter, Depends, Request, Response
 from niagads.api.common.app.factory import AppFactory
 from niagads.api.common.constants import SharedOpenAPITags
-
-
 from niagads.api.common.models.entities import Entity, EntityRecordStats
 from niagads.api.common.models.response.base import (
     MessageResponse,
@@ -12,15 +11,14 @@ from niagads.api.common.models.response.base import (
 )
 from niagads.api.common.models.routes import RouteDescription
 from niagads.api.common.services.metadata.query import MetadataQueryService
-
 from niagads.api.genomicsdb.dependencies import (
     TRACK_DATA_STORES,
     InternalRequestParameters,
 )
 from niagads.api.genomicsdb.documentation import (
+    APP_NAME,
     OPEN_API_TAGS,
     PUBMED_IDS,
-    APP_NAME,
 )
 
 router = APIRouter(tags=[APP_NAME])

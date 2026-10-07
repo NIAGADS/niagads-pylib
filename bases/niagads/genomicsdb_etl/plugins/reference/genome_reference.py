@@ -14,10 +14,9 @@ from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.utils.string import xstr
 from pydantic import BaseModel, Field
-
-from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from sqlalchemy import select
 from sqlalchemy_utils.types.ltree import Ltree
 

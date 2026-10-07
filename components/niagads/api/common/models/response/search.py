@@ -1,7 +1,7 @@
 from typing import List
 
-from niagads.api.common.models.response.base import DataResponse
 from niagads.api.common.models.domain.entities.entity import EntityRecordMatch
+from niagads.api.common.models.response.base import DataResponse
 
 
 class EntityMatchResponse(DataResponse):

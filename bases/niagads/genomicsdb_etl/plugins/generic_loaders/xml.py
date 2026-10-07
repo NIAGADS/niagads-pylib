@@ -4,7 +4,6 @@ ETL plugin for loading or updating a record in an arbitrary table.
 
 import ast
 import importlib.resources
-
 from typing import Any, Dict, Iterator, List, Optional, Type
 
 from lxml import etree

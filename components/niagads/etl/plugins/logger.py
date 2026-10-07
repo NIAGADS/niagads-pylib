@@ -2,20 +2,17 @@ import logging
 import os
 from typing import Any, Optional
 
-
+import sqlalchemy.log
 from niagads.common.types import ETLOperation
+from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.etl.plugins.types import ETLRunStatus, ResumeCheckpoint
 from niagads.etl.types import ETLExecutionMode
-from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.loaders.core import Settings
 from niagads.utils.logging import (
     LOG_FORMAT_STR,
     ExitOnExceptionHandler,
     FunctionContextLoggerWrapper,
 )
-
-import sqlalchemy.log
-
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
 

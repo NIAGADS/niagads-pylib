@@ -8,7 +8,6 @@ from niagads.common.gene.models.annotation import (
 )
 from niagads.common.gene.models.record import GeneRecord
 from niagads.common.genomic.regions.models import GenomicRegion
-
 from pydantic import Field
 
 

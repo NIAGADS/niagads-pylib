@@ -6,10 +6,10 @@ from niagads.common.models.types import Range
 from niagads.database.decorators import CompressedJson, RangeType
 from niagads.utils.string import xstr
 from sqlalchemy import ARRAY, exists, func, inspect, select
+from sqlalchemy.dialects.postgresql import JSON, JSONB
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.exc import ProgrammingError
-from sqlalchemy.dialects.postgresql import JSON, JSONB
 from sqlalchemy_utils.types.ltree import Ltree
 
 

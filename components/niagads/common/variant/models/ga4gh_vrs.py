@@ -9,9 +9,10 @@ and other molecular variations.
 See https://vrs.ga4gh.org/ for more information on VRS.
 """
 
-from pydantic import BaseModel, Field
-from typing import Literal, Optional, Union
 from enum import Enum
+from typing import Literal, Optional, Union
+
+from pydantic import BaseModel, Field
 
 
 class SequenceExpressionType(str, Enum):

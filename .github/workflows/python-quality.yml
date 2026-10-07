@@ -1,0 +1,64 @@
+name: Python quality
+
+on:
+  pull_request:
+
+concurrency:
+  group: python-quality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install formatter versions from the workspace lockfile
+        run: |
+          python - <<'PY'
+          import subprocess
+          import sys
+          import tomllib
+          from pathlib import Path
+          packages = tomllib.loads(Path('poetry.lock').read_text())['package']
+          tools = [f"{p['name']}=={p['version']}" for p in packages if p['name'] in ('black', 'isort')]
+          subprocess.run([sys.executable, '-m', 'pip', 'install', *tools, 'ruff>=0.9,<1'], check=True)
+          PY
+      - name: Validate, report unused imports, and format
+        env:
+          SAME_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          mode=()
+          if [ "$SAME_REPOSITORY" != 'true' ]; then mode=(--check); fi
+          python .github/scripts/python_quality.py "${mode[@]}" --report "$RUNNER_TEMP/python-quality/report.txt"
+      - name: Commit formatting to the PR branch
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git add -- '*.py'
+          if git diff --cached --quiet; then
+            echo 'No formatting changes to commit.' >> "$RUNNER_TEMP/python-quality/report.txt"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'style: apply Black and isort formatting'
+          git push origin "HEAD:refs/heads/$PR_BRANCH" 2>&1 | tee -a "$RUNNER_TEMP/python-quality/report.txt"
+      - name: Upload log for the PR comment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-quality-log
+          path: ${{ runner.temp }}/python-quality/report.txt
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,13 +1,9 @@
 from typing import Any, Dict, Optional
 
-
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.track.models.record import TrackRecord
-
 from niagads.database.genomicsdb.schema.dataset.track import Track
-
 from niagads.etl.plugins.base import AbstractBasePlugin
-
 from niagads.etl.plugins.mixins import (
     EmbeddingGeneratorContextMixin,
     ExternalDatabaseContextMixin,
@@ -16,7 +12,6 @@ from niagads.etl.plugins.parameters import (
     BasePluginParams,
     EmbeddingParameterMixin,
 )
-
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
@@ -59,5 +54,3 @@ class TrackLoaderBase(
 
     def get_record_id(self, erecord: EmbeddedTrackRecord):
         return erecord.track.id
-
-

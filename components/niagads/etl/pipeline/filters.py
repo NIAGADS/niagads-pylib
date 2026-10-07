@@ -1,5 +1,6 @@
+from typing import Any, Dict, List, Optional
+
 from .selectors import StageTaskSelector
-from typing import Any, List, Optional, Dict
 
 
 class PipelineFilters:
