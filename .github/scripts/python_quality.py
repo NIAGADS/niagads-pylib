@@ -22,6 +22,8 @@ def main() -> int:
         .decode()
         .split("\0")
         if path.endswith(".py")
+        and not path.startswith("development/")
+        and "/alembic/versions/" not in f"/{path}"
     )
     log = []
 
@@ -35,6 +37,7 @@ def main() -> int:
         return result.returncode
 
     try:
+        record("Excluded from all checks: development/** and **/alembic/versions/**.")
         record(f"Syntax validation: {len(files)} tracked Python files.")
         invalid = False
         for name in files:
@@ -70,17 +73,9 @@ def main() -> int:
             record("FAILED: validation errors; formatting was not applied.")
             return 1
         record("Syntax validation passed.")
-        targets = [
-            name
-            for name in files
-            if not name.startswith("development/")
-            and "/alembic/versions/" not in f"/{name}"
-        ]
-        record(
-            f"Formatting {'check' if args.check else 'apply'}: {len(targets)} files."
-        )
+        record(f"Formatting {'check' if args.check else 'apply'}: {len(files)} files.")
         status = 0
-        if targets:
+        if files:
             isort = [
                 sys.executable,
                 "-m",
@@ -93,9 +88,9 @@ def main() -> int:
             if args.check:
                 isort += ["--check-only", "--diff"]
                 black += ["--check", "--diff"]
-            status |= run([*isort, "--", *targets])
+            status |= run([*isort, "--", *files])
             if not status or args.check:
-                status |= run([*black, "--", *targets])
+                status |= run([*black, "--", *files])
         record(
             "FAILED: formatting errors or changes required."
             if status
