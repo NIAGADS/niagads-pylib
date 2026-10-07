@@ -62,24 +62,6 @@ poetry install
 
 > If working off a specific branch, checkout the branch before running `poetry install`.
 
-### Python Formatting
-
-Black and isort are included in the Poetry development dependencies. To apply the root `pyproject.toml` formatting rules to Python files throughout the workspace, run:
-
-```bash
-bash format_python.sh
-```
-
-The script sorts imports with isort's `black` profile, then formats the code with Black. It skips ignored files for isort and uses each formatter's standard exclusions (such as virtual environments and build directories).
-
-To report formatting changes without modifying files, use:
-
-```bash
-bash format_python.sh --check
-```
-
-Check mode runs both formatters and exits with a nonzero status when formatting changes are needed or a formatter fails.
-
 ### Polylith Architecture
 
 More Details TBA
