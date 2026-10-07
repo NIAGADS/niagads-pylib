@@ -129,6 +129,11 @@ class OntologyTermLoader(BaseOntologyLoader):
             record["source_id"] = curie
 
             term: OntologyTerm = OntologyTerm(**record)
+
+            # for text searches
+            if term.synonyms is not None:
+                term.synonym_list_str = " // ".join(term.synonyms)
+
             if term.label is None:
                 term.label = term.term.replace("_", " ")
 

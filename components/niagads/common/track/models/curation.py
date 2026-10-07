@@ -15,6 +15,7 @@ class CurationEventType(CaseInsensitiveEnum):
     HARMONIZE = auto()
     ENRICH = auto()
     REEMBED = auto()
+    FILTER = auto()
     OTHER = auto()
 
 

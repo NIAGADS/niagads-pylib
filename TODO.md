@@ -6,11 +6,18 @@
 * replace flat_dump w/context based serialization (will get passed to all children)
 * can we move casesensitiveenum to common.types ? circular imports?!
 
+## Project wide
+
+* systematically review all function defintions and use `"*, "` before named parameters to enforce using they keywords
+
 ## ETL
 
 ### Bugs
 
 * make wrappers for sqlalchemy.exc errors NoResultFound, MultipleResultFound so errors can be handled w/out importing from sqlalchemy?
+* OWL plugin loading ORCID's as terms -> why? manually patched db but need to fix (maybe skip NAMED_INDIVIDUALS?)
+
+```0000-0002-3734-1859 150819 Carlo Tornial https://orcid.org/0000-0002-3734-1859```
 
 ## OWL ETL
 
