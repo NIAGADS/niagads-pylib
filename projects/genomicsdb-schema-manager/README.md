@@ -79,6 +79,40 @@ Reset all migration history (DANGEROUS):
 poetry run gdb_alembic --reset
 ```
 
+## Alembic Troubleshooting
+
+### Existing PostgreSQL Enum Type
+
+If a migration fails with PostgreSQL's
+`asyncpg.exceptions.DuplicateObjectError: type "humangenome" already exists`,
+import the PostgreSQL dialect in the revision:
+
+```python
+from sqlalchemy.dialects import postgresql
+```
+
+Then replace `sa.Enum` with `postgresql.ENUM` in every affected column and
+set `create_type=False`:
+
+```python
+from sqlalchemy.dialects import postgresql
+
+sa.Column(
+    "chromosome",
+    postgresql.ENUM(
+        "chr1",
+        "chr2",
+        # ... remaining enum values ...
+        "chrM",
+        name="humangenome",
+        create_type=False,
+    ),
+    nullable=False,
+)
+```
+
+`create_type=False` is ignored when applied to generic `sa.Enum`.
+
 ## Executing SQL Files
 
 ### Require Transaction or Setting Config Variables (e.g., work_mem)

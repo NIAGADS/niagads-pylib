@@ -56,6 +56,7 @@ class AlembicWrapper(ComponentBaseMixin):
         """
         Create a manual Alembic revision file for schema creation (no autogenerate).
         """
+        GenomicsDBSchemaBase.register_table_classes()
         if self.__schema == "all":
             schemas = GenomicsDBSchemaBase.get_all_schemas()
         elif GenomicsDBSchemaBase.is_valid_schema(self.__schema):
