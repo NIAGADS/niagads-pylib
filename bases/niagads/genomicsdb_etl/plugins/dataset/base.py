@@ -70,8 +70,8 @@ class TrackLoaderBase(
         # map of provided value ((term, curie)) to matched db record
         self._ontology_term_reference: dict[tuple[str | None, str | None], dict]
 
-    def _load_track_record(self, file_path: str) -> TrackRecord:
-        """Load a track record from a JSON file.
+    def _extract_track_record(self, file_path: str) -> TrackRecord:
+        """Read in a track record from a JSON file.
 
         Args:
             file_path (str): Path to the JSON track record file.
@@ -125,7 +125,9 @@ class TrackLoaderBase(
                 f"{mismatches}"
             )
 
-    async def _validate_track_record(self, record: TrackRecord) -> bool:
+    async def _validate_track_record(
+        self, record: TrackRecord, ot_validation_file_path: str
+    ) -> bool:
         """Extract and validate ontology terms from a track record
 
         Args:
@@ -172,10 +174,9 @@ class TrackLoaderBase(
                 f"Multiple Matches: {len(ot_validation_result.multiple_matches)}"
             )
 
-            output_path = f"{self._params.file}.ot_validation.json"
-            with open(output_path, "w") as fh:
+            with open(ot_validation_file_path, "w") as fh:
                 print(json.dumps(ot_validation_result, indent=4), file=fh)
-            self.logger.info(f"Validation results saved to {output_path}")
+            self.logger.info(f"Validation results saved to {ot_validation_file_path}")
 
         return False
 
@@ -388,7 +389,7 @@ class TrackLoaderBase(
             is_filer_track (bool): Whether the tracks originate from FILER.
 
         Returns:
-            ResumeCheckpoint: Checkpoint for the last loaded track record.
+            list of (DB) tracks (in case calling function needs the internal track_ids)
         """
 
         tracks: list[Track] = []
@@ -445,4 +446,4 @@ class TrackLoaderBase(
             )
 
         await ChunkEmbedding.submit_many(session, chunk_embeddings)
-        return self.create_checkpoint(record=records[-1])
+        return tracks  # in case we need the track ids
