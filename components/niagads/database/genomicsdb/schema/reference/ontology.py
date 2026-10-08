@@ -5,9 +5,9 @@ Enables foreign key references from other tables to ontology terms.
 Intended for use alongside the ontology graph schema for comprehensive ontology support.
 """
 
-from typing import Optional, Union
-from uuid import uuid4
+from typing import Union
 
+from niagads.common.models.base import CustomBaseModel
 from niagads.common.reference.ontologies.types import EntityTypeIRI
 from niagads.common.search.models.record import SearchResultRecord
 from niagads.common.search.types import MatchType
@@ -17,9 +17,7 @@ from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.database.helpers import enum_column, enum_constraint
-from niagads.database.session import DatabaseSessionManager
 from niagads.utils.string import jaccard_word_similarity
-from pydantic import BaseModel, Field
 from sqlalchemy import (
     TEXT,
     Boolean,
@@ -27,17 +25,26 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     and_,
+    column,
     func,
     literal,
+    or_,
     select,
     true,
     union,
+    values,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
+
+
+class OntologyTermValidation(CustomBaseModel):
+    valid: list[dict]
+    not_matched: list[dict]
+    multiple_matches: list[dict]
 
 
 class OntologyTerm(
@@ -361,6 +368,113 @@ class OntologyTerm(
     # -------------------------
 
     @classmethod
+    async def validate_terms(
+        cls,
+        session: AsyncSession,
+        terms: list[dict],
+    ) -> OntologyTermValidation:
+        """Validate ontology terms against the reference database.
+
+        Args:
+            session: SQLAlchemy async session used to resolve ontology terms.
+            terms: Lookup dictionaries containing optional ``term`` and ``curie``
+                values.
+
+        """
+        lookup_rows = []
+        lookups = {}
+        for lookup in terms:
+            key = (lookup["term"], lookup["curie"])
+            lookup_rows.append(key)
+            lookups[key] = lookup
+
+        lookup_values = values(
+            column("lookup_term", String),
+            column("lookup_curie", String),
+            name="ontology_term_lookups",
+        ).data(lookup_rows)
+
+        stmt = select(
+            lookup_values.c.lookup_term,
+            lookup_values.c.lookup_curie,
+            OntologyTerm.ontology_term_id,
+            OntologyTerm.term.label("db_term"),
+            OntologyTerm.source_id.label("db_curie"),
+        ).select_from(
+            lookup_values.outerjoin(
+                OntologyTerm,
+                or_(
+                    and_(
+                        lookup_values.c.lookup_curie.is_not(None),
+                        OntologyTerm.source_id == lookup_values.c.lookup_curie,
+                    ),
+                    and_(
+                        lookup_values.c.lookup_curie.is_(None),
+                        OntologyTerm.term == lookup_values.c.lookup_term,
+                    ),
+                ),
+            )
+        )
+
+        rows = (await session.execute(stmt)).mappings().all()
+
+        valid = {}
+        not_matched = []
+        multiple_matches = {}
+
+        for row in rows:
+            key = (row["lookup_term"], row["lookup_curie"])
+            lookup = lookups[key]
+            term = lookup["term"]
+            curie = lookup["curie"]
+
+            if row["db_curie"] is None:
+                error = "curie_not_found" if curie is not None else "term_not_found"
+                not_matched.append({"lookup": lookup, "error": error})
+            elif curie is None:
+                match = {
+                    "term": row["db_term"],
+                    "curie": row["db_curie"],
+                    "ontology_term_id": row["ontology_term_id"],
+                }
+                if key in multiple_matches:
+                    multiple_matches[key]["matches"].append(match)
+                elif key in valid:
+                    multiple_matches[key] = {
+                        "lookup": lookup,
+                        "matches": [valid.pop(key)["match"], match],
+                    }
+                else:
+                    valid[key] = {"lookup": lookup, "match": match}
+            elif term is not None and row["db_term"] != term:
+                not_matched.append(
+                    {
+                        "lookup": lookup,
+                        "error": "term_does_not_match_curie",
+                        "match": {
+                            "term": row["db_term"],
+                            "curie": row["db_curie"],
+                            "ontology_term_id": row["ontology_term_id"],
+                        },
+                    }
+                )
+            else:
+                valid[key] = {
+                    "lookup": lookup,
+                    "match": {
+                        "term": row["db_term"],
+                        "curie": row["db_curie"],
+                        "ontology_term_id": row["ontology_term_id"],
+                    },
+                }
+
+        return OntologyTermValidation(
+            valid=list(valid.values()),
+            not_matched=not_matched,
+            multiple_matches=list(multiple_matches.values()),
+        )
+
+    @classmethod
     async def find_primary_key(
         cls,
         session: AsyncSession,
@@ -556,109 +670,3 @@ class OntologyTerm(
 
         # Otherwise, keep existing
         return False
-
-
-# Pydantic model wrappers w/database operations for graph objects
-# Note: ontology_id / run_id will be required for database submits, but are
-# set to optional because in the ETL they are not known at initialization
-class OntologyGraphTermVertex(BaseModel):
-    """
-    AGE :term vertex model.
-    Represents a deduplicated ontology term with core properties.
-    """
-
-    ontology_term_id: int = Field(..., description="primary key field")
-    term_iri: str = Field(
-        ..., description="Full URI (e.g., http://purl.obolibrary.org/obo/GO_0006915)"
-    )
-    curie: Optional[str] = Field(None, description="CURIE form (e.g., GO:0006915)")
-    term: Optional[str] = Field(None, description="Term name/label")
-    label: Optional[str] = Field(None, description="Display-friendly label")
-    definition: Optional[str] = Field(None, description="Term definition")
-    synonyms: Optional[list[str]] = Field(None, description="Array of synonym strings")
-    entity_type: str = Field(None, description="ontology entity type")
-    is_deprecated: bool = Field(False, description="Whether term is deprecated")
-
-    run_id: Optional[int] = Field(
-        None, description="References admin.etlrun for versioning"
-    )
-
-    # TODO
-    async def submit(self, session: AsyncSession):
-        raise NotImplementedError()
-
-    async def exists(self, session: AsyncSession):
-        raise NotImplementedError()
-
-
-class OntologyGraphTriple(BaseModel):
-    """
-    AGE triple edge model.
-    Represents a generic RDF triple (subject, predicate, object).
-    Used for relationships not covered by named edge types and for annotation properties.
-    """
-
-    subject: OntologyGraphTermVertex = Field(..., description="Subject term")
-    predicate: OntologyGraphTermVertex = Field(
-        ..., description="Predicate term (CURIE)"
-    )
-    object: OntologyGraphTermVertex = Field(..., description="Object term")
-    ontology_id: Optional[int] = Field(None, description="Source ontology")
-    run_id: Optional[int] = Field(None, description="Version/load snapshot")
-
-    # TODO
-    async def submit(self, session: AsyncSession):
-        raise NotImplementedError()
-
-    async def exists(self, session: AsyncSession):
-        raise NotImplementedError()
-
-    async def is_valid(self, session: AsyncSession):
-        await self.subject.exists()
-        await self.predicate.exists()
-        await self.object.exists()
-
-
-class OntologyGraphOntologyVertex(BaseModel):
-    """
-    AGE :ontology vertex model.
-    Represents ontology metadata and serves as target for defined_in edges.
-    """
-
-    ontology_id: int = Field(
-        ..., description="References reference.externaldatabase (unique key)"
-    )
-    ontology: Optional[str] = Field(None, description="Ontology name")
-    namespace: Optional[str] = Field(
-        None, description="Ontology namespace or code for disambiguation"
-    )
-    version: Optional[str] = Field(None, description="Release/version identifier")
-    run_id: Optional[int] = Field(None, description="References admin.etlrun")
-
-    # TODO
-    async def submit(self, session: AsyncSession):
-        raise NotImplementedError()
-
-    async def exists(self, session: AsyncSession):
-        raise NotImplementedError()
-
-
-class OntologyGraphRestrictionVertex(BaseModel):
-    """
-    AGE :restriction vertex model.
-    Represents an anonymous blank node that serves as a container for OWL restriction properties.
-    The restriction's definition is the subgraph of outbound edges from it.
-    """
-
-    restriction_id: str = Field(
-        default_factory=lambda: str(uuid4()),
-        description="Blank node identifier (UUID4)",
-    )
-    ontology_id: Optional[int] = Field(
-        None, description="Source ontology (scopes the restriction)"
-    )
-    run_id: Optional[int] = Field(None, description="Version/load snapshot")
-
-    # TODO
-    async def submit(self, session: AsyncSession):
-        raise NotImplementedError()
