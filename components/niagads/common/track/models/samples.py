@@ -1,7 +1,7 @@
 from typing import List, Optional, Union
 
 from niagads.common.models.base import CustomBaseModel
-from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.models import OntologyTermRecord
 from niagads.common.reference.ontologies.types import BiosampleType
 from pydantic import Field, field_serializer
 
@@ -10,7 +10,7 @@ from pydantic import Field, field_serializer
 
 
 class BiosampleCharacteristics(CustomBaseModel):
-    biosample: List[OntologyTerm] = Field(
+    biosample: List[OntologyTermRecord] = Field(
         default=None,
         title="Biosample",
         description="ontology term describing the biosample",
@@ -20,19 +20,21 @@ class BiosampleCharacteristics(CustomBaseModel):
         title="Biosample: Type",
         description="the biological source of a sample used in an experiment",
     )
-    biomarker: Optional[List[OntologyTerm]] = Field(default=None, title="Biomarker")
+    biomarker: Optional[List[OntologyTermRecord]] = Field(
+        default=None, title="Biomarker"
+    )
     system: Optional[List[str]] = Field(
         default=None,
         title="Biosample: Anatomical System",
         json_schema_extra={"is_filer_annotation": True},
     )
-    tissue: Optional[List[OntologyTerm]] = Field(
+    tissue: Optional[List[OntologyTermRecord]] = Field(
         default=None,
         title="Biosample: Tissue",
         json_schema_extra={"is_filer_annotation": True},
     )
 
-    life_stage: Optional[OntologyTerm] = Field(
+    life_stage: Optional[OntologyTermRecord] = Field(
         default=None,
         title="Biosample: Life Stage",
         description="donor or sample life stage",

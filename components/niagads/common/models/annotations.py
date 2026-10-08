@@ -1,6 +1,6 @@
 from typing import List, Optional
 from niagads.common.models.base import CustomBaseModel
-from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.models import OntologyTermRecord
 from niagads.common.types import PrimitiveType
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.regular_expressions import RegularExpressions
@@ -110,7 +110,7 @@ class AnnotationEvidenceDescriptor(CustomBaseModel):
         title="Qualifiers",
         description="context for interpreting the GO annotation, includes GO References and citations",
     )
-    evidence_code: OntologyTerm = Field(
+    evidence_code: OntologyTermRecord = Field(
         title="Evidence Code",
         description="term in the Evidence and Conclusion Ontology (ECO).  See https://www.evidenceontology.org/.",
     )
@@ -141,7 +141,7 @@ class AnnotationEvidenceMixin:
 
 
 class ScoreMixin:
-    metric: Optional[OntologyTerm] = Field(
+    metric: Optional[OntologyTermRecord] = Field(
         default=None, title="Scoring or labeling metric"
     )
     value: Optional[PrimitiveType] = Field(default=None, title="Value")

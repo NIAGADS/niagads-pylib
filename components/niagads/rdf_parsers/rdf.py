@@ -9,7 +9,7 @@ from typing import Iterator
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.reference.ontologies.helpers import get_field_iri
-from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.models import OntologyTermRecord
 from niagads.utils.sys import FileReadProgressTracker
 from rdflib import Graph, Namespace, URIRef
 

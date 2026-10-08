@@ -7,7 +7,7 @@ from typing import Any, Callable, Union
 from niagads.common.models.base import SerializationOptions
 import streamlit as st
 from niagads.common.core import ComponentBaseMixin
-from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.models import OntologyTermRecord
 from niagads.metadata_serializer.forms import FormMetadata, PydanticFormGenerator
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import matches
@@ -70,7 +70,7 @@ class OntologyMap(ComponentBaseMixin):
         for field_grouped_terms in self.__map.values():
             for t in field_grouped_terms:
                 if value == t["term"] or value == t["curie"]:
-                    return OntologyTerm(term=t["term"], curie=t["curie"])
+                    return OntologyTermRecord(term=t["term"], curie=t["curie"])
         return None
 
 
@@ -98,7 +98,7 @@ class MetadataSerializationApp(ComponentBaseMixin):
 
         self.__deserializers: dict = {
             date: self._deserialize_date,
-            OntologyTerm: self._deserialize_ontology_term,
+            OntologyTermRecord: self._deserialize_ontology_term,
         }
         self.__initialize_renderer()
 
@@ -179,18 +179,18 @@ class MetadataSerializationApp(ComponentBaseMixin):
             return value.isoformat()
         return value
 
-    def _deserialize_ontology_term(self, value: str) -> OntologyTerm:
+    def _deserialize_ontology_term(self, value: str) -> OntologyTermRecord:
         """Deserialize a value to an OntologyTerm."""
         if value is None:
             return None
         if matches(value, RegularExpressions.ONTOLOGY_TERM_CURIE):
-            return OntologyTerm(value)
+            return OntologyTermRecord(value)
 
         matched_term = self.__ontology_map.get_ontology_term(value)
         if matched_term is not None:
             return matched_term
 
-        return OntologyTerm(term=value, curie="NIAGADS:needs-review")
+        return OntologyTermRecord(term=value, curie="NIAGADS:needs-review")
 
     def _deserialize_list(
         self,
@@ -605,7 +605,7 @@ class FormRenderer(ComponentBaseMixin):
         label = field_meta.title
         help_text = field_meta.description
         is_required: bool = field_meta.is_required
-        default_value: OntologyTerm = (
+        default_value: OntologyTermRecord = (
             field_meta.default.term if field_meta.default else None
         )
 

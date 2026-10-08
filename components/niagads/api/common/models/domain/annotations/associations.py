@@ -2,7 +2,7 @@ from enum import auto
 from typing import Dict, List, Optional, Union
 
 from niagads.api.common.models.features.variant import AbridgedVariant, Variant
-from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.models import OntologyTermRecord
 from niagads.common.types import T_PubMedID
 from niagads.common.track.models import (
     BiosampleCharacteristics,
@@ -52,7 +52,9 @@ class VariantAssociation(RowModel):
     test_allele: str = Field(title="Test Allele", order=2)
     p_value: Union[float, str] = Field(title="p-Value", order=3)
 
-    trait: OntologyTerm = Field(title="Trait", description="associated trait", order=4)
+    trait: OntologyTermRecord = Field(
+        title="Trait", description="associated trait", order=4
+    )
     trait_category: str = Field(
         title="Trait Category",
         description="One of AD, ADRD, Biomarker (for AD/ADRD), or Other",
@@ -136,7 +138,7 @@ class VariantAssociation(RowModel):
             or (biosample.get("biomarker") if biosample else None)
         )
 
-        data["trait"] = OntologyTerm(**trait[0])
+        data["trait"] = OntologyTermRecord(**trait[0])
 
         # TODO: study diagnosis?
 
@@ -149,7 +151,7 @@ class VariantAssociation(RowModel):
         del fields["variant"]
         fields.update(Variant.list_model_fields())
 
-        for k, info in OntologyTerm.get_model_fields().items():
+        for k, info in OntologyTermRecord.get_model_fields().items():
             title = "Trait" if k == "term" else "Mapped Term ID"
             description = (
                 "associated phenotype or biomarker"
@@ -180,7 +182,7 @@ class GeneVariantAssociation(VariantAssociation):
 
 class VariantAssociationSummary(RowModel):
     trait_category: AssociationTrait
-    trait: OntologyTerm
+    trait: OntologyTermRecord
     num_variants: Union[int, Dict[str, int]]
 
     @field_serializer("trait_category")

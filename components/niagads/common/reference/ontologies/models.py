@@ -5,7 +5,14 @@ from niagads.utils.string import dict_to_info_string, matches
 from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
 
 
-class OntologyTerm(CustomBaseModel):
+class OntologyTermRecord(CustomBaseModel):
+    """Basic ontology term identifiers"""
+
+    curie: Optional[str] = Field(default=None, description="unique, stable identifier")
+    term: str = Field(..., description="the ontology term")
+
+
+class OntologyTermRecord(OntologyTermRecord):
     """
     Pydantic model representing a term in an ontology graph.
 
@@ -17,8 +24,6 @@ class OntologyTerm(CustomBaseModel):
         default=None,
         description="globally unique identifier for the ontology term (URI)",
     )
-    curie: Optional[str] = Field(default=None, description="unique, stable identifier")
-    term: str = Field(..., description="the ontology term")
 
     label: Optional[str] = Field(
         default=None, description="Human-readable label for the term"
@@ -97,7 +102,7 @@ class OntologyTerm(CustomBaseModel):
         return dict_to_info_string(info)
 
     @classmethod
-    def extract_from_obj(self, value: Any) -> list["OntologyTerm"]:
+    def extract_from_obj(self, value: Any) -> list["OntologyTermRecord"]:
         """
         Extract all formally defined OntologyTerm objects from a Pydantic Model and nested models.
 
@@ -107,7 +112,7 @@ class OntologyTerm(CustomBaseModel):
 
         if value is None:
             return terms
-        if isinstance(value, OntologyTerm):
+        if isinstance(value, OntologyTermRecord):
             terms.add((value.term, value.curie))
         elif isinstance(value, BaseModel):
             for field_name in value.__class__.model_fields:
@@ -119,4 +124,7 @@ class OntologyTerm(CustomBaseModel):
             for item in value:
                 terms.update(self.extract_from_obj(item))
 
-        return [OntologyTerm(term=term, curie=curie) for term, curie in terms]
+        return [
+            OntologyTermRecord(term=term, curie=curie.replace("_", ":"))
+            for term, curie in terms
+        ]

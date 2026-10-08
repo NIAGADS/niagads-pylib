@@ -1,5 +1,5 @@
 from enum import Enum
-from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.models import OntologyTermRecord
 from niagads.enums.core import CaseInsensitiveEnum
 
 
@@ -82,7 +82,7 @@ class AnnotationPropertyIRI(CaseInsensitiveEnum):
 
 
 class BiosampleType(Enum):
-    TISSUE = OntologyTerm(
+    TISSUE = OntologyTermRecord(
         term="tissue",
         curie="UBERON_0000479",
         term_iri="http://purl.obolibrary.org/obo/UBERON_0000479",
@@ -95,7 +95,7 @@ class BiosampleType(Enum):
             f"short-range organisation."
         ),
     )
-    CELL = OntologyTerm(
+    CELL = OntologyTermRecord(
         term="cell",
         curie="CL:0000000",
         term_iri="http://purl.obolibrary.org/obo/CL_0000000",
@@ -107,14 +107,14 @@ class BiosampleType(Enum):
             f"compartment surrounded by a plasma membrane.)"
         ),
     )
-    PRIMARY_CELL = OntologyTerm(
+    PRIMARY_CELL = OntologyTermRecord(
         term="primary cell",
         curie="EFO_0002660",
         term_irl="http://www.ebi.ac.uk/efo/EFO_0002660",
         ontology="Experimental Factor Ontology",
         defintion="A cell taken directly from a living organism, which is not immortalized.",
     )
-    STEM_CELL = OntologyTerm(
+    STEM_CELL = OntologyTermRecord(
         term="stem cell",
         curie="CL_0000034",
         term_iri="http://purl.obolibrary.org/obo/CL_0000034",
@@ -125,7 +125,7 @@ class BiosampleType(Enum):
             f"cells that can differentiate into specialized cells."
         ),
     )
-    PRIMARY_CULTURE = OntologyTerm(
+    PRIMARY_CULTURE = OntologyTermRecord(
         term="primary cell culture",
         curie="CL_0000001",
         term_iri="http://purl.obolibrary.org/obo/CL_0000001",
@@ -137,7 +137,7 @@ class BiosampleType(Enum):
         ),
     )
 
-    EXPERIMENTALLY_MODIFIED_CELL = OntologyTerm(
+    EXPERIMENTALLY_MODIFIED_CELL = OntologyTermRecord(
         term="experimentally modified cell in vitro",
         curie="CL_0000578",
         term_iri="http://purl.obolibrary.org/obo/CL_0000578",
@@ -147,7 +147,7 @@ class BiosampleType(Enum):
             f"as a consequence of a deliberate and specific experimental procedure"
         ),
     )
-    CELL_LINE = OntologyTerm(
+    CELL_LINE = OntologyTermRecord(
         term="cell line",
         curie="CLO_0000031",
         term_iri="http://purl.obolibrary.org/obo/CLO_0000031",
@@ -159,7 +159,7 @@ class BiosampleType(Enum):
             f"history."
         ),
     )
-    ESC_CELL_LINE = OntologyTerm(
+    ESC_CELL_LINE = OntologyTermRecord(
         term="embryonic stem cell line cell",
         curie="CLO_0037279",
         term_iri="http://purl.obolibrary.org/obo/CLO_0037279",
@@ -170,7 +170,7 @@ class BiosampleType(Enum):
             f"of a blastocyst, an early-stage perimplantation embryo."
         ),
     )
-    IPSC_CELL_LINE = OntologyTerm(
+    IPSC_CELL_LINE = OntologyTermRecord(
         term="induced pluripotent stem cell line cell",
         curie="CLO_0037307",
         term_iri="http://purl.obolibrary.org/obo/CLO_0037307",
@@ -178,7 +178,7 @@ class BiosampleType(Enum):
         definition="A stem cell line cell that is pluripotent and is generated from an adult somatic cell.",
     )
 
-    ORGANOID = OntologyTerm(
+    ORGANOID = OntologyTermRecord(
         term="organoid",
         curie="NCIT_C172259",
         term_iri="http://purl.obolibrary.org/obo/NCIT_C172259",

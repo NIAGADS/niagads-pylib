@@ -19,7 +19,7 @@ from typing import (
 )
 
 from niagads.common.core import ComponentBaseMixin
-from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.models import OntologyTermRecord
 from pydantic import BaseModel
 from pydantic_core import PydanticUndefined
 from wtforms import (
@@ -231,7 +231,7 @@ class PydanticFormGenerator(ComponentBaseMixin):
         """Returns true if the field type is OntologyTerm."""
         base_type = PydanticFormGenerator.__get_base_type(field_type)
         if base_type is not None and PydanticFormGenerator.__is_type_safe(
-            base_type, OntologyTerm
+            base_type, OntologyTermRecord
         ):
             return True
 
@@ -239,7 +239,7 @@ class PydanticFormGenerator(ComponentBaseMixin):
         if origin is Union:
             args = get_args(field_type)
             for arg in args:
-                if arg is not type(None) and PydanticFormGenerator.__is_type_safe(arg, OntologyTerm):  # type: ignore
+                if arg is not type(None) and PydanticFormGenerator.__is_type_safe(arg, OntologyTermRecord):  # type: ignore
                     return True
 
         return False
@@ -302,7 +302,9 @@ class PydanticFormGenerator(ComponentBaseMixin):
         """
 
         try:
-            if isinstance(base_type, type) and issubclass(base_type, OntologyTerm):
+            if isinstance(base_type, type) and issubclass(
+                base_type, OntologyTermRecord
+            ):
                 return False
         except TypeError:
             pass
@@ -340,7 +342,7 @@ class PydanticFormGenerator(ComponentBaseMixin):
             raise ValueError(f"base type is `None` {pydantic_type}")
 
         # Handle OntologyTerm as a string field (before checking for Pydantic models)
-        if self.__is_type_safe(base_type, OntologyTerm):
+        if self.__is_type_safe(base_type, OntologyTermRecord):
             return StringField
 
         # Check for Pydantic models - return CompositeField marker
