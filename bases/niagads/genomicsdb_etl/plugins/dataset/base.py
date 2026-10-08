@@ -67,8 +67,8 @@ class TrackLoaderBase(
         super().__init__(params, name, log_path, debug, verbose)
         self._track_type_id: int = None
 
-        # map of provided value (curie|term) to DB record
-        self._ontology_term_reference: dict[str, DBOntologyTerm]
+        # map of provided value ((term, curie)) to matched db record
+        self._ontology_term_reference: dict[tuple[str | None, str | None], dict]
 
     def _load_track_record(self, file_path: str) -> TrackRecord:
         """Load a track record from a JSON file.
@@ -125,9 +125,7 @@ class TrackLoaderBase(
                 f"{mismatches}"
             )
 
-    async def _validate_track_record(
-        self, record: TrackRecord
-    ) -> OntologyTermValidation:
+    async def _validate_track_record(self, record: TrackRecord) -> bool:
         """Extract and validate ontology terms from a track record
 
         Args:
@@ -141,31 +139,46 @@ class TrackLoaderBase(
                 or the required data category is missing.
         """
         self.logger.info(f"Validating track record ontology terms")
-        async with self.session_ctx() as session:
-            validation_result = await self._validate_ontology_terms(session, record)
+        has_errors: bool = False
+        # this works b/c FILER populates track_type_id on_run_start
+        if self._track_type_id is None and record.track_type is None:
+            self.logger.info(
+                "Validation Error: required field `track_type` is missing."
+            )
+            has_errors = True
 
-        if not validation_result.not_matched and not validation_result.multiple_matches:
-            self.logger.info("Ontology Term Validation: PASSED")
+        try:
             self._validate_study_diagnosis_phenotypes(record)
-            try:
-                data_category = record.experimental_design.data_category
-            except Exception as err:
-                data_category = None
-            if not data_category:
-                raise ValueError(
-                    f"Missing required `data_category` field (under `experimental_design`)"
-                )
+        except ValueError as err:
+            self.logger.info(str(err))
+            has_errors = True
+
+        async with self.session_ctx() as session:
+            ot_validation_result = await self._validate_ontology_terms(session, record)
+
+        if (
+            not ot_validation_result.not_matched
+            and not ot_validation_result.multiple_matches
+        ):
+            self.logger.info("Ontology Term Validation: PASSED")
 
         else:
             self.logger.info("Ontology Term Validation: FAILED")
-            self.logger.info(f"Valid Terms: {len(validation_result.valid)}")
-            self.logger.info(f"Not Matched: {len(validation_result.not_matched)}")
-            self.logger.info(f"Multiple Matches: {len(validation_result.not_matched)}")
+            self.logger.info(f"Valid Terms: {len(ot_validation_result.valid)}")
+            self.logger.info(f"Not Matched: {len(ot_validation_result.not_matched)}")
+            self.logger.info(
+                f"Multiple Matches: {len(ot_validation_result.multiple_matches)}"
+            )
+
             output_path = f"{self._params.file}.ot_validation.json"
-            print(json.dumps(validation_result, indent=4), file=output_path)
+            with open(output_path, "w") as fh:
+                print(json.dumps(ot_validation_result, indent=4), file=fh)
             self.logger.info(f"Validation results saved to {output_path}")
 
-        return validation_result
+            has_errors = True
+
+        self._ontology_term_reference = ot_validation_result.valid
+        return not has_errors
 
     def _extract_contextual_ontology_terms(
         self, context_type: TrackContextType, record: TrackRecord
@@ -183,7 +196,7 @@ class TrackLoaderBase(
         """
         annotation = context_type.retrieve_context_from_record(record)
         if annotation is None:
-            return None
+            return []
 
         self.logger.debug(f"context={context_type}; annotation={annotation}")
 
@@ -305,7 +318,7 @@ class TrackLoaderBase(
 
         return embedded_track_records
 
-    async def _generate_track_concepts(
+    def _generate_track_concepts(
         self, track_record: TrackRecord, track_id: int
     ) -> list[TrackConcept]:
         """Create concept links for a track's keyword annotations.
@@ -331,7 +344,7 @@ class TrackLoaderBase(
         return concepts
         #
 
-    async def _generate_track_context(
+    def _generate_track_context(
         self, track_record: TrackRecord, track_id: int
     ) -> list[TrackContext]:
         """Create context links for a track's contextual annotations.
