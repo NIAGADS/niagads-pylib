@@ -29,6 +29,7 @@ from niagads.etl.plugins.parameters import (
     BasePluginParams,
     EmbeddingParameterMixin,
 )
+from niagads.etl.plugins.types import ResumeCheckpoint
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
@@ -69,27 +70,34 @@ class TrackLoaderBase(
         # map of provided value (curie|term) to DB record
         self._ontology_term_reference: dict[str, DBOntologyTerm]
 
-    def _load_track_record(self, file_path: str) -> Any:
-        """Read JSON file and return parsed content."""
+    def _load_track_record(self, file_path: str) -> TrackRecord:
+        """Load a track record from a JSON file.
+
+        Args:
+            file_path (str): Path to the JSON track record file.
+
+        Returns:
+            TrackRecord: The parsed track record.
+        """
         with read_open_ctx(file_path) as fh:
             content = json.load(fh)
         return TrackRecord(**content)
 
-    async def on_run_start(self, session):
+    async def on_run_start(self, session) -> None:
         await ExternalDatabaseContextMixin.on_run_start(self, session)
         await EmbeddingGeneratorContextMixin.on_run_start(self, session)
 
         if self.is_etl_run:
             await self.set_table_ref(session, Track)
 
-    def get_record_id(self, erecord: EmbeddedTrackRecord):
+    def get_record_id(self, erecord: EmbeddedTrackRecord) -> str:
         return erecord.track.id
 
-    def _validate_study_diagnosis_phenotypes(self, record: TrackRecord):
+    def _validate_study_diagnosis_phenotypes(self, record: TrackRecord) -> None:
         """Validate study diagnosis phenotypes against contextual phenotypes.
 
         Args:
-            record: Track record to validate.
+            record (TrackRecord): Track record to validate.
 
         Raises:
             ValueError: If a study diagnosis phenotype is missing from the
@@ -117,10 +125,20 @@ class TrackLoaderBase(
                 f"{mismatches}"
             )
 
-    async def _validate_track_record(self, record: TrackRecord):
-        """
-        Preprocess: Extract and validate ontology terms from a track record
-        Logs result
+    async def _validate_track_record(
+        self, record: TrackRecord
+    ) -> OntologyTermValidation:
+        """Extract and validate ontology terms from a track record
+
+        Args:
+            record (TrackRecord): Track record to validate.
+
+        Returns:
+            OntologyTermValidation: Ontology term validation results.
+
+        Raises:
+            ValueError: If study diagnosis phenotypes are not contextualized
+                or the required data category is missing.
         """
         self.logger.info(f"Validating track record ontology terms")
         async with self.session_ctx() as session:
@@ -151,16 +169,17 @@ class TrackLoaderBase(
 
     def _extract_contextual_ontology_terms(
         self, context_type: TrackContextType, record: TrackRecord
-    ):
+    ) -> Optional[list[OntologyTerm]]:
         """Extract ontology terms from a track's contextual annotation.
 
         Args:
-            context_type: Context definition used to retrieve the annotation.
-            record: Track record containing the annotation.
+            context_type (TrackContextType): Context definition used to retrieve
+                the annotation.
+            record (TrackRecord): Track record containing the annotation.
 
         Returns:
-            list[OntologyTerm] | None: Extracted terms, or None if no annotation
-                is present.
+            Optional[list[OntologyTerm]]: Extracted terms, or None if no
+                annotation is present.
         """
         annotation = context_type.retrieve_context_from_record(record)
         if annotation is None:
@@ -173,11 +192,17 @@ class TrackLoaderBase(
     async def _validate_ontology_terms(
         self, session, record: TrackRecord
     ) -> OntologyTermValidation:
-        """Validate ontology terms extracted from an object.
+        """Validate ontology terms extracted from a track record.
 
         Args:
-            session: The database session used to resolve ontology terms.
-            record: Track Record whose ontology terms should be extracted.
+            session (AsyncSession): Database session used to resolve ontology
+                terms.
+            record (TrackRecord): Track record whose ontology terms should be
+                extracted.
+
+        Returns:
+            OntologyTermValidation: Validation results for the extracted
+                ontology terms.
 
         """
         extracted_terms: dict = OntologyTerm.extract_from_obj(record, as_dict=True)
@@ -186,12 +211,12 @@ class TrackLoaderBase(
     def _update_nested_ontology_references(self, record: TrackRecord) -> None:
         """Replace nested ontology terms with their canonical database values.
 
-        Updates each term's label and CURIE in place and adds its canonical key
-        to the reference map for subsequent lookups by recursively parsing
-        nested objects.
+        Updates each term's label and CURIE in place and adds the normalized
+        CURIE and term to the reference map while recursively parsing nested
+        objects.
 
         Args:
-            record: Track record to update.
+            record (TrackRecord): Track record to update.
 
         Raises:
             KeyError: If a term does not have a matching reference entry.
@@ -223,10 +248,10 @@ class TrackLoaderBase(
         """Serialize a track record and prepare its embedding metadata.
 
         Args:
-            record: Track record to serialize.
+            record (TrackRecord): Track record to serialize.
 
         Returns:
-            Embedded track record containing serialized text and content hashes.
+            EmbeddedTrackRecord: Serialized track record with content hashes.
         """
         try:
             chunk_text = json.dumps(
@@ -255,10 +280,11 @@ class TrackLoaderBase(
         """Generate embeddings for prepared track records.
 
         Args:
-            records: Track records to serialize and embed.
+            records (list[TrackRecord]): Track records to serialize and embed.
 
         Returns:
-            Track records containing generated embedding vectors.
+            list[EmbeddedTrackRecord]: Track records containing generated
+                embedding vectors.
         """
         # generate embeddings
         embedded_track_records: list[EmbeddedTrackRecord] = [
@@ -279,7 +305,20 @@ class TrackLoaderBase(
 
         return embedded_track_records
 
-    async def _generate_track_concepts(self, track_record: TrackRecord, track_id: int):
+    async def _generate_track_concepts(
+        self, track_record: TrackRecord, track_id: int
+    ) -> list[TrackConcept]:
+        """Create concept links for a track's keyword annotations.
+
+        Args:
+            track_record (TrackRecord): Track record containing keyword
+                annotations.
+            track_id (int): Database identifier of the track.
+
+        Returns:
+            list[TrackConcept]: Track concept records linking the track to its
+                keyword terms.
+        """
         # now we need to load the linking tables
         concepts: list[TrackConcept] = []
         for keyword in track_record.keywords:
@@ -292,7 +331,20 @@ class TrackLoaderBase(
         return concepts
         #
 
-    async def _generate_track_context(self, track_record: TrackRecord, track_id: int):
+    async def _generate_track_context(
+        self, track_record: TrackRecord, track_id: int
+    ) -> list[TrackContext]:
+        """Create context links for a track's contextual annotations.
+
+        Args:
+            track_record (TrackRecord): Track record containing contextual
+                annotations.
+            track_id (int): Database identifier of the track.
+
+        Returns:
+            list[TrackContext]: Track context records linking the track to
+                contextual terms.
+        """
         contexts: list[TrackContext] = []
         context_type: TrackContextType
         for context_type in TrackContextType:
@@ -312,7 +364,16 @@ class TrackLoaderBase(
                 )
         return contexts
 
-    def _get_track_type_id(self, record: TrackRecord):
+    def _get_track_type_id(self, record: TrackRecord) -> int:
+        """Resolve and cache the ontology_term_id for a track type.
+
+        Args:
+            record (TrackRecord): Track record whose track type should be
+                resolved.
+
+        Returns:
+            int: ontology_term_id for the track type.
+        """
         if not self._track_type_id:
             key = (record.track_type.term, record.track_type.curie)
             self._track_type_id = self._ontology_term_reference[key]["ontology_term_id"]
@@ -324,15 +385,17 @@ class TrackLoaderBase(
         records: list[EmbeddedTrackRecord],
         *,
         is_filer_track: bool = False,
-    ):
-        """Persist a track record, its context, concepts, and embeddings
+    ) -> ResumeCheckpoint:
+        """Persist a track record, its context, concepts, and embeddings.
 
         Args:
-            session: Database session used for persistence.
-            records: list of embedded track records to load.
+            session (AsyncSession): Database session used for persistence.
+            records (list[EmbeddedTrackRecord]): Embedded track records to
+                load.
+            is_filer_track (bool): Whether the tracks originate from FILER.
 
         Returns:
-            Checkpoint for the loaded track record.
+            ResumeCheckpoint: Checkpoint for the last loaded track record.
         """
 
         tracks: list[Track] = []
