@@ -12,7 +12,9 @@ class OntologyTerm(CustomBaseModel):
     term: str = Field(..., description="the ontology term")
 
     @classmethod
-    def extract_from_obj(self, value: Any) -> list["OntologyTerm"]:
+    def extract_from_obj(
+        self, value: Any, *, as_dict: bool = False
+    ) -> Union[list["OntologyTerm"], list[dict]]:
         """
         Extract all formally defined OntologyTerm objects from a Pydantic Model and nested models.
 
@@ -34,10 +36,10 @@ class OntologyTerm(CustomBaseModel):
             for item in value:
                 terms.update(self.extract_from_obj(item))
 
-        return [
-            OntologyTerm(term=term, curie=curie.replace("_", ":"))
-            for term, curie in terms
-        ]
+        if as_dict:
+            return [{"term": term, "curie": curie} for term, curie in terms]
+
+        return [OntologyTerm(term=term, curie=curie) for term, curie in terms]
 
 
 class OntologyTerm(OntologyTerm):
