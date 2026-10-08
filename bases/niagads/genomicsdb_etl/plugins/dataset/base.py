@@ -132,36 +132,38 @@ class TrackLoaderBase(
             record (TrackRecord): Track record to validate.
 
         Returns:
-            OntologyTermValidation: Ontology term validation results.
+            bool: true if passes validation, false otherwise
 
         Raises:
             ValueError: If study diagnosis phenotypes are not contextualized
                 or the required data category is missing.
         """
         self.logger.info(f"Validating track record ontology terms")
-        has_errors: bool = False
+
         # this works b/c FILER populates track_type_id on_run_start
         if self._track_type_id is None and record.track_type is None:
             self.logger.info(
                 "Validation Error: required field `track_type` is missing."
             )
-            has_errors = True
 
         try:
             self._validate_study_diagnosis_phenotypes(record)
         except ValueError as err:
             self.logger.info(str(err))
-            has_errors = True
 
+        extracted_terms: dict = OntologyTerm.extract_from_obj(record, as_dict=True)
         async with self.session_ctx() as session:
-            ot_validation_result = await self._validate_ontology_terms(session, record)
+            ot_validation_result: OntologyTermValidation = (
+                DBOntologyTerm.validate_terms(session, extracted_terms)
+            )
 
         if (
             not ot_validation_result.not_matched
             and not ot_validation_result.multiple_matches
         ):
             self.logger.info("Ontology Term Validation: PASSED")
-
+            self._ontology_term_reference = ot_validation_result.valid
+            return True
         else:
             self.logger.info("Ontology Term Validation: FAILED")
             self.logger.info(f"Valid Terms: {len(ot_validation_result.valid)}")
@@ -175,10 +177,7 @@ class TrackLoaderBase(
                 print(json.dumps(ot_validation_result, indent=4), file=fh)
             self.logger.info(f"Validation results saved to {output_path}")
 
-            has_errors = True
-
-        self._ontology_term_reference = ot_validation_result.valid
-        return not has_errors
+        return False
 
     def _extract_contextual_ontology_terms(
         self, context_type: TrackContextType, record: TrackRecord
@@ -201,25 +200,6 @@ class TrackLoaderBase(
         self.logger.debug(f"context={context_type}; annotation={annotation}")
 
         return OntologyTerm.extract_from_obj(annotation)
-
-    async def _validate_ontology_terms(
-        self, session, record: TrackRecord
-    ) -> OntologyTermValidation:
-        """Validate ontology terms extracted from a track record.
-
-        Args:
-            session (AsyncSession): Database session used to resolve ontology
-                terms.
-            record (TrackRecord): Track record whose ontology terms should be
-                extracted.
-
-        Returns:
-            OntologyTermValidation: Validation results for the extracted
-                ontology terms.
-
-        """
-        extracted_terms: dict = OntologyTerm.extract_from_obj(record, as_dict=True)
-        return DBOntologyTerm.validate_terms(session, extracted_terms)
 
     def _update_nested_ontology_references(self, record: TrackRecord) -> None:
         """Replace nested ontology terms with their canonical database values.
