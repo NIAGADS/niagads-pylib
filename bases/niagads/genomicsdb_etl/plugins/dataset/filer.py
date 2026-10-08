@@ -88,7 +88,7 @@ class FILERTrackLoader(TrackLoaderBase):
         "DASHR2",  # FIXME: something is wrong w/their name generation
     ]
     _FILER_METADATA_ENDPOINT = "get_metadata.php"
-    _DATASET_TYPE_CURIE: str = "EDAM:topic_0085"  # FIX ME - temporary
+    _TRACK_TYPE_CURIE: str = "EDAM:topic_0085"  # FIX ME - temporary
 
     _params: FILERTrackLoaderParams
 
@@ -141,7 +141,7 @@ class FILERTrackLoader(TrackLoaderBase):
             await self.__fetch_live_track_ids()
 
         self._track_type_id = await OntologyTerm.find_primary_key(
-            session, curie=self._DATASET_TYPE_CURIE
+            session, curie=self._TRACK_TYPE_CURIE
         )
 
     def __exclude_track(self, record: TrackRecord):
