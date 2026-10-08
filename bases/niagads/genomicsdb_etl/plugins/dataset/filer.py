@@ -5,7 +5,11 @@ import json
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from niagads.genomicsdb_etl.plugins.dataset.base import EmbeddedTrackRecord, TrackLoaderBase, TrackLoaderBaseParams
+from niagads.genomicsdb_etl.plugins.dataset.base import (
+    EmbeddedTrackRecord,
+    TrackLoaderBase,
+    TrackLoaderBaseParams,
+)
 
 from niagads.common.models.base import SerializationOptions
 from niagads.common.reference.xrefs.data_sources import NIAGADSResources
@@ -26,10 +30,8 @@ from niagads.etl.plugins.types import ETLLoadStrategy
 
 from niagads.metadata_parser.filer import MetadataTemplateParser
 from niagads.requests.core import HttpClientSessionManager
-from niagads.utils.list import chunker
 from niagads.utils.sys import read_open_ctx
 from pydantic import Field
-
 
 
 class FILERTrackLoaderParams(TrackLoaderBaseParams):
@@ -138,7 +140,7 @@ class FILERTrackLoader(TrackLoaderBase):
         if not self._params.skip_live_validation:
             await self.__fetch_live_track_ids()
 
-        self._dataset_type_id = await OntologyTerm.find_primary_key(
+        self._track_type_id = await OntologyTerm.find_primary_key(
             session, curie=self._DATASET_TYPE_CURIE
         )
 
@@ -198,123 +200,26 @@ class FILERTrackLoader(TrackLoaderBase):
 
         parser.parse()
 
-        records = [
-            record
-            for record in parser.to_track_records()
-            if not self.__exclude_track(record)
-        ]
+        records = []
+        record_count = 0
+        for record in parser.to_track_records():
+            if self.__exclude_track(record):
+                continue
 
-        self.logger.info(f"Extracted {len(records)} valid records.")
-        return records
+            records.append(record)
+            record_count += 1
 
-    def __generate_embedded_track_record(
-        self, record: TrackRecord
-    ) -> EmbeddedTrackRecord:
-        try:
-            chunk_text = json.dumps(
-                record.model_dump(
-                    exclude_none=True,
-                    context={SerializationOptions.EMBEDDED_TEXT: True},
-                )
-            )
-        except Exception as err:
-            self.logger.critical(f"Problem generating chunk_text for record: {err}")
+            if len(records) == self._params.embedding_batch_size:
+                yield records
+                records = []
 
-        # self.logger.debug(f"Chunk Text: {chunk_text}")
+        if records:
+            yield records
 
-        document = json.dumps(record.model_dump(exclude_none=True))
-
-        return EmbeddedTrackRecord(
-            track=record,
-            chunk_text=chunk_text,
-            chunk_hash=self._embedding_generator.hash_text(chunk_text),
-            document_hash=self._embedding_generator.hash_text(document),
-        )
+        self.logger.info(f"Extracted {record_count} valid records.")
 
     async def transform(self, records: list[TrackRecord]) -> list[EmbeddedTrackRecord]:
-        # generate embeddings
-        embedded_track_records: list[EmbeddedTrackRecord] = [
-            self.__generate_embedded_track_record(record) for record in records
-        ]
-
-        PROGRESS_INTERVAL = 10
-        embeddings = []
-        generated_count = 0
-        for batch_index, chunk in enumerate(
-            chunker(
-                embedded_track_records,
-                self._params.embedding_batch_size,
-                return_iterator=False,
-            )
-        ):
-            embedding_subset = self._embedding_generator.generate(
-                [r.chunk_text for r in chunk],
-                as_list=True,
-            )
-            embeddings += embedding_subset
-            generated_count += len(chunk)
-
-            if (batch_index + 1) % PROGRESS_INTERVAL == 0:
-                self.logger.info(
-                    f"Generated embeddings for {generated_count} / "
-                    f"{len(embedded_track_records)} records"
-                )
-
-        for index, embedding in enumerate(embeddings):
-            embedded_track_records[index].embedding = embedding
-
-        return embedded_track_records
+        return self._embed_track_records(records)
 
     async def load(self, session, records: list[EmbeddedTrackRecord]):
-
-        tracks: list[Track] = []
-
-        for record in records:
-            tracks.append(
-                Track(
-                    **record.track.model_dump(exclude=["id"], exclude_none=True),
-                    source_id=record.track.id,
-                    dataset_type_id=self._dataset_type_id,
-                    run_id=self.run_id,
-                    external_database_id=self.external_database_id,
-                    is_filer_track=True,
-                )
-            )
-
-        await Track.submit_many(session, tracks)
-
-        chunk_metadata: list[ChunkMetadata] = []
-        for index, record in enumerate(records):
-            chunk_metadata.append(
-                ChunkMetadata(
-                    table_id=self._table_ref.table_id,
-                    row_id=tracks[index].track_id,
-                    document_type=str(RAGDocType.METADATA),
-                    document_hash=record.document_hash,
-                    chunk_hash=record.chunk_hash,
-                    chunk_text=record.chunk_text,
-                    run_id=self.run_id,
-                )
-            )
-
-        await ChunkMetadata.submit_many(session, chunk_metadata)
-
-        chunk_embeddings: list[ChunkEmbedding] = []
-        for index, metadata in enumerate(chunk_metadata):
-            chunk_embeddings.append(
-                ChunkEmbedding(
-                    chunk_metadata_id=metadata.chunk_metadata_id,
-                    chunk_hash=metadata.chunk_hash,
-                    embedding_model=str(self._params.embedding_model),
-                    embedding=records[index].embedding,
-                    embedding_date=datetime.now().isoformat(),
-                    embedding_run_id=self.run_id,
-                    run_id=self.run_id,
-                )
-            )
-
-        await ChunkEmbedding.submit_many(session, chunk_embeddings)
-
-        return self.create_checkpoint(record=records[-1])
-
-
+        self._load_track_records(session, records, is_filer_track=True)
