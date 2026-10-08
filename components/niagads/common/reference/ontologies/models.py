@@ -12,7 +12,7 @@ class OntologyTerm(CustomBaseModel):
     term: str = Field(..., description="the ontology term")
 
     @classmethod
-    def extract_from_obj(self, value: Any) -> list["OntologyTermRecord"]:
+    def extract_from_obj(self, value: Any) -> list["OntologyTerm"]:
         """
         Extract all formally defined OntologyTerm objects from a Pydantic Model and nested models.
 
@@ -22,7 +22,7 @@ class OntologyTerm(CustomBaseModel):
 
         if value is None:
             return terms
-        if isinstance(value, OntologyTermRecord):
+        if isinstance(value, OntologyTerm):
             terms.add((value.term, value.curie))
         elif isinstance(value, BaseModel):
             for field_name in value.__class__.model_fields:
@@ -35,12 +35,12 @@ class OntologyTerm(CustomBaseModel):
                 terms.update(self.extract_from_obj(item))
 
         return [
-            OntologyTermRecord(term=term, curie=curie.replace("_", ":"))
+            OntologyTerm(term=term, curie=curie.replace("_", ":"))
             for term, curie in terms
         ]
 
 
-class OntologyTermRecord(OntologyTerm):
+class OntologyTerm(OntologyTerm):
     """
     Pydantic model representing a term in an ontology graph.
 

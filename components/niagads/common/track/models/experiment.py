@@ -1,7 +1,7 @@
 from typing import List, Optional, Set
 
 from niagads.common.models.base import CustomBaseModel
-from niagads.common.reference.ontologies.models import OntologyTermRecord
+from niagads.common.reference.ontologies.models import OntologyTerm
 from pydantic import Field
 
 
@@ -33,6 +33,4 @@ class ExperimentalDesign(CustomBaseModel):
         title="Is Lifted?",
         description="data are lifted from earlier genome build",
     )
-    covariates: Optional[List[OntologyTermRecord]] = Field(
-        default=None, title="Covariates"
-    )
+    covariates: Optional[List[OntologyTerm]] = Field(default=None, title="Covariates")

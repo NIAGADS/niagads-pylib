@@ -4,7 +4,7 @@ from urllib.parse import unquote
 
 import requests
 from niagads.common.core import ComponentBaseMixin
-from niagads.common.reference.ontologies.models import OntologyTermRecord
+from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.reference.ontologies.types import BiosampleType
 from niagads.common.reference.xrefs.data_sources import ThirdPartyResources
 from niagads.common.track.models import (
@@ -315,7 +315,7 @@ class MetadataEntryParser(ComponentBaseMixin):
             # TODO handle tissue categories, systems to be list
             characteristics = BiosampleCharacteristics(
                 biosample=[
-                    OntologyTermRecord(
+                    OntologyTerm(
                         term=term,
                         curie=f"#FILER-biosample:{term}" if termId is None else termId,
                     )
@@ -323,15 +323,13 @@ class MetadataEntryParser(ComponentBaseMixin):
                 tissue=(
                     None
                     if tissue is None
-                    else [
-                        OntologyTermRecord(term=tissue, curie=f"#FILER-tissue:{tissue}")
-                    ]
+                    else [OntologyTerm(term=tissue, curie=f"#FILER-tissue:{tissue}")]
                 ),
                 system=None if system is None else [system],
                 life_stage=(
                     None
                     if lifestage is None
-                    else OntologyTermRecord(
+                    else OntologyTerm(
                         term=lifestage, curie=f"FILER-lifestage:{lifestage}"
                     )
                 ),

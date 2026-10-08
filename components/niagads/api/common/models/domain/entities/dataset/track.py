@@ -7,7 +7,7 @@ from niagads.api.common.models.domain.mixins import (
 )
 from niagads.common.genomic.features.models import GenomicFeatureType
 from niagads.common.models.base import CustomBaseModel, SerializationOptions
-from niagads.common.reference.ontologies.models import OntologyTermRecord
+from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.track.models import TrackRecord
 from niagads.common.track.models.samples import BiosampleCharacteristics
 from niagads.genome_reference.human import GenomeBuild
@@ -15,7 +15,7 @@ from pydantic import ConfigDict, Field, field_serializer, model_validator
 
 
 class BiosampleCharacteristicsReport(BiosampleCharacteristics):
-    biosample_type: Optional[List[OntologyTermRecord]] = Field(
+    biosample_type: Optional[List[OntologyTerm]] = Field(
         default=None,
         title="Biosample: Type",
         description="the biological source of a sample used in an experiment",

@@ -11,11 +11,11 @@ from niagads.common.models.annotations import (
     AnnotationType,
     ScoreMixin,
 )
-from niagads.common.reference.ontologies.models import OntologyTermRecord
+from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.reference.xrefs.models import Pathway
 
 
-class GOAssociation(AnnotationEvidenceMixin, OntologyTermRecord):
+class GOAssociation(AnnotationEvidenceMixin, OntologyTerm):
     """
     Represents a Gene Ontology (GO) association annotation for a gene
     """
@@ -36,10 +36,10 @@ class PathwayMembership(AnnotationEvidenceMixin, Pathway):
 
 
 class OpenTargetAssociation(AnnotationEvidenceMixin, ScoreMixin):
-    disease: OntologyTermRecord
-    target: OntologyTermRecord
+    disease: OntologyTerm
+    target: OntologyTerm
 
-    data_type: OntologyTermRecord  # aggregation type
+    data_type: OntologyTerm  # aggregation type
     data_source: Optional[str] = None  # or does this go into qualifier->reference
     # max evidence_count a qualifier?
 
