@@ -215,6 +215,14 @@ class TrackLoaderBase(
     def _generate_embedded_track_record(
         self, record: TrackRecord
     ) -> EmbeddedTrackRecord:
+        """Serialize a track record and prepare its embedding metadata.
+
+        Args:
+            record: Track record to serialize.
+
+        Returns:
+            Embedded track record containing serialized text and content hashes.
+        """
         try:
             chunk_text = json.dumps(
                 record.model_dump(
@@ -239,6 +247,14 @@ class TrackLoaderBase(
     async def _embed_track_records(
         self, records: list[TrackRecord]
     ) -> list[EmbeddedTrackRecord]:
+        """Generate embeddings for prepared track records.
+
+        Args:
+            records: Track records to serialize and embed.
+
+        Returns:
+            Track records containing generated embedding vectors.
+        """
         # generate embeddings
         embedded_track_records: list[EmbeddedTrackRecord] = [
             self._generate_embedded_track_record(record) for record in records
@@ -259,6 +275,15 @@ class TrackLoaderBase(
         return embedded_track_records
 
     async def _load_track_record(self, session, erecord: EmbeddedTrackRecord):
+        """Persist a track record and its ontology associations.
+
+        Args:
+            session: Database session used for persistence.
+            erecord: Embedded track record to load.
+
+        Returns:
+            Checkpoint for the loaded track record.
+        """
         track_record = erecord.track
 
         track_data = track_record.model_dump(exclude=["id"], exclude_none=True)
