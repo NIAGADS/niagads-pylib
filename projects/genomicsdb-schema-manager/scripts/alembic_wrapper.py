@@ -9,6 +9,8 @@ Usage:
 import argparse
 from os import path
 
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from helpers.config import Settings
 from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.utils.logging import setup_root_logger
@@ -62,6 +64,11 @@ class AlembicWrapper(ComponentBaseMixin):
             raise ValueError(f"Invalid schema for GenomicsDB {self.__schema}")
 
         versions_dir = path.join(self._project_root, "alembic", "versions")
+        alembic_config = Config(path.join(self._project_root, "alembic.ini"))
+        alembic_config.set_main_option(
+            "script_location", path.join(self._project_root, "alembic")
+        )
+        down_revision = ScriptDirectory.from_config(alembic_config).get_current_head()
         revision_id = uuid.uuid4().hex[:12]
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         filename = f"{revision_id}_create_{self.__schema}_schema.py"
@@ -74,7 +81,7 @@ class AlembicWrapper(ComponentBaseMixin):
             f'Create Date: {now}\n\n"""\n\n'
             "from alembic import op\n\n"
             f'revision = "{revision_id}"\n'
-            "down_revision = None\n"
+            f"down_revision = {down_revision!r}\n"
             "branch_labels = None\n"
             "depends_on = None\n\n"
             "def upgrade():\n"
