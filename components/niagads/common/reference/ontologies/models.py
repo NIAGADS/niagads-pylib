@@ -5,14 +5,42 @@ from niagads.utils.string import dict_to_info_string, matches
 from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
 
 
-class OntologyTermRecord(CustomBaseModel):
+class OntologyTerm(CustomBaseModel):
     """Basic ontology term identifiers"""
 
     curie: Optional[str] = Field(default=None, description="unique, stable identifier")
     term: str = Field(..., description="the ontology term")
 
+    @classmethod
+    def extract_from_obj(self, value: Any) -> list["OntologyTermRecord"]:
+        """
+        Extract all formally defined OntologyTerm objects from a Pydantic Model and nested models.
 
-class OntologyTermRecord(OntologyTermRecord):
+        Returns unique list of OntologyTerms.
+        """
+        terms: Set[tuple] = set()
+
+        if value is None:
+            return terms
+        if isinstance(value, OntologyTermRecord):
+            terms.add((value.term, value.curie))
+        elif isinstance(value, BaseModel):
+            for field_name in value.__class__.model_fields:
+                terms.update(self.extract_from_obj(getattr(value, field_name, None)))
+        elif isinstance(value, dict):
+            for item in value.values():
+                terms.update(self.extract_from_obj(item))
+        elif isinstance(value, (list, tuple, set)):
+            for item in value:
+                terms.update(self.extract_from_obj(item))
+
+        return [
+            OntologyTermRecord(term=term, curie=curie.replace("_", ":"))
+            for term, curie in terms
+        ]
+
+
+class OntologyTermRecord(OntologyTerm):
     """
     Pydantic model representing a term in an ontology graph.
 
@@ -100,31 +128,3 @@ class OntologyTermRecord(OntologyTermRecord):
         if self.curie:
             info.update({"curie": self.curie})
         return dict_to_info_string(info)
-
-    @classmethod
-    def extract_from_obj(self, value: Any) -> list["OntologyTermRecord"]:
-        """
-        Extract all formally defined OntologyTerm objects from a Pydantic Model and nested models.
-
-        Returns unique list of OntologyTerms.
-        """
-        terms: Set[tuple] = set()
-
-        if value is None:
-            return terms
-        if isinstance(value, OntologyTermRecord):
-            terms.add((value.term, value.curie))
-        elif isinstance(value, BaseModel):
-            for field_name in value.__class__.model_fields:
-                terms.update(self.extract_from_obj(getattr(value, field_name, None)))
-        elif isinstance(value, dict):
-            for item in value.values():
-                terms.update(self.extract_from_obj(item))
-        elif isinstance(value, (list, tuple, set)):
-            for item in value:
-                terms.update(self.extract_from_obj(item))
-
-        return [
-            OntologyTermRecord(term=term, curie=curie.replace("_", ":"))
-            for term, curie in terms
-        ]
