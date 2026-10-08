@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from typing import Any, Dict, Optional
 
@@ -10,6 +11,11 @@ from niagads.database.genomicsdb.schema.dataset.track import (
     TrackContext,
     TrackContextType,
 )
+from niagads.database.genomicsdb.schema.ragdoc.chunks import (
+    ChunkEmbedding,
+    ChunkMetadata,
+)
+from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
 from niagads.database.genomicsdb.schema.reference.ontology import (
     OntologyTerm as DBOntologyTerm,
     OntologyTermValidation,
@@ -26,10 +32,9 @@ from niagads.etl.plugins.parameters import (
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
     ExternalDatabaseRefMixin,
 )
-from niagads.utils.list import chunker
+
 from niagads.utils.sys import read_open_ctx
 from pydantic import BaseModel
-from sqlalchemy.exc import NoResultFound
 
 
 class EmbeddedTrackRecord(CustomBaseModel, arbitrary_types_allowed=True):
@@ -59,7 +64,7 @@ class TrackLoaderBase(
         verbose: bool = False,
     ):
         super().__init__(params, name, log_path, debug, verbose)
-        self._database_type_id: int = None
+        self._track_type_id: int = None
 
         # map of provided value (curie|term) to DB record
         self._ontology_term_reference: dict[str, DBOntologyTerm]
@@ -274,37 +279,20 @@ class TrackLoaderBase(
 
         return embedded_track_records
 
-    async def _load_track_record(self, session, erecord: EmbeddedTrackRecord):
-        """Persist a track record and its ontology associations.
-
-        Args:
-            session: Database session used for persistence.
-            erecord: Embedded track record to load.
-
-        Returns:
-            Checkpoint for the loaded track record.
-        """
-        track_record = erecord.track
-
-        track_data = track_record.model_dump(exclude=["id"], exclude_none=True)
-        track_data["source_id"] = track_record.id
-        track_data["run_id"] = self.run_id
-        track_data["external_database_id"] = self.external_database_id
-
-        track: Track = Track(**track_data)
-        track_id: int = await track.submit(session)
-
+    async def _generate_track_concepts(self, track_record: TrackRecord, track_id: int):
         # now we need to load the linking tables
         concepts: list[TrackConcept] = []
         for keyword in track_record.keywords:
-            key = f"{keyword.curie}|{keyword.term}"
-            keyword_pk: int = self._ontology_term_reference[key].ontology_term_id
-            self.logger.debug(f"Found Keyword: {key} - {keyword_pk}")
+            key = (keyword.term, keyword.curie)
+            keyword_pk: int = self._ontology_term_reference[key]["ontology_term_id"]
+            self.logger.debug(f"Found Concept Keyword: {key} - {keyword_pk}")
             concepts.append(
                 TrackConcept(track_id=track_id, ontology_term_id=keyword_pk)
             )
-        await TrackConcept.submit_many(session, concepts)
+        return concepts
+        #
 
+    async def _generate_track_context(self, track_record: TrackRecord, track_id: int):
         contexts: list[TrackContext] = []
         context_type: TrackContextType
         for context_type in TrackContextType:
@@ -313,7 +301,7 @@ class TrackLoaderBase(
             )
             for ot in ontology_terms:
                 key = (ot.term, ot.curie)
-                ot_pk: int = self._ontology_term_reference[key].ontology_term_id
+                ot_pk: int = self._ontology_term_reference[key]["ontology_term_id"]
                 self.logger.debug(f"Found Contextual OT: {key} - {ot_pk}")
                 contexts.append(
                     TrackContext(
@@ -322,6 +310,83 @@ class TrackLoaderBase(
                         context=str(context_type),
                     )
                 )
-        await TrackContext.submit_many(session, contexts)
+        return contexts
 
-        return self.create_checkpoint(record=track_record)
+    def _get_track_type_id(self, record: TrackRecord):
+        if not self._track_type_id:
+            key = (record.track_type.term, record.track_type.curie)
+            self._track_type_id = self._ontology_term_reference[key]["ontology_term_id"]
+        return self._track_type_id
+
+    async def _load_track_records(
+        self,
+        session,
+        records: list[EmbeddedTrackRecord],
+        *,
+        is_filer_track: bool = False,
+    ):
+        """Persist a track record, its context, concepts, and embeddings
+
+        Args:
+            session: Database session used for persistence.
+            records: list of embedded track records to load.
+
+        Returns:
+            Checkpoint for the loaded track record.
+        """
+
+        tracks: list[Track] = []
+        for record in records:
+            track_type_id = self._get_track_type_id(record.track)
+            tracks.append(
+                Track(
+                    **record.track.model_dump(exclude=["id"], exclude_none=True),
+                    source_id=record.track.id,
+                    track_type_id=track_type_id,
+                    run_id=self.run_id,
+                    external_database_id=self.external_database_id,
+                    is_filer_track=is_filer_track,
+                )
+            )
+
+        await Track.submit_many(session, tracks)
+
+        chunk_metadata: list[ChunkMetadata] = []
+        track_concepts: list[TrackConcept] = []
+        track_contexts: list[TrackContext] = []
+        for index, record in enumerate(records):
+            track_id = tracks[index].track_id
+            track_concepts.extend(self._generate_track_concepts(record, track_id))
+            track_contexts.extend(self._generate_track_context(record, track_id))
+            chunk_metadata.append(
+                ChunkMetadata(
+                    table_id=self._table_ref.table_id,
+                    row_id=track_id,
+                    document_type=str(RAGDocType.METADATA),
+                    document_hash=record.document_hash,
+                    chunk_hash=record.chunk_hash,
+                    chunk_text=record.chunk_text,
+                    run_id=self.run_id,
+                )
+            )
+
+        await TrackConcept.submit_many(session, track_concepts)
+        await TrackContext.submit_many(session, track_contexts)
+        await ChunkMetadata.submit_many(session, chunk_metadata)
+
+        chunk_embeddings: list[ChunkEmbedding] = []
+        for index, metadata in enumerate(chunk_metadata):
+            chunk_embeddings.append(
+                ChunkEmbedding(
+                    chunk_metadata_id=metadata.chunk_metadata_id,
+                    chunk_hash=metadata.chunk_hash,
+                    embedding_model=str(self._params.embedding_model),
+                    embedding=records[index].embedding,
+                    embedding_date=datetime.now().isoformat(),
+                    embedding_run_id=self.run_id,
+                    run_id=self.run_id,
+                )
+            )
+
+        await ChunkEmbedding.submit_many(session, chunk_embeddings)
+        return self.create_checkpoint(record=records[-1])
