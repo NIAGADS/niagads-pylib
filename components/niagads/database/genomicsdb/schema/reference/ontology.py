@@ -42,7 +42,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 
 class OntologyTermValidation(CustomBaseModel):
-    valid: list[dict]
+    valid: dict[tuple[str | None, str | None], dict]
     not_matched: list[dict]
     multiple_matches: list[dict]
 
@@ -442,10 +442,10 @@ class OntologyTerm(
                 elif key in valid:
                     multiple_matches[key] = {
                         "lookup": lookup,
-                        "matches": [valid.pop(key)["match"], match],
+                        "matches": [valid.pop(key), match],
                     }
                 else:
-                    valid[key] = {"lookup": lookup, "match": match}
+                    valid[key] = match
             elif term is not None and row["db_term"] != term:
                 not_matched.append(
                     {
@@ -460,16 +460,13 @@ class OntologyTerm(
                 )
             else:
                 valid[key] = {
-                    "lookup": lookup,
-                    "match": {
-                        "term": row["db_term"],
-                        "curie": row["db_curie"],
-                        "ontology_term_id": row["ontology_term_id"],
-                    },
+                    "term": row["db_term"],
+                    "curie": row["db_curie"],
+                    "ontology_term_id": row["ontology_term_id"],
                 }
 
         return OntologyTermValidation(
-            valid=list(valid.values()),
+            valid=valid,
             not_matched=not_matched,
             multiple_matches=list(multiple_matches.values()),
         )
