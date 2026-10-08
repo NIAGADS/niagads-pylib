@@ -101,10 +101,7 @@ class VariantLookupMixin:
         return left_ranges + adjusted_right
 
     async def _retrieve_variants_in_span(
-        self,
-        session: AsyncSession,
-        region: OneBasedGenomicRegion,
-        incl_adsp_flag: bool = False,
+        self, session: AsyncSession, region: OneBasedGenomicRegion
     ):
         """
         Retrieve all variants in the specified genomic region
@@ -120,21 +117,18 @@ class VariantLookupMixin:
             Variant.ref_allele,
             Variant.alt_allele,
             Variant.is_adsp_variant,
+            Variant.is_annotated,
         ).where(
             Variant.chromosome == str(region.chromosome),
             Variant.position.between(region.start, region.end),
         )
         result = (await session.execute(stmt)).all()
-        if incl_adsp_flag:
-            return {
-                (row.position, row.ref_allele, row.alt_allele): {
-                    "id": row.variant_id,
-                    "is_adsp_variant": row.is_adsp_variant,
-                }
-                for row in result
+
+        return {
+            (row.position, row.ref_allele, row.alt_allele): {
+                "id": row.variant_id,
+                "is_adsp_variant": row.is_adsp_variant,
+                "is_annotated": row.is_annotated,
             }
-        else:
-            return {
-                (row.position, row.ref_allele, row.alt_allele): row.variant_id
-                for row in result
-            }
+            for row in result
+        }

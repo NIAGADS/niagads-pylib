@@ -600,9 +600,8 @@ class VEPAnnotationLoader(
                     record.annotation.ref,
                     record.annotation.alt,
                 )
-                primary_key = reference_variants.get(variant_key)
-
-                if primary_key is None:
+                db_record = reference_variants.get(variant_key)
+                if db_record is None:
                     # if SNV switch alleles and try again (trust INDEL directions)
                     if len(record.annotation.ref) == len(record.annotation.alt) == 1:
                         variant_key = (
@@ -610,12 +609,12 @@ class VEPAnnotationLoader(
                             record.annotation.alt,
                             record.annotation.ref,
                         )
-                        primary_key = reference_variants.get(variant_key)
+                    db_record = reference_variants.get(variant_key)
 
-                if primary_key is None:
+                if db_record is None:
                     self.inc_tx_count(Variant, ETLOperation.SKIP)
                 else:
-                    record.db_primary_key = primary_key
+                    record.db_primary_key = db_record["id"]
                     num_updateable_variants += 1
 
         chunk_size = 5000  # 25000 slows down, 5000-10000 same rate, going w/smaller because of parallel

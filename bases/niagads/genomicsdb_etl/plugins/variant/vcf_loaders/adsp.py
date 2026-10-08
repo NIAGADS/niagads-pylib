@@ -68,7 +68,7 @@ class ADSPVCFLoader(BaseVCFLoader, VariantLookupMixin):
         self.logger.debug(f"Lookup Region: {str(lookup_region)}")
         async with timer("Fetch variants in span", logger=self.logger):
             reference_variants = await self._retrieve_variants_in_span(
-                session, lookup_region, incl_adsp_flag=True
+                session, lookup_region
             )
 
         update_variant_ids = []
