@@ -25,6 +25,7 @@ class TrackRecord(CustomBaseModel):
     )
     name: str = Field(title="Name")
     description: Optional[str] = Field(default=None, title="Description")
+    track_type: Optional[OntologyTerm] = Field(..., title="Track Type")
     genome_build: GenomeBuild = Field(
         default=GenomeBuild.GRCh38,
         title="Genome Build",
