@@ -2,7 +2,7 @@
 # TODO: investigate DASH2 and UCSC tracks
 
 import json
-from datetime import datetime
+
 from typing import Any, Dict, Optional
 
 from niagads.genomicsdb_etl.plugins.dataset.base import (
@@ -11,7 +11,7 @@ from niagads.genomicsdb_etl.plugins.dataset.base import (
     TrackLoaderBaseParams,
 )
 
-from niagads.common.models.base import SerializationOptions
+
 from niagads.common.reference.xrefs.data_sources import NIAGADSResources
 from niagads.common.track.models.record import TrackRecord
 from niagads.common.types import ETLOperation
@@ -20,7 +20,7 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
-from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
+
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 
 from niagads.etl.plugins.metadata import PluginMetadata
@@ -222,4 +222,5 @@ class FILERTrackLoader(TrackLoaderBase):
         return self._embed_track_records(records)
 
     async def load(self, session, records: list[EmbeddedTrackRecord]):
-        self._load_track_records(session, records, is_filer_track=True)
+        await self._load_track_records(session, records, is_filer_track=True)
+        self.create_checkpoint(record=records[-1])
