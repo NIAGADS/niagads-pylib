@@ -42,7 +42,7 @@ class OntologyTerm(CustomBaseModel):
         return [OntologyTerm(term=term, curie=curie) for term, curie in terms]
 
 
-class OntologyTerm(OntologyTerm):
+class OntologyTermRecord(OntologyTerm):
     """
     Pydantic model representing a term in an ontology graph.
 
