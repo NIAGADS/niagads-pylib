@@ -45,8 +45,7 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
 
     is_filer_track: Mapped[bool] = mapped_column()
 
-    # FIXME: when we revisit ontology terms
-    dataset_type_id: Mapped[int] = ontology_term_fk_column()
+    track_type_id: Mapped[int] = ontology_term_fk_column()
 
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
