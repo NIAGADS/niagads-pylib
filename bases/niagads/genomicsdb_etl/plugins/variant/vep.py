@@ -10,12 +10,12 @@ from niagads.etl.plugins.mixins import EmbeddingGeneratorContextMixin
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     EmbeddingParameterMixin,
-    PathValidatorMixin,
+    PathValidatorParamMixin,
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genome_reference.human import HumanGenome
-from niagads.genomicsdb_etl.plugins.variant.base import (
+from niagads.genomicsdb_etl.plugins.common.mixins.variants import (
     VariantLookupBlock,
     VariantLookupMixin,
 )
@@ -32,7 +32,6 @@ from niagads.vep_json_parser.core import (
     VEPJSONParser,
 )
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import text
 
 
 class AnnotationSummary(BaseModel):
@@ -52,14 +51,14 @@ class AnnotationRecord(BaseModel, arbitrary_types_allowed=True):
 
 
 class VEPAnnotationLoaderParams(
-    BasePluginParams, PathValidatorMixin, EmbeddingParameterMixin
+    BasePluginParams, PathValidatorParamMixin, EmbeddingParameterMixin
 ):
     file: str = Field(description="Path to VEP JSON file")
     summarization_model: Optional[LLM] = Field(
         default=LLM.MISTRAL_7B_INSTRUCT_V0_3,
         description="LLM model for generating textual summaries of the VEP annotation",
     )
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
     skip_summarization: Optional[bool] = Field(
         default=False, description="skip summarization"
     )

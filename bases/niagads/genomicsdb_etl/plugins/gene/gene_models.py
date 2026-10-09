@@ -18,7 +18,7 @@ from niagads.database.genomicsdb.schema.reference.externaldb import ExternalData
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import PathValidatorMixin
+from niagads.etl.plugins.parameters import PathValidatorParamMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genome_reference.human import HumanGenome
@@ -28,7 +28,7 @@ from niagads.genomicsdb_etl.plugins.common.bases.features import (
     BaseFeatureLoaderPlugin,
 )
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
+    ExternalDatabaseRefParamMixin,
 )
 from niagads.utils.dict import info_string_to_dict
 from niagads.utils.string import regex_replace
@@ -90,7 +90,7 @@ class GeneFeature(BaseModel, arbitrary_types_allowed=True):
 # ----------- Plugin
 
 
-class EnsemblGFF3LoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
+class EnsemblGFF3LoaderParams(BaseFeatureLoaderParams, PathValidatorParamMixin):
     """Parameters for Ensembl GFF3 gene structure loader plugin."""
 
     file: str = Field(..., description="full path to Ensembl GFF3 file")
@@ -102,7 +102,7 @@ class EnsemblGFF3LoaderParams(BaseFeatureLoaderParams, PathValidatorMixin):
         description="external database reference for the sequence ontology `SO|version'",
     )
 
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
 
 
 metadata = PluginMetadata(
@@ -153,7 +153,9 @@ class EnsemblGFF3Loader(BaseFeatureLoaderPlugin):
 
         if self.is_etl_run:
             # validate and fetch sequence ontology external database ref
-            so_xbdref_param = ExternalDatabaseRefMixin(xdbref=self._params.so_xdbref)
+            so_xbdref_param = ExternalDatabaseRefParamMixin(
+                xdbref=self._params.so_xdbref
+            )
             so_xdbref: ExternalDatabase = await so_xbdref_param.fetch_xdbref(session)
             self.__so_external_database_id = so_xdbref.external_database_id
             self.logger.debug(f"SO XDBREF ID = {self.__so_external_database_id}")

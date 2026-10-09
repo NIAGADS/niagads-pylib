@@ -1,5 +1,5 @@
-from datetime import datetime
 import json
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 from niagads.common.models.base import CustomBaseModel, SerializationOptions
@@ -18,6 +18,8 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
 from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
 from niagads.database.genomicsdb.schema.reference.ontology import (
     OntologyTerm as DBOntologyTerm,
+)
+from niagads.database.genomicsdb.schema.reference.ontology import (
     OntologyTermValidation,
 )
 from niagads.etl.plugins.base import AbstractBasePlugin
@@ -31,9 +33,8 @@ from niagads.etl.plugins.parameters import (
 )
 from niagads.etl.plugins.types import ResumeCheckpoint
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
+    ExternalDatabaseRefParamMixin,
 )
-
 from niagads.utils.sys import read_open_ctx
 from pydantic import BaseModel
 
@@ -48,7 +49,7 @@ class EmbeddedTrackRecord(CustomBaseModel, arbitrary_types_allowed=True):
 
 class TrackLoaderBaseParams(
     BasePluginParams,
-    ExternalDatabaseRefMixin,
+    ExternalDatabaseRefParamMixin,
     EmbeddingParameterMixin,
 ): ...
 

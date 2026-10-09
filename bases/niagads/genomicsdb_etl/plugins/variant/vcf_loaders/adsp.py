@@ -1,14 +1,11 @@
 from typing import Optional
 
-from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.types import ETLOperation
-from niagads.common.variant.models.record import VariantRecord
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-from niagads.genome_reference.human import HumanGenome
-from niagads.genomicsdb_etl.plugins.variant.base import VariantLookupMixin
+from niagads.genomicsdb_etl.plugins.common.mixins.variants import VariantLookupMixin
 from niagads.genomicsdb_etl.plugins.variant.vcf_loaders.base import (
     BaseVCFLoader,
     BaseVCFLoaderParams,
@@ -17,7 +14,7 @@ from niagads.utils.list import chunker
 from niagads.utils.sys import timer
 from niagads.vcf.types import VCFEntry
 from pydantic import Field
-from sqlalchemy import select, update
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 

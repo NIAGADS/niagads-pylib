@@ -12,11 +12,11 @@ from niagads.database.genomicsdb.schema.variant.mappings import RefSNPAlias
 from niagads.database.genomicsdb.schema.variant.types import RefSNPMergeHistory
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorParamMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
+    ExternalDatabaseRefParamMixin,
 )
 from niagads.utils.sys import read_open_ctx
 from pydantic import Field, field_validator
@@ -32,13 +32,13 @@ class MergeRecord(RefSNPMergeHistory):
 
 
 class RefSNPMergeHistoryLoaderParams(
-    BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin
+    BasePluginParams, PathValidatorParamMixin, ExternalDatabaseRefParamMixin
 ):
     """Parameters for DBSnpMergeHistoryLoader plugin."""
 
     file: str = Field(..., description="full path to dbSNP merge history JSON file")
 
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
 
 
 metadata = PluginMetadata(

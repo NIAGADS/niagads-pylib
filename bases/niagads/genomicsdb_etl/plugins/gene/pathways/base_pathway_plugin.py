@@ -7,9 +7,9 @@ from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.pathway import Pathway
 from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorParamMixin
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
+    ExternalDatabaseRefParamMixin,
 )
 from niagads.genomicsdb_etl.plugins.gene.pathways.types import PathwayGeneAssociations
 from pydantic import Field
@@ -17,7 +17,7 @@ from sqlalchemy.exc import NoResultFound
 
 
 class PathwayMembershipLoaderPluginParams(
-    BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin
+    BasePluginParams, PathValidatorParamMixin, ExternalDatabaseRefParamMixin
 ):
     """
     Parameters for pathway-membership loading plugins
@@ -198,9 +198,9 @@ class PathwayMembershipLoaderPlugin(AbstractBasePlugin):
 
             if not memberships:
                 self.logger.info(
-                        f" Pathway memberships were not loaded for for {assoc.pathway_info.pathway_id}: "
-                         f"all {len(assoc.member_genes)} member genes failed to map to the database."
-                ) 
+                    f" Pathway memberships were not loaded for for {assoc.pathway_info.pathway_id}: "
+                    f"all {len(assoc.member_genes)} member genes failed to map to the database."
+                )
                 # FIXME: should technically not load empty pathway in pathway table, but need to think about how to
                 # roll back just that one entry - possibly keep list and delete from db in on_run_complete
                 continue

@@ -11,18 +11,17 @@ from niagads.database.genomicsdb.schema.reference.genome import GenomeReference
 from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorParamMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from niagads.utils.string import xstr
 from pydantic import BaseModel, Field
-
-from niagads.genome_reference.human import GenomeBuild, HumanGenome
 from sqlalchemy import select
 from sqlalchemy_utils.types.ltree import Ltree
 
 
-class GenomeReferenceLoaderParams(BasePluginParams, PathValidatorMixin):
+class GenomeReferenceLoaderParams(BasePluginParams, PathValidatorParamMixin):
     """Parameters for chromosome map loader plugin."""
 
     genome_build: Optional[GenomeBuild] = Field(
@@ -36,12 +35,12 @@ class GenomeReferenceLoaderParams(BasePluginParams, PathValidatorMixin):
 # ============================================================================
 
 
-class ChromosomeMapLoaderParams(GenomeReferenceLoaderParams, PathValidatorMixin):
+class ChromosomeMapLoaderParams(GenomeReferenceLoaderParams, PathValidatorParamMixin):
     """Parameters for chromosome map loader plugin."""
 
     file: str = Field(..., description="full path to chromosome map file")
 
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
 
 
 metadata_chr_map = PluginMetadata(

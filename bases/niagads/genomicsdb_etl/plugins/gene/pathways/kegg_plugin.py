@@ -6,7 +6,7 @@ from niagads.database.genomicsdb.schema.gene.annotation import PathwayMembership
 from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType
 from niagads.database.genomicsdb.schema.reference.pathway import Pathway
 from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import PathValidatorMixin
+from niagads.etl.plugins.parameters import PathValidatorParamMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.gene.pathways.base_pathway_plugin import (
@@ -14,8 +14,8 @@ from niagads.genomicsdb_etl.plugins.gene.pathways.base_pathway_plugin import (
     PathwayMembershipLoaderPluginParams,
 )
 from niagads.genomicsdb_etl.plugins.gene.pathways.types import (
-    PathwayGeneAssociations,
     MembershipAnnotation,
+    PathwayGeneAssociations,
     PathwayInfo,
 )
 from niagads.utils.sys import get_files_by_pattern
@@ -31,7 +31,7 @@ class KEGGLoaderParams(PathwayMembershipLoaderPluginParams):
         ..., description="directory containing KEGG KGML XML files to load"
     )
 
-    validate_file_exists = PathValidatorMixin.validator("kgml_dir")
+    validate_file_exists = PathValidatorParamMixin.validator("kgml_dir")
 
 
 metadata = PluginMetadata(

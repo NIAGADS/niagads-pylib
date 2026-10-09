@@ -33,20 +33,25 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
 from niagads.database.genomicsdb.schema.results.associations import VariantAssociation
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import PathValidatorMixin, VariantIdGeneratorMixin
+from niagads.etl.plugins.parameters import (
+    GA4GHParamMixin,
+    PathValidatorParamMixin,
+)
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.ga4gh.annotators import PrimaryKeyGenerator
 from niagads.genome_reference.human import HumanGenome
-from niagads.genomicsdb_etl.plugins.common.bases.features import BinIndexReferenceMixin
-from niagads.genomicsdb_etl.plugins.dataset.base import (
-    TrackLoaderBase,
-    TrackLoaderBaseParams,
+from niagads.genomicsdb_etl.plugins.common.mixins.intervals import (
+    BinIndexReferenceMixin,
 )
-from niagads.genomicsdb_etl.plugins.variant.base import (
+from niagads.genomicsdb_etl.plugins.common.mixins.variants import (
     MatchedVariant,
     VariantLookupMap,
     VariantLookupMixin,
+)
+from niagads.genomicsdb_etl.plugins.dataset.base import (
+    TrackLoaderBase,
+    TrackLoaderBaseParams,
 )
 from niagads.utils.list import qw
 from niagads.utils.numeric import to_scientific_notation
@@ -102,7 +107,7 @@ class GWASAssocationEntry(CustomBaseModel):
 
 
 class GWASTrackLoaderParams(
-    TrackLoaderBaseParams, PathValidatorMixin, VariantIdGeneratorMixin
+    TrackLoaderBaseParams, PathValidatorParamMixin, GA4GHParamMixin
 ):
     """Parameters for TrackJSONLoader plugin."""
 
@@ -121,8 +126,8 @@ class GWASTrackLoaderParams(
         default=1e-3, description="(relaxed) cutoff of genome-wide significance"
     )
 
-    validate_metadata_exists = PathValidatorMixin.validator("metadata_file")
-    validate_data_exists = PathValidatorMixin.validator("data_file")
+    validate_metadata_exists = PathValidatorParamMixin.validator("metadata_file")
+    validate_data_exists = PathValidatorParamMixin.validator("data_file")
 
 
 @PluginRegistry.register(

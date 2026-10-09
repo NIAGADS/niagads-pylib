@@ -17,10 +17,10 @@ from niagads.etl.plugins.mixins import (
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     EmbeddingParameterMixin,
-    PathValidatorMixin,
+    PathValidatorParamMixin,
 )
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
+    ExternalDatabaseRefParamMixin,
 )
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import NoResultFound
@@ -57,8 +57,8 @@ class Triple(BaseModel):
 
 class BaseOntologyLoaderParams(
     BasePluginParams,
-    PathValidatorMixin,
-    ExternalDatabaseRefMixin,
+    PathValidatorParamMixin,
+    ExternalDatabaseRefParamMixin,
     EmbeddingParameterMixin,
 ):
     """shared parameters for loading ontology terms."""
@@ -68,7 +68,7 @@ class BaseOntologyLoaderParams(
         default=False,
         description="if term already exists in the table, attempts to update defintion and synonyms if necessary; if set to false, just skips existing terms",
     )
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
 
 
 class BaseOntologyLoader(

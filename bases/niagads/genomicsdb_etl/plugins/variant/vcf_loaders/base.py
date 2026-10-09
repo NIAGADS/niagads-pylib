@@ -5,9 +5,9 @@ from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.models.record import VariantRecord
 from niagads.common.variant.types import VariantClass
 from niagads.etl.plugins.parameters import (
-    EnvVariableMixin,
-    PathValidatorMixin,
-    VariantIdGeneratorMixin,
+    EnvVariableParamMixin,
+    GA4GHParamMixin,
+    PathValidatorParamMixin,
 )
 from niagads.ga4gh.annotators import PrimaryKeyGenerator
 from niagads.genome_reference.human import GenomeBuild
@@ -21,13 +21,16 @@ from pydantic import Field
 
 class BaseVCFLoaderParams(
     BaseFeatureLoaderParams,
-    PathValidatorMixin,
-    EnvVariableMixin,
-    VariantIdGeneratorMixin,
+    PathValidatorParamMixin,
+    EnvVariableParamMixin,
+    GA4GHParamMixin,
 ):
     file: str = Field(..., description="Full path to VCF file")
 
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
+
+
+class VariantPrimaryKeyGeneratorMixin: ...
 
 
 class BaseVCFLoader(BaseFeatureLoaderPlugin):
