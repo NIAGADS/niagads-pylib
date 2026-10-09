@@ -1,9 +1,14 @@
 from typing import Dict, Iterator, Optional
+
 import cyvcf2
 from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.models.record import VariantRecord
 from niagads.common.variant.types import VariantClass
-from niagads.etl.plugins.parameters import EnvVariableMixin, PathValidatorMixin
+from niagads.etl.plugins.parameters import (
+    EnvVariableMixin,
+    PathValidatorMixin,
+    VariantIdGeneratorMixin,
+)
 from niagads.ga4gh.annotators import PrimaryKeyGenerator
 from niagads.genome_reference.human import GenomeBuild
 from niagads.genomicsdb_etl.plugins.common.bases.features import (
@@ -15,33 +20,12 @@ from pydantic import Field
 
 
 class BaseVCFLoaderParams(
-    BaseFeatureLoaderParams, PathValidatorMixin, EnvVariableMixin
+    BaseFeatureLoaderParams,
+    PathValidatorMixin,
+    EnvVariableMixin,
+    VariantIdGeneratorMixin,
 ):
     file: str = Field(..., description="Full path to VCF file")
-    
-    genome_build: Optional[GenomeBuild] = Field(
-        default=GenomeBuild.GRCh38,
-        description=f"Reference genome build, one of {GenomeBuild.list()}",
-    )
-
-    seqrepo_data_proxy: Optional[str] = Field(
-        default=None,
-        description="URL to seqrepo service or full path to seqrepo cache for GA4GH VRS",
-    )
-
-    skip_ga4gh_vrs: Optional[bool] = Field(
-        defualt=False,
-        description="Skip generating GA4GH VRS representation; note: GA4GH VRS calls with still be made to generate SV stable IDs",
-    )
-
-    seqrepo_lru_cache_maxsize: Optional[str] = Field(
-        default="none",
-        description="Maximum number of SeqRepo lookup results kept in the in-memory LRU cache. Use an integer or 'none' for unlimited.",
-    )
-    seqrepo_fd_cache_maxsize: Optional[int] = Field(
-        default=100,
-        description="Maximum number of sequence file handles SeqRepo keeps open. Higher values reduce repeated file open/close overhead.",
-    )
 
     validate_file_exists = PathValidatorMixin.validator("file")
 
@@ -132,4 +116,3 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
             )
 
         return record
-
