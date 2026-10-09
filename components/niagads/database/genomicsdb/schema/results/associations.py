@@ -26,9 +26,9 @@ class VariantAssociation(ResultsTableBase, GenomicRegionMixin):
     variant_id: Mapped[str] = mapped_column(String(150))  # NIAGADS_ID in variant table
     neg_log10_pvalue: Mapped[float] = mapped_column(index=True)
     pvalue: Mapped[str] = mapped_column(String(25))
-    beta_sign: Mapped[str] = mapped_column(String(2))
+    effect_direction: Mapped[str] = mapped_column(String(2))
     # FIXME -> I don't think it needs to be a text field b/c optional now b/c of long INDEL handling
-    allele: Mapped[Optional[str]] = mapped_column(TEXT)
+    test_allele: Mapped[Optional[str]] = mapped_column(TEXT)
 
 
 class VariantTraitAssociation(
@@ -50,6 +50,6 @@ class VariantTraitAssociation(
     neg_log10_pvalue: Mapped[float] = mapped_column(index=True)
     pvalue: Mapped[str] = mapped_column(String(25))
     locus: Mapped[str] = mapped_column(TEXT)
-    allele: Mapped[Optional[str]] = mapped_column(String(350))
+    test_allele: Mapped[Optional[str]] = mapped_column(String(350))
     trait: Mapped[int] = ontology_term_fk_column()
     qualifiers: Mapped[Optional[dict]] = mapped_column(JSON(none_as_null=True))

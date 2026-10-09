@@ -45,7 +45,8 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
 
     is_filer_track: Mapped[bool] = mapped_column()
 
-    track_type_id: Mapped[int] = ontology_term_fk_column()
+    # FIXME: should not be nullable but temporarily needs to be until FILER reloaded
+    track_type_id: Mapped[int] = ontology_term_fk_column(nullable=True)
 
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
