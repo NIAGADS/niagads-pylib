@@ -23,7 +23,12 @@ class VariantAssociation(ResultsTableBase, GenomicRegionMixin):
         primary_key=True, autoincrement=True
     )
     track_id: Mapped[int] = track_fk_column()
-    variant_id: Mapped[str] = mapped_column(String(150))  # NIAGADS_ID in variant table
+    variant_id: Mapped[int] = mapped_column(
+        index=True
+    )  # database primary key, but not FK b/c of variant table size
+    variant_stable_id: Mapped[str] = mapped_column(
+        index=True
+    )  # `niagasds_id #FIXME:  change to variant_stable_id in variant tables
     neg_log10_pvalue: Mapped[float] = mapped_column(index=True)
     pvalue: Mapped[str] = mapped_column(String(25))
     effect_direction: Mapped[str] = mapped_column(String(2))
@@ -46,7 +51,11 @@ class VariantTraitAssociation(
     variant_trait_association_id: Mapped[int] = mapped_column(
         primary_key=True, autoincrement=True
     )
-    variant_id: Mapped[str] = mapped_column(String(150))  # NIAGADS_ID in variant table
+    variant_stable_id: Mapped[str] = mapped_column(
+        index=True
+    )  # `niagasds_id #FIXME:  change to variant_stable_id in variant tables
+    neg_log10_pvalue: Mapped[float] = mapped_column(index=True)
+
     neg_log10_pvalue: Mapped[float] = mapped_column(index=True)
     pvalue: Mapped[str] = mapped_column(String(25))
     locus: Mapped[str] = mapped_column(TEXT)
