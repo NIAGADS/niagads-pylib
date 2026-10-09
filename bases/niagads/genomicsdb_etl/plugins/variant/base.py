@@ -103,21 +103,32 @@ class VariantLookupMixin:
     async def _retrieve_variants_in_span(
         self, session: AsyncSession, region: OneBasedGenomicRegion
     ):
-        """
-        Retrieve all variants in the specified genomic region
+        """Retrieve variants within a genomic region.
+
+        Standard variants are keyed by position, reference allele, and
+        alternate allele. Structural variants are keyed by their unique
+        NIAGADS identifier because their alternate allele may be null.
 
         Args:
-            session (AsyncSession): session
-            entries (list[VCFEntry]): list of vcf entries
+            session (AsyncSession): Active asynchronous database session.
+            region (OneBasedGenomicRegion): Genomic region used to constrain
+                the lookup.
+
+        Returns:
+            dict: Mapping of variant lookup keys to database metadata. Standard
+                variants use a ``(position, ref_allele, alt_allele)`` tuple;
+                structural variants use their ``niagads_id`` (CHRM_SVTYPE_SEQHASH).
         """
 
         stmt = select(
             Variant.variant_id,
+            Variant.niagads_id,
             Variant.position,
             Variant.ref_allele,
             Variant.alt_allele,
             Variant.is_adsp_variant,
             Variant.is_annotated,
+            Variant.is_structural_variant,
         ).where(
             Variant.chromosome == str(region.chromosome),
             Variant.position.between(region.start, region.end),
@@ -125,7 +136,11 @@ class VariantLookupMixin:
         result = (await session.execute(stmt)).all()
 
         return {
-            (row.position, row.ref_allele, row.alt_allele): {
+            (
+                row.niagads_id
+                if row.is_structural_variant
+                else (row.position, row.ref_allele, row.alt_allele)
+            ): {
                 "id": row.variant_id,
                 "is_adsp_variant": row.is_adsp_variant,
                 "is_annotated": row.is_annotated,
