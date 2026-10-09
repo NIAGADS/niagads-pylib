@@ -110,12 +110,9 @@ class VariantRecord(VariantIdentifier):
     @model_validator(mode="after")
     def resolve_variant_type(self):
         if self.variant_class is not None:
-            if (
-                VariantClass(self.variant_class).is_short_indel()
-                or VariantClass(self.variant_class).is_long_indel()
-            ):
+            if VariantClass(self.variant_class).is_indel():
                 # resolve to ensure correct resolution of INS, DEL, INDEL
-                # otherwise something strange like DUP, CNV -> leave as is
+                # otherwise something strange like DUP, CNV or simply SNV/MNV, leave it
                 self.variant_class = self.__resolve_variant_class()
         else:
             self.variant_class = self.__resolve_variant_class()
