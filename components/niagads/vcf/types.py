@@ -1,14 +1,16 @@
 from typing import Any, List, Self, Union
+
+import cyvcf2 as cyvcf
+from niagads.common.models.base import CustomBaseModel
 from niagads.genome_reference.human import HumanGenome
 from niagads.utils.dict import info_string_to_dict
-from niagads.utils.string import to_json
-from pydantic import BaseModel
-import cyvcf2 as cyvcf
+from niagads.utils.list import qw
+from niagads.utils.string import to_json, xstr
 
 VCF_HEADER_FIELDS = ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info"]
 
 
-class VCFEntry(BaseModel):
+class VCFEntry(CustomBaseModel):
     chrom: HumanGenome
     pos: int
     id: str
@@ -85,5 +87,41 @@ class VCFEntry(BaseModel):
             info=(
                 cls.cyvcf2_info2dict(variant.INFO) if hasattr(variant, "INFO") else "."
             ),
-            format=".",  # FIXME: appears sometimes empty list, sometimes bool when not present at all
+            # format=".",  # FIXME: appears sometimes empty list, sometimes bool when not present at all
         )
+
+    def to_delimited_text(
+        self, *, fields=None, incl_header: bool = False, null_str=".", delimiter="\t"
+    ):
+        """Return model as a VCF-compliant delimited text row
+
+        Args:
+            fields (list[str], optional): Field names to include and order.
+                If None, uses all model fields sorted by 'order' metadata.
+                Ignored here. Just included to match parent signature
+            incl_header (bool): If True, include a header row with field names. Defaults to True.
+            null_str (str): String to use for null/missing values. Defaults to ".".
+            delimiter (str): Delimiter to use between values. Defaults to tab ("\t").
+
+        Returns:
+            str: Delimited string of field values (with optional header).
+        """
+
+        values = [
+            xstr(self.chrom.value),
+            xstr(self.pos),
+            xstr(self.id, null_str=null_str),
+            xstr(self.ref, null_str=null_str),
+            xstr(self.alt, null_str=null_str),
+            xstr(self.qual, null_str=null_str),
+            xstr(self.filter, null_str=null_str),
+            xstr(self.info, null_str=null_str, dicts_as_json=False),
+        ]
+
+        delimited_text = delimiter.join(values)
+
+        if incl_header:
+            header = f"#{delimiter.join(qw('CHROM POS ID REF ALT QUAL FILTER INFO'))}"
+            delimited_text = "\n".join([header, delimited_text])
+
+        return delimited_text

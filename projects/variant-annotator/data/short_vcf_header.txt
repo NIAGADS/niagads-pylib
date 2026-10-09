@@ -1,0 +1,3 @@
+##fileformat=VCFv4.2
+##source=NIAGADS GenomicsDB ETL
+#CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO
