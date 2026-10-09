@@ -133,7 +133,7 @@ class CustomBaseModel(BaseModel):
         return [data.get(f) for f in sorted_fields]
 
     def to_delimited_text(
-        self, fields=None, incl_header: bool = True, null_str="NA", delimiter="\t"
+        self, *, fields=None, incl_header: bool = False, null_str="NA", delimiter="\t"
     ):
         """Return model as a delimited text row (e.g., tab-delimited).
 

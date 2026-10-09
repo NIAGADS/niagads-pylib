@@ -104,6 +104,6 @@ class BEDFeature(DynamicRecordModel):
         return delimited_text
 
     def to_delimited_text(
-        self, fields=None, incl_header=False, null_str="NA", delimiter="\t"
+        self, *, fields=None, incl_header=False, null_str="NA", delimiter="\t"
     ):
         return self.to_BED(incl_header=incl_header)
