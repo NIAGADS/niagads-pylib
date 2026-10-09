@@ -30,50 +30,22 @@ class BaseVCFLoaderParams(
     validate_file_exists = PathValidatorParamMixin.validator("file")
 
 
-class VariantPrimaryKeyGeneratorMixin: ...
-
-
-class BaseVCFLoader(BaseFeatureLoaderPlugin):
-    _params: BaseVCFLoaderParams
-
-    def __init__(
-        self,
-        params: BaseVCFLoaderParams,
-        name: Optional[str] = None,
-        log_path: str = None,
-        debug: bool = False,
-        verbose: bool = False,
-    ):
-        super().__init__(params, name, log_path, debug, verbose)
-        self._pk_generator: Optional[PrimaryKeyGenerator] = None
-
-        # for avoiding record duplications w/out creating a unique constraint
-        self._current_bin_variants: Dict[str, bool] = {}
-        self._current_bin_index: str = None
-        self._skip_normalization: bool = False
+class VariantPrimaryKeyGeneratorMixin:
 
     async def on_run_start(self, session):
-        await super().on_run_start(session)
-        self._pk_generator = PrimaryKeyGenerator(
+        self._variant_pk_generator = PrimaryKeyGenerator(
             genome_build=self._params.genome_build,
             seqrepo_data_proxy=self._params.seqrepo_data_proxy,
             logger=self.logger if self._verbose else None,
         )
 
-    def extract(self) -> Iterator[VCFEntry]:
-        """Extract variants from VCF."""
-        reader = cyvcf2.Reader(self._params.file)
-        try:
-            for entry in reader:
-                for alt in entry.ALT:
-                    yield VCFEntry.from_cyvcf2_variant(entry, alt_allele=alt)
-
-        finally:
-            reader.close()
-
     def _generate_variant_identifier_record(
-        self, entry: VCFEntry, require_validation: bool = True
-    ):
+        self,
+        entry: VCFEntry,
+        *,
+        require_validation: bool = True,
+        skip_normalization: bool = False,
+    ) -> VariantRecord:
         positional_id = f"{entry.chrom.value}:{entry.pos}:{entry.ref}:{entry.alt}"
         try:
             record: VariantRecord = VariantRecord.from_positional_id(positional_id)
@@ -87,23 +59,20 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
         record.ref_snp_id = entry_id if entry_id.startswith("rs") else None
 
         # generate the GA4GH VRS allele
-        ga4gh_allele = self._pk_generator.ga4gh_service.variant_to_vrs_allele(
+        ga4gh_allele = self._variant_pk_generator.ga4gh_service.variant_to_vrs_allele(
             record,
-            normalize=not self._skip_normalization,
+            normalize=not skip_normalization,
             require_validation=require_validation,
             as_json=False,
         )
 
         record.ga4gh_vrs = Allele(**ga4gh_allele.model_dump(exclude_none=True))
-        self._pk_generator.set_primary_key(record, require_validation=False)
+        self._variant_pk_generator.set_primary_key(record, require_validation=False)
         # if a short indel use the normalized GA4GH VRS allele to generate the normalized positional id
-        if (
-            not self._skip_normalization
-            and not record.variant_class == VariantClass.SNV
-        ):
+        if not skip_normalization and not record.variant_class == VariantClass.SNV:
             if record.ref is not None and record.alt is not None:
                 record.normalized_positional_id = (
-                    self._pk_generator.ga4gh_service.fast_normalize_variant(
+                    self._variant_pk_generator.ga4gh_service.fast_normalize_variant(
                         record.positional_id
                     )
                 )
@@ -119,3 +88,38 @@ class BaseVCFLoader(BaseFeatureLoaderPlugin):
             )
 
         return record
+
+
+class BaseVCFLoader(BaseFeatureLoaderPlugin, VariantPrimaryKeyGeneratorMixin):
+    _params: BaseVCFLoaderParams
+
+    def __init__(
+        self,
+        params: BaseVCFLoaderParams,
+        name: Optional[str] = None,
+        log_path: str = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
+        super().__init__(params, name, log_path, debug, verbose)
+        self._variant_pk_generator: Optional[PrimaryKeyGenerator] = None
+
+        # for avoiding record duplications w/out creating a unique constraint
+        self._current_bin_variants: Dict[str, bool] = {}
+        self._current_bin_index: str = None
+        self._skip_normalization: bool = False
+
+    async def on_run_start(self, session):
+        await super().on_run_start(session)
+        await VariantPrimaryKeyGeneratorMixin.on_run_start(self, session)
+
+    def extract(self) -> Iterator[VCFEntry]:
+        """Extract variants from VCF."""
+        reader = cyvcf2.Reader(self._params.file)
+        try:
+            for entry in reader:
+                for alt in entry.ALT:
+                    yield VCFEntry.from_cyvcf2_variant(entry, alt_allele=alt)
+
+        finally:
+            reader.close()

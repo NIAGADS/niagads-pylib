@@ -14,9 +14,10 @@ from itertools import groupby
 from operator import attrgetter
 from typing import Any, Dict, Iterator, Optional
 
-from niagads.common.models.base import CustomBaseModel
+from niagads.common.models.base import CustomBaseModel, SerializationOptions
 from niagads.common.track.models.record import TrackRecord
 from niagads.common.types import ETLOperation
+from niagads.common.variant.models.record import VariantRecord
 from niagads.database.genomicsdb.schema.dataset.collection import (
     Collection,
     TrackCollectionLink,
@@ -53,6 +54,9 @@ from niagads.genomicsdb_etl.plugins.dataset.base import (
     TrackLoaderBase,
     TrackLoaderBaseParams,
 )
+from niagads.genomicsdb_etl.plugins.variant.vcf_loaders.base import (
+    VariantPrimaryKeyGeneratorMixin,
+)
 from niagads.utils.list import qw
 from niagads.utils.numeric import to_scientific_notation
 from niagads.utils.sys import read_open_ctx, verify_path
@@ -77,7 +81,7 @@ class GWASAssocationEntry(CustomBaseModel):
         if effect_size is None:
             return None
         else:
-            "-" if effect_size < 0 else "+"
+            return "-" if effect_size < 0 else "+"
 
     @classmethod
     def from_hipFG_entry(cls, entry: dict, line_num: int):
@@ -85,7 +89,7 @@ class GWASAssocationEntry(CustomBaseModel):
         test_allele = entry["alt"]
 
         return cls(
-            chromsome=HumanGenome(entry["chrom"]),
+            chromosome=HumanGenome(entry["chrom"]),
             position=entry["position"],
             variant_id=entry["variant_id"],
             test_allele=test_allele if len(test_allele) <= 50 else None,
@@ -153,7 +157,12 @@ class GWASTrackLoaderParams(
         parameter_model=GWASTrackLoaderParams,
     )
 )
-class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixin):
+class GWASTrackLoader(
+    TrackLoaderBase,
+    VariantLookupMixin,
+    BinIndexReferenceMixin,
+    VariantPrimaryKeyGeneratorMixin,
+):
 
     _params: GWASTrackLoaderParams
 
@@ -178,6 +187,7 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
     async def on_run_start(self, session):
         """Initialize track type and prepare for ETL run."""
         await super().on_run_start(session)
+        await VariantPrimaryKeyGeneratorMixin.on_run_start(self, session)
 
         # done here so we have it and preprocess/extract can focus on the data
         self._track_record = self._extract_track_record(self._params.metadata_file)
@@ -199,13 +209,6 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
                     f"Please see log and {ot_validation_file_path}"
                     "ontology-term validation file for details."
                 )
-
-            # initialize variant primary key generator
-            self._variant_pk_generator = PrimaryKeyGenerator(
-                genome_build=self._params.genome_build,
-                seqrepo_data_proxy=self._params.seqrepo_data_proxy,
-                logger=self.logger if self._verbose else None,
-            )
 
             # bin index for variant lookups
             await self._fetch_bin_index_mapping(session)
@@ -253,9 +256,31 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
     async def transform(self, data: GWASAssocationEntry) -> GWASAssocationEntry:
         return data
 
-    async def _load_variant(self, session, entry: GWASAssocationEntry):
-        # needs to return the niagads_id (stable_id) and the db_pk
-        pass
+    async def _load_variant(self, session, entry: GWASAssocationEntry) -> tuple:
+        record: VariantRecord = self._generate_variant_identifier_record(
+            VCFEntry(**entry.model_dump()), require_validation=False  # trust hipFG
+        )
+        
+        try:
+            variant = Variant.from_variant_record(record)
+            self.logger.critical(f"Novel variant to load (DB record): {variant.model_dump()}")
+        except Exception as err:
+            self.logger.critical(
+                f"Malformed Variant Record: {record.model_dump(
+                    exclude_none=True,
+                    context={SerializationOptions.ENUMS_AS_NAME: True},
+                )}")
+
+        variant.run_id = self.run_id
+        variant.bin_index = self._find_bin_index(
+            str(record.chromosome), record.span
+        )
+        variant.external_database_id = self.external_database_id
+        await variant.submit(session)
+        
+        return variant.variant_id, variant.niagads_id
+
+
 
     def _get_variant_db_record(
         self, reference_variants: VariantLookupMap, entry: GWASAssocationEntry
@@ -314,25 +339,24 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
                     matched_db_record: MatchedVariant = self._get_variant_db_record(
                         reference_variants, entry
                     )
+                    is_annotated = matched_db_record is not None and matched_db_record.is_annotated
+                    
                     if matched_db_record is None:  # novel variant
                         # need to load and in Variant.Variant and write to file to be annotated
-                        variant_stable_id, variant_pk = await self._load_variant(
+                        variant_pk, variant_stable_id = await self._load_variant(
                             session, entry
                         )
+                        
+                    else:  # matched
+                        variant_pk = matched_db_record.id
+                        variant_stable_id = matched_db_record.unique_stable_id
+                        
+                    if not is_annotated:
                         entry.variant_id = variant_stable_id
                         print(
                             entry.to_delimited_text(),
                             file=self._unannotated_variant_vcf_fh,
                         )
-
-                    else:  # matched
-                        if not matched_db_record.is_annotated:
-                            entry.variant_id = matched_db_record.unique_stable_id
-                            print(
-                                entry.to_delimited_text(),
-                                file=self._unannotated_variant_vcf_fh,
-                            )
-                        variant_pk = matched_db_record.id
 
                     # build the association entry
                     associations.append(
