@@ -3,9 +3,13 @@ GWASTrackLoader Plugin
 - Loads a Track record from TrackRecord-compliant JSON file into the Track table.
 - (optionally) assigns track to a collection based on collection key (e.g., NIAGADS Dataset Accession)
 -
+
+Expected incoming fileds
+#chrom  position        variant_id      ref     alt     pval    OR      z_score effect_size     effect_size_se  non_ref_af      rsid    QC_flags        user_input
 """
 
 from collections import defaultdict
+from decimal import Decimal
 from typing import Any, Dict, Iterator, Optional
 
 from niagads.database.genomicsdb.schema.dataset.collection import (
@@ -37,6 +41,8 @@ from niagads.genomicsdb_etl.plugins.dataset.base import (
 )
 
 from niagads.genomicsdb_etl.plugins.variant.base import VariantLookupMixin
+from niagads.utils.numeric import to_scientific_notation
+from niagads.utils.sys import read_open_ctx
 from pydantic import Field
 
 
@@ -54,8 +60,8 @@ class GWASTrackLoaderParams(TrackLoaderBaseParams, PathValidatorMixin):
     collection: str = Field(
         ..., description="collection key; e.g., dataset accession for the track"
     )
-    pvalue_threshold: float = Field(
-        default=5e-8, description="cutoff of genome-wide significance"
+    pvalue_cutoff: float = Field(
+        default=1e-3, description="(relaxed) cutoff of genome-wide significance"
     )
 
     validate_metadata_exists = PathValidatorMixin.validator("metadata_file")
@@ -130,21 +136,53 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
             # bin index for variant lookups
             await self._fetch_bin_index_mapping(session)
 
-    async def preprocess(self) -> None:
-        # extract gwas significant,
-        # calculate -log10p and beta sign, extract test allele if < 50bp
+    def _effect_direction(self, effect_size: float) -> str:
+        if effect_size is None:
+            return None
+        else:
+            "-" if effect_size < 0 else "+"
 
-        # map to db
-        # identify missing
-        # identify not annotated
-        # bin_index if new or save for load time?
-        ...
+    def extract(self) -> Iterator[dict]:
+        self.logger.info(
+            f"Extracting Associations with Genome-Wide Significance (p <= {self._params.pvalue_cutoff})"
+        )
 
-    def extract(self) -> Iterator[TrackRecord]: ...
+        decimal_threshold = Decimal(self._params.pvalue_cutoff)
 
-    async def transform(self, record: TrackRecord) -> TrackRecord:
-        self._transform
-        return record
+        num_significant_associations = 0
+        with read_open_ctx(self._params.data_file) as fh:
+            header_fields = next(fh).rstrip().lstrip("#").split("\t")
+            for line_num, line in enumerate(fh):
+                values = line.rstrip().split("\t")
+                entry = dict(zip(header_fields, values))
+
+                if line_num % 500000 == 0:
+                    self.logger.info(f"Parsed {line_num} lines.")
+
+                decimal_pvalue = Decimal(entry["pval"])
+                if decimal_pvalue > decimal_threshold:
+                    continue
+
+                num_significant_associations += 1
+                test_allele = entry["alt"]
+                yield entry.update(
+                    {
+                        "neg_log10_pvalue": f"{-1 * decimal_pvalue.log10():.2f}",
+                        "pvalue": to_scientific_notation(decimal_pvalue),
+                        "effect_direction": self._effect_direction(
+                            entry["effect_size"]
+                        ),
+                        # test for structural variant
+                        "test_allele": test_allele if len(test_allele) <= 50 else None,
+                    }
+                )
+
+        self.logger.info(
+            f"Done extracting associations.  Found {num_significant_associations} significant associations"
+        )
+
+    async def transform(self, data: dict) -> TrackRecord:
+        return data
 
     async def load(self, session, association_records: list[VariantAssociation]):
         embedded_track_records = self._embed_track_records([self._track_record])
