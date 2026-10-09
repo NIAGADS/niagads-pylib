@@ -10,6 +10,8 @@ Expected incoming fileds
 
 from collections import defaultdict
 from decimal import Decimal
+from itertools import groupby
+from operator import attrgetter
 from typing import Any, Dict, Iterator, Optional
 
 from niagads.common.models.base import CustomBaseModel
@@ -31,6 +33,7 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
+from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
@@ -42,7 +45,10 @@ from niagads.genomicsdb_etl.plugins.dataset.base import (
     TrackLoaderBaseParams,
 )
 
-from niagads.genomicsdb_etl.plugins.variant.base import VariantLookupMixin
+from niagads.genomicsdb_etl.plugins.variant.base import (
+    VariantLookupBlock,
+    VariantLookupMixin,
+)
 from niagads.utils.numeric import to_scientific_notation
 from niagads.utils.sys import read_open_ctx
 from pydantic import Field
@@ -53,6 +59,8 @@ class GWASAssocationEntry(CustomBaseModel):
     position: int
     variant_id: str
     test_allele: Optional[str] = None
+    alt: str = (None,)
+    ref: str = (None,)
     pvalue: str
     decimal_pvalue: Decimal
     neg_log10_pvalue: float
@@ -70,10 +78,12 @@ class GWASAssocationEntry(CustomBaseModel):
         test_allele = entry["alt"]
 
         return cls(
-            chromsome=entry["chrom"],
+            chromsome=HumanGenome(entry["chrom"]),
             position=entry["position"],
             variant_id=entry["variant_id"],
             test_allele=test_allele if len(test_allele) <= 50 else None,
+            alt=entry["alt"],
+            ref=entry["ref"],
             neg_log10_pvalue=f"{-1 * decimal_pvalue.log10():.2f}",
             pvalue=to_scientific_notation(decimal_pvalue),
             decimal_pvalue=decimal_pvalue,
@@ -108,8 +118,10 @@ class GWASTrackLoaderParams(TrackLoaderBaseParams, PathValidatorMixin):
         version="1.0",
         description=f"Loads variant associations with genome-wide significance from "
         f" a hipFG standardized summary statistics file into {VariantAssociation.table_name()} "
-        " as well as associated track metadata and collection affiliation.",
+        " as well as associated track metadata and collection affiliation. Will load novel "
+        " variants into Variant.Variant",
         affected_tables=[
+            Variant,
             VariantAssociation,
             ChunkMetadata,
             ChunkEmbedding,
@@ -142,6 +154,7 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
         self._bin_index_reference: dict = defaultdict(
             lambda: defaultdict(lambda: {"starts": [], "bins": []})
         )
+        self._current_chromosome: HumanGenome = None
 
     async def on_run_start(self, session):
         """Initialize track type and prepare for ETL run."""
@@ -200,6 +213,12 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
     async def transform(self, data: GWASAssocationEntry) -> GWASAssocationEntry:
         return data
 
+    async def _load_variant(self, session, entry: GWASAssocationEntry):
+        # needs to return the niagads_id (stable_id) and the db_pk
+        pass
+
+    def _log_needs_annotation(self, entry: GWASAssocationEntry): ...
+
     async def load(self, session, entries: list[GWASAssocationEntry]):
         embedded_track_records = self._embed_track_records([self._track_record])
         tracks: list[Track] = await self._load_track_records(embedded_track_records)
@@ -207,3 +226,52 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
         track_id: int = tracks[0].track_id
 
         # now we need to lookup the variants and log unannotated
+        # we can lookup blocks because the hipFG file sorted by position
+        # ... except if we have multiple chromosomes in a span
+        lookup_blocks: list[VariantLookupBlock] = self._get_lookup_blocks(
+            entries, max_span=100000
+        )
+
+        for chromosome, chromosome_group in groupby(
+            entries, key=attrgetter("chromosome")
+        ):
+            if self._current_chromosome is None:
+                self._current_chromosome = chromosome
+                self.logger.info(f"Loading associations on {self._current_chromosome}")
+            chromosome_entries = list(chromosome_group)
+
+            lookup_blocks = self._get_lookup_blocks(chromosome_entries, max_span=100000)
+
+            associations = []
+            for block in lookup_blocks:
+                reference_variants = await self._retrieve_variants_in_span(
+                    session, block.region
+                )
+                for entry in entries[block.start_idx : block.end_idx]:
+                    if len(entry.ref) > 50 or len(entry.alt) > 50:
+                        # structural variant, need to get the primary key
+                        # so need to have this use the mixin? if it exists for
+                        # variant annotators
+                        pass
+                        # variant_key = generated_pk
+                    else:
+                        variant_key = (
+                            entry.position,
+                            entry.ref,
+                            entry.alt,
+                        )
+
+                    db_record = reference_variants.get(variant_key)
+                    if db_record is None:
+                        # need to load and in Variant.Variant and log to be annotated
+                        unique_stable_id, record_pk = await self._load_variant(
+                            session, entry
+                        )
+                        self._log_needs_annotation(entry)
+
+                    # build the association entry
+                    associations.append()
+
+            await VariantAssociation.submit_many(session, associations)
+
+            # return checkpoint
