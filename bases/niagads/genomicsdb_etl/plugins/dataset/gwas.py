@@ -15,42 +15,43 @@ from operator import attrgetter
 from typing import Any, Dict, Iterator, Optional
 
 from niagads.common.models.base import CustomBaseModel
-from niagads.database.genomicsdb.schema.dataset.collection import (
-    TrackCollectionLink,
-    Collection,
-)
-from niagads.database.genomicsdb.schema.results.associations import VariantAssociation
 from niagads.common.track.models.record import TrackRecord
 from niagads.common.types import ETLOperation
+from niagads.database.genomicsdb.schema.dataset.collection import (
+    Collection,
+    TrackCollectionLink,
+)
 from niagads.database.genomicsdb.schema.dataset.track import (
     Track,
     TrackConcept,
     TrackContext,
 )
-
-
 from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
+from niagads.database.genomicsdb.schema.results.associations import VariantAssociation
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import PathValidatorMixin
+from niagads.etl.plugins.parameters import PathValidatorMixin, VariantIdGeneratorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.ga4gh.annotators import PrimaryKeyGenerator
 from niagads.genome_reference.human import HumanGenome
 from niagads.genomicsdb_etl.plugins.common.bases.features import BinIndexReferenceMixin
 from niagads.genomicsdb_etl.plugins.dataset.base import (
     TrackLoaderBase,
     TrackLoaderBaseParams,
 )
-
 from niagads.genomicsdb_etl.plugins.variant.base import (
-    VariantLookupBlock,
+    MatchedVariant,
+    VariantLookupMap,
     VariantLookupMixin,
 )
+from niagads.utils.list import qw
 from niagads.utils.numeric import to_scientific_notation
-from niagads.utils.sys import read_open_ctx
+from niagads.utils.sys import read_open_ctx, verify_path
+from niagads.vcf.types import VCFEntry
 from pydantic import Field
 
 
@@ -59,12 +60,13 @@ class GWASAssocationEntry(CustomBaseModel):
     position: int
     variant_id: str
     test_allele: Optional[str] = None
-    alt: str = (None,)
-    ref: str = (None,)
+    alt: str = None
+    ref: str = None
     pvalue: str
     decimal_pvalue: Decimal
     neg_log10_pvalue: float
     effect_direction: Optional[str] = None
+    entry_id: str
 
     def __effect_direction(self, effect_size: float) -> str:
         if effect_size is None:
@@ -73,7 +75,7 @@ class GWASAssocationEntry(CustomBaseModel):
             "-" if effect_size < 0 else "+"
 
     @classmethod
-    def from_hipFG_entry(cls, entry: dict):
+    def from_hipFG_entry(cls, entry: dict, line_num: int):
         decimal_pvalue = Decimal(entry["pval"])
         test_allele = entry["alt"]
 
@@ -88,10 +90,20 @@ class GWASAssocationEntry(CustomBaseModel):
             pvalue=to_scientific_notation(decimal_pvalue),
             decimal_pvalue=decimal_pvalue,
             effect_direction=cls.__effect_direction(entry["effect_size"]),
+            entry_id=f"line={int(line_num)};variant={entry['variant_id']}",
+        )
+
+    def to_delimited_text(
+        self, *, fields=None, incl_header=False, null_str=".", delimiter="\t"
+    ):
+        return VCFEntry(**self.model_dump()).to_delimited_text(
+            fields=fields, incl_header=incl_header
         )
 
 
-class GWASTrackLoaderParams(TrackLoaderBaseParams, PathValidatorMixin):
+class GWASTrackLoaderParams(
+    TrackLoaderBaseParams, PathValidatorMixin, VariantIdGeneratorMixin
+):
     """Parameters for TrackJSONLoader plugin."""
 
     metadata_file: str = Field(
@@ -155,6 +167,8 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
             lambda: defaultdict(lambda: {"starts": [], "bins": []})
         )
         self._current_chromosome: HumanGenome = None
+        self._unannotated_variant_vcf_fh = None
+        self._variant_pk_generator: PrimaryKeyGenerator = None
 
     async def on_run_start(self, session):
         """Initialize track type and prepare for ETL run."""
@@ -181,8 +195,29 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
                     "ontology-term validation file for details."
                 )
 
+            # initialize variant primary key generator
+            self._variant_pk_generator = PrimaryKeyGenerator(
+                genome_build=self._params.genome_build,
+                seqrepo_data_proxy=self._params.seqrepo_data_proxy,
+                logger=self.logger if self._verbose else None,
+            )
+
             # bin index for variant lookups
             await self._fetch_bin_index_mapping(session)
+
+            # create fh for unnannotated variants VCF and write header
+            file_name: str = f"{self._params.data_file}.unannotated-variants.vcf"
+            if verify_path(file_name):
+                self.logger.warning(
+                    f"Unannotated Variant VCF file: {file_name} already exists.  Overwriting."
+                )
+            self._unannotated_variant_vcf_fh = open(file_name, "w")
+
+            # developer note: can't use f-string here b/c backslash not allowed
+            print(
+                "#" + "\t".join(qw("CHROM POS ID REF ALT QUAL FILTER INFO")),
+                file=self._unannotated_variant_vcf_fh,
+            )
 
     def extract(self) -> Iterator[dict]:
         self.logger.info(
@@ -217,7 +252,37 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
         # needs to return the niagads_id (stable_id) and the db_pk
         pass
 
-    def _log_needs_annotation(self, entry: GWASAssocationEntry): ...
+    def _get_variant_db_record(
+        self, reference_variants: VariantLookupMap, entry: GWASAssocationEntry
+    ) -> MatchedVariant:
+        if len(entry.ref) > 50 or len(entry.alt) > 50:
+            # structural variant, need to get the primary key
+            # so need to have this use the mixin? if it exists for
+            # variant annotators
+            pass
+            # variant_key = generated_pk
+        else:
+
+            variant_key = (
+                entry.position,
+                entry.ref,
+                entry.alt,
+            )
+            db_record = reference_variants.get(variant_key)
+            if db_record is None:
+                # if SNV switch alleles and try again (trust INDEL directions)
+                # theoretically this should never be needed because hipFG
+                # standardized data is aligned to the reference genome
+                # but there could be a dbSNP mismatch
+                if len(entry.ref) == len(entry.alt) == 1:
+                    variant_key = (
+                        entry.position,
+                        entry.alt,
+                        entry.ref,
+                    )
+                db_record = reference_variants.get(variant_key)
+
+        return db_record
 
     async def load(self, session, entries: list[GWASAssocationEntry]):
         embedded_track_records = self._embed_track_records([self._track_record])
@@ -225,53 +290,69 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
 
         track_id: int = tracks[0].track_id
 
-        # now we need to lookup the variants and log unannotated
-        # we can lookup blocks because the hipFG file sorted by position
-        # ... except if we have multiple chromosomes in a span
-        lookup_blocks: list[VariantLookupBlock] = self._get_lookup_blocks(
-            entries, max_span=100000
-        )
-
         for chromosome, chromosome_group in groupby(
             entries, key=attrgetter("chromosome")
         ):
-            if self._current_chromosome is None:
+            if self._current_chromosome != chromosome:
                 self._current_chromosome = chromosome
                 self.logger.info(f"Loading associations on {self._current_chromosome}")
-            chromosome_entries = list(chromosome_group)
 
+            chromosome_entries = list(chromosome_group)
             lookup_blocks = self._get_lookup_blocks(chromosome_entries, max_span=100000)
 
             associations = []
             for block in lookup_blocks:
-                reference_variants = await self._retrieve_variants_in_span(
-                    session, block.region
+                reference_variants: VariantLookupMap = (
+                    await self._retrieve_variants_in_span(session, block.region)
                 )
                 for entry in entries[block.start_idx : block.end_idx]:
-                    if len(entry.ref) > 50 or len(entry.alt) > 50:
-                        # structural variant, need to get the primary key
-                        # so need to have this use the mixin? if it exists for
-                        # variant annotators
-                        pass
-                        # variant_key = generated_pk
-                    else:
-                        variant_key = (
-                            entry.position,
-                            entry.ref,
-                            entry.alt,
-                        )
-
-                    db_record = reference_variants.get(variant_key)
-                    if db_record is None:
-                        # need to load and in Variant.Variant and log to be annotated
-                        unique_stable_id, record_pk = await self._load_variant(
+                    matched_db_record: MatchedVariant = self._get_variant_db_record(
+                        reference_variants, entry
+                    )
+                    if matched_db_record is None:  # novel variant
+                        # need to load and in Variant.Variant and write to file to be annotated
+                        variant_stable_id, variant_pk = await self._load_variant(
                             session, entry
                         )
-                        self._log_needs_annotation(entry)
+                        entry.variant_id = variant_stable_id
+                        print(
+                            entry.to_delimited_text(),
+                            file=self._unannotated_variant_vcf_fh,
+                        )
+
+                    else:  # matched
+                        if not matched_db_record.is_annotated:
+                            entry.variant_id = matched_db_record.unique_stable_id
+                            print(
+                                entry.to_delimited_text(),
+                                file=self._unannotated_variant_vcf_fh,
+                            )
+                        variant_pk = matched_db_record.id
 
                     # build the association entry
-                    associations.append()
+                    associations.append(
+                        VariantAssociation(
+                            track_id=track_id,
+                            variant_id=variant_pk,
+                            variant_stable_id=variant_stable_id,
+                            neg_log10_pvalue=entry.neg_log10_pvalue,
+                            pvalue=entry.pvalue,
+                            effect_direction=entry.effect_direction,
+                            test_allele=entry.test_allele,
+                            run_id=self.run_id,
+                        )
+                    )
 
             await VariantAssociation.submit_many(session, associations)
 
-            # return checkpoint
+            return self.create_checkpoint(record=entries[-1])
+
+    def get_record_id(self, record: GWASAssocationEntry) -> str:
+        return record.entry_id
+
+    async def on_run_complete(self):
+        if (
+            self._unannotated_variant_vcf_fh
+            and not self._unannotated_variant_vcf_fh.closed
+        ):
+            self._unannotated_variant_vcf_fh.close()
