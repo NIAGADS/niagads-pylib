@@ -30,6 +30,9 @@ class VariantClass(CaseInsensitiveEnum):
     def is_long_indel(self):
         return self.name in qw("DEL INS INDEL LONG_MNV")
 
+    def is_indel(self):
+        return self.is_long_indel() or self.is_short_indel()
+
     def is_structural_variant(self):
         return self.name in qw("DEL INS INDEL DUP INV TRANS CNV MEI SV LONG_MNV")
 
