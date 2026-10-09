@@ -80,8 +80,7 @@ class VariantRecord(VariantIdentifier):
             else:
                 return self.positional_id
 
-    @model_validator(mode="after")
-    def resolve_variant_type(self):
+    def __resolve_variant_class(self) -> VariantClass:
         len_ref = len(self.ref)
         len_alt = len(self.alt)
 
@@ -89,24 +88,37 @@ class VariantRecord(VariantIdentifier):
 
         if is_SV:
             if len_ref == len_alt:
-                self.variant_class = VariantClass.LONG_MNV
+                return VariantClass.LONG_MNV
             elif len_ref == 1 and len_alt > 1:
-                self.variant_class = VariantClass.INS
+                return VariantClass.INS
             elif len_ref > 0 and len_alt == 1:
-                self.variant_class = VariantClass.DEL
+                return VariantClass.DEL
             elif len_ref > 1 and len_alt > 1:
-                self.variant_class = VariantClass.INDEL
+                return VariantClass.INDEL
 
         elif len_ref == 1 and len_alt == 1:
-            self.variant_class = VariantClass.SNV
+            return VariantClass.SNV
         elif len_ref == len_alt and len_ref > 1:
-            self.variant_class = VariantClass.MNV
+            return VariantClass.MNV
         elif len_ref == 1 and len_alt > 1:
-            self.variant_class = VariantClass.SHORT_INS
+            return VariantClass.SHORT_INS
         elif len_ref > 1 and len_alt == 1:
-            self.variant_class = VariantClass.SHORT_DEL
+            return VariantClass.SHORT_DEL
         elif len_ref > 1 and len_alt > 1:
-            self.variant_class = VariantClass.SHORT_INDEL
+            return VariantClass.SHORT_INDEL
+
+    @model_validator(mode="after")
+    def resolve_variant_type(self):
+        if self.variant_class is not None:
+            if (
+                VariantClass(self.variant_class).is_short_indel()
+                or VariantClass(self.variant_class).is_long_indel()
+            ):
+                # resolve to ensure correct resolution of INS, DEL, INDEL
+                # otherwise something strange like DUP, CNV -> leave as is
+                self.variant_class = self.__resolve_variant_class()
+        else:
+            self.variant_class = self.__resolve_variant_class()
 
         return self
 
