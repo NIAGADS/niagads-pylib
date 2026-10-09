@@ -1,9 +1,11 @@
+from typing import Optional, TypeAlias
+
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.genome_reference.human import HumanGenome
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class VariantLookupBlock(BaseModel):
@@ -12,6 +14,19 @@ class VariantLookupBlock(BaseModel):
     start_idx: int
     end_idx: int
     region: OneBasedGenomicRegion
+
+
+class MatchedVariant(BaseModel):
+    """Basic identifying information for matched variant record"""
+
+    id: int
+    unique_stable_id: str  # 'NIAGADS_ID - chr:pos:ref:alt or SV id'
+    is_adsp_variant: Optional[bool] = None
+    is_annotated: Optional[bool] = None
+
+
+VariantLookupKey: TypeAlias = str | tuple[int, str, str]
+VariantLookupMap: TypeAlias = dict[VariantLookupKey, MatchedVariant]
 
 
 class VariantLookupMixin:
@@ -102,7 +117,7 @@ class VariantLookupMixin:
 
     async def _retrieve_variants_in_span(
         self, session: AsyncSession, region: OneBasedGenomicRegion
-    ):
+    ) -> VariantLookupMap:
         """Retrieve variants within a genomic region.
 
         Standard variants are keyed by position, reference allele, and
@@ -140,10 +155,11 @@ class VariantLookupMixin:
                 row.niagads_id
                 if row.is_structural_variant
                 else (row.position, row.ref_allele, row.alt_allele)
-            ): {
-                "id": row.variant_id,
-                "is_adsp_variant": row.is_adsp_variant,
-                "is_annotated": row.is_annotated,
-            }
+            ): MatchedVariant(
+                id=row.variant_id,
+                unique_stable_id=row.niagads_id,
+                is_adsp_variant=row.is_adsp_variant,
+                is_annotated=row.is_annotated,
+            )
             for row in result
         }
