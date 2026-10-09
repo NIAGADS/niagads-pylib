@@ -88,22 +88,24 @@ class VariantRecord(VariantIdentifier):
         is_SV: bool = len_ref >= 50 or len_alt >= 50
 
         if is_SV:
-            if self.variant_class is not None:
-                return self  # trust incoming
             if len_ref == len_alt:
                 self.variant_class = VariantClass.LONG_MNV
-            elif len_ref > 0 and len_alt > 0:
+            elif len_ref == 1 and len_alt > 1:
+                self.variant_class = VariantClass.INS
+            elif len_ref > 0 and len_alt == 1:
+                self.variant_class = VariantClass.DEL
+            elif len_ref > 1 and len_alt > 1:
                 self.variant_class = VariantClass.INDEL
 
         elif len_ref == 1 and len_alt == 1:
             self.variant_class = VariantClass.SNV
         elif len_ref == len_alt and len_ref > 1:
             self.variant_class = VariantClass.MNV
-        elif len_ref == 1 and len_alt > 0:
-            self.variant_class = VariantClass.INS if is_SV else VariantClass.SHORT_INS
-        elif len_ref > 0 and len_alt == 1:
-            self.variant_class = VariantClass.DEL if is_SV else VariantClass.SHORT_DEL
-        elif len_ref > 0 and len_alt > 0:
+        elif len_ref == 1 and len_alt > 1:
+            self.variant_class = VariantClass.SHORT_INS
+        elif len_ref > 1 and len_alt == 1:
+            self.variant_class = VariantClass.SHORT_DEL
+        elif len_ref > 1 and len_alt > 1:
             self.variant_class = VariantClass.SHORT_INDEL
 
         return self
