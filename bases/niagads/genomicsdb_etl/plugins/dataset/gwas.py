@@ -12,6 +12,7 @@ from collections import defaultdict
 from decimal import Decimal
 from typing import Any, Dict, Iterator, Optional
 
+from niagads.common.models.base import CustomBaseModel
 from niagads.database.genomicsdb.schema.dataset.collection import (
     TrackCollectionLink,
     Collection,
@@ -34,6 +35,7 @@ from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import PathValidatorMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.genome_reference.human import HumanGenome
 from niagads.genomicsdb_etl.plugins.common.bases.features import BinIndexReferenceMixin
 from niagads.genomicsdb_etl.plugins.dataset.base import (
     TrackLoaderBase,
@@ -44,6 +46,39 @@ from niagads.genomicsdb_etl.plugins.variant.base import VariantLookupMixin
 from niagads.utils.numeric import to_scientific_notation
 from niagads.utils.sys import read_open_ctx
 from pydantic import Field
+
+
+class GWASAssocationEntry(CustomBaseModel):
+    chromosome: HumanGenome
+    position: int
+    variant_id: str
+    test_allele: Optional[str] = None
+    pvalue: str
+    decimal_pvalue: Decimal
+    neg_log10_pvalue: float
+    effect_direction: Optional[str] = None
+
+    def __effect_direction(self, effect_size: float) -> str:
+        if effect_size is None:
+            return None
+        else:
+            "-" if effect_size < 0 else "+"
+
+    @classmethod
+    def from_hipFG_entry(cls, entry: dict):
+        decimal_pvalue = Decimal(entry["pval"])
+        test_allele = entry["alt"]
+
+        return cls(
+            chromsome=entry["chrom"],
+            position=entry["position"],
+            variant_id=entry["variant_id"],
+            test_allele=test_allele if len(test_allele) <= 50 else None,
+            neg_log10_pvalue=f"{-1 * decimal_pvalue.log10():.2f}",
+            pvalue=to_scientific_notation(decimal_pvalue),
+            decimal_pvalue=decimal_pvalue,
+            effect_direction=cls.__effect_direction(entry["effect_size"]),
+        )
 
 
 class GWASTrackLoaderParams(TrackLoaderBaseParams, PathValidatorMixin):
@@ -136,12 +171,6 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
             # bin index for variant lookups
             await self._fetch_bin_index_mapping(session)
 
-    def _effect_direction(self, effect_size: float) -> str:
-        if effect_size is None:
-            return None
-        else:
-            "-" if effect_size < 0 else "+"
-
     def extract(self) -> Iterator[dict]:
         self.logger.info(
             f"Extracting Associations with Genome-Wide Significance (p <= {self._params.pvalue_cutoff})"
@@ -154,38 +183,27 @@ class GWASTrackLoader(TrackLoaderBase, VariantLookupMixin, BinIndexReferenceMixi
             header_fields = next(fh).rstrip().lstrip("#").split("\t")
             for line_num, line in enumerate(fh):
                 values = line.rstrip().split("\t")
-                entry = dict(zip(header_fields, values))
+                hipfg_entry = dict(zip(header_fields, values))
 
                 if line_num % 500000 == 0:
                     self.logger.info(f"Parsed {line_num} lines.")
 
-                decimal_pvalue = Decimal(entry["pval"])
-                if decimal_pvalue > decimal_threshold:
-                    continue
-
-                num_significant_associations += 1
-                test_allele = entry["alt"]
-                yield entry.update(
-                    {
-                        "neg_log10_pvalue": f"{-1 * decimal_pvalue.log10():.2f}",
-                        "pvalue": to_scientific_notation(decimal_pvalue),
-                        "effect_direction": self._effect_direction(
-                            entry["effect_size"]
-                        ),
-                        # test for structural variant
-                        "test_allele": test_allele if len(test_allele) <= 50 else None,
-                    }
-                )
+                entry = GWASAssocationEntry.from_hipFG_entry(hipfg_entry)
+                if entry.decimal_pvalue < decimal_threshold:
+                    num_significant_associations += 1
+                    yield entry
 
         self.logger.info(
             f"Done extracting associations.  Found {num_significant_associations} significant associations"
         )
 
-    async def transform(self, data: dict) -> TrackRecord:
+    async def transform(self, data: GWASAssocationEntry) -> GWASAssocationEntry:
         return data
 
-    async def load(self, session, association_records: list[VariantAssociation]):
+    async def load(self, session, entries: list[GWASAssocationEntry]):
         embedded_track_records = self._embed_track_records([self._track_record])
         tracks: list[Track] = await self._load_track_records(embedded_track_records)
 
         track_id: int = tracks[0].track_id
+
+        # now we need to lookup the variants and log unannotated
