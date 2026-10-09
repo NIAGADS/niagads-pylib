@@ -8,9 +8,9 @@ import hashlib
 import json
 import re
 import uuid
+import warnings
 from datetime import datetime
 from typing import List, Union
-import warnings
 
 from dateutil.parser import parse as parse_date
 from typing_extensions import deprecated
@@ -118,7 +118,7 @@ def truncate(s, length):
     return (s[: (length - 3)] + "...") if len(s) > length else s
 
 
-def xstr(value, null_str="", falseAsNull=False, dictsAsJson=True):
+def xstr(value, null_str="", false_as_null=False, dicts_as_json=True):
     """
     wrapper for str() that handles Nones,
     lists, and dict objects
@@ -143,19 +143,19 @@ def xstr(value, null_str="", falseAsNull=False, dictsAsJson=True):
             return null_str
         else:
             return ",".join(
-                [xstr(v, null_str, falseAsNull, dictsAsJson) for v in value]
+                [xstr(v, null_str, false_as_null, dicts_as_json) for v in value]
             )
 
     if isinstance(value, dict):
         if bool(value):
-            if dictsAsJson:
+            if dicts_as_json:
                 return json.dumps(value)
             else:
                 return dict_to_string(value, null_str=".")
         else:
             return null_str
 
-    if falseAsNull and isinstance(value, bool):
+    if false_as_null and isinstance(value, bool):
         if value is False:
             return null_str
         else:
