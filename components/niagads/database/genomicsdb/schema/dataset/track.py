@@ -92,7 +92,7 @@ class TrackConcept(DatasetTableBase):
     __table_args__ = (DatasetTableBase.__table_args__,)
     track_concept_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     track_id: Mapped[int] = track_fk_column()
-    term_id: Mapped[int] = ontology_term_fk_column()
+    ontology_term_id: Mapped[int] = ontology_term_fk_column()
 
 
 class TrackContextType(CaseInsensitiveEnum):
@@ -123,7 +123,7 @@ class TrackContext(DatasetTableBase):
         DatasetTableBase.__table_args__,
     )
     track_context_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    term_id: Mapped[int] = ontology_term_fk_column()
+    ontology_term_id: Mapped[int] = ontology_term_fk_column()
     track_id: Mapped[int] = track_fk_column()
     context: Mapped[str] = enum_column(TrackContextType, nullable=False)
 
