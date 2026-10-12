@@ -400,7 +400,11 @@ class TrackLoaderBase(
             track_type_id = self._get_track_type_id(record.track)
             tracks.append(
                 Track(
-                    **record.track.model_dump(exclude=["id"], exclude_none=True),
+                    **record.track.model_dump(
+                        exclude=["id"],
+                        exclude_none=True,
+                        context={SerializationOptions.DATABASE_MODEL_FIELDS: True},
+                    ),
                     source_id=record.track.id,
                     track_type_id=track_type_id,
                     run_id=self.run_id,
