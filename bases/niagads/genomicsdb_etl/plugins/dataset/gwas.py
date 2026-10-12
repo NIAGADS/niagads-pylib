@@ -106,7 +106,7 @@ class GWASAssocationEntry(CustomBaseModel):
     def to_vcf_entry(self) -> VCFEntry:
         return VCFEntry(
             chrom=self.chromosome,
-            pos=self.pos,
+            pos=self.position,
             id=self.variant_id,
             ref=self.ref,
             alt=[self.alt],
