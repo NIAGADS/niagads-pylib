@@ -109,7 +109,7 @@ class GWASAssocationEntry(CustomBaseModel):
             pos=self.position,
             id=self.variant_id,
             ref=self.ref,
-            alt=[self.alt],
+            alt=self.alt,
         )
 
     def to_delimited_text(
@@ -284,10 +284,13 @@ class GWASTrackLoader(
                 f"Novel variant to load (DB record): {variant.model_dump()}"
             )
         except Exception as err:
-            self.logger.critical(f"Malformed Variant Record: {record.model_dump(
-                    exclude_none=True,
-                    context={SerializationOptions.ENUMS_AS_NAME: True},
-                )}")
+            if variant is not None:
+                self.logger.critical(f"Malformed Variant Record: {record.model_dump(
+                        exclude_none=True,
+                        context={SerializationOptions.ENUMS_AS_NAME: True},
+                    )}: {str(err)}")
+            else:
+                raise err
 
         variant.run_id = self.run_id
         variant.bin_index = self._find_bin_index(str(record.chromosome), record.span)
