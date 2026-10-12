@@ -193,7 +193,7 @@ class GWASTrackLoader(
         self._current_chromosome: HumanGenome = None
         self._unannotated_variant_vcf_fh = None
         self._variant_pk_generator: PrimaryKeyGenerator = None
-        self._track_is_loaded = False
+        self._track_pk: int = None
 
     async def on_run_start(self, session):
         """Initialize track type and prepare for ETL run."""
@@ -339,16 +339,14 @@ class GWASTrackLoader(
         await tc_link.submit(session)
 
     async def load(self, session, entries: list[GWASAssocationEntry]):
-        if not self._track_is_loaded:
+        if not self._track_pk:
             embedded_track_records = self._embed_track_records([self._track_record])
             tracks: list[Track] = await self._load_track_records(
                 session, embedded_track_records
             )
 
-            track_pk: int = tracks[0].track_id
-            await self._load_track_collection_link(session, track_pk)
-
-            self._track_is_loaded = True
+            self._track_pk = tracks[0].track_id
+            await self._load_track_collection_link(session, self._track_pk)
 
         # NOTE: groupby and following block lookup only work if file is sorted by chr:pos
         # which it should be if hipFG standardized
@@ -402,7 +400,7 @@ class GWASTrackLoader(
                     # build the association entry
                     associations.append(
                         VariantAssociation(
-                            track_id=track_pk,
+                            track_id=self._track_pk,
                             variant_id=variant_pk,
                             variant_stable_id=variant_stable_id,
                             neg_log10_pvalue=c_entry.neg_log10_pvalue,
