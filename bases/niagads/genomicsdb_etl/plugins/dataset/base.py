@@ -329,7 +329,9 @@ class TrackLoaderBase(
             keyword_pk: int = self._ontology_term_reference[key]["ontology_term_id"]
             self.logger.debug(f"Found Concept Keyword: {key} - {keyword_pk}")
             concepts.append(
-                TrackConcept(track_id=track_id, ontology_term_id=keyword_pk)
+                TrackConcept(
+                    track_id=track_id, ontology_term_id=keyword_pk, run_id=self.run_id
+                )
             )
         return concepts
         #
@@ -363,6 +365,7 @@ class TrackLoaderBase(
                         track_id=track_id,
                         ontology_term_id=ot_pk,
                         context=str(context_type),
+                        run_id=self.run_id,
                     )
                 )
         return contexts
