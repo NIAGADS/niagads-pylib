@@ -50,6 +50,7 @@ poetry run gdb_alembic <options>
 - `--downgrade`: Revert migrations (default: downgrade to previous mgiration)
 - `--reset`: Remove all migration history (irreversible)
 - `--stamp`: Mark the database with a specific revision without running migrations
+- `--curret`: Get current revision
 - `--revision <rev>`: Specify revision (default: head for upgrade/stamp, -1 for downgrade)
 - `--debug`, `--verbose`: Enable debug or verbose output
 

@@ -208,6 +208,19 @@ class AlembicWrapper(ComponentBaseMixin):
                 f"Stamp to revision `{revision}` failed.", exc_info=True
             )
 
+    def current(self):
+        """
+        Prints current revision number to stdout
+        """
+        cmd = self._alembic_cmd_root.copy()
+        cmd.extend(["current"])
+
+        try:
+            stdout = execute_cmd(cmd, print_cmd_only=self._debug, verbose=self._verbose)
+            self.logger.info(f"Current revision: {stdout}")
+        except RuntimeError as err:
+            self.logger.exception(f"Cannot retrieve current revision.", exc_info=True)
+
     def generate_revision(self, message: str, skip_fks: bool = False) -> None:
         """
         Generate an alembic revision.
@@ -276,6 +289,11 @@ def main():
         help="downgrade a revision",
     )
     parser.add_argument(
+        "--current",
+        action="store_true",
+        help="get current revision number",
+    )
+    parser.add_argument(
         "--stamp",
         action="store_true",
         help="stamp the database to a given revision without running migrations",
@@ -326,6 +344,7 @@ def main():
         "reset",
         "create_schema",
         "stamp",
+        "current",
     ]
     actions = [getattr(args, name) for name in action_arg_names]
     allowed_actions = [f"--{name.replace('_', '-')}" for name in action_arg_names]
@@ -349,6 +368,9 @@ def main():
     if args.stamp:
         # stamp uses the provided revision (defaults to head)
         wrapper.stamp(revision=args.revision)
+    if args.current:
+        # stamp uses the provided revision (defaults to head)
+        wrapper.current()
     if args.create_schema:
         if not args.schema:
             raise ValueError("Must provide --schema for --create-schema option.")
