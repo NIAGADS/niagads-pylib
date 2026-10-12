@@ -193,6 +193,7 @@ class GWASTrackLoader(
         self._current_chromosome: HumanGenome = None
         self._unannotated_variant_vcf_fh = None
         self._variant_pk_generator: PrimaryKeyGenerator = None
+        self._track_is_loaded = False
 
     async def on_run_start(self, session):
         """Initialize track type and prepare for ETL run."""
@@ -235,6 +236,7 @@ class GWASTrackLoader(
             print(
                 "#" + "\t".join(qw("CHROM POS ID REF ALT QUAL FILTER INFO")),
                 file=self._unannotated_variant_vcf_fh,
+                flush=True,
             )
 
     def extract(self) -> Iterator[dict]:
@@ -259,7 +261,7 @@ class GWASTrackLoader(
                     )
 
                 entry = GWASAssocationEntry.from_hipFG_entry(hipfg_entry, line_num)
-                if entry.decimal_pvalue < decimal_threshold:
+                if entry.decimal_pvalue <= decimal_threshold:
                     num_significant_associations += 1
                     # self.logger.critical(f"Parsed Passing Entry: {entry.model_dump()}")
                     yield entry
@@ -335,13 +337,16 @@ class GWASTrackLoader(
         await tc_link.submit(session)
 
     async def load(self, session, entries: list[GWASAssocationEntry]):
-        embedded_track_records = self._embed_track_records([self._track_record])
-        tracks: list[Track] = await self._load_track_records(
-            session, embedded_track_records
-        )
+        if not self._track_is_loaded:
+            embedded_track_records = self._embed_track_records([self._track_record])
+            tracks: list[Track] = await self._load_track_records(
+                session, embedded_track_records
+            )
 
-        track_pk: int = tracks[0].track_id
-        await self._load_track_collection_link(session, track_pk)
+            track_pk: int = tracks[0].track_id
+            await self._load_track_collection_link(session, track_pk)
+
+            self._track_is_loaded = True
 
         # NOTE: groupby and following block lookup only work if file is sorted by chr:pos
         # which it should be if hipFG standardized
@@ -383,6 +388,7 @@ class GWASTrackLoader(
                         print(
                             c_entry.to_delimited_text(),
                             file=self._unannotated_variant_vcf_fh,
+                            flush=True,
                         )
 
                     # build the association entry
