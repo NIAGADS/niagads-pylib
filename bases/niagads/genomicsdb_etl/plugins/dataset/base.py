@@ -269,7 +269,7 @@ class TrackLoaderBase(
             document_hash=self._embedding_generator.hash_text(document),
         )
 
-    async def _embed_track_records(
+    def _embed_track_records(
         self, records: list[TrackRecord]
     ) -> list[EmbeddedTrackRecord]:
         """Generate embeddings for prepared track records.
