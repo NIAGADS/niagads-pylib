@@ -231,7 +231,7 @@ class CustomBaseModel(BaseModel):
         return field_names
 
     def __str__(self):
-        return self.as_info_string()
+        return self.to_info_string()
 
     def __repr__(self):
         return self.to_info_string()
