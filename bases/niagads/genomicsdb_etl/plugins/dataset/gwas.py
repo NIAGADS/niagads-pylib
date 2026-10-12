@@ -91,7 +91,7 @@ class GWASAssocationEntry(CustomBaseModel):
 
         return cls(
             chromosome=HumanGenome(entry["chrom"]),
-            position=entry["position"],
+            position=int(entry["position"]),
             variant_id=entry["variant_id"],
             test_allele=test_allele if len(test_allele) <= 50 else None,
             alt=entry["alt"],
@@ -99,7 +99,7 @@ class GWASAssocationEntry(CustomBaseModel):
             neg_log10_pvalue=f"{-1 * decimal_pvalue.log10():.2f}",
             pvalue=to_scientific_notation(decimal_pvalue),
             decimal_pvalue=decimal_pvalue,
-            effect_direction=cls.__effect_direction(entry["effect_size"]),
+            effect_direction=cls.__effect_direction(float(entry["effect_size"])),
             entry_id=f"line={int(line_num)};variant={entry['variant_id']}",
         )
 
@@ -248,18 +248,20 @@ class GWASTrackLoader(
 
         with read_open_ctx(self._params.data_file) as fh:
             header_fields = next(fh).rstrip().lstrip("#").split("\t")
-            for line_num, line in enumerate(fh):
+            for line_num, line in enumerate(fh, start=1):
                 values = line.rstrip().split("\t")
                 hipfg_entry = dict(zip(header_fields, values))
 
                 if line_num % 500000 == 0:
                     self.logger.info(f"Parsed {line_num} lines.")
+                    self.logger.info(
+                        f"Detected {num_significant_associations} significant associations."
+                    )
 
-                self.logger.debug(f"hipfg_entry: {hipfg_entry}")
                 entry = GWASAssocationEntry.from_hipFG_entry(hipfg_entry, line_num)
                 if entry.decimal_pvalue < decimal_threshold:
                     num_significant_associations += 1
-                    self.logger.critical(f"Parsed Passing Entry: {entry.model_dump()}")
+                    # self.logger.critical(f"Parsed Passing Entry: {entry.model_dump()}")
                     yield entry
 
         self.logger.info(
@@ -334,7 +336,9 @@ class GWASTrackLoader(
 
     async def load(self, session, entries: list[GWASAssocationEntry]):
         embedded_track_records = self._embed_track_records([self._track_record])
-        tracks: list[Track] = await self._load_track_records(embedded_track_records)
+        tracks: list[Track] = await self._load_track_records(
+            session, embedded_track_records
+        )
 
         track_pk: int = tracks[0].track_id
         await self._load_track_collection_link(session, track_pk)
@@ -408,3 +412,7 @@ class GWASTrackLoader(
             and not self._unannotated_variant_vcf_fh.closed
         ):
             self._unannotated_variant_vcf_fh.close()
+
+        self.logger.info(
+            f"To be annotated variants: {self._unannotated_variant_vcf_fh.name}"
+        )
