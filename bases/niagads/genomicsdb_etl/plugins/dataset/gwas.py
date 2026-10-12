@@ -77,7 +77,8 @@ class GWASAssocationEntry(CustomBaseModel):
     effect_direction: Optional[str] = None
     entry_id: str
 
-    def __effect_direction(self, effect_size: float) -> str:
+    @classmethod
+    def __effect_direction(cls, effect_size: float) -> str:
         if effect_size is None:
             return None
         else:
@@ -135,7 +136,7 @@ class GWASTrackLoaderParams(
     collection: str = Field(
         ..., description="collection key; e.g., dataset accession for the track"
     )
-    pvalue_cutoff: float = Field(
+    pvalue_cutoff: Optional[float] = Field(
         default=1e-3, description="(relaxed) cutoff of genome-wide significance"
     )
 
@@ -244,6 +245,7 @@ class GWASTrackLoader(
         decimal_threshold = Decimal(self._params.pvalue_cutoff)
 
         num_significant_associations = 0
+
         with read_open_ctx(self._params.data_file) as fh:
             header_fields = next(fh).rstrip().lstrip("#").split("\t")
             for line_num, line in enumerate(fh):
@@ -253,13 +255,15 @@ class GWASTrackLoader(
                 if line_num % 500000 == 0:
                     self.logger.info(f"Parsed {line_num} lines.")
 
-                entry = GWASAssocationEntry.from_hipFG_entry(hipfg_entry)
+                self.logger.debug(f"hipfg_entry: {hipfg_entry}")
+                entry = GWASAssocationEntry.from_hipFG_entry(hipfg_entry, line_num)
                 if entry.decimal_pvalue < decimal_threshold:
                     num_significant_associations += 1
+                    self.logger.critical(f"Parsed Passing Entry: {entry.model_dump()}")
                     yield entry
 
         self.logger.info(
-            f"Done extracting associations.  Found {num_significant_associations} significant associations"
+            f"Done extracting associations.  Found {num_significant_associations} significant associations."
         )
 
     async def transform(self, data: GWASAssocationEntry) -> GWASAssocationEntry:
