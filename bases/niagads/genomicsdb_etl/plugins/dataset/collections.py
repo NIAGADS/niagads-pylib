@@ -56,7 +56,9 @@ class EmbeddedCollectionRecord(CustomBaseModel, arbitrary_types_allowed=True):
     embedding: Optional[list] = None  # so it can be set in batch
 
 
-class CollectionLoaderParams(ExternalDatabaseRefParamMixin, EmbeddingParameterMixin):
+class CollectionLoaderParams(
+    BasePluginParams, ExternalDatabaseRefParamMixin, EmbeddingParameterMixin
+):
     """Parameters for CollectionLoader plugin."""
 
     name: str = Field(
@@ -109,18 +111,13 @@ class CollectionLoaderBase(
             EmbeddedCollectionRecord: Serialized collection record with content hashes.
         """
         try:
-            chunk_text = json.dumps(
-                collection.model_dump(
-                    exclude_none=True,
-                    context={SerializationOptions.EMBEDDED_TEXT: True},
-                )
-            )
+            chunk_text = json.dumps(collection.model_dump(exclude_none=True))
         except Exception as err:
             self.logger.critical(f"Problem generating chunk_text for record: {err}")
 
         # self.logger.debug(f"Chunk Text: {chunk_text}")
 
-        document = json.dumps(collection.model_dump(exclude_none=True))
+        document = json.dumps(chunk_text)
 
         # generate embeddings
         embeddings = self._embedding_generator.generate(
@@ -132,7 +129,7 @@ class CollectionLoaderBase(
             chunk_text=chunk_text,
             chunk_hash=self._embedding_generator.hash_text(chunk_text),
             document_hash=self._embedding_generator.hash_text(document),
-            embedding=embeddings[0],
+            embedding=embeddings,
         )
 
     def get_record_id(self, record: EmbeddedCollectionRecord):
@@ -142,8 +139,8 @@ class CollectionLoaderBase(
 @PluginRegistry.register(
     metadata=PluginMetadata(
         version="1.0",
-        description=f"Loads collection metadata.",
-        affected_tables=[Collection],
+        description=f"Loads collection metadata and embeddings.",
+        affected_tables=[ChunkMetadata, ChunkEmbedding, Collection],
         load_strategy=ETLLoadStrategy.BULK,
         operation=ETLOperation.INSERT,
         is_large_dataset=False,
