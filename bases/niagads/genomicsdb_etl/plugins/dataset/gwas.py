@@ -102,10 +102,19 @@ class GWASAssocationEntry(CustomBaseModel):
             entry_id=f"line={int(line_num)};variant={entry['variant_id']}",
         )
 
+    def to_vcf_entry(self) -> VCFEntry:
+        return VCFEntry(
+            chrom=self.chromosome,
+            pos=self.pos,
+            id=self.variant_id,
+            ref=self.ref,
+            alt=[self.alt],
+        )
+
     def to_delimited_text(
         self, *, fields=None, incl_header=False, null_str=".", delimiter="\t"
     ):
-        return VCFEntry(**self.model_dump()).to_delimited_text(
+        return self.to_vcf_entry().to_delimited_text(
             fields=fields, incl_header=incl_header
         )
 
@@ -258,29 +267,26 @@ class GWASTrackLoader(
 
     async def _load_variant(self, session, entry: GWASAssocationEntry) -> tuple:
         record: VariantRecord = self._generate_variant_identifier_record(
-            VCFEntry(**entry.model_dump()), require_validation=False  # trust hipFG
+            entry.to_vcf_entry(), require_validation=False  # trust hipFG
         )
-        
+
         try:
             variant = Variant.from_variant_record(record)
-            self.logger.critical(f"Novel variant to load (DB record): {variant.model_dump()}")
-        except Exception as err:
             self.logger.critical(
-                f"Malformed Variant Record: {record.model_dump(
+                f"Novel variant to load (DB record): {variant.model_dump()}"
+            )
+        except Exception as err:
+            self.logger.critical(f"Malformed Variant Record: {record.model_dump(
                     exclude_none=True,
                     context={SerializationOptions.ENUMS_AS_NAME: True},
                 )}")
 
         variant.run_id = self.run_id
-        variant.bin_index = self._find_bin_index(
-            str(record.chromosome), record.span
-        )
+        variant.bin_index = self._find_bin_index(str(record.chromosome), record.span)
         variant.external_database_id = self.external_database_id
         await variant.submit(session)
-        
+
         return variant.variant_id, variant.niagads_id
-
-
 
     def _get_variant_db_record(
         self, reference_variants: VariantLookupMap, entry: GWASAssocationEntry
@@ -320,6 +326,8 @@ class GWASTrackLoader(
 
         track_id: int = tracks[0].track_id
 
+        # NOTE: groupby and following block lookup only work if file is sorted by chr:pos
+        # which it should be if hipFG standardized
         for chromosome, chromosome_group in groupby(
             entries, key=attrgetter("chromosome")
         ):
@@ -335,26 +343,28 @@ class GWASTrackLoader(
                 reference_variants: VariantLookupMap = (
                     await self._retrieve_variants_in_span(session, block.region)
                 )
-                for entry in entries[block.start_idx : block.end_idx]:
+                for c_entry in chromosome_entries[block.start_idx : block.end_idx]:
                     matched_db_record: MatchedVariant = self._get_variant_db_record(
-                        reference_variants, entry
+                        reference_variants, c_entry
                     )
-                    is_annotated = matched_db_record is not None and matched_db_record.is_annotated
-                    
+                    is_annotated = (
+                        matched_db_record is not None and matched_db_record.is_annotated
+                    )
+
                     if matched_db_record is None:  # novel variant
                         # need to load and in Variant.Variant and write to file to be annotated
                         variant_pk, variant_stable_id = await self._load_variant(
-                            session, entry
+                            session, c_entry
                         )
-                        
+
                     else:  # matched
                         variant_pk = matched_db_record.id
                         variant_stable_id = matched_db_record.unique_stable_id
-                        
+
                     if not is_annotated:
-                        entry.variant_id = variant_stable_id
+                        c_entry.variant_id = variant_stable_id
                         print(
-                            entry.to_delimited_text(),
+                            c_entry.to_delimited_text(),
                             file=self._unannotated_variant_vcf_fh,
                         )
 
@@ -364,17 +374,17 @@ class GWASTrackLoader(
                             track_id=track_id,
                             variant_id=variant_pk,
                             variant_stable_id=variant_stable_id,
-                            neg_log10_pvalue=entry.neg_log10_pvalue,
-                            pvalue=entry.pvalue,
-                            effect_direction=entry.effect_direction,
-                            test_allele=entry.test_allele,
+                            neg_log10_pvalue=c_entry.neg_log10_pvalue,
+                            pvalue=c_entry.pvalue,
+                            effect_direction=c_entry.effect_direction,
+                            test_allele=c_entry.test_allele,
                             run_id=self.run_id,
                         )
                     )
 
-            await VariantAssociation.submit_many(session, associations)
+        await VariantAssociation.submit_many(session, associations)
 
-            return self.create_checkpoint(record=entries[-1])
+        return self.create_checkpoint(record=entries[-1])
 
     def get_record_id(self, record: GWASAssocationEntry) -> str:
         return record.entry_id
