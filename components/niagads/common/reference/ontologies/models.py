@@ -13,12 +13,23 @@ class OntologyTerm(CustomBaseModel):
 
     @classmethod
     def extract_from_obj(
-        self, value: Any, *, as_dict: bool = False
+        cls, value: Any, *, as_dict: bool = False
     ) -> Union[list["OntologyTerm"], list[dict]]:
-        """
-        Extract all formally defined OntologyTerm objects from a Pydantic Model and nested models.
+        """Extract all formally defined OntologyTerm objects from a Pydantic Model and nested models.
 
-        Returns unique list of OntologyTerms.
+        Returns unique list of OntologyTerms or dict of {term, curie} objs if as_dict is true
+        """
+        terms = cls.__extract_from_obj(value)
+
+        if as_dict:
+            return [{"term": term, "curie": curie} for term, curie in terms]
+
+        return [OntologyTerm(term=term, curie=curie) for term, curie in terms]
+
+    @classmethod
+    def __extract_from_obj(cls, value: Any):
+        """
+        Internal recursive call for extract from obj
         """
         terms: Set[tuple] = set()
 
@@ -28,18 +39,15 @@ class OntologyTerm(CustomBaseModel):
             terms.add((value.term, value.curie))
         elif isinstance(value, BaseModel):
             for field_name in value.__class__.model_fields:
-                terms.update(self.extract_from_obj(getattr(value, field_name, None)))
+                terms.update(cls.__extract_from_obj(getattr(value, field_name, None)))
         elif isinstance(value, dict):
             for item in value.values():
-                terms.update(self.extract_from_obj(item))
+                terms.update(cls.__extract_from_obj(item))
         elif isinstance(value, (list, tuple, set)):
             for item in value:
-                terms.update(self.extract_from_obj(item))
+                terms.update(cls.__extract_from_obj(item))
 
-        if as_dict:
-            return [{"term": term, "curie": curie} for term, curie in terms]
-
-        return [OntologyTerm(term=term, curie=curie) for term, curie in terms]
+        return terms
 
 
 class OntologyTermRecord(OntologyTerm):
