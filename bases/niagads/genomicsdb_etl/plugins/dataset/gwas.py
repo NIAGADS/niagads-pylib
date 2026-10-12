@@ -411,7 +411,6 @@ class GWASTrackLoader(
                             test_allele=c_entry.test_allele,
                             run_id=self.run_id,
                             chromosome=str(c_entry.chromosome),
-                            position=c_entry.position,
                             bin_index=variant_bin_index,
                             span=variant_span,
                         )

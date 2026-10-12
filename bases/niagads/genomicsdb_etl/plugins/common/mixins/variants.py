@@ -167,7 +167,7 @@ class VariantLookupMixin:
                 unique_stable_id=row.niagads_id,
                 is_adsp_variant=row.is_adsp_variant,
                 is_annotated=row.is_annotated,
-                bin_index=row.bin_index,
+                bin_index=str(row.bin_index),
                 span=row.span,
                 chromosome=HumanGenome(row.chromosome),
             )
