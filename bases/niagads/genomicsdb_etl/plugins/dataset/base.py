@@ -154,10 +154,12 @@ class TrackLoaderBase(
         except ValueError as err:
             self.logger.info(str(err))
 
-        extracted_terms: dict = OntologyTerm.extract_from_obj(record, as_dict=True)
+        extracted_terms: list[dict] = OntologyTerm.extract_from_obj(
+            record, as_dict=True
+        )
         async with self.session_ctx() as session:
             ot_validation_result: OntologyTermValidation = (
-                DBOntologyTerm.validate_terms(session, extracted_terms)
+                await DBOntologyTerm.validate_terms(session, extracted_terms)
             )
 
         if (
@@ -176,7 +178,7 @@ class TrackLoaderBase(
             )
 
             with open(ot_validation_file_path, "w") as fh:
-                print(json.dumps(ot_validation_result, indent=4), file=fh)
+                print(json.dumps(ot_validation_result.model_dump(), indent=4), file=fh)
             self.logger.info(f"Validation results saved to {ot_validation_file_path}")
 
         return False
