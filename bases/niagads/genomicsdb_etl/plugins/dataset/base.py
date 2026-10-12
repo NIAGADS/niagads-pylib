@@ -197,6 +197,8 @@ class TrackLoaderBase(
             Optional[list[OntologyTerm]]: Extracted terms, or None if no
                 annotation is present.
         """
+
+        self.logger.debug(f"Extracting: {context_type}")
         annotation = context_type.retrieve_context_from_record(record)
         if annotation is None:
             return []
@@ -262,13 +264,13 @@ class TrackLoaderBase(
 
         # self.logger.debug(f"Chunk Text: {chunk_text}")
 
-        document = json.dumps(record.model_dump(exclude_none=True))
+        chunk_hash = self._embedding_generator.hash_text(chunk_text)
 
         return EmbeddedTrackRecord(
             track=record,
             chunk_text=chunk_text,
-            chunk_hash=self._embedding_generator.hash_text(chunk_text),
-            document_hash=self._embedding_generator.hash_text(document),
+            chunk_hash=chunk_hash,
+            document_hash=chunk_hash,  # chunk = document
         )
 
     def _embed_track_records(
@@ -316,8 +318,12 @@ class TrackLoaderBase(
             list[TrackConcept]: Track concept records linking the track to its
                 keyword terms.
         """
+        if track_record.keywords is None:
+            return []
+
         # now we need to load the linking tables
         concepts: list[TrackConcept] = []
+
         for keyword in track_record.keywords:
             key = (keyword.term, keyword.curie)
             keyword_pk: int = self._ontology_term_reference[key]["ontology_term_id"]
@@ -420,8 +426,8 @@ class TrackLoaderBase(
         track_contexts: list[TrackContext] = []
         for index, record in enumerate(records):
             track_id = tracks[index].track_id
-            track_concepts.extend(self._generate_track_concepts(record, track_id))
-            track_contexts.extend(self._generate_track_context(record, track_id))
+            track_concepts.extend(self._generate_track_concepts(record.track, track_id))
+            track_contexts.extend(self._generate_track_context(record.track, track_id))
             chunk_metadata.append(
                 ChunkMetadata(
                     table_id=self._table_ref.table_id,
@@ -434,8 +440,10 @@ class TrackLoaderBase(
                 )
             )
 
-        await TrackConcept.submit_many(session, track_concepts)
-        await TrackContext.submit_many(session, track_contexts)
+        if track_concepts:
+            await TrackConcept.submit_many(session, track_concepts)
+        if track_contexts:
+            await TrackContext.submit_many(session, track_contexts)
         await ChunkMetadata.submit_many(session, chunk_metadata)
 
         chunk_embeddings: list[ChunkEmbedding] = []

@@ -65,9 +65,9 @@ class CustomBaseModel(BaseModel):
                 if isinstance(v, (Enum, CaseInsensitiveEnum)):
                     return v.name
 
-        if _info.context.get(SerializationOptions.ENUMS_AS_VALUE) is True:
-            if isinstance(v, (Enum, CaseInsensitiveEnum)):
-                return v.value
+            if _info.context.get(SerializationOptions.ENUMS_AS_VALUE) is True:
+                if isinstance(v, (Enum, CaseInsensitiveEnum)):
+                    return v.value
 
         return v
 
