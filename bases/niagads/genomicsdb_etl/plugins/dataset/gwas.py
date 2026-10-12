@@ -320,11 +320,20 @@ class GWASTrackLoader(
 
         return db_record
 
+    async def _load_track_collection_link(self, session, track_id: int):
+        tc_link = TrackCollectionLink(
+            track_id=track_id,
+            collection_id=self._track_collection_pk,
+            run_id=self.run_id,
+        )
+        await tc_link.submit(session)
+
     async def load(self, session, entries: list[GWASAssocationEntry]):
         embedded_track_records = self._embed_track_records([self._track_record])
         tracks: list[Track] = await self._load_track_records(embedded_track_records)
 
-        track_id: int = tracks[0].track_id
+        track_pk: int = tracks[0].track_id
+        await self._load_track_collection_link(session, track_pk)
 
         # NOTE: groupby and following block lookup only work if file is sorted by chr:pos
         # which it should be if hipFG standardized
@@ -371,7 +380,7 @@ class GWASTrackLoader(
                     # build the association entry
                     associations.append(
                         VariantAssociation(
-                            track_id=track_id,
+                            track_id=track_pk,
                             variant_id=variant_pk,
                             variant_stable_id=variant_stable_id,
                             neg_log10_pvalue=c_entry.neg_log10_pvalue,
