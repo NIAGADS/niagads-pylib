@@ -71,7 +71,7 @@ class CustomBaseModel(BaseModel):
 
         return v
 
-    def _exclude_fields_by_metadata(
+    def __exclude_fields_by_metadata(
         self, data: dict[str, object], metadata_key: str
     ) -> dict[str, object]:
         """Remove serialized fields marked by the given metadata key."""
@@ -108,11 +108,13 @@ class CustomBaseModel(BaseModel):
 
             # Exclude fields marked for embedding exclusion
             if _info.context.get(SerializationOptions.EMBEDDED_TEXT) is True:
-                data = self._exclude_fields_by_metadata(data, "exclude_from_embeddings")
+                data = self.__exclude_fields_by_metadata(
+                    data, "exclude_from_embeddings"
+                )
 
             # Exclude fields marked for embedding exclusion
             if _info.context.get(SerializationOptions.DATABASE_MODEL_FIELDS) is True:
-                data = self._exclude_fields_by_metadata(data, "exclude_from_database")
+                data = self.__exclude_fields_by_metadata(data, "exclude_from_database")
 
         return data
 
