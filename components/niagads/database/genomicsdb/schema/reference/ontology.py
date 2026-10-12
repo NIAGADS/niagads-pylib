@@ -7,6 +7,7 @@ Intended for use alongside the ontology graph schema for comprehensive ontology 
 
 from typing import Union
 
+from pydantic import SerializerFunctionWrapHandler, model_serializer
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.reference.ontologies.types import EntityTypeIRI
 from niagads.common.search.models.record import SearchResultRecord
@@ -45,6 +46,15 @@ class OntologyTermValidation(CustomBaseModel):
     valid: dict[tuple[str | None, str | None], dict]
     not_matched: list[dict]
     multiple_matches: list[dict]
+
+    @model_serializer(mode="wrap")
+    def serialize_model(self, handler: SerializerFunctionWrapHandler):
+        data = handler(self)
+        data["valid"] = {
+            f"{term}|{curie}": value
+            for (term, curie), value in self.valid.items()
+        }
+        return data
 
 
 class OntologyTerm(
