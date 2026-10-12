@@ -3,6 +3,7 @@ Base Pydantic model classes for NIAGADS data models.
 """
 
 from datetime import date, datetime
+from decimal import Decimal
 from enum import Enum, auto
 
 from niagads.enums.core import CaseInsensitiveEnum
@@ -94,7 +95,7 @@ class CustomBaseModel(BaseModel):
         data = {
             k: list(v) if isinstance(v, set) else v
             for k, v in data.items()
-            if not isinstance(v, (bytes, bytearray, memoryview))
+            if not isinstance(v, (bytes, bytearray, memoryview, Decimal))
         }
 
         # Check if we should exclude empty objects (empty lists and dicts)
