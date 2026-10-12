@@ -273,16 +273,13 @@ class GWASTrackLoader(
     async def transform(self, data: GWASAssocationEntry) -> GWASAssocationEntry:
         return data
 
-    async def _load_variant(self, session, entry: GWASAssocationEntry) -> tuple:
+    async def _load_variant(self, session, entry: GWASAssocationEntry) -> Variant:
         record: VariantRecord = self._generate_variant_identifier_record(
             entry.to_vcf_entry(), require_validation=False  # trust hipFG
         )
 
         try:
             variant = Variant.from_variant_record(record)
-            self.logger.critical(
-                f"Novel variant to load (DB record): {variant.model_dump()}"
-            )
         except Exception as err:
             if variant is not None:
                 self.logger.critical(f"Malformed Variant Record: {record.model_dump(
@@ -297,17 +294,18 @@ class GWASTrackLoader(
         variant.external_database_id = self.external_database_id
         await variant.submit(session)
 
-        return variant.variant_id, variant.niagads_id
+        return variant
 
     def _get_variant_db_record(
         self, reference_variants: VariantLookupMap, entry: GWASAssocationEntry
     ) -> MatchedVariant:
         if len(entry.ref) > 50 or len(entry.alt) > 50:
             # structural variant, need to get the primary key
-            # so need to have this use the mixin? if it exists for
-            # variant annotators
-            pass
-            # variant_key = generated_pk
+            record: VariantRecord = self._generate_variant_identifier_record(
+                entry.to_vcf_entry(), require_validation=False  # trust hipFG
+            )
+
+            variant_key = record.id
         else:
 
             variant_key = (
@@ -315,19 +313,20 @@ class GWASTrackLoader(
                 entry.ref,
                 entry.alt,
             )
+
+        db_record = reference_variants.get(variant_key)
+        if db_record is None:
+            # if SNV switch alleles and try again (trust INDEL directions)
+            # theoretically this should never be needed because hipFG
+            # standardized data is aligned to the reference genome
+            # but there could be a dbSNP mismatch
+            if len(entry.ref) == len(entry.alt) == 1:
+                variant_key = (
+                    entry.position,
+                    entry.alt,
+                    entry.ref,
+                )
             db_record = reference_variants.get(variant_key)
-            if db_record is None:
-                # if SNV switch alleles and try again (trust INDEL directions)
-                # theoretically this should never be needed because hipFG
-                # standardized data is aligned to the reference genome
-                # but there could be a dbSNP mismatch
-                if len(entry.ref) == len(entry.alt) == 1:
-                    variant_key = (
-                        entry.position,
-                        entry.alt,
-                        entry.ref,
-                    )
-                db_record = reference_variants.get(variant_key)
 
         return db_record
 
@@ -378,13 +377,19 @@ class GWASTrackLoader(
 
                     if matched_db_record is None:  # novel variant
                         # need to load and in Variant.Variant and write to file to be annotated
-                        variant_pk, variant_stable_id = await self._load_variant(
+                        new_variant: Variant = await self._load_variant(
                             session, c_entry
                         )
+                        variant_pk = new_variant.variant_id
+                        variant_stable_id = new_variant.niagads_id
+                        variant_span = new_variant.span
+                        variant_bin_index = new_variant.bin_index
 
                     else:  # matched
                         variant_pk = matched_db_record.id
                         variant_stable_id = matched_db_record.unique_stable_id
+                        variant_span = matched_db_record.span
+                        variant_bin_index = new_variant.bin_index
 
                     if not is_annotated:
                         c_entry.variant_id = variant_stable_id
@@ -405,6 +410,10 @@ class GWASTrackLoader(
                             effect_direction=c_entry.effect_direction,
                             test_allele=c_entry.test_allele,
                             run_id=self.run_id,
+                            chromosome=str(c_entry.chromosome),
+                            position=c_entry.position,
+                            bin_index=variant_bin_index,
+                            span=variant_span,
                         )
                     )
 

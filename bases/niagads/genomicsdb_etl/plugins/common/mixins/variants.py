@@ -1,6 +1,7 @@
 from typing import Optional, TypeAlias
 
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
+from niagads.common.models.types import Range
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.genome_reference.human import HumanGenome
 from pydantic import BaseModel
@@ -23,6 +24,9 @@ class MatchedVariant(BaseModel):
     unique_stable_id: str  # 'NIAGADS_ID - chr:pos:ref:alt or SV id'
     is_adsp_variant: Optional[bool] = None
     is_annotated: Optional[bool] = None
+    span: Range
+    bin_index: str = None
+    chromosome: HumanGenome
 
 
 VariantLookupKey: TypeAlias = str | tuple[int, str, str]
@@ -138,7 +142,10 @@ class VariantLookupMixin:
         stmt = select(
             Variant.variant_id,
             Variant.niagads_id,
+            Variant.chromosome,
+            Variant.bin_index,
             Variant.position,
+            Variant.span,
             Variant.ref_allele,
             Variant.alt_allele,
             Variant.is_adsp_variant,
@@ -160,6 +167,9 @@ class VariantLookupMixin:
                 unique_stable_id=row.niagads_id,
                 is_adsp_variant=row.is_adsp_variant,
                 is_annotated=row.is_annotated,
+                bin_index=row.bin_index,
+                span=row.span,
+                chromosome=HumanGenome(row.chromosome),
             )
             for row in result
         }
