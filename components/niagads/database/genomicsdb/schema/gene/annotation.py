@@ -99,8 +99,8 @@ class AnnotationEvidence(AnnotationTableBase, TableRefMixin):
     qualifiers: Mapped[dict] = mapped_column(JSONB(none_as_null=True))
 
 
-class GeneListEntry(AnnotationTableBase):
-    __tablename__ = "genelistentry"
+class GeneListMembership(AnnotationTableBase):
+    __tablename__ = "genelistmembership"
     __table_args__ = (
         UniqueConstraint("external_database_id", "gene_id", name="uq_gene_list_entry"),
         GeneTableBase.__table_args__,
