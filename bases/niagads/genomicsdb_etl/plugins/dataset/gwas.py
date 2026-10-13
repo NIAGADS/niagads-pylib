@@ -10,8 +10,6 @@ Expected incoming fileds
 
 from collections import defaultdict
 from decimal import Decimal
-from itertools import groupby
-from operator import attrgetter
 from typing import Any, Dict, Iterator, Optional
 
 from niagads.common.models.base import CustomBaseModel, SerializationOptions
@@ -45,11 +43,7 @@ from niagads.genome_reference.human import HumanGenome
 from niagads.genomicsdb_etl.plugins.common.mixins.intervals import (
     BinIndexReferenceMixin,
 )
-from niagads.genomicsdb_etl.plugins.common.mixins.variants import (
-    MatchedVariant,
-    VariantLookupMap,
-    VariantLookupMixin,
-)
+
 from niagads.genomicsdb_etl.plugins.dataset.base import (
     TrackLoaderBase,
     TrackLoaderBaseParams,
@@ -170,8 +164,8 @@ class GWASTrackLoaderParams(
         affected_tables=[
             Variant,
             VariantAssociation,
-            ChunkMetadata,
             ChunkEmbedding,
+            ChunkMetadata,
             TrackCollectionLink,
             TrackConcept,
             TrackContext,
@@ -321,7 +315,7 @@ class GWASTrackLoader(
         vcf_entry = entry.to_vcf_entry()
         if vcf_entry.is_structural_variant:
             record: VariantRecord = self._generate_variant_identifier_record(
-                entry.to_vcf_entry(), require_validation=False  # trust hipFG
+                vcf_entry, require_validation=False  # trust hipFG
             )
             lookup_id = record.id
         else:
