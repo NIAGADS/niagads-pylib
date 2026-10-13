@@ -90,5 +90,5 @@ class IntervalBin(ReferenceTableBase, GenomicRegionMixin):
         result = await session.execute(bin_stmt)
         bin_index = result.scalar()
         if bin_index is None:
-            raise NoResultFound(f"Unable to assign bin_index to region {region}")
+            raise NoResultFound(f"Unable to assign bin_index to region {span}")
         return bin_index
