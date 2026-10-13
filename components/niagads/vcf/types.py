@@ -39,6 +39,9 @@ class VCFEntry(CustomBaseModel):
         for key, value in obj.items():
             if key in skip:
                 continue
+            elif key == "chrom":
+                # for 1, 2, 3, 4 so they don't get returned as int
+                obj[key] = str(value)
             elif key == "alt":
                 if "," in value:
                     obj[key] = value.split(",")
@@ -62,6 +65,7 @@ class VCFEntry(CustomBaseModel):
         entryObj = VCFEntry.format_dict(
             dict(zip(VCF_HEADER_FIELDS, entry.strip().split("\t"))), skip=["info"]
         )
+
         if entryObj["info"] != ".":
             entryObj["info"] = info_string_to_dict(entryObj["info"])
 
