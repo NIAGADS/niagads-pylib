@@ -158,7 +158,7 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
         if match_synonyms:
             stmt = select(GeneXRef.gene_id).where(
                 and_(
-                    func.lower(symbol) == GeneXRef.xref_value,
+                    func.lower(symbol) == func.lower(GeneXRef.xref_value),
                     GeneXRef.xref_label.in_(SYNONYM_FIELDS),
                 )
             )
