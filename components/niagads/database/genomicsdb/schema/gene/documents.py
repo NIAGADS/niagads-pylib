@@ -39,9 +39,7 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
     gene_structure: Mapped[Optional[dict]] = mapped_column(
         JSONB(none_as_null=True), nullable=True
     )
-    classification: Mapped[Optional[dict]] = mapped_column(
-        JSONB(none_as_null=True), nullable=True
-    )
+    gene_type: Mapped[str] = mapped_column()
     xrefs: Mapped[Optional[dict]] = mapped_column(
         JSONB(none_as_null=True), nullable=True
     )
