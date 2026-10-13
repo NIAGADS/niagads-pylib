@@ -73,10 +73,9 @@ for file in "$TRACK_DATA_DIR"/*pvalue_only_STD.tsv.gz; do
 done
 
 mapfile -t TRACK_IDS < <(
-    find "$TRACK_DATA_DIR" -maxdepth 1 -type f \
-        -name "${COLLECTION_KEY}_*_STD_OA.tsv.gz" -printf '%f\n' |
-        cut -d_ -f2 |
-        sed 's/_STD_OA.tsv.gz$//' |
+    find "$TRACK_METADATA_DIR" -maxdepth 1 -type f \
+        -name "${COLLECTION_KEY}_*_STD_OA_metadata.json" -printf '%f\n' |
+        sed -E "s/^${COLLECTION_KEY}_([^_]+)_.*/\1/" |
         sort -u
 )
 
