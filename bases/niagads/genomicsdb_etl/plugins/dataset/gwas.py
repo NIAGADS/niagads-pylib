@@ -109,7 +109,7 @@ class GWASAssocationEntry(CustomBaseModel):
         if is_zero_based:
             assoc_entry.variant_id = f"{str(assoc_entry.chromosome.value)}:{position}:{assoc_entry.ref}:{assoc_entry.alt}"
             assoc_entry.entry_id = (
-                f"line={int(line_num)};variant={assoc_entry.variant_id}",
+                f"line={int(line_num)};variant={assoc_entry.variant_id}"
             )
 
         return assoc_entry
@@ -401,7 +401,7 @@ class GWASTrackLoader(
                 )
             )
 
-        if self._num_new_variants / len(entries) >= 0.80:
+        if num_new_variants / len(entries) >= 0.80:
             raise ValueError(
                 "80% or more of the variants could not be mapped to the database; are positions 0-based?"
             )
