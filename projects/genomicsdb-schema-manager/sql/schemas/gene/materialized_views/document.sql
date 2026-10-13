@@ -1,5 +1,10 @@
--- Step 1: Aggregate exons by transcript in a temporary table.
-CREATE TEMP TABLE agg_exons AS
+DROP MATERIALIZED VIEW IF EXISTS gene.documents_mv;
+DROP MATERIALIZED VIEW IF EXISTS gene.agg_transcripts;
+DROP MATERIALIZED VIEW IF EXISTS gene.agg_proteins;
+DROP MATERIALIZED VIEW IF EXISTS gene.agg_exons;
+
+-- Step 1: Aggregate exons by transcript
+CREATE MATERIALIZED VIEW gene.agg_exons AS
 SELECT
     transcript_id,
     jsonb_agg(
@@ -20,10 +25,10 @@ GROUP BY
     transcript_id;
 
 -- Step 2: Index aggregated exons by transcript ID.
-CREATE INDEX idx_agg_exons_transcript_id ON agg_exons(transcript_id);
+CREATE INDEX idx_agg_exons_transcript_id ON gene.agg_exons(transcript_id);
 
--- Step 3: Aggregate proteins by transcript in a temporary table.
-CREATE TEMP TABLE agg_proteins AS
+-- Step 3: Aggregate proteins by transcript
+CREATE MATERIALIZED VIEW gene.agg_proteins AS
 SELECT
     transcript_id,
     jsonb_agg(source_id) AS proteins
@@ -33,10 +38,10 @@ GROUP BY
     transcript_id;
 
 -- Step 4: Index aggregated proteins by transcript ID.
-CREATE INDEX idx_agg_proteins_transcript_id ON agg_proteins(transcript_id);
+CREATE INDEX idx_agg_proteins_transcript_id ON gene.agg_proteins(transcript_id);
 
 -- Step 5: Aggregate transcripts by gene, including exon and protein data.
-CREATE TEMP TABLE agg_transcripts AS
+CREATE MATERIALIZED VIEW gene.agg_transcripts AS
 SELECT
     t.gene_id,
     jsonb_agg(
@@ -65,13 +70,13 @@ SELECT
     ) AS transcripts
 FROM
     Gene.Transcript t
-    LEFT JOIN agg_exons e ON e.transcript_id = t.transcript_id
-    LEFT JOIN agg_proteins p ON p.transcript_id = t.transcript_id
+    LEFT JOIN gene.agg_exons e ON e.transcript_id = t.transcript_id
+    LEFT JOIN gene.agg_proteins p ON p.transcript_id = t.transcript_id
 GROUP BY
     gene_id;
 
 -- Step 6: Index aggregated transcripts by gene ID.
-CREATE INDEX idx_agg_transcripts_gene_id ON agg_transcripts(gene_id);
+CREATE INDEX idx_agg_transcripts_gene_id ON gene.agg_transcripts(gene_id);
 
 -- Step 7: Build gene documents from temporary aggregates and metadata CTEs.
 
@@ -256,6 +261,7 @@ genes AS (
         g.chromosome,
         g.span,
         g.source_id,
+        ot.term AS gene_type,
         -- chunked document fields
         jsonb_strip_nulls(
         jsonb_build_object(
@@ -271,15 +277,14 @@ genes AS (
              'cytogenic_location', cloc.location,
             'transcripts',
             transcripts.transcripts
-        ) AS gene_structure,
-        jsonb_build_object('curie', ot.source_id, 'term', ot.term) AS classification,
+        ) AS gene_structure,    
         xrefs.xrefs AS xrefs,
         publications.pubmed_ids AS publications,
         NULLIF(jsonb_strip_nulls(jsonb_build_object('gene_families', gf.families,'pathways', pathways.pathways, 'curated_lists', gene_lists)), '{}'::JSONB) AS memberships,
         goassociations.goa AS functional_annotation
     FROM
         Gene.Gene g
-        LEFT JOIN agg_transcripts AS transcripts
+        LEFT JOIN gene.agg_transcripts AS transcripts
             ON transcripts.gene_id = g.gene_id,
         Reference.OntologyTerm ot,
         cytogenic_location AS cloc,
@@ -320,6 +325,9 @@ CREATE INDEX ix_gene_document_mv_gene_id
 
 CREATE INDEX ix_gene_document_mv_source_id
     ON Gene.Documents_MV (source_id);
+
+CREATE INDEX ix_gene_document_mv_gene_type
+    ON Gene.Documents_MV (gene_type);
 
 CREATE INDEX ix_gene_document_mv__bin_index
     ON Gene.Documents_MV USING GIST (bin_index);
