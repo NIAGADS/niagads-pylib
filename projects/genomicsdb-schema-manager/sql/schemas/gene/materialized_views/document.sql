@@ -75,6 +75,7 @@ CREATE INDEX idx_agg_transcripts_gene_id ON agg_transcripts(gene_id);
 
 -- Step 7: Build gene documents from temporary aggregates and metadata CTEs.
 
+CREATE MATERIALIZED VIEW Gene.Documents_MV AS (
 WITH cytogenic_location AS (
 SELECT
     g.gene_id,
@@ -310,5 +311,22 @@ LEFT JOIN (
         gene_id
     FROM Gene.KnownADGenes
 ) known_ad
-    ON known_ad.gene_id = genes.gene_id;
-    
+    ON known_ad.gene_id = genes.gene_id
+);
+
+-- Step 8: Add query indexes to the gene document materialized view.
+CREATE INDEX ix_gene_document_mv_gene_id
+    ON Gene.Documents_MV (gene_id);
+
+CREATE INDEX ix_gene_document_mv_source_id
+    ON Gene.Documents_MV (source_id);
+
+CREATE INDEX ix_gene_document_mv__bin_index
+    ON Gene.Documents_MV USING GIST (bin_index);
+
+CREATE INDEX ix_gene_document_mv__span
+    ON Gene.Documents_MV USING GIST (span);
+
+CREATE INDEX ix_gene_document_mv_associated_with_known_ad_locus
+    ON Gene.Documents_MV (associated_with_known_ad_locus)
+    WHERE associated_with_known_ad_locus IS TRUE;
