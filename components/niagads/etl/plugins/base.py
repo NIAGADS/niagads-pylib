@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, Optional, Type, Union
 
+from niagads.database.genomicsdb.schema.variant.documents import Variant
 import psutil
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.types import ProcessStatus, ETLOperation
@@ -350,28 +351,39 @@ class AbstractBasePlugin(ABC, ComponentBaseMixin):
 
         async with self.session_ctx() as session:
             for table in self.affected_tables:
+                if table == Variant:
+                    # FIXME: need to write and suggest script to check for occurrences of these variants in all possible tables
+                    self.logger.warning(
+                        "Cannot use UNDO to delete from Variant.Variant as referential integrity cannot be verified."
+                    )
+                    continue
                 try:
+                    self.logger.debug(f"{table.table_name()}")
                     result = await session.execute(
                         delete(table).where(table.run_id == self._params.run_id)
                     )
                     self.inc_tx_count(table, ETLOperation.DELETE, result.rowcount)
-                except IntegrityError:
-                    raise IntegrityError(
+                except IntegrityError as err:
+                    raise ValueError(
                         f"Foreign key contraint violation."
                         f" Attempted to delete rows from {table.table_name()} before"
                         f" all child rows were removed. Order `affected_tables` in the "
-                        f" plugin metadata so that they delete child records first."
+                        f" plugin metadata so that they delete child records first.: {str(err.orig)}"
                     )
             try:
                 result = await session.execute(
                     delete(ETLRun).where(ETLRun.run_id == self._params.run_id)
                 )
                 self.inc_tx_count(ETLRun, ETLOperation.DELETE, result.rowcount)
-            except IntegrityError:
-                raise IntegrityError(
+            except IntegrityError as err:
+                if Variant in self.affected_tables:
+                    self.logger.warning(
+                        "Cannot remove Admin.ETLRun entry as Variant.Variant is in the affected table list and its rows cannot be removed."
+                    )
+                raise ValueError(
                     "Foreign key constraint violation. Child records for"
                     f" run_id = {self._params.run_id} still exist."
-                    " Check `affected_tables` list."
+                    f" Check `affected_tables` list.: {str(err.orig)}"
                 )
             if self.commit:
                 await session.commit()
