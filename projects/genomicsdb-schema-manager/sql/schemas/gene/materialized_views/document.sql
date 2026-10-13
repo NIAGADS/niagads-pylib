@@ -138,17 +138,13 @@ LEFT JOIN Reference.Pathway p
 LEFT JOIN Reference.ExternalDatabase d
     ON d.external_database_id = p.external_database_id
 GROUP BY g.gene_id),
+
 annotations AS (
     SELECT
         g.gene_id,
         gt.source_id AS term_id,
         gt.term,
-        UPPER(
-    array_to_string(
-        ARRAY(
-            SELECT LEFT(word, 1)
-            FROM UNNEST(string_to_array(gt.namespace, '_')) AS word
-        ), '')) AS aspect,
+        CASE WHEN gt.namespace LIKE 'cell%' THEN 'CC' WHEN gt.namespace LIKE 'bio%' THEN 'BP' ELSE 'MF' END AS aspect,
         (
             SELECT value
             FROM unnest(eco.synonyms) AS value
@@ -171,10 +167,10 @@ annotations AS (
 terms AS (
 SELECT
     gene_id,
+    aspect,
     jsonb_build_object(
         'term_id', term_id,
         'term', term,
-        'aspect', aspect,
         'evidence',
         jsonb_agg(DISTINCT evidence_code)
             FILTER (WHERE evidence_code IS NOT NULL)
@@ -182,9 +178,16 @@ SELECT
 FROM annotations
 GROUP BY gene_id, term_id, term, aspect),
 goassociations AS (
-SELECT gene_id, jsonb_agg(term) 
+SELECT 
+gene_id, jsonb_agg(aspect_terms) AS goa
+FROM (SELECT
+gene_id, 
+aspect,
+jsonb_build_object(aspect, jsonb_agg(term)) as aspect_terms
 FROM 
-terms GROUP BY gene_id),
+terms
+GROUP BY gene_id, aspect) g
+GROUP BY gene_id),
 
 gene_lists AS (
     SELECT
@@ -259,7 +262,7 @@ genes AS (
         xrefs.xrefs AS xrefs,
         publications.pubmed_ids AS publications,
         NULLIF(jsonb_strip_nulls(jsonb_build_object('gene_families', gf.families,'pathways', pathways.pathways, 'curated_lists', gene_lists)), '{}'::JSONB) AS memberships,
-        '{}' :: JSONB AS annotation
+        goassociations.goa AS annotation
     FROM
         Gene.Gene g,
         Reference.OntologyTerm ot,
@@ -269,7 +272,8 @@ genes AS (
         hgnc_gene_families AS gf,
         gene_lists,
         nomenclature,
-        pathways
+        pathways,
+        goassociations
     WHERE
         ot.ontology_term_id = g.gene_type_id
         AND cloc.gene_id = g.gene_id
@@ -279,6 +283,7 @@ genes AS (
         AND nomenclature.gene_id = g.gene_id
         AND pathways.gene_id = g.gene_id
         AND gene_lists.gene_id = g.gene_id
+        AND goassociations.gene_id = g.gene_id
 )
 SELECT
     *
