@@ -19,10 +19,23 @@ FROM
 GROUP BY
     transcript_id;
 
--- Step 2: Add indexes to agg_exons if needed
+-- Step 2: Add index to agg_exons
 CREATE INDEX idx_agg_exons_transcript_id ON agg_exons(transcript_id);
 
--- Step 3: Create agg_transcripts as a temp table
+-- Step 3: Create agg_proteins as a temp table
+CREATE TEMP TABLE agg_proteins AS
+SELECT
+    transcript_id,
+    jsonb_agg(source_id) AS proteins
+FROM
+    Gene.Protein
+GROUP BY
+    transcript_id;
+
+-- Step 4: Add index to agg_proteins
+CREATE INDEX idx_agg_proteins_transcript_id ON agg_proteins(transcript_id);
+
+-- Step 5: Create agg_transcripts as a temp table
 CREATE TEMP TABLE agg_transcripts AS
 SELECT
     t.gene_id,
@@ -42,6 +55,9 @@ SELECT
         END || CASE
             WHEN e.exons IS NOT NULL THEN jsonb_build_object('exons', e.exons)
             ELSE '{}' :: jsonb
+        END || CASE
+            WHEN p.proteins IS NOT NULL THEN jsonb_build_object('proteins', p.proteins)
+            ELSE '{}' :: jsonb
         END
         ORDER BY
             lower(span),
@@ -50,13 +66,14 @@ SELECT
 FROM
     Gene.Transcript t
     LEFT JOIN agg_exons e ON e.transcript_id = t.transcript_id
+    LEFT JOIN agg_proteins p ON p.transcript_id = t.transcript_id
 GROUP BY
     gene_id;
 
--- Step 4: Add indexes to agg_transcripts if needed
+-- Step 6: Add index to agg_transcripts
 CREATE INDEX idx_agg_transcripts_gene_id ON agg_transcripts(gene_id);
 
--- Step 5: Use the temp tables in your main query
+-- Step 7: Use the temp tables in your main query
 
 WITH cytogenic_location AS (
 SELECT
