@@ -184,7 +184,46 @@ GROUP BY gene_id, term_id, term, aspect),
 goassociations AS (
 SELECT gene_id, jsonb_agg(term) 
 FROM 
-terms GROUP BY gene_id)
+terms GROUP BY gene_id),
+
+gene_lists AS (
+    SELECT
+        glm.gene_id,
+        jsonb_agg(
+
+                jsonb_build_object(
+                    'evidence_code',
+                    jsonb_build_object(
+                        'term',
+                        eco.term,
+                        'curie',
+                        eco.source_id
+                    ),
+                    'qualifier',
+                    ae.qualifiers,
+                    'rank',
+                    glm.rank
+                )
+
+            ORDER BY
+                glm.rank,
+                ae.annotation_evidence_id
+        ) AS gene_lists
+    FROM
+        Gene.GeneListMembership glm
+    JOIN Admin.TableCatalog tc
+        ON tc.name = 'genelistmembership'
+    JOIN Admin.SchemaCatalog sc
+        ON sc.schema_id = tc.schema_id
+        AND sc.name = 'gene'
+    JOIN Gene.AnnotationEvidence ae
+        ON ae.table_id = tc.table_id
+        AND ae.row_id = glm.gene_list_entry_id
+    JOIN Reference.OntologyTerm eco
+        ON eco.ontology_term_id = ae.evidence_code_id
+    GROUP BY
+        glm.gene_id
+),
 
 genes AS (
     SELECT
@@ -219,7 +258,7 @@ genes AS (
         jsonb_build_object('curie', ot.source_id, 'term', ot.term) AS classification,
         xrefs.xrefs AS xrefs,
         publications.pubmed_ids AS publications,
-        NULLIF(jsonb_strip_nulls(jsonb_build_object('gene_families', gf.families,'cuated_targets', NULL, 'pathways', pathways.pathways)), '{}'::JSONB) AS memberships,
+        NULLIF(jsonb_strip_nulls(jsonb_build_object('gene_families', gf.families,'pathways', pathways.pathways, 'curated_lists', gene_lists)), '{}'::JSONB) AS memberships,
         '{}' :: JSONB AS annotation
     FROM
         Gene.Gene g,
@@ -228,6 +267,7 @@ genes AS (
         xrefs,
         publications,
         hgnc_gene_families AS gf,
+        gene_lists,
         nomenclature,
         pathways
     WHERE
@@ -238,6 +278,7 @@ genes AS (
         AND gf.gene_id = g.gene_id
         AND nomenclature.gene_id = g.gene_id
         AND pathways.gene_id = g.gene_id
+        AND gene_lists.gene_id = g.gene_id
 )
 SELECT
     *
