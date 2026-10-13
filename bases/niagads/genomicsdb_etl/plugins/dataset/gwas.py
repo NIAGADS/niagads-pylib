@@ -43,7 +43,6 @@ from niagads.genome_reference.human import HumanGenome
 from niagads.genomicsdb_etl.plugins.common.mixins.intervals import (
     BinIndexReferenceMixin,
 )
-
 from niagads.genomicsdb_etl.plugins.dataset.base import (
     TrackLoaderBase,
     TrackLoaderBaseParams,

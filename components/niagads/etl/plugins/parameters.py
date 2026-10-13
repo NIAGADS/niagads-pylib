@@ -70,11 +70,13 @@ class EnvVariableParamMixin:
         for variable, value in settings.items():
             os.environ[variable.upper()] = value
 
+
 class GA4GHParamMixin:
     """
     Mixin for parameter models for plugins that need to generate or normalize
     variant identifiers
     """
+
     genome_build: Optional[GenomeBuild] = Field(
         default=GenomeBuild.GRCh38,
         description=f"Reference genome build, one of {GenomeBuild.list()}",
@@ -98,6 +100,7 @@ class GA4GHParamMixin:
         default=100,
         description="Maximum number of sequence file handles SeqRepo keeps open. Higher values reduce repeated file open/close overhead.",
     )
+
 
 class PathValidatorParamMixin:
     """

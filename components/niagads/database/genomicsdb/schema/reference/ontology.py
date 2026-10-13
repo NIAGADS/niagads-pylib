@@ -7,7 +7,6 @@ Intended for use alongside the ontology graph schema for comprehensive ontology 
 
 from typing import Union
 
-from pydantic import SerializerFunctionWrapHandler, model_serializer
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.reference.ontologies.types import EntityTypeIRI
 from niagads.common.search.models.record import SearchResultRecord
@@ -19,6 +18,7 @@ from niagads.database.genomicsdb.schema.reference.externaldb import ExternalData
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.utils.string import jaccard_word_similarity
+from pydantic import SerializerFunctionWrapHandler, model_serializer
 from sqlalchemy import (
     TEXT,
     Boolean,
@@ -51,8 +51,7 @@ class OntologyTermValidation(CustomBaseModel):
     def serialize_model(self, handler: SerializerFunctionWrapHandler):
         data = handler(self)
         data["valid"] = {
-            f"{term}|{curie}": value
-            for (term, curie), value in self.valid.items()
+            f"{term}|{curie}": value for (term, curie), value in self.valid.items()
         }
         return data
 

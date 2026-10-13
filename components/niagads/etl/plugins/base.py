@@ -3,11 +3,11 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, Optional, Type, Union
 
-from niagads.database.genomicsdb.schema.variant.documents import Variant
 import psutil
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.types import ETLOperation, ProcessStatus
 from niagads.database.genomicsdb.schema.admin.etl import ETLRun
+from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.database.session import DatabaseSessionManager
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger

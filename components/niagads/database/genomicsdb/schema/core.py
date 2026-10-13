@@ -26,15 +26,18 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
-
-# Reference Schema
-
-from niagads.database.genomicsdb.schema.reference.genome import GenomeReference
-from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
+from niagads.database.genomicsdb.schema.reference.genome import GenomeReference
 from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.database.genomicsdb.schema.reference.pathway import Pathway
+from niagads.database.genomicsdb.schema.results.associations import (
+    VariantAssociation,
+    VariantTraitAssociation,
+)
+
+# Reference Schema
+
 
 # Dataset Schema
 
@@ -51,8 +54,3 @@ from niagads.database.genomicsdb.schema.reference.pathway import Pathway
 
 
 # Results Schema
-
-from niagads.database.genomicsdb.schema.results.associations import (
-    VariantTraitAssociation,
-    VariantAssociation,
-)

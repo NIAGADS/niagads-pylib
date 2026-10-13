@@ -1,8 +1,9 @@
-from datetime import datetime
-from fileinput import filename
 import hashlib
 import json
+from datetime import datetime
+from fileinput import filename
 from typing import Optional
+
 from niagads.common.models.base import CustomBaseModel, SerializationOptions
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.dataset.collection import (

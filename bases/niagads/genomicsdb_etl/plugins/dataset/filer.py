@@ -2,15 +2,7 @@
 # TODO: investigate DASH2 and UCSC tracks
 
 import json
-
 from typing import Any, Dict, Optional
-
-from niagads.genomicsdb_etl.plugins.dataset.base import (
-    EmbeddedTrackRecord,
-    TrackLoaderBase,
-    TrackLoaderBaseParams,
-)
-
 
 from niagads.common.reference.xrefs.data_sources import NIAGADSResources
 from niagads.common.track.models.record import TrackRecord
@@ -20,7 +12,6 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
-
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.registry import PluginRegistry
