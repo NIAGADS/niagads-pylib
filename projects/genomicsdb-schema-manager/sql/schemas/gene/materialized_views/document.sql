@@ -139,12 +139,12 @@ LEFT JOIN Reference.ExternalDatabase d
     ON d.external_database_id = p.external_database_id
 GROUP BY g.gene_id),
 
-annotations AS (
+ annotations AS (
     SELECT
         g.gene_id,
         gt.source_id AS term_id,
         gt.term,
-        CASE WHEN gt.namespace LIKE 'cell%' THEN 'CC' WHEN gt.namespace LIKE 'bio%' THEN 'BP' ELSE 'MF' END AS aspect,
+        gt.namespace AS aspect,
         (
             SELECT value
             FROM unnest(eco.synonyms) AS value
@@ -191,7 +191,7 @@ GROUP BY gene_id),
 
 gene_lists AS (
     SELECT
-        glm.gene_id,
+        g.gene_id,
         jsonb_agg(
 
                 jsonb_build_object(
@@ -213,19 +213,21 @@ gene_lists AS (
                 ae.annotation_evidence_id
         ) AS gene_lists
     FROM
-        Gene.GeneListMembership glm
-    JOIN Admin.TableCatalog tc
+        Gene.Gene g
+    LEFT JOIN Gene.GeneListMembership glm
+        ON glm.gene_id = g.gene_id
+    LEFT JOIN Admin.TableCatalog tc
         ON tc.name = 'genelistmembership'
-    JOIN Admin.SchemaCatalog sc
+    LEFT JOIN Admin.SchemaCatalog sc
         ON sc.schema_id = tc.schema_id
         AND sc.name = 'gene'
-    JOIN Gene.AnnotationEvidence ae
+    LEFT JOIN Gene.AnnotationEvidence ae
         ON ae.table_id = tc.table_id
         AND ae.row_id = glm.gene_list_entry_id
-    JOIN Reference.OntologyTerm eco
+    LEFT JOIN Reference.OntologyTerm eco
         ON eco.ontology_term_id = ae.evidence_code_id
     GROUP BY
-        glm.gene_id
+        g.gene_id
 ),
 
 genes AS (
@@ -262,7 +264,7 @@ genes AS (
         xrefs.xrefs AS xrefs,
         publications.pubmed_ids AS publications,
         NULLIF(jsonb_strip_nulls(jsonb_build_object('gene_families', gf.families,'pathways', pathways.pathways, 'curated_lists', gene_lists)), '{}'::JSONB) AS memberships,
-        goassociations.goa AS annotation
+        goassociations.goa AS functional_annotation
     FROM
         Gene.Gene g,
         Reference.OntologyTerm ot,
@@ -285,7 +287,3 @@ genes AS (
         AND gene_lists.gene_id = g.gene_id
         AND goassociations.gene_id = g.gene_id
 )
-SELECT
-    *
-FROM
-    genes;
