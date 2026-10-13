@@ -21,14 +21,14 @@ from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
-    PathValidatorMixin,
+    PathValidatorParamMixin,
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.exceptions.core import ValidationError
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
+    ExternalDatabaseRefParamMixin,
 )
 from niagads.genomicsdb_etl.plugins.gene.xrefs.mappings import HGNC_XREF_CATEGORY_MAP
 from niagads.utils.string import dict_to_info_string, xstr
@@ -51,7 +51,7 @@ class GeneXRefEntry(BaseModel):
 
 
 class HGNCXRefLoaderParams(
-    BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin
+    BasePluginParams, PathValidatorParamMixin, ExternalDatabaseRefParamMixin
 ):
     """Parameters for HGNC XRef Loader plugin."""
 
@@ -67,7 +67,7 @@ class HGNCXRefLoaderParams(
         ),
     )
 
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
 
 
 metadata = PluginMetadata(

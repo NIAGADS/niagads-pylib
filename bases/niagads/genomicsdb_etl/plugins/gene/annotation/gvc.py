@@ -25,12 +25,12 @@ from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
-    PathValidatorMixin,
+    PathValidatorParamMixin,
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
+    ExternalDatabaseRefParamMixin,
 )
 from pydantic import Field, model_validator
 
@@ -78,13 +78,13 @@ def clean_split(value: str, delimiter: str = ",") -> list[str]:
 
 
 class AdspGvcTopGenesParams(
-    BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin
+    BasePluginParams, PathValidatorParamMixin, ExternalDatabaseRefParamMixin
 ):
     """Parameters for ADSP GVC top genes loader plugin."""
 
     file: str = Field(..., description="full path to ADSP GVC top genes input file")
 
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
 
 
 metadata = PluginMetadata(

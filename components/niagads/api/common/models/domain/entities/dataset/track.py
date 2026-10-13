@@ -1,12 +1,8 @@
 from typing import List, Optional, Union
 
 from niagads.api.common.models.domain.base import CountRecordModel, ORMCompatibleRecord
-from niagads.api.common.models.domain.mixins import (
-    ORMCompatabileMixin,
-    ResultMetricsMixin,
-)
+from niagads.api.common.models.domain.mixins import ORMCompatabileMixin
 from niagads.common.genomic.features.models import GenomicFeatureType
-from niagads.common.models.base import CustomBaseModel, SerializationOptions
 from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.track.models import TrackRecord
 from niagads.common.track.models.samples import BiosampleCharacteristics

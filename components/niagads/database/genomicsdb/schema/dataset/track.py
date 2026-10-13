@@ -1,7 +1,7 @@
 """`Track` (metadata) database model"""
 
 from enum import auto
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from niagads.common.track.models import (
     BiosampleCharacteristics,
@@ -45,8 +45,8 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
 
     is_filer_track: Mapped[bool] = mapped_column()
 
-    # FIXME: when we revisit ontology terms
-    dataset_type_id: Mapped[int] = ontology_term_fk_column()
+    # FIXME: should not be nullable but temporarily needs to be until FILER reloaded
+    track_type_id: Mapped[int] = ontology_term_fk_column(nullable=True)
 
     name: Mapped[str]
     description: Mapped[str] = mapped_column(String(2000))
@@ -91,7 +91,8 @@ class TrackConcept(DatasetTableBase):
     __tablename__ = "trackconcept"
     __table_args__ = (DatasetTableBase.__table_args__,)
     track_concept_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    term_id: Mapped[str] = ontology_term_fk_column()
+    track_id: Mapped[int] = track_fk_column()
+    ontology_term_id: Mapped[int] = ontology_term_fk_column()
 
 
 class TrackContextType(CaseInsensitiveEnum):
@@ -100,6 +101,16 @@ class TrackContextType(CaseInsensitiveEnum):
     BIOSAMPLE = auto()
     PHENOTYPE = auto()
     EXPERIMENT = auto()
+
+    def retrieve_context_from_record(
+        self, record: Track
+    ) -> Union[BiosampleCharacteristics, Phenotype, ExperimentalDesign]:
+        if self is TrackContextType.BIOSAMPLE:
+            return record.biosample_characteristics
+        if self is TrackContextType.PHENOTYPE:
+            return record.participant_phenotypes
+        if self is TrackContextType.EXPERIMENT:
+            return record.experimental_design
 
 
 class TrackContext(DatasetTableBase):
@@ -112,7 +123,8 @@ class TrackContext(DatasetTableBase):
         DatasetTableBase.__table_args__,
     )
     track_context_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    term_id: Mapped[str] = ontology_term_fk_column()
+    ontology_term_id: Mapped[int] = ontology_term_fk_column()
+    track_id: Mapped[int] = track_fk_column()
     context: Mapped[str] = enum_column(TrackContextType, nullable=False)
 
 

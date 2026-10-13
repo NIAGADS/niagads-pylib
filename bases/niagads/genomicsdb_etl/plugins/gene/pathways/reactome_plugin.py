@@ -10,7 +10,7 @@ from niagads.database.genomicsdb.schema.gene.annotation import PathwayMembership
 from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType
 from niagads.database.genomicsdb.schema.reference.pathway import Pathway
 from niagads.etl.plugins.metadata import PluginMetadata
-from niagads.etl.plugins.parameters import PathValidatorMixin
+from niagads.etl.plugins.parameters import PathValidatorParamMixin
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.gene.pathways.base_pathway_plugin import (
@@ -43,7 +43,7 @@ class ReactomeLoaderParams(PathwayMembershipLoaderPluginParams):
 
     file: str = Field(..., description="Reactome CSV file to load")
 
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
 
     @field_validator("file", mode="before")
     def validate_format(cls, file_name: str) -> str:

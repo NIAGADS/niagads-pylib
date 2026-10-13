@@ -1,7 +1,7 @@
 from typing import Iterator
 
 from niagads.common.reference.ontologies.helpers import get_field_iri
-from niagads.common.reference.ontologies.models import OntologyTerm
+from niagads.common.reference.ontologies.models import OntologyTermRecord
 from niagads.common.reference.ontologies.types import (
     AnnotationPropertyIRI,
     EntityTypeIRI,
@@ -65,7 +65,7 @@ class OWLParser(RDFParser):
 
         curie = entity_properties.get(get_field_iri("curie"), [None])[0]
         if curie is None:  # then extract from iri, e.g, for AnnotationProperty
-            curie = OntologyTerm.extract_curie(entity_iri)
+            curie = OntologyTermRecord.extract_curie(entity_iri)
         is_deprecated = (
             True
             if bool(entity_properties.get(get_field_iri("is_deprecated"), [False])[0])

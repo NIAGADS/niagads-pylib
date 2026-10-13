@@ -50,6 +50,7 @@ poetry run gdb_alembic <options>
 - `--downgrade`: Revert migrations (default: downgrade to previous mgiration)
 - `--reset`: Remove all migration history (irreversible)
 - `--stamp`: Mark the database with a specific revision without running migrations
+- `--curret`: Get current revision
 - `--revision <rev>`: Specify revision (default: head for upgrade/stamp, -1 for downgrade)
 - `--debug`, `--verbose`: Enable debug or verbose output
 
@@ -78,6 +79,40 @@ Reset all migration history (DANGEROUS):
 ```bash
 poetry run gdb_alembic --reset
 ```
+
+## Alembic Troubleshooting
+
+### Existing PostgreSQL Enum Type
+
+If a migration fails with PostgreSQL's
+`asyncpg.exceptions.DuplicateObjectError: type "humangenome" already exists`,
+import the PostgreSQL dialect in the revision:
+
+```python
+from sqlalchemy.dialects import postgresql
+```
+
+Then replace `sa.Enum` with `postgresql.ENUM` in every affected column and
+set `create_type=False`:
+
+```python
+from sqlalchemy.dialects import postgresql
+
+sa.Column(
+    "chromosome",
+    postgresql.ENUM(
+        "chr1",
+        "chr2",
+        # ... remaining enum values ...
+        "chrM",
+        name="humangenome",
+        create_type=False,
+    ),
+    nullable=False,
+)
+```
+
+`create_type=False` is ignored when applied to generic `sa.Enum`.
 
 ## Executing SQL Files
 

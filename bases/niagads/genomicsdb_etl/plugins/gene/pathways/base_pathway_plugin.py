@@ -7,9 +7,9 @@ from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.pathway import Pathway
 from niagads.etl.plugins.base import AbstractBasePlugin
-from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorMixin
+from niagads.etl.plugins.parameters import BasePluginParams, PathValidatorParamMixin
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
+    ExternalDatabaseRefParamMixin,
 )
 from niagads.genomicsdb_etl.plugins.gene.pathways.types import PathwayGeneAssociations
 from pydantic import Field
@@ -17,7 +17,7 @@ from sqlalchemy.exc import NoResultFound
 
 
 class PathwayMembershipLoaderPluginParams(
-    BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin
+    BasePluginParams, PathValidatorParamMixin, ExternalDatabaseRefParamMixin
 ):
     """
     Parameters for pathway-membership loading plugins

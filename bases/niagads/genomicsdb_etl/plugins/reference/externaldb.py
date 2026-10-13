@@ -13,7 +13,7 @@ from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
-    PathValidatorMixin,
+    PathValidatorParamMixin,
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
@@ -28,7 +28,7 @@ class ExternalDatabaseLoaderParams(BasePluginParams):
         ..., description="full path to external database configuration file"
     )
 
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
 
 
 metadata = PluginMetadata(

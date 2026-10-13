@@ -27,13 +27,13 @@ from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
-    PathValidatorMixin,
+    PathValidatorParamMixin,
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
+    ExternalDatabaseRefParamMixin,
 )
 from niagads.utils.sys import read_open_ctx
 from pydantic import BaseModel, Field
@@ -59,7 +59,7 @@ class UniProtXRefEntry(BaseModel):
 
 
 class UniProtKBIDLoaderParams(
-    BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin
+    BasePluginParams, PathValidatorParamMixin, ExternalDatabaseRefParamMixin
 ):
     """Parameters for UniProt KB ID Loader plugin."""
 
@@ -68,7 +68,7 @@ class UniProtKBIDLoaderParams(
         description="Full path to UniProt KB ID mapping file (tab-delimited)",
     )
 
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
 
 
 metadata = PluginMetadata(

@@ -3,6 +3,7 @@ from typing import Iterator, Optional
 
 from niagads.common.models.base import SerializationOptions
 from niagads.common.types import ETLOperation
+from niagads.common.variant.models.record import VariantRecord
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
@@ -10,20 +11,26 @@ from niagads.etl.plugins.mixins import EmbeddingGeneratorContextMixin
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
     EmbeddingParameterMixin,
-    PathValidatorMixin,
+    GA4GHParamMixin,
+    PathValidatorParamMixin,
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
+from niagads.ga4gh.annotators import PrimaryKeyGenerator
 from niagads.genome_reference.human import HumanGenome
-from niagads.genomicsdb_etl.plugins.variant.base import (
+from niagads.genomicsdb_etl.plugins.common.mixins.variants import (
     VariantLookupBlock,
     VariantLookupMixin,
+)
+from niagads.genomicsdb_etl.plugins.variant.vcf_loaders.base import (
+    VariantPrimaryKeyGeneratorMixin,
 )
 from niagads.nlp.llm_types import LLM, NLPModelType
 from niagads.nlp.models import SummaryPrompt
 from niagads.nlp.summarization import TextSummaryGenerator
 from niagads.utils.list import chunker
 from niagads.utils.sys import read_open_ctx, timer
+from niagads.vcf.types import VCFEntry
 from niagads.vep_json_parser.core import (
     Consequence,
     ConsequenceType,
@@ -32,7 +39,7 @@ from niagads.vep_json_parser.core import (
     VEPJSONParser,
 )
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import text
+from sqlalchemy.exc import NoResultFound
 
 
 class AnnotationSummary(BaseModel):
@@ -52,14 +59,14 @@ class AnnotationRecord(BaseModel, arbitrary_types_allowed=True):
 
 
 class VEPAnnotationLoaderParams(
-    BasePluginParams, PathValidatorMixin, EmbeddingParameterMixin
+    BasePluginParams, PathValidatorParamMixin, EmbeddingParameterMixin, GA4GHParamMixin
 ):
     file: str = Field(description="Path to VEP JSON file")
     summarization_model: Optional[LLM] = Field(
         default=LLM.MISTRAL_7B_INSTRUCT_V0_3,
         description="LLM model for generating textual summaries of the VEP annotation",
     )
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
     skip_summarization: Optional[bool] = Field(
         default=False, description="skip summarization"
     )
@@ -68,6 +75,10 @@ class VEPAnnotationLoaderParams(
     )
     summarization_force_cpu: Optional[bool] = Field(
         default=False, description="force CPU use for summarization"
+    )
+    is_chr_combined: Optional[bool] = Field(
+        default=False,
+        description="for data not sharded by chromosome, affects variant lookups",
     )
 
     @field_validator("summarization_model")
@@ -93,15 +104,18 @@ metadata = PluginMetadata(
 
 @PluginRegistry.register(metadata=metadata)
 class VEPAnnotationLoader(
-    AbstractBasePlugin, EmbeddingGeneratorContextMixin, VariantLookupMixin
+    AbstractBasePlugin,
+    EmbeddingGeneratorContextMixin,
+    VariantLookupMixin,
+    VariantPrimaryKeyGeneratorMixin,
 ):
     _params: VEPAnnotationLoaderParams
 
     def __init__(self, params, name=None, log_path=None, debug=False, verbose=False):
         super().__init__(params, name, log_path, debug, verbose)
-        self._summary_generator: Optional[TextSummaryGenerator] = None
+        self._summary_generator: TextSummaryGenerator = None
+        self._variant_pk_generator: PrimaryKeyGenerator = None
         self._embedded_record_count = 0
-
         if self._params.summarization_only:
             raise NotImplementedError("Summarization Only Run not yet implemented")
 
@@ -137,7 +151,7 @@ class VEPAnnotationLoader(
                         parser.parse(line.rstrip())
                     )
                 except:
-                    raise RuntimeError(f"Error parsing line {line_num}: {line}")
+                    raise ValueError(f"Error parsing line {line_num}: {line}")
 
                 # if "regulatory_feature_consequences" in line:
                 #     self.logger.debug(
@@ -578,45 +592,87 @@ class VEPAnnotationLoader(
             await driver_conn.execute(";".join(sql_statements))
             self.inc_tx_count(Variant, ETLOperation.UPDATE, len(sql_statements))
 
-    async def load(self, session, embedded_records: list[AnnotationRecord]):
-        # sort by position
-        sorted_records = sorted(
-            embedded_records,
-            key=lambda r: r.position,
-        )
-        lookup_blocks: list[VariantLookupBlock] = self._get_lookup_blocks(
-            sorted_records, max_span=100000
-        )
-        num_updateable_variants = 0
-
-        for block in lookup_blocks:
-            reference_variants = await self._retrieve_variants_in_span(
-                session, block.region
+    async def _get_variant_db_record(
+        self, session, entry: VariantVEPAnnotationEntry
+    ) -> Variant:
+        vcf_entry = entry.to_vcf_entry()
+        if vcf_entry.is_structural_variant:
+            self.logger.debug(f"SV: {entry.positional_id}")
+            record: VariantRecord = self._generate_variant_identifier_record(
+                vcf_entry, require_validation=False  # trust hipFG
             )
+            lookup_id = record.id
+        else:
+            lookup_id = entry.positional_id.replace("chr", "")
 
-            for record in sorted_records[block.start_idx : block.end_idx]:
-                variant_key = (
-                    record.annotation.position,
-                    record.annotation.ref,
-                    record.annotation.alt,
+        try:
+            match: Variant = await Variant.fetch_record(
+                session, {"niagads_id": lookup_id}
+            )
+        except NoResultFound:
+            return None  # not found
+        # allow Multiple results found to lead to failure -> means duplicate record and that's a problem
+
+        return match
+
+    async def load(self, session, embedded_records: list[AnnotationRecord]):
+
+        num_updateable_variants = 0
+        if self._params.is_chr_combined:
+            for record in embedded_records:
+                variant: Variant = await self._get_variant_db_record(
+                    session, record.annotation
                 )
-                primary_key = reference_variants.get(variant_key)
-
-                if primary_key is None:
-                    # if SNV switch alleles and try again (trust INDEL directions)
-                    if len(record.annotation.ref) == len(record.annotation.alt) == 1:
-                        variant_key = (
-                            record.annotation.position,
-                            record.annotation.alt,
-                            record.annotation.ref,
-                        )
-                        primary_key = reference_variants.get(variant_key)
-
-                if primary_key is None:
+                if variant is None:
+                    self.logger.debug(f"Not found: {record.annotation.positional_id}")
                     self.inc_tx_count(Variant, ETLOperation.SKIP)
                 else:
-                    record.db_primary_key = primary_key
                     num_updateable_variants += 1
+                    record.db_primary_key = variant.variant_id
+
+        else:
+            # sort by position
+            sorted_records = sorted(
+                embedded_records,
+                key=lambda r: r.position,
+            )
+            lookup_blocks: list[VariantLookupBlock] = self._get_lookup_blocks(
+                sorted_records, max_span=100000
+            )
+
+            for block in lookup_blocks:
+                reference_variants = await self._retrieve_variants_in_span(
+                    session, block.region
+                )
+
+                for record in sorted_records[block.start_idx : block.end_idx]:
+                    if (
+                        len(record.annotation.ref) > 50
+                        or len(record.annotation.alt) > 50
+                    ):
+                        generated_variant_record: VariantRecord = (
+                            self._generate_variant_identifier_record(
+                                record.annotation.to_vcf_entry(),
+                                require_validation=False,  # trust hipFG
+                            )
+                        )
+                        variant_key(generated_variant_record.id)
+                    else:
+                        variant_key = (
+                            record.annotation.position,
+                            record.annotation.ref,
+                            record.annotation.alt,
+                        )
+                    db_record = reference_variants.get(variant_key)
+
+                    if db_record is None:
+                        self.logger.debug(
+                            f"Not found: {record.annotation.positional_id}"
+                        )
+                        self.inc_tx_count(Variant, ETLOperation.SKIP)
+                    else:
+                        record.db_primary_key = db_record.id
+                        num_updateable_variants += 1
 
         chunk_size = 5000  # 25000 slows down, 5000-10000 same rate, going w/smaller because of parallel
         chunks = chunker(embedded_records, chunk_size)

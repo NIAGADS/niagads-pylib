@@ -50,10 +50,15 @@ class GenomeBuild(CaseInsensitiveEnum):
 
 
 class HumanGenome(CaseInsensitiveEnum):
-    # name, value pair
-    # e.g., for chr in Chromosome: print(chr.name)
-    # will print a new line sep list of chr1 chr2 chr3, etc
-    # print(chr.value) will print 1 2 3, etc.
+    """Enum representing chromosomes on the primary human assembly.
+
+    Name=chrN, value=N
+
+    str(HumanGenome.chr1) will print the name (chr1)
+
+    includes validator
+    """
+
     chr1 = "1"
     chr2 = "2"
     chr3 = "3"
