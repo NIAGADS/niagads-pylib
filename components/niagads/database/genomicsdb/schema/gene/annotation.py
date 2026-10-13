@@ -102,7 +102,13 @@ class AnnotationEvidence(AnnotationTableBase, TableRefMixin):
 class GeneListMembership(AnnotationTableBase):
     __tablename__ = "genelistmembership"
     __table_args__ = (
-        UniqueConstraint("external_database_id", "gene_id", name="uq_gene_list_entry"),
+        UniqueConstraint(
+            "external_database_id",
+            "gene_id",
+            "rank",
+            "score",
+            name="uq_gene_list_entry",
+        ),
         GeneTableBase.__table_args__,
     )
 
