@@ -57,6 +57,7 @@ GROUP BY
 CREATE INDEX idx_agg_transcripts_gene_id ON agg_transcripts(gene_id);
 
 -- Step 5: Use the temp tables in your main query
+
 WITH cytogenic_location AS (
 SELECT
     g.gene_id,
@@ -260,13 +261,19 @@ genes AS (
             'cytogenic_location',
             cloc.location
         ) AS location,
+        jsonb_build_object(
+            'transcripts',
+            transcripts.transcripts
+        ) AS gene_structure,
         jsonb_build_object('curie', ot.source_id, 'term', ot.term) AS classification,
         xrefs.xrefs AS xrefs,
         publications.pubmed_ids AS publications,
         NULLIF(jsonb_strip_nulls(jsonb_build_object('gene_families', gf.families,'pathways', pathways.pathways, 'curated_lists', gene_lists)), '{}'::JSONB) AS memberships,
         goassociations.goa AS functional_annotation
     FROM
-        Gene.Gene g,
+        Gene.Gene g
+        LEFT JOIN agg_transcripts AS transcripts
+            ON transcripts.gene_id = g.gene_id,
         Reference.OntologyTerm ot,
         cytogenic_location AS cloc,
         xrefs,
@@ -286,4 +293,15 @@ genes AS (
         AND pathways.gene_id = g.gene_id
         AND gene_lists.gene_id = g.gene_id
         AND goassociations.gene_id = g.gene_id
-)
+),
+SELECT
+    genes.*,
+    known_ad.gene_id IS NOT NULL AS associated_with_known_ad_locus
+FROM
+    genes
+LEFT JOIN (
+    SELECT DISTINCT
+        gene_id
+    FROM Gene.KnownADGenes
+) known_ad
+    ON known_ad.gene_id = genes.gene_id;
