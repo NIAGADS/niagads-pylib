@@ -1,4 +1,4 @@
--- Step 1: Create agg_exons as a temp table
+-- Step 1: Aggregate exons by transcript in a temporary table.
 CREATE TEMP TABLE agg_exons AS
 SELECT
     transcript_id,
@@ -19,10 +19,10 @@ FROM
 GROUP BY
     transcript_id;
 
--- Step 2: Add indexes to agg_exons if needed
+-- Step 2: Index aggregated exons by transcript ID.
 CREATE INDEX idx_agg_exons_transcript_id ON agg_exons(transcript_id);
 
--- Create agg_proteins
+-- Step 3: Aggregate proteins by transcript in a temporary table.
 CREATE TEMP TABLE agg_proteins AS
 SELECT
     transcript_id,
@@ -32,9 +32,10 @@ FROM
 GROUP BY
     transcript_id;
 
+-- Step 4: Index aggregated proteins by transcript ID.
 CREATE INDEX idx_agg_proteins_transcript_id ON agg_proteins(transcript_id);
 
--- Step 3: Create agg_transcripts as a temp table
+-- Step 5: Aggregate transcripts by gene, including exon and protein data.
 CREATE TEMP TABLE agg_transcripts AS
 SELECT
     t.gene_id,
@@ -69,10 +70,10 @@ FROM
 GROUP BY
     gene_id;
 
--- Step 4: Add indexes to agg_transcripts if needed
+-- Step 6: Index aggregated transcripts by gene ID.
 CREATE INDEX idx_agg_transcripts_gene_id ON agg_transcripts(gene_id);
 
--- Step 5: Use the temp tables in your main query
+-- Step 7: Build gene documents from temporary aggregates and metadata CTEs.
 
 WITH cytogenic_location AS (
 SELECT
