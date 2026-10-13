@@ -19,10 +19,10 @@ FROM
 GROUP BY
     transcript_id;
 
--- Step 2: Add index to agg_exons
+-- Step 2: Add indexes to agg_exons if needed
 CREATE INDEX idx_agg_exons_transcript_id ON agg_exons(transcript_id);
 
--- Step 3: Create agg_proteins as a temp table
+-- Create agg_proteins
 CREATE TEMP TABLE agg_proteins AS
 SELECT
     transcript_id,
@@ -32,10 +32,9 @@ FROM
 GROUP BY
     transcript_id;
 
--- Step 4: Add index to agg_proteins
 CREATE INDEX idx_agg_proteins_transcript_id ON agg_proteins(transcript_id);
 
--- Step 5: Create agg_transcripts as a temp table
+-- Step 3: Create agg_transcripts as a temp table
 CREATE TEMP TABLE agg_transcripts AS
 SELECT
     t.gene_id,
@@ -70,10 +69,10 @@ FROM
 GROUP BY
     gene_id;
 
--- Step 6: Add index to agg_transcripts
+-- Step 4: Add indexes to agg_transcripts if needed
 CREATE INDEX idx_agg_transcripts_gene_id ON agg_transcripts(gene_id);
 
--- Step 7: Use the temp tables in your main query
+-- Step 5: Use the temp tables in your main query
 
 WITH cytogenic_location AS (
 SELECT
@@ -211,7 +210,6 @@ gene_lists AS (
     SELECT
         g.gene_id,
         jsonb_agg(
-
                 jsonb_build_object(
                     'evidence_code',
                     jsonb_build_object(
@@ -225,11 +223,11 @@ gene_lists AS (
                     'rank',
                     glm.rank
                 )
-
             ORDER BY
                 glm.rank,
                 ae.annotation_evidence_id
-        ) AS gene_lists
+                )
+         FILTER (WHERE glm.gene_list_entry_id IS NOT NULL) AS gene_lists
     FROM
         Gene.Gene g
     LEFT JOIN Gene.GeneListMembership glm
@@ -265,20 +263,10 @@ genes AS (
             g.gene_name,
             'synonyms', nomenclature.synonyms
         )) AS nomenclature,
+     
         jsonb_build_object(
-            'genomic_location',
-            jsonb_build_object(
-                'chromosome',
-                g.chromosome,
-                'span',
-                g.span,
-                'strand',
-                g.strand
-            ),
-            'cytogenic_location',
-            cloc.location
-        ) AS location,
-        jsonb_build_object(
+            'location',  format_genomic_location(g.chromosome, g.span, g.strand),
+             'cytogenic_location', cloc.location,
             'transcripts',
             transcripts.transcripts
         ) AS gene_structure,
@@ -310,7 +298,7 @@ genes AS (
         AND pathways.gene_id = g.gene_id
         AND gene_lists.gene_id = g.gene_id
         AND goassociations.gene_id = g.gene_id
-),
+)
 SELECT
     genes.*,
     known_ad.gene_id IS NOT NULL AS associated_with_known_ad_locus
@@ -322,3 +310,4 @@ LEFT JOIN (
     FROM Gene.KnownADGenes
 ) known_ad
     ON known_ad.gene_id = genes.gene_id;
+    
