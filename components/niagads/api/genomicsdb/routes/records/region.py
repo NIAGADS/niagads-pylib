@@ -1,4 +1,5 @@
 from typing import List, Union
+
 from fastapi import APIRouter, Depends, Query
 from niagads.api.common.config import Settings
 from niagads.api.common.constants import SharedOpenAPITags

@@ -1,6 +1,6 @@
 import ast
-import os
 import importlib.util
+import os
 
 # poetry run python check_broken_niagads_imports.py
 

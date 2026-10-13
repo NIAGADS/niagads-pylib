@@ -7,14 +7,12 @@ from niagads.common.variant.types import VariantClass
 from niagads.database.decorators import CompressedJson
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.database.genomicsdb.schema.variant.base import VariantTableBase
-
 from niagads.database.helpers import enum_column
 from niagads.database.mixins.embeddings import EmbeddingMixin
 from niagads.database.mixins.ranges import GenomicRegionMixin
-
 from sqlalchemy import ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class Variant(VariantTableBase, IdAliasMixin, GenomicRegionMixin, EmbeddingMixin):

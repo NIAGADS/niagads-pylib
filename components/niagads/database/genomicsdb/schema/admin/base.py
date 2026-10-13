@@ -2,10 +2,10 @@
 Base class for the `Admin` schema models in the genomicsdb database.
 """
 
-from niagads.database.mixins.serialization import ModelDumpMixin
-from niagads.database.mixins.transactions import TransactionTableMixin
 from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.database.genomicsdb.schema.mixins import LookupTableMixin
+from niagads.database.mixins.serialization import ModelDumpMixin
+from niagads.database.mixins.transactions import TransactionTableMixin
 
 
 # don't need housekeeping fields for Admin Tables

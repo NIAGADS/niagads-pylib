@@ -3,7 +3,6 @@ from typing import Any, List, Optional
 
 from fastapi import HTTPException
 from niagads.api.common.constants import SHARD_PATTERN
-
 from niagads.api.common.models.domain.parameters.filters.expression_filter import Triple
 from niagads.api.common.models.domain.parameters.types import ResponseContent
 from niagads.api.common.models.service.request import RequestDataModel
@@ -12,7 +11,6 @@ from niagads.common.track.models import (
     Phenotype,
     Provenance,
 )
-
 from niagads.database.genomicsdb.schema.dataset.collection import (
     Collection,
     TrackCollectionLink,

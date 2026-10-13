@@ -10,9 +10,11 @@ requires-python = ">=3.11,<3.14"
 version = "2.0.0"
 
 [tool.black]
+force-exclude = '(^/development/|/alembic/versions/)'
 
 [tool.isort]
 profile = "black"
+extend_skip_glob = ["development/**", "**/alembic/versions/**"]
 
 [tool.poetry]
 homepage = "https://github.com/NIAGADS/niagads-pylib"

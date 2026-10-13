@@ -5,11 +5,11 @@ Defines table mapping, chunk metadata, and embedding tables for chunked
 retrieval-augmented generation (RAG) workflows in the genomicsdb ragdoc schema.
 """
 
-from niagads.database.helpers import enum_column, enum_constraint
-from niagads.database.mixins.embeddings import EmbeddingMixin
 from niagads.database.genomicsdb.schema.admin.mixins import TableRefMixin
 from niagads.database.genomicsdb.schema.ragdoc.base import RAGDocTableBase
 from niagads.database.genomicsdb.schema.ragdoc.types import RAGDocType
+from niagads.database.helpers import enum_column, enum_constraint
+from niagads.database.mixins.embeddings import EmbeddingMixin
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     TEXT,

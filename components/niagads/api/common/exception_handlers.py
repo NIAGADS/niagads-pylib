@@ -27,8 +27,8 @@ from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from niagads.exceptions.core import ValidationError
 from niagads.api.common.config import Settings
+from niagads.exceptions.core import ValidationError
 from sqlalchemy.exc import DatabaseError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 

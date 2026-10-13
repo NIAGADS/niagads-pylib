@@ -4,12 +4,12 @@ from typing import List, Optional, Union
 from niagads.api.common.constants import DEFAULT_PAGE_SIZE, MAX_NUM_PAGES
 from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
 from niagads.api.common.models.domain.entities.features.bed import BEDFeature
+from niagads.api.common.models.response.base import PaginationDataModel
 from niagads.api.common.models.service.cache import (
     CacheKeyDataModel,
     CacheKeyQualifier,
     CacheNamespace,
 )
-from niagads.api.common.models.response.base import PaginationDataModel
 from niagads.api.common.services.cache import CacheService
 from niagads.common.models.types import Range
 from niagads.exceptions.core import ValidationError

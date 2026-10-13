@@ -1,7 +1,6 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.domain.parameters.entity import (
     multi_track_id_query_param,
@@ -9,12 +8,11 @@ from niagads.api.common.models.domain.parameters.entity import (
 )
 from niagads.api.common.models.domain.parameters.location import loc_param
 from niagads.api.common.models.domain.parameters.response.content import (
-    DefaultRFormatParam,
     DefaultRContentParam,
+    DefaultRFormatParam,
     RContentData,
     RContentParamNoCounts,
 )
-
 from niagads.api.common.models.domain.parameters.response.pagination import page_param
 from niagads.api.common.models.domain.parameters.types import (
     ResponseContent,

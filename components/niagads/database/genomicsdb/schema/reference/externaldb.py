@@ -3,10 +3,10 @@
 from datetime import datetime
 from typing import Optional
 
-from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
-from niagads.database.helpers import datetime_column
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
+from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
+from niagads.database.helpers import datetime_column
 from sqlalchemy import String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 

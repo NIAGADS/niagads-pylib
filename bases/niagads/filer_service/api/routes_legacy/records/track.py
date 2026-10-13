@@ -2,14 +2,14 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, Query
 from niagads.api.common.constants import SharedOpenAPITags
-from niagads.api.common.models.features.bed import BEDResponse
-from niagads.api.common.models.response.base import (
-    RecordResponse,
-    ListResponse,
-)
 from niagads.api.common.models.datasets.track import (
     AbridgedTrackResponse,
     TrackResponse,
+)
+from niagads.api.common.models.features.bed import BEDResponse
+from niagads.api.common.models.response.base import (
+    ListResponse,
+    RecordResponse,
 )
 from niagads.api.common.parameters.location import loc_param
 from niagads.api.common.parameters.pagination import page_param

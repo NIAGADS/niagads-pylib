@@ -22,12 +22,14 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
 )
 
 from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
-
 from niagads.etl.plugins.metadata import PluginMetadata
-
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
-
+from niagads.genomicsdb_etl.plugins.dataset.base import (
+    EmbeddedTrackRecord,
+    TrackLoaderBase,
+    TrackLoaderBaseParams,
+)
 from niagads.metadata_parser.filer import MetadataTemplateParser
 from niagads.requests.core import HttpClientSessionManager
 from niagads.utils.sys import read_open_ctx

@@ -1,14 +1,14 @@
-from datetime import datetime
 import gzip
 import json
+from datetime import datetime
 from typing import Any
 
+from asyncpg import Range as AsyncPGRange
 from dateutil import parser
 from niagads.common.models.types import Range
 from sqlalchemy import LargeBinary
 from sqlalchemy.dialects.postgresql import INT4RANGE
 from sqlalchemy.types import DateTime, TypeDecorator
-from asyncpg import Range as AsyncPGRange
 
 
 class RangeType(TypeDecorator):

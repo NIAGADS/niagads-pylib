@@ -6,7 +6,8 @@ from typing import Any, Dict, Optional, Type, Union
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 import psutil
 from niagads.common.core import ComponentBaseMixin
-from niagads.common.types import ProcessStatus, ETLOperation
+from niagads.common.types import ETLOperation, ProcessStatus
+from niagads.database.genomicsdb.schema.admin.etl import ETLRun
 from niagads.database.session import DatabaseSessionManager
 from niagads.etl.pipeline.config import PipelineSettings
 from niagads.etl.plugins.logger import ETLLogger
@@ -18,14 +19,13 @@ from niagads.etl.plugins.types import (
     ResumeCheckpoint,
 )
 from niagads.etl.types import ETLExecutionMode
-from niagads.database.genomicsdb.schema.admin.etl import ETLRun
 from niagads.utils.asynchronous import null_async_context
 from niagads.utils.list import chunker
 from pydantic import ValidationError
 from sqlalchemy import delete, event
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.exc import IntegrityError
 
 
 class AbstractBasePlugin(ABC, ComponentBaseMixin):

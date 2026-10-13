@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import Any, Dict, Optional
 
-
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.search.types import MatchType
 from niagads.common.types import Entity

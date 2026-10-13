@@ -1,4 +1,5 @@
 from typing import List
+
 from niagads.api.common.models.annotations.associations import (
     VariantAssociation,
     VariantAssociationSummary,

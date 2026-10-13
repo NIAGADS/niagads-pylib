@@ -1,12 +1,12 @@
 from datetime import datetime
+
 from niagads.database.decorators import CompressedJson
 from niagads.database.genomicsdb.schema.variant.base import VariantTableBase
-
 from niagads.database.genomicsdb.schema.variant.types import RefSNPMergeHistory
 from niagads.database.helpers import datetime_column
 from sqlalchemy import INTEGER, ForeignKey, Index, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 # to do index? hash? on refsnp_id

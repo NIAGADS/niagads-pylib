@@ -4,7 +4,6 @@ from itertools import groupby
 from operator import itemgetter
 from typing import List, Union
 
-
 from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
 from niagads.api.common.models.domain.parameters.types import ResponseContent
 from niagads.api.common.models.service.cache import CacheKeyDataModel, CacheNamespace
@@ -18,18 +17,17 @@ from niagads.api.common.services.route import (
     RequestParameters,
     ResponseConfiguration,
 )
-
-from niagads.filer_service.api.dependencies import FILEREndpointRequestParameters
-from niagads.filer_service.api.services.pagination import (
-    FILERTrackDataPaginationService,
-)
-from niagads.exceptions.core import ValidationError
 from niagads.common.genomic.features.models import GenomicFeature, GenomicFeatureType
 from niagads.database.genomicsdb.schema.dataset.track import Track
+from niagads.exceptions.core import ValidationError
+from niagads.filer_service.api.dependencies import FILEREndpointRequestParameters
 from niagads.filer_service.api.services.client import (
-    FILERClientService,
     FILERApiDataResponse,
     FILERApiEndpoint,
+    FILERClientService,
+)
+from niagads.filer_service.api.services.pagination import (
+    FILERTrackDataPaginationService,
 )
 from niagads.utils.list import chunker
 

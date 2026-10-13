@@ -1,0 +1,56 @@
+name: Python quality comment
+
+on:
+  workflow_run:
+    workflows: [Python quality]
+    types: [completed]
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # This job reads the log as text only; it never checks out or runs PR code.
+      - name: Download log
+        id: log
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: python-quality-log
+          path: quality-log
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Post or update the PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const run = context.payload.workflow_run;
+            const {owner, repo} = context.repo;
+            const pulls = await github.paginate(github.rest.pulls.list, {owner, repo, state: 'open'});
+            const pr = pulls.find(p =>
+              p.head.repo?.full_name === run.head_repository.full_name &&
+              p.head.ref === run.head_branch &&
+              (run.pull_requests.some(r => r.number === p.number) || p.head.sha === run.head_sha)
+            );
+            if (!pr) { core.info('No matching open PR.'); return; }
+            const marker = '<!-- python-quality-report -->';
+            const file = 'quality-log/report.txt';
+            const log = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : 'No log was produced. See the workflow run for details.';
+            // Escape untrusted log text, including mentions and HTML, before embedding it.
+            const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/@/g, '&#64;');
+            const escapedLog = escape(log);
+            const excerpt = escapedLog.slice(0, 45000);
+            const body = `${marker}\n@${pr.user.login} — Python quality: **${run.conclusion}**.\n\nUnused imports are warnings only.\n\n<details>\n<summary>Log</summary>\n\n<pre>${excerpt}</pre>\n</details>\n\n${escapedLog.length > excerpt.length ? 'Log truncated; the full log is available in the run artifact.\n\n' : ''}[Workflow run](${run.html_url})`;
+            const comments = await github.paginate(github.rest.issues.listComments, {owner, repo, issue_number: pr.number});
+            const previous = comments.find(c => c.user.login === 'github-actions[bot]' && c.body.includes(marker));
+            if (previous) {
+              await github.rest.issues.updateComment({owner, repo, comment_id: previous.id, body});
+            } else {
+              await github.rest.issues.createComment({owner, repo, issue_number: pr.number, body});
+            }

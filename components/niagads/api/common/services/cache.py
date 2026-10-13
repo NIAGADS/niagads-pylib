@@ -1,4 +1,5 @@
 from typing import Any, Optional, Tuple
+
 from niagads.api.common.models.service.cache import (
     CacheKeyDataModel,
     CacheKeyQualifier,

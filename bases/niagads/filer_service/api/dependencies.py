@@ -3,15 +3,15 @@ from typing import Annotated
 
 from aiohttp import ClientSession
 from fastapi import Depends
-from niagads.api.common.models.domain.parameters.internal import (
-    InternalRequestParameters,
-)
+from niagads.api.common.config import Settings
 from niagads.api.common.models.domain.parameters.filters.text_search import (
     TextSearchFilterParameter,
 )
+from niagads.api.common.models.domain.parameters.internal import (
+    InternalRequestParameters,
+)
 from niagads.database import DatabaseSessionManager
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.api.common.config import Settings
 from niagads.requests.core import HttpClientSessionManager
 from niagads.settings.core import ServiceEnvironment, get_service_environment
 from sqlalchemy.ext.asyncio import AsyncSession

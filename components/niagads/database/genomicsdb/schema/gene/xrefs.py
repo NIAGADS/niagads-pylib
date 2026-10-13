@@ -13,9 +13,9 @@ from niagads.database.helpers import enum_column, enum_constraint
 from niagads.enums.core import CaseInsensitiveEnum
 from sqlalchemy import String, and_, func, select
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 
 
 class GeneIdentifierType(CaseInsensitiveEnum):

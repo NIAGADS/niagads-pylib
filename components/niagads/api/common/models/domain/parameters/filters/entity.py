@@ -1,6 +1,7 @@
 """record ID path parameters"""
 
 from typing import Optional
+
 from fastapi import Query
 from niagads.api.common.models.domain.parameters.utils import parse_comma_separated_list
 from niagads.api.common.utils import sanitize

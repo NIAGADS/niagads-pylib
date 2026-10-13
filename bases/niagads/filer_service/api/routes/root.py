@@ -1,4 +1,5 @@
 import functools
+
 from fastapi import APIRouter, Depends, Request, Response
 from niagads.api.common.app.factory import AppFactory
 from niagads.api.common.models.domain.entities.entity import Entity, EntityMetrics

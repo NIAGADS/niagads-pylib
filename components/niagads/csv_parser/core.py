@@ -22,15 +22,15 @@ for record in parser:
 """
 
 import json
-
-from csv import Sniffer, Error as CSVError
+from csv import Error as CSVError
+from csv import Sniffer
 from typing import Optional
+
 from niagads.exceptions.core import FileFormatError
 from niagads.flatfile.base import AbstractFlatfileParser
-from pandas import read_csv, DataFrame
-
 from niagads.utils.dict import convert_str2numeric_values
 from niagads.utils.pandas import strip_df
+from pandas import DataFrame, read_csv
 
 LIST_DELIMITERS = ["|", "/", ";", "="]
 

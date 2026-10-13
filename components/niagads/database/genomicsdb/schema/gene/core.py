@@ -2,11 +2,11 @@
 # see https://stackoverflow.com/a/77767002
 #  FIXME: can I just use __init__.py?
 
-from niagads.database.genomicsdb.schema.gene.documents import Gene
 from niagads.database.genomicsdb.schema.gene.annotation import PathwayMembership
+from niagads.database.genomicsdb.schema.gene.documents import Gene
 from niagads.database.genomicsdb.schema.gene.structure import (
-    GeneModel,
     ExonModel,
+    GeneModel,
     TranscriptModel,
 )
 from niagads.database.genomicsdb.schema.gene.xrefs import GeneXRef

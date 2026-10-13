@@ -3,9 +3,9 @@ helper functions for postgres database connections and transaction
 management
 """
 
+import json
 import logging
 
-import json
 from asyncpg import connect
 from niagads.postgres_dbi.core import AbstractDatabase
 

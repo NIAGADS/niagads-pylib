@@ -1,4 +1,5 @@
 import argparse
+
 from niagads.arg_parser.core import json_type
 from niagads.common.core import ComponentBaseMixin
 from niagads.subprocess_manager.types import Command

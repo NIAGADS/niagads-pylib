@@ -1,8 +1,6 @@
 from typing import List
 
-
 from niagads.api.common.models.domain.base import ORMCompatibleRecord
-
 from pydantic import Field
 
 

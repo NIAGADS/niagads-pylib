@@ -2,11 +2,11 @@
 
 from typing import List, Set
 
-from niagads.common.types import T_PubMedID
-from niagads.api.common.constants import SharedOpenAPITags
-from niagads.api.common.config import Settings
 from niagads.api.common.app.openapi import OpenAPISpec, OpenAPITag
+from niagads.api.common.config import Settings
+from niagads.api.common.constants import SharedOpenAPITags
 from niagads.common.reference.xrefs.data_sources import NIAGADSResources
+from niagads.common.types import T_PubMedID
 
 APP_NAMESPACE = "Genomics"
 
