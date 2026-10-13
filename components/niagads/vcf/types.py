@@ -20,6 +20,20 @@ class VCFEntry(CustomBaseModel):
     filter: str = "."
     info: Union[dict, str] = "."
 
+    @property
+    def positional_id(self):
+        if self.is_structural_variant:
+            raise ValueError("Structural variant, cannot generate stable id")
+        if isinstance(self.alt, list):
+            raise ValueError(
+                "Multiple alt alleles specified, cannot generate stable id"
+            )
+        return f"{str(self.chrom.value)}:{self.pos}:{self.ref}:{self.alt}"
+
+    @property
+    def is_structural_variant(self):
+        return len(self.ref) > 50 or len(self.alt) > 50
+
     @staticmethod
     def format_dict(obj: dict, skip: List[str] = []):
         for key, value in obj.items():
