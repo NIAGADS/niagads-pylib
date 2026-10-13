@@ -8,6 +8,7 @@ FORK=2
 BUFFER_SIZE=10000
 NO_STATS=true
 REHEADER=true
+FILTER=true
 
 
 # Parse named arguments: --file and --is-sv
@@ -33,8 +34,12 @@ while [[ $# -gt 0 ]]; do
       NO_STATS=false
       shift # past argument
       ;;
-    --skip-reheader|--skip-header)
+    --skip-reheader)
       REHEADER=false
+      shift # past argument
+      ;;
+    --skip-filter)
+      FILTER=false
       shift # past argument
       ;;
     *)
@@ -63,7 +68,12 @@ if if [[ "$REHEADER" == "true" ]]; then
     bcftools reheader -h $PROJECT_DIR/niagads-pylib/projects/variant-annotator/data/vcf_header.txt $FILE
   else
     cat $FILE
-  fi | bcftools view -e 'FILTER ~ "MONOALLELIC"' | \
+  fi |
+  if [[ "$FILTER" == "true" ]]; then
+    bcftools view -e 'FILTER ~ "MONOALLELIC"'
+  else
+    cat
+  fi | \
 docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/.env --file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/docker-compose.yaml \
     run --rm -T -v ${WORKING_DIR}:/working vep \
   vep \
