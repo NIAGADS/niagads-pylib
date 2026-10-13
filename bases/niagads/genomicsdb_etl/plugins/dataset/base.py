@@ -142,17 +142,19 @@ class TrackLoaderBase(
                 or the required data category is missing.
         """
         self.logger.info(f"Validating track record ontology terms")
-
+        is_valid = True
         # this works b/c FILER populates track_type_id on_run_start
         if self._track_type_id is None and record.track_type is None:
             self.logger.info(
                 "Validation Error: required field `track_type` is missing."
             )
+            is_valid = False
 
         try:
             self._validate_study_diagnosis_phenotypes(record)
         except ValueError as err:
             self.logger.info(str(err))
+            is_valid = False
 
         extracted_terms: list[dict] = OntologyTerm.extract_from_obj(
             record, as_dict=True
@@ -168,9 +170,10 @@ class TrackLoaderBase(
         ):
             self.logger.info("Ontology Term Validation: PASSED")
             self._ontology_term_reference = ot_validation_result.valid
-            return True
+
         else:
             self.logger.info("Ontology Term Validation: FAILED")
+            is_valid = False
             self.logger.info(f"Valid Terms: {len(ot_validation_result.valid)}")
             self.logger.info(f"Not Matched: {len(ot_validation_result.not_matched)}")
             self.logger.info(
@@ -181,7 +184,7 @@ class TrackLoaderBase(
                 print(json.dumps(ot_validation_result.model_dump(), indent=4), file=fh)
             self.logger.info(f"Validation results saved to {ot_validation_file_path}")
 
-        return False
+        return is_valid
 
     def _extract_contextual_ontology_terms(
         self, context_type: TrackContextType, record: TrackRecord
