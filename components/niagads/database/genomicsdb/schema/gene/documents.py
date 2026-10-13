@@ -6,16 +6,12 @@ Defines the RAG document materialized view and related fields for querying gene 
 
 from typing import Optional
 
-from niagads.common.gene.models.annotation import (
-    GOAssociation,
-    PathwayMembership,
-)
 from niagads.database.genomicsdb.schema.gene.base import GeneMaterializedViewBase
 from niagads.database.genomicsdb.schema.gene.structure import GeneModel
 from niagads.database.genomicsdb.schema.gene.xrefs import GeneIdentifierType, GeneXRef
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
 from niagads.database.mixins import GenomicRegionMixin
-from sqlalchemy import ARRAY, String
+from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -23,6 +19,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "document_mv"
+    _stable_id = "source_id"
+
+    # The view contains the genomic interval fields but not strand.
+    strand = None
 
     __table_args__ = (
         *GenomicRegionMixin.get_indexes(
@@ -32,20 +32,31 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
     )
 
     gene_id: Mapped[int] = mapped_column(index=True, primary_key=True)  # not PK b/c MV
-    ensembl_id: Mapped[str] = mapped_column(unique=True, index=True)
-    symbol: Mapped[str] = mapped_column(String(50))
-    name: Mapped[str] = mapped_column(String(250))
-    gene_type: Mapped[str] = mapped_column(String(150))
-    synonyms: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=True)
-    cytogenic_location: Mapped[str] = mapped_column(String(100), index=True)
-    xrefs: Mapped[dict] = mapped_column(JSONB)
-    go_annotation: Mapped[Optional[GOAssociation]] = mapped_column(
-        JSONB(none_as_null=True)
+    source_id: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
+    nomenclature: Mapped[Optional[dict]] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
     )
-    pathway_membership: Mapped[Optional[PathwayMembership]] = mapped_column(
-        JSONB(none_as_null=True)
+    gene_structure: Mapped[Optional[dict]] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
     )
-    data_sources: Mapped[dict] = mapped_column(JSONB(none_as_null=True))
+    classification: Mapped[Optional[dict]] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    xrefs: Mapped[Optional[dict]] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    publications: Mapped[Optional[list]] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    memberships: Mapped[Optional[dict]] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    functional_annotation: Mapped[Optional[list]] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    associated_with_known_ad_locus: Mapped[bool] = mapped_column(
+        index=True, nullable=False
+    )
 
     @classmethod
     async def resolve_identifier(
