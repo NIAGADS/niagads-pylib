@@ -1,4 +1,4 @@
--- gene structure coordinates were wrong, but it looks like error was fixed in the code at later date.
+-- gene structure coordinates were wrong [start, end), instead of [start, end+1), but it looks like error was fixed in the code at later date.
 -- this is one-off-patch
 
 UPDATE gene.gene AS g
