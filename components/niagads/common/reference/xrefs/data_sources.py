@@ -7,6 +7,7 @@ class Consortia(CaseInsensitiveEnum):
     IGAP = auto()  # "International Genomics of Alzheimer's Project"
     ADGC = auto()  # "Alzheimer's Disease Genetics Consortium"
     ADSP = auto()  # "Alzheimer's Disease Sequencing Project"
+    ADNI = auto()  # Alzheimer's Disease Neuroimaging Initiative
 
     def __str__(self):
         return self.name
