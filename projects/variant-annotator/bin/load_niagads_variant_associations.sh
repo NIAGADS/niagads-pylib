@@ -1,10 +1,11 @@
 #!/bin/bash
 
 usage() {
-    echo "Usage: $0 <collection_key> --batch-size N [--commit] [--embedding-force-cpu] [--max-parallel N]" >&2
+    echo "Usage: $0 <collection_key> --batch-size N [--commit] [--embedding-force-cpu] [--metadata-subset NAME] [--max-parallel N]" >&2
     echo "  --commit                  Persist changes to the database" >&2
     echo "  --batch-size N            Number of records to buffer per commit" >&2
     echo "  --embedding-force-cpu    Run embedding generation on the CPU" >&2
+    echo "  --metadata-subset NAME   Metadata subdirectory under the collection" >&2
     echo "  --max-parallel N          Maximum concurrent track loads (default: 4)" >&2
 }
 
@@ -16,6 +17,7 @@ EMBEDDING_BATCH_SIZE=512
 EMBEDDING_FORCE_CPU_ARG=
 MAX_PARALLEL=4
 ZERO_BASED=
+METADATA_SUBSET=
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -37,6 +39,10 @@ while [[ $# -gt 0 ]]; do
             IS_ZERO_BASED_ARG=--is-zero-based
             shift
             ;;
+        --metadata-subset)
+            METADATA_SUBSET="$2"
+            shift 2
+            ;;
         --max-parallel)
             [[ $# -ge 2 ]] || { echo "Error: --max-parallel requires a value" >&2; exit 1; }
             MAX_PARALLEL="$2"
@@ -56,6 +62,9 @@ done
 
 TRACK_DATA_DIR="$DATA_DIR/tracks/$COLLECTION_KEY/data"
 TRACK_METADATA_DIR="$CONFIG_DIR/tracks/NIAGADS/$COLLECTION_KEY/metadata"
+if [[ -n "$METADATA_SUBSET" ]]; then
+    TRACK_METADATA_DIR="$TRACK_METADATA_DIR/$METADATA_SUBSET"
+fi
 LOG_DIR="${LOG_DIR:-$DATA_DIR/../logs}"
 mkdir -p "$LOG_DIR"
 
@@ -63,6 +72,11 @@ mkdir -p "$LOG_DIR"
 for file in "$TRACK_DATA_DIR"/*STD_pvalue_only.tsv.gz; do
     [[ -e "$file" ]] || continue
     mv -- "$file" "${file%STD_pvalue_only.tsv.gz}STD_OA.tsv.gz"
+done
+
+for file in "$TRACK_DATA_DIR"/*pvalue_only_STD.tsv.gz; do
+    [[ -e "$file" ]] || continue
+    mv -- "$file" "${file%pvalue_only_STD.tsv.gz}STD_OA.tsv.gz"
 done
 
 mapfile -t TRACK_IDS < <(
