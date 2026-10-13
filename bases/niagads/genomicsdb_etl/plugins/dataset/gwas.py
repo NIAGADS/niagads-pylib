@@ -59,7 +59,7 @@ from niagads.genomicsdb_etl.plugins.variant.vcf_loaders.base import (
 )
 from niagads.utils.list import qw
 from niagads.utils.numeric import to_scientific_notation
-from niagads.utils.sys import read_open_ctx, verify_path
+from niagads.utils.sys import read_open_ctx, timer, verify_path
 from niagads.vcf.types import VCFEntry
 from pydantic import Field
 
@@ -85,13 +85,16 @@ class GWASAssocationEntry(CustomBaseModel):
             return "-" if effect_size < 0 else "+"
 
     @classmethod
-    def from_hipFG_entry(cls, entry: dict, line_num: int):
+    def from_hipFG_entry(cls, entry: dict, line_num: int, is_zero_based: bool = False):
         decimal_pvalue = Decimal(entry["pval"])
         test_allele = entry["alt"]
+        position = (
+            int(entry["position"]) + 1 if is_zero_based else int(entry["position"])
+        )
 
-        return cls(
+        assoc_entry = cls(
             chromosome=HumanGenome(entry["chrom"]),
-            position=int(entry["position"]),
+            position=position,
             variant_id=entry["variant_id"],
             test_allele=test_allele if len(test_allele) <= 50 else None,
             alt=entry["alt"],
@@ -102,6 +105,14 @@ class GWASAssocationEntry(CustomBaseModel):
             effect_direction=cls.__effect_direction(float(entry["effect_size"])),
             entry_id=f"line={int(line_num)};variant={entry['variant_id']}",
         )
+
+        if is_zero_based:
+            assoc_entry.variant_id = f"{str(assoc_entry.chromosome.value)}:{position}:{assoc_entry.ref}:{assoc_entry.alt}"
+            assoc_entry.entry_id = (
+                f"line={int(line_num)};variant={assoc_entry.variant_id}",
+            )
+
+        return assoc_entry
 
     def to_vcf_entry(self) -> VCFEntry:
         return VCFEntry(
@@ -140,6 +151,11 @@ class GWASTrackLoaderParams(
         default=1e-3, description="(relaxed) cutoff of genome-wide significance"
     )
 
+    is_zero_based: Optional[bool] = Field(
+        default=False,
+        description="temporary patch to handle a few zero-based hipFG files",
+    )
+
     validate_metadata_exists = PathValidatorParamMixin.validator("metadata_file")
     validate_data_exists = PathValidatorParamMixin.validator("data_file")
 
@@ -169,7 +185,6 @@ class GWASTrackLoaderParams(
 )
 class GWASTrackLoader(
     TrackLoaderBase,
-    VariantLookupMixin,
     BinIndexReferenceMixin,
     VariantPrimaryKeyGeneratorMixin,
 ):
@@ -194,6 +209,7 @@ class GWASTrackLoader(
         self._unannotated_variant_vcf_fh = None
         self._variant_pk_generator: PrimaryKeyGenerator = None
         self._track_pk: int = None
+        self._num_unnannotated_variants = 0
 
     async def on_run_start(self, session):
         """Initialize track type and prepare for ETL run."""
@@ -260,7 +276,10 @@ class GWASTrackLoader(
                         f"Detected {num_significant_associations} significant associations."
                     )
 
-                entry = GWASAssocationEntry.from_hipFG_entry(hipfg_entry, line_num)
+                entry = GWASAssocationEntry.from_hipFG_entry(
+                    hipfg_entry, line_num, self._params.is_zero_based
+                )
+
                 if entry.decimal_pvalue <= decimal_threshold:
                     num_significant_associations += 1
                     # self.logger.critical(f"Parsed Passing Entry: {entry.model_dump()}")
@@ -296,39 +315,26 @@ class GWASTrackLoader(
 
         return variant
 
-    def _get_variant_db_record(
-        self, reference_variants: VariantLookupMap, entry: GWASAssocationEntry
-    ) -> MatchedVariant:
-        if len(entry.ref) > 50 or len(entry.alt) > 50:
-            # structural variant, need to get the primary key
+    async def _get_variant_db_record(
+        self, session, entry: GWASAssocationEntry
+    ) -> Variant:
+        vcf_entry = entry.to_vcf_entry()
+        if vcf_entry.is_structural_variant:
             record: VariantRecord = self._generate_variant_identifier_record(
                 entry.to_vcf_entry(), require_validation=False  # trust hipFG
             )
-
-            variant_key = record.id
+            lookup_id = record.id
         else:
+            lookup_id = vcf_entry.positional_id
 
-            variant_key = (
-                entry.position,
-                entry.ref,
-                entry.alt,
+        try:
+            match: Variant = await Variant.fetch_record(
+                session, {"niagads_id": lookup_id}
             )
+        except:
+            return None  # not found
 
-        db_record = reference_variants.get(variant_key)
-        if db_record is None:
-            # if SNV switch alleles and try again (trust INDEL directions)
-            # theoretically this should never be needed because hipFG
-            # standardized data is aligned to the reference genome
-            # but there could be a dbSNP mismatch
-            if len(entry.ref) == len(entry.alt) == 1:
-                variant_key = (
-                    entry.position,
-                    entry.alt,
-                    entry.ref,
-                )
-            db_record = reference_variants.get(variant_key)
-
-        return db_record
+        return match
 
     async def _load_track_collection_link(self, session, track_id: int):
         tc_link = TrackCollectionLink(
@@ -340,6 +346,9 @@ class GWASTrackLoader(
 
     async def load(self, session, entries: list[GWASAssocationEntry]):
         if not self._track_pk:
+            # in non-commit mode, commits will get rolled back between
+            # calls to chunked load, so the "track" will get removed from the
+            # database.  so it will need to be reinserted
             embedded_track_records = self._embed_track_records([self._track_record])
             tracks: list[Track] = await self._load_track_records(
                 session, embedded_track_records
@@ -348,71 +357,54 @@ class GWASTrackLoader(
             self._track_pk = tracks[0].track_id
             await self._load_track_collection_link(session, self._track_pk)
 
-        # NOTE: groupby and following block lookup only work if file is sorted by chr:pos
-        # which it should be if hipFG standardized
-        for chromosome, chromosome_group in groupby(
-            entries, key=attrgetter("chromosome")
-        ):
-            if self._current_chromosome != chromosome:
-                self._current_chromosome = chromosome
-                self.logger.info(f"Loading associations on {self._current_chromosome}")
-
-            chromosome_entries = list(chromosome_group)
-            lookup_blocks = self._get_lookup_blocks(chromosome_entries, max_span=100000)
-
-            associations = []
-            for block in lookup_blocks:
-                reference_variants: VariantLookupMap = (
-                    await self._retrieve_variants_in_span(session, block.region)
+        else:
+            if not self._params.commit:
+                self.logger.critical(
+                    "Cannot test multiple batches in non-commit mode: track_id lost during rollback."
                 )
-                for c_entry in chromosome_entries[block.start_idx : block.end_idx]:
-                    matched_db_record: MatchedVariant = self._get_variant_db_record(
-                        reference_variants, c_entry
-                    )
-                    is_annotated = (
-                        matched_db_record is not None and matched_db_record.is_annotated
-                    )
 
-                    if matched_db_record is None:  # novel variant
-                        # need to load and in Variant.Variant and write to file to be annotated
-                        new_variant: Variant = await self._load_variant(
-                            session, c_entry
-                        )
-                        variant_pk = new_variant.variant_id
-                        variant_stable_id = new_variant.niagads_id
-                        variant_span = new_variant.span
-                        variant_bin_index = new_variant.bin_index
+        # data are so sparse, trying single lookups - hopefull faster
+        associations = []
 
-                    else:  # matched
-                        variant_pk = matched_db_record.id
-                        variant_stable_id = matched_db_record.unique_stable_id
-                        variant_span = matched_db_record.span
-                        variant_bin_index = new_variant.bin_index
+        num_new_variants = 0
+        for entry in entries:
+            variant: Variant = await self._get_variant_db_record(session, entry)
+            is_annotated: bool = variant is not None and variant.is_annotated
+            if variant is None:  # novel variant
+                # need to load and in Variant.Variant and write to file to be annotated
+                variant: Variant = await self._load_variant(session, entry)
+                num_new_variants += 1
 
-                    if not is_annotated:
-                        c_entry.variant_id = variant_stable_id
-                        print(
-                            c_entry.to_delimited_text(),
-                            file=self._unannotated_variant_vcf_fh,
-                            flush=True,
-                        )
+            if not is_annotated:
+                entry.variant_id = variant.niagads_id
+                print(
+                    entry.to_delimited_text(),
+                    file=self._unannotated_variant_vcf_fh,
+                    flush=True,
+                )
+                self._num_unnannotated_variants += 1
 
-                    # build the association entry
-                    associations.append(
-                        VariantAssociation(
-                            track_id=self._track_pk,
-                            variant_id=variant_pk,
-                            variant_stable_id=variant_stable_id,
-                            neg_log10_pvalue=c_entry.neg_log10_pvalue,
-                            pvalue=c_entry.pvalue,
-                            effect_direction=c_entry.effect_direction,
-                            test_allele=c_entry.test_allele,
-                            run_id=self.run_id,
-                            chromosome=str(c_entry.chromosome),
-                            bin_index=variant_bin_index,
-                            span=variant_span,
-                        )
-                    )
+            # build the association entry
+            associations.append(
+                VariantAssociation(
+                    track_id=self._track_pk,
+                    variant_id=variant.variant_id,
+                    variant_stable_id=variant.niagads_id,
+                    neg_log10_pvalue=entry.neg_log10_pvalue,
+                    pvalue=entry.pvalue,
+                    effect_direction=entry.effect_direction,
+                    test_allele=entry.test_allele,
+                    run_id=self.run_id,
+                    chromosome=str(entry.chromosome),
+                    bin_index=variant.bin_index,
+                    span=variant.span,
+                )
+            )
+
+        if self._num_new_variants / len(entries) >= 0.80:
+            raise ValueError(
+                "80% or more of the variants could not be mapped to the database; are positions 0-based?"
+            )
 
         await VariantAssociation.submit_many(session, associations)
 
@@ -430,4 +422,7 @@ class GWASTrackLoader(
 
         self.logger.info(
             f"To be annotated variants: {self._unannotated_variant_vcf_fh.name}"
+        )
+        self.logger.info(
+            f"Number unannotated variants: {self._num_unnannotated_variants}"
         )
