@@ -52,8 +52,10 @@ class TextEmbeddingGenerator(ComponentBaseMixin):
     def generate(
         self,
         text: Union[str, list[str]],
+        *,
         normalize: bool = True,
         as_list: bool = True,
+        prompt_name: str = None,
     ) -> list:
         """
         Calculate a text embedding using SentenceTransformer.
@@ -65,6 +67,7 @@ class TextEmbeddingGenerator(ComponentBaseMixin):
                 as normalized vectors ensure fair comparison regardless of text length and enable
                 efficient distance computation. Set to False only when using Euclidean distance
                 or when magnitude carries semantic meaning.
+            prompt_name (Optional, str): prompt name (e.g., document, query) -required by some models
             as_list (bool): Whether to return the embedding as a Python list. Defaults to True.
                 Set to True for database storage and JSON serialization. Set to False to return
                 the raw NumPy array for performance-critical operations.
@@ -76,8 +79,12 @@ class TextEmbeddingGenerator(ComponentBaseMixin):
         Raises:
             ValueError: If the model is not a valid embedding model.
         """
-
-        embedding = self.__model.encode(text, normalize_embeddings=normalize)
+        if prompt_name:
+            embedding = self.__model.encode(
+                text, normalize_embeddings=normalize, prompt_name=prompt_name
+            )
+        else:
+            embedding = self.__model.encode(text, normalize_embeddings=normalize)
         if isinstance(text, str):
             return embedding.tolist() if as_list else embedding
         else:
