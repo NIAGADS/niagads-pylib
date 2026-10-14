@@ -394,7 +394,7 @@ class EmbeddingPatch(ComponentBaseMixin):
         self._commit = commit
         message_prefix = "COMMIT" if commit else "ROLLBACK"
         transaction_count = 0
-        manager = DatabaseSessionManager(self._database_uri)
+        manager = DatabaseSessionManager(self._database_uri, expire_on_commit=False)
         try:
             async with manager.session_ctx() as session:
                 await self._create_etl_run(session)
@@ -440,6 +440,7 @@ class EmbeddingPatch(ComponentBaseMixin):
 
                     self.logger.info("Generating new embedding placeholders")
                     for item in self._new_chunk_embeddings:
+                        num_placeholders = 0
                         chunk_embedding = item.get("chunk_embedding", None)
                         if not chunk_embedding:
                             chunk_metadata = item["chunk_metadata"]
@@ -451,10 +452,11 @@ class EmbeddingPatch(ComponentBaseMixin):
                                 run_id=self._run_id,
                                 embedding_run_id=self._run_id,
                             )
-
-                    self.logger.info(
-                        f"{len(self._new_chunk_embeddings)} new embeddings to be generated."
-                    )
+                            num_placeholders += 1
+                        if num_placeholders % 25000 == 0:
+                            self.logger.info(f"Generated {num_placeholders} embedding placeholders.")
+                            
+                    self.logger.info(f"Generated {num_placeholders} embedding placeholders.")
 
                     for elindex, elchunk in enumerate(
                         self._embedding_batches(), start=1
