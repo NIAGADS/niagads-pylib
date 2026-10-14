@@ -132,8 +132,7 @@ class EmbeddingPatch(ComponentBaseMixin):
             )
             if (
                 current_chunk
-                and current_token_count + value_token_count
-                > self._hard_token_limit
+                and current_token_count + value_token_count > self._hard_token_limit
             ):
                 yield DocumentChunk(
                     chunk_text=self._serialize_json_value({key: current_chunk}),
@@ -259,6 +258,7 @@ class EmbeddingPatch(ComponentBaseMixin):
 
         token_count = self._embedding_generator.token_count(metadata.chunk_text)
         is_ontology_term = metadata.chunk_text.startswith("Term:")
+
         if token_count <= self.SOFT_TOKEN_LIMIT and not is_ontology_term:
             self._new_chunk_embeddings.append(
                 {
@@ -359,12 +359,13 @@ class EmbeddingPatch(ComponentBaseMixin):
                                 await session.rollback()
                             transaction_count += len(c)
                             self.logger.info(
-                                f"{message_prefix}: {transaction_count} metadata entries."
+                                f"{message_prefix}: {transaction_count} metadata entries. Checkpoint: chunk_metadata_id={c[-1].chunk_metadata_id}"
                             )
 
                     self.logger.info("Removing obsolete metadata entries.")
                     transaction_count = 0
                     for metadata in self._chunk_metadata_to_delete:
+                        current_id = metadata.chunk_metadata_id
                         await session.delete(metadata)
                         transaction_count += 1
                         if transaction_count % self._batch_size == 0:
@@ -373,7 +374,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                             else:
                                 await session.rollback()
                             self.logger.info(
-                                f"{message_prefix}: Deleting {transaction_count} obsolete metadata entries."
+                                f"{message_prefix}: Deleting {transaction_count} obsolete metadata entries. Checkpoint: chunk_metadata_id={current_id}"
                             )
 
                     # residuals
@@ -413,7 +414,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                             prompt_name="document",
                         )
 
-                        chunk_embeddings = []
+                        chunk_embeddings: list[ChunkEmbedding] = []
                         for cindex, item in enumerate(elchunk):
                             chunk_embedding: ChunkEmbedding = item["chunk_embedding"]
                             chunk_embedding.embedding = embeddings[cindex]
@@ -426,7 +427,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                         else:
                             await session.rollback()
                         self.logger.info(
-                            f"{message_prefix}: Inserted {len(elchunk)} chunk embeddings."
+                            f"{message_prefix}: Inserted {len(elchunk)} chunk embeddings. Checkpoint: chunk_embedding_id:{chunk_embeddings[-1].chunk_embedding_id}"
                         )
 
                 except Exception as error:
