@@ -18,10 +18,10 @@ then iterate over ragdoc.chunkmetadata
 import argparse
 import asyncio
 import json
+import logging
 import os
 from datetime import datetime
 from typing import Iterator, Optional
-import logging
 
 from niagads.common.types import ETLOperation, ProcessStatus
 from niagads.common.core import ComponentBaseMixin
@@ -33,7 +33,6 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
 from niagads.database.session import DatabaseSessionManager
 from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM
-from niagads.utils.list import chunker
 from pydantic import BaseModel
 from sqlalchemy import select
 
@@ -47,6 +46,8 @@ class DocumentChunk(BaseModel):
 
 class EmbeddingPatch(ComponentBaseMixin):
     """Load stored chunk metadata for the embedding patch."""
+
+    SOFT_TOKEN_LIMIT = 2048
 
     def __init__(
         self, database_uri: str, force_cpu: bool = False, batch_size: int = 128
@@ -129,7 +130,7 @@ class EmbeddingPatch(ComponentBaseMixin):
         json_str = self._serialize_json_value(value)
         token_count = self._embedding_generator.token_count(json_str)
 
-        if token_count <= self._embedding_generator.max_sequence_length:
+        if token_count <= self.SOFT_TOKEN_LIMIT:
             yield DocumentChunk(
                 chunk_text=json_str,
                 chunk_index=index,
@@ -153,8 +154,7 @@ class EmbeddingPatch(ComponentBaseMixin):
 
             if (
                 current_chunk
-                and current_token_count + item_token_count
-                > self._embedding_generator.max_sequence_length
+                and current_token_count + item_token_count > self.SOFT_TOKEN_LIMIT
             ):
                 yield DocumentChunk(
                     chunk_text=self._serialize_json_value(current_chunk),
@@ -202,11 +202,34 @@ class EmbeddingPatch(ComponentBaseMixin):
         except (TypeError, json.JSONDecodeError):
             return self._chunk_text_document(metadata.chunk_text)
 
+    def _embedding_batches(self):
+        """Yield embedding batches sized for both count and token length."""
+        batch = []
+        largest_token_count = 0
+        hard_token_limit = self._embedding_generator.max_sequence_length
+
+        for item in self._new_chunk_embeddings:
+            token_count = item["token_count"]
+            proposed_largest = max(largest_token_count, token_count)
+            token_batch_size = max(1, hard_token_limit // proposed_largest)
+            allowed_batch_size = min(self._batch_size, token_batch_size)
+
+            if batch and len(batch) >= allowed_batch_size:
+                yield batch
+                batch = []
+                largest_token_count = 0
+
+            batch.append(item)
+            largest_token_count = max(largest_token_count, token_count)
+
+        if batch:
+            yield batch
+
     async def _update_chunk_embeddings(self, session, metadata: ChunkMetadata):
         """Re-embed a chunk when its text fits the BGE-M3 input window."""
 
         token_count = self._embedding_generator.token_count(metadata.chunk_text)
-        if token_count <= self._embedding_generator.max_sequence_length:
+        if token_count <= self.SOFT_TOKEN_LIMIT:
             self._new_chunk_embeddings.append(
                 {
                     "chunk_embedding": ChunkEmbedding(
@@ -297,20 +320,20 @@ class EmbeddingPatch(ComponentBaseMixin):
                         f"{len(self._new_chunk_embeddings)} new embeddings to be generated."
                     )
 
-                    embedding_list_chunker = chunker(
-                        self._new_chunk_embeddings, self._batch_size
-                    )
-                    for elindex, elchunk in enumerate(embedding_list_chunker, start=1):
+                    for elindex, elchunk in enumerate(
+                        self._embedding_batches(), start=1
+                    ):
                         self.logger.info(f"Generating embeddings for chunk {elindex}")
                         embeddings = self._embedding_generator.generate(
                             [item["chunk_text"] for item in elchunk], as_list=True
                         )
-                        self._embedding_counter += len(elchunk)
+
                         for cindex, item in enumerate(elchunk):
                             chunk_embedding: ChunkEmbedding = item["chunk_embedding"]
                             chunk_embedding.embedding = embeddings[cindex]
                             await chunk_embedding.submit(session)
 
+                        self._embedding_counter += len(elchunk)
                         self.logger.info(
                             f"Updated {self._embedding_counter} embeddings"
                         )
