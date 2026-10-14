@@ -21,6 +21,7 @@ import json
 import os
 from datetime import datetime
 from typing import Iterator, Optional
+import logging
 
 from niagads.common.types import ETLOperation, ProcessStatus
 from niagads.common.core import ComponentBaseMixin
@@ -56,6 +57,8 @@ class EmbeddingPatch(ComponentBaseMixin):
         self._embedding_counter = 0
         self._new_metadata_count = 0
         self._run_id: Optional[int] = None
+
+        self.logger.setLevel(logging.INFO)
 
     async def _create_etl_run(self, session):
         etl_run = ETLRun(
@@ -198,6 +201,7 @@ class EmbeddingPatch(ComponentBaseMixin):
 
         token_count = self._embedding_generator.token_count(metadata.chunk_text)
         if token_count <= self._embedding_generator.max_sequence_length:
+            self.logger.info(f"Embedding phrase of size: {token_count}")
             embedding = self._embedding_generator.generate(metadata.chunk_text)
             chunk_embedding = ChunkEmbedding(
                 chunk_metadata_id=metadata.chunk_metadata_id,
