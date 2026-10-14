@@ -17,7 +17,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Iterator, Optional
 
 from niagads.common.types import ETLOperation, ProcessStatus
 from niagads.common.core import ComponentBaseMixin
@@ -29,7 +29,7 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
 from niagads.database.session import DatabaseSessionManager
 from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy import select
 
 
@@ -158,7 +158,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                 chunk_text=self._serialize_json_value(current_chunk),
                 chunk_index=next_index,
             )
-            next_index + 1
+            next_index += 1
 
         # handle oversized items
         for oversized_item in oversized_items:
@@ -168,23 +168,23 @@ class EmbeddingPatch(ComponentBaseMixin):
             ):  # nothing we can do about this here, it will be truncated
                 yield DocumentChunk(
                     chunk_text=self._serialize_json_value(oversized_item),
-                    index=next_index,
+                    chunk_index=next_index,
                 )
-                next_index + 1
+                next_index += 1
             if isinstance(value, dict):
                 # not sure if this will happen. need to see
                 raise ValueError(f"oversized nested dict: {value}")
             if isinstance(value, list):
-                yield from self._chunk_list(oversized_item, index)
+                yield from self._chunk_list(oversized_item, next_index)
 
-    def _chunk_document(self, metadata: ChunkMetadata) -> list[ChunkMetadata]:
+    def _chunk_document(self, metadata: ChunkMetadata) -> Iterator[DocumentChunk]:
         """Split oversized JSON while retaining its parent object structure."""
         try:
             document = json.loads(metadata.chunk_text)
             return self._chunk_json_value(document)
 
         except (TypeError, json.JSONDecodeError):
-            return self._chunk_text_document(document)
+            return self._chunk_text_document(metadata.chunk_text)
 
     async def _update_chunk_embeddings(self, session, metadata: ChunkMetadata):
         """Re-embed a chunk when its text fits the BGE-M3 input window."""
@@ -200,6 +200,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                 embedding_date=datetime.now(),
                 modification_date=datetime.now(),
                 run_id=self._run_id,
+                embedding_run_id=self._run_id,
             )
             await chunk_embedding.submit(session)
             self._embedding_counter += 1
@@ -231,6 +232,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                     embedding=self._embedding_generator.generate(chunk.chunk_text),
                     embedding_date=datetime.now(),
                     run_id=self._run_id,
+                    embedding_run_id=self._run_id,
                 )
                 await chunk_embedding.submit(session)
                 self._new_metadata_count += 1
