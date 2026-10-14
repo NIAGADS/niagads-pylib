@@ -4,9 +4,9 @@ import json
 from datetime import date
 from typing import Any, Callable, Union
 
-from niagads.common.models.base import SerializationOptions
 import streamlit as st
 from niagads.common.core import ComponentBaseMixin
+from niagads.common.models.base import SerializationOptions
 from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.metadata_serializer.forms import FormMetadata, PydanticFormGenerator
 from niagads.utils.regular_expressions import RegularExpressions

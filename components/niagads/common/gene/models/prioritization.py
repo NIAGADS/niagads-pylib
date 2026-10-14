@@ -3,11 +3,8 @@ from typing import List, Optional
 from niagads.common.gene.models.record import GeneIdentifier
 from niagads.common.models.annotations import AnnotationEvidenceMixin, ScoreMixin
 from niagads.common.models.base import CustomBaseModel
-
 from niagads.common.variant.models.record import VariantIdentifier
-
 from pydantic import Field
-
 
 # list of track_metadata at top level, so its not repeated multiple times
 # predicted effector gene (PEG) annotation

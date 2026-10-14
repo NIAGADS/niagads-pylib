@@ -7,6 +7,8 @@ set -o pipefail
 FORK=2
 BUFFER_SIZE=10000
 NO_STATS=true
+REHEADER=true
+FILTER=true
 
 
 # Parse named arguments: --file and --is-sv
@@ -32,6 +34,14 @@ while [[ $# -gt 0 ]]; do
       NO_STATS=false
       shift # past argument
       ;;
+    --skip-reheader)
+      REHEADER=false
+      shift # past argument
+      ;;
+    --skip-filter)
+      FILTER=false
+      shift # past argument
+      ;;
     *)
       echo "Unknown argument: $1" >&2
       exit 1
@@ -54,7 +64,16 @@ SKIP_FILE=${INPUT_FILE}.vep.skipped
 LOG_FILE=${FILE}.vep.log
 
 
-if bcftools reheader -h $PROJECT_DIR/niagads-pylib/projects/variant-annotator/data/vcf_header.txt $FILE | bcftools view -e 'FILTER ~ "MONOALLELIC"' | \
+if if [[ "$REHEADER" == "true" ]]; then
+    bcftools reheader -h $PROJECT_DIR/niagads-pylib/projects/variant-annotator/data/vcf_header.txt $FILE
+  else
+    cat $FILE
+  fi |
+  if [[ "$FILTER" == "true" ]]; then
+    bcftools view -e 'FILTER ~ "MONOALLELIC"'
+  else
+    cat
+  fi | \
 docker compose --env-file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/.env --file $PROJECT_DIR/niagads-pylib/projects/variant-annotator/docker-compose.yaml \
     run --rm -T -v ${WORKING_DIR}:/working vep \
   vep \

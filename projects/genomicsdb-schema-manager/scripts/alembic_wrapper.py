@@ -7,16 +7,18 @@ Usage:
 """
 
 import argparse
+import uuid
+from datetime import datetime
 from os import path
 
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from helpers.config import Settings
-from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
-from niagads.utils.logging import setup_root_logger
 from niagads.common.core import ComponentBaseMixin
+from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.enums.core import CaseInsensitiveEnum
-from niagads.utils.sys import create_dir, execute_cmd, verify_path, remove_path
-from datetime import datetime
-import uuid
+from niagads.utils.logging import setup_root_logger
+from niagads.utils.sys import create_dir, execute_cmd, remove_path, verify_path
 
 
 class MigrationAction(CaseInsensitiveEnum):
@@ -54,6 +56,7 @@ class AlembicWrapper(ComponentBaseMixin):
         """
         Create a manual Alembic revision file for schema creation (no autogenerate).
         """
+        GenomicsDBSchemaBase.register_table_classes()
         if self.__schema == "all":
             schemas = GenomicsDBSchemaBase.get_all_schemas()
         elif GenomicsDBSchemaBase.is_valid_schema(self.__schema):
@@ -62,6 +65,11 @@ class AlembicWrapper(ComponentBaseMixin):
             raise ValueError(f"Invalid schema for GenomicsDB {self.__schema}")
 
         versions_dir = path.join(self._project_root, "alembic", "versions")
+        alembic_config = Config(path.join(self._project_root, "alembic.ini"))
+        alembic_config.set_main_option(
+            "script_location", path.join(self._project_root, "alembic")
+        )
+        down_revision = ScriptDirectory.from_config(alembic_config).get_current_head()
         revision_id = uuid.uuid4().hex[:12]
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         filename = f"{revision_id}_create_{self.__schema}_schema.py"
@@ -74,7 +82,7 @@ class AlembicWrapper(ComponentBaseMixin):
             f'Create Date: {now}\n\n"""\n\n'
             "from alembic import op\n\n"
             f'revision = "{revision_id}"\n'
-            "down_revision = None\n"
+            f"down_revision = {down_revision!r}\n"
             "branch_labels = None\n"
             "depends_on = None\n\n"
             "def upgrade():\n"
@@ -200,6 +208,19 @@ class AlembicWrapper(ComponentBaseMixin):
                 f"Stamp to revision `{revision}` failed.", exc_info=True
             )
 
+    def current(self):
+        """
+        Prints current revision number to stdout
+        """
+        cmd = self._alembic_cmd_root.copy()
+        cmd.extend(["current"])
+
+        try:
+            stdout = execute_cmd(cmd, print_cmd_only=self._debug, verbose=self._verbose)
+            self.logger.info(f"Current revision: {stdout}")
+        except RuntimeError as err:
+            self.logger.exception(f"Cannot retrieve current revision.", exc_info=True)
+
     def generate_revision(self, message: str, skip_fks: bool = False) -> None:
         """
         Generate an alembic revision.
@@ -268,6 +289,11 @@ def main():
         help="downgrade a revision",
     )
     parser.add_argument(
+        "--current",
+        action="store_true",
+        help="get current revision number",
+    )
+    parser.add_argument(
         "--stamp",
         action="store_true",
         help="stamp the database to a given revision without running migrations",
@@ -318,6 +344,7 @@ def main():
         "reset",
         "create_schema",
         "stamp",
+        "current",
     ]
     actions = [getattr(args, name) for name in action_arg_names]
     allowed_actions = [f"--{name.replace('_', '-')}" for name in action_arg_names]
@@ -341,6 +368,9 @@ def main():
     if args.stamp:
         # stamp uses the provided revision (defaults to head)
         wrapper.stamp(revision=args.revision)
+    if args.current:
+        # stamp uses the provided revision (defaults to head)
+        wrapper.current()
     if args.create_schema:
         if not args.schema:
             raise ValueError("Must provide --schema for --create-schema option.")

@@ -2,9 +2,8 @@ from fastapi import Query
 from niagads.api.common.models.domain.parameters.filters.expression_filter import (
     FilterParameter,
 )
-from niagads.enums.core import CaseInsensitiveEnum
-
 from niagads.api.common.utils import sanitize
+from niagads.enums.core import CaseInsensitiveEnum
 from pyparsing import (
     Group,
     Keyword,

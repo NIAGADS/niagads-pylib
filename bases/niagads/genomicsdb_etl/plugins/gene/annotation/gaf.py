@@ -8,7 +8,6 @@ GeneXRef.
 
 from typing import Any, Dict, Iterator, List, Optional, Union
 
-
 from niagads.common.models.annotations import (
     AnnotationEvidenceDescriptor,
     AnnotationEvidenceQualifier,
@@ -26,13 +25,13 @@ from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
-    PathValidatorMixin,
+    PathValidatorParamMixin,
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.genomicsdb_etl.plugins.common.mixins.parameters import (
-    ExternalDatabaseRefMixin,
+    ExternalDatabaseRefParamMixin,
 )
 from niagads.utils.sys import read_open_ctx
 from pydantic import BaseModel, Field, field_serializer, field_validator
@@ -82,7 +81,9 @@ class GOAssociationEntry(BaseModel):
         return list(evidence)
 
 
-class GAFLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefMixin):
+class GAFLoaderParams(
+    BasePluginParams, PathValidatorParamMixin, ExternalDatabaseRefParamMixin
+):
     """Parameters for GO Annotation File (GAF) loader plugin."""
 
     file: str = Field(..., description="Full path to GAF 2.2 file")
@@ -98,7 +99,7 @@ class GAFLoaderParams(BasePluginParams, PathValidatorMixin, ExternalDatabaseRefM
         "(name|version) for mapping evidence codes",
     )
 
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
 
 
 metadata = PluginMetadata(
@@ -162,13 +163,13 @@ class GAFLoader(AbstractBasePlugin):
             ).external_database_id
 
             # Gene Ontology external_database_id
-            xdbref_param = ExternalDatabaseRefMixin(xdbref=self._params.go_xdbref)
+            xdbref_param = ExternalDatabaseRefParamMixin(xdbref=self._params.go_xdbref)
             self.__go_xdbr_id: int = (
                 await xdbref_param.fetch_xdbref(session)
             ).external_database_id
 
             # ECO external_database_id
-            xdbref_param = ExternalDatabaseRefMixin(xdbref=self._params.eco_xdbref)
+            xdbref_param = ExternalDatabaseRefParamMixin(xdbref=self._params.eco_xdbref)
             self.__eco_xdbr_id: int = (
                 await xdbref_param.fetch_xdbref(session)
             ).external_database_id

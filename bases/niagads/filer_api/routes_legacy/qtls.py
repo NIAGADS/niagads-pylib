@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, Query
 from typing import Union
 
+from fastapi import APIRouter, Depends, Query
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.records.features.bed import BEDResponse
 from niagads.api.common.models.response.record import BaseResponseModel
-from niagads.api.common.views.table import TableViewResponse
 from niagads.api.common.parameters.location import loc_param
 from niagads.api.common.parameters.pagination import page_param
 from niagads.api.common.parameters.record.path import track_param
@@ -17,6 +16,7 @@ from niagads.api.common.services.route import (
     Parameters,
     ResponseConfiguration,
 )
+from niagads.api.common.views.table import TableViewResponse
 from niagads.api.filer.dependencies import InternalRequestParameters
 from niagads.api.filer.documentation import BASE_TAGS
 from niagads.api.filer.services.route import FILERRouteHelper

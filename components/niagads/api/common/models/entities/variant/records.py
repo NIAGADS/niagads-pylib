@@ -2,7 +2,6 @@ from typing import List, Optional, Union
 
 from niagads.api.common.models.records.base import ORMCompatibleRecord
 from niagads.api.common.models.records.mixins import DynamicMixin, ORMCompatabileMixin
-from niagads.common.models.base import CustomBaseModel
 from niagads.common.variant.models.annotations import PredictedConsequenceSummary
 from niagads.common.variant.models.record import VariantIdentifier, VariantRecord
 from pydantic import Field, field_validator

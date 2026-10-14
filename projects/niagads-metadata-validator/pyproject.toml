@@ -10,23 +10,23 @@ dependencies = [
     "pydantic (>=2.11.3,<3.0.0)",
     "python-dateutil (>=2.9.0.post0,<3.0.0)",
     "strenum (>=0.4.15,<0.5.0)",
+    "tqdm (>=4.70.1,<5.0.0)",
     "typing-extensions (>=4.15.0,<5.0.0)",
 ]
 description = "JSON Schema based validation of dataset metadata developed to support submissions to the NIAGADS Data Sharing Service"
 license = { text = "GNU GPLv3" }
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
-version = "0.3.1"
+version = "0.3.3"
 
 [project.scripts]
 metadata-validator = "niagads.metadata_validator_tool.core:main"
 
 [project.urls]
 "Bug Reports" = "https://github.com/NIAGADS/niagads-pylib/issues"
+"Changelog" = "https://github.com/NIAGADS/niagads-pylib/blob/main/projects/niagads-metadata-validator/CHANGELOG.md"
 "Homepage" = "https://github.com/NIAGADS/niagads-pylib"
 "Source" = "https://github.com/NIAGADS/niagads-pylib"
-"Changelog" = "https://github.com/NIAGADS/niagads-pylib/blob/main/projects/niagads-metadata-validator/CHANGELOG.md"
-
 
 [tool.poetry]
 packages = [
@@ -43,9 +43,6 @@ packages = [
     { from = "../../components", include = "niagads/json_validator" },
     { from = "../../components", include = "niagads/metadata_validator" },
     { from = "../../components", include = "niagads/utils" },
-    {include = "niagads/genome_reference",from = "../../components"},
-    {include = "niagads/common",from = "../../components"},
-    {include = "niagads/flatfile",from = "../../components"},
 ]
 exclude = [
     "../../bases/niagads/metadata_validator_tool/README.md",

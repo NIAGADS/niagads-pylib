@@ -2,15 +2,31 @@ from functools import lru_cache
 from hashlib import sha256
 from typing import Union
 
+from niagads.common.core import ComponentBaseMixin
 from niagads.nlp.llm_types import LLM, NLPModelType
 from sentence_transformers import SentenceTransformer
 
 
-class TextEmbeddingGenerator:
+class TextEmbeddingGenerator(ComponentBaseMixin):
     """Calculate and cache text embeddings using SentenceTransformer."""
 
-    def __init__(self, model: LLM = LLM.ALL_MINILM_L6_V2, force_cpu: bool = False):
+    def __init__(self, model: LLM = LLM.LFM2_5_EMBEDDING_350M, force_cpu: bool = False):
+        super().__init__()
         self.__model = self.__initialize_model(model, force_cpu)
+
+    @property
+    def max_sequence_length(self) -> int:
+        """Return the model's input token limit."""
+        return self.__model.max_seq_length
+
+    @property
+    def tokenizer(self):
+        """Return the model tokenizer."""
+        return self.__model.tokenizer
+
+    def token_count(self, text: str) -> int:
+        """Count input tokens, including special tokens, without truncation."""
+        return len(self.__model.tokenizer.encode(text, truncation=False))
 
     @property
     def is_cpu_limited(self):
@@ -29,10 +45,15 @@ class TextEmbeddingGenerator:
             SentenceTransformer: The loaded model instance (cached).
         """
         LLM.validate(model, NLPModelType.EMBEDDING)
+
+        model_kwargs = {}
         if force_cpu:
-            return SentenceTransformer(str(model), device="cpu")
-        else:
-            return SentenceTransformer(str(model))
+            model_kwargs["device"] = "cpu"
+
+        if model == LLM.LFM2_5_EMBEDDING_350M:
+            model_kwargs["trust_remote_code"] = True
+
+        return SentenceTransformer(str(model), **model_kwargs)
 
     @staticmethod
     def list_registered_models():
@@ -41,8 +62,10 @@ class TextEmbeddingGenerator:
     def generate(
         self,
         text: Union[str, list[str]],
+        *,
         normalize: bool = True,
         as_list: bool = True,
+        prompt_name: str = None,
     ) -> list:
         """
         Calculate a text embedding using SentenceTransformer.
@@ -54,6 +77,7 @@ class TextEmbeddingGenerator:
                 as normalized vectors ensure fair comparison regardless of text length and enable
                 efficient distance computation. Set to False only when using Euclidean distance
                 or when magnitude carries semantic meaning.
+            prompt_name (Optional, str): prompt name (e.g., document, query) -required by some models
             as_list (bool): Whether to return the embedding as a Python list. Defaults to True.
                 Set to True for database storage and JSON serialization. Set to False to return
                 the raw NumPy array for performance-critical operations.
@@ -65,8 +89,12 @@ class TextEmbeddingGenerator:
         Raises:
             ValueError: If the model is not a valid embedding model.
         """
-
-        embedding = self.__model.encode(text, normalize_embeddings=normalize)
+        if prompt_name:
+            embedding = self.__model.encode(
+                text, normalize_embeddings=normalize, prompt_name=prompt_name
+            )
+        else:
+            embedding = self.__model.encode(text, normalize_embeddings=normalize)
         if isinstance(text, str):
             return embedding.tolist() if as_list else embedding
         else:

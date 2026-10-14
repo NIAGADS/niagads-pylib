@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator
 from datetime import datetime, timezone
+
 from dateutil.parser import parse as parse_datetime
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class RefSNPMergeHistory(BaseModel):

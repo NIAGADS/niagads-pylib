@@ -13,8 +13,8 @@ from niagads.database.genomicsdb.schema.mixins import GenomicsDBTableMixin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from sqlalchemy import INTEGER, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 # these only need an external_database_id, but not a source_id
@@ -99,10 +99,16 @@ class AnnotationEvidence(AnnotationTableBase, TableRefMixin):
     qualifiers: Mapped[dict] = mapped_column(JSONB(none_as_null=True))
 
 
-class GeneListEntry(AnnotationTableBase):
-    __tablename__ = "genelistentry"
+class GeneListMembership(AnnotationTableBase):
+    __tablename__ = "genelistmembership"
     __table_args__ = (
-        UniqueConstraint("external_database_id", "gene_id", name="uq_gene_list_entry"),
+        UniqueConstraint(
+            "external_database_id",
+            "gene_id",
+            "rank",
+            "score",
+            name="uq_gene_list_entry",
+        ),
         GeneTableBase.__table_args__,
     )
 

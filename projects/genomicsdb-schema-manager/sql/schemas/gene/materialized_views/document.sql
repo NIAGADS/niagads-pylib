@@ -1,5 +1,10 @@
--- Step 1: Create agg_exons as a temp table
-CREATE TEMP TABLE agg_exons AS
+DROP MATERIALIZED VIEW IF EXISTS gene.documents_mv;
+DROP MATERIALIZED VIEW IF EXISTS gene.agg_transcripts;
+DROP MATERIALIZED VIEW IF EXISTS gene.agg_proteins;
+DROP MATERIALIZED VIEW IF EXISTS gene.agg_exons;
+
+-- Step 1: Aggregate exons by transcript
+CREATE MATERIALIZED VIEW gene.agg_exons AS
 SELECT
     transcript_id,
     jsonb_agg(
@@ -19,11 +24,24 @@ FROM
 GROUP BY
     transcript_id;
 
--- Step 2: Add indexes to agg_exons if needed
-CREATE INDEX idx_agg_exons_transcript_id ON agg_exons(transcript_id);
+-- Step 2: Index aggregated exons by transcript ID.
+CREATE INDEX idx_agg_exons_transcript_id ON gene.agg_exons(transcript_id);
 
--- Step 3: Create agg_transcripts as a temp table
-CREATE TEMP TABLE agg_transcripts AS
+-- Step 3: Aggregate proteins by transcript
+CREATE MATERIALIZED VIEW gene.agg_proteins AS
+SELECT
+    transcript_id,
+    jsonb_agg(source_id) AS proteins
+FROM
+    Gene.Protein
+GROUP BY
+    transcript_id;
+
+-- Step 4: Index aggregated proteins by transcript ID.
+CREATE INDEX idx_agg_proteins_transcript_id ON gene.agg_proteins(transcript_id);
+
+-- Step 5: Aggregate transcripts by gene, including exon and protein data.
+CREATE MATERIALIZED VIEW gene.agg_transcripts AS
 SELECT
     t.gene_id,
     jsonb_agg(
@@ -42,6 +60,9 @@ SELECT
         END || CASE
             WHEN e.exons IS NOT NULL THEN jsonb_build_object('exons', e.exons)
             ELSE '{}' :: jsonb
+        END || CASE
+            WHEN p.proteins IS NOT NULL THEN jsonb_build_object('proteins', p.proteins)
+            ELSE '{}' :: jsonb
         END
         ORDER BY
             lower(span),
@@ -49,14 +70,17 @@ SELECT
     ) AS transcripts
 FROM
     Gene.Transcript t
-    LEFT JOIN agg_exons e ON e.transcript_id = t.transcript_id
+    LEFT JOIN gene.agg_exons e ON e.transcript_id = t.transcript_id
+    LEFT JOIN gene.agg_proteins p ON p.transcript_id = t.transcript_id
 GROUP BY
     gene_id;
 
--- Step 4: Add indexes to agg_transcripts if needed
-CREATE INDEX idx_agg_transcripts_gene_id ON agg_transcripts(gene_id);
+-- Step 6: Index aggregated transcripts by gene ID.
+CREATE INDEX idx_agg_transcripts_gene_id ON gene.agg_transcripts(gene_id);
 
--- Step 5: Use the temp tables in your main query
+-- Step 7: Build gene documents from temporary aggregates and metadata CTEs.
+
+CREATE MATERIALIZED VIEW Gene.Documents_MV AS (
 WITH cytogenic_location AS (
 SELECT
     g.gene_id,
@@ -138,17 +162,13 @@ LEFT JOIN Reference.Pathway p
 LEFT JOIN Reference.ExternalDatabase d
     ON d.external_database_id = p.external_database_id
 GROUP BY g.gene_id),
-annotations AS (
+
+ annotations AS (
     SELECT
         g.gene_id,
         gt.source_id AS term_id,
         gt.term,
-        UPPER(
-    array_to_string(
-        ARRAY(
-            SELECT LEFT(word, 1)
-            FROM UNNEST(string_to_array(gt.namespace, '_')) AS word
-        ), '')) AS aspect,
+        gt.namespace AS aspect,
         (
             SELECT value
             FROM unnest(eco.synonyms) AS value
@@ -171,10 +191,10 @@ annotations AS (
 terms AS (
 SELECT
     gene_id,
+    aspect,
     jsonb_build_object(
         'term_id', term_id,
         'term', term,
-        'aspect', aspect,
         'evidence',
         jsonb_agg(DISTINCT evidence_code)
             FILTER (WHERE evidence_code IS NOT NULL)
@@ -182,9 +202,66 @@ SELECT
 FROM annotations
 GROUP BY gene_id, term_id, term, aspect),
 goassociations AS (
-SELECT gene_id, jsonb_agg(term) 
-FROM 
-terms GROUP BY gene_id)
+    SELECT
+        genes.gene_id,
+        associations.goa
+    FROM Gene.Gene genes
+    LEFT JOIN (
+        SELECT
+            gene_id,
+            jsonb_agg(aspect_terms) AS goa
+        FROM (
+            SELECT
+                gene_id,
+                aspect,
+                jsonb_build_object(aspect, jsonb_agg(term)) AS aspect_terms
+            FROM terms
+            GROUP BY gene_id, aspect
+        ) grouped_terms
+        GROUP BY gene_id
+    ) associations
+        ON associations.gene_id = genes.gene_id
+),
+
+gene_lists AS (
+    SELECT
+        g.gene_id,
+        jsonb_agg(
+                jsonb_build_object(
+                    'evidence_code',
+                    jsonb_build_object(
+                        'term',
+                        eco.term,
+                        'curie',
+                        eco.source_id
+                    ),
+                    'qualifier',
+                    ae.qualifiers,
+                    'rank',
+                    glm.rank
+                )
+            ORDER BY
+                glm.rank,
+                ae.annotation_evidence_id
+                )
+         FILTER (WHERE glm.gene_list_entry_id IS NOT NULL) AS gene_lists
+    FROM
+        Gene.Gene g
+    LEFT JOIN Gene.GeneListMembership glm
+        ON glm.gene_id = g.gene_id
+    LEFT JOIN Admin.TableCatalog tc
+        ON tc.name = 'genelistmembership'
+    LEFT JOIN Admin.SchemaCatalog sc
+        ON sc.schema_id = tc.schema_id
+        AND sc.name = 'gene'
+    LEFT JOIN Gene.AnnotationEvidence ae
+        ON ae.table_id = tc.table_id
+        AND ae.row_id = glm.gene_list_entry_id
+    LEFT JOIN Reference.OntologyTerm eco
+        ON eco.ontology_term_id = ae.evidence_code_id
+    GROUP BY
+        g.gene_id
+),
 
 genes AS (
     SELECT
@@ -194,6 +271,7 @@ genes AS (
         g.chromosome,
         g.span,
         g.source_id,
+        ot.term AS gene_type,
         -- chunked document fields
         jsonb_strip_nulls(
         jsonb_build_object(
@@ -203,33 +281,30 @@ genes AS (
             g.gene_name,
             'synonyms', nomenclature.synonyms
         )) AS nomenclature,
+     
         jsonb_build_object(
-            'genomic_location',
-            jsonb_build_object(
-                'chromosome',
-                g.chromosome,
-                'span',
-                g.span,
-                'strand',
-                g.strand
-            ),
-            'cytogenic_location',
-            cloc.location
-        ) AS location,
-        jsonb_build_object('curie', ot.source_id, 'term', ot.term) AS classification,
+            'location',  format_genomic_location(g.chromosome, g.span, g.strand),
+             'cytogenic_location', cloc.location,
+            'transcripts',
+            transcripts.transcripts
+        ) AS gene_structure,    
         xrefs.xrefs AS xrefs,
         publications.pubmed_ids AS publications,
-        NULLIF(jsonb_strip_nulls(jsonb_build_object('gene_families', gf.families,'cuated_targets', NULL, 'pathways', pathways.pathways)), '{}'::JSONB) AS memberships,
-        '{}' :: JSONB AS annotation
+        NULLIF(jsonb_strip_nulls(jsonb_build_object('gene_families', gf.families,'pathways', pathways.pathways, 'curated_lists', gene_lists)), '{}'::JSONB) AS memberships,
+        goassociations.goa AS functional_annotation
     FROM
-        Gene.Gene g,
+        Gene.Gene g
+        LEFT JOIN gene.agg_transcripts AS transcripts
+            ON transcripts.gene_id = g.gene_id,
         Reference.OntologyTerm ot,
         cytogenic_location AS cloc,
         xrefs,
         publications,
         hgnc_gene_families AS gf,
+        gene_lists,
         nomenclature,
-        pathways
+        pathways,
+        goassociations
     WHERE
         ot.ontology_term_id = g.gene_type_id
         AND cloc.gene_id = g.gene_id
@@ -238,8 +313,18 @@ genes AS (
         AND gf.gene_id = g.gene_id
         AND nomenclature.gene_id = g.gene_id
         AND pathways.gene_id = g.gene_id
+        AND gene_lists.gene_id = g.gene_id
+        AND goassociations.gene_id = g.gene_id
 )
 SELECT
-    *
+    genes.*,
+    known_ad.gene_id IS NOT NULL AS associated_with_known_ad_locus
 FROM
-    genes;
+    genes
+LEFT JOIN (
+    SELECT DISTINCT
+        gene_id
+    FROM Gene.KnownADGenes
+) known_ad
+    ON known_ad.gene_id = genes.gene_id
+);

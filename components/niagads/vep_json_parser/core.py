@@ -138,6 +138,15 @@ class VariantVEPAnnotationEntry(CustomBaseModel):
     allele_frequency: Optional[dict] = None
     predicted_annotations: Optional[PredictedAnnotation] = None
 
+    def to_vcf_entry(self) -> VCFEntry:
+        return VCFEntry(
+            chrom=self.chromosome,
+            pos=self.position,
+            id=self.positional_id,
+            ref=self.ref,
+            alt=self.alt,
+        )
+
 
 class VEPEntry(BaseModel):
     id: str

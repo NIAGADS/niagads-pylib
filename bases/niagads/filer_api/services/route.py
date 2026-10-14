@@ -4,6 +4,8 @@ from itertools import groupby
 from operator import itemgetter
 from typing import List, Union
 
+from niagads.api.common.models.context.cache import CacheKey, CacheNamespace
+from niagads.api.common.services.metadata import MetadataQueryService
 from niagads.common.genomic.features.models import GenomicFeature, GenomicFeatureType
 from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.filer_api.services.client import (
@@ -11,9 +13,7 @@ from niagads.filer_api.services.client import (
     FILERApiEndpoint,
     FILERClientService,
 )
-from niagads.filer_api.services.pagination import (
-    FILERTrackDataPaginationService,
-)
+
 from niagads.utils.list import chunker
 
 FILER_HTTP_CLIENT_TIMEOUT = 60
@@ -54,7 +54,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
             self._managers.database_session, data_store=self._data_store
         ).get_genome_build(tracks, validate=True)
         if isinstance(assembly, dict):
-            raise ValidationError(
+            raise ValueError(
                 "Tracks map to multiple assemblies; please query GRCh37 and GRCh38 data independently"
             )
         return assembly

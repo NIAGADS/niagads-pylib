@@ -1,5 +1,5 @@
-from enum import auto
 import json
+from enum import auto
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.string import xstr
@@ -76,6 +76,7 @@ class ParserError(Exception):
     def __init__(self, message, errors):
         super().__init__(message)
         self.errors = errors
+
 
 class FileFormatError(Exception):
     """

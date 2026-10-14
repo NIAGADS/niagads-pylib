@@ -8,10 +8,10 @@ Usage:
 
 import argparse
 import asyncio
-from sqlalchemy import text
 
-from niagads.database import DatabaseSessionManager
 from helpers.config import Settings
+from niagads.database import DatabaseSessionManager
+from sqlalchemy import text
 
 
 async def run():

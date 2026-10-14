@@ -7,15 +7,15 @@ dynamically mapped from the model's type hints.
 from datetime import date
 from enum import Enum
 from typing import (
+    Annotated,
     Any,
     Callable,
     Dict,
     Optional,
     Type,
+    Union,
     get_args,
     get_origin,
-    Annotated,
-    Union,
 )
 
 from niagads.common.core import ComponentBaseMixin
@@ -24,11 +24,11 @@ from pydantic import BaseModel
 from pydantic_core import PydanticUndefined
 from wtforms import (
     BooleanField,
+    DateField,
     FloatField,
     IntegerField,
     StringField,
     validators,
-    DateField,
 )
 from wtforms.form import Form
 

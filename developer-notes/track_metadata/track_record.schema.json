@@ -700,7 +700,7 @@
 					"description": "pathology or classification of the degree of pathology",
 					"title": "Neuropathology"
 				},
-				"symptom": {
+				"clinical_status": {
 					"anyOf": [
 						{
 							"items": {

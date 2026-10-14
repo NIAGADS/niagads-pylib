@@ -1,8 +1,9 @@
+import os
+from functools import lru_cache
+
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import ValidationError, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from functools import lru_cache
-import os
 
 
 class CustomSettings(BaseSettings):

@@ -1,4 +1,5 @@
 from typing import Optional, Union
+
 from niagads.common.models.base import CustomBaseModel
 from niagads.utils.regular_expressions import RegularExpressions
 from niagads.utils.string import dict_to_info_string, matches

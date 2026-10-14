@@ -3,6 +3,7 @@ Base Pydantic model classes for NIAGADS data models.
 """
 
 from datetime import date, datetime
+from decimal import Decimal
 from enum import Enum, auto
 
 from niagads.enums.core import CaseInsensitiveEnum
@@ -18,15 +19,35 @@ from pydantic import (
 
 
 class SerializationOptions(CaseInsensitiveEnum):
+    """Control context-dependent model serialization.
+
+    Attributes:
+        ENUMS_AS_NAME: Serialize enum members by name.
+        ENUMS_AS_VALUE: Serialize enum members by value.
+        EXCLUDE_EMPTY_OBJECTS: Omit empty dictionaries, lists, and sets.
+        EMBEDDED_TEXT: Omit fields marked as irrelevant to embedding text.
+        DATABASE_MODEL_FIELDS: Request serialization of database-model fields.
+    """
+
     ENUMS_AS_NAME = auto()  # return enums as names instead of default value
     ENUMS_AS_VALUE = auto()
     EXCLUDE_EMPTY_OBJECTS = auto()  # exclude empty dicts and lists
     EMBEDDED_TEXT = auto()  # return only fields relevant for generating embeddings
+    DATABASE_MODEL_FIELDS = auto()  # serialize only fields relevant to DB model
+
+
+class DBCompatibleRecordMixin:
+    def to_db_record(self):
+        raise NotImplementedError("serialize")
 
 
 class CustomBaseModel(BaseModel):
     """
-    custom base model for all model types
+    Base class for NIAGADS Pydantic models.
+
+    Serializes dates as ISO 8601 strings, excludes binary fields, and supports
+    context-dependent enum formatting and field exclusion. It also provides
+    helpers for cleaned dumps, info strings, ordered values, and delimited text.
     """
 
     model_config = ConfigDict(serialize_by_alias=True, populate_by_name=True)
@@ -39,21 +60,29 @@ class CustomBaseModel(BaseModel):
         """
         if isinstance(v, (date, datetime)):
             return v.isoformat()
-        if (
-            _info.context is not None
-            and _info.context.get(SerializationOptions.ENUMS_AS_NAME) is True
-        ):
-            if isinstance(v, (Enum, CaseInsensitiveEnum)):
-                return v.name
 
-        if (
-            _info.context is not None
-            and _info.context.get(SerializationOptions.ENUMS_AS_VALUE) is True
-        ):
-            if isinstance(v, (Enum, CaseInsensitiveEnum)):
-                return v.value
+        if _info.context is not None:
+            if _info.context.get(SerializationOptions.ENUMS_AS_NAME) is True:
+                if isinstance(v, (Enum, CaseInsensitiveEnum)):
+                    return v.name
+
+            if _info.context.get(SerializationOptions.ENUMS_AS_VALUE) is True:
+                if isinstance(v, (Enum, CaseInsensitiveEnum)):
+                    return v.value
 
         return v
+
+    def __exclude_fields_by_metadata(
+        self, data: dict[str, object], metadata_key: str
+    ) -> dict[str, object]:
+        """Remove serialized fields marked by the given metadata key."""
+        excluded_fields = {
+            field_name
+            for field_name, field_info in self.__class__.model_fields.items()
+            if field_info.json_schema_extra
+            and field_info.json_schema_extra.get(metadata_key) is True
+        }
+        return {key: value for key, value in data.items() if key not in excluded_fields}
 
     @model_serializer(mode="wrap", when_used="always")
     def serialize_model(
@@ -64,35 +93,29 @@ class CustomBaseModel(BaseModel):
 
         # exclude byte data
         data = {
-            k: v
+            k: list(v) if isinstance(v, set) else v
             for k, v in data.items()
-            if not isinstance(v, (bytes, bytearray, memoryview))
+            if not isinstance(v, (bytes, bytearray, memoryview, Decimal))
         }
 
         # Check if we should exclude empty objects (empty lists and dicts)
-        if (
-            _info.context is not None
-            and _info.context.get(SerializationOptions.EXCLUDE_EMPTY_OBJECTS) is True
-        ):
-            data = {
-                k: v
-                for k, v in data.items()
-                if not (isinstance(v, (list, dict)) and len(v) == 0)
-            }
+        if _info.context is not None:
+            if _info.context.get(SerializationOptions.EXCLUDE_EMPTY_OBJECTS) is True:
+                data = {
+                    k: list(v) if isinstance(v, set) else v
+                    for k, v in data.items()
+                    if not (isinstance(v, (list, dict, set)) and len(v) == 0)
+                }
 
-        # : Exclude fields marked for embedding exclusion
-        if (
-            _info.context is not None
-            and _info.context.get(SerializationOptions.EMBEDDED_TEXT) is True
-        ):
-            # Get field metadata
-            excluded_fields = {
-                field_name
-                for field_name, field_info in self.__class__.model_fields.items()
-                if field_info.json_schema_extra
-                and field_info.json_schema_extra.get("exclude_from_embeddings") is True
-            }
-            data = {k: v for k, v in data.items() if k not in excluded_fields}
+            # Exclude fields marked for embedding exclusion
+            if _info.context.get(SerializationOptions.EMBEDDED_TEXT) is True:
+                data = self.__exclude_fields_by_metadata(
+                    data, "exclude_from_embeddings"
+                )
+
+            # Exclude fields marked for embedding exclusion
+            if _info.context.get(SerializationOptions.DATABASE_MODEL_FIELDS) is True:
+                data = self.__exclude_fields_by_metadata(data, "exclude_from_database")
 
         return data
 
@@ -133,7 +156,7 @@ class CustomBaseModel(BaseModel):
         return [data.get(f) for f in sorted_fields]
 
     def to_delimited_text(
-        self, fields=None, *, incl_header: bool = True, null_str="NA", delimiter="\t"
+        self, *, fields=None, incl_header: bool = False, null_str="NA", delimiter="\t"
     ):
         """Return model as a delimited text row (e.g., tab-delimited).
 
@@ -231,7 +254,7 @@ class CustomBaseModel(BaseModel):
         return field_names
 
     def __str__(self):
-        return self.as_info_string()
+        return self.to_info_string()
 
     def __repr__(self):
         return self.to_info_string()

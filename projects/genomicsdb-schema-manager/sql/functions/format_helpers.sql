@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION format_genomic_location(chromosome HumanGenome, span 
     AS $$
         SELECT concat_ws(':',
             chromosome,
-            lower(span) || '-' || upper(span),
+            lower(span) || '-' || upper(span) - 1, --everything in the db should be inclusive end, 1-based
             CASE WHEN strand = '-' THEN strand ELSE NULL END
         )
     $$;

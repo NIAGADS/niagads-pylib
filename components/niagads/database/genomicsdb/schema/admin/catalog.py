@@ -1,8 +1,8 @@
 from niagads.database.genomicsdb.schema.admin.base import AdminTableBase
 from niagads.database.genomicsdb.schema.admin.types import TableRef
 from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint, literal, select
-from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class SchemaCatalog(AdminTableBase):

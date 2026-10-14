@@ -2,9 +2,9 @@
 
 from niagads.common.genomic.regions.models import GenomicRegion
 from niagads.common.models.types import Range
-from niagads.database.mixins.ranges import GenomicRegionMixin
 from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.database.genomicsdb.schema.reference.genome import GenomeReference
+from niagads.database.mixins.ranges import GenomicRegionMixin
 from niagads.genome_reference.human import HumanGenome
 from sqlalchemy import Integer, and_, func, select
 from sqlalchemy.exc import NoResultFound
@@ -90,5 +90,5 @@ class IntervalBin(ReferenceTableBase, GenomicRegionMixin):
         result = await session.execute(bin_stmt)
         bin_index = result.scalar()
         if bin_index is None:
-            raise NoResultFound(f"Unable to assign bin_index to region {region}")
+            raise NoResultFound(f"Unable to assign bin_index to region {span}")
         return bin_index

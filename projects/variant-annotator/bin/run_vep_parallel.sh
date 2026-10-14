@@ -10,12 +10,14 @@ VEP_SCRIPT="${SCRIPT_DIR}/vep.sh"
 
 # Parse arguments
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <vcf_directory> [--max-parallel N] [--fork N] [--buffer-size N] [--stats]" >&2
+  echo "Usage: $0 <vcf_directory> [--max-parallel N] [--fork N] [--buffer-size N] [--stats] [--skip-reheader] [--skip-filter]" >&2
   echo "  <vcf_directory>: Directory containing VCF files" >&2
   echo "  [--max-parallel N]: Maximum number of parallel jobs (default: 4)" >&2
   echo "  [--fork N]: Number of VEP forks (default: 3)" >&2
   echo "  [--buffer-size N]: VEP buffer size (default: 10000)" >&2
   echo "  [--stats]: Generate statistics (default: no stats)" >&2
+  echo "  [--skip-reheader]: Preserve the input VCF header" >&2
+  echo "  [--skip-filter]: Preserve variants filtered by bcftools" >&2
   exit 1
 fi
 
@@ -24,6 +26,8 @@ MAX_PARALLEL=4
 FORK=3
 BUFFER_SIZE=10000
 NO_STATS=true
+SKIP_REHEADER=false
+SKIP_FILTER=false
 
 shift
 while [[ $# -gt 0 ]]; do
@@ -42,6 +46,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --stats)
       NO_STATS=false
+      shift
+      ;;
+    --skip-reheader)
+      SKIP_REHEADER=true
+      shift
+      ;;
+    --skip-filter)
+      SKIP_FILTER=true
       shift
       ;;
     *)
@@ -94,6 +106,8 @@ run_single_vep() {
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] Starting VEP for $basename"
   local vep_args="--file $vcf_file --fork $FORK --buffer-size $BUFFER_SIZE"
   [[ "$NO_STATS" == "false" ]] && vep_args="$vep_args --stats" || true
+  [[ "$SKIP_REHEADER" == "true" ]] && vep_args="$vep_args --skip-reheader" || true
+  [[ "$SKIP_FILTER" == "true" ]] && vep_args="$vep_args --skip-filter" || true
   if "$VEP_SCRIPT" $vep_args; then
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] Completed VEP for $basename"
   else
@@ -106,6 +120,8 @@ export VEP_SCRIPT
 export FORK
 export BUFFER_SIZE
 export NO_STATS
+export SKIP_REHEADER
+export SKIP_FILTER
 export -f run_single_vep
 
 # Use GNU Parallel if available, otherwise fall back to xargs

@@ -8,11 +8,11 @@ below are additional format checkers required by NIAGADS projects
 for more information
 """
 
-from jsonschema import FormatChecker
 from re import RegexFlag
 
-from niagads.utils.string import matches
+from jsonschema import FormatChecker
 from niagads.utils.regular_expressions import RegularExpressions as RE
+from niagads.utils.string import matches
 
 JSONSchemaFormatChecker = FormatChecker()
 

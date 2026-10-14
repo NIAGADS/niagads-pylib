@@ -1,4 +1,5 @@
 from typing import List, Optional
+
 from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.genome_reference.human import GenomeBuild

@@ -3,6 +3,7 @@ from typing import Optional, Union
 
 from niagads.etl.plugins.types import ResumeCheckpoint
 from niagads.etl.types import ETLExecutionMode
+from niagads.genome_reference.human import GenomeBuild
 from niagads.nlp.llm_types import LLM, NLPModelType
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
@@ -59,18 +60,49 @@ class BasePluginParams(BaseModel):
         logger.exception("Failed to initializing plugin.")
 
 
-class EnvVariableMixin:
+class EnvVariableParamMixin:
     """
     Mixin for parameter models that set environmental variables
     """
 
-    def creaete_environment(self):
+    def create_environment(self):
         settings = self.model_dump()
         for variable, value in settings.items():
             os.environ[variable.upper()] = value
 
 
-class PathValidatorMixin:
+class GA4GHParamMixin:
+    """
+    Mixin for parameter models for plugins that need to generate or normalize
+    variant identifiers
+    """
+
+    genome_build: Optional[GenomeBuild] = Field(
+        default=GenomeBuild.GRCh38,
+        description=f"Reference genome build, one of {GenomeBuild.list()}",
+    )
+
+    seqrepo_data_proxy: Optional[str] = Field(
+        default=None,
+        description="URL to seqrepo service or full path to seqrepo cache for GA4GH VRS",
+    )
+
+    skip_ga4gh_vrs: Optional[bool] = Field(
+        defualt=False,
+        description="Skip generating GA4GH VRS representation; note: GA4GH VRS calls with still be made to generate SV stable IDs",
+    )
+
+    seqrepo_lru_cache_maxsize: Optional[str] = Field(
+        default="none",
+        description="Maximum number of SeqRepo lookup results kept in the in-memory LRU cache. Use an integer or 'none' for unlimited.",
+    )
+    seqrepo_fd_cache_maxsize: Optional[int] = Field(
+        default=100,
+        description="Maximum number of sequence file handles SeqRepo keeps open. Higher values reduce repeated file open/close overhead.",
+    )
+
+
+class PathValidatorParamMixin:
     """
     Mixin for parameter models to provide a reusable file or directory existence validator.
 
@@ -122,7 +154,7 @@ class EmbeddingParameterMixin:
     """
 
     embedding_model: Optional[LLM] = Field(
-        LLM.ALL_MINILM_L6_V2,
+        LLM.LFM2_5_EMBEDDING_350M,
         description="LLM model for generating text embeddings",
     )
     embedding_batch_size: Optional[int] = Field(
@@ -130,6 +162,15 @@ class EmbeddingParameterMixin:
     )
     embedding_force_cpu: Optional[bool] = Field(
         default=False, description="force CPU use for calculating embeddings"
+    )
+    soft_token_limit: Optional[int] = Field(
+        default=400,
+        description=(
+            "`soft` token limit for embedding model; "
+            "used to help chunk large documents.  "
+            "For example default `LFM2_5_EMBEDDING_350` model "
+            "has a token limit of 512; soft token limit set to 400."
+        ),
     )
 
     @field_validator("embedding_model")

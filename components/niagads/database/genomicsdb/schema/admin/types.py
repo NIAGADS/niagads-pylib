@@ -1,4 +1,5 @@
-from typing import Type, Optional
+from typing import Optional, Type
+
 from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
 from niagads.database.genomicsdb.schema.mixins import GenomicsDBTableMixin
 from pydantic import BaseModel, ConfigDict, Field

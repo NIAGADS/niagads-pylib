@@ -1,4 +1,5 @@
 from typing import Optional
+
 from niagads.common.genomic.regions.models import GenomicRegion
 from niagads.common.models.base import CustomBaseModel
 from pydantic import Field

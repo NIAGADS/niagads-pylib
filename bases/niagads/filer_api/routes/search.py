@@ -1,7 +1,6 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Query
-
 from niagads.api.common.constants import SharedOpenAPITags
 from niagads.api.common.models.domain.parameters.filters.text_search import (
     keyword_param,
@@ -10,12 +9,12 @@ from niagads.api.common.models.domain.parameters.location import (
     assembly_param,
     span_param,
 )
+from niagads.api.common.models.domain.parameters.response.pagination import (
+    page_param,
+)
 from niagads.api.common.models.domain.parameters.response.types import (
     ResponseContent,
     ResponseFormat,
-)
-from niagads.api.common.models.domain.parameters.response.pagination import (
-    page_param,
 )
 from niagads.api.common.models.response.base import DataResponse
 from niagads.api.common.models.response.entities.dataset import (

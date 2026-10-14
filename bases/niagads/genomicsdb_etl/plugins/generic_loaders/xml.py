@@ -4,7 +4,6 @@ ETL plugin for loading or updating a record in an arbitrary table.
 
 import ast
 import importlib.resources
-
 from typing import Any, Dict, Iterator, List, Optional, Type
 
 from lxml import etree
@@ -15,7 +14,7 @@ from niagads.etl.plugins.base import AbstractBasePlugin
 from niagads.etl.plugins.metadata import PluginMetadata
 from niagads.etl.plugins.parameters import (
     BasePluginParams,
-    PathValidatorMixin,
+    PathValidatorParamMixin,
     ResumeCheckpoint,
 )
 from niagads.etl.plugins.registry import PluginRegistry
@@ -66,7 +65,7 @@ class XMLEntry(BaseModel):
         )
 
 
-class XMLRecordLoaderParams(BasePluginParams, PathValidatorMixin):
+class XMLRecordLoaderParams(BasePluginParams, PathValidatorParamMixin):
     file: str = Field(description="Full path to the XML file to load.")
 
     skip_duplicates: Optional[bool] = Field(
@@ -74,7 +73,7 @@ class XMLRecordLoaderParams(BasePluginParams, PathValidatorMixin):
         description="If True, will log and skip records already existing in the database; If false will raise error",
     )
 
-    validate_file_exists = PathValidatorMixin.validator("file")
+    validate_file_exists = PathValidatorParamMixin.validator("file")
 
 
 metadata = PluginMetadata(

@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.types import ProcessStatus
-from niagads.etl.types import ETLExecutionMode
 from niagads.etl.pipeline.config import (
     ParallelMode,
     PipelineConfig,
@@ -20,6 +19,7 @@ from niagads.etl.pipeline.config import (
 )
 from niagads.etl.pipeline.filters import PipelineFilters
 from niagads.etl.pipeline.selectors import StageTaskSelector
+from niagads.etl.types import ETLExecutionMode
 from niagads.etl.utils import interpolate_params, register_plugins
 from niagads.utils.dict import deep_merge
 

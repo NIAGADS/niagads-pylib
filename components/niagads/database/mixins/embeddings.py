@@ -7,8 +7,8 @@ using pgvector and HNSW indexes. Includes embedding metadata, model tracking, an
 
 from datetime import datetime
 
-from niagads.database.helpers import datetime_column
 from niagads.database.genomicsdb.schema.admin.helpers import etlrun_fk_column
+from niagads.database.helpers import datetime_column
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Index, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -17,7 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 class EmbeddingMixin:
     __abstract__ = True
 
-    embedding: Mapped[list[float]] = mapped_column(Vector(384), nullable=True)
+    embedding: Mapped[list[float]] = mapped_column(Vector(1024), nullable=True)
     embedding_model: Mapped[str] = mapped_column(String(250), nullable=True, index=True)
     embedding_date: Mapped[datetime] = datetime_column(nullable=True)
     embedding_run_id: Mapped[int] = etlrun_fk_column(nullable=True)

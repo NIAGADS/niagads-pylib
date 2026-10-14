@@ -1,6 +1,5 @@
 from niagads.api.common.models.services.query import QueryDefinition
 
-
 IGVFeatureLookupQuery = QueryDefinition(
     query=""" 
         SELECT v.annotation->>'chromosome' AS chromosome, 

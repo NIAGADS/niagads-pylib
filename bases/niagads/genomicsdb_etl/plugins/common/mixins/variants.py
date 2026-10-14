@@ -1,9 +1,12 @@
+from typing import Optional, TypeAlias
+
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
+from niagads.common.models.types import Range
 from niagads.database.genomicsdb.schema.variant.documents import Variant
 from niagads.genome_reference.human import HumanGenome
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class VariantLookupBlock(BaseModel):
@@ -12,6 +15,22 @@ class VariantLookupBlock(BaseModel):
     start_idx: int
     end_idx: int
     region: OneBasedGenomicRegion
+
+
+class MatchedVariant(BaseModel):
+    """Basic identifying information for matched variant record"""
+
+    id: int
+    unique_stable_id: str  # 'NIAGADS_ID - chr:pos:ref:alt or SV id'
+    is_adsp_variant: Optional[bool] = None
+    is_annotated: Optional[bool] = None
+    span: Range
+    bin_index: str = None
+    chromosome: HumanGenome
+
+
+VariantLookupKey: TypeAlias = str | tuple[int, str, str]
+VariantLookupMap: TypeAlias = dict[VariantLookupKey, MatchedVariant]
 
 
 class VariantLookupMixin:
@@ -101,40 +120,56 @@ class VariantLookupMixin:
         return left_ranges + adjusted_right
 
     async def _retrieve_variants_in_span(
-        self,
-        session: AsyncSession,
-        region: OneBasedGenomicRegion,
-        incl_adsp_flag: bool = False,
-    ):
-        """
-        Retrieve all variants in the specified genomic region
+        self, session: AsyncSession, region: OneBasedGenomicRegion
+    ) -> VariantLookupMap:
+        """Retrieve variants within a genomic region.
+
+        Standard variants are keyed by position, reference allele, and
+        alternate allele. Structural variants are keyed by their unique
+        NIAGADS identifier because their alternate allele may be null.
 
         Args:
-            session (AsyncSession): session
-            entries (list[VCFEntry]): list of vcf entries
+            session (AsyncSession): Active asynchronous database session.
+            region (OneBasedGenomicRegion): Genomic region used to constrain
+                the lookup.
+
+        Returns:
+            dict: Mapping of variant lookup keys to database metadata. Standard
+                variants use a ``(position, ref_allele, alt_allele)`` tuple;
+                structural variants use their ``niagads_id`` (CHRM_SVTYPE_SEQHASH).
         """
 
         stmt = select(
             Variant.variant_id,
+            Variant.niagads_id,
+            Variant.chromosome,
+            Variant.bin_index,
             Variant.position,
+            Variant.span,
             Variant.ref_allele,
             Variant.alt_allele,
             Variant.is_adsp_variant,
+            Variant.is_annotated,
+            Variant.is_structural_variant,
         ).where(
             Variant.chromosome == str(region.chromosome),
             Variant.position.between(region.start, region.end),
         )
         result = (await session.execute(stmt)).all()
-        if incl_adsp_flag:
-            return {
-                (row.position, row.ref_allele, row.alt_allele): {
-                    "id": row.variant_id,
-                    "is_adsp_variant": row.is_adsp_variant,
-                }
-                for row in result
-            }
-        else:
-            return {
-                (row.position, row.ref_allele, row.alt_allele): row.variant_id
-                for row in result
-            }
+
+        return {
+            (
+                row.niagads_id
+                if row.is_structural_variant
+                else (row.position, row.ref_allele, row.alt_allele)
+            ): MatchedVariant(
+                id=row.variant_id,
+                unique_stable_id=row.niagads_id,
+                is_adsp_variant=row.is_adsp_variant,
+                is_annotated=row.is_annotated,
+                bin_index=str(row.bin_index),
+                span=row.span,
+                chromosome=HumanGenome(row.chromosome),
+            )
+            for row in result
+        }

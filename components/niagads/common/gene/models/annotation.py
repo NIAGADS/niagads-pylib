@@ -6,6 +6,7 @@ Pydantic models for gene annotations
 """
 
 from typing import ClassVar, Optional
+
 from niagads.common.models.annotations import (
     AnnotationEvidenceMixin,
     AnnotationType,

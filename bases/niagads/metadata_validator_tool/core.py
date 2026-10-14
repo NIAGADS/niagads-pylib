@@ -12,21 +12,20 @@ This tool can be run as a script or can also be imported as a module.  When run 
 results are piped to STDOUT unless the `--log` option is specified.
 """
 
-from enum import auto
 import json
 import logging
+from enum import auto
 from os import path
-
 from typing import List, Union
 
 from niagads.arg_parser.core import case_insensitive_enum_type
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.exceptions.core import FileFormatError
-from niagads.utils.logging import LOG_FORMAT_STR, ExitOnExceptionHandler
 from niagads.metadata_validator.core import (
     BiosourcePropertiesValidator,
     FileManifestValidator,
 )
+from niagads.utils.logging import LOG_FORMAT_STR, ExitOnExceptionHandler
 from niagads.utils.string import xstr
 from niagads.utils.sys import print_args, verify_path
 
@@ -130,7 +129,7 @@ def initialize_validator(
 
     Returns:
         Union[BiosourcePropertiesValidator, FileManifestValidator]: the validator object
-    """   
+    """
     try:
         if MetadataValidatorType(metadata_type) == MetadataValidatorType.FILE_MANIFEST:
             validator = FileManifestValidator(

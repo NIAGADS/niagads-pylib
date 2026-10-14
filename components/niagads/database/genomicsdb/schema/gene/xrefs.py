@@ -13,9 +13,9 @@ from niagads.database.helpers import enum_column, enum_constraint
 from niagads.enums.core import CaseInsensitiveEnum
 from sqlalchemy import String, and_, func, select
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 
 
 class GeneIdentifierType(CaseInsensitiveEnum):
@@ -158,7 +158,7 @@ class GeneXRef(GeneTableBase, ExternalDatabaseMixin):
         if match_synonyms:
             stmt = select(GeneXRef.gene_id).where(
                 and_(
-                    func.lower(symbol) == GeneXRef.xref_value,
+                    func.lower(symbol) == func.lower(GeneXRef.xref_value),
                     GeneXRef.xref_label.in_(SYNONYM_FIELDS),
                 )
             )

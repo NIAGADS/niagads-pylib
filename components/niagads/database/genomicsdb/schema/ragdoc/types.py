@@ -1,4 +1,5 @@
 from enum import auto
+
 from niagads.enums.core import CaseInsensitiveEnum
 
 
@@ -9,3 +10,10 @@ class RAGDocType(CaseInsensitiveEnum):
     VARIANT = auto()
     METADATA = auto()
     DOCUMENT = auto()
+
+
+class GeneDocumentSection(CaseInsensitiveEnum):
+    IDENTITY = auto()
+    STRUCTURE = auto()
+    ANNOTATION = auto()
+    REFERENCES = auto()
