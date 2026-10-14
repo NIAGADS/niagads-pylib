@@ -48,7 +48,9 @@ class DocumentChunk(BaseModel):
 class EmbeddingPatch(ComponentBaseMixin):
     """Load stored chunk metadata for the embedding patch."""
 
-    def __init__(self, database_uri: str, force_cpu: bool = False):
+    def __init__(
+        self, database_uri: str, force_cpu: bool = False, batch_size: int = 128
+    ):
         super().__init__()
         self._database_uri = database_uri
         self._chunk_metadata: list[ChunkMetadata]
@@ -58,7 +60,7 @@ class EmbeddingPatch(ComponentBaseMixin):
         self._embedding_counter = 0
         self._new_metadata_count = 0
         self._run_id: Optional[int] = None
-        self._batch_size = 512
+        self._batch_size = batch_size
 
         self._new_chunk_embeddings: list = []
 
@@ -336,7 +338,17 @@ if __name__ == "__main__":
         action="store_true",
         help="Commit the embedding patch changes.",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=128,
+        help="Number of texts to embed in each batch.",
+    )
     args = parser.parse_args()
 
-    patch = EmbeddingPatch(os.environ["DATABASE_URI"], force_cpu=args.force_cpu)
+    patch = EmbeddingPatch(
+        os.environ["DATABASE_URI"],
+        force_cpu=args.force_cpu,
+        batch_size=args.batch_size,
+    )
     asyncio.run(patch.run(commit=args.commit))
