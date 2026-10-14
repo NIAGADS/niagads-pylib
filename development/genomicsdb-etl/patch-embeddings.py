@@ -420,7 +420,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                     self.logger.info("Inserting new metadata records.")
                     if self._new_chunk_metadata:
                         chunked_list = chunker(
-                            self._new_chunk_metadata, self._batch_size
+                            self._new_chunk_metadata, 25000
                         )
                         for c in chunked_list:
                             await ChunkMetadata.submit_many(session, c)
@@ -430,17 +430,16 @@ class EmbeddingPatch(ComponentBaseMixin):
                             else:
                                 await session.rollback()
                             transaction_count += len(c)
-                            if transaction_count % self._batch_size * 100 == 0:
-                                self.logger.info(
-                                    f"{message_prefix}: {transaction_count} metadata entries. Checkpoint: chunk_metadata_id={checkpoint_id}"
-                                )
+                            self.logger.info(
+                                f"{message_prefix}: {transaction_count} metadata entries. Checkpoint: chunk_metadata_id={checkpoint_id}"
+                            )
                     self.logger.info(
                         f"{message_prefix}: {transaction_count} metadata entries. Checkpoint: chunk_metadata_id={checkpoint_id}"
                     )
 
                     self.logger.info("Generating new embedding placeholders")
+                    num_placeholders = 0
                     for item in self._new_chunk_embeddings:
-                        num_placeholders = 0
                         chunk_embedding = item.get("chunk_embedding", None)
                         if not chunk_embedding:
                             chunk_metadata = item["chunk_metadata"]
@@ -458,10 +457,11 @@ class EmbeddingPatch(ComponentBaseMixin):
                             
                     self.logger.info(f"Generated {num_placeholders} embedding placeholders.")
 
+                    num_embeddings = 0
                     for elindex, elchunk in enumerate(
                         self._embedding_batches(), start=1
                     ):
-                        self.logger.info(f"Generating embeddings for chunk {elindex}")
+                        # self.logger.info(f"Generating embeddings for chunk {elindex}")
                         embeddings = self._embedding_generator.generate(
                             [item["chunk_text"] for item in elchunk],
                             as_list=True,
@@ -473,17 +473,26 @@ class EmbeddingPatch(ComponentBaseMixin):
                             chunk_embedding: ChunkEmbedding = item["chunk_embedding"]
                             chunk_embedding.embedding = embeddings[cindex]
                             chunk_embeddings.append(chunk_embedding)
-
+                            num_embeddings += 1
+                            
                         await ChunkEmbedding.submit_many(session, chunk_embeddings)
                         checkpoint_id = chunk_embeddings[-1].chunk_embedding_id
-
-                        if commit:
-                            await session.commit()
-                        else:
-                            await session.rollback()
-                        self.logger.info(
-                            f"{message_prefix}: Inserted {len(elchunk)} chunk embeddings. Checkpoint: chunk_embedding_id={checkpoint_id}"
-                        )
+                        
+                        if num_embeddings % 1000 == 0:
+                            self.logger.info(f"Inserted {num_embeddings} chunk embeddings. Checkpoint: chunk_embedding_id={checkpoint_id}")
+                            if commit:
+                                await session.commit()
+                            else:
+                                await session.rollback()
+                                
+                    # residuals
+                    if commit:
+                        await session.commit()
+                    else:
+                        await session.rollback()
+                    self.logger.info(
+                        f"{message_prefix}: Inserted {len(elchunk)} chunk embeddings. Checkpoint: chunk_embedding_id={checkpoint_id}"
+                    )
 
                 except Exception as error:
                     status = ProcessStatus.FAIL
