@@ -25,7 +25,7 @@ class ResponseFormat(CaseInsensitiveEnum):
     TEXT = auto()
 
 
-class ResponseLayout(CaseInsensitiveEnum):
+class ResponseUI(CaseInsensitiveEnum):
     TABLE = auto()
     IGV_CONFIG = auto()
     IGV_TRACK_SELECTOR = auto()
