@@ -4,7 +4,7 @@
 patch embeddings to use BGE-M3 and larger embedding vector field
 
 RAGDoc.Embedding is truncated before this is run - old embeddings are irrelvant and non-existant for this patch
-
+ note - rollback logic is flawed but not really used at runtime+
 
 """
 
@@ -26,10 +26,11 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
 from niagads.database.session import DatabaseSessionManager
 from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM
+from niagads.utils.list import chunker
 from pydantic import BaseModel
 from sqlalchemy import select
 
-EMBEDDING_MODEL = EMBEDDING_MODEL
+EMBEDDING_MODEL = LLM.LFM2_5_EMBEDDING_350M
 
 
 class DocumentChunk(BaseModel):
@@ -60,6 +61,8 @@ class EmbeddingPatch(ComponentBaseMixin):
         self._batch_size = batch_size
 
         self._new_chunk_embeddings: list = []
+        self._new_chunk_metadata: list[ChunkMetadata] = []
+        self._chunk_metadata_to_delete: list[ChunkMetadata] = []
 
         self.logger.setLevel(logging.INFO)
 
@@ -76,7 +79,7 @@ class EmbeddingPatch(ComponentBaseMixin):
             is_test_run=False,
         )
         self._run_id = await etl_run.submit(session)
-        self.commit()  # always commit
+        await session.commit()  # always commit
 
     def _serialize_json_value(self, value) -> str:
         """Serialize JSON compactly for storage and token counting."""
@@ -246,7 +249,7 @@ class EmbeddingPatch(ComponentBaseMixin):
         if batch:
             yield batch
 
-    async def _chunk_existing_metadata(self, session, metadata: ChunkMetadata):
+    def _chunk_existing_metadata(self, metadata: ChunkMetadata):
         """chunk existing metadata it does not fit the input window."""
 
         token_count = self._embedding_generator.token_count(metadata.chunk_text)
@@ -283,25 +286,17 @@ class EmbeddingPatch(ComponentBaseMixin):
                     chunk_index=chunk.chunk_index,
                     run_id=self._run_id,
                 )
-                chunk_metadata_id = await chunk_metadata.submit(session)
+                self._new_chunk_metadata.append(chunk_metadata)
                 self._new_chunk_embeddings.append(
                     {
-                        "chunk_embedding": ChunkEmbedding(
-                            chunk_metadata_id=chunk_metadata_id,
-                            chunk_hash=chunk_metadata.chunk_hash,
-                            embedding_model=str(EMBEDDING_MODEL),
-                            embedding_date=datetime.now(),
-                            run_id=self._run_id,
-                            embedding_run_id=self._run_id,
-                        ),
+                        "chunk_metadata": chunk_metadata,
                         "chunk_text": chunk_metadata.chunk_text,
                         "token_count": token_count,
                     }
                 )
                 self._new_metadata_count += 1
 
-            # delete original
-            await session.delete(metadata)
+            self._chunk_metadata_to_delete.append(metadata)
 
     async def _finalize_etl_run(self, session, status, message):
         etl_run = await session.get(ETLRun, self._run_id)
@@ -309,7 +304,7 @@ class EmbeddingPatch(ComponentBaseMixin):
         etl_run.end_time = datetime.now()
         etl_run.rows_processed = self._new_metadata_count + self._embedding_counter
         etl_run.message = message
-        session.commit()
+        await session.commit()
 
     async def _retrieve_chunk_metadata(self, session):
         stmt = select(ChunkMetadata)
@@ -322,6 +317,8 @@ class EmbeddingPatch(ComponentBaseMixin):
     async def run(self, commit: bool = False) -> None:
         """Retrieve all chunk metadata and retain it after closing the session."""
         self._commit = commit
+        message_prefix = "COMMIT" if commit else "ROLLBACK"
+        transaction_count = 0
         manager = DatabaseSessionManager(self._database_uri)
         try:
             async with manager.session_ctx() as session:
@@ -337,11 +334,65 @@ class EmbeddingPatch(ComponentBaseMixin):
                     for index, chunk_metadata in enumerate(
                         self._chunk_metadata, start=1
                     ):
-                        await self._chunk_existing_metadata(session, chunk_metadata)
+                        self._chunk_existing_metadata(chunk_metadata)
                         if index % 10000 == 0:
                             self.logger.info(f"Updated {index} metadata entries.")
 
                     self.logger.info("Done generating updated metadata.")
+
+                    self.logger.info("Inserting new metadata records.")
+                    if self._new_chunk_metadata:
+                        chunked_list = chunker(
+                            self._new_metadata_count, self._batch_size
+                        )
+                        for c in chunked_list:
+                            await ChunkMetadata.submit_many(session, c)
+                            if commit:
+                                await session.commit()
+                            else:
+                                await session.rollback()
+                            transaction_count += len(c)
+                            self.logger.info(
+                                f"{message_prefix}: {transaction_count} metadata entries."
+                            )
+
+                    self.logger.info("Removing obsolete metadata entries.")
+                    transaction_count = 0
+                    for metadata in self._chunk_metadata_to_delete:
+                        await session.delete(metadata)
+                        transaction_count += 1
+                        if transaction_count % self._batch_size == 0:
+                            if commit:
+                                await session.commit()
+                            else:
+                                await session.rollback()
+                            self.logger.info(
+                                f"{message_prefix}: Deleting {transaction_count} obsolete metadata entries."
+                            )
+
+                    # residuals
+                    if commit:
+                        await session.commit()
+                    else:
+                        await session.rollback()
+                    self.logger.info(
+                        f"{message_prefix}: Deleting {transaction_count} obsolete metadata entries."
+                    )
+
+                    self.logger.info("Generating new embedding placeholders")
+                    for item in self._new_chunk_embeddings:
+                        chunk_embedding = item.get("chunk_embedding", None)
+                        if not chunk_embedding:
+                            chunk_metadata = item["chunk_metadata"]
+                            item["chunk_embedding"] = ChunkEmbedding(
+                                chunk_metadata_id=chunk_metadata.chunk_metadata_id,
+                                chunk_hash=chunk_metadata.chunk_hash,
+                                embedding_model=str(EMBEDDING_MODEL),
+                                embedding_date=datetime.now(),
+                                run_id=self._run_id,
+                                embedding_run_id=self._run_id,
+                            )
+
                     self.logger.info(
                         f"{len(self._new_chunk_embeddings)} new embeddings to be generated."
                     )
@@ -356,25 +407,27 @@ class EmbeddingPatch(ComponentBaseMixin):
                             prompt_name="document",
                         )
 
+                        chunk_embeddings = []
                         for cindex, item in enumerate(elchunk):
                             chunk_embedding: ChunkEmbedding = item["chunk_embedding"]
                             chunk_embedding.embedding = embeddings[cindex]
+                            chunk_embeddings.append(chunk_embedding)
 
-                            await chunk_embedding.submit(session)
+                        await ChunkEmbedding.submit_many(session, chunk_embeddings)
 
-                        self._embedding_counter += len(elchunk)
+                        if commit:
+                            await session.commit()
+                        else:
+                            await session.rollback()
                         self.logger.info(
-                            f"Updated {self._embedding_counter} embeddings"
+                            f"{message_prefix}: Inserted {len(elchunk)} chunk embeddings."
                         )
+
                 except Exception as error:
                     status = ProcessStatus.FAIL
                     message = str(error)
                     raise
                 finally:
-                    if commit:
-                        await session.commit()
-                    else:
-                        await session.rollback()
                     await self._finalize_etl_run(session, status, message)
 
         finally:
