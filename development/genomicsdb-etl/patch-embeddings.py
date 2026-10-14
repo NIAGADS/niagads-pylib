@@ -205,8 +205,6 @@ class EmbeddingPatch(ComponentBaseMixin):
 
         token_count = self._embedding_generator.token_count(metadata.chunk_text)
         if token_count <= self._embedding_generator.max_sequence_length:
-            self.logger.info(f"Embedding phrase of size: {token_count}")
-            # embedding = self._embedding_generator.generate(metadata.chunk_text)
             self._new_chunk_embeddings.append(
                 {
                     "chunk_embedding": ChunkEmbedding(
@@ -243,7 +241,6 @@ class EmbeddingPatch(ComponentBaseMixin):
                             chunk_metadata_id=chunk_metadata_id,
                             chunk_hash=chunk_metadata.chunk_hash,
                             embedding_model=str(LLM.BGE_M3),
-                            # embedding=self._embedding_generator.generate(chunk.chunk_text),
                             embedding_date=datetime.now(),
                             run_id=self._run_id,
                             embedding_run_id=self._run_id,
@@ -290,11 +287,16 @@ class EmbeddingPatch(ComponentBaseMixin):
                     ):
                         await self._update_chunk_embeddings(session, chunk_metadata)
 
-                    self.logger.info("generating embeddings")
+                    self.logger.info("Done generating updated metadata.")
+                    self.logger.info(
+                        f"{len(self._new_chunk_embeddings)} new embeddings to be generated."
+                    )
+
                     embedding_list_chunker = chunker(
                         self._new_chunk_embeddings, self._batch_size
                     )
-                    for elchunk in embedding_list_chunker:
+                    for elindex, elchunk in enumerate(embedding_list_chunker, start=1):
+                        self.logger.info(f"Generating embeddings for chunk {elindex}")
                         embeddings = self._embedding_generator.generate(
                             [item["chunk_text"] for item in elchunk], as_list=True
                         )
