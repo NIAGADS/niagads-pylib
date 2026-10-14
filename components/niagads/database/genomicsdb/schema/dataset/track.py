@@ -5,12 +5,12 @@ from typing import List, Optional, Union
 
 from niagads.common.track.models import (
     BiosampleCharacteristics,
+    CurationEvent,
     ExperimentalDesign,
     FileProperties,
     Phenotype,
     Provenance,
 )
-from niagads.common.track.models.curation import CurationEvent
 from niagads.common.track.models.phenotypes import PhenotypeCount
 from niagads.database.genomicsdb.schema.dataset.base import DatasetTableBase
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column

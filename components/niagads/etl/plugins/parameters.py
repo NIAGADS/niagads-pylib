@@ -154,7 +154,7 @@ class EmbeddingParameterMixin:
     """
 
     embedding_model: Optional[LLM] = Field(
-        LLM.ALL_MINILM_L6_V2,
+        LLM.LFM2_5_EMBEDDING_350M,
         description="LLM model for generating text embeddings",
     )
     embedding_batch_size: Optional[int] = Field(
@@ -162,6 +162,15 @@ class EmbeddingParameterMixin:
     )
     embedding_force_cpu: Optional[bool] = Field(
         default=False, description="force CPU use for calculating embeddings"
+    )
+    soft_token_limit: Optional[int] = Field(
+        default=400,
+        description=(
+            "`soft` token limit for embedding model; "
+            "used to help chunk large documents.  "
+            "For example default `LFM2_5_EMBEDDING_350` model "
+            "has a token limit of 512; soft token limit set to 400."
+        ),
     )
 
     @field_validator("embedding_model")

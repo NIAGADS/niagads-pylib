@@ -62,6 +62,12 @@ class VEPAnnotationLoaderParams(
     BasePluginParams, PathValidatorParamMixin, EmbeddingParameterMixin, GA4GHParamMixin
 ):
     file: str = Field(description="Path to VEP JSON file")
+
+    # FIXME: this needs to move to larger model
+    embedding_model: Optional[LLM] = Field(
+        default=LLM.ALL_MINILM_L6_V2,  # FIXME: later update to what rest of project uses
+        description="LLM model for generating text embeddings",
+    )
     summarization_model: Optional[LLM] = Field(
         default=LLM.MISTRAL_7B_INSTRUCT_V0_3,
         description="LLM model for generating textual summaries of the VEP annotation",
