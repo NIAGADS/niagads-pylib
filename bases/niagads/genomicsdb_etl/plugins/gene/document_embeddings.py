@@ -76,6 +76,9 @@ class GeneDocumentEmbeddingLoader(AbstractBasePlugin, EmbeddingGeneratorContextM
         for record in self._gene_records:
             yield record
 
+    def _generate_chunk_text(self, obj):
+        chunk_text = json.dumps(obj)
+
     def _build_document(self, record: Gene, section: GeneDocumentSection) -> str:
         """Build the complete JSON text for a gene document section."""
         document = {
