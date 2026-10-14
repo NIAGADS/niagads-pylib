@@ -66,8 +66,7 @@ class GeneDocumentEmbeddingParams(BasePluginParams, EmbeddingParameterMixin):
         version="1.0",
         description=(
             "Load gene document embeddings grouped by identity, structure, "
-            "annotation, and references. Skip unchanged chunks for the selected "
-            "model; retain previous chunk versions."
+            "annotation, and references. "
         ),
         affected_tables=[ChunkEmbedding, ChunkMetadata],
         parameter_model=GeneDocumentEmbeddingParams,
