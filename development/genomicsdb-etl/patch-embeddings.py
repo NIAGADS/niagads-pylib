@@ -270,7 +270,11 @@ class EmbeddingPatch(ComponentBaseMixin):
                 status = ProcessStatus.SUCCESS
                 message = "Embedding patch completed"
                 try:
+                    self.logger.info("retrieving data")
                     await self._retrieve_chunk_metadata(session)
+                    self.logger.info(f"retrived {len(self._chunk_metadata)} records")
+
+                    self.logger.info("updating metadata")
                     for index, chunk_metadata in enumerate(
                         self._chunk_metadata, start=1
                     ):
