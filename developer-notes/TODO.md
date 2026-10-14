@@ -5,13 +5,9 @@
 
 ## API
 
-### Bugs
-
-`variant_id` (aliased as id) is not showing in table/text view
-
 ### other
 
-* revisit GenomicRegion -> zero vs one-based especially for variants
+* revisit GenomicRegion -> zero vs one-based for variants
 * Pipe SQL Alchemy Echo to log for non-api
 
 ```
