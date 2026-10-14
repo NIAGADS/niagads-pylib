@@ -33,6 +33,7 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
 from niagads.database.session import DatabaseSessionManager
 from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM
+from niagads.utils.list import chunker
 from pydantic import BaseModel
 from sqlalchemy import select
 
@@ -57,6 +58,9 @@ class EmbeddingPatch(ComponentBaseMixin):
         self._embedding_counter = 0
         self._new_metadata_count = 0
         self._run_id: Optional[int] = None
+        self._batch_size = 512
+
+        self._new_chunk_embeddings: list = []
 
         self.logger.setLevel(logging.INFO)
 
@@ -202,23 +206,20 @@ class EmbeddingPatch(ComponentBaseMixin):
         token_count = self._embedding_generator.token_count(metadata.chunk_text)
         if token_count <= self._embedding_generator.max_sequence_length:
             self.logger.info(f"Embedding phrase of size: {token_count}")
-            embedding = self._embedding_generator.generate(metadata.chunk_text)
-            chunk_embedding = ChunkEmbedding(
-                chunk_metadata_id=metadata.chunk_metadata_id,
-                chunk_hash=metadata.chunk_hash,
-                embedding_model=str(LLM.BGE_M3),
-                embedding=embedding,
-                embedding_date=datetime.now(),
-                modification_date=datetime.now(),
-                run_id=self._run_id,
-                embedding_run_id=self._run_id,
-            )
-            await chunk_embedding.submit(session)
-            self._embedding_counter += 1
-
-            self.logger.info(
-                f"Re-embedded chunk metadata {metadata.chunk_metadata_id} "
-                f"using BGE-M3 ({token_count} tokens)."
+            # embedding = self._embedding_generator.generate(metadata.chunk_text)
+            self._new_chunk_embeddings.append(
+                {
+                    "chunk_embedding": ChunkEmbedding(
+                        chunk_metadata_id=metadata.chunk_metadata_id,
+                        chunk_hash=metadata.chunk_hash,
+                        embedding_model=str(LLM.BGE_M3),
+                        embedding_date=datetime.now(),
+                        modification_date=datetime.now(),
+                        run_id=self._run_id,
+                        embedding_run_id=self._run_id,
+                    ),
+                    "chunk_text": metadata.chunk_text,
+                }
             )
 
         else:
@@ -236,18 +237,23 @@ class EmbeddingPatch(ComponentBaseMixin):
                     run_id=self._run_id,
                 )
                 chunk_metadata_id = await chunk_metadata.submit(session)
-                chunk_embedding = ChunkEmbedding(
-                    chunk_metadata_id=chunk_metadata_id,
-                    chunk_hash=chunk_metadata.chunk_hash,
-                    embedding_model=str(LLM.BGE_M3),
-                    embedding=self._embedding_generator.generate(chunk.chunk_text),
-                    embedding_date=datetime.now(),
-                    run_id=self._run_id,
-                    embedding_run_id=self._run_id,
+                self._new_chunk_embeddings.append(
+                    {
+                        "chunk_embedding": ChunkEmbedding(
+                            chunk_metadata_id=chunk_metadata_id,
+                            chunk_hash=chunk_metadata.chunk_hash,
+                            embedding_model=str(LLM.BGE_M3),
+                            # embedding=self._embedding_generator.generate(chunk.chunk_text),
+                            embedding_date=datetime.now(),
+                            run_id=self._run_id,
+                            embedding_run_id=self._run_id,
+                        ),
+                        "chunk_text": chunk_metadata.chunk_text,
+                    }
                 )
-                await chunk_embedding.submit(session)
                 self._new_metadata_count += 1
 
+            # delete original
             await session.delete(metadata)
 
     async def _finalize_etl_run(self, session, status, message):
@@ -283,8 +289,24 @@ class EmbeddingPatch(ComponentBaseMixin):
                         self._chunk_metadata, start=1
                     ):
                         await self._update_chunk_embeddings(session, chunk_metadata)
-                        if index % 500 == 0:
-                            self.logger.info(f"Updated {index} embeddings")
+
+                    self.logger.info("generating embeddings")
+                    embedding_list_chunker = chunker(
+                        self._new_chunk_embeddings, self._batch_size
+                    )
+                    for elchunk in embedding_list_chunker:
+                        embeddings = self._embedding_generator.generate(
+                            [item["chunk_text"] for item in elchunk], as_list=True
+                        )
+                        self._embedding_counter += len(elchunk)
+                        for cindex, item in enumerate(elchunk):
+                            chunk_embedding: ChunkEmbedding = item["chunk_embedding"]
+                            chunk_embedding.embedding = embeddings[cindex]
+                            await chunk_embedding.submit(session)
+
+                        self.logger.info(
+                            f"Updated {self._embedding_counter} embeddings"
+                        )
                 except Exception as error:
                     status = ProcessStatus.FAIL
                     message = str(error)
