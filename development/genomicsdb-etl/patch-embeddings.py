@@ -375,7 +375,7 @@ class EmbeddingPatch(ComponentBaseMixin):
 
                     self.logger.info("Done generating and chunking metadata.")
 
-                    self._delete_obsolete(session, commit)
+                    await self._delete_obsolete(session, commit)
 
                     self.logger.info("Inserting new metadata records.")
                     if self._new_chunk_metadata:
