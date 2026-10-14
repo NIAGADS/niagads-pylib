@@ -19,7 +19,9 @@ import os
 from datetime import datetime
 from typing import Optional
 
+from niagads.common.types import ETLOperation, ProcessStatus
 from niagads.common.core import ComponentBaseMixin
+from niagads.database.genomicsdb.schema.admin.etl import ETLRun
 from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
@@ -48,12 +50,64 @@ class EmbeddingPatch(ComponentBaseMixin):
         self._embedding_generator = TextEmbeddingGenerator(LLM.BGE_M3)
         self._embedding_counter = 0
         self._new_metadata_count = 0
+        self._run_id: Optional[int] = None
+
+    async def _create_etl_run(self, session):
+        etl_run = ETLRun(
+            plugin_name="patch-embeddings",
+            plugin_version="1.0",
+            params={"embedding_model": str(LLM.BGE_M3)},
+            message="Embedding patch initiated",
+            status=ProcessStatus.IN_PROGRESS,
+            operation=str(ETLOperation.UPDATE),
+            start_time=datetime.now(),
+            rows_processed=0,
+            is_test_run=False,
+        )
+        self._run_id = await etl_run.submit(session)
 
     def _serialize_json_value(self, value) -> str:
         """Serialize JSON compactly for storage and token counting."""
         return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
-    def _chunk_text_document(document): ...
+    def _chunk_text_document(document):
+        raise NotImplementedError("Not sure if we need this")
+
+    def _chunk_list(self, item, index: int):
+
+        key, list_values = next(iter(item.items()))
+        current_chunk = []
+        empty_chunk_token_count = self._embedding_generator.token_count(
+            self._serialize_json_value({key: []})
+        )
+        current_token_count = empty_chunk_token_count
+        next_index = 0 if index is None else index + 1
+
+        for value in list_values:
+            value_token_count = self._embedding_generator.token_count(
+                self._serialize_json_value(value)
+            )
+            if (
+                current_chunk
+                and current_token_count + value_token_count
+                > self._embedding_generator.max_sequence_length
+            ):
+                yield DocumentChunk(
+                    chunk_text=self._serialize_json_value({key: current_chunk}),
+                    chunk_index=next_index,
+                )
+                next_index += 1
+                current_chunk = []
+                current_token_count = empty_chunk_token_count
+
+            current_chunk.append(value)
+            current_token_count += value_token_count
+
+        if current_chunk:
+            yield DocumentChunk(
+                chunk_text=self._serialize_json_value({key: current_chunk}),
+                chunk_index=next_index,
+            )
 
     def _chunk_json_value(self, value, index: int = None):
         """Split a JSON value into model-sized values without changing its type."""
@@ -68,24 +122,60 @@ class EmbeddingPatch(ComponentBaseMixin):
             )
             return
 
-        if isinstance(value, dict):
-            _item_sizes = {
-                key: self._embedding_generator.token_count(
-                    self._serialize_json_value({key: child_value})
+        current_chunk = {}
+        current_token_count = 0
+        next_index = 0 if index is None else index + 1
+        oversized_items = []
+
+        for key, child_value in value.items():
+            item = {key: child_value}
+            item_token_count = self._embedding_generator.token_count(
+                self._serialize_json_value(item)
+            )
+
+            if item_token_count > self._embedding_generator.max_sequence_length:
+                oversized_items.append(item)
+                continue
+
+            if (
+                current_chunk
+                and current_token_count + item_token_count
+                > self._embedding_generator.max_sequence_length
+            ):
+                yield DocumentChunk(
+                    chunk_text=self._serialize_json_value(current_chunk),
+                    chunk_index=next_index,
                 )
-                for key, child_value in value.items()
-            }
+                next_index += 1
+                current_chunk = item
+                current_token_count = item_token_count
+            else:
+                current_chunk.update(item)
+                current_token_count += item_token_count
 
-        # handle json
+        if current_chunk:
+            yield DocumentChunk(
+                chunk_text=self._serialize_json_value(current_chunk),
+                chunk_index=next_index,
+            )
+            next_index + 1
 
-        # unresolvable message
-        overflow = token_count - self._embedding_generator.max_sequence_length
-        self.logger.warning(
-            f"JSON chunk cannot be split below the BGE-M3 token limit; it has "
-            f"{token_count} tokens, exceeding the limit by {overflow}."
-        )
-        self.logger.info(f"chunk_text={value!r}")
-        return []
+        # handle oversized items
+        for oversized_item in oversized_items:
+            value = next(iter(oversized_item.values()))
+            if isinstance(
+                value, str
+            ):  # nothing we can do about this here, it will be truncated
+                yield DocumentChunk(
+                    chunk_text=self._serialize_json_value(oversized_item),
+                    index=next_index,
+                )
+                next_index + 1
+            if isinstance(value, dict):
+                # not sure if this will happen. need to see
+                raise ValueError(f"oversized nested dict: {value}")
+            if isinstance(value, list):
+                yield from self._chunk_list(oversized_item, index)
 
     def _chunk_document(self, metadata: ChunkMetadata) -> list[ChunkMetadata]:
         """Split oversized JSON while retaining its parent object structure."""
@@ -108,6 +198,8 @@ class EmbeddingPatch(ComponentBaseMixin):
                 embedding_model=str(LLM.BGE_M3),
                 embedding=embedding,
                 embedding_date=datetime.now(),
+                modification_date=datetime.now(),
+                run_id=self._run_id,
             )
             await chunk_embedding.submit(session)
             self._embedding_counter += 1
@@ -118,10 +210,39 @@ class EmbeddingPatch(ComponentBaseMixin):
             )
 
         else:
-            chunks: list[DocumentChunk] = self._chunk_document(metadata)
-            # insert new chunks
-            # delete original chunk
-            # calculate and load embeddings for all new chunks
+            chunks = self._chunk_document(metadata)
+            for chunk in chunks:
+                chunk_metadata = ChunkMetadata(
+                    table_id=metadata.table_id,
+                    row_id=metadata.row_id,
+                    document_type=metadata.document_type,
+                    document_section=metadata.document_section,
+                    document_hash=metadata.document_hash,
+                    chunk_hash=self._embedding_generator.hash_text(chunk.chunk_text),
+                    chunk_text=chunk.chunk_text,
+                    chunk_index=chunk.chunk_index,
+                    run_id=self._run_id,
+                )
+                chunk_metadata_id = await chunk_metadata.submit(session)
+                chunk_embedding = ChunkEmbedding(
+                    chunk_metadata_id=chunk_metadata_id,
+                    chunk_hash=chunk_metadata.chunk_hash,
+                    embedding_model=str(LLM.BGE_M3),
+                    embedding=self._embedding_generator.generate(chunk.chunk_text),
+                    embedding_date=datetime.now(),
+                    run_id=self._run_id,
+                )
+                await chunk_embedding.submit(session)
+                self._new_metadata_count += 1
+
+            await session.delete(metadata)
+
+    async def _finalize_etl_run(self, session, status, message):
+        etl_run = await session.get(ETLRun, self._run_id)
+        etl_run.status = status
+        etl_run.end_time = datetime.now()
+        etl_run.rows_processed = self._new_metadata_count + self._embedding_counter
+        etl_run.message = message
 
     async def _retrieve_chunk_metadata(self, session):
         stmt = select(ChunkMetadata)
@@ -136,9 +257,20 @@ class EmbeddingPatch(ComponentBaseMixin):
         manager = DatabaseSessionManager(self._database_uri)
         try:
             async with manager.session_ctx() as session:
-                await self._retrieve_chunk_metadata(session)
-                for chunk_metadata in self._chunk_metadata:
-                    await self._update_chunk_embeddings(session, chunk_metadata)
+                await self._create_etl_run(session)
+                status = ProcessStatus.SUCCESS
+                message = "Embedding patch completed"
+                try:
+                    await self._retrieve_chunk_metadata(session)
+                    for chunk_metadata in self._chunk_metadata:
+                        await self._update_chunk_embeddings(session, chunk_metadata)
+                except Exception as error:
+                    status = ProcessStatus.FAIL
+                    message = str(error)
+                    raise
+                finally:
+                    await self._finalize_etl_run(session, status, message)
+                    await session.commit()
 
         finally:
             await manager.close()
