@@ -103,11 +103,14 @@ class EmbeddingPatch(ComponentBaseMixin):
             if not separator:
                 if last_key is None:
                     raise ValueError(f"Unable to parse ontology term line: {line}")
-                parsed_document[last_key] += f"\n{line}"
+                parsed_document[last_key] += f" {line.strip()}"
                 continue
 
             key = key.strip()
-            value = value.lstrip()
+            value = value.lstrip().replace("\n", " ")
+            if key == "Definition" and value == "None":
+                last_key = key
+                continue
             if key == "Synonym":
                 parsed_document.setdefault(key, []).append(value)
             else:
