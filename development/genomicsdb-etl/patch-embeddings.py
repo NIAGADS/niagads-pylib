@@ -29,6 +29,8 @@ from niagads.nlp.llm_types import LLM
 from pydantic import BaseModel
 from sqlalchemy import select
 
+EMBEDDING_MODEL = EMBEDDING_MODEL
+
 
 class DocumentChunk(BaseModel):
     chunk_text: str
@@ -48,8 +50,9 @@ class EmbeddingPatch(ComponentBaseMixin):
         super().__init__()
         self._database_uri = database_uri
         self._chunk_metadata: list[ChunkMetadata]
+
         self._embedding_generator = TextEmbeddingGenerator(
-            LLM.LFM2_5_EMBEDDING_350M, force_cpu=force_cpu
+            EMBEDDING_MODEL, force_cpu=force_cpu
         )
         self._embedding_counter = 0
         self._new_metadata_count = 0
@@ -64,7 +67,7 @@ class EmbeddingPatch(ComponentBaseMixin):
         etl_run = ETLRun(
             plugin_name="patch-embeddings",
             plugin_version="1.0",
-            params={"embedding_model": str(LLM.LFM2_5_EMBEDDING_350M)},
+            params={"embedding_model": str(EMBEDDING_MODEL)},
             message="Embedding patch initiated",
             status=ProcessStatus.IN_PROGRESS,
             operation=str(ETLOperation.UPDATE),
@@ -73,6 +76,7 @@ class EmbeddingPatch(ComponentBaseMixin):
             is_test_run=False,
         )
         self._run_id = await etl_run.submit(session)
+        self.commit()  # always commit
 
     def _serialize_json_value(self, value) -> str:
         """Serialize JSON compactly for storage and token counting."""
@@ -242,8 +246,8 @@ class EmbeddingPatch(ComponentBaseMixin):
         if batch:
             yield batch
 
-    async def _determine_updates(self, session, metadata: ChunkMetadata):
-        """Re-embed a chunk when its text fits the LFM input window."""
+    async def _chunk_existing_metadata(self, session, metadata: ChunkMetadata):
+        """chunk existing metadata it does not fit the input window."""
 
         token_count = self._embedding_generator.token_count(metadata.chunk_text)
         is_ontology_term = metadata.chunk_text.startswith("Term:")
@@ -253,7 +257,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                     "chunk_embedding": ChunkEmbedding(
                         chunk_metadata_id=metadata.chunk_metadata_id,
                         chunk_hash=metadata.chunk_hash,
-                        embedding_model=str(LLM.LFM2_5_EMBEDDING_350M),
+                        embedding_model=str(EMBEDDING_MODEL),
                         embedding_date=datetime.now(),
                         modification_date=datetime.now(),
                         run_id=self._run_id,
@@ -285,7 +289,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                         "chunk_embedding": ChunkEmbedding(
                             chunk_metadata_id=chunk_metadata_id,
                             chunk_hash=chunk_metadata.chunk_hash,
-                            embedding_model=str(LLM.LFM2_5_EMBEDDING_350M),
+                            embedding_model=str(EMBEDDING_MODEL),
                             embedding_date=datetime.now(),
                             run_id=self._run_id,
                             embedding_run_id=self._run_id,
@@ -305,6 +309,7 @@ class EmbeddingPatch(ComponentBaseMixin):
         etl_run.end_time = datetime.now()
         etl_run.rows_processed = self._new_metadata_count + self._embedding_counter
         etl_run.message = message
+        session.commit()
 
     async def _retrieve_chunk_metadata(self, session):
         stmt = select(ChunkMetadata)
@@ -316,6 +321,7 @@ class EmbeddingPatch(ComponentBaseMixin):
 
     async def run(self, commit: bool = False) -> None:
         """Retrieve all chunk metadata and retain it after closing the session."""
+        self._commit = commit
         manager = DatabaseSessionManager(self._database_uri)
         try:
             async with manager.session_ctx() as session:
@@ -331,7 +337,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                     for index, chunk_metadata in enumerate(
                         self._chunk_metadata, start=1
                     ):
-                        await self._determine_updates(session, chunk_metadata)
+                        await self._chunk_existing_metadata(session, chunk_metadata)
                         if index % 10000 == 0:
                             self.logger.info(f"Updated {index} metadata entries.")
 
@@ -353,6 +359,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                         for cindex, item in enumerate(elchunk):
                             chunk_embedding: ChunkEmbedding = item["chunk_embedding"]
                             chunk_embedding.embedding = embeddings[cindex]
+
                             await chunk_embedding.submit(session)
 
                         self._embedding_counter += len(elchunk)
@@ -364,11 +371,11 @@ class EmbeddingPatch(ComponentBaseMixin):
                     message = str(error)
                     raise
                 finally:
-                    await self._finalize_etl_run(session, status, message)
                     if commit:
                         await session.commit()
                     else:
                         await session.rollback()
+                    await self._finalize_etl_run(session, status, message)
 
         finally:
             await manager.close()
