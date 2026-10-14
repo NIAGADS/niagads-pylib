@@ -16,6 +16,7 @@ If project instructions, configuration, and code patterns conflict, follow the a
 
 ## Implementation
 
+- ask before changing code in existing components or outside specific scope the explicit request.  justify all proposed changes.
 - Make the smallest complete change that satisfies the explicit request.
 - Follow the project’s configured Python version, formatting, linting, typing, and line-length rules. Use PEP 8 where project configuration does not specify otherwise.
 - Use Pydantic 2 or later when required by the request or the project’s existing design. Do not replace established Pydantic models with dictionaries or duplicate their validation.
