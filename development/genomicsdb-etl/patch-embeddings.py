@@ -242,7 +242,7 @@ class EmbeddingPatch(ComponentBaseMixin):
         if batch:
             yield batch
 
-    async def _update_chunk_embeddings(self, session, metadata: ChunkMetadata):
+    async def _determine_updates(self, session, metadata: ChunkMetadata):
         """Re-embed a chunk when its text fits the BGE-M3 input window."""
 
         token_count = self._embedding_generator.token_count(metadata.chunk_text)
@@ -331,7 +331,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                     for index, chunk_metadata in enumerate(
                         self._chunk_metadata, start=1
                     ):
-                        await self._update_chunk_embeddings(session, chunk_metadata)
+                        await self._determine_updates(session, chunk_metadata)
                         if index % 10000 == 0:
                             self.logger.info(f"Updated {index} metadata entries.")
 
