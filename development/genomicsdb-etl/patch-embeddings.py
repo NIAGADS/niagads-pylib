@@ -13,6 +13,7 @@ then iterate over ragdoc.chunkmetadata
     --> delete old metadata
 """
 
+import argparse
 import asyncio
 import json
 import os
@@ -43,11 +44,13 @@ class DocumentChunk(BaseModel):
 class EmbeddingPatch(ComponentBaseMixin):
     """Load stored chunk metadata for the embedding patch."""
 
-    def __init__(self, database_uri: str):
+    def __init__(self, database_uri: str, force_cpu: bool = False):
         super().__init__()
         self._database_uri = database_uri
         self._chunk_metadata: list[ChunkMetadata]
-        self._embedding_generator = TextEmbeddingGenerator(LLM.BGE_M3)
+        self._embedding_generator = TextEmbeddingGenerator(
+            LLM.BGE_M3, force_cpu=force_cpu
+        )
         self._embedding_counter = 0
         self._new_metadata_count = 0
         self._run_id: Optional[int] = None
@@ -281,5 +284,13 @@ class EmbeddingPatch(ComponentBaseMixin):
 
 
 if __name__ == "__main__":
-    patch = EmbeddingPatch(os.environ["DATABASE_URI"])
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--force-cpu",
+        action="store_true",
+        help="Run embedding generation on the CPU.",
+    )
+    args = parser.parse_args()
+
+    patch = EmbeddingPatch(os.environ["DATABASE_URI"], force_cpu=args.force_cpu)
     asyncio.run(patch.run())
