@@ -328,23 +328,3 @@ LEFT JOIN (
 ) known_ad
     ON known_ad.gene_id = genes.gene_id
 );
-
--- Step 8: Add query indexes to the gene document materialized view.
-CREATE INDEX ix_gene_document_mv_gene_id
-    ON Gene.Documents_MV (gene_id);
-
-CREATE INDEX ix_gene_document_mv_source_id
-    ON Gene.Documents_MV (source_id);
-
-CREATE INDEX ix_gene_document_mv_gene_type
-    ON Gene.Documents_MV (gene_type);
-
-CREATE INDEX ix_gene_document_mv__bin_index
-    ON Gene.Documents_MV USING GIST (bin_index);
-
-CREATE INDEX ix_gene_document_mv__span
-    ON Gene.Documents_MV USING GIST (span);
-
-CREATE INDEX ix_gene_document_mv_associated_with_known_ad_locus
-    ON Gene.Documents_MV (associated_with_known_ad_locus)
-    WHERE associated_with_known_ad_locus IS TRUE;
