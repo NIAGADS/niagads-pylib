@@ -43,7 +43,8 @@ class DocumentChunk(BaseModel):
 class EmbeddingPatch(ComponentBaseMixin):
     """Load stored chunk metadata for the embedding patch."""
 
-    SOFT_TOKEN_LIMIT = 256
+    SOFT_TOKEN_LIMIT = 400
+    HARD_TOKEN_MARGIN = 20
 
     def __init__(
         self, database_uri: str, force_cpu: bool = False, batch_size: int = 128
@@ -54,6 +55,9 @@ class EmbeddingPatch(ComponentBaseMixin):
 
         self._embedding_generator = TextEmbeddingGenerator(
             EMBEDDING_MODEL, force_cpu=force_cpu
+        )
+        self._hard_token_limit = (
+            self._embedding_generator.max_sequence_length - self.HARD_TOKEN_MARGIN
         )
         self._embedding_counter = 0
         self._new_metadata_count = 0
@@ -129,7 +133,7 @@ class EmbeddingPatch(ComponentBaseMixin):
             if (
                 current_chunk
                 and current_token_count + value_token_count
-                > self._embedding_generator.max_sequence_length
+                > self._hard_token_limit
             ):
                 yield DocumentChunk(
                     chunk_text=self._serialize_json_value({key: current_chunk}),
@@ -172,7 +176,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                 self._serialize_json_value(item)
             )
 
-            if item_token_count > self._embedding_generator.max_sequence_length:
+            if item_token_count > self._hard_token_limit:
                 oversized_items.append(item)
                 continue
 
@@ -230,12 +234,13 @@ class EmbeddingPatch(ComponentBaseMixin):
         """Yield embedding batches sized for both count and token length."""
         batch = []
         largest_token_count = 0
-        hard_token_limit = self._embedding_generator.max_sequence_length
 
         for item in self._new_chunk_embeddings:
             token_count = item["token_count"]
             proposed_largest = max(largest_token_count, token_count)
-            token_batch_size = max(1, hard_token_limit // proposed_largest)
+            # Limit batch count based on the largest item while allowing one item
+            # through when its token count exceeds the effective hard limit.
+            token_batch_size = max(1, self._hard_token_limit // proposed_largest)
             allowed_batch_size = min(self._batch_size, token_batch_size)
 
             if batch and len(batch) >= allowed_batch_size:
