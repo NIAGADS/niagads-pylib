@@ -332,6 +332,8 @@ class EmbeddingPatch(ComponentBaseMixin):
                         self._chunk_metadata, start=1
                     ):
                         await self._update_chunk_embeddings(session, chunk_metadata)
+                        if index % 10000 == 0:
+                            self.logger.info(f"Updated {index} metadata entries.")
 
                     self.logger.info("Done generating updated metadata.")
                     self.logger.info(
