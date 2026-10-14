@@ -259,7 +259,7 @@ class EmbeddingPatch(ComponentBaseMixin):
             f"Retrieved {len(self._chunk_metadata)} chunk metadata records."
         )
 
-    async def run(self) -> None:
+    async def run(self, commit: bool = False) -> None:
         """Retrieve all chunk metadata and retain it after closing the session."""
         manager = DatabaseSessionManager(self._database_uri)
         try:
@@ -269,15 +269,22 @@ class EmbeddingPatch(ComponentBaseMixin):
                 message = "Embedding patch completed"
                 try:
                     await self._retrieve_chunk_metadata(session)
-                    for chunk_metadata in self._chunk_metadata:
+                    for index, chunk_metadata in enumerate(
+                        self._chunk_metadata, start=1
+                    ):
                         await self._update_chunk_embeddings(session, chunk_metadata)
+                        if index % 500 == 0:
+                            self.logger.info(f"Updated {index} embeddings")
                 except Exception as error:
                     status = ProcessStatus.FAIL
                     message = str(error)
                     raise
                 finally:
                     await self._finalize_etl_run(session, status, message)
-                    await session.commit()
+                    if commit:
+                        await session.commit()
+                    else:
+                        await session.rollback()
 
         finally:
             await manager.close()
@@ -290,7 +297,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Run embedding generation on the CPU.",
     )
+    parser.add_argument(
+        "--commit",
+        action="store_true",
+        help="Commit the embedding patch changes.",
+    )
     args = parser.parse_args()
 
     patch = EmbeddingPatch(os.environ["DATABASE_URI"], force_cpu=args.force_cpu)
-    asyncio.run(patch.run())
+    asyncio.run(patch.run(commit=args.commit))
