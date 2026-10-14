@@ -154,7 +154,7 @@ class EmbeddingParameterMixin:
     """
 
     embedding_model: Optional[LLM] = Field(
-        LLM.BGE_M3,
+        LLM.LFM2_5_EMBEDDING_350M,
         description="LLM model for generating text embeddings",
     )
     embedding_batch_size: Optional[int] = Field(
