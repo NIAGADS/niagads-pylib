@@ -175,7 +175,9 @@ class EmbeddingPatch(ComponentBaseMixin):
                 # not sure if this will happen. need to see
                 raise ValueError(f"oversized nested dict: {value}")
             if isinstance(value, list):
-                yield from self._chunk_list(oversized_item, next_index)
+                for chunk in self._chunk_list(oversized_item, next_index):
+                    yield chunk
+                    next_index = chunk.chunk_index + 1
 
     def _chunk_document(self, metadata: ChunkMetadata) -> Iterator[DocumentChunk]:
         """Split oversized JSON while retaining its parent object structure."""
