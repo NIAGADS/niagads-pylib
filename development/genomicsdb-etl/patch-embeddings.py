@@ -40,7 +40,7 @@ class DocumentChunk(BaseModel):
 class EmbeddingPatch(ComponentBaseMixin):
     """Load stored chunk metadata for the embedding patch."""
 
-    SOFT_TOKEN_LIMIT = 2048
+    SOFT_TOKEN_LIMIT = 256
 
     def __init__(
         self, database_uri: str, force_cpu: bool = False, batch_size: int = 128
@@ -49,7 +49,7 @@ class EmbeddingPatch(ComponentBaseMixin):
         self._database_uri = database_uri
         self._chunk_metadata: list[ChunkMetadata]
         self._embedding_generator = TextEmbeddingGenerator(
-            LLM.BGE_M3, force_cpu=force_cpu
+            LLM.LFM2_5_EMBEDDING_350M, force_cpu=force_cpu
         )
         self._embedding_counter = 0
         self._new_metadata_count = 0
@@ -64,7 +64,7 @@ class EmbeddingPatch(ComponentBaseMixin):
         etl_run = ETLRun(
             plugin_name="patch-embeddings",
             plugin_version="1.0",
-            params={"embedding_model": str(LLM.BGE_M3)},
+            params={"embedding_model": str(LLM.LFM2_5_EMBEDDING_350M)},
             message="Embedding patch initiated",
             status=ProcessStatus.IN_PROGRESS,
             operation=str(ETLOperation.UPDATE),
@@ -243,7 +243,7 @@ class EmbeddingPatch(ComponentBaseMixin):
             yield batch
 
     async def _determine_updates(self, session, metadata: ChunkMetadata):
-        """Re-embed a chunk when its text fits the BGE-M3 input window."""
+        """Re-embed a chunk when its text fits the LFM input window."""
 
         token_count = self._embedding_generator.token_count(metadata.chunk_text)
         is_ontology_term = metadata.chunk_text.startswith("Term:")
@@ -253,7 +253,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                     "chunk_embedding": ChunkEmbedding(
                         chunk_metadata_id=metadata.chunk_metadata_id,
                         chunk_hash=metadata.chunk_hash,
-                        embedding_model=str(LLM.BGE_M3),
+                        embedding_model=str(LLM.LFM2_5_EMBEDDING_350M),
                         embedding_date=datetime.now(),
                         modification_date=datetime.now(),
                         run_id=self._run_id,
@@ -285,7 +285,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                         "chunk_embedding": ChunkEmbedding(
                             chunk_metadata_id=chunk_metadata_id,
                             chunk_hash=chunk_metadata.chunk_hash,
-                            embedding_model=str(LLM.BGE_M3),
+                            embedding_model=str(LLM.LFM2_5_EMBEDDING_350M),
                             embedding_date=datetime.now(),
                             run_id=self._run_id,
                             embedding_run_id=self._run_id,
@@ -345,7 +345,9 @@ class EmbeddingPatch(ComponentBaseMixin):
                     ):
                         self.logger.info(f"Generating embeddings for chunk {elindex}")
                         embeddings = self._embedding_generator.generate(
-                            [item["chunk_text"] for item in elchunk], as_list=True
+                            [item["chunk_text"] for item in elchunk],
+                            as_list=True,
+                            prompt_name="document",
                         )
 
                         for cindex, item in enumerate(elchunk):

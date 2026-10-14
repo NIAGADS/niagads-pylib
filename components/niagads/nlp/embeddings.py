@@ -10,7 +10,7 @@ from sentence_transformers import SentenceTransformer
 class TextEmbeddingGenerator(ComponentBaseMixin):
     """Calculate and cache text embeddings using SentenceTransformer."""
 
-    def __init__(self, model: LLM = LLM.BGE_M3, force_cpu: bool = False):
+    def __init__(self, model: LLM = LLM.LFM2_5_EMBEDDING_350M, force_cpu: bool = False):
         super().__init__()
         self.__model = self.__initialize_model(model, force_cpu)
 
@@ -40,10 +40,15 @@ class TextEmbeddingGenerator(ComponentBaseMixin):
             SentenceTransformer: The loaded model instance (cached).
         """
         LLM.validate(model, NLPModelType.EMBEDDING)
+
+        model_kwargs = {}
         if force_cpu:
-            return SentenceTransformer(str(model), device="cpu")
-        else:
-            return SentenceTransformer(str(model))
+            model_kwargs["device"] = "cpu"
+
+        if model == LLM.LFM2_5_EMBEDDING_350M:
+            model_kwargs["trust_remote_code"] = True
+
+        return SentenceTransformer(str(model), **model_kwargs)
 
     @staticmethod
     def list_registered_models():

@@ -40,6 +40,7 @@ class LLM(CaseInsensitiveEnum):
         MISTRAL_7B_INSTRUCT_V0_3: Instruction-tuned summarization/generation model (mistralai/Mistral-7B-Instruct-v0.3). Useful fallback for prompt-driven summaries.
         ALL_MINILM_L6_V2: General-purpose sentence embedding (sentence-transformers/all-MiniLM-L6-v2). Fast, lightweight, and effective for semantic similarity and clustering.
         BGE_M3: Retrieval embeddings (BAAI/bge-m3), supporting long documents.
+        LFM2_5_EMBEDDING_350M: Retrieval embeddings (LiquidAI/LFM2.5-Embedding-350M).
         BIOBERT_MNLI_SNLI: Biomedical/scientific sentence embedding (pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb). Specialized for biomedical and scientific text embeddings.
         SPECTER: Scientific/biomedical paper embedding (sentence-transformers/allenai-specter). State-of-the-art for scientific document similarity and citation prediction.
         D4DATA: Biomedical NER (d4data/biomedical-ner-all). Robust for extracting biomedical entities (genes, diseases, chemicals, etc.) from text.
@@ -63,6 +64,7 @@ class LLM(CaseInsensitiveEnum):
     MISTRAL_7B_INSTRUCT_V0_3 = auto()
     ALL_MINILM_L6_V2 = auto()
     BGE_M3 = auto()
+    LFM2_5_EMBEDDING_350M = auto()
     BIOBERT_MNLI_SNLI = auto()
     SPECTER = auto()
     D4DATA = auto()
@@ -96,6 +98,8 @@ class LLM(CaseInsensitiveEnum):
             return "sentence-transformers/all-MiniLM-L6-v2"
         elif self == LLM.BGE_M3:
             return "BAAI/bge-m3"
+        elif self == LLM.LFM2_5_EMBEDDING_350M:
+            return "LiquidAI/LFM2.5-Embedding-350M"
         elif self == LLM.BIOBERT_MNLI_SNLI:
             return "pritamdeka/BioBERT-mnli-snli-scinli-scitail-mednli-stsb"
         elif self == LLM.SPECTER:
@@ -145,6 +149,8 @@ class LLM(CaseInsensitiveEnum):
         elif self == LLM.ALL_MINILM_L6_V2:
             return NLPModelType.EMBEDDING
         elif self == LLM.BGE_M3:
+            return NLPModelType.EMBEDDING
+        elif self == LLM.LFM2_5_EMBEDDING_350M:
             return NLPModelType.EMBEDDING
         elif self == LLM.BIOBERT_MNLI_SNLI:
             return NLPModelType.EMBEDDING
