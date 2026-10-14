@@ -219,12 +219,14 @@ class EmbeddingPatch(ComponentBaseMixin):
                         embedding_run_id=self._run_id,
                     ),
                     "chunk_text": metadata.chunk_text,
+                    "token_count": token_count,
                 }
             )
 
         else:
             chunks = self._chunk_document(metadata)
             for chunk in chunks:
+                token_count = self._embedding_generator.token_count(chunk.chunk_text)
                 chunk_metadata = ChunkMetadata(
                     table_id=metadata.table_id,
                     row_id=metadata.row_id,
@@ -248,6 +250,7 @@ class EmbeddingPatch(ComponentBaseMixin):
                             embedding_run_id=self._run_id,
                         ),
                         "chunk_text": chunk_metadata.chunk_text,
+                        "token_count": token_count,
                     }
                 )
                 self._new_metadata_count += 1
