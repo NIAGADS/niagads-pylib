@@ -96,7 +96,7 @@ class EmbeddingGeneratorContextMixin:
 
         Args:
             keyed_list (dict): A single-key dictionary containing the list to chunk.
-            index (int): Index preceding the first generated chunk.
+            index (int): Index of the first generated chunk.
 
         Yields:
             DocumentChunk: A chunk containing a subset of the list values.
@@ -107,7 +107,7 @@ class EmbeddingGeneratorContextMixin:
             self._serialize_json_value({key: []})
         )
         current_token_count = empty_chunk_token_count
-        next_index = 0 if index is None else index + 1
+        next_index = 0 if index is None else index
 
         for value in list_values:
             value_token_count = self._embedding_generator.token_count(
