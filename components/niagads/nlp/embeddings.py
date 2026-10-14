@@ -2,15 +2,26 @@ from functools import lru_cache
 from hashlib import sha256
 from typing import Union
 
+from niagads.common.core import ComponentBaseMixin
 from niagads.nlp.llm_types import LLM, NLPModelType
 from sentence_transformers import SentenceTransformer
 
 
-class TextEmbeddingGenerator:
+class TextEmbeddingGenerator(ComponentBaseMixin):
     """Calculate and cache text embeddings using SentenceTransformer."""
 
     def __init__(self, model: LLM = LLM.ALL_MINILM_L6_V2, force_cpu: bool = False):
+        super().__init__()
         self.__model = self.__initialize_model(model, force_cpu)
+
+    @property
+    def max_sequence_length(self) -> int:
+        """Return the model's input token limit."""
+        return self.__model.max_seq_length
+
+    def token_count(self, text: str) -> int:
+        """Count input tokens, including special tokens, without truncation."""
+        return len(self.__model.tokenizer.encode(text, truncation=False))
 
     @property
     def is_cpu_limited(self):
