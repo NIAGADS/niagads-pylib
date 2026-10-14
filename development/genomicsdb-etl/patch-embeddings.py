@@ -27,6 +27,7 @@ from niagads.database.session import DatabaseSessionManager
 from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM
 from niagads.utils.list import chunker
+from niagads.utils.logging import ExitOnExceptionHandler
 from pydantic import BaseModel
 from sqlalchemy import select
 
@@ -324,6 +325,32 @@ class EmbeddingPatch(ComponentBaseMixin):
             f"Retrieved {len(self._chunk_metadata)} chunk metadata records."
         )
 
+    def _duplicate_sanity_check(self):
+        self.logger.info("Duplicate sanity Check")
+        from collections import Counter
+
+        keys = [(m.table_id, m.row_id, m.chunk_text) for m in self._new_chunk_metadata]
+
+        duplicates = {key: count for key, count in Counter(keys).items() if count > 1}
+
+        if duplicates:
+            raise ValueError(
+                f"Duplicate generated metadata based on chunk_text: {duplicates}"
+            )
+        else:
+            keys = [
+                (m.table_id, m.row_id, m.chunk_hash, m.chunk_index)
+                for m in self._new_chunk_metadata
+            ]
+            duplicates = {
+                key: count for key, count in Counter(keys).items() if count > 1
+            }
+            if duplicates:
+                raise ValueError(
+                    f"Duplicate generated metadata based on integrity key {duplicates}"
+                )
+        self.logger.info("No duplicates found")
+
     async def _delete_obsolete(self, session, commit: bool):
         message_prefix = "COMMIT" if commit else "ROLLBACK"
         self.logger.info("Removing obsolete metadata entries.")
@@ -332,13 +359,13 @@ class EmbeddingPatch(ComponentBaseMixin):
             current_id = metadata.chunk_metadata_id
             await session.delete(metadata)
             transaction_count += 1
-            if transaction_count % self._batch_size == 0:
+            if transaction_count % 25000 == 0:
                 if commit:
                     await session.commit()
                 else:
                     await session.rollback()
                 self.logger.info(
-                    f"{message_prefix}: Deleting {transaction_count} obsolete metadata entries. Checkpoint: chunk_metadata_id={current_id}"
+                    f"{message_prefix}: Deleted {transaction_count} obsolete metadata entries. Checkpoint: chunk_metadata_id={current_id}"
                 )
 
         # residuals
@@ -347,7 +374,7 @@ class EmbeddingPatch(ComponentBaseMixin):
         else:
             await session.rollback()
         self.logger.info(
-            f"{message_prefix}: Deleting {transaction_count} obsolete metadata entries."
+            f"{message_prefix}: Deleted {transaction_count} obsolete metadata entries."
         )
 
     async def run(self, commit: bool = False) -> None:
@@ -375,6 +402,7 @@ class EmbeddingPatch(ComponentBaseMixin):
 
                     self.logger.info("Done generating and chunking metadata.")
 
+                    self._duplicate_sanity_check()
                     await self._delete_obsolete(session, commit)
 
                     self.logger.info("Inserting new metadata records.")
@@ -390,9 +418,13 @@ class EmbeddingPatch(ComponentBaseMixin):
                             else:
                                 await session.rollback()
                             transaction_count += len(c)
-                            self.logger.info(
-                                f"{message_prefix}: {transaction_count} metadata entries. Checkpoint: chunk_metadata_id={checkpoint_id}"
-                            )
+                            if transaction_count % self._batch_size * 100 == 0:
+                                self.logger.info(
+                                    f"{message_prefix}: {transaction_count} metadata entries. Checkpoint: chunk_metadata_id={checkpoint_id}"
+                                )
+                    self.logger.info(
+                        f"{message_prefix}: {transaction_count} metadata entries. Checkpoint: chunk_metadata_id={checkpoint_id}"
+                    )
 
                     self.logger.info("Generating new embedding placeholders")
                     for item in self._new_chunk_embeddings:
@@ -468,6 +500,11 @@ if __name__ == "__main__":
         default=128,
         help="Number of texts to embed in each batch.",
     )
+    parser.add_argument(
+        "--log-file",
+        default="patch-embeddings.log",
+        help="File to which the patch log is written.",
+    )
     args = parser.parse_args()
 
     patch = EmbeddingPatch(
@@ -475,4 +512,7 @@ if __name__ == "__main__":
         force_cpu=args.force_cpu,
         batch_size=args.batch_size,
     )
+    patch.logger.handlers.clear()
+    patch.logger.addHandler(ExitOnExceptionHandler(filename=args.log_file, mode="w"))
+    patch.logger.propagate = False
     asyncio.run(patch.run(commit=args.commit))
