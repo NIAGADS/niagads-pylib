@@ -302,7 +302,9 @@ class EmbeddingPatch(ComponentBaseMixin):
         etl_run = await session.get(ETLRun, self._run_id)
         etl_run.status = status
         etl_run.end_time = datetime.now()
-        etl_run.rows_processed = self._new_metadata_count + self._embedding_counter
+        etl_run.rows_processed = len(self._new_chunk_metadata) + len(
+            self._new_chunk_embeddings
+        )
         etl_run.message = message
         await session.commit()
 
@@ -326,24 +328,23 @@ class EmbeddingPatch(ComponentBaseMixin):
                 status = ProcessStatus.SUCCESS
                 message = "Embedding patch completed"
                 try:
-                    self.logger.info("retrieving data")
+                    self.logger.info("Fetching database records")
                     await self._retrieve_chunk_metadata(session)
-                    self.logger.info(f"retrived {len(self._chunk_metadata)} records")
 
-                    self.logger.info("updating metadata")
+                    self.logger.info("Generating and chunking metadata")
                     for index, chunk_metadata in enumerate(
                         self._chunk_metadata, start=1
                     ):
                         self._chunk_existing_metadata(chunk_metadata)
                         if index % 10000 == 0:
-                            self.logger.info(f"Updated {index} metadata entries.")
+                            self.logger.info(f"Generated {index} metadata entries.")
 
-                    self.logger.info("Done generating updated metadata.")
+                    self.logger.info("Done generating and chunking metadata.")
 
                     self.logger.info("Inserting new metadata records.")
                     if self._new_chunk_metadata:
                         chunked_list = chunker(
-                            self._new_metadata_count, self._batch_size
+                            self._new_chunk_metadata, self._batch_size
                         )
                         for c in chunked_list:
                             await ChunkMetadata.submit_many(session, c)
