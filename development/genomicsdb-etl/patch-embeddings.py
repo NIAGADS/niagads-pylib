@@ -324,6 +324,32 @@ class EmbeddingPatch(ComponentBaseMixin):
             f"Retrieved {len(self._chunk_metadata)} chunk metadata records."
         )
 
+    async def _delete_obsolete(self, session, commit: bool):
+        message_prefix = "COMMIT" if commit else "ROLLBACK"
+        self.logger.info("Removing obsolete metadata entries.")
+        transaction_count = 0
+        for metadata in self._chunk_metadata_to_delete:
+            current_id = metadata.chunk_metadata_id
+            await session.delete(metadata)
+            transaction_count += 1
+            if transaction_count % self._batch_size == 0:
+                if commit:
+                    await session.commit()
+                else:
+                    await session.rollback()
+                self.logger.info(
+                    f"{message_prefix}: Deleting {transaction_count} obsolete metadata entries. Checkpoint: chunk_metadata_id={current_id}"
+                )
+
+        # residuals
+        if commit:
+            await session.commit()
+        else:
+            await session.rollback()
+        self.logger.info(
+            f"{message_prefix}: Deleting {transaction_count} obsolete metadata entries."
+        )
+
     async def run(self, commit: bool = False) -> None:
         """Retrieve all chunk metadata and retain it after closing the session."""
         self._commit = commit
@@ -349,6 +375,8 @@ class EmbeddingPatch(ComponentBaseMixin):
 
                     self.logger.info("Done generating and chunking metadata.")
 
+                    self._delete_obsolete(session, commit)
+
                     self.logger.info("Inserting new metadata records.")
                     if self._new_chunk_metadata:
                         chunked_list = chunker(
@@ -365,30 +393,6 @@ class EmbeddingPatch(ComponentBaseMixin):
                             self.logger.info(
                                 f"{message_prefix}: {transaction_count} metadata entries. Checkpoint: chunk_metadata_id={checkpoint_id}"
                             )
-
-                    self.logger.info("Removing obsolete metadata entries.")
-                    transaction_count = 0
-                    for metadata in self._chunk_metadata_to_delete:
-                        current_id = metadata.chunk_metadata_id
-                        await session.delete(metadata)
-                        transaction_count += 1
-                        if transaction_count % self._batch_size == 0:
-                            if commit:
-                                await session.commit()
-                            else:
-                                await session.rollback()
-                            self.logger.info(
-                                f"{message_prefix}: Deleting {transaction_count} obsolete metadata entries. Checkpoint: chunk_metadata_id={current_id}"
-                            )
-
-                    # residuals
-                    if commit:
-                        await session.commit()
-                    else:
-                        await session.rollback()
-                    self.logger.info(
-                        f"{message_prefix}: Deleting {transaction_count} obsolete metadata entries."
-                    )
 
                     self.logger.info("Generating new embedding placeholders")
                     for item in self._new_chunk_embeddings:
