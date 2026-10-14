@@ -1,5 +1,7 @@
 # Route Helper Infrastructure Refactor Plan
 
+NOTE: this plan was overengineered and is no-longer 100% accurate.  Do not follow unless explicitly instructed to do so
+
 ## Goal
 
 Keep routes simple while splitting the current route helper stack into clearer logical components.

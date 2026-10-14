@@ -1,6 +1,9 @@
 from typing import List, Optional, Union
 
-from niagads.api.common.models.records.base import ORMCompatibleRecord
+from niagads.api.common.models.records.base import (
+    CountExtendedRecord,
+    ORMCompatibleRecord,
+)
 from niagads.api.common.models.records.mixins import ORMCompatabileMixin
 from niagads.common.genomic.features.models import GenomicFeatureType
 from niagads.common.reference.ontologies.models import OntologyTerm
@@ -100,7 +103,7 @@ class TrackMetadata(TrackRecord, ORMCompatabileMixin):
     )
 
 
-class TrackResultMetrics(CountRecordModel):
+class TrackResultMetrics(CountExtendedRecord):
     id: str = Field(
         title="Track ID",
         description="stable track identifier",

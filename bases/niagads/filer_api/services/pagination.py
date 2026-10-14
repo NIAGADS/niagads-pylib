@@ -5,19 +5,19 @@ from niagads.api.common.services.pagination import (
     TrackDataPaginationCursor,
     TrackDataPaginationService,
 )
-from niagads.filer_api.services.client import FILERApiDataResponse
+from niagads.filer_api.services.client import FILERDataResponse
 
 
 class FILERTrackDataPaginationService(TrackDataPaginationService):
 
     def page_data(
-        self, cursor: TrackDataPaginationCursor, data: List[FILERApiDataResponse]
+        self, cursor: TrackDataPaginationCursor, data: List[FILERDataResponse]
     ) -> List[BEDFeature]:
 
         # sort the response by the cursor pagedTracks so the track order is correct
         # FILER currently processes sequentially so this is unecessary but if updated
         # to process in parallel, it will be required
-        sortedData = sorted(data, key=lambda x: cursor.tracks == x.Identifier)
+        sortedData = sorted(data, key=lambda x: cursor.tracks == x.id)
 
         result: List[BEDFeature] = []
         for trackIndex, track in enumerate(sortedData):
@@ -26,7 +26,7 @@ class FILERTrackDataPaginationService(TrackDataPaginationService):
 
             features: List[BEDFeature] = track.features[sliceStart:sliceEnd]
             for f in features:
-                f.add_track(track.Identifier)
+                f.add_track(track.id)
                 result.append(f)
 
         return result

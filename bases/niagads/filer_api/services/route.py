@@ -9,8 +9,8 @@ from niagads.api.common.services.metadata import MetadataQueryService
 from niagads.common.genomic.features.models import GenomicFeature, GenomicFeatureType
 from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.filer_api.services.client import (
-    FILERApiDataResponse,
-    FILERApiEndpoint,
+    FILERDataResponse,
+    FILEREndpoint,
     FILERClientService,
 )
 
@@ -63,7 +63,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
         self, tracks: List[str], assembly: str, span: str, countsOnly: bool
     ):
         cache_key = CacheKey.encrypt_key(
-            f"/{FILERApiEndpoint.OVERLAPS}?genome_build={assembly}&countsOnly={countsOnly}"
+            f"/{FILEREndpoint.OVERLAPS}?genome_build={assembly}&countsOnly={countsOnly}"
             + f"&span={span}&tracks={','.join(tracks)}"
         )
         result = await self._managers.cache_service.get(
@@ -72,7 +72,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
         if result is None:
             result = await FILERClientService(
                 self._managers.http_client_session
-            ).get_track_hits(tracks, span, assembly, countsOnly=countsOnly)
+            ).get_track_overlaps(tracks, span, assembly, counts_only=countsOnly)
             await self._managers.cache_service.set(
                 cache_key, result, namespace=CacheNamespace.EXTERNAL_API
             )
@@ -80,7 +80,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
 
     async def __get_gene_qtl_data_task(self, track: str, gene: str):
         cache_key = CacheKey.encrypt_key(
-            f"/{FILERApiEndpoint.GENE_QTLS}?" + f"&gene={gene}&track={track}"
+            f"/{FILEREndpoint.GENE_QTLS}?" + f"&gene={gene}&track={track}"
         )
         result = await self._managers.cache_service.get(
             cache_key, namespace=CacheNamespace.EXTERNAL_API
@@ -123,7 +123,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
         ]
         chunkedResults = await asyncio.gather(*tasks, return_exceptions=False)
 
-        data: List[FILERApiDataResponse] = []
+        data: List[FILERDataResponse] = []
         for r in chunkedResults:
             data = data + r
 
@@ -245,7 +245,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
         span = await self.get_feature_location(self._parameters.get("span"))
 
         # get informative tracks from the FILER API & cache
-        cache_key = f"/{FILERApiEndpoint.INFORMATIVE_TRACKS}?genome_build={self._parameters.get('assembly')}&span={span}"
+        cache_key = f"/{FILEREndpoint.INFORMATIVE_TRACKS}?genome_build={self._parameters.get('assembly')}&span={span}"
         cache_key = CacheKey.encrypt_key(cache_key.replace(":", "_"))
 
         informativeTrackOverlaps: List[TrackResultMetrics] = (
@@ -340,7 +340,7 @@ class FILEREndpointService(TrackMetadataEndpointService):
                     raise NotImplementedError(
                         "Mapping through Ensembl IDS not yet implemented"
                     )
-                data: FILERApiDataResponse = await self.__get_gene_qtl_data_task(
+                data: FILERDataResponse = await self.__get_gene_qtl_data_task(
                     self._parameters.track, feature.feature_id
                 )
                 counts = TrackResultMetrics(

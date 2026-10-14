@@ -1,14 +1,15 @@
 from typing import List, Union
 
 from aiohttp import ClientSession
-from niagads.api.common.models.domain.entities.dataset.track import TrackResultMetrics
-from niagads.api.common.models.domain.entities.features.bed import BEDFeature
+from niagads.api.common.models.entities.region.features.bed import BEDFeature
+from niagads.api.common.models.entities.track.records import TrackResultMetrics
+
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome_reference.human import GenomeBuild
-from pydantic import BaseModel
+from pydantic import AliasChoices, BaseModel, Field
 
 
-class FILERApiEndpoint(CaseInsensitiveEnum):
+class FILEREndpoint(CaseInsensitiveEnum):
     OVERLAPS = "get_overlaps"
     INFORMATIVE_TRACKS = "get_overlapping_tracks_by_coord"
     METADATA = "get_metadata"
@@ -18,9 +19,14 @@ class FILERApiEndpoint(CaseInsensitiveEnum):
         return f"{self.value}.php"
 
 
-class FILERApiDataResponse(BaseModel):
-    Identifier: str
+class FILERDataResponse(BaseModel):
+    id: str = Field(..., validation_alias=AliasChoices("Identifier", "identifier"))
     features: List[BEDFeature]
+
+
+class FILERTrackResultMetricsResponse(BaseModel):
+    id: str = Field(..., validation_alias=AliasChoices("Identifier", "identifier"))
+    count: int = Field(..., aliase="numOverlaps")
 
 
 class FILERClientService:
@@ -29,28 +35,30 @@ class FILERClientService:
 
     def __build_request_params(self, parameters: dict):
         """map request params to format expected by FILER"""
-        requestParams = {"outputFormat": "json"}
+        request_params = {"outputFormat": "json"}
 
         genome_build: GenomeBuild = parameters.get("genome_build", GenomeBuild.GRCh38)
-        requestParams["genomeBuild"] = genome_build.hg_label()
+        request_params["genomeBuild"] = genome_build.hg_label()
 
         if "track" in parameters:
             # FIXME: not sure about this -> key = "trackIDs" if ',' in params['track_id'] else "trackID"
-            requestParams["trackIDs"] = parameters["track"]
+            request_params["trackIDs"] = parameters["track"]
 
         if "span" in parameters:
-            requestParams["region"] = str(parameters["span"])
+            request_params["region"] = str(parameters["span"])
 
-        return requestParams
+        return request_params
 
     async def __fetch(
-        self, endpoint: FILERApiEndpoint, params: dict, rawParams: bool = False
+        self, *, endpoint: FILEREndpoint, params: dict, raw_params: bool = False
     ):
         """map request params and submit to FILER API"""
         try:
-            requestParams = params if rawParams else self.__build_request_params(params)
+            request_params = (
+                params if raw_params else self.__build_request_params(params)
+            )
             async with self.__session.get(
-                str(endpoint), params=requestParams
+                str(endpoint), params=request_params
             ) as response:
                 result = await response.json()
             return result
@@ -60,16 +68,16 @@ class FILERClientService:
             )
 
     async def __get_result_size(
-        self, span: str, assembly: str, tracks: List[str]
+        self, *, span: str, assembly: str, tracks: List[str]
     ) -> List[TrackResultMetrics]:
         # TODO: new FILER endpoint, count overlaps for specific track ID?
         # for now, probably faster to retrieve the data and count, but may depend on span
         if len(tracks) <= 3:
             response = await self.__fetch(
-                FILERApiEndpoint.OVERLAPS, {"track": ",".join(tracks), "span": span}
+                FILEREndpoint.OVERLAPS, {"track": ",".join(tracks), "span": span}
             )
             return [
-                TrackResultMetrics(id=t["Identifier"], count=len(t["features"]))
+                TrackResultMetrics(**FILERTrackResultMetricsResponse(**t))
                 for t in response
             ]
 
@@ -78,57 +86,41 @@ class FILERClientService:
 
             # need to filter all informative tracks for the ones that were requested
             # and add in the zero counts for the ones that have no hits
-            informativeTracks = set([t.id for t in response])  # all informative tracks
-            nonInformativeTracks = set(tracks).difference(
-                informativeTracks
+            informative_tracks = set([t.id for t in response])  # all informative tracks
+            non_informative_tracks = set(tracks).difference(
+                informative_tracks
             )  # tracks with no hits in the span
-            informativeTracks = set(tracks).intersection(
-                informativeTracks
+            informative_tracks = set(tracks).intersection(
+                informative_tracks
             )  # informative tracks in the requested list
 
-            return [tc for tc in response if tc.id in informativeTracks] + [
-                TrackResultMetrics(id=t, count=0) for t in nonInformativeTracks
+            return [tc for tc in response if tc.id in informative_tracks] + [
+                TrackResultMetrics(id=t, count=0) for t in non_informative_tracks
             ]
 
-    async def get_track_hits(
-        self, tracks: List[str], span: str, assembly: str, countsOnly: bool = False
-    ) -> Union[List[FILERApiDataResponse], List[TrackResultMetrics]]:
+    async def get_track_overlaps(
+        self, *, tracks: List[str], span: str, assembly: str, counts_only: bool = False
+    ) -> Union[List[FILERDataResponse], List[TrackResultMetrics]]:
 
-        if countsOnly:
+        if counts_only:
             return await self.__get_result_size(span, assembly, tracks)
 
         result = await self.__fetch(
-            FILERApiEndpoint.OVERLAPS, {"track": ",".join(tracks), "span": span}
+            FILEREndpoint.OVERLAPS, {"track": ",".join(tracks), "span": span}
         )
 
         try:
-            return [FILERApiDataResponse(**r) for r in result]
+            return [FILERDataResponse(**r) for r in result]
         except Exception:
             raise LookupError(
                 f"Unable to process FILER response for track(s) `{tracks}` in the span: {span} ({assembly})"
             )
 
-    async def get_gene_qtls(
-        self, track: str, gene: str, countsOnly: bool = False
-    ) -> FILERApiDataResponse:
-        result = await self.__fetch(
-            FILERApiEndpoint.GENE_QTLS, {"track": track, "gene": gene}, rawParams=True
-        )
-
-        try:
-            item = {"Identifier": track, "features": result}
-            return FILERApiDataResponse(**item)
-
-        except Exception:
-            raise LookupError(
-                f"Unable to process FILER response for QTL track `{track}` for the gene `{gene}`"
-            )
-
     async def get_informative_tracks(
-        self, span: str, assembly: str, sort=False
+        self, *, span: str, assembly: str, sort=False
     ) -> List[TrackResultMetrics]:
         result = await self.__fetch(
-            FILERApiEndpoint.INFORMATIVE_TRACKS,
+            FILEREndpoint.INFORMATIVE_TRACKS,
             {"span": span, "genome_build": assembly},
         )
         result = [

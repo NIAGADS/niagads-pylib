@@ -30,7 +30,7 @@
 - `record` = canonical resource retrieval
 - `search` = structured retrieval
 - `query` = natural-language / approximate retrieval
-- `service` = helper / utility endpoints only
+- `service` = helper / utility endpoints only - no rate limits.
 - `reference` = reference endpoints such as filter field/value listings
 
 ## Canonical Resource Pattern
