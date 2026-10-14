@@ -356,13 +356,14 @@ class EmbeddingPatch(ComponentBaseMixin):
                         )
                         for c in chunked_list:
                             await ChunkMetadata.submit_many(session, c)
+                            checkpoint_id = c[-1].chunk_metadata_id
                             if commit:
                                 await session.commit()
                             else:
                                 await session.rollback()
                             transaction_count += len(c)
                             self.logger.info(
-                                f"{message_prefix}: {transaction_count} metadata entries. Checkpoint: chunk_metadata_id={c[-1].chunk_metadata_id}"
+                                f"{message_prefix}: {transaction_count} metadata entries. Checkpoint: chunk_metadata_id={checkpoint_id}"
                             )
 
                     self.logger.info("Removing obsolete metadata entries.")
@@ -424,13 +425,14 @@ class EmbeddingPatch(ComponentBaseMixin):
                             chunk_embeddings.append(chunk_embedding)
 
                         await ChunkEmbedding.submit_many(session, chunk_embeddings)
+                        checkpoint_id = chunk_embeddings[-1].chunk_embedding_id
 
                         if commit:
                             await session.commit()
                         else:
                             await session.rollback()
                         self.logger.info(
-                            f"{message_prefix}: Inserted {len(elchunk)} chunk embeddings. Checkpoint: chunk_embedding_id:{chunk_embeddings[-1].chunk_embedding_id}"
+                            f"{message_prefix}: Inserted {len(elchunk)} chunk embeddings. Checkpoint: chunk_embedding_id={checkpoint_id}"
                         )
 
                 except Exception as error:
