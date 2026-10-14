@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 patch embeddings to use BGE-M3 and larger embedding vector field
 
