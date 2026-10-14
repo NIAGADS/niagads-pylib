@@ -202,16 +202,26 @@ SELECT
 FROM annotations
 GROUP BY gene_id, term_id, term, aspect),
 goassociations AS (
-SELECT 
-gene_id, jsonb_agg(aspect_terms) AS goa
-FROM (SELECT
-gene_id, 
-aspect,
-jsonb_build_object(aspect, jsonb_agg(term)) as aspect_terms
-FROM 
-terms
-GROUP BY gene_id, aspect) g
-GROUP BY gene_id),
+    SELECT
+        genes.gene_id,
+        associations.goa
+    FROM Gene.Gene genes
+    LEFT JOIN (
+        SELECT
+            gene_id,
+            jsonb_agg(aspect_terms) AS goa
+        FROM (
+            SELECT
+                gene_id,
+                aspect,
+                jsonb_build_object(aspect, jsonb_agg(term)) AS aspect_terms
+            FROM terms
+            GROUP BY gene_id, aspect
+        ) grouped_terms
+        GROUP BY gene_id
+    ) associations
+        ON associations.gene_id = genes.gene_id
+),
 
 gene_lists AS (
     SELECT
