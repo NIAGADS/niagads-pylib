@@ -10,7 +10,7 @@ from sentence_transformers import SentenceTransformer
 class TextEmbeddingGenerator(ComponentBaseMixin):
     """Calculate and cache text embeddings using SentenceTransformer."""
 
-    def __init__(self, model: LLM = LLM.ALL_MINILM_L6_V2, force_cpu: bool = False):
+    def __init__(self, model: LLM = LLM.BGE_M3, force_cpu: bool = False):
         super().__init__()
         self.__model = self.__initialize_model(model, force_cpu)
 
