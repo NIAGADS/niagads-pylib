@@ -1,7 +1,11 @@
 from typing import Optional
 
 from niagads.api.common.models.responses.base import BaseResponseModel
-from niagads.api.common.types import ResponseFormat, ResponseLayout, ResponseView
+from niagads.api.common.types import (
+    ResponseFormat,
+    ResponseUI,
+    ResponseView,
+)
 from pydantic import BaseModel, field_validator, model_validator
 
 
@@ -10,17 +14,17 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
 
     format: Optional[ResponseFormat] = ResponseFormat.JSON
     view: Optional[ResponseView] = ResponseView.FULL
-    layout: Optional[ResponseLayout] = ResponseLayout.DEFAULT
+    ui_component: Optional[ResponseUI] = ResponseUI.DEFAULT
     model: type[BaseResponseModel]
 
     @model_validator(mode="after")
     def validate_config(self, __context):
         if (
             self.view not in [ResponseView.FULL, ResponseView.SUMMARY]
-            and self.layout != ResponseLayout.DEFAULT
+            and self.ui_component != ResponseUI.DEFAULT
         ):
             raise ValueError(
-                f"Can only generate a `{str(self.layout)}` `layout` of the result for "
+                f"Can only generate a `{str(self.ui_component)}` `layout` of the result for "
                 f"`full` and `summary` response `views`"
             )
 
@@ -37,11 +41,11 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
         )
 
     @field_validator("layout")
-    def validate_layout(cls, layout):
+    def validate_ui(cls, ui):
         try:
-            return ResponseLayout(layout)
+            return ResponseUI(ui)
         except NameError:
-            raise ValueError(f"Invalid value provided for `layout`: {layout}")
+            raise ValueError(f"Invalid value provided for `ui`: {ui}")
 
     @field_validator("format")
     def validate_format(cls, format):
