@@ -28,13 +28,15 @@ Evidence from this review:
 
 ## Plan: switch the default to BGE-M3
 
+Goal: Use its 8,192-token input window to preserve more related annotation
+and metadata content together. It is retrieval-oriented, but improved
+genomics retrieval remains to be established by evaluation.
+
+- [ ] Owl parser must be updated to generate json instead of text
 - [ ] Evaluate `BAAI/bge-m3` against representative genomics queries and
   expected relevant records before migration.
-- [ ] Add BGE-M3 to the existing model registry and make it the default for
+- [X] Add BGE-M3 to the existing model registry and make it the default for
   migrated RAG document loaders and their query encoder.
-- [ ] Use its 8,192-token input window to preserve more related annotation
-  and metadata content together. It is retrieval-oriented, but improved
-  genomics retrieval remains to be established by evaluation.
 - [ ] Keep token-length checks: BGE-M3 can still truncate inputs exceeding
   its limit. Full gene documents containing all transcripts and exons can
   exceed that window.
@@ -46,9 +48,9 @@ and [BGE-M3 model card](https://huggingface.co/BAAI/bge-m3).
 
 ## Schema and query changes
 
-- [ ] Migrate `ragdoc.chunkembedding.embedding` from `vector(384)` to
+- [x] Migrate `ragdoc.chunkembedding.embedding` from `vector(384)` to
   `vector(1024)` and update its ORM mapping.
-- [ ] Rebuild the corresponding HNSW cosine index for the new vectors.
+- [x] Rebuild the corresponding HNSW cosine index for the new vectors.
 - [ ] Generate new vectors from source text; existing vectors cannot be
   padded or resized into valid BGE-M3 embeddings. Stage the replacement
   vectors before the database/query cutover.
