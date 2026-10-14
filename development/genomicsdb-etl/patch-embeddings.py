@@ -17,6 +17,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
+from typing import Optional
 
 from niagads.common.core import ComponentBaseMixin
 from niagads.database.genomicsdb.schema.ragdoc.chunks import (
@@ -26,7 +27,15 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
 from niagads.database.session import DatabaseSessionManager
 from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM
-from sqlalchemy import select, text
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+
+
+class DocumentChunk(BaseModel):
+    chunk_text: str
+    chunk_index: Optional[int] = None
+    offset_start: Optional[int] = None
+    offset_end: Optional[int] = None
 
 
 class EmbeddingPatch(ComponentBaseMixin):
@@ -38,106 +47,54 @@ class EmbeddingPatch(ComponentBaseMixin):
         self._chunk_metadata: list[ChunkMetadata]
         self._embedding_generator = TextEmbeddingGenerator(LLM.BGE_M3)
         self._embedding_counter = 0
-        self._new_metadata_count = 0 
-
+        self._new_metadata_count = 0
 
     def _serialize_json_value(self, value) -> str:
         """Serialize JSON compactly for storage and token counting."""
         return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
-    def _is_within_embedding_limit(self, value) -> bool:
-        """Return whether a JSON value fits the embedding model input limit."""
-        return self._embedding_generator.token_count(
-            self._serialize_json_value(value)
-        ) <= self._embedding_generator.max_sequence_length
+    def _chunk_text_document(document): ...
 
-    def _split_json_value(self, value, metadata: ChunkMetadata) -> list:
+    def _chunk_json_value(self, value, index: int = None):
         """Split a JSON value into model-sized values without changing its type."""
-        if self._is_within_embedding_limit(value):
-            return [value]
 
-        if isinstance(value, list):
-            chunks = []
-            current_chunk = []
-            for item in value:
-                for item_chunk in self._split_json_value(item, metadata):
-                    candidate = current_chunk + [item_chunk]
-                    if current_chunk and not self._is_within_embedding_limit(candidate):
-                        chunks.append(current_chunk)
-                        current_chunk = [item_chunk]
-                    else:
-                        current_chunk = candidate
-            if current_chunk:
-                chunks.append(current_chunk)
-            return chunks
+        json_str = self._serialize_json_value(value)
+        token_count = self._embedding_generator.token_count(json_str)
+
+        if token_count <= self._embedding_generator.max_sequence_length:
+            yield DocumentChunk(
+                chunk_text=json_str,
+                chunk_index=index,
+            )
+            return
 
         if isinstance(value, dict):
-            for key, child_value in value.items():
-                if not self._is_within_embedding_limit(child_value):
-                    return [
-                        {**value, key: child_chunk}
-                        for child_chunk in self._split_json_value(
-                            child_value, metadata
-                        )
-                    ]
+            _item_sizes = {
+                key: self._embedding_generator.token_count(
+                    self._serialize_json_value({key: child_value})
+                )
+                for key, child_value in value.items()
+            }
 
-            chunks = []
-            current_chunk = {}
-            for key, child_value in value.items():
-                candidate = {**current_chunk, key: child_value}
-                if current_chunk and not self._is_within_embedding_limit(candidate):
-                    chunks.append(current_chunk)
-                    current_chunk = {key: child_value}
-                else:
-                    current_chunk = candidate
-            if current_chunk:
-                chunks.append(current_chunk)
-            return chunks
+        # handle json
 
-        token_count = self._embedding_generator.token_count(
-            self._serialize_json_value(value)
-        )
+        # unresolvable message
         overflow = token_count - self._embedding_generator.max_sequence_length
         self.logger.warning(
             f"JSON chunk cannot be split below the BGE-M3 token limit; it has "
-            f"{token_count} tokens, exceeding the limit by {overflow}. Human "
-            f"review of the loading plugin is required. "
-            f"table_id={metadata.table_id} row_id={metadata.row_id} "
-            f"chunk_text={metadata.chunk_text!r}"
+            f"{token_count} tokens, exceeding the limit by {overflow}."
         )
+        self.logger.info(f"chunk_text={value!r}")
         return []
-
-    def _build_chunk_metadata(
-        self, metadata: ChunkMetadata, chunk_values: list
-    ) -> list[ChunkMetadata]:
-        """Create metadata rows for recursively split JSON values."""
-        chunks = []
-        for index, value in enumerate(chunk_values):
-            chunk_text = self._serialize_json_value(value)
-            chunks.append(
-                ChunkMetadata(
-                    table_id=metadata.table_id,
-                    row_id=metadata.row_id,
-                    document_type=metadata.document_type,
-                    document_section=metadata.document_section,
-                    document_hash=metadata.document_hash,
-                    chunk_hash=self._embedding_generator.hash_text(chunk_text),
-                    chunk_text=chunk_text,
-                    chunk_index=metadata.chunk_index + index,
-                    start_offset=metadata.start_offset,
-                    end_offset=metadata.end_offset,
-                    run_id=metadata.run_id,
-                )
-            )
-        return chunks
 
     def _chunk_document(self, metadata: ChunkMetadata) -> list[ChunkMetadata]:
         """Split oversized JSON while retaining its parent object structure."""
-        document = json.loads(metadata.chunk_text)
-        return self._build_chunk_metadata(
-            metadata, self._split_json_value(document, metadata)
-        )
+        try:
+            document = json.loads(metadata.chunk_text)
+            return self._chunk_json_value(document)
 
+        except (TypeError, json.JSONDecodeError):
+            return self._chunk_text_document(document)
 
     async def _update_chunk_embeddings(self, session, metadata: ChunkMetadata):
         """Re-embed a chunk when its text fits the BGE-M3 input window."""
@@ -159,14 +116,12 @@ class EmbeddingPatch(ComponentBaseMixin):
                 f"Re-embedded chunk metadata {metadata.chunk_metadata_id} "
                 f"using BGE-M3 ({token_count} tokens)."
             )
-        
-        else:
-            chunks = self._chunk_document(metadata)
-            # insert new chunks
-            # delete original chunk 
-            # calculate and load embeddings for all new chunks 
- 
 
+        else:
+            chunks: list[DocumentChunk] = self._chunk_document(metadata)
+            # insert new chunks
+            # delete original chunk
+            # calculate and load embeddings for all new chunks
 
     async def _retrieve_chunk_metadata(self, session):
         stmt = select(ChunkMetadata)
