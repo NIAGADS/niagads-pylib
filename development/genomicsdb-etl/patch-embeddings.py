@@ -3,16 +3,9 @@
 """
 patch embeddings to use BGE-M3 and larger embedding vector field
 
-I think what we want to do is actually truncate ragdoc.chunkmedata -> delete it all
-(assume this is done outside of this patch)
+RAGDoc.Embedding is truncated before this is run - old embeddings are irrelvant and non-existant for this patch
 
-then iterate over ragdoc.chunkmetadata
 
-- calculate token size for each chunk text
---> if fits limit, embed
---> if not leverage chunk_index, start_offset, end_offset to create new entries for further chunking
-    -> calculate and load new embeddings for new metadata
-    --> delete old metadata
 """
 
 import argparse
@@ -253,7 +246,8 @@ class EmbeddingPatch(ComponentBaseMixin):
         """Re-embed a chunk when its text fits the BGE-M3 input window."""
 
         token_count = self._embedding_generator.token_count(metadata.chunk_text)
-        if token_count <= self.SOFT_TOKEN_LIMIT:
+        is_ontology_term = metadata.chunk_text.startswith("Term:")
+        if token_count <= self.SOFT_TOKEN_LIMIT and not is_ontology_term:
             self._new_chunk_embeddings.append(
                 {
                     "chunk_embedding": ChunkEmbedding(
