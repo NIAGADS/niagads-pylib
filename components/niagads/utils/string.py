@@ -110,12 +110,39 @@ def reverse(s):
     return s[::-1]
 
 
-def truncate(s, length):
+def truncate(text, length):
     """
     if string s is > length, return truncated string
     with ... added to end
     """
-    return (s[: (length - 3)] + "...") if len(s) > length else s
+    return (text[: (length - 3)] + "...") if len(text) > length else text
+
+
+def truncate_tokens(text: str, tokenizer, max_tokens: int, suffix: str = "...") -> str:
+    """
+    Truncate text to a maximum number of tokenizer tokens.
+
+    Args:
+        text (str): Text to truncate.
+        tokenizer: Tokenizer providing ``encode`` and ``decode`` methods.
+        max_tokens (int): Maximum number of content tokens to retain, including
+            the suffix tokens when truncation is required.
+        suffix (str, optional): Text appended to truncated output. Defaults to
+            ``"..."``.
+
+    Returns:
+        str: The original text when it fits within ``max_tokens``; otherwise,
+            the token-truncated text followed by ``suffix``.
+    """
+    tokens = tokenizer.encode(text, add_special_tokens=False)
+
+    if len(tokens) <= max_tokens:
+        return text
+
+    suffix_tokens = tokenizer.encode(suffix, add_special_tokens=False)
+    truncated = tokens[: max_tokens - len(suffix_tokens)]
+
+    return tokenizer.decode(truncated, skip_special_tokens=True) + suffix
 
 
 def xstr(value, null_str="", false_as_null=False, dicts_as_json=True):
