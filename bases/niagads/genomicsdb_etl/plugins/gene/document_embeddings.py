@@ -10,7 +10,6 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
-
 from niagads.database.genomicsdb.schema.ragdoc.types import (
     GeneDocumentSection,
     RAGDocType,
