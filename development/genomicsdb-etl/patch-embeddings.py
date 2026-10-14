@@ -85,8 +85,32 @@ class EmbeddingPatch(ComponentBaseMixin):
         """Serialize JSON compactly for storage and token counting."""
         return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
-    def _chunk_text_document(document):
-        raise NotImplementedError("Not sure if we need this")
+    def _chunk_text_document(self, document: str):
+        """Convert ontology term text to JSON before applying structured chunking."""
+        if not document.startswith("Term:"):
+            raise NotImplementedError(
+                "Text chunking is only implemented for ontology terms."
+            )
+
+        parsed_document = {}
+        last_key = None
+        for line in document.splitlines():
+            key, separator, value = line.partition(":")
+            if not separator:
+                if last_key is None:
+                    raise ValueError(f"Unable to parse ontology term line: {line}")
+                parsed_document[last_key] += f"\n{line}"
+                continue
+
+            key = key.strip()
+            value = value.lstrip()
+            if key == "Synonym":
+                parsed_document.setdefault(key, []).append(value)
+            else:
+                parsed_document[key] = value
+            last_key = key
+
+        return self._chunk_json_value(parsed_document)
 
     def _chunk_list(self, item, index: int):
 
