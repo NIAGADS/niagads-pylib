@@ -27,6 +27,7 @@ from niagads.database.session import DatabaseSessionManager
 from niagads.nlp.embeddings import TextEmbeddingGenerator
 from niagads.nlp.llm_types import LLM
 from niagads.utils.list import chunker
+from niagads.utils.string import truncate_tokens
 from pydantic import BaseModel
 from sqlalchemy import select
 
@@ -130,10 +131,20 @@ class EmbeddingPatch(ComponentBaseMixin):
             value_token_count = self._embedding_generator.token_count(
                 self._serialize_json_value(value)
             )
+
+            # if single list element is oversized, we need to truncate it
+            if isinstance(value, str) and value_token_count > self.SOFT_TOKEN_LIMIT:
+                value = truncate_tokens(
+                    value,
+                    self._embedding_generator.tokenizer,
+                    self.SOFT_TOKEN_LIMIT,
+                )
+                value_token_count = self._embedding_generator.token_count(
+                    self._serialize_json_value(value)
+                )
             if (
                 current_chunk
-                and current_token_count + value_token_count
-                > self._hard_token_limit
+                and current_token_count + value_token_count > self._hard_token_limit
             ):
                 yield DocumentChunk(
                     chunk_text=self._serialize_json_value({key: current_chunk}),

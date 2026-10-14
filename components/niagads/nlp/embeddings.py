@@ -19,6 +19,11 @@ class TextEmbeddingGenerator(ComponentBaseMixin):
         """Return the model's input token limit."""
         return self.__model.max_seq_length
 
+    @property
+    def tokenizer(self):
+        """Return the model tokenizer."""
+        return self.__model.tokenizer
+
     def token_count(self, text: str) -> int:
         """Count input tokens, including special tokens, without truncation."""
         return len(self.__model.tokenizer.encode(text, truncation=False))
