@@ -1,6 +1,6 @@
 """variant annotator functions"""
 
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.models.base import CustomBaseModel
@@ -9,7 +9,7 @@ from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.types import VariantClass
 from niagads.genome_reference.human import HumanGenome
 from niagads.utils.regular_expressions import RegularExpressions
-from pydantic import Field, model_validator
+from pydantic import AliasChoices, Field, model_validator
 
 # TODO: add ga4gh to variant identifier (optional? maybe)
 
@@ -38,11 +38,15 @@ class VariantRecord(VariantIdentifier):
     )
     ref: str = Field(
         ...,
+        validation_alias=AliasChoices("ref", "ref_allele"),
         description="Reference allele sequence",
         title="Reference Allele",
     )
     alt: str = Field(
-        ..., description="Alternate allele sequence", title="Alternate Allele"
+        ...,
+        validation_alias=AliasChoices("alt", "alt_allele"),
+        description="Alternate allele sequence",
+        title="Alternate Allele",
     )
     variant_class: VariantClass = Field(
         default=None,
@@ -66,6 +70,56 @@ class VariantRecord(VariantIdentifier):
         pattern=RegularExpressions.NORMALIZED_POSITIONAL_VARIANT_ID,
         description="Normalized positional variant identifier",
         title="Normalized Positional ID",
+    )
+    hgvs: Optional[str] = Field(
+        default=None,
+        title="HGVS",
+        description="HGVS representation of the variant",
+    )
+    is_adsp_variant: Optional[bool] = Field(
+        default=None,
+        title="Is ADSP Variant?",
+        description="indicates whether the variant is present in ADSP data",
+    )
+    is_structural_variant: Optional[bool] = Field(
+        default=None,
+        title="Is Structural Variant?",
+        description="indicates whether the variant is structural",
+    )
+    is_annotated: Optional[bool] = Field(
+        default=None,
+        title="Is Annotated?",
+        description="indicates whether functional annotation is available",
+    )
+    adsp_annotation: Optional[Dict[str, Any]] = Field(
+        default=None,
+        title="ADSP Annotation",
+        description="ADSP-specific annotation data for the variant",
+    )
+    most_severe_consequence: Optional[Dict[str, Any]] = Field(
+        default=None,
+        title="Most Severe Consequence",
+        description="most severe predicted consequence for the variant",
+    )
+    functional_annotation: Optional[Dict[str, Any]] = Field(
+        default=None,
+        title="Functional Annotation",
+        description="functional annotation data for the variant",
+    )
+    allele_frequency: Optional[Dict[str, Any]] = Field(
+        default=None,
+        title="Allele Frequency",
+        description="allele frequency data for the variant",
+    )
+    ld_partners: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        title="LD Partners",
+        description="variants in linkage disequilibrium with this variant",
+    )
+    functional_annotation_summary: Optional[Dict[str, Any]] = Field(
+        default=None,
+        title="Functional Annotation Summary",
+        description="summary of the variant's functional annotation",
     )
 
     def __str__(self):

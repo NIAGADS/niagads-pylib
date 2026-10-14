@@ -1,21 +1,17 @@
 from typing import List, Optional, Union
 
 from niagads.api.common.models.records.base import ORMCompatibleRecord
-from niagads.api.common.models.records.mixins import DynamicMixin, ORMCompatabileMixin
 from niagads.common.variant.models.annotations import PredictedConsequenceSummary
 from niagads.common.variant.models.record import VariantIdentifier, VariantRecord
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 
-class VariantDescriptor(VariantIdentifier, ORMCompatabileMixin): ...
+class VariantDescriptor(VariantIdentifier): ...
 
 
-class Variant(VariantRecord, ORMCompatabileMixin):
-    positional_id: Optional[str] = Field(exclude=True)
-    normalized_positional_id: Optional[str] = Field(exclude=True)
+class VariantBrief(VariantDescriptor, ORMCompatibleRecord):
+    model_config = ConfigDict(is_summary=True)
 
-
-class AnnotatedVariantBrief(Variant):
     variant_class: str = Field(title="Variant Type")
     is_adsp_variant: Optional[bool] = Field(
         default=False,
@@ -31,12 +27,12 @@ class AnnotatedVariantBrief(Variant):
 
     @field_validator("is_adsp_variant", mode="before")
     @classmethod
-    def parse_is_adsp_variant(cls, v):
+    def set_is_adsp_variant(cls, v):
         return cls.boolean_null_check(v)
 
     @field_validator("most_severe_consequence", mode="before")
     @classmethod
-    def parse_most_severe_consequence(cls, v):
+    def extract_most_severe_conseqeunce(cls, v):
         if v is None:
             return None
         if not isinstance(v, dict):  # ORM response
@@ -47,24 +43,4 @@ class AnnotatedVariantBrief(Variant):
             return PredictedConsequenceSummary.from_vep_json(v)
 
 
-class AnnotatedVariant(AnnotatedVariantBrief):
-
-    # FIXME: these queries can take a while; not part of the variant record
-    # alternative_alleles: Optional[List[str]]
-    # colocated_variants: Optional[List[Variant]]
-
-    allele_frequencies: Optional[dict] = Field(
-        default=None, description="allele frequencies from 1000Genomes, ALFA, ExAC"
-    )
-    adsp_annotation: Optional[dict] = Field(
-        default=None,
-        description="ADSP Annotation (see FAQ): incl. ranked VEP most severe consequence; selected FAVOR annotations",
-    )
-
-    vep_annotation: Optional[dict] = Field(
-        default=None,
-        description="full VEP annotation (w/out ADSP ranking; see FAQ)",
-    )
-
-
-class VariantAnnotation(ORMCompatibleRecord, DynamicMixin): ...
+class Variant(VariantRecord, ORMCompatibleRecord): ...

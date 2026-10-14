@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from niagads.api.common.models.entities.variant.records import (
-    AnnotatedVariant,
+    Variant,
     Variant,
     VariantDescriptor,
 )
@@ -9,7 +9,7 @@ from niagads.api.common.models.responses.data import DataResponse
 
 
 class VariantResponse(DataResponse):
-    data: List[Union[VariantDescriptor, Variant, AnnotatedVariant]]
+    data: List[Union[VariantDescriptor, Variant, Variant]]
 
 
 # TODO: come back to this
