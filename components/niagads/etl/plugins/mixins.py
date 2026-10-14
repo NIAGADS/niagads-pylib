@@ -113,11 +113,11 @@ class EmbeddingGeneratorContextMixin:
             value_token_count = self._embedding_generator.token_count(
                 self._serialize_json_value(value)
             )
-            if isinstance(value, str) and value_token_count > self.SOFT_TOKEN_LIMIT:
+            if isinstance(value, str) and value_token_count > self.soft_token_limit:
                 value = truncate_tokens(
                     value,
                     self._embedding_generator.tokenizer,
-                    self.SOFT_TOKEN_LIMIT,
+                    self.soft_token_limit,
                 )
                 value_token_count = self._embedding_generator.token_count(
                     self._serialize_json_value(value)
@@ -159,7 +159,7 @@ class EmbeddingGeneratorContextMixin:
         json_str = self._serialize_json_value(value)
         token_count = self._embedding_generator.token_count(json_str)
 
-        if token_count <= self.SOFT_TOKEN_LIMIT:
+        if token_count <= self.soft_token_limit:
             yield DocumentChunk(
                 chunk_text=json_str,
                 chunk_index=index,
@@ -183,7 +183,7 @@ class EmbeddingGeneratorContextMixin:
 
             if (
                 current_chunk
-                and current_token_count + item_token_count > self.SOFT_TOKEN_LIMIT
+                and current_token_count + item_token_count > self.soft_token_limit
             ):
                 yield DocumentChunk(
                     chunk_text=self._serialize_json_value(current_chunk),
@@ -247,18 +247,31 @@ class EmbeddingGeneratorContextMixin:
         return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
     def _chunk_text(self, document: str) -> Iterator[DocumentChunk]:
-        """Convert a non-JSON document into model-sized chunks.
+        """Split text into soft-limit chunks while retaining character offsets.
 
         Args:
-            document (str): Non-JSON document to split.
+            document (str): Text document to split.
 
         Returns:
             Iterator[DocumentChunk]: Chunks produced from the document.
-
-        Raises:
-            NotImplementedError: When the embedding plugin does not implement
-                text-specific chunking.
         """
-        raise NotImplementedError(
-            "Text chunking must be implemented by the embedding plugin."
+        tokenized = self._embedding_generator.tokenizer(
+            document,
+            add_special_tokens=False,
+            return_offsets_mapping=True,
+            truncation=False,
         )
+        token_offsets = tokenized["offset_mapping"]
+
+        for index, start in enumerate(
+            range(0, len(token_offsets), self.soft_token_limit)
+        ):
+            end = min(start + self.soft_token_limit, len(token_offsets))
+            offset_start = token_offsets[start][0]
+            offset_end = token_offsets[end - 1][1]
+            yield DocumentChunk(
+                chunk_text=document[offset_start:offset_end],
+                chunk_index=index,
+                offset_start=offset_start,
+                offset_end=offset_end,
+            )
