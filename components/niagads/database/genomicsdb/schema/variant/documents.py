@@ -1,21 +1,47 @@
-from typing import Optional
+from typing import Any, Optional
 
+from niagads.common.search.models.record import SearchMatch
 from niagads.common.variant.models.annotations import LDPartner
 from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.models.record import VariantRecord
 from niagads.common.variant.types import VariantClass
 from niagads.database.decorators import CompressedJson
-from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
+from niagads.database.genomicsdb.schema.mixins import (
+    IdAliasMixin,
+    RecordRetrievalMixin,
+    SearchMixin,
+)
 from niagads.database.genomicsdb.schema.variant.base import VariantTableBase
-from niagads.database.helpers import enum_column
+from niagads.database.genomicsdb.schema.variant.mappings import RefSNPAlias
 from niagads.database.mixins.embeddings import EmbeddingMixin
 from niagads.database.mixins.ranges import GenomicRegionMixin
-from sqlalchemy import ForeignKey, Integer, String, Text
+from niagads.genome_reference.human import HumanGenome
+from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import matches
+from sqlalchemy import (
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    and_,
+    literal,
+    literal_column,
+    select,
+    union_all,
+)
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class Variant(VariantTableBase, IdAliasMixin, GenomicRegionMixin, EmbeddingMixin):
+class Variant(
+    VariantTableBase,
+    IdAliasMixin,
+    GenomicRegionMixin,
+    EmbeddingMixin,
+    SearchMixin,
+    RecordRetrievalMixin,
+):
     # exclude some fields from mixings
     strand = None
     embedding_model = None
@@ -88,3 +114,245 @@ class Variant(VariantTableBase, IdAliasMixin, GenomicRegionMixin, EmbeddingMixin
                 True if record.variant_class.is_structural_variant() else None
             ),
         )
+
+    # -------------------------
+    # Search
+    # -------------------------
+
+    @classmethod
+    async def search(cls, session: AsyncSession, search_text) -> SearchMatch:
+        """Search variants using deterministic text matching.
+
+        Args:
+            session: Active asynchronous database session.
+            search_text: Text or identifier to search for.
+
+        Raises:
+            NotImplementedError: Variant text search is not implemented.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    async def semantic_search(cls, session, phrase, embed, *, limit=10):
+        """Search variants using an embedded text phrase.
+
+        Args:
+            session: Active asynchronous database session.
+            phrase: Text phrase to embed and search for.
+            embed: Embedding function used to generate the query embedding.
+            limit: Maximum number of results to return.
+
+        Raises:
+            NotImplementedError: Variant semantic search is not implemented.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    async def semantic_search_by_embedding(
+        cls, session, phrase, embedding, *, limit=10
+    ):
+        """Search variants using a precomputed embedding.
+
+        Args:
+            session: Active asynchronous database session.
+            phrase: Text phrase associated with the embedding.
+            embedding: Precomputed query embedding.
+            limit: Maximum number of results to return.
+
+        Raises:
+            NotImplementedError: Variant semantic search is not implemented.
+        """
+        raise NotImplementedError()
+
+    # -------------------------
+    # Record Retrieval
+    # -------------------------
+
+    @classmethod
+    async def _find_current_ref_snp(
+        cls, session: AsyncSession, ref_snp_ids: list[str]
+    ) -> dict[str, Optional[str]]:
+        if not ref_snp_ids:
+            return {}
+
+        queried = cls._build_lookup_values(ref_snp_ids).cte("queried")
+        merges = (
+            select(
+                queried.c.lookup_value.label("queried_id"),
+                RefSNPAlias.ref_snp_id,
+                RefSNPAlias.merged_into,
+                RefSNPAlias.merge_build,
+            )
+            .select_from(
+                queried.join(
+                    RefSNPAlias,
+                    RefSNPAlias.ref_snp_id == queried.c.lookup_value,
+                )
+            )
+            .cte("merges", recursive=True)
+        )
+        merges = merges.union(
+            select(
+                merges.c.queried_id,
+                RefSNPAlias.ref_snp_id,
+                RefSNPAlias.merged_into,
+                RefSNPAlias.merge_build,
+            ).select_from(
+                merges.join(
+                    RefSNPAlias,
+                    RefSNPAlias.ref_snp_id == merges.c.merged_into,
+                )
+            )
+        )
+
+        results = union_all(
+            select(
+                merges.c.queried_id,
+                merges.c.merged_into,
+                merges.c.merge_build,
+            ),
+            select(
+                queried.c.lookup_value,
+                queried.c.lookup_value,
+                literal(-1),  # not matched
+            ),
+        ).subquery("results")
+        stmt = (
+            select(
+                results.c.queried_id,
+                results.c.merged_into,
+                results.c.merge_build,
+            )
+            .distinct(results.c.queried_id)
+            .order_by(results.c.queried_id, results.c.merge_build.desc())
+        )
+        rows = (await session.execute(stmt)).mappings()
+        return {
+            row["queried_id"]: (
+                None if row["merge_build"] == -1 else row["merged_into"]
+            )
+            for row in rows
+        }
+
+    @classmethod
+    async def _execute_ref_snp_id_lookup(cls, session, ref_snp_ids: list[str]):
+        if not ref_snp_ids:
+            return
+        ref_snp_lookup_values = cls._build_lookup_values(ref_snp_ids)
+        ref_snp_select = cls._build_lookup_select(
+            ref_snp_lookup_values,
+            lookup_field=cls.ref_snp_id,
+        )
+        return await cls._execute_lookup(
+            session,
+            ref_snp_lookup_values,
+            ref_snp_select.subquery("ref_snp_matches"),
+            ref_snp_ids,
+        )
+
+    @classmethod
+    async def _fetch_records_by_ref_snp_id(cls, session, lookups: dict[str, Any]):
+        ref_snp_ids = [
+            identifier.lower()
+            for identifier in lookups
+            if matches(RegularExpressions.REF_SNP_ID, identifier.lower())
+        ]
+        id_matches = await cls._execute_ref_snp_id_lookup(session, ref_snp_ids)
+
+        not_matched = []
+        for identifier in lookups:
+            normalized_identifier = identifier.lower()
+            if normalized_identifier in id_matches:
+                lookups[identifier] = id_matches[normalized_identifier]
+            else:
+                not_matched.append(normalized_identifier)
+
+        if not_matched:
+            aliases = await cls._find_current_ref_snp(session, not_matched)
+            ref_snp_ids = [v for v in aliases.values() if v is not None]
+            id_matches = await cls._execute_ref_snp_id_lookup(session, ref_snp_ids)
+            for alias, current_id in aliases.items():
+                if current_id is not None:
+                    records = id_matches.get(current_id)
+                    if records is not None:
+                        lookups[alias] = records
+
+    @classmethod
+    async def fetch_records_by_identifier(
+        cls, session: AsyncSession, identifiers: list[str]
+    ) -> dict[str, list[dict] | None]:
+        """Fetch variants matching one or more identifiers.
+
+        Args:
+            session: Active asynchronous database session.
+            identifiers: Variant identifiers to resolve.
+
+        Returns:
+            Mapping of each requested identifier to matching full records, or ``None``.
+
+        Notes:
+            RefSNP aliases are resolved only for identifiers not found directly. This
+            keeps the common RefSNP lookup on the indexed variant table and avoids an
+            unnecessary join to the merge-history table.
+        """
+        lookups = {identifier: None for identifier in dict.fromkeys(identifiers)}
+        await cls._fetch_records_by_ref_snp_id(
+            lookups,
+        )
+
+        """
+            elif matches(RegularExpressions.STRUCTUAL_VARIANT_ID, identifier.upper()):
+                structural_id = identifier.upper()
+                structural_variant_ids.append(
+                    (
+                        structural_id,
+                        str(HumanGenome(structural_id.split("_")[1].lower())),
+                    )
+                )
+            elif matches(RegularExpressions.POSITIONAL_VARIANT_ID, identifier):
+                positional_ids.append(
+                    (identifier, str(HumanGenome(identifier.split(":")[1].lower())))
+                )
+
+        if ref_snp_ids:
+            cls._fetch_records_by_ref_snp_id(session, identifiers)
+            
+        if structural_variant_ids:
+            structural_lookup_values = cls._build_lookup_values(
+                [identifier for identifier, _ in structural_variant_ids]
+            )
+            # Developer note: use SQL literals for partition pruning. These values
+            # come from the controlled HumanGenome enum, so they are trusted.
+            structural_chromosomes = {
+                literal_column(f"'{chromosome}'")
+                for _, chromosome in structural_variant_ids
+            }
+            structural_select = cls._build_lookup_select(
+                structural_lookup_values,
+                lookup_field=cls.niagads_id,
+                where_clause=and_(
+                    cls.niagads_id == structural_lookup_values.c.lookup_value,
+                    cls.chromosome.in_(structural_chromosomes),
+                    cls.is_structural_variant.is_(True),
+                ),
+            )
+
+        if positional_ids:
+            positional_lookup_values = cls._build_lookup_values(
+                [identifier for identifier, _ in positional_ids]
+            )
+            positional_chromosomes = {
+                literal_column(f"'{chromosome}'") for _, chromosome in positional_ids
+            }
+            positional_select = cls._build_lookup_select(
+                positional_lookup_values,
+                lookup_field=cls.niagads_id,
+                where_clause=and_(
+                    cls.niagads_id == positional_lookup_values.c.lookup_value,
+                    cls.chromosome.in_(positional_chromosomes),
+                ),
+            )
+
+        # TODO: add fallback check for unmatched non-SNV positional_ids against normalized positional ids
+        return lookup
+        """
