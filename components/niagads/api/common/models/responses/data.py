@@ -62,7 +62,7 @@ class DataResponse(BaseResponseModel):
         return row_model.get_model_fields_from_class(sort=True)
 
     def to_delimited_text(
-        self, incl_header: bool = False, null_str: str = DEFAULT_NULL_STRING
+        self, *, incl_header: bool = False, null_str: str = DEFAULT_NULL_STRING
     ):
         if self.is_empty():
             if incl_header:
