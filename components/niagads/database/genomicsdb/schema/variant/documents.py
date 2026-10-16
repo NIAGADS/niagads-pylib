@@ -172,6 +172,16 @@ class Variant(
     async def _find_current_ref_snp(
         cls, session: AsyncSession, ref_snp_ids: list[str]
     ) -> dict[str, Optional[str]]:
+        """Resolve RefSNP IDs through the complete merge hierarchy.
+
+        Args:
+            session: Active asynchronous database session.
+            ref_snp_ids: RefSNP identifiers to resolve.
+
+        Returns:
+            Mapping of each requested RefSNP ID to its current ID, or ``None``
+            when no merge record exists.
+        """
         if not ref_snp_ids:
             return {}
 
@@ -236,6 +246,15 @@ class Variant(
 
     @classmethod
     async def _execute_ref_snp_id_lookup(cls, session, ref_snp_ids: list[str]):
+        """Execute a direct lookup for RefSNP identifiers.
+
+        Args:
+            session: Active asynchronous database session.
+            ref_snp_ids: RefSNP identifiers to look up.
+
+        Returns:
+            Mapping of each identifier to matching variant records, or ``None``.
+        """
         if not ref_snp_ids:
             return
         ref_snp_lookup_values = cls._build_lookup_values(ref_snp_ids)
@@ -252,6 +271,12 @@ class Variant(
 
     @classmethod
     async def _fetch_records_by_ref_snp_id(cls, session, lookups: dict[str, Any]):
+        """Populate lookups with direct and merged RefSNP matches.
+
+        Args:
+            session: Active asynchronous database session.
+            lookups: Mapping of requested identifiers to resolved records.
+        """
         ref_snp_ids = [
             identifier.lower()
             for identifier in lookups
@@ -276,6 +301,90 @@ class Variant(
                     records = id_matches.get(current_id)
                     if records is not None:
                         lookups[alias] = records
+
+    @classmethod
+    async def _execute_positional_id_lookup(cls, session, positional_ids: list[str]):
+        """Execute a chromosome-aware lookup for positional variant IDs.
+
+        Args:
+            session: Active asynchronous database session.
+            positional_ids: Positional identifiers paired with chromosomes.
+
+        Returns:
+            Mapping of each positional identifier to matching variant records,
+            or ``None``.
+        """
+        if not positional_ids:
+            return
+        positional_lookup_values = cls._build_lookup_values(
+            [identifier for identifier, _ in positional_ids]
+        )
+        positional_chromosomes = {
+            literal_column(f"'{chromosome}'") for _, chromosome in positional_ids
+        }
+        positional_select = cls._build_lookup_select(
+            positional_lookup_values,
+            lookup_field=cls.niagads_id,
+            where_clause=and_(
+                cls.niagads_id == positional_lookup_values.c.lookup_value,
+                cls.chromosome.in_(positional_chromosomes),
+            ),
+        )
+        return await cls._execute_lookup(
+            session,
+            positional_lookup_values,
+            positional_select.subquery("positional_matches"),
+            [identifier for identifier, _ in positional_ids],
+        )
+
+    @classmethod
+    async def _fetch_records_by_positional_id(cls, session, lookups: dict[str, Any]):
+        """Populate lookups with positional variant matches.
+
+        Exact positional matches are attempted first. Unmatched SNVs are then
+        retried with their reference and alternate alleles switched.
+
+        Args:
+            session: Active asynchronous database session.
+            lookups: Mapping of requested identifiers to resolved records.
+        """
+        positional_ids = [
+            (
+                identifier,
+                str(HumanGenome(identifier.split(":", 1)[0].lower())),
+            )
+            for identifier in lookups
+            if matches(RegularExpressions.POSITIONAL_VARIANT_ID, identifier)
+        ]
+
+        id_matches = await cls._execute_positional_id_lookup(session, positional_ids)
+
+        not_matched = []
+        for identifier, chromosome in positional_ids:
+            if id_matches[identifier] is not None:
+                lookups[identifier] = id_matches[identifier]
+            else:
+                chrm, pos, ref, alt = identifier.split(":")
+                if len(ref) == 1 and len(alt) == 1:  # SNV
+                    not_matched.append(
+                        (
+                            identifier,
+                            f"{chrm}:{pos}:{alt}:{ref}",
+                            chromosome,
+                        )
+                    )
+
+        if not_matched:
+            swapped_matches = await cls._execute_positional_id_lookup(
+                session,
+                [
+                    (swapped_identifier, chromosome)
+                    for _, swapped_identifier, chromosome in not_matched
+                ],
+            )
+            for identifier, swapped_identifier, _ in not_matched:
+                if swapped_matches[swapped_identifier] is not None:
+                    lookups[identifier] = swapped_matches[swapped_identifier]
 
     @classmethod
     async def fetch_records_by_identifier(
