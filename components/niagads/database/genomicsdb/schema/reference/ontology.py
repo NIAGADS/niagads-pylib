@@ -12,7 +12,12 @@ from niagads.common.reference.ontologies.types import EntityTypeIRI
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
 from niagads.common.types import Entity
+from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin, SearchMixin
+from niagads.database.genomicsdb.schema.ragdoc.chunks import (
+    ChunkEmbedding,
+    ChunkMetadata,
+)
 from niagads.database.genomicsdb.schema.reference.base import ReferenceTableBase
 from niagads.database.genomicsdb.schema.reference.externaldb import ExternalDatabase
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
@@ -120,6 +125,32 @@ class OntologyTerm(
     # -------------------------
     # Search
     # -------------------------
+
+    @classmethod
+    def _build_record_details(cls, record_source):
+        """Build the JSON record details expression for ontology searches.
+
+        Args:
+            record_source: ORM model, CTE, or subquery containing ontology fields.
+
+        Returns:
+            SQLAlchemy expression producing the term label, definition, and
+            ontology annotation fields.
+        """
+        record_source = getattr(record_source, "c", record_source)
+        return func.jsonb_build_object(
+            "label",
+            record_source.term,
+            "description",
+            record_source.definition,
+            "annotation",
+            func.jsonb_build_object(
+                "iri",
+                record_source.term_iri,
+                "synonyms",
+                record_source.synonyms,
+            ),
+        )
 
     @classmethod
     async def search(
@@ -261,19 +292,7 @@ class OntologyTerm(
         stmt = select(
             matches_cte.c.source_id.label("record_id"),
             matches_cte.c.external_database_id,
-            func.jsonb_build_object(
-                "label",
-                matches_cte.c.term,
-                "description",
-                matches_cte.c.definition,
-                "annotation",
-                func.jsonb_build_object(
-                    "iri",
-                    matches_cte.c.term_iri,
-                    "synonyms",
-                    matches_cte.c.synonyms,
-                ),
-            ).label("record_details"),
+            cls._build_record_details(matches_cte).label("record_details"),
             literal(str(Entity.ONTOLOGY_TERM)).label("record_type"),
             rank,
             score,
@@ -330,14 +349,59 @@ class OntologyTerm(
         return [SearchMatch(**r) for r in rows if r["record_id"] is not None]
 
     @classmethod
-    async def semantic_search(OntologyTerm, session, phrase, embed, *, limit=10):
-        raise NotImplementedError()
+    async def semantic_search(cls, session, phrase, embed, *, limit=10):
+        embedding = embed(phrase)
+        return await cls.semantic_search_by_embedding(
+            session, phrase, embedding, limit=limit
+        )
 
     @classmethod
     async def semantic_search_by_embedding(
-        cls, session, phrases, embeddings, *, limit=10
+        cls, session, phrase, embedding, *, limit=10
     ):
-        raise NotImplementedError()
+        table_ref = await TableCatalog.get_table_ref(session, cls)
+        score = 1 - ChunkEmbedding.embedding.cosine_distance(embedding)
+        matches = (
+            select(
+                cls.source_id.label("record_id"),
+                cls._build_record_details(cls).label("record_details"),
+                literal(str(Entity.ONTOLOGY_TERM)).label("record_type"),
+                literal(MatchType.SEMANTIC.rank()).label("rank"),
+                score.label("score"),
+                literal(phrase).label("matched_text"),
+                literal(MatchType.SEMANTIC.name).label("match_type"),
+            )
+            .select_from(ChunkEmbedding)
+            .join(
+                ChunkMetadata,
+                ChunkMetadata.chunk_metadata_id == ChunkEmbedding.chunk_metadata_id,
+            )
+            .join(cls, ChunkMetadata.row_id == cls.ontology_term_id)
+            .where(ChunkMetadata.table_id == table_ref.table_id)
+        ).subquery("semantic_matches")
+
+        rank, score, matched_text, match_type = cls._build_windowing_functions(
+            matches,
+            record_id=matches.c.record_id,
+        )
+
+        stmt = (
+            select(
+                matches.c.record_id,
+                matches.c.record_details,
+                matches.c.record_type,
+                rank,
+                score,
+                matched_text,
+                match_type,
+            )
+            .distinct()
+            .order_by(rank.asc(), score.desc())
+            .limit(limit)
+        )
+
+        rows = (await session.execute(stmt)).mappings().all()
+        return [SearchMatch(**row) for row in rows]
 
     # -------------------------
     # Term Lookups
