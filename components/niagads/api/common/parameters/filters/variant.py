@@ -3,6 +3,7 @@ from typing import Annotated, Optional
 
 from fastapi import Query
 from niagads.api.common.parameters.validators import sanitize_enum_value
+from niagads.api.common.types import VariantClassFilter
 from niagads.api.common.utils import sanitize
 from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import BeforeValidator
@@ -21,7 +22,7 @@ async def vep_impacted_gene_param(
 async def vep_consequence_param(
     conseq: Optional[str] = Query(
         default=None,
-        description="VEP predicted consequence; please indicated spaces with '_' (underscore) as in official sequence ontology term (see https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html)",
+        description="VEP predicted consequence (see https://useast.ensembl.org/info/genome/variation/prediction/predicted_data.html)",
     )
 ) -> str:
     return sanitize(conseq)
@@ -37,17 +38,6 @@ async def is_adsp_variant_param(
         return None
     else:
         return True
-
-
-# TODO include INS, DEL, SNV, DUP, etc
-# FIXME: use VariantClass from genomics/features/variant
-class VariantClassFilter(CaseInsensitiveEnum):
-    """Top-level filter against variant class: structural variants (SNV)
-    vs short variants (SHORT) such as SNVs and short INDELs or all matches (ALL)"""
-
-    SHORT = auto()
-    SV = auto()
-    ALL = auto()
 
 
 async def variant_type_parameter(

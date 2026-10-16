@@ -8,6 +8,15 @@ from enum import auto
 from niagads.enums.core import CaseInsensitiveEnum
 
 
+class VariantClassFilter(CaseInsensitiveEnum):
+    """Top-level filter against variant class: structural variants (SNV)
+    vs short variants (SHORT) such as SNVs and short INDELs or all matches (ALL)"""
+
+    SHORT = auto()
+    SV = auto()
+    ALL = auto()
+
+
 class ResponseView(CaseInsensitiveEnum):
     """enum for allowable response views"""
 
