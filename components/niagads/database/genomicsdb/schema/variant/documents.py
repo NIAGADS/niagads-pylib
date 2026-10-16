@@ -125,17 +125,45 @@ class Variant(
     # -------------------------
 
     @classmethod
-    async def search(cls, session: AsyncSession, search_text) -> SearchMatch:
+    async def search(
+        cls, session: AsyncSession, search_text: str, *, limit: int = 10
+    ) -> list[SearchMatch]:
         """Search variants using deterministic text matching.
 
         Args:
             session: Active asynchronous database session.
             search_text: Text or identifier to search for.
+            limit: Maximum number of matching variants to return.
 
-        Raises:
-            NotImplementedError: Variant text search is not implemented.
+        Returns:
+            RefSNP variants whose identifiers begin with ``search_text``.
         """
-        raise NotImplementedError()
+        if not search_text or not search_text.lower().startswith("rs"):
+            return []
+
+        prefix = func.concat(func.lower(literal(search_text)), literal("%"))
+        record_details = func.jsonb_build_object(
+            "label",
+            cls.ref_snp_id,
+            "description",
+            cls.variant_class,
+        )
+        stmt = (
+            select(
+                cls.niagads_id.label("matched_record_id"),
+                record_details.label("matched_record_details"),
+                literal(str(Entity.VARIANT)).label("matched_record_type"),
+                literal(MatchType.PARTIAL_ID.rank()).label("rank"),
+                literal(0.0).label("score"),
+                literal(search_text).label("matched_text"),
+                literal(MatchType.PARTIAL_ID.name).label("match_type"),
+            )
+            .where(func.lower(cls.ref_snp_id).like(prefix))
+            .order_by(cls.ref_snp_id)
+            .limit(limit)
+        )
+        rows = (await session.execute(stmt)).mappings().all()
+        return [SearchMatch(**row) for row in rows]
 
     @classmethod
     async def semantic_search(
