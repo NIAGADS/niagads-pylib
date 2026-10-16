@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
 from niagads.common.nlp.embedding.types import (
     Embedding,
@@ -12,14 +12,16 @@ from niagads.database.mixins import ModelDumpMixin
 from niagads.database.mixins.transactions import TransactionTableMixin
 from sqlalchemy import (
     ClauseElement,
-    Sequence,
     String,
+    column,
     exists,
     func,
     inspect,
     literal,
     select,
+    values,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.inspection import inspect
@@ -601,9 +603,112 @@ class RecordRetrievalMixin:
     # defined, which is less than satisfactory, but the only viable solution at this time.
 
     @classmethod
+    def _build_lookup_values(cls, identifiers: Sequence[str]):
+        """Build a SQL values table from lookup identifiers.
+
+        Args:
+            identifiers: Lookup values to expose as a SQL table.
+
+        Returns:
+            SQLAlchemy values construct with a ``lookup_value`` column.
+        """
+        return values(
+            column("lookup_value", String),
+            name="lookup_values",
+        ).data([(identifier,) for identifier in identifiers])
+
+    @classmethod
+    def _build_lookup_select(
+        cls,
+        lookup_values,
+        lookup_field,
+        where_clause=None,
+        *,
+        join_clause=None,
+    ):
+        """Build a lookup SELECT for use in a union query.
+
+        Args:
+            lookup_values: SQL values table containing ``lookup_value``.
+            lookup_field: SQLAlchemy field compared to ``lookup_value``.
+            where_clause: Optional custom condition used to match records.
+            join_clause: Optional sequence of ``(table, condition)`` joins.
+
+        Returns:
+            SELECT containing ``lookup_value`` and the full record as JSON.
+
+        Note:
+            Without ``join_clause``, ``where_clause`` replaces the default
+            equality match. With ``join_clause``, it is applied as a filter
+            after the additional table is joined.
+        """
+        stmt = select(
+            lookup_values.c.lookup_value,
+            func.row_to_json(cls.__table__).cast(JSONB).label("record"),
+        ).select_from(lookup_values)
+
+        if join_clause:
+            for table, condition in join_clause:
+                stmt = stmt.join(table, condition)
+        else:
+            stmt = stmt.join(
+                cls,
+                (
+                    where_clause
+                    if where_clause is not None
+                    else lookup_field == lookup_values.c.lookup_value
+                ),
+            )
+
+        if join_clause and where_clause is not None:
+            stmt = stmt.where(where_clause)
+
+        return stmt
+
+    @classmethod
+    async def _execute_lookup(
+        cls,
+        session: AsyncSession,
+        lookup_values,
+        matches,
+        identifiers: Sequence[str],
+    ) -> dict[str, list[object] | None]:
+        """Execute lookup matches and group records by lookup value.
+
+        Args:
+            session: Active asynchronous database session.
+            lookup_values: SQL values table containing requested identifiers.
+            matches: Subquery containing lookup values and matching records.
+            identifiers: Requested lookup identifiers.
+
+        Returns:
+            Mapping from each lookup value to matching records or ``None``.
+        """
+        stmt = select(
+            lookup_values.c.lookup_value,
+            matches.c.record,
+        ).select_from(
+            lookup_values.outerjoin(
+                matches,
+                matches.c.lookup_value == lookup_values.c.lookup_value,
+            )
+        )
+
+        result = await session.execute(stmt)
+        lookup = {identifier: [] for identifier in dict.fromkeys(identifiers)}
+
+        for row in result.mappings():
+            if row["record"] is not None:
+                lookup[row["lookup_value"]].append(row["record"])
+            else:
+                lookup[row["lookup_value"]] = None
+
+        return lookup
+
+    @classmethod
     async def fetch_records_by_identifier(
         cls, session: AsyncSession, identifiers: list[str]
-    ) -> list[list[object] | None]:
+    ) -> dict[str, list[object] | None]:
         """Find records that match a list of identifiers
         No parent fallback provided, must be implemented in child class.
 

@@ -16,7 +16,11 @@ from niagads.database.genomicsdb.schema.gene.xrefs import (
     GeneIdentifierType,
     GeneXRef,
 )
-from niagads.database.genomicsdb.schema.mixins import IdAliasMixin, SearchMixin
+from niagads.database.genomicsdb.schema.mixins import (
+    IdAliasMixin,
+    RecordRetrievalMixin,
+    SearchMixin,
+)
 from niagads.database.mixins import GenomicRegionMixin
 from sqlalchemy import String, and_, func, select, union
 from sqlalchemy.dialects.postgresql import JSONB
@@ -24,7 +28,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin, SearchMixin):
+class Gene(
+    GeneMaterializedViewBase,
+    GenomicRegionMixin,
+    IdAliasMixin,
+    SearchMixin,
+    RecordRetrievalMixin,
+):
     __tablename__ = "document_mv"
 
     # The view contains the genomic interval fields but not strand.
@@ -187,6 +197,50 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin, SearchMix
         cls, session, phrases, embeddings, *, limit=10
     ):
         raise NotImplementedError()
+
+    @classmethod
+    async def fetch_records_by_identifier(
+        cls, session, identifiers: list[str]
+    ) -> dict[str, list[dict] | None]:
+
+        lookup_values = cls._build_lookup_values(identifiers)
+
+        source_select = cls._build_lookup_select(
+            lookup_values,
+            lookup_field=cls.source_id,
+        )
+        symbol_select = cls._build_lookup_select(
+            lookup_values,
+            lookup_field=cls.nomenclature["gene_symbol"].astext,
+            where_clause=cls.nomenclature["gene_symbol"].astext.ilike(
+                lookup_values.c.lookup_value
+            ),
+        )
+        synonym_select = cls._build_lookup_select(
+            lookup_values,
+            lookup_field=GeneXRef.xref_value,
+            where_clause=GeneXRef.xref_label.in_(SYNONYM_FIELDS),
+            join_clause=[
+                (
+                    GeneXRef,
+                    GeneXRef.xref_value == lookup_values.c.lookup_value,
+                ),
+                (cls, GeneXRef.gene_id == cls.gene_id),
+            ],
+        )
+
+        matches = union(
+            source_select,
+            symbol_select,
+            synonym_select,
+        ).subquery("matches")
+
+        return await cls._execute_lookup(
+            session,
+            lookup_values,
+            matches,
+            identifiers,
+        )
 
     # -------------------------
     # Lookup

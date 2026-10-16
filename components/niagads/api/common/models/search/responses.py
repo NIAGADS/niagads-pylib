@@ -29,4 +29,4 @@ class RecordLookupResponse(CustomBaseModel, Generic[RecordT]):
 
     """
 
-    lookup: list[list[RecordT] | None]
+    lookup: dict[str, list[RecordT] | None]
