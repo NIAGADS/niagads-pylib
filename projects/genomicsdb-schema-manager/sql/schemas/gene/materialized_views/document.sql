@@ -209,12 +209,12 @@ goassociations AS (
     LEFT JOIN (
         SELECT
             gene_id,
-            jsonb_agg(aspect_terms) AS goa
+            jsonb_object_agg(aspect, terms) AS goa
         FROM (
             SELECT
                 gene_id,
                 aspect,
-                jsonb_build_object(aspect, jsonb_agg(term)) AS aspect_terms
+                jsonb_agg(term) AS terms
             FROM terms
             GROUP BY gene_id, aspect
         ) grouped_terms
@@ -321,7 +321,7 @@ genes AS (
         AND goassociations.gene_id = g.gene_id
 )
 SELECT
-    genes.*,
+    DISTINCT genes.*,
     known_ad.gene_id IS NOT NULL AS associated_with_known_ad_locus
 FROM
     genes
