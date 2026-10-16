@@ -1,9 +1,11 @@
 from enum import auto
-from typing import Optional
+from typing import Annotated, Optional
 
 from fastapi import Query
-from niagads.api.common.models.domain.parameters.types import EnumParameter
+from niagads.api.common.parameters.validators import sanitize_enum_value
 from niagads.api.common.utils import sanitize
+from niagads.enums.core import CaseInsensitiveEnum
+from pydantic import BeforeValidator
 
 
 async def vep_impacted_gene_param(
@@ -39,16 +41,27 @@ async def is_adsp_variant_param(
 
 # TODO include INS, DEL, SNV, DUP, etc
 # FIXME: use VariantClass from genomics/features/variant
-class VariantType(EnumParameter):
-    SNV = auto()
+class VariantClassFilter(CaseInsensitiveEnum):
+    """Top-level filter against variant class: structural variants (SNV)
+    vs short variants (SHORT) such as SNVs and short INDELs or all matches (ALL)"""
+
+    SHORT = auto()
     SV = auto()
     ALL = auto()
 
 
-async def variant_type_param(
-    variantType: VariantType = Query(
-        default=VariantType.ALL,
-        description="variant type, for now broad category: SV or SMALL",
-    )
-):
-    return VariantType.validate(variantType, "Variant Type", VariantType)
+async def variant_type_parameter(
+    variant_type: Annotated[
+        VariantClassFilter,
+        BeforeValidator(sanitize_enum_value(VariantClassFilter)),
+        Query(
+            description=(
+                f"Type of variants to query: "
+                "structural variants (SNV) vs short variants (SHORT) "
+                "such as SNVs and short INDELs or all matches (ALL). "
+                "If ranged query and range >50kb, only SVs will be returned."
+            )
+        ),
+    ] = VariantClassFilter.ALL,
+) -> VariantClassFilter:
+    return variant_type
