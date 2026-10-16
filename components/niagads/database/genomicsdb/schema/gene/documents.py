@@ -9,6 +9,7 @@ from typing import Optional
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
 from niagads.common.types import Entity
+from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
 from niagads.database.genomicsdb.schema.gene.base import GeneMaterializedViewBase
 from niagads.database.genomicsdb.schema.gene.structure import GeneModel
 from niagads.database.genomicsdb.schema.gene.xrefs import (
@@ -21,8 +22,19 @@ from niagads.database.genomicsdb.schema.mixins import (
     RecordRetrievalMixin,
     SearchMixin,
 )
+from niagads.database.genomicsdb.schema.ragdoc.chunks import (
+    ChunkEmbedding,
+    ChunkMetadata,
+)
 from niagads.database.mixins import GenomicRegionMixin
-from sqlalchemy import String, and_, func, select, union
+from sqlalchemy import (
+    String,
+    and_,
+    func,
+    literal,
+    select,
+    union,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -75,6 +87,36 @@ class Gene(
     # -------------------------
     # Search
     # -------------------------
+
+    @classmethod
+    def _build_record_details(cls, record_source):
+        """Build the JSON record details expression used by gene searches.
+
+        Args:
+            record_source: ORM model, CTE, or subquery containing gene fields.
+
+        Returns:
+            SQLAlchemy expression producing the gene label, description, and
+            annotation fields.
+        """
+        record_source = getattr(record_source, "c", record_source)
+        return func.jsonb_build_object(
+            "label",
+            record_source.nomenclature["gene_symbol"].astext,
+            "description",
+            record_source.nomenclature["gene_name"].astext,
+            "annotation",
+            func.jsonb_build_object(
+                "gene_type",
+                record_source.gene_type,
+                "location",
+                func.concat_ws(
+                    " // ",
+                    record_source.gene_structure["location"].astext,
+                    record_source.gene_structure["cytogenic_location"].astext,
+                ),
+            ),
+        )
 
     @classmethod
     async def search(cls, session: AsyncSession, search_text) -> SearchMatch:
@@ -168,35 +210,62 @@ class Gene(
             session,
             matches_cte,
             record_id=matches_cte.c.source_id,
-            record_details=func.jsonb_build_object(
-                "label",
-                matches_cte.c.nomenclature["gene_symbol"].astext,
-                "description",
-                matches_cte.c.nomenclature["gene_name"].astext,
-                "annotation",
-                func.jsonb_build_object(
-                    "gene_type",
-                    matches_cte.c.gene_type,
-                    "location",
-                    func.concat_ws(
-                        " // ",
-                        matches_cte.c.gene_structure["location"].astext,
-                        matches_cte.c.gene_structure["cytogenic_location"].astext,
-                    ),
-                ),
-            ),
+            record_details=cls._build_record_details(matches_cte),
             record_type=Entity.GENE,
         )
 
     @classmethod
-    async def semantic_search(OntologyTerm, session, phrase, embed, *, limit=10):
-        raise NotImplementedError()
+    async def semantic_search(cls, session, phrase, embed, *, limit=10):
+        embedding = embed(phrase)
+        return cls.semantic_search_by_embedding(session, phrase, embedding, limit=limit)
 
     @classmethod
     async def semantic_search_by_embedding(
-        cls, session, phrases, embeddings, *, limit=10
+        cls, session, phrase, embedding, *, limit=10
     ):
-        raise NotImplementedError()
+        table_ref = await TableCatalog.get_table_ref(session, cls)
+        score = 1 - ChunkEmbedding.embedding.cosine_distance(embedding)
+        matches = (
+            select(
+                cls.source_id.label("record_id"),
+                cls._build_record_details(cls).label("record_details"),
+                literal(str(Entity.GENE)).label("record_type"),
+                literal(MatchType.SEMANTIC.rank()).label("rank"),
+                score.label("score"),
+                literal(phrase).label("matched_text"),
+                literal(MatchType.SEMANTIC.name).label("match_type"),
+            )
+            .select_from(ChunkEmbedding)
+            .join(
+                ChunkMetadata,
+                ChunkMetadata.chunk_metadata_id == ChunkEmbedding.chunk_metadata_id,
+            )
+            .join(cls, ChunkMetadata.row_id == cls.gene_id)
+            .where(ChunkMetadata.table_id == table_ref.table_id)
+        ).subquery("semantic_matches")
+
+        rank, score, matched_text, match_type = cls._build_windowing_functions(
+            matches,
+            record_id=matches.c.record_id,
+        )
+
+        stmt = (
+            select(
+                matches.c.record_id,
+                matches.c.record_details,
+                matches.c.record_type,
+                rank,
+                score,
+                matched_text,
+                match_type,
+            )
+            .distinct()
+            .order_by(rank.asc(), score.desc())
+            .limit(limit)
+        )
+
+        rows = (await session.execute(stmt)).mappings().all()
+        return [SearchMatch(**row) for row in rows]
 
     @classmethod
     async def fetch_records_by_identifier(
