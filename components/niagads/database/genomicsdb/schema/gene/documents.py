@@ -19,7 +19,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin):
     __tablename__ = "document_mv"
-    _stable_id = "source_id"
 
     # The view contains the genomic interval fields but not strand.
     strand = None

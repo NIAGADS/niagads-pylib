@@ -1,7 +1,10 @@
-from typing import Optional, Type
+from typing import Optional, Type, Union
 
 from niagads.database.genomicsdb.schema.base import GenomicsDBSchemaBase
-from niagads.database.genomicsdb.schema.mixins import GenomicsDBTableMixin
+from niagads.database.genomicsdb.schema.mixins import (
+    GenomicsDBMVMixin,
+    GenomicsDBTableMixin,
+)
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -30,7 +33,7 @@ class TableRef(BaseModel, arbitrary_types_allowed=True):
     table_stable_id: Optional[str] = (
         Field(default=None, title="Table Stable (FAIR) ID"),
     )
-    table_class: Type[GenomicsDBTableMixin] = Field(
+    table_class: Union[Type[GenomicsDBTableMixin], Type[GenomicsDBMVMixin]] = Field(
         ..., title="Table ORM Class", description="ORM class for the table."
     )
 

@@ -13,8 +13,11 @@ version = "2.0.0"
 force-exclude = '(^/development/|/alembic/versions/)'
 
 [tool.isort]
+extend_skip_glob = [
+    "**/alembic/versions/**",
+    "development/**"
+]
 profile = "black"
-extend_skip_glob = ["development/**", "**/alembic/versions/**"]
 
 [tool.poetry]
 homepage = "https://github.com/NIAGADS/niagads-pylib"
@@ -107,10 +110,11 @@ requests = "^2.32.3"
 sentence-transformers = "^5.2.2"
 spacy = "^3.8.11"
 sqlalchemy = "^2.0.40"
-sqlalchemy-utils = "^0.41.2"
+sqlalchemy-utils = "^0.43.0"
 starlette = "^1.2.0"
 streamlit = "^1.55.0"
 strenum = "^0.4.15"
+transformers = "4.56.2"
 typing-extensions = "^4.13.2"
 uvicorn = "^0.34.2"
 vcfpy = "^0.13.8"
@@ -146,3 +150,6 @@ build-backend = "poetry.core.masonry.api"
 requires = [
     "poetry-core>=2.0.0,<3.0.0"
 ]
+
+# Pinned this version for compatibility with the LFM2.5 embedding model.
+# transformers = "4.56.2"
