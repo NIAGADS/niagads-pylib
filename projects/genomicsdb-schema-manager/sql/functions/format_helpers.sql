@@ -15,7 +15,7 @@ CREATE OR REPLACE FUNCTION format_genomic_location(chromosome HumanGenome, span 
     IMMUTABLE
     AS $$
         SELECT concat_ws(':',
-            chromosome,
+            replace(chromosome::text, 'chr', ''),
             lower(span) || '-' || upper(span) - 1, --everything in the db should be inclusive end, 1-based
             CASE WHEN strand = '-' THEN strand ELSE NULL END
         )
