@@ -1,4 +1,4 @@
-from niagads.api.common.models.records.base import ORMCompatibleRecord
+from niagads.api.common.models.records.types import ORMCompatibleRecord
 from pydantic import Field
 
 

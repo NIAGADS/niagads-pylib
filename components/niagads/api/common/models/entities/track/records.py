@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from niagads.api.common.models.records.base import (
+from niagads.api.common.models.records.types import (
     CountExtendedRecord,
     ORMCompatibleRecord,
 )

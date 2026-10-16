@@ -1,6 +1,6 @@
 from typing import Any, Optional, Union
 
-from niagads.api.common.models.records.base import DynamicRecord
+from niagads.api.common.models.records.types import DynamicRecord
 from niagads.utils.string import dict_to_info_string, xstr
 from pydantic import Field
 

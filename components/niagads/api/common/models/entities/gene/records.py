@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Union
 
-from niagads.api.common.models.records.base import ORMCompatibleRecord
+from niagads.api.common.models.records.types import ORMCompatibleRecord
 from niagads.api.common.models.records.mixins import DynamicMixin
 from niagads.common.gene.models.annotation import (
     GOAssociation,

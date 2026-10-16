@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from niagads.api.common.models.records.base import ORMCompatibleRecord
+from niagads.api.common.models.records.types import ORMCompatibleRecord
 from niagads.common.variant.models.annotations import PredictedConsequenceSummary
 from niagads.common.variant.models.record import VariantIdentifier, VariantRecord
 from pydantic import ConfigDict, Field, field_validator, model_validator
