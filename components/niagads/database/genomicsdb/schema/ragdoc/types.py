@@ -15,5 +15,6 @@ class RAGDocType(CaseInsensitiveEnum):
 class GeneDocumentSection(CaseInsensitiveEnum):
     IDENTITY = auto()
     STRUCTURE = auto()
-    ANNOTATION = auto()
+    FUNCTIONAL_ANNOTATION = auto()
+    MEMBERSHIPS = auto()
     REFERENCES = auto()

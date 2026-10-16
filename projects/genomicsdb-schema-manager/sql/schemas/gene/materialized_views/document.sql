@@ -209,12 +209,12 @@ goassociations AS (
     LEFT JOIN (
         SELECT
             gene_id,
-            jsonb_agg(aspect_terms) AS goa
+            jsonb_object_agg(aspect, terms) AS goa
         FROM (
             SELECT
                 gene_id,
                 aspect,
-                jsonb_build_object(aspect, jsonb_agg(term)) AS aspect_terms
+                jsonb_agg(term) AS terms
             FROM terms
             GROUP BY gene_id, aspect
         ) grouped_terms
@@ -228,6 +228,7 @@ gene_lists AS (
         g.gene_id,
         jsonb_agg(
                 jsonb_build_object(
+                    'listing', xdb.name,
                     'evidence_code',
                     jsonb_build_object(
                         'term',
@@ -236,9 +237,10 @@ gene_lists AS (
                         eco.source_id
                     ),
                     'qualifier',
-                    ae.qualifiers,
+                    ae.qualifiers - 'description',
                     'rank',
-                    glm.rank
+                    glm.rank,
+                    'assertion', ae.qualifiers->>'description'
                 )
             ORDER BY
                 glm.rank,
@@ -259,6 +261,8 @@ gene_lists AS (
         AND ae.row_id = glm.gene_list_entry_id
     LEFT JOIN Reference.OntologyTerm eco
         ON eco.ontology_term_id = ae.evidence_code_id
+    LEFT JOIN Reference.ExternalDatabase xdb
+        ON glm.external_database_id = xdb.external_database_id
     GROUP BY
         g.gene_id
 ),
@@ -284,7 +288,7 @@ genes AS (
      
         jsonb_build_object(
             'location',  format_genomic_location(g.chromosome, g.span, g.strand),
-             'cytogenic_location', cloc.location,
+            'cytogenic_location', cloc.location,
             'transcripts',
             transcripts.transcripts
         ) AS gene_structure,    
@@ -317,7 +321,7 @@ genes AS (
         AND goassociations.gene_id = g.gene_id
 )
 SELECT
-    genes.*,
+    DISTINCT genes.*,
     known_ad.gene_id IS NOT NULL AS associated_with_known_ad_locus
 FROM
     genes
@@ -343,16 +347,9 @@ CREATE INDEX ix_gene_document_mv__span
     ON Gene.Document_MV USING GIST (span);
 
 CREATE INDEX ix_gene_document_mv_associated_with_known_ad_locus
-    ON Gene.Documents_MV (associated_with_known_ad_locus)
+    ON Gene.Document_MV (associated_with_known_ad_locus)
     WHERE associated_with_known_ad_locus IS TRUE;
     
-    
-    select count(*) from gene.documents_mv;
-    select count(*) from gene.gene;
-    
-    select * from admin.schemacatalog;
-    select * from admin.tableINSERT INTO Admin.TableCatalog (schema_id, name, table_primary_key)
-VALUES (1, 'documents_mv', 'gene_id');catalog;
-    
+
 INSERT INTO Admin.TableCatalog (schema_id, name, table_primary_key)
 VALUES (3, 'document_mv', 'gene_id');

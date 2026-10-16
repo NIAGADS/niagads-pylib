@@ -30,7 +30,7 @@ class GeneTableBase(GenomicsDBSchemaBase, GenomicsDBTableMixin, ExternalDatabase
 class GeneMaterializedViewBase(GenomicsDBSchemaBase, GenomicsDBMVMixin):
     __abstract__ = True
     _document_primary_key = "gene_id"
-    _stable_id = "ensembl_id"
+    _stable_id = "source_id"
     _schema = "gene"
 
     __table_args__ = {"schema": _schema, "info": {"is_view": True}}
