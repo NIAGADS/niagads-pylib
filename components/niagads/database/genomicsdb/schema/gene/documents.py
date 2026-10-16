@@ -26,6 +26,7 @@ from niagads.database.genomicsdb.schema.ragdoc.chunks import (
     ChunkEmbedding,
     ChunkMetadata,
 )
+from niagads.database.genomicsdb.schema.ragdoc.types import GeneDocumentSection
 from niagads.database.mixins import GenomicRegionMixin
 from sqlalchemy import (
     String,
@@ -215,16 +216,41 @@ class Gene(
         )
 
     @classmethod
-    async def semantic_search(cls, session, phrase, embed, *, limit=10):
+    async def semantic_search(
+        cls,
+        session,
+        phrase,
+        embed,
+        *,
+        limit=10,
+        sections: list[GeneDocumentSection] = None,
+    ):
         embedding = embed(phrase)
-        return cls.semantic_search_by_embedding(session, phrase, embedding, limit=limit)
+        return cls.semantic_search_by_embedding(
+            session, phrase, embedding, limit=limit, sections=sections
+        )
 
     @classmethod
     async def semantic_search_by_embedding(
-        cls, session, phrase, embedding, *, limit=10
+        cls,
+        session,
+        phrase,
+        embedding,
+        *,
+        limit=10,
+        sections: list[GeneDocumentSection] = None,
     ):
         table_ref = await TableCatalog.get_table_ref(session, cls)
         score = 1 - ChunkEmbedding.embedding.cosine_distance(embedding)
+        where_clause = ChunkMetadata.table_id == table_ref.table_id
+        if sections:
+            where_clause = and_(
+                where_clause,
+                ChunkMetadata.document_section.in_(
+                    [str(section) for section in sections]
+                ),
+            )
+
         matches = (
             select(
                 cls.source_id.label("record_id"),
@@ -241,7 +267,7 @@ class Gene(
                 ChunkMetadata.chunk_metadata_id == ChunkEmbedding.chunk_metadata_id,
             )
             .join(cls, ChunkMetadata.row_id == cls.gene_id)
-            .where(ChunkMetadata.table_id == table_ref.table_id)
+            .where(where_clause)
         ).subquery("semantic_matches")
 
         rank, score, matched_text, match_type = cls._build_windowing_functions(
