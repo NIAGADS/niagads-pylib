@@ -24,6 +24,7 @@ from sqlalchemy import (
     String,
     Text,
     and_,
+    func,
     literal,
     literal_column,
     select,
@@ -196,7 +197,8 @@ class Variant(
             .select_from(
                 queried.join(
                     RefSNPAlias,
-                    RefSNPAlias.ref_snp_id == queried.c.lookup_value,
+                    func.lower(RefSNPAlias.ref_snp_id)
+                    == func.lower(queried.c.lookup_value),
                 )
             )
             .cte("merges", recursive=True)
@@ -210,7 +212,8 @@ class Variant(
             ).select_from(
                 merges.join(
                     RefSNPAlias,
-                    RefSNPAlias.ref_snp_id == merges.c.merged_into,
+                    func.lower(RefSNPAlias.ref_snp_id)
+                    == func.lower(merges.c.merged_into),
                 )
             )
         )
@@ -261,6 +264,8 @@ class Variant(
         ref_snp_select = cls._build_lookup_select(
             ref_snp_lookup_values,
             lookup_field=cls.ref_snp_id,
+            where_clause=func.lower(cls.ref_snp_id)
+            == func.lower(ref_snp_lookup_values.c.lookup_value),
         )
         return await cls._execute_lookup(
             session,
@@ -278,19 +283,20 @@ class Variant(
             lookups: Mapping of requested identifiers to resolved records.
         """
         ref_snp_ids = [
-            identifier.lower()
+            identifier
             for identifier in lookups
             if matches(RegularExpressions.REF_SNP_ID, identifier.lower())
         ]
+        if not ref_snp_ids:
+            return
         id_matches = await cls._execute_ref_snp_id_lookup(session, ref_snp_ids)
 
         not_matched = []
-        for identifier in lookups:
-            normalized_identifier = identifier.lower()
-            if normalized_identifier in id_matches:
-                lookups[identifier] = id_matches[normalized_identifier]
+        for identifier in ref_snp_ids:
+            if id_matches[identifier] is not None:
+                lookups[identifier] = id_matches[identifier]
             else:
-                not_matched.append(normalized_identifier)
+                not_matched.append(identifier)
 
         if not_matched:
             aliases = await cls._find_current_ref_snp(session, not_matched)
@@ -475,63 +481,8 @@ class Variant(
             unnecessary join to the merge-history table.
         """
         lookups = {identifier: None for identifier in dict.fromkeys(identifiers)}
-        await cls._fetch_records_by_ref_snp_id(
-            lookups,
-        )
+        await cls._fetch_records_by_ref_snp_id(session, lookups)
+        await cls._fetch_records_by_positional_id(session, lookups)
+        await cls._fetch_records_by_structural_variant_id(session, lookups)
 
-        """
-            elif matches(RegularExpressions.STRUCTUAL_VARIANT_ID, identifier.upper()):
-                structural_id = identifier.upper()
-                structural_variant_ids.append(
-                    (
-                        structural_id,
-                        str(HumanGenome(structural_id.split("_")[1].lower())),
-                    )
-                )
-            elif matches(RegularExpressions.POSITIONAL_VARIANT_ID, identifier):
-                positional_ids.append(
-                    (identifier, str(HumanGenome(identifier.split(":")[1].lower())))
-                )
-
-        if ref_snp_ids:
-            cls._fetch_records_by_ref_snp_id(session, identifiers)
-            
-        if structural_variant_ids:
-            structural_lookup_values = cls._build_lookup_values(
-                [identifier for identifier, _ in structural_variant_ids]
-            )
-            # Developer note: use SQL literals for partition pruning. These values
-            # come from the controlled HumanGenome enum, so they are trusted.
-            structural_chromosomes = {
-                literal_column(f"'{chromosome}'")
-                for _, chromosome in structural_variant_ids
-            }
-            structural_select = cls._build_lookup_select(
-                structural_lookup_values,
-                lookup_field=cls.niagads_id,
-                where_clause=and_(
-                    cls.niagads_id == structural_lookup_values.c.lookup_value,
-                    cls.chromosome.in_(structural_chromosomes),
-                    cls.is_structural_variant.is_(True),
-                ),
-            )
-
-        if positional_ids:
-            positional_lookup_values = cls._build_lookup_values(
-                [identifier for identifier, _ in positional_ids]
-            )
-            positional_chromosomes = {
-                literal_column(f"'{chromosome}'") for _, chromosome in positional_ids
-            }
-            positional_select = cls._build_lookup_select(
-                positional_lookup_values,
-                lookup_field=cls.niagads_id,
-                where_clause=and_(
-                    cls.niagads_id == positional_lookup_values.c.lookup_value,
-                    cls.chromosome.in_(positional_chromosomes),
-                ),
-            )
-
-        # TODO: add fallback check for unmatched non-SNV positional_ids against normalized positional ids
-        return lookup
-        """
+        return lookups
