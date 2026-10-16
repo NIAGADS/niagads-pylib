@@ -9,7 +9,7 @@ from typing import Union
 
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.reference.ontologies.types import EntityTypeIRI
-from niagads.common.search.models.record import LookupMatch
+from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
 from niagads.common.types import Entity
 from niagads.database.genomicsdb.schema.mixins import IdAliasMixin, SearchMixin
@@ -130,7 +130,7 @@ class OntologyTerm(
         allow_fuzzy: bool = True,
         include_ontology: list[str] = None,
         exclude_ontology: list[str] = None,
-    ) -> LookupMatch:
+    ) -> SearchMatch:
 
         # exact matches
         exact_term_match_cte = cls._build_match_cte(
@@ -327,7 +327,7 @@ class OntologyTerm(
 
         # if no matches will get one result with all fields except literals as NULL
         # if we filter for those, an empty result should be returned as []
-        return [LookupMatch(**r) for r in rows if r["record_id"] is not None]
+        return [SearchMatch(**r) for r in rows if r["record_id"] is not None]
 
     @classmethod
     async def semantic_search(OntologyTerm, session, phrase, embed, *, limit=10):

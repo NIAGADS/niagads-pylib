@@ -18,7 +18,7 @@ class MatchedRecordDetails(CustomBaseModel):
     annotation: Optional[Dict[str, Any]] = None
 
 
-class LookupMatch(CustomBaseModel):
+class SearchMatch(CustomBaseModel):
     matched_record_id: str = Field(
         serialization_alias="id",
         title="Record ID",

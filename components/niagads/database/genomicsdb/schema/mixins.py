@@ -5,12 +5,21 @@ from niagads.common.nlp.embedding.types import (
     Embedding,
     EmbeddingFunction,
 )
-from niagads.common.search.models.record import LookupMatch
+from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
 from niagads.database.mixins.transactions import TransactionTableMixin
-from sqlalchemy import ClauseElement, String, exists, func, inspect, literal, select
+from sqlalchemy import (
+    ClauseElement,
+    Sequence,
+    String,
+    exists,
+    func,
+    inspect,
+    literal,
+    select,
+)
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.inspection import inspect
@@ -477,7 +486,7 @@ class SearchMixin:
         record_id,
         record_details,
         record_type,
-    ) -> list[LookupMatch]:
+    ) -> list[SearchMatch]:
         """Execute a search using standardized match results.
 
         Args:
@@ -512,12 +521,12 @@ class SearchMixin:
         result = await session.execute(stmt)
         rows = result.mappings().all()
 
-        return [LookupMatch(**row) for row in rows if row["record_id"] is not None]
+        return [SearchMatch(**row) for row in rows if row["record_id"] is not None]
 
     @classmethod
     async def search(
         cls, session: AsyncSession, search_text: str, *, allow_fuzzy: bool = False
-    ) -> list[LookupMatch]:
+    ) -> list[SearchMatch]:
         """Search for records using deterministic text matching.
         No parent fallback provided, must be implemented in child class.
 
@@ -540,7 +549,7 @@ class SearchMixin:
         embed: EmbeddingFunction,
         *,
         limit=10,
-    ) -> list[LookupMatch]:
+    ) -> list[SearchMatch]:
         """Search for semantically similar records using embedded query text.
         No parent fallback provided, must be implemented in child class.
 
@@ -566,7 +575,7 @@ class SearchMixin:
         embedding: Embedding,
         *,
         limit=10,
-    ) -> list[LookupMatch]:
+    ) -> list[SearchMatch]:
         """Search for semantically similar records using precomputed embeddings.
 
         Args:
@@ -581,4 +590,30 @@ class SearchMixin:
         raise NotImplementedError(
             "Database models using SearchMixin must implement "
             "`semantic_search`_by_embedding for semantic text search (NL querying support)."
+        )
+
+
+class RecordRetrievalMixin:
+    # DEVELOPER'S NOTE: Ideally, this should have been implemented as an Abstract Base Class
+    # but it causes conflicts with SQLAlchemy DeclarativeMeta class.  To avoid having
+    # define a custom abstract declarative metadata class and set it as metaclass for
+    # the SchemaBase, mixin functions will raise NotImplementedErrors, as no fallback can be
+    # defined, which is less than satisfactory, but the only viable solution at this time.
+
+    @classmethod
+    async def fetch_records_by_identifier(
+        cls, session: AsyncSession, identifiers: list[str]
+    ) -> list[list[object] | None]:
+        """Find records that match a list of identifiers
+        No parent fallback provided, must be implemented in child class.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            identifiers (list[str]): identifiers to match
+        Returns:
+            Matching search result records
+        """
+        raise NotImplementedError(
+            "Database models using RecordRetrievalMixin must implement "
+            "`fetch_records_by_identifier`."
         )

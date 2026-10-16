@@ -6,7 +6,7 @@ Defines the RAG document materialized view and related fields for querying gene 
 
 from typing import Optional
 
-from niagads.common.search.models.record import LookupMatch
+from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
 from niagads.common.types import Entity
 from niagads.database.genomicsdb.schema.gene.base import GeneMaterializedViewBase
@@ -67,7 +67,7 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin, SearchMix
     # -------------------------
 
     @classmethod
-    async def search(cls, session: AsyncSession, search_text) -> LookupMatch:
+    async def search(cls, session: AsyncSession, search_text) -> SearchMatch:
 
         # exact matches
         exact_id_match_cte = cls._build_match_cte(
@@ -178,6 +178,19 @@ class Gene(GeneMaterializedViewBase, GenomicRegionMixin, IdAliasMixin, SearchMix
             record_type=Entity.GENE,
         )
 
+    @classmethod
+    async def semantic_search(OntologyTerm, session, phrase, embed, *, limit=10):
+        raise NotImplementedError()
+
+    @classmethod
+    async def semantic_search_by_embedding(
+        cls, session, phrases, embeddings, *, limit=10
+    ):
+        raise NotImplementedError()
+
+    # -------------------------
+    # Lookup
+    # -------------------------
     @classmethod
     async def resolve_identifier(
         cls,

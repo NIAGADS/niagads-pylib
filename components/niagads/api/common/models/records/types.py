@@ -1,3 +1,5 @@
+from typing import TypeVar
+
 from niagads.api.common.models.records.mixins import (
     CountsMixin,
     DynamicMixin,
@@ -13,3 +15,6 @@ class DynamicRecord(CustomBaseModel, DynamicMixin): ...
 
 
 class CountExtendedRecord(CustomBaseModel, CountsMixin): ...
+
+
+RecordT = TypeVar("RecordT", bound=CustomBaseModel)
