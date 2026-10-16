@@ -126,7 +126,7 @@ class Variant(
 
     @classmethod
     async def search(
-        cls, session: AsyncSession, search_text: str, *, limit: int = 10
+        cls, session: AsyncSession, search_text: str, *, limit: int = 5
     ) -> list[SearchMatch]:
         """Search variants using deterministic text matching.
 
