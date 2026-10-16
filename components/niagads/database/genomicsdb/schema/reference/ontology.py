@@ -232,63 +232,30 @@ class OntologyTerm(
         )
 
         # UNION CTE across the types of searches
+        match_selects = [
+            select(exact_term_match_cte),
+            select(exact_curie_match_cte),
+            select(exact_synonym_match_cte),
+            select(partial_term_match_cte),
+            select(partial_synonym_match_cte),
+            select(partial_definition_match_cte),
+        ]
+
         if allow_fuzzy:
-            matches_cte = union(
-                select(exact_term_match_cte),
-                select(exact_curie_match_cte),
-                select(exact_synonym_match_cte),
-                select(partial_term_match_cte),
-                select(partial_synonym_match_cte),
-                select(partial_definition_match_cte),
-                select(fuzzy_term_match_cte),
-                select(fuzzy_synonym_match_cte),
-                select(fuzzy_definition_match_cte),
-            ).cte("matches")
-        else:
-            matches_cte = union(
-                select(exact_term_match_cte),
-                select(exact_curie_match_cte),
-                select(exact_synonym_match_cte),
-                select(partial_term_match_cte),
-                select(partial_synonym_match_cte),
-                select(partial_definition_match_cte),
-            ).cte("matches")
-
-        # windowing functons to find the top ranked/scored hit per matching term
-        # e.g., so that if a match is found to a term and its synonym, it is reported
-        # correctly
-        match_sort_order = (
-            matches_cte.c.rank.asc(),
-            matches_cte.c.score.desc(),
-        )
-
-        rank = (
-            func.first_value(matches_cte.c.rank).over(
-                partition_by=matches_cte.c.source_id, order_by=match_sort_order
+            match_selects.extend(
+                [
+                    select(fuzzy_term_match_cte),
+                    select(fuzzy_synonym_match_cte),
+                    select(fuzzy_definition_match_cte),
+                ]
             )
-            - 1
-        ).label("rank")
 
-        score = (
-            func.first_value(matches_cte.c.score)
-            .over(partition_by=matches_cte.c.source_id, order_by=match_sort_order)
-            .label("score")
-        )
+        matches_cte = union(*match_selects).cte("matches")
 
-        match_type = (
-            func.first_value(matches_cte.c.match_type)
-            .over(partition_by=matches_cte.c.source_id, order_by=match_sort_order)
-            .label("match_type")
-        )
-
-        matched_text = (
-            func.first_value(matches_cte.c.matched_text.cast(String))
-            .over(
-                partition_by=matches_cte.c.source_id,
-                order_by=match_sort_order,
-            )
-            .cast(String)
-            .label("matched_text")
+        # Find the top ranked/scored hit per matching record.
+        rank, score, matched_text, match_type = cls._build_windowing_functions(
+            matches_cte,
+            record_id=matches_cte.c.source_id,
         )
 
         stmt = select(

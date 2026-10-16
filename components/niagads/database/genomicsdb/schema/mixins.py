@@ -10,7 +10,7 @@ from niagads.common.search.types import MatchType
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
 from niagads.database.mixins.transactions import TransactionTableMixin
-from sqlalchemy import ClauseElement, exists, inspect, literal, select
+from sqlalchemy import ClauseElement, String, exists, func, inspect, literal, select
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.inspection import inspect
@@ -363,12 +363,59 @@ class SearchMixin:
     # defined, which is less than satisfactory, but the only viable solution at this time.
 
     @classmethod
+    def _build_windowing_functions(cls, matches_cte, record_id):
+        """Build window functions for the top match for each record.
+
+        Args:
+            matches_cte: CTE containing standardized search-match columns.
+            record_id: SQLAlchemy column expression used to partition matches.
+
+        Returns:
+            Tuple containing labeled SQLAlchemy expressions for rank, score,
+            matched text, and match type.
+        """
+        match_sort_order = (
+            matches_cte.c.rank.asc(),
+            matches_cte.c.score.desc(),
+        )
+
+        return (
+            (
+                func.first_value(matches_cte.c.rank).over(
+                    partition_by=record_id,
+                    order_by=match_sort_order,
+                )
+                - 1
+            ).label("rank"),
+            func.first_value(matches_cte.c.score)
+            .over(
+                partition_by=record_id,
+                order_by=match_sort_order,
+            )
+            .label("score"),
+            func.first_value(matches_cte.c.matched_text.cast(String))
+            .over(
+                partition_by=record_id,
+                order_by=match_sort_order,
+            )
+            .cast(String)
+            .label("matched_text"),
+            func.first_value(matches_cte.c.match_type)
+            .over(
+                partition_by=record_id,
+                order_by=match_sort_order,
+            )
+            .label("match_type"),
+        )
+
+    @classmethod
     def _build_match_cte(
         cls,
         name: str,
         match_type: MatchType,
         matched_text_expr,
         where_condition,
+        *,
         score: float = 1.0,
         join_clause=None,
         post_action: Optional[callable] = None,
@@ -421,6 +468,51 @@ class SearchMixin:
             stmt = post_action(stmt)
 
         return stmt.cte(name)
+
+    @classmethod
+    async def _execute_search(
+        cls,
+        session: AsyncSession,
+        matches_cte,
+        record_id,
+        record_details,
+        record_type,
+    ) -> list[LookupMatch]:
+        """Execute a search using standardized match results.
+
+        Args:
+            session: Active asynchronous database session.
+            matches_cte: CTE containing standardized search-match columns.
+            record_id: SQLAlchemy column expression identifying each record.
+            record_details: SQLAlchemy expression containing record details.
+            record_type: Entity value identifying the type of each record.
+
+        Returns:
+            Matching search results ordered by rank and score.
+        """
+        rank, score, matched_text, match_type = cls._build_windowing_functions(
+            matches_cte,
+            record_id=record_id,
+        )
+
+        stmt = (
+            select(
+                record_id.label("record_id"),
+                record_details.label("record_details"),
+                literal(str(record_type)).label("record_type"),
+                rank,
+                score,
+                matched_text,
+                match_type,
+            )
+            .distinct()
+            .order_by(rank.asc(), score.desc())
+        )
+
+        result = await session.execute(stmt)
+        rows = result.mappings().all()
+
+        return [LookupMatch(**row) for row in rows if row["record_id"] is not None]
 
     @classmethod
     async def search(
