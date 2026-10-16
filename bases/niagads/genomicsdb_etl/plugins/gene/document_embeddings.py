@@ -2,7 +2,8 @@
 
 import json
 from datetime import datetime
-from typing import Optional
+from types import SimpleNamespace
+from typing import Any, Dict, Optional
 
 from niagads.common.types import ETLOperation
 from niagads.database.genomicsdb.schema.gene.documents import Gene
@@ -21,8 +22,8 @@ from niagads.etl.plugins.parameters import BasePluginParams, EmbeddingParameterM
 from niagads.etl.plugins.registry import PluginRegistry
 from niagads.etl.plugins.types import ETLLoadStrategy
 from niagads.nlp.embeddings import TextEmbeddingGenerator
+from niagads.utils.dict import promote_nested
 from niagads.utils.list import chunker
-from pydantic import ValidationInfo, field_validator
 from sqlalchemy import select
 
 SECTIONS = {
@@ -34,8 +35,9 @@ SECTIONS = {
         "associated_with_known_ad_locus",
     ],
     GeneDocumentSection.STRUCTURE: ["gene_structure"],
-    GeneDocumentSection.ANNOTATION: ["functional_annotation", "memberships"],
-    GeneDocumentSection.REFERENCES: ["xrefs", "publications"],
+    GeneDocumentSection.MEMBERSHIPS: ["memberships"],
+    GeneDocumentSection.FUNCTIONAL_ANNOTATION: ["functional_annotation"],
+    GeneDocumentSection.REFERENCES: ["xrefs"],
 }
 
 
@@ -45,13 +47,6 @@ class EmbeddedGeneDocument(DocumentChunk):
     document_hash: bytes
     chunk_hash: bytes
     embedding: Optional[list] = None  # so it can be set in batch
-
-    @field_validator("chunk_hash", mode="before")
-    @classmethod
-    def generate_chunk_hash(cls, value: bytes, info: ValidationInfo) -> bytes:
-        """Generate the chunk hash from its text."""
-
-        return TextEmbeddingGenerator.hash_text(info.data["chunk_text"])
 
 
 class GeneDocumentEmbeddingParams(BasePluginParams, EmbeddingParameterMixin):
@@ -72,7 +67,7 @@ class GeneDocumentEmbeddingParams(BasePluginParams, EmbeddingParameterMixin):
         load_strategy=ETLLoadStrategy.CHUNKED,
         operation=ETLOperation.INSERT,
         is_large_dataset=False,
-        can_resume=True,
+        can_resume=False,
     )
 )
 class GeneDocumentEmbeddingLoader(AbstractBasePlugin, EmbeddingGeneratorContextMixin):
@@ -80,9 +75,16 @@ class GeneDocumentEmbeddingLoader(AbstractBasePlugin, EmbeddingGeneratorContextM
 
     _params: GeneDocumentEmbeddingParams
 
-    def __init__(self, params, name=None, log_path=None, debug=False, verbose=False):
+    def __init__(
+        self,
+        params: Dict[str, Any],
+        name: Optional[str] = None,
+        log_path: str = None,
+        debug: bool = False,
+        verbose: bool = False,
+    ):
         super().__init__(params, name, log_path, debug, verbose)
-        self._gene_records: list[Gene] = None
+        self._gene_records: list[SimpleNamespace] = None
         self._embedded_doc_count = 0
 
     async def on_run_start(self, session) -> None:
@@ -90,26 +92,119 @@ class GeneDocumentEmbeddingLoader(AbstractBasePlugin, EmbeddingGeneratorContextM
         if self.is_etl_run:
             await self.set_table_ref(session, Gene)
 
+            self.logger.info("Fetching Gene Records")
             stmt = select(Gene)
-            self._gene_records = (await session.execute(stmt)).scalars().all()
+            records = (await session.execute(stmt)).scalars().all()
+            fields = {field for section in SECTIONS.values() for field in section}
+            fields.add("gene_id")
+            self._gene_records = [
+                SimpleNamespace(**{field: getattr(record, field) for field in fields})
+                for record in records
+            ]
             self.logger.info(f"Retrieved {len(self._gene_records)} gene documents.")
 
     def extract(self):
-        for record in self._gene_records:
+        for index, record in enumerate(self._gene_records, start=1):
+            if index % 10000 == 0:
+                self.logger.info(f"Extracted {index} gene records.")
             yield record
 
-    def _generate_chunk_text(self, obj):
-        chunk_text = json.dumps(obj)
+    def _build_structure_document(self, record: Gene):
+        structure = record.gene_structure or {}
+        if not structure:
+            raise ValueError(
+                f"All genes should have at minimum a `location`. Check database for error: gene_id={record.gene_id}."
+            )
+
+        transcripts = structure.get("transcripts", None)
+
+        exon_ids = set(
+            [
+                exon["id"]
+                for transcript in transcripts
+                for exon in transcript.get("exons", [])
+            ]
+        )
+
+        document = {
+            "cytogenic_location": structure.get("cytogenic_location"),
+            "transcript_ids": [transcript["id"] for transcript in transcripts],
+            "exon_ids": list(exon_ids),
+            "protein_ids": [
+                protein
+                for transcript in transcripts
+                for protein in transcript.get("proteins", [])
+            ],
+        }
+
+        return {
+            k: v
+            for k, v in document.items()
+            if v is not None and (not isinstance(v, (list, dict)) or v)
+        }
+
+    def _build_membership_document(self, record: Gene):
+        memberships = record.memberships or {}
+        if not memberships:
+            return {}
+        pathways = memberships.get("pathways", [])
+        curated_lists = memberships.get("curated_lists", [])
+        gene_families = memberships.get("gene_families", {})
+
+        document = {
+            "pathways": [
+                f'{pathway["pathway_name"]} '
+                f'({pathway["data_source"]}:{pathway["pathway_id"]})'
+                for pathway in pathways
+            ],
+            "curated_lists": [
+                "; ".join(
+                    [
+                        curated_list["listing"],
+                        f'assertion: {curated_list["assertion"]}',
+                        f'grouped locus: {curated_list["qualifier"]["grouped_locus"]}',
+                        f'reported locus: {curated_list["qualifier"]["reported_locus"]}',
+                        (
+                            "evidence: "
+                            f'{curated_list["evidence_code"]["term"]} '
+                            f'({curated_list["evidence_code"]["curie"]})'
+                        ),
+                    ]
+                )
+                for curated_list in curated_lists
+            ],
+            "gene_families": [
+                f"{family} ({source})"
+                for source, families in gene_families.items()
+                for family in families
+            ],
+        }
+
+        return {key: value for key, value in document.items() if value}
+
+    def _build_functional_annotation_document(self, record: Gene):
+        annotations = record.functional_annotation or {}
+
+        return {namespace: terms for namespace, terms in annotations.items()}
 
     def _build_section_document(
         self, record: Gene, section: GeneDocumentSection
     ) -> tuple[bytes, dict]:
         """Build the complete JSON text for a gene document section."""
-        documents = {
-            field: value
-            for field in SECTIONS[section]
-            if (value := getattr(record, field)) is not None
-        }
+        if section == GeneDocumentSection.STRUCTURE:
+            documents = self._build_structure_document(record)
+        elif section == GeneDocumentSection.MEMBERSHIPS:
+            documents = self._build_membership_document(record)
+        elif section == GeneDocumentSection.FUNCTIONAL_ANNOTATION:
+            documents = self._build_functional_annotation_document(record)
+        else:
+            documents = {
+                field: value
+                for field in SECTIONS[section]
+                if (value := getattr(record, field)) is not None
+                and value is not False
+                and (not isinstance(value, (list, dict)) or value)
+            }
 
         # need to calculate the document_hash
         document_hash = self._embedding_generator.hash_text(
@@ -119,25 +214,33 @@ class GeneDocumentEmbeddingLoader(AbstractBasePlugin, EmbeddingGeneratorContextM
 
     async def transform(self, record: Gene):
         embedded_docs: list[EmbeddedGeneDocument] = []
+        self.logger.debug(f"Transforming gene_id={record.gene_id}")
+
         for section in SECTIONS.keys():
             section_document_hash, document = self._build_section_document(
                 record, section
             )
+
+            if self._verbose:
+                self.logger.debug(f"{record.gene_id}: {section}: {document}")
+
+            if not document:
+                continue
+
             section_documents = self._chunk_document(document)
             for sdoc in section_documents:
-                embedded_docs.append(
-                    EmbeddedGeneDocument(
-                        **sdoc.model_dump(),
-                        gene_id=record.gene_id,
-                        document_section=str(section),
-                        document_hash=section_document_hash,
-                    )
+                edoc = EmbeddedGeneDocument(
+                    **sdoc.model_dump(),
+                    gene_id=record.gene_id,
+                    document_section=str(section),
+                    document_hash=section_document_hash,
+                    chunk_hash=TextEmbeddingGenerator.hash_text(sdoc.chunk_text),
                 )
+                embedded_docs.append(edoc)
+
+                self.logger.debug(edoc.chunk_text)
 
         return embedded_docs
-
-        # calculate embeddings in load so we can assemble bigger batch
-        # then we get here in transform
 
     async def load(self, session, documents: list[EmbeddedGeneDocument]):
 
