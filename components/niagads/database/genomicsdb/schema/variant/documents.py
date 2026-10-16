@@ -1,6 +1,9 @@
 from typing import Any, Optional
 
+from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.search.models.record import SearchMatch
+from niagads.common.search.types import MatchType
+from niagads.common.types import Entity
 from niagads.common.variant.models.annotations import LDPartner
 from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.models.record import VariantRecord
@@ -11,6 +14,7 @@ from niagads.database.genomicsdb.schema.mixins import (
     RecordRetrievalMixin,
     SearchMixin,
 )
+from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.database.genomicsdb.schema.variant.base import VariantTableBase
 from niagads.database.genomicsdb.schema.variant.mappings import RefSNPAlias
 from niagads.database.mixins.embeddings import EmbeddingMixin
@@ -30,7 +34,7 @@ from sqlalchemy import (
     select,
     union_all,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, Range
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -134,7 +138,9 @@ class Variant(
         raise NotImplementedError()
 
     @classmethod
-    async def semantic_search(cls, session, phrase, embed, *, limit=10):
+    async def semantic_search(
+        cls, session, phrase, embed, *, span: OneBasedGenomicRegion, limit=1000
+    ):
         """Search variants using an embedded text phrase.
 
         Args:
@@ -142,15 +148,15 @@ class Variant(
             phrase: Text phrase to embed and search for.
             embed: Embedding function used to generate the query embedding.
             limit: Maximum number of results to return.
-
-        Raises:
-            NotImplementedError: Variant semantic search is not implemented.
         """
-        raise NotImplementedError()
+        embedding = embed(phrase)
+        return await cls.semantic_search_by_embedding(
+            session, phrase, embedding, span=span, limit=limit
+        )
 
     @classmethod
     async def semantic_search_by_embedding(
-        cls, session, phrase, embedding, *, limit=10
+        cls, session, phrase, embedding, *, span: OneBasedGenomicRegion, limit=10000
     ):
         """Search variants using a precomputed embedding.
 
@@ -161,9 +167,58 @@ class Variant(
             limit: Maximum number of results to return.
 
         Raises:
-            NotImplementedError: Variant semantic search is not implemented.
+            NoResultFound: If no interval bin contains the requested span.
         """
-        raise NotImplementedError()
+        bin_index = await IntervalBin.find_bin_index(
+            session, span.chromosome, span.range
+        )
+        chromosome = literal_column(f"'{span.chromosome}'")
+        parent_bin = literal_column(f"'{bin_index}'::ltree")
+        distance = cls.embedding.cosine_distance(embedding)
+        score = 1 - distance
+        record_details = func.jsonb_build_object(
+            "label",
+            cls.niagads_id,
+            "description",
+            cls.variant_class,
+            "annotation",
+            func.jsonb_build_object(
+                "length",
+                cls.length,
+                "consequence_terms",
+                cls.most_severe_consequence["consequence_terms"],
+                "impact",
+                cls.most_severe_consequence["impact"],
+                "is_coding",
+                cls.most_severe_consequence["is_coding"],
+                "impacted_gene",
+                cls.most_severe_consequence["impacted_gene"],
+            ),
+        )
+
+        stmt = (
+            select(
+                cls.niagads_id.label("matched_record_id"),
+                record_details.label("matched_record_details"),
+                literal(str(Entity.VARIANT)).label("matched_record_type"),
+                literal(MatchType.SEMANTIC.rank()).label("rank"),
+                score.label("score"),
+                literal(phrase).label("matched_text"),
+                literal(MatchType.SEMANTIC.name).label("match_type"),
+            )
+            .where(
+                and_(
+                    cls.chromosome == chromosome,
+                    parent_bin.op("@>")(cls.bin_index),
+                    cls.span.op("&&")(span.range),
+                    cls.embedding.is_not(None),
+                )
+            )
+            .order_by(distance.asc())
+            .limit(limit)
+        )
+        rows = (await session.execute(stmt)).mappings().all()
+        return [SearchMatch(**row) for row in rows]
 
     # -------------------------
     # Record Retrieval
