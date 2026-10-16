@@ -387,6 +387,76 @@ class Variant(
                     lookups[identifier] = swapped_matches[swapped_identifier]
 
     @classmethod
+    async def _execute_structural_variant_id_lookup(
+        cls, session, structural_variant_ids: list[tuple[str, str]]
+    ):
+        """Execute a chromosome-aware lookup for structural variant IDs.
+
+        Args:
+            session: Active asynchronous database session.
+            structural_variant_ids: Structural IDs paired with chromosomes.
+
+        Returns:
+            Mapping of each structural ID to matching variant records, or ``None``.
+        """
+        if not structural_variant_ids:
+            return
+
+        lookup_values = cls._build_lookup_values(
+            [identifier for identifier, _ in structural_variant_ids]
+        )
+        chromosomes = {
+            literal_column(f"'{chromosome}'")
+            for _, chromosome in structural_variant_ids
+        }
+        structural_select = cls._build_lookup_select(
+            lookup_values,
+            lookup_field=cls.niagads_id,
+            where_clause=and_(
+                cls.niagads_id == lookup_values.c.lookup_value,
+                cls.chromosome.in_(chromosomes),
+                cls.is_structural_variant.is_(True),
+            ),
+        )
+        return await cls._execute_lookup(
+            session,
+            lookup_values,
+            structural_select.subquery("structural_variant_matches"),
+            [identifier for identifier, _ in structural_variant_ids],
+        )
+
+    @classmethod
+    async def _fetch_records_by_structural_variant_id(
+        cls, session, lookups: dict[str, Any]
+    ):
+        """Populate lookups with structural variant matches.
+
+        Args:
+            session: Active asynchronous database session.
+            lookups: Mapping of requested identifiers to resolved records.
+        """
+        structural_variant_ids = [
+            (
+                identifier,
+                identifier.upper(),
+                str(HumanGenome(identifier.split("_")[1].lower())),
+            )
+            for identifier in lookups
+            if matches(RegularExpressions.STRUCTUAL_VARIANT_ID, identifier.upper())
+        ]
+        id_matches = await cls._execute_structural_variant_id_lookup(
+            session,
+            [
+                (normalized_identifier, chromosome)
+                for _, normalized_identifier, chromosome in structural_variant_ids
+            ],
+        )
+
+        for identifier, normalized_identifier, _ in structural_variant_ids:
+            if id_matches[normalized_identifier] is not None:
+                lookups[identifier] = id_matches[normalized_identifier]
+
+    @classmethod
     async def fetch_records_by_identifier(
         cls, session: AsyncSession, identifiers: list[str]
     ) -> dict[str, list[dict] | None]:
