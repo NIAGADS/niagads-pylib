@@ -3,7 +3,7 @@
 from typing import Optional
 
 from fastapi import Query
-from niagads.api.common.models.domain.parameters.utils import parse_comma_separated_list
+from niagads.api.common.parameters.validators import parse_comma_separated_list
 from niagads.api.common.utils import sanitize
 from niagads.exceptions.core import ValidationError
 
