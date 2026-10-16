@@ -6,12 +6,12 @@ from niagads.common.gene.models.annotation import (
     GOAssociation,
     PathwayMembership,
 )
-from niagads.common.gene.models.record import GeneRecord
+from niagads.common.gene.models.record import GeneIdentifier, GeneRecord
 from niagads.common.genomic.regions.models import GenomicRegion
 from pydantic import ConfigDict, Field, model_validator
 
 
-class GeneDescriptor(GeneRecord):
+class GeneDescriptor(GeneIdentifier, ORMCompatibleRecord):
     gene_symbol: Optional[str] = Field(
         default=None,
         title="Gene Symbol",
@@ -72,19 +72,4 @@ class GeneBrief(GeneDescriptor, ORMCompatibleRecord):
         return values
 
 
-class Gene(GeneRecord, ORMCompatibleRecord):
-    @model_validator(mode="before")
-    def extract_nested_fields(cls, values: Union[dict, any]):
-        """Extract public gene fields from the document's nested fields."""
-        if not isinstance(values, dict):
-            values = values.model_dump()
-
-        nomenclature = values.get("nomenclature")
-        if isinstance(nomenclature, dict):
-            values.setdefault("gene_symbol", nomenclature.get("gene_symbol"))
-
-        gene_structure = values.get("gene_structure")
-        if isinstance(gene_structure, dict):
-            values.setdefault("location", gene_structure.get("location"))
-
-        return values
+class Gene(GeneRecord, ORMCompatibleRecord): ...

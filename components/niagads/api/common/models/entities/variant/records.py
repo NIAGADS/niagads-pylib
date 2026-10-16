@@ -6,7 +6,7 @@ from niagads.common.variant.models.record import VariantIdentifier, VariantRecor
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
 
-class VariantDescriptor(VariantIdentifier): ...
+class VariantDescriptor(VariantIdentifier, ORMCompatibleRecord): ...
 
 
 class VariantBrief(VariantDescriptor, ORMCompatibleRecord):
@@ -44,3 +44,6 @@ class VariantBrief(VariantDescriptor, ORMCompatibleRecord):
 
 
 class Variant(VariantRecord, ORMCompatibleRecord): ...
+
+
+class VariantAssociation(VariantRecord, ORMCompatibleRecord): ...

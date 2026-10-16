@@ -15,8 +15,9 @@ from niagads.common.track.models.provenance import (
     FileProperties,
     Provenance,
 )
-from niagads.common.track.models.record import TrackRecord
+
 from niagads.common.track.models.samples import BiosampleCharacteristics
+from niagads.common.track.models.record import TrackRecord
 
 __all__ = [
     "CurationActorType",
