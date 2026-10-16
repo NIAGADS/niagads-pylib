@@ -1,7 +1,7 @@
 from typing import Any, List, Union
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.models.records.base import DynamicRecord
+from niagads.api.common.models.records.base import CountExtendedRecord, DynamicRecord
 from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.common.models.base import CustomBaseModel
 from niagads.utils.string import xstr
@@ -61,7 +61,9 @@ class DataResponse(BaseResponseModel):
         row_model: CustomBaseModel = self.row_data_model
         return row_model.get_model_fields_from_class(sort=True)
 
-    def to_text(self, incl_header: bool = False, null_str: str = DEFAULT_NULL_STRING):
+    def to_delimited_text(
+        self, incl_header: bool = False, null_str: str = DEFAULT_NULL_STRING
+    ):
         if self.is_empty():
             if incl_header:
                 return "\t".join(self.row_data_fields)
@@ -87,7 +89,7 @@ class DataResponse(BaseResponseModel):
 class ListResponse(BaseResponseModel):
     data: List[Union[str, int, float]]
 
-    def to_text(self, incl_header=False, null_str=DEFAULT_NULL_STRING):
+    def to_delimited_text(self, incl_header=False, null_str=DEFAULT_NULL_STRING):
         if self.is_empty():
             return ""
 

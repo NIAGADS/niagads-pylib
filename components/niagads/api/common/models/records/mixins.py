@@ -1,10 +1,9 @@
 """model mixins"""
 
-from typing import Any, Dict, List, Self, Union
+from typing import Any, Dict, List, Self
 
-from niagads.common.models.base import CustomBaseModel
-from niagads.utils.dict import promote_nested
-from pydantic import ConfigDict, Field, model_validator
+
+from pydantic import ConfigDict, Field
 
 
 class DynamicMixin:
