@@ -1,181 +1,252 @@
-"""Exception Handler Wrappers
-Defintion and Usage after: https://github.com/fastapi/fastapi/issues/917#issuecomment-578381578
-import in app main.py or Polylith base and call after app initialization:
-
-For example:
-```python
-app = FastAPI()
-add_runtime_exception_handler(app)
-```
-
-For niagads/bases that are open_access_api services, please copy the following
-code into the `core.py` file after app initialization:
-
-```python
-add_runtime_exception_handler(app)
-add_not_implemented_exception_handler(app)
-add_validation_exception_handler(app)
-add_system_exception_handler(app)
-```
-
-"""
+"""Exception handlers used by NIAGADS FastAPI applications."""
 
 import traceback
 from math import ceil
 
-from fastapi import FastAPI, HTTPException, Request, Response, status
-from fastapi.encoders import jsonable_encoder
+from fastapi import FastAPI, Request, Response, status
+from fastapi.exception_handlers import (
+    request_validation_exception_handler as fastapi_request_validation_exception_handler,
+)
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from niagads.api.common.config import Settings
-from niagads.exceptions.core import ValidationError
 from sqlalchemy.exc import DatabaseError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 
-def add_runtime_exception_handler(app: FastAPI) -> None:
-    @app.exception_handler(RuntimeError)
-    async def runtime_exception_handler(request: Request, exc: RuntimeError):
-        query = request.url.path
-        if request.url.query != "":
-            query += "?" + request.url.query
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=jsonable_encoder(
-                {
-                    "detail": str(exc),
-                    "message": (
-                        f"An unexpected error occurred.  Please submit a `bug` GitHub issue "
-                        f"containing this full error response at: https://github.com/NIAGADS/niagads-api/issues"
-                    ),
-                    "stack_trace": [
-                        t.replace("\n", "").replace('"', "'")
-                        for t in traceback.format_tb(exc.__traceback__)
-                    ],
-                    "request": str(query),
-                }
+def _request_url(request: Request) -> str:
+    """Build the request path, including its query string.
+
+    Args:
+        request (Request): The incoming HTTP request.
+
+    Returns:
+        str: The request path and query string.
+    """
+
+    query = request.url.path
+    if request.url.query:
+        query += "?" + request.url.query
+    return query
+
+
+def _service_error_response(
+    request: Request,
+    exc: OSError | DatabaseError,
+    message: str,
+) -> JSONResponse:
+    """Build a response for a system or database service failure.
+
+    Args:
+        request (Request): The incoming HTTP request.
+        exc (OSError | DatabaseError): The exception being handled.
+        message (str): The user-facing error message.
+
+    Returns:
+        JSONResponse: The service-unavailable response.
+    """
+
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={
+            "detail": str(exc),
+            "message": message,
+            "stack_trace": [
+                trace.replace("\n", "").replace('"', "'")
+                for trace in traceback.format_tb(exc.__traceback__)
+            ],
+            "request": _request_url(request),
+            "request_id": request.headers.get("X-Request-ID"),
+        },
+    )
+
+
+async def runtime_exception_handler(
+    request: Request,
+    exc: RuntimeError,
+) -> JSONResponse:
+    """Handle an unexpected runtime error.
+
+    Args:
+        request (Request): The incoming HTTP request.
+        exc (RuntimeError): The runtime exception being handled.
+
+    Returns:
+        JSONResponse: The internal-server-error response.
+    """
+
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "detail": str(exc),
+            "message": (
+                "An unexpected error occurred. Please submit a `bug` GitHub issue "
+                "containing this full error response and request ID at: "
+                "https://github.com/NIAGADS/niagads-api/issues"
             ),
-        )
+            "stack_trace": [
+                trace.replace("\n", "").replace('"', "'")
+                for trace in traceback.format_tb(exc.__traceback__)
+            ],
+            "request": _request_url(request),
+            "request_id": request.headers.get("X-Request-ID"),
+        },
+    )
+
+
+async def not_implemented_exception_handler(
+    request: Request,
+    exc: NotImplementedError,
+) -> JSONResponse:
+    """Handle an unimplemented operation.
+
+    Args:
+        request (Request): The incoming HTTP request.
+        exc (NotImplementedError): The exception being handled.
+
+    Returns:
+        JSONResponse: The not-implemented response.
+    """
+
+    return JSONResponse(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        content={"detail": str(exc)},
+    )
+
+
+async def request_validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+) -> Response:
+    """Delegate request validation errors to FastAPI's default handler.
+
+    Args:
+        request (Request): The incoming HTTP request.
+        exc (RequestValidationError): The request validation exception.
+
+    Returns:
+        Response: FastAPI's standard validation-error response.
+    """
+
+    return await fastapi_request_validation_exception_handler(request, exc)
+
+
+async def system_exception_handler(
+    request: Request,
+    exc: OSError,
+) -> JSONResponse:
+    """Handle an operating-system service failure.
+
+    Args:
+        request (Request): The incoming HTTP request.
+        exc (OSError): The operating-system exception being handled.
+
+    Returns:
+        JSONResponse: The service-unavailable response.
+    """
+
+    return _service_error_response(
+        request,
+        exc,
+        (
+            "A system error occurred. Please email this error response to "
+            f"{Settings.from_env().ADMIN_EMAIL} with the subject `NIAGADS API "
+            "Systems Error`, including the request ID, and we will try and "
+            "resolve the issue as soon as possible."
+        ),
+    )
+
+
+async def database_exception_handler(
+    request: Request,
+    exc: DatabaseError,
+) -> JSONResponse:
+    """Handle a database service failure.
+
+    Args:
+        request (Request): The incoming HTTP request.
+        exc (DatabaseError): The database exception being handled.
+
+    Returns:
+        JSONResponse: The service-unavailable response.
+    """
+
+    return _service_error_response(
+        request,
+        exc,
+        (
+            "A database error occurred. Please email this error response to "
+            f"{Settings.from_env().ADMIN_EMAIL} with the subject `NIAGADS API "
+            "Systems Error`, including the request ID, and we will try and "
+            "resolve the issue as soon as possible."
+        ),
+    )
+
+
+def add_runtime_exception_handler(app: FastAPI) -> None:
+    """Register the runtime-error handler with a FastAPI application.
+
+    Args:
+        app (FastAPI): The application receiving the exception handler.
+    """
+
+    app.add_exception_handler(RuntimeError, runtime_exception_handler)
 
 
 def add_not_implemented_exception_handler(app: FastAPI) -> None:
-    @app.exception_handler(NotImplementedError)
-    async def not_implemented_exception_handler(
-        request: Request, exc: NotImplementedError
-    ):
-        return JSONResponse(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            content=jsonable_encoder({"detail": str(exc)}),
-        )
+    """Register the not-implemented handler with a FastAPI application.
+
+    Args:
+        app (FastAPI): The application receiving the exception handler.
+    """
+
+    app.add_exception_handler(NotImplementedError, not_implemented_exception_handler)
 
 
-# XXX: request_validation & validation duplicated b/c couldn't
-# assign two error types to one handler
-# due to startlette runtime checks on the exception type
 def add_request_validation_exception_handler(app: FastAPI) -> None:
-    @app.exception_handler(RequestValidationError)
-    async def request_validation_exception_handler(
-        request: Request, exc: ValidationError
-    ):
+    """Register the request-validation handler with a FastAPI application.
 
-        raise HTTPException(
-            status_code=422, detail=getattr(exc, "_errors") or f"{str(exc)}"
-        )
+    Args:
+        app (FastAPI): The application receiving the exception handler.
+    """
 
-        # TODO: match fastAPI or parse fastAPI validation error
-        """
-        {
-        "detail": [
-            {
-            "type": "enum",
-            "loc": [
-                "query",
-                "trait"
-            ],
-            "msg": "Input should be 'AD', 'ADRD', 'AD_ADRD' or 'ALL'",
-            "input": "AD_ADRDX",
-            "ctx": {
-                "expected": "'AD', 'ADRD', 'AD_ADRD' or 'ALL'"
-            }
-            }
-        ]
-        }
-        """
+    app.add_exception_handler(
+        RequestValidationError,
+        request_validation_exception_handler,
+    )
 
 
-def add_validation_exception_handler(app: FastAPI) -> None:
-    @app.exception_handler(ValidationError)
-    async def validation_exception_handler(request: Request, exc: ValidationError):
-        raise HTTPException(status_code=422, detail=f"{str(exc)}")
-
-
-# XXX: OSError & DatabaseError handlers duplicated b/c couldn't
-# assign two error types to one handler
-# due to startlette runtime checks on the exception type
 def add_system_exception_handler(app: FastAPI) -> None:
-    @app.exception_handler(OSError)
-    async def system_exception_handler(request: Request, exc: OSError):
-        query = request.url.path
-        if request.url.query != "":
-            query += "?" + request.url.query
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content=jsonable_encoder(
-                {
-                    "detail": str(exc),  # optionally, include the pydantic errors
-                    "message": (
-                        f"A system error occurred.  Please email this error response to "
-                        f"{Settings.from_env().ADMIN_EMAIL} with the subject `NIAGADS API Systems Error`"
-                        f"and we will try and resolve the issue as soon as possible."
-                    ),
-                    "stack_trace": [
-                        t.replace("\n", "").replace('"', "'")
-                        for t in traceback.format_tb(exc.__traceback__)
-                    ],
-                    "request": str(query),
-                }
-            ),
-        )
+    """Register the operating-system error handler with a FastAPI application.
+
+    Args:
+        app (FastAPI): The application receiving the exception handler.
+    """
+
+    app.add_exception_handler(OSError, system_exception_handler)
 
 
 def add_database_exception_handler(app: FastAPI) -> None:
-    @app.exception_handler(DatabaseError)
-    async def database_exception_handler(request: Request, exc: DatabaseError):
-        query = request.url.path
-        if request.url.query != "":
-            query += "?" + request.url.query
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content=jsonable_encoder(
-                {
-                    "detail": str(exc),  # optionally, include the pydantic errors
-                    "message": (
-                        f"A error occurred.  Please email this error response to "
-                        f"{Settings.from_env().ADMIN_EMAIL} with the subject `NIAGADS API Systems Error`"
-                        f"and we will try and resolve the issue as soon as possible."
-                    ),
-                    "stack_trace": [
-                        t.replace("\n", "").replace('"', "'")
-                        for t in traceback.format_tb(exc.__traceback__)
-                    ],
-                    "request": str(query),
-                }
-            ),
-        )
-
-
-# FIXME: does this belong here? re-evaluate when rate limits are imposed
-async def too_many_requests(request: Request, response: Response, pexpire: int):
-    """
-    default callback when requests exceed rate limit
+    """Register the database error handler with a FastAPI application.
 
     Args:
-        request (Request):
-        response (Response):
-        pexpire (int): remaining milliseconds
+        app (FastAPI): The application receiving the exception handler.
+    """
+
+    app.add_exception_handler(DatabaseError, database_exception_handler)
+
+
+# FIXME: does this belong here? Re-evaluate when rate limits are imposed.
+async def too_many_requests(request: Request, response: Response, pexpire: int):
+    """Raise the default exception used when requests exceed the rate limit.
+
+    Args:
+        request: The incoming request.
+        response: The outgoing response.
+        pexpire: Remaining expiration time in milliseconds.
 
     Raises:
-        StarletteHTTPException
+        StarletteHTTPException: Always raised with a 429 status.
     """
 
     expire = ceil(pexpire / 1000)
