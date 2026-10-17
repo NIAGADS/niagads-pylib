@@ -36,7 +36,7 @@
 ## Canonical Resource Pattern
 
 - `record/<entity>/{id}`
-- `record/<entity>/{id}/{subresource}`
+- `record/<entity>/{id}/{record_property}`
 
 Examples:
 
@@ -63,21 +63,6 @@ Natural-language / approximate retrieval:
 - `query/tracks/data`
 
 FILER and GenomicsDB should converge on this model.
-
-## Representations
-
-- Paths identify the resource or operation.
-- `format`, `content`, and `view` remain representation parameters.
-- No representation-only routes such as `/summary`, `/counts`, `/ids`, `/urls`, `/table`, or `/browser`.
-- Valid `format`, `content`, and `view` values are endpoint-specific.
-
-Examples:
-
-- `record/track/{track}?content=summary`
-- `record/track/{track}?view=table`
-- `search/tracks?content=ids`
-- `search/tracks/data?content=counts`
-- `query/tracks?view=table`
 
 ## Reference Endpoints
 
