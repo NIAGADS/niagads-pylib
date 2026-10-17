@@ -11,7 +11,12 @@ async def response_content_param(
     view: Annotated[
         ResponseContent,
         BeforeValidator(sanitize_enum_value(ResponseContent)),
-        Query(description="TBD"),
+        Query(
+            description=(
+                "Select the amount and type of content included in the response: "
+                "full results, a summary, resource URLs, counts, or identifiers."
+            )
+        ),
     ] = ResponseContent.FULL,
 ) -> ResponseContent:
     return view
@@ -21,7 +26,12 @@ async def data_response_content_param(
     view: Annotated[
         Literal[ResponseContent.FULL, ResponseContent.COUNTS],
         BeforeValidator(sanitize_enum_value(ResponseContent)),
-        Query(description="help message TBD"),
+        Query(
+            description=(
+                "Select whether the response includes the full data or only the "
+                "result count."
+            )
+        ),
     ] = ResponseContent.FULL,
 ) -> ResponseContent:
     return view
@@ -31,7 +41,7 @@ async def response_format_param(
     format: Annotated[
         ResponseFormat,
         BeforeValidator(sanitize_enum_value(ResponseFormat)),
-        Query(description="TBD"),
+        Query(description="Select the response format: JSON, text, or XML."),
     ] = ResponseFormat.JSON,
 ) -> ResponseFormat:
     return format
@@ -40,9 +50,9 @@ async def response_format_param(
 # allowable response views for single record lookups
 async def record_response_format_param(
     format: Annotated[
-        ResponseFormat,
+        Literal[ResponseFormat.JSON, ResponseFormat.XML],
         BeforeValidator(sanitize_enum_value(ResponseFormat)),
-        Query(description="TBD"),
+        Query(description="Select the record response format: JSON or XML."),
     ] = ResponseFormat.JSON,
 ) -> ResponseFormat:
     return format
