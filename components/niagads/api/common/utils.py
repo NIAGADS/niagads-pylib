@@ -18,5 +18,14 @@ def sanitize(html_str: str) -> str:
     return html_str
 
 
-def get_none():  # for placeholder dependency injection
+# for placeholder dependency injection
+def get_none():
     return None
+
+
+def get_empty_dict():
+    return {}
+
+
+def get_empty_list():
+    return []
