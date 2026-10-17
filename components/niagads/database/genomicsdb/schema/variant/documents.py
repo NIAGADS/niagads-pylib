@@ -259,12 +259,12 @@ class Variant(
         """Resolve RefSNP IDs through the complete merge hierarchy.
 
         Args:
-            session: Active asynchronous database session.
-            ref_snp_ids: RefSNP identifiers to resolve.
+            session (AsyncSession): Active asynchronous database session.
+            ref_snp_ids (list[str]): RefSNP identifiers to resolve.
 
         Returns:
-            Mapping of each requested RefSNP ID to its current ID, or ``None``
-            when no merge record exists.
+            dict[str, Optional[str]]: Mapping of each requested RefSNP ID to its
+            current ID, or ``None`` when no merge record exists.
         """
         if not ref_snp_ids:
             return {}
@@ -335,11 +335,12 @@ class Variant(
         """Execute a direct lookup for RefSNP identifiers.
 
         Args:
-            session: Active asynchronous database session.
-            ref_snp_ids: RefSNP identifiers to look up.
+            session (AsyncSession): Active asynchronous database session.
+            ref_snp_ids (list[str]): RefSNP identifiers to look up.
 
         Returns:
-            Mapping of each identifier to matching variant records, or ``None``.
+            Mapping result rows containing each lookup identifier and matching
+            variant record, or a null record for unmatched identifiers.
         """
 
         ref_snp_lookup_values = cls._build_sql_value_field(ref_snp_ids)
@@ -360,8 +361,9 @@ class Variant(
         """Populate lookups with direct and merged RefSNP matches.
 
         Args:
-            session: Active asynchronous database session.
-            mappings: Mapping of requested identifiers to resolved records.
+            session (AsyncSession): Active asynchronous database session.
+            mappings (dict[str, Any]): Mapping of requested identifiers to
+                resolved records, updated in place.
         """
         ref_snp_ids = [
             variant_id
@@ -400,12 +402,13 @@ class Variant(
         """Execute a chromosome-aware lookup for positional variant IDs.
 
         Args:
-            session: Active asynchronous database session.
-            positional_ids: Positional identifiers paired with chromosomes.
+            session (AsyncSession): Active asynchronous database session.
+            positional_ids (list[tuple[str, str]]): Positional identifiers paired
+                with chromosomes.
 
         Returns:
-            Mapping of each positional identifier to matching variant records,
-            or ``None``.
+            Mapping result rows containing each lookup identifier and matching
+            variant record, or a null record for unmatched identifiers.
         """
 
         positional_lookup_values = cls._build_sql_value_field(
@@ -436,8 +439,9 @@ class Variant(
         retried with their reference and alternate alleles switched.
 
         Args:
-            session: Active asynchronous database session.
-            lookups: Mapping of requested identifiers to resolved records.
+            session (AsyncSession): Active asynchronous database session.
+            mappings (dict[str, Any]): Mapping of requested identifiers to
+                resolved records, updated in place.
         """
         positional_ids = [
             (
@@ -489,8 +493,9 @@ class Variant(
         """Populate lookups with structural variant matches.
 
         Args:
-            session: Active asynchronous database session.
-            lookups: Mapping of requested identifiers to resolved records.
+            session (AsyncSession): Active asynchronous database session.
+            mappings (dict[str, Any]): Mapping of requested identifiers to
+                resolved records, updated in place.
         """
         structural_variant_ids = [
             (
@@ -540,11 +545,12 @@ class Variant(
         """Fetch variants matching one or more identifiers.
 
         Args:
-            session: Active asynchronous database session.
-            variant_ids: Variant identifiers to resolve.
+            session (AsyncSession): Active asynchronous database session.
+            variant_ids (list[str]): Variant identifiers to resolve.
 
         Returns:
-            Mapping of each requested identifier to matching full records, or ``None``.
+            dict[str, list[dict] | None]: Mapping of each requested identifier to
+                matching full records, or ``None``.
 
         Notes:
             RefSNP aliases are resolved only for identifiers not found directly. This

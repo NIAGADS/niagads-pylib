@@ -607,7 +607,8 @@ class BulkRecordRetrievalMixin:
         """Build a SQL values table from lookup values.
 
         Args:
-            lookup_values: Lookup values to expose as a SQL table.
+            lookup_values (Sequence[Any]): Lookup values to expose as a SQL table.
+            value_type (Any): SQLAlchemy type for the lookup-value column.
 
         Returns:
             SQLAlchemy values construct with a ``lookup_value`` column.
@@ -629,10 +630,12 @@ class BulkRecordRetrievalMixin:
         """Build a lookup SELECT for use in a union query.
 
         Args:
-            lookup_values: SQL values table containing ``lookup_value``.
-            lookup_field: SQLAlchemy field compared to ``lookup_value``.
-            where_clause: Optional custom condition used to match records.
-            join_clause: Optional sequence of ``(table, condition)`` joins.
+            sql_value_array (Any): SQL values table containing ``lookup_value``.
+            lookup_field (Any): SQLAlchemy field compared to ``lookup_value``.
+            where_clause (ClauseElement | None): Optional custom condition used
+                to match records.
+            join_clause (Sequence[tuple[Any, ClauseElement]] | None): Optional
+                sequence of ``(table, condition)`` joins.
 
         Returns:
             SELECT containing ``lookup_value`` and the full record as JSON.
@@ -675,13 +678,12 @@ class BulkRecordRetrievalMixin:
         """Execute lookup matches and group records by lookup value.
 
         Args:
-            session: Active asynchronous database session.
-            lookup_values: SQL values table containing requested identifiers.
-            matches: Subquery containing lookup values and matching records.
-            identifiers: Requested lookup identifiers.
+            session (AsyncSession): Active asynchronous database session.
+            lookup_values (Any): SQL values table containing requested identifiers.
+            matches (Any): Subquery containing lookup values and matching records.
 
         Returns:
-            Mapping from each lookup value to matching records or ``None``.
+            Mapping result rows containing each lookup value and matching record.
         """
         stmt = select(
             lookup_values.c.lookup_value,
@@ -702,9 +704,9 @@ class BulkRecordRetrievalMixin:
         """Find records that match a list of identifiers
         Args:
             session (AsyncSession): Active asynchronous database session.
-            identifiers (list[str]): identifiers to match
+            identifiers (list[str]): Identifiers to match.
         Returns:
-            Matching search result records
+            dict[str, list[object] | None]: Matching search result records.
         """
         raise NotImplementedError(
             "Database models using RecordRetrievalMixin must implement "

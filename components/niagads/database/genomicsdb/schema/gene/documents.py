@@ -297,6 +297,17 @@ class Gene(
     async def retrieve_records(
         cls, session, identifiers: list[str]
     ) -> dict[str, list[dict] | None]:
+        """Fetch gene documents matching one or more identifiers.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            identifiers (list[str]): Gene identifiers, symbols, or synonyms to
+                resolve.
+
+        Returns:
+            dict[str, list[dict] | None]: Mapping of each identifier to matching
+                gene records.
+        """
 
         mappings = {identifier: [] for identifier in dict.fromkeys(identifiers)}
 
