@@ -13,7 +13,8 @@ class Settings(CustomSettings):
     ADMIN_EMAIL: str = "betatesting@niagads.org"
     CACHE_TTL: str = "DEFAULT"  # Cache time to life
 
-    EXTERNAL_REQUEST_URL: Optional[str] = None  # FILER API base URL
+    FILER_REQUEST_URL: Optional[str] = None  # FILER API base URL
+    XQTL_REQUEST_URL: Optional[str] = None  # FILER API base URL
 
     IGV_BROWSER_INFO_URL: str = "/record"
 
