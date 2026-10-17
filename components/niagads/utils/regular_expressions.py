@@ -25,7 +25,7 @@ class RegularExpressions(StrEnum):
 
     SHARD = r"chr(\d{1,2}|[XYM]|MT)"
 
-    GENE = r"^(?:[A-Za-z][A-Za-z0-9_.-]*(@)?|\d{5})$"  # matches symbols, ensembl ids, and entrez ids
+    GENE = r"^[A-Za-z][A-Za-z0-9_.-]*$"  # matches symbols, ensembl ids
 
     CHROMSOME = r"(?:[1-9]|1[0-9]|2[0-2]|X|Y|M|MT)"
 
