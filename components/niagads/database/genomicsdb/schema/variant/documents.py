@@ -11,7 +11,7 @@ from niagads.common.variant.types import VariantClass
 from niagads.database.decorators import CompressedJson
 from niagads.database.genomicsdb.schema.mixins import (
     IdAliasMixin,
-    RecordRetrievalMixin,
+    BulkRecordRetrievalMixin,
     SearchMixin,
 )
 from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
@@ -45,7 +45,7 @@ class Variant(
     GenomicRegionMixin,
     EmbeddingMixin,
     SearchMixin,
-    RecordRetrievalMixin,
+    BulkRecordRetrievalMixin,
 ):
     # exclude some fields from mixings
     strand = None
@@ -546,7 +546,7 @@ class Variant(
                 lookups[identifier] = id_matches[normalized_identifier]
 
     @classmethod
-    async def fetch_records_by_identifier(
+    async def retrieve_records(
         cls, session: AsyncSession, identifiers: list[str]
     ) -> dict[str, list[dict] | None]:
         """Fetch variants matching one or more identifiers.

@@ -595,7 +595,7 @@ class SearchMixin:
         )
 
 
-class RecordRetrievalMixin:
+class BulkRecordRetrievalMixin:
     # DEVELOPER'S NOTE: Ideally, this should have been implemented as an Abstract Base Class
     # but it causes conflicts with SQLAlchemy DeclarativeMeta class.  To avoid having
     # define a custom abstract declarative metadata class and set it as metaclass for
@@ -603,19 +603,19 @@ class RecordRetrievalMixin:
     # defined, which is less than satisfactory, but the only viable solution at this time.
 
     @classmethod
-    def _build_lookup_values(cls, identifiers: Sequence[str]):
-        """Build a SQL values table from lookup identifiers.
+    def _build_lookup_values(cls, lookup_values: Sequence[Any], value_type=String):
+        """Build a SQL values table from lookup values.
 
         Args:
-            identifiers: Lookup values to expose as a SQL table.
+            lookup_values: Lookup values to expose as a SQL table.
 
         Returns:
             SQLAlchemy values construct with a ``lookup_value`` column.
         """
         return values(
-            column("lookup_value", String),
+            column("lookup_value", value_type),
             name="lookup_values",
-        ).data([(identifier,) for identifier in identifiers])
+        ).data([(v,) for v in lookup_values])
 
     @classmethod
     def _build_lookup_select(
@@ -706,12 +706,10 @@ class RecordRetrievalMixin:
         return lookup
 
     @classmethod
-    async def fetch_records_by_identifier(
+    async def retrieve_records(
         cls, session: AsyncSession, identifiers: list[str]
     ) -> dict[str, list[object] | None]:
         """Find records that match a list of identifiers
-        No parent fallback provided, must be implemented in child class.
-
         Args:
             session (AsyncSession): Active asynchronous database session.
             identifiers (list[str]): identifiers to match

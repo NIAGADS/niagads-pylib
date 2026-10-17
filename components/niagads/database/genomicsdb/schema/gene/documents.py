@@ -19,7 +19,7 @@ from niagads.database.genomicsdb.schema.gene.xrefs import (
 )
 from niagads.database.genomicsdb.schema.mixins import (
     IdAliasMixin,
-    RecordRetrievalMixin,
+    BulkRecordRetrievalMixin,
     SearchMixin,
 )
 from niagads.database.genomicsdb.schema.ragdoc.chunks import (
@@ -46,7 +46,7 @@ class Gene(
     GenomicRegionMixin,
     IdAliasMixin,
     SearchMixin,
-    RecordRetrievalMixin,
+    BulkRecordRetrievalMixin,
 ):
     __tablename__ = "document_mv"
 
@@ -294,7 +294,7 @@ class Gene(
         return [SearchMatch(**row) for row in rows]
 
     @classmethod
-    async def fetch_records_by_identifier(
+    async def retrieve_records(
         cls, session, identifiers: list[str]
     ) -> dict[str, list[dict] | None]:
 
