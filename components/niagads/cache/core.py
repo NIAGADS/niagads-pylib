@@ -27,8 +27,8 @@ class CacheTTL(Enum):
     DAY = 86400
 
 
-class KeyDBCacheManager:
-    """KeyDB (Redis) cache for responses
+class CacheManager:
+    """in memory (keydb) cache for responses
     application will instantiate two CacheManagers
         1.  internal cache - for internal use in the FAST-API application
             * pickled responses

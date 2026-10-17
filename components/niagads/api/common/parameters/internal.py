@@ -5,8 +5,8 @@ from fastapi import Depends, Request
 from niagads.api.common.config import Settings
 from niagads.api.common.models.context.cache import CacheKey
 from niagads.api.common.models.context.request import RequestDetails
-from niagads.api.common.utils import get_none
-from niagads.cache.core import CacheSerializer, KeyDBCacheManager
+from niagads.api.common.utils import get_empty_dict, get_none
+from niagads.cache.core import CacheSerializer, CacheManager
 from niagads.database.session import DatabaseSessionManager
 from niagads.settings.core import ServiceEnvironment, get_service_environment
 from pydantic import BaseModel
@@ -16,7 +16,7 @@ from components.niagads.api.common.models.context.response import ResponseConfig
 from components.niagads.api.common.services.pagination import PaginationService
 
 # internal cache; stores responses as is
-__CACHE_MANAGER = KeyDBCacheManager(
+__CACHE_MANAGER = CacheManager(
     connection_string=Settings.from_env().CACHE_DB_URI,
     serializer=CacheSerializer.PICKLE,
     ttl=Settings.from_env().CACHE_TTL,
@@ -39,10 +39,15 @@ class EndpointContext(BaseModel, arbitrary_types_allowed=True):
     request_data: RequestDetails = Depends(RequestDetails.from_request)
 
     cache_key: CacheKey = Depends(CacheKey.from_request)
-    cache_manager: Annotated[KeyDBCacheManager, Depends(__CACHE_MANAGER)]
+    cache_manager: Annotated[CacheManager, Depends(__CACHE_MANAGER)]
 
     pagination_service_type: type[PaginationService] = PaginationService
 
-    # session managers; override as needed for each endpoint
-    http_client_session: Annotated[ClientSession, Depends(get_none)]
+    # session managers; can be override as needed for applications
+    # http_client_session is a dict to enable connection to multiple services
+    # e.g. 'filer': FILER client, 'xqtl': xQTL client
+    http_client_session: Annotated[
+        dict[str, ClientSession],
+        Depends(get_empty_dict),
+    ]
     database_session: Annotated[AsyncSession, Depends(__DATABASE_SESSION_MANAGER)]
