@@ -47,16 +47,6 @@ async def multi_track_id_query_param(
     return parse_comma_separated_list(sanitize(track_ids))
 
 
-async def gene_id(
-    gene: str = Path(
-        description="gene record identifier; Ensembl ID, Official Gene Symbol or Entrez (NCBI) gene ID"
-    ),
-):
-    return GenomicFeature(
-        feature_id=sanitize(gene), feature_type=GenomicFeatureType.GENE
-    )
-
-
 async def region_id(
     region: str = Path(
         description="genomic region: chrN:start-end or N:start-end, where N is the chromosome number"

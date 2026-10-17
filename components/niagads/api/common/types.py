@@ -17,7 +17,7 @@ class VariantClassFilter(CaseInsensitiveEnum):
     ALL = auto()
 
 
-class ResponseView(CaseInsensitiveEnum):
+class ResponseContent(CaseInsensitiveEnum):
     """enum for allowable response views"""
 
     FULL = auto()
@@ -32,6 +32,7 @@ class ResponseFormat(CaseInsensitiveEnum):
 
     JSON = auto()
     TEXT = auto()
+    XML = auto()
 
 
 class ResponseUI(CaseInsensitiveEnum):

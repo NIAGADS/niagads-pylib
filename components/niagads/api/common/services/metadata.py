@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from niagads.api.common.constants import SHARD_PATTERN
 from niagads.api.common.models.context.request import RequestDetails
 
-from niagads.api.common.types import ResponseView
+from niagads.api.common.types import ResponseContent
 from niagads.common.track.models import (
     ExperimentalDesign,
     Phenotype,
@@ -180,15 +180,16 @@ class MetadataQueryService:
     async def get_collection_track_metadata(
         self,
         collection_name: str,
-        response_type=ResponseView.FULL,
+        response_type=ResponseContent.FULL,
     ) -> List[Track]:
 
         collection: Collection = await self.validate_collection(collection_name)
 
         # if sharded URLs need to be mapped through IDS to find all shards
         target = (
-            self.__set_query_target(ResponseView.IDS)
-            if response_type == ResponseView.URLS and collection.is_sharded_collection
+            self.__set_query_target(ResponseContent.IDS)
+            if response_type == ResponseContent.URLS
+            and collection.is_sharded_collection
             else self.__set_query_target(response_type)
         )
 
@@ -206,11 +207,11 @@ class MetadataQueryService:
         # TODO: RESUME - HERE --> messaging -> class member w/accessor function so that it can
         # be accessed by parent endpoint service
 
-        if response_type == ResponseView.COUNTS:
+        if response_type == ResponseContent.COUNTS:
             return {"count": result[0]}
 
         if collection.is_sharded_collection:
-            if response_type == ResponseView.IDS:
+            if response_type == ResponseContent.IDS:
                 # FIXME: I think this has changed
                 self.__request
                 self.__request.add_message(
@@ -218,7 +219,7 @@ class MetadataQueryService:
                 )
                 result = [await self.get_sharded_ids(t) for t in result]
                 return sum(result, [])  # unnest nested list
-            if response_type == ResponseView.URLS:
+            if response_type == ResponseContent.URLS:
                 self.__request.add_message(
                     "Data are split by chromosome into 22 files per track, differentiated by `_chrN_` in the file name."
                 )
@@ -233,7 +234,7 @@ class MetadataQueryService:
         return result
 
     async def get_track_metadata(
-        self, tracks: List[str], response_type=ResponseView.FULL, validate=True
+        self, tracks: List[str], response_type=ResponseContent.FULL, validate=True
     ) -> List[Track]:
         target = self.__set_query_target(response_type)
         statement = (
@@ -312,13 +313,13 @@ class MetadataQueryService:
         return statement
 
     @staticmethod
-    def __set_query_target(response_type: ResponseView):
+    def __set_query_target(response_type: ResponseContent):
         match response_type:
-            case ResponseView.IDS:
+            case ResponseContent.IDS:
                 return Track.source_id
-            case ResponseView.COUNTS:
+            case ResponseContent.COUNTS:
                 return func.count(Track.source_id)
-            case ResponseView.URLS:
+            case ResponseContent.URLS:
                 return Track.file_properties["url"]
             case _:
                 return Track
@@ -328,7 +329,7 @@ class MetadataQueryService:
         genome_build: str,
         filters: Optional[List[str]],
         keyword: Optional[str],
-        response_type: ResponseView,
+        response_type: ResponseContent,
         limit: int = None,
         offset: int = None,
     ) -> List[Track]:
@@ -347,7 +348,7 @@ class MetadataQueryService:
                 Track.searchable_text.regexp_match(keyword, "i"),
             )
 
-        if response_type != ResponseView.COUNTS:
+        if response_type != ResponseContent.COUNTS:
             statement = statement.order_by(Track.source_id)
 
         if limit != None:
@@ -358,7 +359,7 @@ class MetadataQueryService:
 
         result = await self.__database_session.execute(statement)
 
-        if response_type == ResponseView.COUNTS:
+        if response_type == ResponseContent.COUNTS:
             return {"count": result.scalars().one()}
         else:
             return result.scalars().all()

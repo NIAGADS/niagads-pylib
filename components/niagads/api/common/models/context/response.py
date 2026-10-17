@@ -4,7 +4,7 @@ from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.api.common.types import (
     ResponseFormat,
     ResponseUI,
-    ResponseView,
+    ResponseContent,
 )
 from pydantic import BaseModel, field_validator, model_validator
 
@@ -13,14 +13,14 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     """Captures parameter values (format, content, view) and model needed to build the response"""
 
     format: Optional[ResponseFormat] = ResponseFormat.JSON
-    view: Optional[ResponseView] = ResponseView.FULL
+    view: Optional[ResponseContent] = ResponseContent.FULL
     ui_component: Optional[ResponseUI] = ResponseUI.DEFAULT
     model: type[BaseResponseModel]
 
     @model_validator(mode="after")
     def validate_config(self, __context):
         if (
-            self.view not in [ResponseView.FULL, ResponseView.SUMMARY]
+            self.view not in [ResponseContent.FULL, ResponseContent.SUMMARY]
             and self.ui_component != ResponseUI.DEFAULT
         ):
             raise ValueError(
@@ -57,6 +57,6 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     @field_validator("view")
     def validate_view(cls, view):
         try:
-            return ResponseView(view)
+            return ResponseContent(view)
         except NameError:
             raise ValueError(f"Invalid value provided for `view`: {format}")
