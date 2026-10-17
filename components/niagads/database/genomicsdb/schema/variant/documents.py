@@ -378,7 +378,7 @@ class Variant(
             if record is None:
                 not_matched.append(variant_id)
             else:
-                mappings.setdefault(variant_id, []).append(record)
+                mappings[variant_id].append(record)
 
         if not_matched:
             alias_mapping = await cls._find_current_ref_snp(session, not_matched)
@@ -393,7 +393,7 @@ class Variant(
                 if record is not None:
                     alias_id = row["lookup_value"]
                     original_variant_id = alias_reverse_mapping[alias_id]
-                    mappings.setdefault(original_variant_id, []).append(record)
+                    mappings[original_variant_id].append(record)
 
     @classmethod
     async def _execute_positional_id_lookup(cls, session, positional_ids: list[str]):
@@ -466,7 +466,7 @@ class Variant(
                     )
 
             else:
-                mappings.setdefault(variant_id, []).append(record)
+                mappings[variant_id].append(record)
 
         if not_matched:
             for row in await cls._execute_positional_id_lookup(
@@ -480,7 +480,7 @@ class Variant(
                 if record is not None:
                     chrm, pos, alt, ref = row["lookup_value"].split(":")
                     variant_id = f"{chrm}:{pos}:{ref}:{alt}"
-                    mappings.setdefault(variant_id, []).append(record)
+                    mappings[variant_id].append(record)
 
     @classmethod
     async def _fetch_records_by_structural_variant_id(
@@ -531,7 +531,7 @@ class Variant(
             record = row["record"]
             if record is not None:
                 variant_id = row["lookup_value"]
-                mappings.setdefault(variant_id, []).append(record)
+                mappings[variant_id].append(record)
 
     @classmethod
     async def retrieve_records(
