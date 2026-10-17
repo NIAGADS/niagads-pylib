@@ -3,11 +3,24 @@ from typing import Optional
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.mixins import BulkRecordRetrievalMixin
+from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.database.genomicsdb.schema.results.base import ResultsTableBase
 from niagads.database.mixins.ranges import GenomicRegionMixin
-from sqlalchemy import JSON, TEXT, Integer, String, or_
+from sqlalchemy import (
+    JSON,
+    TEXT,
+    Integer,
+    String,
+    and_,
+    func,
+    literal_column,
+    or_,
+    select,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 
@@ -40,12 +53,17 @@ class VariantAssociation(
     test_allele: Mapped[Optional[str]] = mapped_column(TEXT)
 
     @classmethod
-    async def _retrieve_associations_by_track(cls, session, track_id: int):
-        """assume that track annotation -> track_id mapping is done in calling function,
-        so we just need to lookup by primary key
+    async def _retrieve_associations_by_track(
+        cls, session: AsyncSession, track_id: int
+    ) -> dict[int, list[dict]]:
+        """Retrieve associations for a data track.
 
-        # TODO: evaluate whether this needs to be for multiple track_ids. not sure if
-        # use case exists
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            track_id (int): Database identifier for the data track.
+
+        Returns:
+            Mapping from the track identifier to matching association records.
         """
 
         track_ids = [track_id]
@@ -73,7 +91,58 @@ class VariantAssociation(
         return mappings
 
     @classmethod
-    async def _retrieve_associations_by_variant(cls, session, variant_id: str):
+    async def _retrieve_associations_by_span(
+        cls, session: AsyncSession, span: OneBasedGenomicRegion
+    ) -> dict[str, list[dict]]:
+        """Retrieve associations overlapping a genomic span.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            span (OneBasedGenomicRegion): One-based genomic region used to
+                constrain the search.
+
+        Returns:
+            Mapping from the span string to matching association records.
+        """
+        bin_index = await IntervalBin.find_bin_index(
+            session, span.chromosome, span.range
+        )
+        parent_bin = literal_column(f"'{bin_index}'::ltree")
+
+        stmt = select(
+            func.row_to_json(cls.__table__).cast(JSONB).label("record")
+        ).where(
+            and_(
+                cls.chromosome == str(span.chromosome),
+                parent_bin.op("@>")(cls.bin_index),
+                cls.span.op("&&")(span.range),
+            )
+        )
+
+        span_key = str(span)
+        mappings = {span_key: []}
+        # single column retrieved no mappings
+        for record in (await session.execute(stmt)).scalars():
+            mappings[span_key].append(record)
+
+        return mappings
+
+    @classmethod
+    async def _retrieve_associations_by_variant(
+        cls, session: AsyncSession, variant_id: str
+    ) -> dict[str, list[dict]]:
+        """Retrieve associations for a variant identifier.
+
+        The identifier is matched exactly against either the variant stable ID
+        or the numeric variant ID.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            variant_id (str): Stable or numeric variant identifier.
+
+        Returns:
+            Mapping from the variant identifier to matching association records.
+        """
         variant_ids = [variant_id]
         sql_value_fields = cls._build_sql_value_field(variant_ids)
 
