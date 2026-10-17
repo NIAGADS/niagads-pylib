@@ -298,27 +298,29 @@ class Gene(
         cls, session, identifiers: list[str]
     ) -> dict[str, list[dict] | None]:
 
-        lookup_values = cls._build_lookup_values(identifiers)
+        mappings = {identifier: [] for identifier in dict.fromkeys(identifiers)}
+
+        sql_value_array = cls._build_sql_value_field(identifiers)
 
         source_select = cls._build_lookup_select(
-            lookup_values,
+            sql_value_array,
             lookup_field=cls.source_id,
         )
         symbol_select = cls._build_lookup_select(
-            lookup_values,
+            sql_value_array,
             lookup_field=cls.nomenclature["gene_symbol"].astext,
             where_clause=cls.nomenclature["gene_symbol"].astext.ilike(
-                lookup_values.c.lookup_value
+                sql_value_array.c.lookup_value
             ),
         )
         synonym_select = cls._build_lookup_select(
-            lookup_values,
+            sql_value_array,
             lookup_field=GeneXRef.xref_value,
             where_clause=GeneXRef.xref_label.in_(SYNONYM_FIELDS),
             join_clause=[
                 (
                     GeneXRef,
-                    GeneXRef.xref_value == lookup_values.c.lookup_value,
+                    GeneXRef.xref_value == sql_value_array.c.lookup_value,
                 ),
                 (cls, GeneXRef.gene_id == cls.gene_id),
             ],
@@ -330,12 +332,17 @@ class Gene(
             synonym_select,
         ).subquery("matches")
 
-        return await cls._execute_lookup(
+        for row in await cls._execute_lookup(
             session,
-            lookup_values,
+            sql_value_array,
             matches,
-            identifiers,
-        )
+        ):
+            record = row["record"]
+            if record is not None:
+                gene_id = row["lookup_value"]
+                mappings[gene_id].append(record)
+
+        return mappings
 
     # -------------------------
     # Lookup
