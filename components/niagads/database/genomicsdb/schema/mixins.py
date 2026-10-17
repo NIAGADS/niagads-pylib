@@ -603,7 +603,7 @@ class BulkRecordRetrievalMixin:
     # defined, which is less than satisfactory, but the only viable solution at this time.
 
     @classmethod
-    def _build_lookup_values(cls, lookup_values: Sequence[Any], value_type=String):
+    def _build_sql_value_field(cls, lookup_values: Sequence[Any], value_type=String):
         """Build a SQL values table from lookup values.
 
         Args:
@@ -620,7 +620,7 @@ class BulkRecordRetrievalMixin:
     @classmethod
     def _build_lookup_select(
         cls,
-        lookup_values,
+        sql_value_array,
         lookup_field,
         where_clause=None,
         *,
@@ -643,9 +643,9 @@ class BulkRecordRetrievalMixin:
             after the additional table is joined.
         """
         stmt = select(
-            lookup_values.c.lookup_value,
+            sql_value_array.c.lookup_value,
             func.row_to_json(cls.__table__).cast(JSONB).label("record"),
-        ).select_from(lookup_values)
+        ).select_from(sql_value_array)
 
         if join_clause:
             for table, condition in join_clause:
@@ -656,7 +656,7 @@ class BulkRecordRetrievalMixin:
                 (
                     where_clause
                     if where_clause is not None
-                    else lookup_field == lookup_values.c.lookup_value
+                    else lookup_field == sql_value_array.c.lookup_value
                 ),
             )
 
@@ -671,7 +671,6 @@ class BulkRecordRetrievalMixin:
         session: AsyncSession,
         lookup_values,
         matches,
-        identifiers: Sequence[str],
     ) -> dict[str, list[object] | None]:
         """Execute lookup matches and group records by lookup value.
 
@@ -694,16 +693,7 @@ class BulkRecordRetrievalMixin:
             )
         )
 
-        result = await session.execute(stmt)
-        lookup = {identifier: [] for identifier in dict.fromkeys(identifiers)}
-
-        for row in result.mappings():
-            if row["record"] is not None:
-                lookup[row["lookup_value"]].append(row["record"])
-            else:
-                lookup[row["lookup_value"]] = None
-
-        return lookup
+        return (await session.execute(stmt)).mappings()
 
     @classmethod
     async def retrieve_records(

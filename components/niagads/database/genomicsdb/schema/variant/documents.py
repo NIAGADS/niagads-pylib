@@ -269,7 +269,7 @@ class Variant(
         if not ref_snp_ids:
             return {}
 
-        queried = cls._build_lookup_values(ref_snp_ids).cte("queried")
+        queried = cls._build_sql_value_field(ref_snp_ids).cte("queried")
         merges = (
             select(
                 queried.c.lookup_value.label("queried_id"),
@@ -341,9 +341,8 @@ class Variant(
         Returns:
             Mapping of each identifier to matching variant records, or ``None``.
         """
-        if not ref_snp_ids:
-            return
-        ref_snp_lookup_values = cls._build_lookup_values(ref_snp_ids)
+
+        ref_snp_lookup_values = cls._build_sql_value_field(ref_snp_ids)
         ref_snp_select = cls._build_lookup_select(
             ref_snp_lookup_values,
             lookup_field=cls.ref_snp_id,
@@ -354,42 +353,47 @@ class Variant(
             session,
             ref_snp_lookup_values,
             ref_snp_select.subquery("ref_snp_matches"),
-            ref_snp_ids,
         )
 
     @classmethod
-    async def _fetch_records_by_ref_snp_id(cls, session, lookups: dict[str, Any]):
+    async def _fetch_records_by_ref_snp_id(cls, session, mappings: dict[str, Any]):
         """Populate lookups with direct and merged RefSNP matches.
 
         Args:
             session: Active asynchronous database session.
-            lookups: Mapping of requested identifiers to resolved records.
+            mappings: Mapping of requested identifiers to resolved records.
         """
         ref_snp_ids = [
-            identifier
-            for identifier in lookups
-            if matches(RegularExpressions.REF_SNP_ID, identifier.lower())
+            variant_id
+            for variant_id in mappings
+            if matches(RegularExpressions.REF_SNP_ID, variant_id.lower())
         ]
         if not ref_snp_ids:
             return
-        id_matches = await cls._execute_ref_snp_id_lookup(session, ref_snp_ids)
 
         not_matched = []
-        for identifier in ref_snp_ids:
-            if id_matches[identifier] is not None:
-                lookups[identifier] = id_matches[identifier]
+        for row in await cls._execute_ref_snp_id_lookup(session, ref_snp_ids):
+            record = row["record"]
+            variant_id = row["lookup_value"]
+            if record is None:
+                not_matched.append(variant_id)
             else:
-                not_matched.append(identifier)
+                mappings.setdefault(variant_id, []).append(record)
 
         if not_matched:
-            aliases = await cls._find_current_ref_snp(session, not_matched)
-            ref_snp_ids = [v for v in aliases.values() if v is not None]
-            id_matches = await cls._execute_ref_snp_id_lookup(session, ref_snp_ids)
-            for alias, current_id in aliases.items():
-                if current_id is not None:
-                    records = id_matches.get(current_id)
-                    if records is not None:
-                        lookups[alias] = records
+            alias_mapping = await cls._find_current_ref_snp(session, not_matched)
+            aliased_ref_snp_ids = [v for v in alias_mapping.values() if v is not None]
+            alias_reverse_mapping = {
+                v: k for k, v in alias_mapping.items() if v is not None
+            }
+            for row in await cls._execute_ref_snp_id_lookup(
+                session, aliased_ref_snp_ids
+            ):
+                record = row["record"]
+                if record is not None:
+                    alias_id = row["lookup_value"]
+                    original_variant_id = alias_reverse_mapping[alias_id]
+                    mappings.setdefault(original_variant_id, []).append(record)
 
     @classmethod
     async def _execute_positional_id_lookup(cls, session, positional_ids: list[str]):
@@ -403,9 +407,8 @@ class Variant(
             Mapping of each positional identifier to matching variant records,
             or ``None``.
         """
-        if not positional_ids:
-            return
-        positional_lookup_values = cls._build_lookup_values(
+
+        positional_lookup_values = cls._build_sql_value_field(
             [identifier for identifier, _ in positional_ids]
         )
         positional_chromosomes = {
@@ -423,11 +426,10 @@ class Variant(
             session,
             positional_lookup_values,
             positional_select.subquery("positional_matches"),
-            [identifier for identifier, _ in positional_ids],
         )
 
     @classmethod
-    async def _fetch_records_by_positional_id(cls, session, lookups: dict[str, Any]):
+    async def _fetch_records_by_positional_id(cls, session, mappings: dict[str, Any]):
         """Populate lookups with positional variant matches.
 
         Exact positional matches are attempted first. Unmatched SNVs are then
@@ -439,84 +441,50 @@ class Variant(
         """
         positional_ids = [
             (
-                identifier,
-                str(HumanGenome(identifier.split(":", 1)[0].lower())),
+                variant_id,
+                str(HumanGenome(variant_id.split(":", 1)[0].lower())),
             )
-            for identifier in lookups
-            if matches(RegularExpressions.POSITIONAL_VARIANT_ID, identifier)
+            for variant_id in mappings
+            if matches(RegularExpressions.POSITIONAL_VARIANT_ID, variant_id)
         ]
 
-        id_matches = await cls._execute_positional_id_lookup(session, positional_ids)
+        if not positional_ids:
+            return
 
         not_matched = []
-        for identifier, chromosome in positional_ids:
-            if id_matches[identifier] is not None:
-                lookups[identifier] = id_matches[identifier]
-            else:
-                chrm, pos, ref, alt = identifier.split(":")
+        for row in await cls._execute_positional_id_lookup(session, positional_ids):
+            record = row["record"]
+            variant_id = row["lookup_value"]
+            if record is None:
+                chrm, pos, ref, alt = variant_id.split(":")
                 if len(ref) == 1 and len(alt) == 1:  # SNV
                     not_matched.append(
                         (
-                            identifier,
                             f"{chrm}:{pos}:{alt}:{ref}",
-                            chromosome,
+                            str(HumanGenome(chrm)),
                         )
                     )
 
+            else:
+                mappings.setdefault(variant_id, []).append(record)
+
         if not_matched:
-            swapped_matches = await cls._execute_positional_id_lookup(
+            for row in await cls._execute_positional_id_lookup(
                 session,
                 [
                     (swapped_identifier, chromosome)
                     for _, swapped_identifier, chromosome in not_matched
                 ],
-            )
-            for identifier, swapped_identifier, _ in not_matched:
-                if swapped_matches[swapped_identifier] is not None:
-                    lookups[identifier] = swapped_matches[swapped_identifier]
-
-    @classmethod
-    async def _execute_structural_variant_id_lookup(
-        cls, session, structural_variant_ids: list[tuple[str, str]]
-    ):
-        """Execute a chromosome-aware lookup for structural variant IDs.
-
-        Args:
-            session: Active asynchronous database session.
-            structural_variant_ids: Structural IDs paired with chromosomes.
-
-        Returns:
-            Mapping of each structural ID to matching variant records, or ``None``.
-        """
-        if not structural_variant_ids:
-            return
-
-        lookup_values = cls._build_lookup_values(
-            [identifier for identifier, _ in structural_variant_ids]
-        )
-        chromosomes = {
-            literal_column(f"'{chromosome}'")
-            for _, chromosome in structural_variant_ids
-        }
-        structural_select = cls._build_lookup_select(
-            lookup_values,
-            lookup_field=cls.niagads_id,
-            where_clause=and_(
-                cls.niagads_id == lookup_values.c.lookup_value,
-                cls.chromosome.in_(chromosomes),
-                cls.is_structural_variant.is_(True),
-            ),
-        )
-        return await cls._execute_lookup(
-            session,
-            lookup_values,
-            structural_select.subquery("structural_variant_matches"),
-            [identifier for identifier, _ in structural_variant_ids],
-        )
+            ):
+                record = row["record"]
+                if record is not None:
+                    chrm, pos, alt, ref = row["lookup_value"].split(":")
+                    variant_id = f"{chrm}:{pos}:{ref}:{alt}"
+                    mappings.setdefault(variant_id, []).append(record)
 
     @classmethod
     async def _fetch_records_by_structural_variant_id(
-        cls, session, lookups: dict[str, Any]
+        cls, session, mappings: dict[str, Any]
     ):
         """Populate lookups with structural variant matches.
 
@@ -526,34 +494,54 @@ class Variant(
         """
         structural_variant_ids = [
             (
-                identifier,
-                identifier.upper(),
-                str(HumanGenome(identifier.split("_")[1].lower())),
+                variant_id,
+                str(HumanGenome(variant_id.split("_")[1].lower())),
             )
-            for identifier in lookups
-            if matches(RegularExpressions.STRUCTUAL_VARIANT_ID, identifier.upper())
+            for variant_id in mappings
+            if matches(RegularExpressions.STRUCTUAL_VARIANT_ID, variant_id.upper())
         ]
-        id_matches = await cls._execute_structural_variant_id_lookup(
-            session,
-            [
-                (normalized_identifier, chromosome)
-                for _, normalized_identifier, chromosome in structural_variant_ids
-            ],
+
+        if not structural_variant_ids:
+            return
+
+        sql_value_array = cls._build_sql_value_field(
+            [variant_id for variant_id, _ in structural_variant_ids]
+        )
+        chromosomes = {
+            literal_column(f"'{chromosome}'")
+            for _, chromosome in structural_variant_ids
+        }
+
+        structural_select = cls._build_lookup_select(
+            sql_value_array,
+            lookup_field=cls.niagads_id,
+            where_clause=and_(
+                func.upper(cls.niagads_id)
+                == func.upper(sql_value_array.c.lookup_value),
+                cls.chromosome.in_(chromosomes),
+                cls.is_structural_variant.is_(True),
+            ),
         )
 
-        for identifier, normalized_identifier, _ in structural_variant_ids:
-            if id_matches[normalized_identifier] is not None:
-                lookups[identifier] = id_matches[normalized_identifier]
+        for row in await cls._execute_lookup(
+            session,
+            sql_value_array,
+            structural_select.subquery("structural_variant_id_matches"),
+        ):
+            record = row["record"]
+            if record is not None:
+                variant_id = row["lookup_value"]
+                mappings.setdefault(variant_id, []).append(record)
 
     @classmethod
     async def retrieve_records(
-        cls, session: AsyncSession, identifiers: list[str]
+        cls, session: AsyncSession, *, variant_ids: list[str]
     ) -> dict[str, list[dict] | None]:
         """Fetch variants matching one or more identifiers.
 
         Args:
             session: Active asynchronous database session.
-            identifiers: Variant identifiers to resolve.
+            variant_ids: Variant identifiers to resolve.
 
         Returns:
             Mapping of each requested identifier to matching full records, or ``None``.
@@ -563,9 +551,9 @@ class Variant(
             keeps the common RefSNP lookup on the indexed variant table and avoids an
             unnecessary join to the merge-history table.
         """
-        lookups = {identifier: None for identifier in dict.fromkeys(identifiers)}
-        await cls._fetch_records_by_ref_snp_id(session, lookups)
-        await cls._fetch_records_by_positional_id(session, lookups)
-        await cls._fetch_records_by_structural_variant_id(session, lookups)
+        mappings = {identifier: [] for identifier in dict.fromkeys(variant_ids)}
+        await cls._fetch_records_by_ref_snp_id(session, mappings)
+        await cls._fetch_records_by_positional_id(session, mappings)
+        await cls._fetch_records_by_structural_variant_id(session, mappings)
 
-        return lookups
+        return mappings
