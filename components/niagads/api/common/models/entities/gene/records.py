@@ -35,7 +35,9 @@ class GeneDescriptor(GeneIdentifier, ORMCompatibleRecord):
         updated_data = data if isinstance(data, dict) else data.model_dump()
 
         # FIXME: developer's note -> figure out why IdMixin is not working
-        updated_data["id"] = updated_data.get("source_id")
+        id = updated_data.get("id")
+        if not id:
+            updated_data["id"] = updated_data.get("source_id")
 
         nomenclature = updated_data.get("nomenclature")
         if nomenclature:
@@ -84,17 +86,22 @@ class GeneBrief(GeneDescriptor, ORMCompatibleRecord):
         updated_data = GeneDescriptor.extract_nested_fields(data)
 
         nomenclature = updated_data.get("nomenclature")
-        updated_data["gene_name"] = nomenclature.get("gene_name")
-        updated_data["synonyms"] = nomenclature.get("synonyms")
+        if nomenclature:  # won't exist if serializing from cache
+            updated_data["gene_name"] = nomenclature.get("gene_name")
+            updated_data["synonyms"] = nomenclature.get("synonyms")
 
         gene_structure = updated_data.get("gene_structure")
-        updated_data["cytogenic_location"] = gene_structure.get("cytogenic_location")
+        if gene_structure:
+            updated_data["cytogenic_location"] = gene_structure.get(
+                "cytogenic_location"
+            )
 
         return updated_data
 
 
 class Gene(GeneBrief, GeneRecord, ORMCompatibleRecord):
     nomenclature: Optional[Dict[str, Any]] = Field(exclude=True)
+    gene_structure: Optional[Dict[str, Any]] = Field(exclude=True)
     synonyms: Optional[List[str]] = Field(
         default=None, title="Aliases", description="gene symbol synonyms or aliases"
     )
@@ -109,7 +116,8 @@ class Gene(GeneBrief, GeneRecord, ORMCompatibleRecord):
         """
         updated_data = GeneBrief.extract_nested_fields(data)
         gene_structure = updated_data.get("gene_structure")
-        gene_structure.pop("location", None)
-        gene_structure.pop("cytogenic_location", None)
+        if gene_structure:
+            gene_structure.pop("location", None)
+            gene_structure.pop("cytogenic_location", None)
 
         return updated_data
