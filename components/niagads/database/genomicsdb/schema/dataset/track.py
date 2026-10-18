@@ -3,6 +3,7 @@
 from enum import auto
 from typing import List, Optional, Union
 
+from niagads.common.core import ComponentBaseMixin
 from niagads.common.track.models import (
     BiosampleCharacteristics,
     CurationEvent,
@@ -12,21 +13,32 @@ from niagads.common.track.models import (
     Provenance,
 )
 from niagads.common.track.models.phenotypes import PhenotypeCount
+from niagads.common.types import RecordRetrievalResult
 from niagads.database.genomicsdb.schema.dataset.base import DatasetTableBase
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
-from niagads.database.genomicsdb.schema.mixins import IdAliasMixin
+from niagads.database.genomicsdb.schema.mixins import (
+    BulkRecordRetrievalMixin,
+    IdAliasMixin,
+)
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.database.mixins import GenomicRegionMixin
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
-from sqlalchemy import Column, Index, Integer, String
+from sqlalchemy import Column, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
+class Track(
+    DatasetTableBase,
+    ExternalDatabaseMixin,
+    IdAliasMixin,
+    BulkRecordRetrievalMixin,
+    ComponentBaseMixin,
+):
     _stable_id = "source_id"
     __tablename__ = "track"
     __table_args__ = (
@@ -82,6 +94,36 @@ class Track(DatasetTableBase, ExternalDatabaseMixin, IdAliasMixin):
     curation_history: Mapped[Optional[List[CurationEvent]]] = mapped_column(
         JSONB(none_as_null=True)
     )
+
+    @classmethod
+    async def retrieve_records(
+        cls, session: AsyncSession, identifiers: list[str]
+    ) -> RecordRetrievalResult:
+        """Fetch full track records matching source identifiers.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            identifiers (list[str]): Track source identifiers to resolve.
+
+        Returns:
+            RecordRetrievalResult: Mapping of each requested identifier to
+                matching full records.
+        """
+        mappings = {identifier: [] for identifier in dict.fromkeys(identifiers)}
+        lookup_values = cls._build_sql_value_field(list(mappings))
+        matches = cls._build_lookup_select(
+            lookup_values,
+            lookup_field=cls.source_id,
+            where_clause=func.upper(cls.source_id)
+            == func.upper(lookup_values.c.lookup_value),
+        ).subquery("matches")
+
+        for row in await cls._execute_lookup(session, lookup_values, matches):
+            record = row["record"]
+            if record is not None:
+                mappings[row["lookup_value"]].append(record)
+
+        return mappings
 
 
 class TrackConcept(DatasetTableBase):
