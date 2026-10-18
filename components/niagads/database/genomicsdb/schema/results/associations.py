@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
@@ -171,21 +171,14 @@ class VariantAssociation(
 
     @classmethod
     async def retrieve_records(
-        cls,
-        session,
-        *,
-        track_id: int = None,
-        variant_id: str = None,
-        span: OneBasedGenomicRegion = None,
+        cls, session, lookup_value: Union[int, str, OneBasedGenomicRegion]
     ):
-        if track_id:
-            return await cls._retrieve_associations_by_track(session, track_id)
-
-        elif variant_id:
-            return await cls._retrieve_associations_by_variant(session, variant_id)
-
-        elif span is not None:
-            return await cls._retrieve_associations_by_span(session, span)
+        if isinstance(lookup_value, str):  # variant id
+            return await cls._retrieve_associations_by_variant(session, lookup_value)
+        elif isinstance(lookup_value, int):  # track record primary key
+            return await cls._retrieve_associations_by_track(session, lookup_value)
+        else:  # region
+            return await cls._retrieve_associations_by_span(session, lookup_value)
 
 
 class VariantTraitAssociation(

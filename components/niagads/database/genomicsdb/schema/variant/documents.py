@@ -3,7 +3,7 @@ from typing import Any, Optional
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
-from niagads.common.types import Entity
+from niagads.common.types import Entity, RecordRetrievalResult
 from niagads.common.variant.models.annotations import LDPartner
 from niagads.common.variant.models.ga4gh_vrs import Allele
 from niagads.common.variant.models.record import VariantRecord
@@ -540,8 +540,8 @@ class Variant(
 
     @classmethod
     async def retrieve_records(
-        cls, session: AsyncSession, *, variant_ids: list[str]
-    ) -> dict[str, list[dict] | None]:
+        cls, session: AsyncSession, identifiers: list[str]
+    ) -> RecordRetrievalResult:
         """Fetch variants matching one or more identifiers.
 
         Args:
@@ -549,15 +549,15 @@ class Variant(
             variant_ids (list[str]): Variant identifiers to resolve.
 
         Returns:
-            dict[str, list[dict] | None]: Mapping of each requested identifier to
-                matching full records, or ``None``.
+            RecordRetrievalResult: Mapping of each requested identifier to
+                matching full records.
 
         Notes:
             RefSNP aliases are resolved only for identifiers not found directly. This
             keeps the common RefSNP lookup on the indexed variant table and avoids an
             unnecessary join to the merge-history table.
         """
-        mappings = {identifier: [] for identifier in dict.fromkeys(variant_ids)}
+        mappings = {identifier: [] for identifier in dict.fromkeys(identifiers)}
         await cls._fetch_records_by_ref_snp_id(session, mappings)
         await cls._fetch_records_by_positional_id(session, mappings)
         await cls._fetch_records_by_structural_variant_id(session, mappings)

@@ -7,11 +7,13 @@ from niagads.common.nlp.embedding.types import (
 )
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
+from niagads.common.types import RecordRetrievalResult
 from niagads.database.helpers import datetime_column
 from niagads.database.mixins import ModelDumpMixin
 from niagads.database.mixins.transactions import TransactionTableMixin
 from sqlalchemy import (
     ClauseElement,
+    MappingResult,
     String,
     column,
     exists,
@@ -674,7 +676,7 @@ class BulkRecordRetrievalMixin:
         session: AsyncSession,
         lookup_values,
         matches,
-    ) -> dict[str, list[object] | None]:
+    ) -> MappingResult:
         """Execute lookup matches and group records by lookup value.
 
         Args:
@@ -700,13 +702,14 @@ class BulkRecordRetrievalMixin:
     @classmethod
     async def retrieve_records(
         cls, session: AsyncSession, identifiers: list[str]
-    ) -> dict[str, list[object] | None]:
+    ) -> RecordRetrievalResult:
         """Find records that match a list of identifiers
         Args:
             session (AsyncSession): Active asynchronous database session.
             identifiers (list[str]): Identifiers to match.
         Returns:
-            dict[str, list[object] | None]: Matching search result records.
+            RecordRetrievalResult: Matching search result records grouped by
+                identifier.
         """
         raise NotImplementedError(
             "Database models using RecordRetrievalMixin must implement "

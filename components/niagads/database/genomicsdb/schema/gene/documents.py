@@ -8,7 +8,7 @@ from typing import Optional
 
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
-from niagads.common.types import Entity
+from niagads.common.types import Entity, RecordRetrievalResult
 from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
 from niagads.database.genomicsdb.schema.gene.base import GeneMaterializedViewBase
 from niagads.database.genomicsdb.schema.gene.structure import GeneModel
@@ -296,7 +296,7 @@ class Gene(
     @classmethod
     async def retrieve_records(
         cls, session, identifiers: list[str]
-    ) -> dict[str, list[dict] | None]:
+    ) -> RecordRetrievalResult:
         """Fetch gene documents matching one or more identifiers.
 
         Args:
@@ -305,8 +305,8 @@ class Gene(
                 resolve.
 
         Returns:
-            dict[str, list[dict] | None]: Mapping of each identifier to matching
-                gene records.
+            RecordRetrievalResult: Mapping of each identifier to matching gene
+                records.
         """
 
         mappings = {identifier: [] for identifier in dict.fromkeys(identifiers)}
