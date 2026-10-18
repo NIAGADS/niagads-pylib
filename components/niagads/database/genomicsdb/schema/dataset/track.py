@@ -3,7 +3,6 @@
 from enum import auto
 from typing import List, Optional, Union
 
-from niagads.common.core import ComponentBaseMixin
 from niagads.common.nlp.embedding.types import Embedding, EmbeddingFunction
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
@@ -17,12 +16,17 @@ from niagads.common.track.models import (
 )
 from niagads.common.track.models.phenotypes import PhenotypeCount
 from niagads.common.types import Entity, RecordRetrievalResult
+from niagads.database.genomicsdb.schema.admin.catalog import TableCatalog
 from niagads.database.genomicsdb.schema.dataset.base import DatasetTableBase
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.mixins import (
     BulkRecordRetrievalMixin,
     IdAliasMixin,
     SearchMixin,
+)
+from niagads.database.genomicsdb.schema.ragdoc.chunks import (
+    ChunkEmbedding,
+    ChunkMetadata,
 )
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
@@ -53,7 +57,6 @@ class Track(
     IdAliasMixin,
     SearchMixin,
     BulkRecordRetrievalMixin,
-    ComponentBaseMixin,
 ):
     _stable_id = "source_id"
     __tablename__ = "track"
@@ -123,6 +126,24 @@ class Track(
     curation_history: Mapped[Optional[List[CurationEvent]]] = mapped_column(
         JSONB(none_as_null=True)
     )
+
+    @classmethod
+    def _build_record_details(cls, record_source):
+        """Build the track details expression used by search results.
+
+        Args:
+            record_source: ORM model, CTE, or subquery containing track fields.
+
+        Returns:
+            SQLAlchemy expression containing the track name and description.
+        """
+        record_source = getattr(record_source, "c", record_source)
+        return func.jsonb_build_object(
+            "label",
+            record_source.name,
+            "description",
+            record_source.description,
+        )
 
     @classmethod
     async def search(
@@ -245,12 +266,7 @@ class Track(
         stmt = select(
             ranked_tracks.c.source_id.label("matched_record_id"),
             literal(str(Entity.TRACK)).label("matched_record_type"),
-            func.jsonb_build_object(
-                "label",
-                ranked_tracks.c.name,
-                "description",
-                ranked_tracks.c.description,
-            ).label("matched_record_details"),
+            cls._build_record_details(ranked_tracks).label("matched_record_details"),
             ranked_tracks.c.rank,
             ranked_tracks.c.score,
             ranked_tracks.c.matched_text,
@@ -294,7 +310,7 @@ class Track(
         *,
         limit: int = 10,
     ) -> list[SearchMatch]:
-        """Search track metadata using a precomputed embedding.
+        """Rank tracks by their best matching document chunk.
 
         Args:
             session (AsyncSession): Active asynchronous database session.
@@ -305,7 +321,41 @@ class Track(
         Returns:
             list[SearchMatch]: Tracks ranked by semantic similarity.
         """
-        raise NotImplementedError("Track search by embedding is not implemented.")
+        table_ref = await TableCatalog.get_table_ref(session, cls)
+        score = 1 - ChunkEmbedding.embedding.cosine_distance(embedding)
+        matches = (
+            select(
+                ChunkMetadata.row_id,
+                func.max(score).label("score"),
+            )
+            .select_from(ChunkEmbedding)
+            .join(
+                ChunkMetadata,
+                ChunkMetadata.chunk_metadata_id == ChunkEmbedding.chunk_metadata_id,
+            )
+            .where(
+                ChunkMetadata.table_id == table_ref.table_id,
+            )
+            .group_by(ChunkMetadata.row_id)
+            .subquery("semantic_matches")
+        )
+        stmt = (
+            select(
+                cls.source_id.label("matched_record_id"),
+                cls._build_record_details(cls).label("matched_record_details"),
+                literal(str(Entity.TRACK)).label("matched_record_type"),
+                literal(phrase).label("matched_text"),
+                literal(MatchType.SEMANTIC.name).label("match_type"),
+                literal(MatchType.SEMANTIC.rank() - 1).label("rank"),
+                matches.c.score,
+            )
+            .select_from(matches)
+            .join(cls, matches.c.row_id == cls.track_id)
+            .order_by(matches.c.score.desc(), cls.track_id.asc())
+            .limit(limit)
+        )
+        rows = (await session.execute(stmt)).mappings().all()
+        return [SearchMatch(**row) for row in rows]
 
     @classmethod
     async def retrieve_records(

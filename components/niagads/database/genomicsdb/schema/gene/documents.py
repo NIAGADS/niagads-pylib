@@ -6,6 +6,7 @@ Defines the RAG document materialized view and related fields for querying gene 
 
 from typing import Optional
 
+from niagads.common.nlp.embedding.types import Embedding
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
 from niagads.common.types import Entity, RecordRetrievalResult
@@ -18,8 +19,8 @@ from niagads.database.genomicsdb.schema.gene.xrefs import (
     GeneXRef,
 )
 from niagads.database.genomicsdb.schema.mixins import (
-    IdAliasMixin,
     BulkRecordRetrievalMixin,
+    IdAliasMixin,
     SearchMixin,
 )
 from niagads.database.genomicsdb.schema.ragdoc.chunks import (
@@ -233,13 +234,26 @@ class Gene(
     @classmethod
     async def semantic_search_by_embedding(
         cls,
-        session,
-        phrase,
-        embedding,
+        session: AsyncSession,
+        phrase: str,
+        embedding: Embedding,
         *,
-        limit=10,
+        limit: int = 10,
         sections: list[GeneDocumentSection] = None,
-    ):
+    ) -> list[SearchMatch]:
+        """Rank genes by their best matching document chunk.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            phrase (str): Text associated with the supplied embedding.
+            embedding (Embedding): Precomputed query embedding.
+            limit (int): Maximum number of results to return.
+            sections (list[GeneDocumentSection]): Optional document sections
+                to search. Searches all sections when omitted.
+
+        Returns:
+            list[SearchMatch]: Genes ranked by semantic similarity.
+        """
         table_ref = await TableCatalog.get_table_ref(session, cls)
         score = 1 - ChunkEmbedding.embedding.cosine_distance(embedding)
         where_clause = ChunkMetadata.table_id == table_ref.table_id
@@ -253,40 +267,31 @@ class Gene(
 
         matches = (
             select(
-                cls.source_id.label("record_id"),
-                cls._build_record_details(cls).label("record_details"),
-                literal(str(Entity.GENE)).label("record_type"),
-                literal(MatchType.SEMANTIC.rank()).label("rank"),
-                score.label("score"),
-                literal(phrase).label("matched_text"),
-                literal(MatchType.SEMANTIC.name).label("match_type"),
+                ChunkMetadata.row_id,
+                func.max(score).label("score"),
             )
             .select_from(ChunkEmbedding)
             .join(
                 ChunkMetadata,
                 ChunkMetadata.chunk_metadata_id == ChunkEmbedding.chunk_metadata_id,
             )
-            .join(cls, ChunkMetadata.row_id == cls.gene_id)
             .where(where_clause)
+            .group_by(ChunkMetadata.row_id)
         ).subquery("semantic_matches")
-
-        rank, score, matched_text, match_type = cls._build_windowing_functions(
-            matches,
-            record_id=matches.c.record_id,
-        )
 
         stmt = (
             select(
-                matches.c.record_id,
-                matches.c.record_details,
-                matches.c.record_type,
-                rank,
-                score,
-                matched_text,
-                match_type,
+                cls.source_id.label("matched_record_id"),
+                cls._build_record_details(cls).label("matched_record_details"),
+                literal(str(Entity.GENE)).label("matched_record_type"),
+                literal(phrase).label("matched_text"),
+                literal(MatchType.SEMANTIC.name).label("match_type"),
+                literal(MatchType.SEMANTIC.rank() - 1).label("rank"),
+                matches.c.score,
             )
-            .distinct()
-            .order_by(rank.asc(), score.desc())
+            .select_from(matches)
+            .join(cls, matches.c.row_id == cls.gene_id)
+            .order_by(matches.c.score.desc(), cls.gene_id.asc())
             .limit(limit)
         )
 

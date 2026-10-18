@@ -8,6 +8,7 @@ Intended for use alongside the ontology graph schema for comprehensive ontology 
 from typing import Union
 
 from niagads.common.models.base import CustomBaseModel
+from niagads.common.nlp.embedding.types import Embedding
 from niagads.common.reference.ontologies.types import EntityTypeIRI
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.search.types import MatchType
@@ -62,7 +63,10 @@ class OntologyTermValidation(CustomBaseModel):
 
 
 class OntologyTerm(
-    ReferenceTableBase, ExternalDatabaseMixin, IdAliasMixin, SearchMixin
+    ReferenceTableBase,
+    ExternalDatabaseMixin,
+    IdAliasMixin,
+    SearchMixin,
 ):
     __tablename__ = "ontologyterm"
     _stable_id = "source_id"
@@ -357,46 +361,53 @@ class OntologyTerm(
 
     @classmethod
     async def semantic_search_by_embedding(
-        cls, session, phrase, embedding, *, limit=10
-    ):
+        cls,
+        session: AsyncSession,
+        phrase: str,
+        embedding: Embedding,
+        *,
+        limit: int = 25,
+    ) -> list[SearchMatch]:
+        """Rank ontology terms by their best matching document chunk.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            phrase (str): Text associated with the supplied embedding.
+            embedding (Embedding): Precomputed query embedding.
+            limit (int): Maximum number of results to return.
+
+        Returns:
+            list[SearchMatch]: Ontology terms ranked by semantic similarity.
+        """
         table_ref = await TableCatalog.get_table_ref(session, cls)
         score = 1 - ChunkEmbedding.embedding.cosine_distance(embedding)
         matches = (
             select(
-                cls.source_id.label("record_id"),
-                cls._build_record_details(cls).label("record_details"),
-                literal(str(Entity.ONTOLOGY_TERM)).label("record_type"),
-                literal(MatchType.SEMANTIC.rank()).label("rank"),
-                score.label("score"),
-                literal(phrase).label("matched_text"),
-                literal(MatchType.SEMANTIC.name).label("match_type"),
+                ChunkMetadata.row_id,
+                func.max(score).label("score"),
             )
             .select_from(ChunkEmbedding)
             .join(
                 ChunkMetadata,
                 ChunkMetadata.chunk_metadata_id == ChunkEmbedding.chunk_metadata_id,
             )
-            .join(cls, ChunkMetadata.row_id == cls.ontology_term_id)
             .where(ChunkMetadata.table_id == table_ref.table_id)
+            .group_by(ChunkMetadata.row_id)
         ).subquery("semantic_matches")
-
-        rank, score, matched_text, match_type = cls._build_windowing_functions(
-            matches,
-            record_id=matches.c.record_id,
-        )
 
         stmt = (
             select(
-                matches.c.record_id,
-                matches.c.record_details,
-                matches.c.record_type,
-                rank,
-                score,
-                matched_text,
-                match_type,
+                cls.source_id.label("matched_record_id"),
+                cls._build_record_details(cls).label("matched_record_details"),
+                literal(str(Entity.ONTOLOGY_TERM)).label("matched_record_type"),
+                literal(phrase).label("matched_text"),
+                literal(MatchType.SEMANTIC.name).label("match_type"),
+                literal(MatchType.SEMANTIC.rank() - 1).label("rank"),
+                matches.c.score,
             )
-            .distinct()
-            .order_by(rank.asc(), score.desc())
+            .select_from(matches)
+            .join(cls, matches.c.row_id == cls.ontology_term_id)
+            .order_by(matches.c.score.desc(), cls.ontology_term_id.asc())
             .limit(limit)
         )
 
