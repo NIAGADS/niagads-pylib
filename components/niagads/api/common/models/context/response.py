@@ -16,25 +16,12 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     format: Optional[ResponseFormat] = ResponseFormat.JSON
     content: Optional[ResponseContent] = ResponseContent.FULL
     ui_component: Optional[ResponseUI] = ResponseUI.DEFAULT
-    record_model: RecordT
+    record_model: type[RecordT]
     response_model: type[BaseResponseModel]
-
-    @model_validator(mode="after")
-    def validate_config(self, __context):
-        if (
-            self.content not in [ResponseContent.FULL, ResponseContent.SUMMARY]
-            and self.ui_component != ResponseUI.DEFAULT
-        ):
-            raise ValueError(
-                f"Can only generate a `{str(self.ui_component)}` `layout` of the result for "
-                f"`full` and `summary` response `views`"
-            )
-
-        return self
 
     # from https://stackoverflow.com/a/67366461
     # allows ensurance that model is always a child
-    @field_validator("model")
+    @field_validator("response_model")
     def validate_model(cls, model):
         if issubclass(model, BaseResponseModel):
             return model
@@ -42,7 +29,7 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
             f"Wrong type for `model` : `{model}`; must be a subclass of `BaseResponseModel`"
         )
 
-    @field_validator("layout")
+    @field_validator("ui_component")
     def validate_ui(cls, ui):
         try:
             return ResponseUI(ui)
@@ -56,9 +43,9 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
         except NameError:
             raise ValueError(f"Invalid value provided for `format`: {format}")
 
-    @field_validator("view")
-    def validate_view(cls, view):
+    @field_validator("content")
+    def validate_view(cls, content):
         try:
-            return ResponseContent(view)
+            return ResponseContent(content)
         except NameError:
-            raise ValueError(f"Invalid value provided for `view`: {format}")
+            raise ValueError(f"Invalid value provided for `content`: {content}")
