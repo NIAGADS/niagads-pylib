@@ -8,6 +8,7 @@ from niagads.api.common.app.types import AppMetadata
 from niagads.database.genomicsdb.intervals import fetch_bin_index_reference
 from niagads.open_access_api.dependencies import OpenAccessEndpointContext
 from niagads.open_access_api.routes.records.gene import router as GeneRecordRouter
+from niagads.open_access_api.routes.records.variant import router as VariantRecordRouter
 from niagads.settings.core import get_service_environment
 
 metadata = AppMetadata(
@@ -56,6 +57,7 @@ app_factory = AppFactory(
     lifespan=lifespan,
 )
 app_factory.add_router(GeneRecordRouter)
+app_factory.add_router(VariantRecordRouter)
 
 # get the application object
 app = app_factory.app
