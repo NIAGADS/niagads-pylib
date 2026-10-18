@@ -1,7 +1,9 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from niagads.api.common.app.factory import AppFactory
 from niagads.api.common.app.types import AppMetadata
-from niagads.api.common.config import Settings
+from niagads.open_access_api.dependencies import OpenAccessEndpointContext
 from niagads.settings.core import get_service_environment
 from niagads.open_access_api.routes.records.gene import router as GeneRecordRouter
 import uvicorn
@@ -23,8 +25,19 @@ metadata = AppMetadata(
     servers=[{"url": "https://api.niagads.org", "description": "Production server"}],
 )
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await OpenAccessEndpointContext.verify_database_connection()
+    yield
+
+
 # generate the app
-app_factory = AppFactory(metadata=metadata, env=get_service_environment())
+app_factory = AppFactory(
+    metadata=metadata,
+    env=get_service_environment(),
+    lifespan=lifespan,
+)
 app_factory.add_router(GeneRecordRouter)
 
 # get the application object

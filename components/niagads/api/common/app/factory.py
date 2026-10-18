@@ -17,6 +17,7 @@ from niagads.api.common.exception_handlers import (
     add_system_exception_handler,
 )
 from niagads.settings.core import ServiceEnvironment, get_service_environment
+from starlette.types import Lifespan
 
 
 class AppFactory:
@@ -27,6 +28,7 @@ class AppFactory:
         self,
         metadata: AppMetadata,
         env: str,
+        lifespan: Lifespan[FastAPI] | None = None,
     ):
         """
         Initializes the AppFactory
@@ -37,7 +39,7 @@ class AppFactory:
             namespace (str, optional): for openapi specification x-namespace arg. Defaults to 'root'
             version (bool, optional): add API major  version to path.  Defaults to False
         """
-        self._app: FastAPI = self._initialize_app(metadata)
+        self._app: FastAPI = self._initialize_app(metadata, lifespan)
         self._add_middleware()
         self._add_exception_handlers()
 
@@ -51,7 +53,11 @@ class AppFactory:
         if not self._app:
             raise RuntimeError("Application is not initialized.")
 
-    def _initialize_app(self, metadata: AppMetadata) -> FastAPI:
+    def _initialize_app(
+        self,
+        metadata: AppMetadata,
+        lifespan: Lifespan[FastAPI] | None = None,
+    ) -> FastAPI:
         """Creates the application"""
 
         return FastAPI(
@@ -77,6 +83,7 @@ class AppFactory:
             openapi_url=f"/openapi.json",
             docs_url=f"/docs",
             redoc_url=f"/redoc",
+            lifespan=lifespan,
         )
 
     def _add_middleware(self):

@@ -49,3 +49,12 @@ class EndpointContext(BaseModel, arbitrary_types_allowed=True):
         Depends(get_empty_dict),
     ]
     database_session: Annotated[AsyncSession, Depends(_DATABASE_SESSION_MANAGER)]
+
+    @classmethod
+    async def verify_database_connection(cls) -> None:
+        """Verify the database dependency is available."""
+        database_dependency = (
+            cls.model_fields["database_session"].metadata[0].dependency
+        )
+
+        await database_dependency.test_connection()
