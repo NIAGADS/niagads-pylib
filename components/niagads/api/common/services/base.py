@@ -48,32 +48,24 @@ class BaseEndpointService(ComponentBaseMixin):
             lookup_value,
         )
 
-    async def _initialize_pagination_service(self, result_size):
+    def _initialize_pagination_service(self, result_size):
         """Initialize pagination service
         Developer note: override this in child classes if using a non-standard pagination model
         """
         page = getattr(self._parameters, "page", 1)
-        self._pagination_service = PaginationService(result_size=result_size, page=1)
+        self._pagination_service = PaginationService(result_size=result_size, page=page)
 
     async def _get_cached_response(self):
         cache_key = self._context.cache_key.encrypt()
-        response = await self._context.cache_manager.get(
+        return await self._context.cache_manager.get(
             cache_key, namespace=self._context.cache_key.namespace
         )
 
-        if response is not None:
-            return await self.generate_response(response, is_cached=True)
-
-        return None
-
-    async def generate_response(
-        self, result: Any, *, is_paged: bool = False, is_cached: bool = False
-    ):
+    async def generate_response(self, result: Any, *, is_cached: bool = False):
         """Build a response model and cache it when it is newly generated.
 
         Args:
             result: Result data, or an existing response when ``is_cached`` is true.
-            is_paged: Whether the result is already paginated
             is_cached: Whether ``result`` is already a response model from the cache.
 
         Returns:
@@ -87,14 +79,24 @@ class BaseEndpointService(ComponentBaseMixin):
             if self._response_config.record_model:
                 response_model = response_model[self._response_config.record_model]
 
-            if isinstance(result, list) and not is_paged:
+            result_size = len(result)
+            self._initialize_pagination_service(result_size)
+            if self._pagination_service.requires_pagination():
                 page_range: Range = self._pagination_service.page_range()
-                paged_result = result[page_range.start : page_range.end]
+                if isinstance(result, list):
+                    paged_result = result[page_range.start : page_range.end]
+                elif isinstance(result, dict):
+                    {
+                        k: result[k]
+                        for k in list(result.keys)[page_range.start : page_range.end]
+                    }
+            else:
+                paged_result = result
 
             response = response_model(
                 request=self._context.request_data,
                 pagination=self._pagination_service.get_pagination_state(),
-                data=result if is_paged else paged_result,
+                data=paged_result,
             )
 
             await self._context.cache_manager.set(

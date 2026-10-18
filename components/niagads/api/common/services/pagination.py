@@ -38,11 +38,14 @@ class PaginationService:
         return PaginationState(
             page=self._page,
             total_pages=self._max_page,
-            paged_records=self.paged_records(),
+            paged_records=self.num_paged_records(),
             total_records=self._result_size,
         )
 
-    def paged_records(self):
+    def requires_pagination(self):
+        return self.num_paged_records(page=1) < self._result_size
+
+    def num_paged_records(self, page: int = None):
         """Record the number of records returned for the current page.
 
         Returns:
@@ -132,10 +135,11 @@ class PaginationService:
 
         return Range(start=start, end=end)
 
-    def offset(self):
+    def offset(self, page: int = None):
         """Calculate the zero-based offset for the initialized page.
 
         Returns:
             The zero-based record offset for the current page.
         """
+        checked_page = self._page if page is None else page
         return (self._page - 1) * self._page_size
