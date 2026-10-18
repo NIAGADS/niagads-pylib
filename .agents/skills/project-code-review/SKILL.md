@@ -50,11 +50,12 @@ If project instructions, configuration, and code patterns conflict, follow the a
 
 ## Classes and mixins
 
-- All classes must inherit from `ComponentBaseMixin`, except enums and Pydantic models.
+- Ordinary component and service classes must inherit from `ComponentBaseMixin`. Enums, Pydantic models, SQLAlchemy declarative bases, mapped ORM models (including materialized views), and ORM mixins are exempt.
+- Preserve SQLAlchemy model inheritance. Do not add `ComponentBaseMixin` when modifying ORM models or ORM mixins; use their existing database bases and applicable ORM mixins.
 - Before creating a class or adding class behavior, inspect nearby code and search the project for relevant base classes and mixins.
 - Reuse applicable project mixins and avoid duplicating behavior they provide.
 - Create a new mixin only when the behavior is reusable across multiple classes and no existing mixin provides it. Otherwise, keep the behavior in the class.
-- When modifying a legacy class, add `ComponentBaseMixin` if compatible with its existing design. Do not modify unrelated classes solely to add the mixin.
+- When modifying a legacy component or service class, add `ComponentBaseMixin` if compatible with its existing design. The exemptions above still apply. Do not modify unrelated classes solely to add the mixin.
 - Add `__repr__`, `__str__`, or a class logger when useful and consistent with project patterns; do not add them as boilerplate.
 
 ## Project context
