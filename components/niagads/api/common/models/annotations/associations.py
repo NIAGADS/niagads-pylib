@@ -48,26 +48,30 @@ class AssociationSource(EnumParameter):
 
 
 class VariantAssociation(RowModel):
-    variant: AbridgedVariant = Field(title="Variant", order=1)
-    test_allele: str = Field(title="Test Allele", order=2)
-    p_value: Union[float, str] = Field(title="p-Value", order=3)
+    variant: AbridgedVariant = Field(title="Variant", json_schema_extra={"order": 1})
+    test_allele: str = Field(title="Test Allele", json_schema_extra={"order": 2})
+    p_value: Union[float, str] = Field(title="p-Value", json_schema_extra={"order": 3})
 
-    trait: OntologyTerm = Field(title="Trait", description="associated trait", order=4)
+    trait: OntologyTerm = Field(
+        title="Trait", description="associated trait", json_schema_extra={"order": 4}
+    )
     trait_category: str = Field(
         title="Trait Category",
         description="One of AD, ADRD, Biomarker (for AD/ADRD), or Other",
-        order=5,
+        json_schema_extra={"order": 5},
     )
-    track_id: Optional[str] = Field(default=None, title="Track ID", order=6)
+    track_id: Optional[str] = Field(
+        default=None, title="Track ID", json_schema_extra={"order": 6}
+    )
     track_name: str = Field(
         title="Study",
         serialization_alias="study",
         description="NIAGADS Data Track or published study curated from the literature or a GWAS Catalog",
-        order=7,
+        json_schema_extra={"order": 7},
     )
 
     pubmed_id: Optional[List[T_PubMedID]] = Field(
-        default=None, title="Publication", order=8
+        default=None, title="Publication", json_schema_extra={"order": 8}
     )
 
     participant_phenotypes: Optional[Phenotype] = Field(default=None, exclude=True)
@@ -159,7 +163,9 @@ class VariantAssociation(RowModel):
             order = (
                 fields["trait"].json_schema_extra.get("order") if k == "term" else 1000
             )
-            newField = Field(title=title, description=description, order=order)
+            newField = Field(
+                title=title, description=description, json_schema_extra={"order": order}
+            )
             fields.update({k: newField})
 
         del fields["trait"]
@@ -174,7 +180,7 @@ class GeneVariantAssociation(VariantAssociation):
     relative_position: str = Field(
         title="Relative Position",
         description="location relative to the gene footprint",
-        order=0,
+        json_schema_extra={"order": 0},
     )
 
 

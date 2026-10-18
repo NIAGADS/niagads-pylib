@@ -202,7 +202,7 @@ class CustomBaseModel(BaseModel):
             list[str]: List of model field names
         """
         # get fields, ignore those set to exclude=True
-        fields: dict = [
+        fields: list = [
             (k, v)
             for k, v in cls.model_fields.items()
             if not getattr(v, "exclude", False)
@@ -215,7 +215,7 @@ class CustomBaseModel(BaseModel):
                 ),
             )
 
-        return list(fields.keys())
+        return [k for k, _ in fields]
 
     def get_model_fields(self, sort: bool = False):
         """Return model field names for an instantiated class
