@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -9,7 +10,7 @@ from niagads.database.genomicsdb.intervals import fetch_bin_index_reference
 from niagads.open_access_api.dependencies import OpenAccessEndpointContext
 from niagads.open_access_api.routes.records.gene import router as GeneRecordRouter
 from niagads.open_access_api.routes.records.variant import router as VariantRecordRouter
-from niagads.settings.core import get_service_environment
+from niagads.settings.core import ServiceEnvironment, get_service_environment
 
 metadata = AppMetadata(
     title="NIAGADS Open Access API",
@@ -31,7 +32,7 @@ metadata = AppMetadata(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Initialize the shared interval-bin reference before serving requests.
+    """Configure logging and load the interval-bin reference before serving requests.
 
     Args:
         app (FastAPI): Application whose state holds the interval-bin reference.
@@ -39,6 +40,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     Yields:
         None: Control while the application serves requests.
     """
+    logging.getLogger("uvicorn.error.niagads").setLevel(
+        logging.DEBUG
+        if get_service_environment() == ServiceEnvironment.DEV
+        else logging.INFO
+    )
     await OpenAccessEndpointContext.verify_database_connection()
     database_dependency = (
         OpenAccessEndpointContext.model_fields["database_session"]
