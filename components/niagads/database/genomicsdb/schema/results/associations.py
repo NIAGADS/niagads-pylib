@@ -110,7 +110,7 @@ class VariantAssociation(
         parent_bin = literal_column(f"'{bin_index}'::ltree")
 
         stmt = select(
-            func.row_to_json(cls.__table__).cast(JSONB).label("record")
+            func.row_to_json(cls.__table__.table_valued()).cast(JSONB).label("record")
         ).where(
             and_(
                 cls.chromosome == str(span.chromosome),
