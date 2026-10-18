@@ -8,11 +8,17 @@ from niagads.requests.core import HttpClientSessionManager
 
 
 async def get_http_client_sessions() -> dict[str, ClientSession]:
-    return {
-        "filer": await HttpClientSessionManager(
-            Settings.from_env().FILER_REQUEST_URL, timeout=60
-        ),
-    }
+    """Assemble client session mappings.  This overhead is so that
+    we can support connections to multiple external APIs (e.g., FILER, xQTL)"""
+    filer_manager = HttpClientSessionManager(
+        Settings.from_env().FILER_REQUEST_URL,
+        timeout=60,
+    )
+    # xqtl_manager = HttpClientSessionManager(
+    #     Settings.from_env().XQTL_REQUEST_URL,
+    #     timeout=60,
+    # )
+    return {"filer": await filer_manager()}
 
 
 class OpenAccessEndpointContext(EndpointContext):
