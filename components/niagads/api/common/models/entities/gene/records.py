@@ -1,14 +1,10 @@
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Self, Union
 
 from niagads.api.common.models.records.types import ORMCompatibleRecord
-from niagads.api.common.models.records.mixins import DynamicMixin
-from niagads.common.gene.models.annotation import (
-    GOAssociation,
-    PathwayMembership,
-)
+
 from niagads.common.gene.models.record import GeneIdentifier, GeneRecord
 from niagads.common.genomic.regions.models import GenomicRegion
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, ModelWrapValidatorHandler, model_validator
 
 
 class GeneDescriptor(GeneIdentifier, ORMCompatibleRecord):
@@ -16,9 +12,8 @@ class GeneDescriptor(GeneIdentifier, ORMCompatibleRecord):
         default=None,
         title="Gene Symbol",
         description="official gene symbol",
-        serialization_alias="symbol",
     )
-    location: Optional[GenomicRegion] = Field(
+    location: Optional[str] = Field(
         default=None,
         title="Location",
         description="genomic location delimiting the footprint (span) of the gene",
@@ -27,12 +22,45 @@ class GeneDescriptor(GeneIdentifier, ORMCompatibleRecord):
     def __str__(self):
         return self.id
 
+    @model_validator(mode="before")
+    @classmethod
+    def extract_nested_fields(cls, data: Union[dict, Any]):
+        """
+        Extract nested fields from ORM object and assign to top-level fields.
+
+        Handles both ORM objects and dictionaries, extracting gene descriptor
+        fields from the document's nomenclature and gene structure objects.
+        """
+
+        updated_data = data if isinstance(data, dict) else data.model_dump()
+
+        # FIXME: developer's note -> figure out why IdMixin is not working
+        updated_data["id"] = updated_data.get("source_id")
+
+        nomenclature = updated_data.get("nomenclature")
+        if nomenclature:
+            updated_data["gene_symbol"] = nomenclature.get("gene_symbol")
+
+        gene_structure = updated_data.get("gene_structure")
+        if gene_structure:
+            updated_data["location"] = gene_structure.get("location")
+
+        return updated_data
+
 
 class GeneBrief(GeneDescriptor, ORMCompatibleRecord):
     model_config = ConfigDict(is_summary=True)
 
-    gene_type: Optional[str] = Field(default=None, serialization_alias="type")
-    gene_name: Optional[str] = Field(default=None, serialization_alias="name")
+    gene_type: Optional[str] = Field(
+        default=None,
+        title="Gene Type",
+        description="biological type or classification of the gene",
+    )
+    gene_name: Optional[str] = Field(
+        default=None,
+        title="Gene Name",
+        description="official gene name",
+    )
     synonyms: Optional[List[str]] = Field(
         default=None, title="Aliases", description="gene symbol synonyms or aliases"
     )
@@ -46,30 +74,43 @@ class GeneBrief(GeneDescriptor, ORMCompatibleRecord):
         return self.to_info_string()
 
     @model_validator(mode="before")
-    def extract_nested_fields(cls, values: Union[dict, any]):
+    def extract_nested_fields(cls, data: Union[dict, Any]):
         """
         Extract nested fields from ORM object and assign to top-level fields.
 
         Handles both ORM objects and dictionaries, extracting gene descriptor
         fields from the document's nomenclature and gene structure objects.
         """
-        if not isinstance(values, dict):
-            values = values.model_dump()
+        updated_data = GeneDescriptor.extract_nested_fields(data)
 
-        nomenclature = values.get("nomenclature")
-        if isinstance(nomenclature, dict):
-            values.setdefault("gene_symbol", nomenclature.get("gene_symbol"))
-            values.setdefault("gene_name", nomenclature.get("gene_name"))
-            values.setdefault("synonyms", nomenclature.get("synonyms"))
+        nomenclature = updated_data.get("nomenclature")
+        updated_data["gene_name"] = nomenclature.get("gene_name")
+        updated_data["synonyms"] = nomenclature.get("synonyms")
 
-        gene_structure = values.get("gene_structure")
-        if isinstance(gene_structure, dict):
-            values.setdefault("location", gene_structure.get("location"))
-            values.setdefault(
-                "cytogenic_location", gene_structure.get("cytogenic_location")
-            )
+        gene_structure = updated_data.get("gene_structure")
+        updated_data["cytogenic_location"] = gene_structure.get("cytogenic_location")
 
-        return values
+        return updated_data
 
 
-class Gene(GeneRecord, ORMCompatibleRecord): ...
+class Gene(GeneBrief, GeneRecord, ORMCompatibleRecord):
+    nomenclature: Optional[Dict[str, Any]] = Field(exclude=True)
+    synonyms: Optional[List[str]] = Field(
+        default=None, title="Aliases", description="gene symbol synonyms or aliases"
+    )
+
+    @model_validator(mode="before")
+    def extract_nested_fields(cls, data: Union[dict, Any]):
+        """
+        Extract nested fields from ORM object and assign to top-level fields.
+
+        Handles both ORM objects and dictionaries, extracting gene descriptor
+        fields from the document's nomenclature and gene structure objects.
+        """
+        updated_data = GeneBrief.extract_nested_fields(data)
+
+        gene_structure = updated_data.get("gene_structure")
+        gene_structure.pop("location", None)
+        gene_structure.pop("cytogenic_location", None)
+
+        return updated_data
