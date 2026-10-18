@@ -16,6 +16,7 @@ VCF_VALUE_TEMPLATE = ["."] * len(VCF_FIELDS)
 
 
 class VariantResponse(DataResponse):
+    _xml_root = "variants"
     data: List[Union[VariantDescriptor, VariantBrief, Variant]]
 
     @staticmethod

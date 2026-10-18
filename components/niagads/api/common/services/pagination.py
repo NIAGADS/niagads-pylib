@@ -95,7 +95,8 @@ class PaginationService:
 
         if self._result_size > self._page_size * MAX_NUM_PAGES:
             raise ValueError(
-                f"Result size ({self._result_size}) is too large; please add additional filters or narrow the queried genomic region."
+                f"Result size ({self._result_size}) is too large; please add additional filters "
+                "or narrow the queried genomic region."
             )
 
         return max(

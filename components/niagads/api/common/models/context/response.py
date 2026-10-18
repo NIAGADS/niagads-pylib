@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.api.common.types import (
@@ -13,14 +13,14 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     """Captures parameter values (format, content, view) and model needed to build the response"""
 
     format: Optional[ResponseFormat] = ResponseFormat.JSON
-    view: Optional[ResponseContent] = ResponseContent.FULL
+    content: Optional[ResponseContent] = ResponseContent.FULL
     ui_component: Optional[ResponseUI] = ResponseUI.DEFAULT
     model: type[BaseResponseModel]
 
     @model_validator(mode="after")
     def validate_config(self, __context):
         if (
-            self.view not in [ResponseContent.FULL, ResponseContent.SUMMARY]
+            self.content not in [ResponseContent.FULL, ResponseContent.SUMMARY]
             and self.ui_component != ResponseUI.DEFAULT
         ):
             raise ValueError(

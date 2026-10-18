@@ -41,8 +41,6 @@ class EndpointContext(BaseModel, arbitrary_types_allowed=True):
     cache_key: CacheKey = Depends(CacheKey.from_request)
     cache_manager: Annotated[CacheManager, Depends(__CACHE_MANAGER)]
 
-    pagination_service_type: type[PaginationService] = PaginationService
-
     # session managers; can be override as needed for applications
     # http_client_session is a dict to enable connection to multiple services
     # e.g. 'filer': FILER client, 'xqtl': xQTL client

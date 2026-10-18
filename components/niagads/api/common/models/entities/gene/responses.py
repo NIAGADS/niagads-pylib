@@ -9,4 +9,5 @@ from niagads.api.common.models.responses.data import DataResponse
 
 
 class GeneResponse(DataResponse):
+    _xml_root = "genes"
     data: List[Union[GeneDescriptor, GeneBrief, Gene]]
