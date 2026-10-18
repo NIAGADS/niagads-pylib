@@ -11,7 +11,6 @@ class GeneIdentifier(CustomBaseModel):
         default=None,
         title="Gene Symbol",
         description="official gene symbol",
-        serialization_alias="symbol",
     )
     location: Optional[GenomicRegion] = Field(
         default=None,
@@ -54,13 +53,13 @@ class GeneRecord(GeneIdentifier):
         title="Memberships",
         description="gene memberships in families, pathways, and curated lists",
     )
-    functional_annotation: Optional[List[Any]] = Field(
+    functional_annotation: Optional[dict] = Field(
         default=None,
         title="Functional Annotation",
         description="functional annotations associated with the gene",
     )
     associated_with_known_ad_locus: Optional[bool] = Field(
-        default=None,
+        default=False,
         title="Associated with Known AD Locus",
         description=(
             "indicates whether the gene is associated with a known "
