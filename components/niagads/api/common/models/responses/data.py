@@ -1,7 +1,10 @@
 from typing import Any, List, Union
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
-from niagads.api.common.models.records.types import CountExtendedRecord, DynamicRecord
+from niagads.api.common.models.records.types import (
+    CountExtendedRecord,
+    RecordT,
+)
 from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.common.models.base import CustomBaseModel
 from niagads.utils.string import xstr
@@ -9,12 +12,17 @@ from pydantic import Field, model_validator
 
 
 class DataResponse(BaseResponseModel):
-    data: List[CustomBaseModel] = Field(description="a list of one or more records")
+    """for non-entity (data) `record`s, with text serializer"""
 
+    data: List[RecordT] = Field(
+        description="a list of one or more results or statistical annotations"
+    )
+
+    """
     @model_validator(mode="before")
     @classmethod
     def preempt_union_validation(cls, candidate_obj: Any):
-        """Guard to preempt FastAPI union validation errors by normalizing ambiguous input types."""
+        \"\"\"Guard to preempt FastAPI union validation errors by normalizing ambiguous input types.\"\"\"
         # wrong serialization
         if isinstance(candidate_obj, (str, int, float, bool)):
             return candidate_obj
@@ -39,6 +47,7 @@ class DataResponse(BaseResponseModel):
         # and or should fail serialization and raise a valid error
         # fall back to normal Pydantic validation
         return candidate_obj
+    """
 
     @property
     def row_data_model(self):

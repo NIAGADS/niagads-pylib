@@ -1,9 +1,10 @@
 """Gene record endpoints for the NIAGADS Open Access API."""
 
 import logging
-from typing import Union
+from typing import Annotated, Union
 
 from fastapi import APIRouter, Depends, Path, Query
+from niagads.api.common.models.annotations.associations import VariantAssociation
 from niagads.api.common.models.context.request import Parameters
 from niagads.api.common.models.context.response import ResponseConfiguration
 from niagads.api.common.models.entities.gene.records import GeneBrief, Gene
@@ -12,6 +13,7 @@ from niagads.api.common.models.responses.records import (
     RecordMappingResponse,
     RecordResponse,
 )
+from niagads.api.common.parameters.location import flank_param
 from niagads.api.common.parameters.response.pagination import page_param
 from niagads.api.common.parameters.response.response import (
     data_response_content_param,
@@ -25,7 +27,10 @@ from niagads.api.common.types import ResponseContent, ResponseFormat
 from niagads.api.common.utils import sanitize
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.common.genomic.features.types import GenomicFeatureType
-from niagads.open_access_api.dependencies import OpenAccessEndpointContext
+from niagads.open_access_api.dependencies import (
+    OpenAccessEndpointContext,
+    get_bin_index_reference,
+)
 
 logger = logging.getLogger(f"uvicorn.error.{__name__}")
 
@@ -110,7 +115,7 @@ async def get_genes(
     description="Retrieve the canonical record for the specified gene.",
     response_description="Gene record.",
     operation_id="getGene",
-    response_model=RecordResponse,
+    response_model=Union[RecordResponse[Gene], RecordResponse[GeneBrief]],
 )
 async def get_gene(
     gene: str = Depends(path_gene_id),
@@ -146,16 +151,35 @@ async def get_gene(
     description="Retrieve genetic and phenotype associations for the specified gene.",
     response_description="Gene associations.",
     operation_id="getGeneAssociations",
-    response_model=RecordResponse,
+    response_model=DataResponse[VariantAssociation],
 )
 async def get_gene_associations(
     gene: GenomicFeature = Depends(path_gene_id),
     context: OpenAccessEndpointContext = Depends(),
     format: ResponseFormat = Depends(response_format_param),
     content: ResponseContent = Depends(data_response_content_param),
+    flank: int = Depends(flank_param),
 ) -> DataResponse:
 
-    raise NotImplementedError(f"Gene associations endpoint is not implemented: {gene}")
+    record_model = GeneBrief if context == ResponseContent.SUMMARY else Gene
+    service = GeneEndpointService(
+        context=context,
+        parameters=Parameters(gene=gene),
+        response_config=ResponseConfiguration(
+            format=format,
+            content=content,
+            response_model=RecordResponse,
+            record_model=record_model,
+        ),
+    )
+
+    result = await service.get_cached_response()
+    from_cache = True
+    if not result:
+        result = await service.fetch_record(gene)
+        from_cache = False
+    response = await service.generate_response(result, from_cache=from_cache)
+    return response
 
 
 @router.get(

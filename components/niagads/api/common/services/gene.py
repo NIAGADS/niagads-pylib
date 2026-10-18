@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from niagads.api.common.services.base import BaseEndpointService
 from niagads.common.types import RecordRetrievalResult
 from niagads.database.genomicsdb.schema.gene.documents import Gene as GeneORM
+from niagads.database.genomicsdb.schema.results.associations import VariantAssociation
 
 
 class GeneEndpointService(BaseEndpointService):
@@ -28,3 +29,8 @@ class GeneEndpointService(BaseEndpointService):
         # get_record_mappings handles building the 'records', so can just return
         # the mapped records
         return mappings[gene_id]
+
+    async def fetch_associations(self, gene_id: str):
+        result = await VariantAssociation.retrieve_records(
+            self._context.database_session, lookup_value=gene_id
+        )

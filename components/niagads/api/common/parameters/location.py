@@ -72,3 +72,15 @@ async def location_param(
             continue
 
     raise ValueError(f"Invalid genomic location or feature identifier: {location}")
+
+
+async def flank_param(
+    flank: int = Query(
+        title="Flanking region size",
+        description="Flanking region up- and down-stream of the genomic feature or interval, in base-pairs (bp).",
+        ge=0,
+        default=0,
+        le=1000000,
+    ),
+) -> int:
+    return flank
