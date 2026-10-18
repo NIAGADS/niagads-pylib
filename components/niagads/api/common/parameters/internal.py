@@ -5,7 +5,7 @@ from fastapi import Depends, Request
 from niagads.api.common.config import Settings
 from niagads.api.common.models.context.cache import CacheKey
 from niagads.api.common.models.context.request import RequestDetails
-from niagads.api.common.utils import get_empty_dict, get_none
+from niagads.api.common.utils import get_empty_dict
 from niagads.cache.core import CacheSerializer, CacheManager
 from niagads.database.session import DatabaseSessionManager
 from niagads.settings.core import ServiceEnvironment, get_service_environment
@@ -18,7 +18,7 @@ from niagads.api.common.services.pagination import PaginationService
 # internal cache; stores responses as is
 _CACHE_MANAGER = CacheManager(
     connection_string=Settings.from_env().CACHE_DB_URI,
-    serializer=CacheSerializer.JSON,
+    serializer=CacheSerializer.PICKLE,
     ttl=Settings.from_env().CACHE_TTL,
 )
 
