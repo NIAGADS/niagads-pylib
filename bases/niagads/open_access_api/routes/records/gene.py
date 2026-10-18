@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Path, Query
 from niagads.api.common.models.context.request import Parameters
 from niagads.api.common.models.context.response import ResponseConfiguration
 from niagads.api.common.models.entities.gene.records import GeneBrief, Gene
+from niagads.api.common.models.responses.data import DataResponse
 from niagads.api.common.models.responses.records import (
     RecordMappingResponse,
     RecordResponse,
@@ -125,15 +126,17 @@ async def get_gene(
         response_config=ResponseConfiguration(
             format=format,
             content=content,
-            response_model=RecordMappingResponse,
+            response_model=RecordResponse,
             record_model=record_model,
         ),
     )
 
-    response = await service.get_cached_response()
-    if not response:
+    result = await service.get_cached_response()
+    from_cache = True
+    if not result:
         result = await service.fetch_record(gene)
-        response = await service.generate_response(result)
+        from_cache = False
+    response = await service.generate_response(result, from_cache=from_cache)
     return response
 
 
@@ -150,6 +153,24 @@ async def get_gene_associations(
     context: OpenAccessEndpointContext = Depends(),
     format: ResponseFormat = Depends(response_format_param),
     content: ResponseContent = Depends(data_response_content_param),
-) -> RecordResponse:
+) -> DataResponse:
 
     raise NotImplementedError(f"Gene associations endpoint is not implemented: {gene}")
+
+
+@router.get(
+    "/{gene}/structure",
+    summary="Get gene structure",
+    description="Retrieve transcripts, exons, and protein identifiers for the specified gene.",
+    response_description="Gene structure.",
+    operation_id="getGeneStructure",
+    # response_model=AnnotationResponse,
+)
+async def get_gene_associations(
+    gene: GenomicFeature = Depends(path_gene_id),
+    context: OpenAccessEndpointContext = Depends(),
+    format: ResponseFormat = Depends(response_format_param),
+    content: ResponseContent = Depends(data_response_content_param),
+) -> RecordResponse:
+
+    raise NotImplementedError(f"Gene structure endpoint is not implemented: {gene}")
