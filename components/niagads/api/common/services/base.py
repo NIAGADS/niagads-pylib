@@ -22,7 +22,7 @@ class BaseEndpointService:
         self._pagination_service: PaginationService = None
         self._response_config: ResponseConfiguration = response_config
 
-    def __validate_orm_utility(self, orm_model, function_name: str):
+    def __validate_orm_utility(self, function_name: str):
         if not getattr(self._orm_model, function_name, None):
             raise RuntimeError(
                 f"`{function_name}` not implemented for {self._orm_model.__name__}"

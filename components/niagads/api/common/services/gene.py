@@ -5,10 +5,10 @@ from niagads.database.genomicsdb.schema.gene.documents import Gene as GeneORM
 
 
 class GeneEndpointService(BaseEndpointService):
-    _orm_model: GeneORM
+    _orm_model = GeneORM
 
     async def get_record_mappings(self, gene_ids: list[str]):
-        mappings: RecordRetrievalResult = self._lookup_records(gene_ids)
+        mappings: RecordRetrievalResult = await self._lookup_records(gene_ids)
         return {k: self._response_config.record_model(**v) for k, v in mappings}
 
     async def fetch_record(self, gene_id: str):
