@@ -7,14 +7,29 @@ from niagads.api.common.parameters.validators import sanitize_enum_value
 from niagads.api.common.types import ResponseFormat, ResponseContent
 
 
+async def record_response_content_param(
+    view: Annotated[
+        Literal[ResponseContent.FULL, ResponseContent.SUMMARY, ResponseContent.IDS],
+        BeforeValidator(sanitize_enum_value(ResponseContent)),
+        Query(
+            description=(
+                "Select the type of content included in the response: "
+                "comprehensive report, summary report, or identifiers."
+            )
+        ),
+    ] = ResponseContent.FULL,
+) -> ResponseContent:
+    return view
+
+
 async def response_content_param(
     view: Annotated[
         ResponseContent,
         BeforeValidator(sanitize_enum_value(ResponseContent)),
         Query(
             description=(
-                "Select the amount and type of content included in the response: "
-                "full results, a summary, resource URLs, counts, or identifiers."
+                "Select the type of content included in the response: "
+                "comprehensive report, a summary report, resource URLs, counts, or identifiers."
             )
         ),
     ] = ResponseContent.FULL,
