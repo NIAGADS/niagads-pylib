@@ -1,5 +1,6 @@
 """Gene record endpoints for the NIAGADS Open Access API."""
 
+import logging
 from typing import Union
 
 from fastapi import APIRouter, Depends, Path, Query
@@ -24,6 +25,8 @@ from niagads.api.common.utils import sanitize
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.common.genomic.features.types import GenomicFeatureType
 from niagads.open_access_api.dependencies import OpenAccessEndpointContext
+
+logger = logging.getLogger(f"uvicorn.error.{__name__}")
 
 router = APIRouter(prefix="/record/gene", tags=["Gene"])
 
@@ -92,7 +95,9 @@ async def get_genes(
     )
 
     result = await service.get_record_mappings(ids)
-    return await service.generate_response(result)
+    response = await service.generate_response(result)
+    logger.debug(response)
+    return response
 
 
 @router.get(
