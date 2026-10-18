@@ -46,7 +46,7 @@ If project instructions, configuration, and code patterns conflict, follow the a
 - Preserve unrelated user changes. Keep edits to comments limited to cases where they are requested or needed to explain a code change.
 - Do not use inline imports unless needed to avoid a circular import.
 - Keep docstrings and comments concise and relevant. Do not add AI attribution or source URLs unless the project requires them.
-- add full googlestyle docstrings to all enums and member or helper/utility functions. type args in the docstrings. do not annotate NotImplemented exceptions in the docstrings.
+- add full googlestyle docstrings to most enums and member or helper/utility functions. type args in the docstrings. do not annotate NotImplemented exceptions in the docstrings. Thing like API routes don't need docstrings. one line wrappers may just need a short descriptive text. don't change existing docstrings unless function was updated/modified.
 
 ## Classes and mixins
 

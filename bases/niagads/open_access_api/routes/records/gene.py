@@ -12,6 +12,7 @@ from niagads.api.common.models.responses.records import (
 )
 from niagads.api.common.parameters.response.pagination import page_param
 from niagads.api.common.parameters.response.response import (
+    data_response_content_param,
     record_response_content_param,
     record_response_format_param,
     response_format_param,
@@ -77,11 +78,7 @@ async def get_genes(
     content: ResponseContent = Depends(record_response_content_param),
     page: int = Depends(page_param),
 ) -> RecordMappingResponse:
-    """Return a gene record.
 
-    Args:
-        gene (GenomicFeature): Validated gene identifier.
-    """
     record_model = GeneBrief if context == ResponseContent.SUMMARY else Gene
     service = GeneEndpointService(
         context=context,
@@ -112,11 +109,7 @@ async def get_gene(
     format: ResponseFormat = Depends(record_response_format_param),
     content: ResponseContent = Depends(record_response_content_param),
 ) -> RecordResponse:
-    """Return a gene record.
 
-    Args:
-        gene (GenomicFeature): Validated gene identifier.
-    """
     record_model = GeneBrief if context == ResponseContent.SUMMARY else Gene
     service = GeneEndpointService(
         context=context,
@@ -139,16 +132,13 @@ async def get_gene(
     description="Retrieve genetic and phenotype associations for the specified gene.",
     response_description="Gene associations.",
     operation_id="getGeneAssociations",
+    response_model=RecordResponse,
 )
 async def get_gene_associations(
     gene: GenomicFeature = Depends(path_gene_id),
     context: OpenAccessEndpointContext = Depends(),
     format: ResponseFormat = Depends(response_format_param),
-) -> None:
-    """Return associations for a gene.
-
-    Args:
-        gene (GenomicFeature): Validated gene identifier.
-    """
+    content: ResponseContent = Depends(data_response_content_param),
+) -> RecordResponse:
 
     raise NotImplementedError(f"Gene associations endpoint is not implemented: {gene}")
