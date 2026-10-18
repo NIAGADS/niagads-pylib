@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.nlp.embedding.types import Embedding, EmbeddingFunction
 from niagads.common.search.models.record import SearchMatch
+from niagads.common.search.types import MatchType
 from niagads.common.track.models import (
     BiosampleCharacteristics,
     CurationEvent,
@@ -15,7 +16,7 @@ from niagads.common.track.models import (
     Provenance,
 )
 from niagads.common.track.models.phenotypes import PhenotypeCount
-from niagads.common.types import RecordRetrievalResult
+from niagads.common.types import Entity, RecordRetrievalResult
 from niagads.database.genomicsdb.schema.dataset.base import DatasetTableBase
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.mixins import (
@@ -25,11 +26,22 @@ from niagads.database.genomicsdb.schema.mixins import (
 )
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
+from niagads.database.genomicsdb.schema.reference.ontology import OntologyTerm
 from niagads.database.helpers import enum_column, enum_constraint
 from niagads.database.mixins import GenomicRegionMixin
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
-from sqlalchemy import Column, Index, Integer, String, func
+from sqlalchemy import (
+    Column,
+    Index,
+    Integer,
+    String,
+    func,
+    literal,
+    select,
+    true,
+    union_all,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -49,6 +61,19 @@ class Track(
         *ExternalDatabaseMixin.__table_args__,
         enum_constraint("genome_build", GenomeBuild),
         enum_constraint("shard_chromosome", HumanGenome),
+        Index(
+            "ix_dataset_track_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
+        Index(
+            "ix_dataset_track_description_trgm",
+            "description",
+            postgresql_using="gin",
+            postgresql_ops={"description": "gin_trgm_ops"},
+        ),
+        Index("ix_dataset_track_source_id_upper", func.upper(Column("source_id"))),
         Index(
             "ix_dataset_track_is_filer_track_true",
             "is_filer_track",
@@ -113,7 +138,130 @@ class Track(
         Returns:
             list[SearchMatch]: Matching track records.
         """
-        raise NotImplementedError("Track text search is not implemented.")
+        wildcard_text = f"%{search_text}%"
+        cohorts = (
+            func.unnest(cls.cohorts).table_valued("cohort").render_derived().lateral()
+        )
+        match_ctes = []
+        for name, field, join_clause in (
+            ("source_id", cls.source_id, None),
+            ("cohort", cohorts.c.cohort, (cohorts, true())),
+        ):
+            match_ctes.append(
+                cls._build_match_cte(
+                    f"exact_{name}_match",
+                    MatchType.EXACT_ID,
+                    field,
+                    func.upper(field) == search_text.upper(),
+                    join_clause=join_clause,
+                )
+            )
+
+        for name, field, match_type in (
+            ("name", cls.name, MatchType.PARTIAL_ID),
+            ("description", cls.description, MatchType.PARTIAL_DESCRIPTIVE),
+        ):
+            match_ctes.append(
+                cls._build_match_cte(
+                    f"partial_{name}_match",
+                    match_type,
+                    field,
+                    field.ilike(wildcard_text),
+                )
+            )
+            if allow_fuzzy:
+                match_ctes.append(
+                    cls._build_match_cte(
+                        f"fuzzy_{name}_match",
+                        MatchType.FUZZY_DESCRIPTIVE,
+                        field,
+                        field.op("%>")(search_text),
+                        score=func.word_similarity(search_text, field),
+                    )
+                )
+
+        for name, match_type, condition in (
+            (
+                "exact",
+                MatchType.EXACT_ID,
+                OntologyTerm.term.ilike(search_text),
+            ),
+            (
+                "partial",
+                MatchType.PARTIAL_ID,
+                OntologyTerm.term.ilike(wildcard_text),
+            ),
+        ):
+            for link_model in (TrackConcept, TrackContext):
+                match_ctes.append(
+                    cls._build_match_cte(
+                        f"{name}_{link_model.__tablename__}_term_match",
+                        match_type,
+                        OntologyTerm.term,
+                        condition,
+                        join_clause=(
+                            link_model.__table__.join(
+                                OntologyTerm,
+                                OntologyTerm.ontology_term_id
+                                == link_model.ontology_term_id,
+                            ),
+                            link_model.track_id == cls.track_id,
+                        ),
+                    )
+                )
+
+        matches = union_all(
+            *(
+                select(
+                    match.c.track_id,
+                    match.c.source_id,
+                    match.c.name,
+                    match.c.description,
+                    match.c.rank,
+                    match.c.score,
+                    match.c.matched_text,
+                    match.c.match_type,
+                )
+                for match in match_ctes
+            )
+        ).cte("matches")
+        rank, score, matched_text, match_type = cls._build_windowing_functions(
+            matches, record_id=matches.c.track_id
+        )
+        ranked_tracks = (
+            select(
+                matches.c.track_id,
+                matches.c.source_id,
+                matches.c.name,
+                matches.c.description,
+                rank,
+                score,
+                matched_text,
+                match_type,
+            )
+            .distinct()
+            .subquery("ranked_tracks")
+        )
+        stmt = select(
+            ranked_tracks.c.source_id.label("matched_record_id"),
+            literal(str(Entity.TRACK)).label("matched_record_type"),
+            func.jsonb_build_object(
+                "label",
+                ranked_tracks.c.name,
+                "description",
+                ranked_tracks.c.description,
+            ).label("matched_record_details"),
+            ranked_tracks.c.rank,
+            ranked_tracks.c.score,
+            ranked_tracks.c.matched_text,
+            ranked_tracks.c.match_type,
+        ).order_by(
+            ranked_tracks.c.rank.asc(),
+            ranked_tracks.c.score.desc(),
+            ranked_tracks.c.track_id.asc(),
+        )
+        rows = (await session.execute(stmt)).mappings().all()
+        return [SearchMatch(**row) for row in rows]
 
     @classmethod
     async def semantic_search(
@@ -195,7 +343,10 @@ class TrackConcept(DatasetTableBase):
 
     _stable_id = None
     __tablename__ = "trackconcept"
-    __table_args__ = (DatasetTableBase.__table_args__,)
+    __table_args__ = (
+        Index("ix_dataset_trackconcept_term_track", "ontology_term_id", "track_id"),
+        DatasetTableBase.__table_args__,
+    )
     track_concept_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     track_id: Mapped[int] = track_fk_column()
     ontology_term_id: Mapped[int] = ontology_term_fk_column()
@@ -226,6 +377,7 @@ class TrackContext(DatasetTableBase):
     __tablename__ = "trackcontext"
     __table_args__ = (
         enum_constraint("context", TrackContextType),
+        Index("ix_dataset_trackcontext_term_track", "ontology_term_id", "track_id"),
         DatasetTableBase.__table_args__,
     )
     track_context_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
