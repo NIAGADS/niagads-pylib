@@ -2,19 +2,18 @@ import logging
 import os
 from typing import Any, Optional
 
+from niagads.etl.pipeline.config import PipelineSettings
+from niagads.settings.core import CustomSettings
 import sqlalchemy.log
 from niagads.common.types import ETLOperation
 from niagads.etl.plugins.parameters import BasePluginParams
 from niagads.etl.plugins.types import ETLRunStatus, ResumeCheckpoint
 from niagads.etl.types import ETLExecutionMode
-from niagads.loaders.core import Settings
 from niagads.utils.logging import (
     LOG_FORMAT_STR,
     ExitOnExceptionHandler,
     FunctionContextLoggerWrapper,
 )
-from niagads.utils.regular_expressions import RegularExpressions
-from niagads.utils.string import matches
 
 KEYW = 16
 
@@ -117,7 +116,9 @@ class ETLLogger:
 
     def __connection_string_reporter(self, cstring):
         """Return a log-safe DB connection string (credentials redacted unless debug mode)."""
-        full_cstring = Settings.from_env().DATABASE_URI if cstring is None else cstring
+        full_cstring = (
+            PipelineSettings.from_env().DATABASE_URI if cstring is None else cstring
+        )
 
         if self._debug:
             return full_cstring
