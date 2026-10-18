@@ -46,7 +46,7 @@ class CacheKey(BaseModel, arbitrary_types_allowed=True):
     async def from_request(cls, request: Request):
         endpoint = str(request.url.path)  # endpoint includes path parameters
         parameters = RequestDetails.sort_query_parameters(
-            dict(request.query_params), exclude=["format", "view"]
+            dict(request.query_params), exclude=["format", "ui_component"]
         )
         rawKey = (
             endpoint + "?" + parameters.replace(":", "_")

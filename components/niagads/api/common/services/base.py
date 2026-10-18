@@ -55,11 +55,28 @@ class BaseEndpointService(ComponentBaseMixin):
         page = getattr(self._parameters, "page", 1)
         self._pagination_service = PaginationService(result_size=result_size, page=page)
 
-    async def _get_cached_response(self):
+    async def get_cached_response(self):
+        """Return a cached page or generate one from the cached unpaged result.
+
+        Returns:
+            The requested response, or None when both cache lookups miss.
+        """
+        # check based on all paramaters
         cache_key = self._context.cache_key.encrypt()
-        return await self._context.cache_manager.get(
+        response = await self._context.cache_manager.get(
             cache_key, namespace=self._context.cache_key.namespace
         )
+
+        if response is None:
+            # check based on key stripped of page to retrieve full result
+            cache_key = self._context.cache_key.encrypt_key(
+                self._context.cache_key.no_page()
+            )
+            response = await self._context.cache_manager.get(
+                cache_key, namespace=self._context.cache_key.namespace
+            )
+
+        return response
 
     async def generate_response(self, result: Any, *, is_cached: bool = False):
         """Build a response model and cache it when it is newly generated.

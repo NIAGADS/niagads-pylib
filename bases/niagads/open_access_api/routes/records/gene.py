@@ -94,9 +94,11 @@ async def get_genes(
         ),
     )
 
-    result = await service.get_record_mappings(ids)
-    response = await service.generate_response(result)
-    logger.debug(response)
+    response = await service.get_cached_response()
+    if not response:
+        result = await service.get_record_mappings(ids)
+        response = await service.generate_response(result)
+
     return response
 
 
@@ -127,8 +129,11 @@ async def get_gene(
         ),
     )
 
-    result = await service.fetch_record(gene)
-    return await service.generate_response(result, is_paged=True)
+    response = await service.get_cached_response()
+    if not response:
+        result = await service.fetch_record(gene)
+        response = await service.generate_response(result)
+    return response
 
 
 @router.get(
