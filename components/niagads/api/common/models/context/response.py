@@ -1,5 +1,6 @@
 from typing import Any, Optional
 
+from niagads.api.common.models.records.types import RecordT
 from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.api.common.types import (
     ResponseFormat,
@@ -15,7 +16,8 @@ class ResponseConfiguration(BaseModel, arbitrary_types_allowed=True):
     format: Optional[ResponseFormat] = ResponseFormat.JSON
     content: Optional[ResponseContent] = ResponseContent.FULL
     ui_component: Optional[ResponseUI] = ResponseUI.DEFAULT
-    model: type[BaseResponseModel]
+    record_model: RecordT
+    response_model: type[BaseResponseModel]
 
     @model_validator(mode="after")
     def validate_config(self, __context):

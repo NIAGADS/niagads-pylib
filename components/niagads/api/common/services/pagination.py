@@ -104,7 +104,7 @@ class PaginationService:
             (self._result_size + self._page_size - 1) // self._page_size,
         )
 
-    def slice_result(self, page: int = None) -> Range:
+    def page_range(self, page: int = None) -> Range:
         """Calculate slice boundaries for a page of an in-memory result.
 
         Args:

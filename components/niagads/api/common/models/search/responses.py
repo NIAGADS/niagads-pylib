@@ -14,19 +14,3 @@ class SearchMatchResponse(DataResponse):
         raise NotImplementedError(
             "TEXT formatted output not available for a search result response."
         )
-
-
-class RecordLookupResponse(CustomBaseModel, Generic[RecordT]):
-    """
-    Generic Response for bulk record retrieval
-    example usage:
-    @router.post(
-    "/genes/lookup",
-    response_model=RecordLookupResponse[Gene],
-    )
-    async def lookup_genes(...) -> RecordLookupResponse[Gene]:
-    ...
-
-    """
-
-    lookup: dict[str, list[RecordT] | None]
