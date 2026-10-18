@@ -29,10 +29,19 @@ class BaseEndpointService:
                 f"`{function_name}` not implemented for {self._orm_model.__name__}"
             )
 
-    async def _lookup_records(self, lookup_value: Any):
+    async def _fetch_record(self, filters: dict):
+        """try and fetch specific record. may occassionally return multiple
+        e.g., gene symbols"""
         self.__validate_orm_utility("fetch_record")
         return await self._orm_model.fetch_record(
-            self._context.database_session, lookup_value
+            self._context.database_session, filters, allow_multiple=True
+        )
+
+    async def _lookup_records(self, lookup_value: Any):
+        self.__validate_orm_utility("retrieve_records")
+        return await self._orm_model.retrieve_records(
+            self._context.database_session,
+            lookup_value,
         )
 
     async def _initialize_pagination_service(self, result_size):

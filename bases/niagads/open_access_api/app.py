@@ -3,6 +3,8 @@ from niagads.api.common.app.factory import AppFactory
 from niagads.api.common.app.types import AppMetadata
 from niagads.api.common.config import Settings
 from niagads.settings.core import get_service_environment
+from niagads.open_access_api.routes.records.gene import router as GeneRecordRouter
+import uvicorn
 
 metadata = AppMetadata(
     title="NIAGADS Open Access API",
@@ -23,3 +25,10 @@ metadata = AppMetadata(
 
 # generate the app
 app_factory = AppFactory(metadata=metadata, env=get_service_environment())
+app_factory.add_router(GeneRecordRouter)
+
+# get the application object
+app = app_factory.app
+
+if __name__ == "__main__":
+    uvicorn.run(app="app:app")

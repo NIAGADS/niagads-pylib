@@ -3,9 +3,14 @@
 from typing import Union
 
 from fastapi import APIRouter, Depends, Path, Query
+from niagads.api.common.models.context.request import Parameters
 from niagads.api.common.models.context.response import ResponseConfiguration
 from niagads.api.common.models.entities.gene.records import GeneBrief, Gene
-from niagads.api.common.models.responses.records import RecordMappingResponse
+from niagads.api.common.models.responses.records import (
+    RecordMappingResponse,
+    RecordResponse,
+)
+from niagads.api.common.parameters.response.pagination import page_param
 from niagads.api.common.parameters.response.response import (
     record_response_content_param,
     record_response_format_param,
@@ -67,10 +72,11 @@ async def query_gene_id(
     response_model=Union[RecordMappingResponse[Gene], RecordMappingResponse[GeneBrief]],
 )
 async def get_genes(
-    gene: str = Depends(query_gene_id),
+    genes: str = Depends(query_gene_id),
     context: OpenAccessEndpointContext = Depends(),
     format: ResponseFormat = Depends(record_response_format_param),
     content: ResponseContent = Depends(record_response_content_param),
+    page: int = Depends(page_param),
 ) -> RecordMappingResponse:
     """Return a gene record.
 
@@ -80,7 +86,7 @@ async def get_genes(
     record_model = GeneBrief if context == ResponseContent.SUMMARY else Gene
     service = GeneEndpointService(
         context=context,
-        parameters=None,
+        parameters=Parameters(genes=genes, page=page),
         response_config=ResponseConfiguration(
             format=format,
             content=content,
@@ -89,7 +95,7 @@ async def get_genes(
         ),
     )
 
-    result = await service.get_record_mappings([gene])
+    result = await service.get_record_mappings(genes)
     return await service.generate_response(result)
 
 
@@ -99,29 +105,33 @@ async def get_genes(
     description="Retrieve the canonical record for the specified gene.",
     response_description="Gene record.",
     operation_id="getGene",
-    response_model=GeneResponse,
+    response_model=RecordResponse,
 )
 async def get_gene(
-    gene: GenomicFeature = Depends(path_gene_id),
+    gene: str = Depends(path_gene_id),
     context: OpenAccessEndpointContext = Depends(),
     format: ResponseFormat = Depends(record_response_format_param),
     content: ResponseContent = Depends(record_response_content_param),
-) -> GeneResponse:
+) -> RecordResponse:
     """Return a gene record.
 
     Args:
         gene (GenomicFeature): Validated gene identifier.
     """
-
-    service = BaseEndpointService(
+    record_model = GeneBrief if context == ResponseContent.SUMMARY else Gene
+    service = GeneEndpointService(
         context=context,
-        parameters=None,
+        parameters=Parameters(gene=gene),
         response_config=ResponseConfiguration(
-            format=format, content=content, model=GeneResponse
+            format=format,
+            content=content,
+            response_model=RecordMappingResponse,
+            record_model=record_model,
         ),
     )
 
-    raise NotImplementedError(f"Gene record endpoint is not implemented: {gene}")
+    result = await service.fetch_record(gene)
+    return await service.generate_response(result, is_paged=True)
 
 
 @router.get(

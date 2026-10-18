@@ -7,7 +7,7 @@ from niagads.api.common.constants import MAX_NUM_PAGES
 async def page_param(
     page: int = Query(
         default=1,
-        description="specify which page of the response to return, if response is paginated",
+        description="One-based page number to return when the response is paginated.",
         gt=0,
         le=MAX_NUM_PAGES,
     )
@@ -18,7 +18,7 @@ async def page_param(
 async def limit_param(
     limit: Optional[int] = Query(
         default=None,
-        description="return as most `limit` number of records or search results",
+        description="Maximum number of records or search results to return for the request.",
         gt=0,
     )
 ) -> Optional[int]:
