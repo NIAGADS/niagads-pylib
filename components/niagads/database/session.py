@@ -17,9 +17,14 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.pool.base import PoolProxiedConnection
+from sqlalchemy_utils.expressions import row_to_json
 
 CONNECTION_POOL_SIZE = 10
 POOL_RECYCLE = 1800  # 30 minutes
+
+# Enable SQL compilation caching for sqlalchemy-utils' row_to_json;
+# its SQL depends only on arguments covered by GenericFunction's cache key.
+row_to_json.inherit_cache = True
 
 
 class DatabaseSessionManager:
