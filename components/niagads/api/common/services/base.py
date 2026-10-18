@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from niagads.api.common.models.context.request import Parameters
@@ -5,10 +6,11 @@ from niagads.api.common.models.context.response import ResponseConfiguration
 from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.api.common.parameters.internal import EndpointContext
 from niagads.api.common.services.pagination import PaginationService
+from niagads.common.core import ComponentBaseMixin
 from niagads.common.models.types import Range
 
 
-class BaseEndpointService:
+class BaseEndpointService(ComponentBaseMixin):
     _orm_model = None
 
     def __init__(
@@ -17,6 +19,9 @@ class BaseEndpointService:
         parameters: Parameters,
         response_config: ResponseConfiguration,
     ):
+        logger = logging.getLogger(f"uvicorn.error.{self.__class__.__module__}")
+        super().__init__(logger=logger)
+
         self._context: EndpointContext = context
         self._parameters: Parameters = parameters
         self._pagination_service: PaginationService = None
