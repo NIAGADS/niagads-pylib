@@ -69,7 +69,7 @@ class BaseEndpointService(ComponentBaseMixin):
 
         return response
 
-    async def generate_response(self, result: Any, from_cache: bool = True):
+    async def generate_response(self, result: Any, from_cache: bool = False):
         """Build a response model and cache it when it is newly generated.
 
         Args:
