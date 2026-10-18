@@ -18,7 +18,7 @@ from niagads.api.common.services.pagination import PaginationService
 # internal cache; stores responses as is
 _CACHE_MANAGER = CacheManager(
     connection_string=Settings.from_env().CACHE_DB_URI,
-    serializer=CacheSerializer.PICKLE,
+    serializer=CacheSerializer.JSON,
     ttl=Settings.from_env().CACHE_TTL,
 )
 

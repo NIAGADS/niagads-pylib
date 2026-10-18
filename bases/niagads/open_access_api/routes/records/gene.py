@@ -99,6 +99,7 @@ async def get_genes(
         result = await service.get_record_mappings(ids)
         response = await service.generate_response(result)
 
+    logger.debug(response)
     return response
 
 

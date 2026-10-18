@@ -108,7 +108,6 @@ class Gene(GeneBrief, GeneRecord, ORMCompatibleRecord):
         fields from the document's nomenclature and gene structure objects.
         """
         updated_data = GeneBrief.extract_nested_fields(data)
-
         gene_structure = updated_data.get("gene_structure")
         gene_structure.pop("location", None)
         gene_structure.pop("cytogenic_location", None)

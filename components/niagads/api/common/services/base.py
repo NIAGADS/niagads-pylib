@@ -116,9 +116,10 @@ class BaseEndpointService(ComponentBaseMixin):
                 data=paged_result,
             )
 
+            # JSON serializer need b/c of generics
             await self._context.cache_manager.set(
                 self._context.cache_key.encrypt(),
-                response,
+                response.model_dump(mode="json"),
                 namespace=self._context.cache_key.namespace,
             )
         return response

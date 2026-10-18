@@ -9,4 +9,4 @@ class RecordResponse(BaseResponseModel, Generic[RecordT]):
 
 
 class RecordMappingResponse(BaseResponseModel, Generic[RecordT]):
-    data: dict[str, RecordT]
+    data: dict[str, list[RecordT]]

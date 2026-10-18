@@ -24,4 +24,6 @@ class GeneEndpointService(BaseEndpointService):
         mappings = await self.get_record_mappings([gene_id])
         if not mappings[gene_id]:
             raise HTTPException(status_code=404, detail=f"Gene `{gene_id}` not found")
-        return [self._response_config.record_model(**v) for v in mappings.values()]
+        return [
+            self._response_config.record_model(**v) for v in mappings[gene_id].values()
+        ]
