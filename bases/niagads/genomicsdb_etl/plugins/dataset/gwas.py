@@ -8,7 +8,6 @@ Expected incoming fileds
 #chrom  position        variant_id      ref     alt     pval    OR      z_score effect_size     effect_size_se  non_ref_af      rsid    QC_flags        user_input
 """
 
-from collections import defaultdict
 from decimal import Decimal
 from typing import Any, Dict, Iterator, Optional
 
@@ -195,9 +194,6 @@ class GWASTrackLoader(
         super().__init__(params, name, log_path, debug, verbose)
         self._track_record: TrackRecord = None
         self._track_collection_pk: int = None
-        self._bin_index_reference: dict = defaultdict(
-            lambda: defaultdict(lambda: {"starts": [], "bins": []})
-        )
         self._current_chromosome: HumanGenome = None
         self._unannotated_variant_vcf_fh = None
         self._variant_pk_generator: PrimaryKeyGenerator = None

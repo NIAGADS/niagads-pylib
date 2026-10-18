@@ -1,82 +1,43 @@
-from bisect import bisect_right
-
+from niagads.common.core import ComponentBaseMixin
 from niagads.common.models.types import Range
-from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
-from sqlalchemy import func, select
+from niagads.database.genomicsdb.intervals import (
+    fetch_bin_index_reference,
+    find_bin_index,
+)
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy_utils import Ltree
 
 
-class BinIndexReferenceMixin:
-    """mixin allowing multi-task feature loading plugins (e.g., tracks) to
-    leverage the bin_index without introducing class inheritence conflicts.
+class BinIndexReferenceMixin(ComponentBaseMixin):
+    """Provide interval-bin lookups for feature-loading plugins.
 
-    Requires existence of `_bin_index_reference` class member:
-    ```python
-        self._bin_index_reference: dict = defaultdict(
-            lambda: defaultdict(lambda: {"starts": [], "bins": []})
-        )
-    ```
-
-    Suggest calling `_fetch_bin_index_mapping` during `on_run_start`
-
+    Call _fetch_bin_index_mapping during on_run_start before looking up bins.
     """
 
-    def __has_bin_index_reference(self):
-        """runtime error to ensure developers create the class member"""
-        if not hasattr(self, "_bin_index_reference"):
-            raise RuntimeError(
-                "Class member `self._bin_index_reference` not initialized.  See `BaseFeatureLoader` for example."
-            )
-
-    async def _fetch_bin_index_mapping(self, session):
-        """Load the interval-bin lookup table into memory.
+    async def _fetch_bin_index_mapping(self, session: AsyncSession) -> None:
+        """Load and retain the interval-bin reference for the current ETL run.
 
         Args:
-            session (AsyncSession): SQLAlchemy async session used to fetch interval-bin
-                records.
-
-        Raises:
-            RuntimeError: If the bin index reference has not been initialized.
+            session (AsyncSession): Database session used to fetch interval bins.
         """
-        self.__has_bin_index_reference()
         self.logger.info("Fetching Bin Index Reference Mapping")
+        self._bin_index_reference = await fetch_bin_index_reference(session)
 
-        stmt = select(IntervalBin).order_by(
-            IntervalBin.chromosome,
-            IntervalBin.bin_level.desc(),
-            func.lower(IntervalBin.span),
-        )
-
-        result = (await session.execute(stmt)).scalars().all()
-
-        bin: IntervalBin
-        for bin in result:
-            self._bin_index_reference[bin.chromosome][bin.bin_level]["starts"].append(
-                bin.span.start
-            )
-            self._bin_index_reference[bin.chromosome][bin.bin_level]["bins"].append(
-                (bin.span.end, bin.bin_index)
-            )
-
-    def _find_bin_index(self, chromosome, span: Range):
-        """Return the bin index that encloses the given genomic span.
+    def _find_bin_index(self, chromosome: str, span: Range) -> Ltree | None:
+        """Return the smallest enclosing bin from the loaded reference.
 
         Args:
-            chromosome (str): Chromosome key for the lookup table.
-            span (Range): Genomic range to map to the smallest enclosing bin.
+            chromosome (str): Chromosome key in the reference mapping.
+            span (Range): Genomic span whose start must be within a bin and whose
+                end must be strictly less than the bin's end coordinate.
 
         Returns:
-            int | None: The enclosing bin index, or None if no bin contains the span.
+            Ltree | None: Index of the smallest enclosing bin, or None if no bin
+                contains the span.
 
         Raises:
-            RuntimeError: If the bin index reference has not been initialized.
+            RuntimeError: If the bin index reference has not been loaded.
         """
-        self.__has_bin_index_reference()
-        for level in self._bin_index_reference[chromosome]:
-            starts = self._bin_index_reference[chromosome][level]["starts"]
-            bins = self._bin_index_reference[chromosome][level]["bins"]
-
-            split_index = bisect_right(starts, span.start) - 1
-            if split_index >= 0:
-                bin_end, bin_index = bins[split_index]
-                if span.end < bin_end:
-                    return bin_index
+        if not hasattr(self, "_bin_index_reference"):
+            raise RuntimeError("Bin index reference has not been loaded.")
+        return find_bin_index(self._bin_index_reference, chromosome, span)
