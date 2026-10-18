@@ -18,9 +18,11 @@ class VariantEndpointService(BaseEndpointService):
         """
         mappings: RecordRetrievalResult = await self._lookup_records(variant_ids)
         return {
-            identifier: self._response_config.record_model(**records[0])
-            for identifier, records in mappings.items()
-            if records
+            k: [
+                self._response_config.record_model(**mf) if mf else []
+                for mf in mapped_features
+            ]
+            for k, mapped_features in mappings.items()
         }
 
     async def fetch_record(self, variant_id: str) -> list:

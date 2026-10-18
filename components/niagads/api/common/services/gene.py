@@ -9,7 +9,14 @@ class GeneEndpointService(BaseEndpointService):
 
     async def get_record_mappings(self, gene_ids: list[str]):
         mappings: RecordRetrievalResult = await self._lookup_records(gene_ids)
-        return {k: self._response_config.record_model(**v) for k, v in mappings}
+        # self.logger.debug(mappings)
+        return {
+            k: [
+                self._response_config.record_model(**mf) if mf else []
+                for mf in mapped_features
+            ]
+            for k, mapped_features in mappings.items()
+        }
 
     async def fetch_record(self, gene_id: str):
         # using mappings instead of fetch_record b/c fetching record is based
