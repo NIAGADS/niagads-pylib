@@ -56,10 +56,10 @@ class BaseEndpointService(ComponentBaseMixin):
         self._pagination_service = PaginationService(result_size=result_size, page=page)
 
     async def get_cached_response(self):
-        """Return a cached page or generate one from the cached unpaged result.
+        """Check for and return a cached result
 
         Returns:
-            The requested response, or None when both cache lookups miss.
+            The requested response, or None
         """
         # check based on all paramaters
         cache_key = self._context.cache_key.encrypt()
@@ -67,59 +67,55 @@ class BaseEndpointService(ComponentBaseMixin):
             cache_key, namespace=self._context.cache_key.namespace
         )
 
-        if response is None:
-            # check based on key stripped of page to retrieve full result
-            cache_key = self._context.cache_key.encrypt_key(
-                self._context.cache_key.no_page()
-            )
-            response = await self._context.cache_manager.get(
-                cache_key, namespace=self._context.cache_key.namespace
-            )
-
         return response
 
-    async def generate_response(self, result: Any, *, is_cached: bool = False):
+    async def generate_response(self, result: Any, from_cache: bool = True):
         """Build a response model and cache it when it is newly generated.
 
         Args:
-            result: Result data, or an existing response when ``is_cached`` is true.
-            is_cached: Whether ``result`` is already a response model from the cache.
+            result: Result data, or an existing response when ``from_cache`` is true.
+            from_cache: Whether ``result`` is already a response model from the cache.
 
         Returns:
             The response model.
         """
-        response: type[BaseResponseModel] = result if is_cached else None
-        if response is None:
-            self._context.request_data.update_parameters(self._parameters)
 
-            response_model = self._response_config.response_model
-            if self._response_config.record_model:
-                response_model = response_model[self._response_config.record_model]
+        # NOTE: temporarily keeping from_cache b/c might need it for format and ui
 
-            result_size = len(result)
-            self._initialize_pagination_service(result_size)
-            if self._pagination_service.requires_pagination():
-                page_range: Range = self._pagination_service.page_range()
-                if isinstance(result, list):
-                    paged_result = result[page_range.start : page_range.end]
-                elif isinstance(result, dict):
-                    {
-                        k: result[k]
-                        for k in list(result.keys)[page_range.start : page_range.end]
-                    }
-            else:
-                paged_result = result
+        if from_cache:
+            return result
 
-            response = response_model(
-                request=self._context.request_data,
-                pagination=self._pagination_service.get_pagination_state(),
-                data=paged_result,
-            )
+        self._context.request_data.update_parameters(self._parameters)
 
-            # JSON serializer need b/c of generics
-            await self._context.cache_manager.set(
-                self._context.cache_key.encrypt(),
-                response.model_dump(mode="json"),
-                namespace=self._context.cache_key.namespace,
-            )
+        response_model = self._response_config.response_model
+        if self._response_config.record_model:
+            response_model = response_model[self._response_config.record_model]
+
+        result_size = len(result)
+        self._initialize_pagination_service(result_size)
+        if self._pagination_service.requires_pagination():
+            page_range: Range = self._pagination_service.page_range()
+            if isinstance(result, list):
+                paged_result = result[page_range.start : page_range.end]
+            elif isinstance(result, dict):
+                {
+                    k: result[k]
+                    for k in list(result.keys)[page_range.start : page_range.end]
+                }
+        else:
+            paged_result = result
+
+        response = response_model(
+            request=self._context.request_data,
+            pagination=self._pagination_service.get_pagination_state(),
+            data=paged_result,
+        )
+
+        # JSON serializer need b/c of generics
+        await self._context.cache_manager.set(
+            self._context.cache_key.encrypt(),
+            paged_result,
+            namespace=self._context.cache_key.namespace,
+        )
+
         return response
