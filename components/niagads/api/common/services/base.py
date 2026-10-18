@@ -81,41 +81,39 @@ class BaseEndpointService(ComponentBaseMixin):
         """
 
         # NOTE: temporarily keeping from_cache b/c might need it for format and ui
-
-        if from_cache:
-            return result
-
-        self._context.request_data.update_parameters(self._parameters)
-
         response_model = self._response_config.response_model
         if self._response_config.record_model:
             response_model = response_model[self._response_config.record_model]
 
-        result_size = len(result)
-        self._initialize_pagination_service(result_size)
-        if self._pagination_service.requires_pagination():
-            page_range: Range = self._pagination_service.page_range()
-            if isinstance(result, list):
-                paged_result = result[page_range.start : page_range.end]
-            elif isinstance(result, dict):
-                {
-                    k: result[k]
-                    for k in list(result.keys)[page_range.start : page_range.end]
-                }
+        if from_cache:  # use cached data & pagination state
+            paged_result = result["data"]
+            pagination_state = result["pagination"]
         else:
-            paged_result = result
+            self._context.request_data.update_parameters(self._parameters)
+            self._initialize_pagination_service(len(result))
 
-        response = response_model(
-            request=self._context.request_data,
-            pagination=self._pagination_service.get_pagination_state(),
-            data=paged_result,
-        )
+            if self._pagination_service.requires_pagination():
+                page_range: Range = self._pagination_service.page_range()
+                if isinstance(result, list):
+                    paged_result = result[page_range.start : page_range.end]
+                elif isinstance(result, dict):
+                    paged_result = {
+                        k: result[k]
+                        for k in list(result.keys())[page_range.start : page_range.end]
+                    }
+            else:
+                paged_result = result
 
-        # JSON serializer need b/c of generics
+            pagination_state = self._pagination_service.get_pagination_state()
+
         await self._context.cache_manager.set(
             self._context.cache_key.encrypt(),
-            paged_result,
+            {"data": paged_result, "pagination": pagination_state},
             namespace=self._context.cache_key.namespace,
         )
 
-        return response
+        return response_model(
+            request=self._context.request_data,
+            pagination=pagination_state,
+            data=paged_result,
+        )

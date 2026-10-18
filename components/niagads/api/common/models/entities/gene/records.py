@@ -100,11 +100,15 @@ class GeneBrief(GeneDescriptor, ORMCompatibleRecord):
 
 
 class Gene(GeneBrief, GeneRecord, ORMCompatibleRecord):
-    nomenclature: Optional[Dict[str, Any]] = Field(exclude=True)
-    gene_structure: Optional[Dict[str, Any]] = Field(exclude=True)
     synonyms: Optional[List[str]] = Field(
         default=None, title="Aliases", description="gene symbol synonyms or aliases"
     )
+
+    # Overrides from GeneRecord Parent
+    # have to set these overriden fields to default None or else result
+    # retrieved from Cache will fail
+    nomenclature: Optional[Dict[str, Any]] = Field(default=None, exclude=True)
+    gene_structure: Optional[Dict[str, Any]] = Field(default=None, exclude=True)
 
     @model_validator(mode="before")
     def extract_nested_fields(cls, data: Union[dict, Any]):
