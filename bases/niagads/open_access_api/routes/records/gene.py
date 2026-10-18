@@ -17,7 +17,6 @@ from niagads.api.common.parameters.response.response import (
     response_format_param,
 )
 from niagads.api.common.parameters.validators import parse_comma_separated_list
-from niagads.api.common.services.base import BaseEndpointService
 from niagads.api.common.services.gene import GeneEndpointService
 from niagads.api.common.types import ResponseContent, ResponseFormat
 from niagads.api.common.utils import sanitize
@@ -44,7 +43,7 @@ async def path_gene_id(
 
 
 async def query_gene_id(
-    gene: list[str] = Query(
+    ids: str = Query(
         title="Gene identifiers",
         description="A list of one or more gene record identifier: Ensembl ID or official gene symbol",
         examples=["ENSG00000139618", "APOE"],
@@ -54,7 +53,7 @@ async def query_gene_id(
         GenomicFeature(
             feature_id=sanitize(g), feature_type=GenomicFeatureType.GENE
         ).feature_id
-        for g in parse_comma_separated_list(gene)
+        for g in parse_comma_separated_list(ids)
     ]
 
 
@@ -72,7 +71,7 @@ async def query_gene_id(
     response_model=Union[RecordMappingResponse[Gene], RecordMappingResponse[GeneBrief]],
 )
 async def get_genes(
-    genes: str = Depends(query_gene_id),
+    ids: str = Depends(query_gene_id),
     context: OpenAccessEndpointContext = Depends(),
     format: ResponseFormat = Depends(record_response_format_param),
     content: ResponseContent = Depends(record_response_content_param),
@@ -86,7 +85,7 @@ async def get_genes(
     record_model = GeneBrief if context == ResponseContent.SUMMARY else Gene
     service = GeneEndpointService(
         context=context,
-        parameters=Parameters(genes=genes, page=page),
+        parameters=Parameters(genes=ids, page=page),
         response_config=ResponseConfiguration(
             format=format,
             content=content,
@@ -95,7 +94,7 @@ async def get_genes(
         ),
     )
 
-    result = await service.get_record_mappings(genes)
+    result = await service.get_record_mappings(ids)
     return await service.generate_response(result)
 
 
