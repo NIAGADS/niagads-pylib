@@ -1,10 +1,22 @@
 from typing import Annotated
 
 from aiohttp import ClientSession
-from fastapi import Depends
+from fastapi import Depends, Request
 from niagads.api.common.config import Settings
 from niagads.api.common.parameters.internal import EndpointContext
 from niagads.requests.core import HttpClientSessionManager
+
+
+async def get_bin_index_reference(request: Request) -> dict:
+    """Retrieve the shared interval-bin reference from application state.
+
+    Args:
+        request (Request): Request associated with the initialized application.
+
+    Returns:
+        dict: Reference mapping loaded during application startup.
+    """
+    return request.app.state.bin_index_reference
 
 
 async def get_http_client_sessions() -> dict[str, ClientSession]:
