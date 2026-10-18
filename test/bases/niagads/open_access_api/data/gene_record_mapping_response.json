@@ -1,0 +1,6716 @@
+{
+	"pagination": {
+		"page": 1,
+		"total_pages": 1,
+		"paged_records": 2,
+		"total_records": 2
+	},
+	"request": {
+		"request_id": "d46201618d2f4109b909bfd054d0aa66",
+		"endpoint": "/record/gene/",
+		"parameters": {
+			"ids": "APOE,BRCA1",
+			"genes": ["APOE", "BRCA1"],
+			"page": 1
+		}
+	},
+	"data": {
+		"APOE": [
+			{
+				"id": "ENSG00000130203",
+				"gene_symbol": "APOE",
+				"location": "chr19:44903787-44909396",
+				"gene_type": "protein_coding",
+				"gene_structure": {
+					"transcripts": [
+						{
+							"id": "ENST00000864817",
+							"name": "APOE-206",
+							"exons": [
+								{
+									"id": "ENSE00004305254",
+									"rank": 1,
+									"location": "chr19:44903787-44903934"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 4,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44903787-44909392",
+							"proteins": [
+								"ENSP00000534877",
+								"ENSP00000534877",
+								"ENSP00000534877"
+							]
+						},
+						{
+							"id": "ENST00000864820",
+							"name": "APOE-207",
+							"exons": [
+								{
+									"id": "ENSE00004305252",
+									"rank": 1,
+									"location": "chr19:44905421-44905499"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 4,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44905421-44909392",
+							"proteins": [
+								"ENSP00000534879",
+								"ENSP00000534879",
+								"ENSP00000534879"
+							]
+						},
+						{
+							"id": "ENST00000864822",
+							"name": "APOE-208",
+							"exons": [
+								{
+									"id": "ENSE00004305265",
+									"rank": 1,
+									"location": "chr19:44905471-44905841"
+								},
+								{
+									"id": "ENSE00004305268",
+									"rank": 2,
+									"location": "chr19:44906141-44906262"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 3,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 4,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 5,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44905471-44909392",
+							"proteins": [
+								"ENSP00000534881",
+								"ENSP00000534881",
+								"ENSP00000534881"
+							]
+						},
+						{
+							"id": "ENST00000446996",
+							"name": "APOE-204",
+							"exons": [
+								{
+									"id": "ENSE00001768924",
+									"rank": 1,
+									"location": "chr19:44905791-44905841"
+								},
+								{
+									"id": "ENSE00001667751",
+									"rank": 2,
+									"location": "chr19:44906587-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00001664168",
+									"rank": 4,
+									"location": "chr19:44908533-44908944"
+								}
+							],
+							"location": "chr19:44905791-44908944",
+							"proteins": [
+								"ENSP00000413135",
+								"ENSP00000413135",
+								"ENSP00000413135"
+							]
+						},
+						{
+							"id": "ENST00000864826",
+							"name": "APOE-210",
+							"exons": [
+								{
+									"id": "ENSE00004305249",
+									"rank": 1,
+									"location": "chr19:44905791-44905814"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305272",
+									"rank": 4,
+									"location": "chr19:44908533-44909391"
+								}
+							],
+							"location": "chr19:44905791-44909391",
+							"proteins": [
+								"ENSP00000534885",
+								"ENSP00000534885",
+								"ENSP00000534885"
+							]
+						},
+						{
+							"id": "ENST00000864824",
+							"name": "APOE-209",
+							"exons": [
+								{
+									"id": "ENSE00001768924",
+									"rank": 1,
+									"location": "chr19:44905791-44905841"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00004305280",
+									"rank": 3,
+									"location": "chr19:44907760-44907935"
+								},
+								{
+									"id": "ENSE00004305273",
+									"rank": 4,
+									"location": "chr19:44908975-44909395"
+								}
+							],
+							"location": "chr19:44905791-44909395",
+							"proteins": [
+								"ENSP00000534883",
+								"ENSP00000534883",
+								"ENSP00000534883"
+							]
+						},
+						{
+							"id": "ENST00000864828",
+							"name": "APOE-211",
+							"exons": [
+								{
+									"id": "ENSE00004305260",
+									"rank": 1,
+									"location": "chr19:44905793-44905923"
+								},
+								{
+									"id": "ENSE00001667751",
+									"rank": 2,
+									"location": "chr19:44906587-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00000893954",
+									"rank": 4,
+									"location": "chr19:44908533-44909393"
+								}
+							],
+							"location": "chr19:44905793-44909393",
+							"proteins": [
+								"ENSP00000534887",
+								"ENSP00000534887",
+								"ENSP00000534887"
+							]
+						},
+						{
+							"id": "ENST00000485628",
+							"name": "APOE-205",
+							"exons": [
+								{
+									"id": "ENSE00001048576",
+									"rank": 1,
+									"location": "chr19:44905796-44905841"
+								},
+								{
+									"id": "ENSE00001943579",
+									"rank": 2,
+									"location": "chr19:44906602-44907326"
+								}
+							],
+							"location": "chr19:44905796-44907326"
+						},
+						{
+							"id": "ENST00000864832",
+							"name": "APOE-215",
+							"exons": [
+								{
+									"id": "ENSE00001048576",
+									"rank": 1,
+									"location": "chr19:44905796-44905841"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00004305264",
+									"rank": 3,
+									"location": "chr19:44907068-44907118"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 4,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 5,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44905796-44909392",
+							"proteins": [
+								"ENSP00000534891",
+								"ENSP00000534891",
+								"ENSP00000534891",
+								"ENSP00000534891"
+							]
+						},
+						{
+							"id": "ENST00000864831",
+							"name": "APOE-214",
+							"exons": [
+								{
+									"id": "ENSE00001048576",
+									"rank": 1,
+									"location": "chr19:44905796-44905841"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00004305255",
+									"rank": 3,
+									"location": "chr19:44907065-44907118"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 4,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 5,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44905796-44909392",
+							"proteins": [
+								"ENSP00000534890",
+								"ENSP00000534890",
+								"ENSP00000534890",
+								"ENSP00000534890"
+							]
+						},
+						{
+							"id": "ENST00000864833",
+							"name": "APOE-216",
+							"exons": [
+								{
+									"id": "ENSE00001048576",
+									"rank": 1,
+									"location": "chr19:44905796-44905841"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00004305279",
+									"rank": 3,
+									"location": "chr19:44908832-44909392"
+								}
+							],
+							"location": "chr19:44905796-44909392",
+							"proteins": ["ENSP00000534892", "ENSP00000534892"]
+						},
+						{
+							"id": "ENST00000864834",
+							"name": "APOE-217",
+							"exons": [
+								{
+									"id": "ENSE00001048576",
+									"rank": 1,
+									"location": "chr19:44905796-44905841"
+								},
+								{
+									"id": "ENSE00004305256",
+									"rank": 2,
+									"location": "chr19:44906617-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 4,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44905796-44909392",
+							"proteins": [
+								"ENSP00000534893",
+								"ENSP00000534893",
+								"ENSP00000534893"
+							]
+						},
+						{
+							"id": "ENST00000864830",
+							"name": "APOE-213",
+							"exons": [
+								{
+									"id": "ENSE00001048576",
+									"rank": 1,
+									"location": "chr19:44905796-44905841"
+								},
+								{
+									"id": "ENSE00001667751",
+									"rank": 2,
+									"location": "chr19:44906587-44906667"
+								},
+								{
+									"id": "ENSE00004305280",
+									"rank": 3,
+									"location": "chr19:44907760-44907935"
+								},
+								{
+									"id": "ENSE00004305284",
+									"rank": 4,
+									"location": "chr19:44908975-44909392"
+								}
+							],
+							"location": "chr19:44905796-44909392",
+							"proteins": [
+								"ENSP00000534889",
+								"ENSP00000534889",
+								"ENSP00000534889"
+							]
+						},
+						{
+							"id": "ENST00000252486",
+							"name": "APOE-201",
+							"exons": [
+								{
+									"id": "ENSE00001048576",
+									"rank": 1,
+									"location": "chr19:44905796-44905841"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00000893954",
+									"rank": 4,
+									"location": "chr19:44908533-44909393"
+								}
+							],
+							"location": "chr19:44905796-44909393",
+							"proteins": [
+								"ENSP00000252486",
+								"ENSP00000252486",
+								"ENSP00000252486"
+							],
+							"is_canonical": true
+						},
+						{
+							"id": "ENST00000864835",
+							"name": "APOE-218",
+							"exons": [
+								{
+									"id": "ENSE00004305274",
+									"rank": 1,
+									"location": "chr19:44905797-44905841"
+								},
+								{
+									"id": "ENSE00004305281",
+									"rank": 2,
+									"location": "chr19:44906141-44906257"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 3,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 4,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 5,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44905797-44909392",
+							"proteins": [
+								"ENSP00000534894",
+								"ENSP00000534894",
+								"ENSP00000534894"
+							]
+						},
+						{
+							"id": "ENST00000864829",
+							"name": "APOE-212",
+							"exons": [
+								{
+									"id": "ENSE00004305270",
+									"rank": 1,
+									"location": "chr19:44905798-44905841"
+								},
+								{
+									"id": "ENSE00004305259",
+									"rank": 2,
+									"location": "chr19:44906621-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305275",
+									"rank": 4,
+									"location": "chr19:44908533-44909395"
+								}
+							],
+							"location": "chr19:44905798-44909395",
+							"proteins": [
+								"ENSP00000534888",
+								"ENSP00000534888",
+								"ENSP00000534888"
+							]
+						},
+						{
+							"id": "ENST00000434152",
+							"name": "APOE-203",
+							"exons": [
+								{
+									"id": "ENSE00001601606",
+									"rank": 1,
+									"location": "chr19:44905812-44905923"
+								},
+								{
+									"id": "ENSE00003463686",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00001700162",
+									"rank": 4,
+									"location": "chr19:44908533-44909025"
+								}
+							],
+							"location": "chr19:44905812-44909025",
+							"proteins": [
+								"ENSP00000413653",
+								"ENSP00000413653",
+								"ENSP00000413653",
+								"ENSP00000413653"
+							]
+						},
+						{
+							"id": "ENST00000864836",
+							"name": "APOE-219",
+							"exons": [
+								{
+									"id": "ENSE00004305282",
+									"rank": 1,
+									"location": "chr19:44905844-44906044"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305275",
+									"rank": 4,
+									"location": "chr19:44908533-44909395"
+								}
+							],
+							"location": "chr19:44905844-44909395",
+							"proteins": [
+								"ENSP00000534895",
+								"ENSP00000534895",
+								"ENSP00000534895"
+							]
+						},
+						{
+							"id": "ENST00000864838",
+							"name": "APOE-221",
+							"exons": [
+								{
+									"id": "ENSE00004305253",
+									"rank": 1,
+									"location": "chr19:44905913-44905975"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00000893954",
+									"rank": 4,
+									"location": "chr19:44908533-44909393"
+								}
+							],
+							"location": "chr19:44905913-44909393",
+							"proteins": [
+								"ENSP00000534897",
+								"ENSP00000534897",
+								"ENSP00000534897"
+							]
+						},
+						{
+							"id": "ENST00000864840",
+							"name": "APOE-223",
+							"exons": [
+								{
+									"id": "ENSE00004305251",
+									"rank": 1,
+									"location": "chr19:44905915-44905947"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 4,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44905915-44909392",
+							"proteins": [
+								"ENSP00000534899",
+								"ENSP00000534899",
+								"ENSP00000534899"
+							]
+						},
+						{
+							"id": "ENST00000864839",
+							"name": "APOE-222",
+							"exons": [
+								{
+									"id": "ENSE00004305277",
+									"rank": 1,
+									"location": "chr19:44905915-44906044"
+								},
+								{
+									"id": "ENSE00001667751",
+									"rank": 2,
+									"location": "chr19:44906587-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305257",
+									"rank": 4,
+									"location": "chr19:44908533-44909394"
+								}
+							],
+							"location": "chr19:44905915-44909394",
+							"proteins": [
+								"ENSP00000534898",
+								"ENSP00000534898",
+								"ENSP00000534898"
+							]
+						},
+						{
+							"id": "ENST00000864837",
+							"name": "APOE-220",
+							"exons": [
+								{
+									"id": "ENSE00004305267",
+									"rank": 1,
+									"location": "chr19:44905915-44906074"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305262",
+									"rank": 4,
+									"location": "chr19:44908533-44909396"
+								}
+							],
+							"location": "chr19:44905915-44909396",
+							"proteins": [
+								"ENSP00000534896",
+								"ENSP00000534896",
+								"ENSP00000534896"
+							]
+						},
+						{
+							"id": "ENST00000864841",
+							"name": "APOE-224",
+							"exons": [
+								{
+									"id": "ENSE00004305283",
+									"rank": 1,
+									"location": "chr19:44906021-44906262"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305275",
+									"rank": 4,
+									"location": "chr19:44908533-44909395"
+								}
+							],
+							"location": "chr19:44906021-44909395",
+							"proteins": [
+								"ENSP00000534900",
+								"ENSP00000534900",
+								"ENSP00000534900"
+							]
+						},
+						{
+							"id": "ENST00000864842",
+							"name": "APOE-225",
+							"exons": [
+								{
+									"id": "ENSE00004305271",
+									"rank": 1,
+									"location": "chr19:44906047-44906257"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 4,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44906047-44909392",
+							"proteins": [
+								"ENSP00000534901",
+								"ENSP00000534901",
+								"ENSP00000534901"
+							]
+						},
+						{
+							"id": "ENST00000864843",
+							"name": "APOE-226",
+							"exons": [
+								{
+									"id": "ENSE00004305266",
+									"rank": 1,
+									"location": "chr19:44906052-44906184"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00000893954",
+									"rank": 4,
+									"location": "chr19:44908533-44909393"
+								}
+							],
+							"location": "chr19:44906052-44909393",
+							"proteins": [
+								"ENSP00000534902",
+								"ENSP00000534902",
+								"ENSP00000534902"
+							]
+						},
+						{
+							"id": "ENST00000864844",
+							"name": "APOE-227",
+							"exons": [
+								{
+									"id": "ENSE00004305247",
+									"rank": 1,
+									"location": "chr19:44906102-44906262"
+								},
+								{
+									"id": "ENSE00001667751",
+									"rank": 2,
+									"location": "chr19:44906587-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 4,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44906102-44909392",
+							"proteins": [
+								"ENSP00000534903",
+								"ENSP00000534903",
+								"ENSP00000534903"
+							]
+						},
+						{
+							"id": "ENST00000864845",
+							"name": "APOE-228",
+							"exons": [
+								{
+									"id": "ENSE00004305278",
+									"rank": 1,
+									"location": "chr19:44906287-44906326"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 4,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44906287-44909392",
+							"proteins": [
+								"ENSP00000534904",
+								"ENSP00000534904",
+								"ENSP00000534904"
+							]
+						},
+						{
+							"id": "ENST00000864846",
+							"name": "APOE-229",
+							"exons": [
+								{
+									"id": "ENSE00004305250",
+									"rank": 1,
+									"location": "chr19:44906340-44906431"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 4,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44906340-44909392",
+							"proteins": [
+								"ENSP00000534905",
+								"ENSP00000534905",
+								"ENSP00000534905"
+							]
+						},
+						{
+							"id": "ENST00000425718",
+							"name": "APOE-202",
+							"exons": [
+								{
+									"id": "ENSE00001620702",
+									"rank": 1,
+									"location": "chr19:44906360-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 2,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00001599675",
+									"rank": 3,
+									"location": "chr19:44908533-44908954"
+								}
+							],
+							"location": "chr19:44906360-44908954",
+							"proteins": [
+								"ENSP00000410423",
+								"ENSP00000410423",
+								"ENSP00000410423"
+							]
+						},
+						{
+							"id": "ENST00000864847",
+							"name": "APOE-230",
+							"exons": [
+								{
+									"id": "ENSE00004305263",
+									"rank": 1,
+									"location": "chr19:44906362-44906462"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305272",
+									"rank": 4,
+									"location": "chr19:44908533-44909391"
+								}
+							],
+							"location": "chr19:44906362-44909391",
+							"proteins": [
+								"ENSP00000534906",
+								"ENSP00000534906",
+								"ENSP00000534906"
+							]
+						},
+						{
+							"id": "ENST00000864848",
+							"name": "APOE-231",
+							"exons": [
+								{
+									"id": "ENSE00004305276",
+									"rank": 1,
+									"location": "chr19:44906376-44906524"
+								},
+								{
+									"id": "ENSE00003577086",
+									"rank": 2,
+									"location": "chr19:44906602-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 4,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44906376-44909392",
+							"proteins": [
+								"ENSP00000534907",
+								"ENSP00000534907",
+								"ENSP00000534907"
+							]
+						},
+						{
+							"id": "ENST00000864849",
+							"name": "APOE-232",
+							"exons": [
+								{
+									"id": "ENSE00004305261",
+									"rank": 1,
+									"location": "chr19:44906439-44906524"
+								},
+								{
+									"id": "ENSE00001667751",
+									"rank": 2,
+									"location": "chr19:44906587-44906667"
+								},
+								{
+									"id": "ENSE00000893952",
+									"rank": 3,
+									"location": "chr19:44907760-44907952"
+								},
+								{
+									"id": "ENSE00004305269",
+									"rank": 4,
+									"location": "chr19:44908533-44909392"
+								}
+							],
+							"location": "chr19:44906439-44909392",
+							"proteins": [
+								"ENSP00000534908",
+								"ENSP00000534908",
+								"ENSP00000534908"
+							]
+						}
+					]
+				},
+				"xrefs": {
+					"hgnc_id": "HGNC:613",
+					"ucsc_id": "uc002pab.4",
+					"vega_id": "OTTHUMG00000128901",
+					"entrez_id": "348",
+					"uniprot_id": "P02649",
+					"ensembl_gene_id": "ENSG00000130203",
+					"refseq_accession": "NM_000041"
+				},
+				"publications": ["10662539"],
+				"memberships": {
+					"pathways": [
+						{
+							"pathway_id": "hsa04979",
+							"data_source": "KEGG",
+							"pathway_name": "Cholesterol metabolism"
+						},
+						{
+							"pathway_id": "hsa05010",
+							"data_source": "KEGG",
+							"pathway_name": "Alzheimer disease"
+						},
+						{
+							"pathway_id": "R-HSA-381426",
+							"data_source": "Reactome",
+							"pathway_name": "Regulation of Insulin-like Growth Factor (IGF) transport and uptake by Insulin-like Growth Factor Binding Proteins (IGFBPs)"
+						},
+						{
+							"pathway_id": "R-HSA-8957275",
+							"data_source": "Reactome",
+							"pathway_name": "Post-translational protein phosphorylation"
+						},
+						{
+							"pathway_id": "R-HSA-9029569",
+							"data_source": "Reactome",
+							"pathway_name": "NR1H3 & NR1H2 regulate gene expression linked to cholesterol transport and efflux"
+						},
+						{
+							"pathway_id": "R-HSA-977225",
+							"data_source": "Reactome",
+							"pathway_name": "Amyloid fiber formation"
+						},
+						{
+							"pathway_id": "R-HSA-3000480",
+							"data_source": "Reactome",
+							"pathway_name": "Scavenging by Class A Receptors"
+						},
+						{
+							"pathway_id": "R-HSA-975634",
+							"data_source": "Reactome",
+							"pathway_name": "Retinoid metabolism and transport"
+						},
+						{
+							"pathway_id": "R-HSA-1251985",
+							"data_source": "Reactome",
+							"pathway_name": "Nuclear signaling by ERBB4"
+						},
+						{
+							"pathway_id": "R-HSA-8963888",
+							"data_source": "Reactome",
+							"pathway_name": "Chylomicron assembly"
+						},
+						{
+							"pathway_id": "R-HSA-8963901",
+							"data_source": "Reactome",
+							"pathway_name": "Chylomicron remodeling"
+						},
+						{
+							"pathway_id": "R-HSA-8964026",
+							"data_source": "Reactome",
+							"pathway_name": "Chylomicron clearance"
+						},
+						{
+							"pathway_id": "R-HSA-8964058",
+							"data_source": "Reactome",
+							"pathway_name": "HDL remodeling"
+						},
+						{
+							"pathway_id": "R-HSA-8864260",
+							"data_source": "Reactome",
+							"pathway_name": "Transcriptional regulation by the AP-2 (TFAP2) family of transcription factors"
+						}
+					],
+					"curated_lists": [
+						{
+							"rank": 1,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a known AD GWAS locus(ADSP GVC): sufficient_evidence_of_association",
+							"qualifier": {
+								"tier": 1,
+								"study": "Jansen 2019",
+								"phenotypes": ["Alzheimer Disease", "Dementia"],
+								"population": ["European"],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "APOE",
+								"tier_description": "sufficient_evidence_of_association",
+								"curation_classification": "Phase 2, SV"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 1,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a known AD GWAS locus(ADSP GVC): sufficient_evidence_of_association",
+							"qualifier": {
+								"tier": 1,
+								"study": "Wightman 2021",
+								"phenotypes": ["Alzheimer Disease", "Dementia"],
+								"population": ["European"],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "APOE",
+								"tier_description": "sufficient_evidence_of_association",
+								"curation_classification": "Phase 2, SV"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 1,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a known AD GWAS locus(ADSP GVC): sufficient_evidence_of_association",
+							"qualifier": {
+								"tier": 1,
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "APOE",
+								"tier_description": "sufficient_evidence_of_association",
+								"curation_classification": "Phase 1"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 1,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a known AD GWAS locus(ADSP GVC): sufficient_evidence_of_association",
+							"qualifier": {
+								"tier": 1,
+								"study": "Tosto 2015",
+								"phenotypes": ["Alzheimer Disease"],
+								"population": [
+									"European",
+									"African",
+									"Hispanic/Latino"
+								],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "TOMM40–APOEregion",
+								"tier_description": "sufficient_evidence_of_association",
+								"curation_classification": "Phase 2, SV"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 2,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a known AD GWAS locus(ADSP GVC): sufficient_evidence_with_missing_or_suboptimal_information",
+							"qualifier": {
+								"tier": 2,
+								"study": "Nazarian 2019",
+								"phenotypes": ["Alzheimer Disease"],
+								"population": ["European"],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "APOC1",
+								"tier_description": "sufficient_evidence_with_missing_or_suboptimal_information",
+								"curation_classification": "Phase 2, VS"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 2,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a known AD GWAS locus(ADSP GVC): sufficient_evidence_with_missing_or_suboptimal_information",
+							"qualifier": {
+								"tier": 2,
+								"study": "Nazarian 2019",
+								"phenotypes": ["Alzheimer Disease"],
+								"population": ["European"],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "APOC1P1",
+								"tier_description": "sufficient_evidence_with_missing_or_suboptimal_information",
+								"curation_classification": "Phase 2, VS"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 2,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a known AD GWAS locus(ADSP GVC): sufficient_evidence_with_missing_or_suboptimal_information",
+							"qualifier": {
+								"tier": 2,
+								"study": "Nazarian 2019",
+								"phenotypes": ["Alzheimer Disease"],
+								"population": ["European"],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "APOC2",
+								"tier_description": "sufficient_evidence_with_missing_or_suboptimal_information",
+								"curation_classification": "Phase 2, VS"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 2,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a known AD GWAS locus(ADSP GVC): sufficient_evidence_with_missing_or_suboptimal_information",
+							"qualifier": {
+								"tier": 2,
+								"study": "Nazarian 2019",
+								"phenotypes": ["Alzheimer Disease"],
+								"population": ["European"],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "APOC4",
+								"tier_description": "sufficient_evidence_with_missing_or_suboptimal_information",
+								"curation_classification": "Phase 2, VS"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 2,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a known AD GWAS locus(ADSP GVC): sufficient_evidence_with_missing_or_suboptimal_information",
+							"qualifier": {
+								"tier": 2,
+								"study": "Kunkle 2021",
+								"phenotypes": ["Alzheimer Disease"],
+								"population": ["African"],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "APOE",
+								"tier_description": "sufficient_evidence_with_missing_or_suboptimal_information",
+								"curation_classification": "Phase 2, SV"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 2,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a known AD GWAS locus(ADSP GVC): sufficient_evidence_with_missing_or_suboptimal_information",
+							"qualifier": {
+								"tier": 2,
+								"study": "Nazarian 2019",
+								"phenotypes": ["Alzheimer Disease"],
+								"population": ["European"],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "APOE",
+								"tier_description": "sufficient_evidence_with_missing_or_suboptimal_information",
+								"curation_classification": "Phase 2, VS"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 2,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a known AD GWAS locus(ADSP GVC): sufficient_evidence_with_missing_or_suboptimal_information",
+							"qualifier": {
+								"tier": 2,
+								"study": "Nazarian 2019",
+								"phenotypes": ["Alzheimer Disease"],
+								"population": ["European"],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "TOMM40",
+								"tier_description": "sufficient_evidence_with_missing_or_suboptimal_information",
+								"curation_classification": "Phase 2, VS"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 3,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a potential AD-associated Locus (ADSP GVC): suggestive_evidence_of_association",
+							"qualifier": {
+								"tier": 3,
+								"study": "He 2021 PMID: 34767756",
+								"phenotypes": ["Dementia"],
+								"population": ["European"],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "APOE",
+								"tier_description": "suggestive_evidence_of_association",
+								"curation_classification": "Phase 2, SV"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						},
+						{
+							"rank": 7,
+							"listing": "ADSP GVC TopGenes",
+							"assertion": "Gene associated with a potential AD-associated Locus (ADSP GVC): insufficient_evidence_of_association",
+							"qualifier": {
+								"tier": 7,
+								"study": "Schwartzentruber 2021",
+								"phenotypes": ["Alzheimer Disease", "Dementia"],
+								"population": ["European"],
+								"grouped_locus": "APOE, TOMM40",
+								"reported_locus": "APOE",
+								"tier_description": "insufficient_evidence_of_association",
+								"curation_classification": "Phase 2, SV"
+							},
+							"evidence_code": {
+								"term": "curator inference from journal publication used in manual assertion",
+								"curie": "ECO:0007758"
+							}
+						}
+					],
+					"gene_families": {
+						"HGNC": ["Apolipoproteins"]
+					}
+				},
+				"functional_annotation": {
+					"biological_process": [
+						{
+							"term": "phospholipid efflux",
+							"term_id": "GO:0033700",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "cholesterol metabolic process",
+							"term_id": "GO:0008203",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "cholesterol efflux",
+							"term_id": "GO:0033344",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "acylglycerol homeostasis",
+							"term_id": "GO:0055090",
+							"evidence": ["IBA"]
+						}
+					],
+					"cellular_component": [
+						{
+							"term": "low-density lipoprotein particle",
+							"term_id": "GO:0034362",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "high-density lipoprotein particle",
+							"term_id": "GO:0034364",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "extracellular vesicle",
+							"term_id": "GO:1903561",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "chylomicron",
+							"term_id": "GO:0042627",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "very-low-density lipoprotein particle",
+							"term_id": "GO:0034361",
+							"evidence": ["IBA"]
+						}
+					],
+					"molecular_function": [
+						{
+							"term": "phospholipid binding",
+							"term_id": "GO:0005543",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "phosphatidylcholine-sterol O-acyltransferase activator activity",
+							"term_id": "GO:0060228",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "cholesterol transfer activity",
+							"term_id": "GO:0120020",
+							"evidence": ["IBA"]
+						}
+					]
+				},
+				"associated_with_known_ad_locus": true,
+				"gene_name": "apolipoprotein E",
+				"cytogenic_location": "19q13.32"
+			}
+		],
+		"BRCA1": [
+			{
+				"id": "ENSG00000012048",
+				"gene_symbol": "BRCA1",
+				"location": "chr17:43044292-43170245:-",
+				"gene_type": "protein_coding",
+				"gene_structure": {
+					"transcripts": [
+						{
+							"id": "ENST00000921914",
+							"name": "BRCA1-243",
+							"exons": [
+								{
+									"id": "ENSE00004394011",
+									"rank": 1,
+									"location": "chr17:43125271-43125476:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 10,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00001516235",
+									"rank": 13,
+									"location": "chr17:43076488-43076611:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004394010",
+									"rank": 23,
+									"location": "chr17:43044292-43045802:-"
+								}
+							],
+							"location": "chr17:43044292-43125476:-",
+							"proteins": [
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973",
+								"ENSP00000591973"
+							]
+						},
+						{
+							"id": "ENST00000497488",
+							"name": "BRCA1-222",
+							"exons": [
+								{
+									"id": "ENSE00001867485",
+									"rank": 1,
+									"location": "chr17:43125271-43125300:-"
+								},
+								{
+									"id": "ENSE00003786858",
+									"rank": 2,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 3,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 4,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 5,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 6,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 7,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 8,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 9,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 10,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 11,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 12,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 13,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 14,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 15,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125300:-",
+							"proteins": [
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986",
+								"ENSP00000418986"
+							]
+						},
+						{
+							"id": "ENST00000489037",
+							"name": "BRCA1-216",
+							"exons": [
+								{
+									"id": "ENSE00001930573",
+									"rank": 1,
+									"location": "chr17:43125182-43125321:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 4,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 5,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 6,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 7,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 8,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 9,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 10,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 11,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 12,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 13,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 14,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 15,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 16,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 17,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 18,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 19,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 20,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 21,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 22,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125321:-",
+							"proteins": [
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781",
+								"ENSP00000420781"
+							]
+						},
+						{
+							"id": "ENST00000478531",
+							"name": "BRCA1-214",
+							"exons": [
+								{
+									"id": "ENSE00001896310",
+									"rank": 1,
+									"location": "chr17:43125277-43125359:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00003591036",
+									"rank": 7,
+									"location": "chr17:43099775-43099877:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 10,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 13,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 23,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125359:-",
+							"proteins": [
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412",
+								"ENSP00000420412"
+							]
+						},
+						{
+							"id": "ENST00000473961",
+							"name": "BRCA1-211",
+							"exons": [
+								{
+									"id": "ENSE00001852567",
+									"rank": 1,
+									"location": "chr17:43125271-43125364:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00003591036",
+									"rank": 7,
+									"location": "chr17:43099775-43099877:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 8,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 9,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 10,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 11,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 12,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 13,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 14,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 15,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 16,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 17,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 18,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 19,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 20,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 21,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125364:-",
+							"proteins": [
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201",
+								"ENSP00000420201"
+							]
+						},
+						{
+							"id": "ENST00000357654",
+							"name": "BRCA1-203",
+							"exons": [
+								{
+									"id": "ENSE00001852567",
+									"rank": 1,
+									"location": "chr17:43125271-43125364:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 10,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 13,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 23,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125364:-",
+							"proteins": [
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283",
+								"ENSP00000350283"
+							],
+							"is_canonical": true
+						},
+						{
+							"id": "ENST00000477152",
+							"name": "BRCA1-213",
+							"exons": [
+								{
+									"id": "ENSE00001852567",
+									"rank": 1,
+									"location": "chr17:43125271-43125364:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 4,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 5,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 6,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 7,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 8,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 9,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 10,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 11,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 12,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 13,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 14,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 15,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 16,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 17,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 18,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 19,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 20,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 21,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 22,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125364:-",
+							"proteins": [
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988",
+								"ENSP00000419988"
+							]
+						},
+						{
+							"id": "ENST00000921915",
+							"name": "BRCA1-244",
+							"exons": [
+								{
+									"id": "ENSE00004394009",
+									"rank": 1,
+									"location": "chr17:43124737-43125367:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00003591036",
+									"rank": 7,
+									"location": "chr17:43099775-43099877:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 10,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 13,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 23,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125367:-",
+							"proteins": [
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974",
+								"ENSP00000591974"
+							]
+						},
+						{
+							"id": "ENST00000352993",
+							"name": "BRCA1-201",
+							"exons": [
+								{
+									"id": "ENSE00001871077",
+									"rank": 1,
+									"location": "chr17:43125271-43125370:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 10,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 11,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 12,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 13,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 14,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 15,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 16,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 17,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 18,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 19,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 20,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 21,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 22,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125370:-",
+							"proteins": [
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236",
+								"ENSP00000312236"
+							]
+						},
+						{
+							"id": "ENST00000493919",
+							"name": "BRCA1-220",
+							"exons": [
+								{
+									"id": "ENSE00001869098",
+									"rank": 1,
+									"location": "chr17:43125277-43125402:-"
+								},
+								{
+									"id": "ENSE00003566275",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003681626",
+									"rank": 3,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 4,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 5,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 6,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 7,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 8,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 9,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 10,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 11,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 12,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 13,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 14,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 15,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 16,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 17,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 18,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 19,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 20,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 21,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 22,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125402:-",
+							"proteins": [
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819",
+								"ENSP00000418819"
+							]
+						},
+						{
+							"id": "ENST00000494123",
+							"name": "BRCA1-221",
+							"exons": [
+								{
+									"id": "ENSE00001954850",
+									"rank": 1,
+									"location": "chr17:43125277-43125450:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 10,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 13,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 23,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125450:-",
+							"proteins": [
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103",
+								"ENSP00000419103"
+							]
+						},
+						{
+							"id": "ENST00000471181",
+							"name": "BRCA1-209",
+							"exons": [
+								{
+									"id": "ENSE00001946433",
+									"rank": 1,
+									"location": "chr17:43125271-43125483:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 10,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00001516237",
+									"rank": 13,
+									"location": "chr17:43079334-43079399:-"
+								},
+								{
+									"id": "ENSE00001516235",
+									"rank": 14,
+									"location": "chr17:43076488-43076611:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 15,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 16,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 17,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 18,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 19,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 20,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 21,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 22,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 23,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 24,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125483:-",
+							"proteins": [
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960",
+								"ENSP00000418960"
+							]
+						},
+						{
+							"id": "ENST00000652672",
+							"name": "BRCA1-232",
+							"exons": [
+								{
+									"id": "ENSE00003845288",
+									"rank": 1,
+									"location": "chr17:43125277-43125483:-"
+								},
+								{
+									"id": "ENSE00003566275",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003841695",
+									"rank": 3,
+									"location": "chr17:43121558-43121676:-"
+								},
+								{
+									"id": "ENSE00003823442",
+									"rank": 4,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003681626",
+									"rank": 5,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 6,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 7,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 8,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 9,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 10,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 11,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 12,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 13,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 14,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 15,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 16,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 17,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 18,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 19,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 20,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 21,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 22,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 23,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 24,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43125483:-",
+							"proteins": [
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906",
+								"ENSP00000498906"
+							]
+						},
+						{
+							"id": "ENST00000634433",
+							"name": "BRCA1-228",
+							"exons": [
+								{
+									"id": "ENSE00003791262",
+									"rank": 1,
+									"location": "chr17:43170126-43170245:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 8,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 9,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 10,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 11,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 12,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 13,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 14,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 15,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 16,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 17,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 18,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 19,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 20,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011564",
+									"rank": 21,
+									"location": "chr17:43044295-43045802:-"
+								}
+							],
+							"location": "chr17:43044295-43170245:-",
+							"proteins": [
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431",
+								"ENSP00000489431"
+							]
+						},
+						{
+							"id": "ENST00000476777",
+							"name": "BRCA1-212",
+							"exons": [
+								{
+									"id": "ENSE00001925912",
+									"rank": 1,
+									"location": "chr17:43125271-43125360:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00003591036",
+									"rank": 7,
+									"location": "chr17:43099775-43099877:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 10,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011555",
+									"rank": 12,
+									"location": "chr17:43082404-43082572:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 13,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004011557",
+									"rank": 23,
+									"location": "chr17:43044298-43045802:-"
+								}
+							],
+							"location": "chr17:43044298-43125360:-",
+							"proteins": [
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554",
+								"ENSP00000417554"
+							]
+						},
+						{
+							"id": "ENST00000945268",
+							"name": "BRCA1-246",
+							"exons": [
+								{
+									"id": "ENSE00004430292",
+									"rank": 1,
+									"location": "chr17:43125277-43125410:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 10,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00001516235",
+									"rank": 13,
+									"location": "chr17:43076488-43076611:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004430291",
+									"rank": 23,
+									"location": "chr17:43044299-43045802:-"
+								}
+							],
+							"location": "chr17:43044299-43125410:-",
+							"proteins": [
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327",
+								"ENSP00000615327"
+							]
+						},
+						{
+							"id": "ENST00000700081",
+							"name": "BRCA1-233",
+							"exons": [
+								{
+									"id": "ENSE00003594926",
+									"rank": 1,
+									"location": "chr17:43049121-43050409:-"
+								},
+								{
+									"id": "ENSE00003619905",
+									"rank": 2,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00003513816",
+									"rank": 3,
+									"location": "chr17:43044302-43045802:-"
+								}
+							],
+							"location": "chr17:43044302-43050409:-"
+						},
+						{
+							"id": "ENST00000470026",
+							"name": "BRCA1-208",
+							"exons": [
+								{
+									"id": "ENSE00001839986",
+									"rank": 1,
+									"location": "chr17:43125182-43125343:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 10,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 13,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004020663",
+									"rank": 23,
+									"location": "chr17:43044304-43045802:-"
+								}
+							],
+							"location": "chr17:43044304-43125343:-",
+							"proteins": [
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274",
+								"ENSP00000419274"
+							]
+						},
+						{
+							"id": "ENST00000713676",
+							"name": "BRCA1-241",
+							"exons": [
+								{
+									"id": "ENSE00004020662",
+									"rank": 1,
+									"location": "chr17:43125277-43125343:-"
+								},
+								{
+									"id": "ENSE00004020664",
+									"rank": 2,
+									"location": "chr17:43124017-43124102:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 10,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 13,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004020663",
+									"rank": 23,
+									"location": "chr17:43044304-43045802:-"
+								}
+							],
+							"location": "chr17:43044304-43125343:-",
+							"proteins": [
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978",
+								"ENSP00000518978"
+							]
+						},
+						{
+							"id": "ENST00000921916",
+							"name": "BRCA1-245",
+							"exons": [
+								{
+									"id": "ENSE00001925912",
+									"rank": 1,
+									"location": "chr17:43125271-43125360:-"
+								},
+								{
+									"id": "ENSE00004020664",
+									"rank": 2,
+									"location": "chr17:43124017-43124102:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 10,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00001516235",
+									"rank": 13,
+									"location": "chr17:43076488-43076611:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004020663",
+									"rank": 23,
+									"location": "chr17:43044304-43045802:-"
+								}
+							],
+							"location": "chr17:43044304-43125360:-",
+							"proteins": [
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975",
+								"ENSP00000591975"
+							]
+						},
+						{
+							"id": "ENST00000618469",
+							"name": "BRCA1-226",
+							"exons": [
+								{
+									"id": "ENSE00003753509",
+									"rank": 1,
+									"location": "chr17:43124737-43125364:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 10,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 13,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004020663",
+									"rank": 23,
+									"location": "chr17:43044304-43045802:-"
+								}
+							],
+							"location": "chr17:43044304-43125364:-",
+							"proteins": [
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114",
+								"ENSP00000478114"
+							]
+						},
+						{
+							"id": "ENST00000461574",
+							"name": "BRCA1-205",
+							"exons": [
+								{
+									"id": "ENSE00001871077",
+									"rank": 1,
+									"location": "chr17:43125271-43125370:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 10,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00001516235",
+									"rank": 13,
+									"location": "chr17:43076488-43076611:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004020663",
+									"rank": 23,
+									"location": "chr17:43044304-43045802:-"
+								}
+							],
+							"location": "chr17:43044304-43125370:-",
+							"proteins": [
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241",
+								"ENSP00000417241"
+							]
+						},
+						{
+							"id": "ENST00000644555",
+							"name": "BRCA1-231",
+							"exons": [
+								{
+									"id": "ENSE00001871077",
+									"rank": 1,
+									"location": "chr17:43125271-43125370:-"
+								},
+								{
+									"id": "ENSE00003566275",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003825651",
+									"rank": 3,
+									"location": "chr17:43119121-43119265:-"
+								},
+								{
+									"id": "ENSE00003823442",
+									"rank": 4,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003681626",
+									"rank": 5,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 6,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 7,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 8,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 9,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 10,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 11,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 12,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 13,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 14,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 15,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 16,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 17,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 18,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 19,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 20,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 21,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 22,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 23,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004020663",
+									"rank": 24,
+									"location": "chr17:43044304-43045802:-"
+								}
+							],
+							"location": "chr17:43044304-43125370:-",
+							"proteins": [
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614",
+								"ENSP00000494614"
+							]
+						},
+						{
+							"id": "ENST00000468300",
+							"name": "BRCA1-207",
+							"exons": [
+								{
+									"id": "ENSE00001601762",
+									"rank": 1,
+									"location": "chr17:43125277-43125451:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 10,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00001516235",
+									"rank": 13,
+									"location": "chr17:43076488-43076611:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00003598175",
+									"rank": 21,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00001831829",
+									"rank": 22,
+									"location": "chr17:43044805-43045802:-"
+								}
+							],
+							"location": "chr17:43044805-43125451:-",
+							"proteins": [
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148",
+								"ENSP00000417148"
+							]
+						},
+						{
+							"id": "ENST00000899954",
+							"name": "BRCA1-242",
+							"exons": [
+								{
+									"id": "ENSE00003845288",
+									"rank": 1,
+									"location": "chr17:43125277-43125483:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 8,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 9,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011555",
+									"rank": 10,
+									"location": "chr17:43082404-43082572:-"
+								},
+								{
+									"id": "ENSE00001516235",
+									"rank": 11,
+									"location": "chr17:43076488-43076611:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 12,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 13,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 14,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 15,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 16,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 17,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 18,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 19,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 20,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004360099",
+									"rank": 21,
+									"location": "chr17:43044805-43045802:-"
+								}
+							],
+							"location": "chr17:43044805-43125483:-",
+							"proteins": [
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013",
+								"ENSP00000570013"
+							]
+						},
+						{
+							"id": "ENST00000945269",
+							"name": "BRCA1-247",
+							"exons": [
+								{
+									"id": "ENSE00004430290",
+									"rank": 1,
+									"location": "chr17:43125271-43125487:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00003591036",
+									"rank": 7,
+									"location": "chr17:43099775-43099877:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 10,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 13,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00004430293",
+									"rank": 23,
+									"location": "chr17:43044824-43045802:-"
+								}
+							],
+							"location": "chr17:43044824-43125487:-",
+							"proteins": [
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328",
+								"ENSP00000615328"
+							]
+						},
+						{
+							"id": "ENST00000700082",
+							"name": "BRCA1-234",
+							"exons": [
+								{
+									"id": "ENSE00003978787",
+									"rank": 1,
+									"location": "chr17:43047643-43048473:-"
+								},
+								{
+									"id": "ENSE00003978789",
+									"rank": 2,
+									"location": "chr17:43044981-43045802:-"
+								}
+							],
+							"location": "chr17:43044981-43048473:-"
+						},
+						{
+							"id": "ENST00000644379",
+							"name": "BRCA1-230",
+							"exons": [
+								{
+									"id": "ENSE00001852567",
+									"rank": 1,
+									"location": "chr17:43125271-43125364:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 10,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00001516237",
+									"rank": 13,
+									"location": "chr17:43079334-43079399:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 14,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 15,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 16,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 17,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 18,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 19,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 20,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 21,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 22,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 23,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00003823658",
+									"rank": 24,
+									"location": "chr17:43045086-43045802:-"
+								}
+							],
+							"location": "chr17:43045086-43125364:-",
+							"proteins": [
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570",
+								"ENSP00000496570"
+							]
+						},
+						{
+							"id": "ENST00000484087",
+							"name": "BRCA1-215",
+							"exons": [
+								{
+									"id": "ENSE00003979059",
+									"rank": 1,
+									"location": "chr17:43125271-43125343:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 8,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 9,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011555",
+									"rank": 10,
+									"location": "chr17:43082404-43082572:-"
+								},
+								{
+									"id": "ENSE00001516235",
+									"rank": 11,
+									"location": "chr17:43076488-43076611:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 12,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 13,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 14,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 15,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 16,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 17,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 18,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 19,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 20,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00003979060",
+									"rank": 21,
+									"location": "chr17:43045434-43045802:-"
+								}
+							],
+							"location": "chr17:43045434-43125343:-",
+							"proteins": [
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481",
+								"ENSP00000419481"
+							]
+						},
+						{
+							"id": "ENST00000586385",
+							"name": "BRCA1-223",
+							"exons": [
+								{
+									"id": "ENSE00002755286",
+									"rank": 1,
+									"location": "chr17:43125182-43125329:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 2,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 3,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 4,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 5,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 6,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 7,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00002914501",
+									"rank": 8,
+									"location": "chr17:43045563-43045802:-"
+								}
+							],
+							"location": "chr17:43045563-43125329:-",
+							"proteins": [
+								"ENSP00000465818",
+								"ENSP00000465818",
+								"ENSP00000465818",
+								"ENSP00000465818",
+								"ENSP00000465818",
+								"ENSP00000465818",
+								"ENSP00000465818",
+								"ENSP00000465818"
+							]
+						},
+						{
+							"id": "ENST00000591849",
+							"name": "BRCA1-225",
+							"exons": [
+								{
+									"id": "ENSE00002858871",
+									"rank": 1,
+									"location": "chr17:43125271-43125329:-"
+								},
+								{
+									"id": "ENSE00002899558",
+									"rank": 2,
+									"location": "chr17:43050062-43050190:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 3,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 4,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00002914501",
+									"rank": 5,
+									"location": "chr17:43045563-43045802:-"
+								}
+							],
+							"location": "chr17:43045563-43125329:-",
+							"proteins": [
+								"ENSP00000465347",
+								"ENSP00000465347",
+								"ENSP00000465347",
+								"ENSP00000465347"
+							]
+						},
+						{
+							"id": "ENST00000591534",
+							"name": "BRCA1-224",
+							"exons": [
+								{
+									"id": "ENSE00002858871",
+									"rank": 1,
+									"location": "chr17:43125271-43125329:-"
+								},
+								{
+									"id": "ENSE00003587596",
+									"rank": 2,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 3,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 4,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 5,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 6,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 7,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 8,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 9,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 10,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00002914501",
+									"rank": 11,
+									"location": "chr17:43045563-43045802:-"
+								}
+							],
+							"location": "chr17:43045563-43125329:-",
+							"proteins": [
+								"ENSP00000467329",
+								"ENSP00000467329",
+								"ENSP00000467329",
+								"ENSP00000467329",
+								"ENSP00000467329",
+								"ENSP00000467329",
+								"ENSP00000467329",
+								"ENSP00000467329",
+								"ENSP00000467329",
+								"ENSP00000467329"
+							]
+						},
+						{
+							"id": "ENST00000493795",
+							"name": "BRCA1-219",
+							"exons": [
+								{
+									"id": "ENSE00001869098",
+									"rank": 1,
+									"location": "chr17:43125277-43125402:-"
+								},
+								{
+									"id": "ENSE00003566275",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003681626",
+									"rank": 3,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 4,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 5,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 6,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 7,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 8,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00004011566",
+									"rank": 9,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 10,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 11,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00004011561",
+									"rank": 12,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 13,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 14,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 15,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 16,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 17,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 18,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 19,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 20,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 21,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00001937547",
+									"rank": 22,
+									"location": "chr17:43045629-43045802:-"
+								}
+							],
+							"location": "chr17:43045629-43125402:-",
+							"proteins": [
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775",
+								"ENSP00000418775"
+							]
+						},
+						{
+							"id": "ENST00000461221",
+							"name": "BRCA1-204",
+							"exons": [
+								{
+									"id": "ENSE00001864149",
+									"rank": 1,
+									"location": "chr17:43125182-43125288:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00001945886",
+									"rank": 4,
+									"location": "chr17:43106478-43106533:-"
+								},
+								{
+									"id": "ENSE00003620244",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00003618767",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00003477699",
+									"rank": 7,
+									"location": "chr17:43099775-43099877:-"
+								},
+								{
+									"id": "ENSE00003673367",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00003518965",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00003579170",
+									"rank": 10,
+									"location": "chr17:43091435-43094860:-"
+								},
+								{
+									"id": "ENSE00003472181",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00003475006",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00003625780",
+									"rank": 13,
+									"location": "chr17:43076488-43076614:-"
+								},
+								{
+									"id": "ENSE00003530917",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00003616681",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00003584020",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00003575366",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00003487887",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00003683848",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00003490535",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00003978786",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00003619905",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00003978790",
+									"rank": 23,
+									"location": "chr17:43045678-43045802:-"
+								}
+							],
+							"location": "chr17:43045678-43125288:-",
+							"proteins": [
+								"ENSP00000418548",
+								"ENSP00000418548",
+								"ENSP00000418548",
+								"ENSP00000418548"
+							]
+						},
+						{
+							"id": "ENST00000491747",
+							"name": "BRCA1-217",
+							"exons": [
+								{
+									"id": "ENSE00001867002",
+									"rank": 1,
+									"location": "chr17:43125277-43125356:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003541068",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011563",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 10,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 11,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 12,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00001516235",
+									"rank": 13,
+									"location": "chr17:43076488-43076611:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 14,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00004011554",
+									"rank": 15,
+									"location": "chr17:43070928-43071238:-"
+								},
+								{
+									"id": "ENSE00004011556",
+									"rank": 16,
+									"location": "chr17:43067608-43067695:-"
+								},
+								{
+									"id": "ENSE00004011565",
+									"rank": 17,
+									"location": "chr17:43063874-43063951:-"
+								},
+								{
+									"id": "ENSE00004011567",
+									"rank": 18,
+									"location": "chr17:43063333-43063373:-"
+								},
+								{
+									"id": "ENSE00004011551",
+									"rank": 19,
+									"location": "chr17:43057052-43057135:-"
+								},
+								{
+									"id": "ENSE00004011553",
+									"rank": 20,
+									"location": "chr17:43051063-43051117:-"
+								},
+								{
+									"id": "ENSE00004011568",
+									"rank": 21,
+									"location": "chr17:43049121-43049194:-"
+								},
+								{
+									"id": "ENSE00004011552",
+									"rank": 22,
+									"location": "chr17:43047643-43047703:-"
+								},
+								{
+									"id": "ENSE00003487914",
+									"rank": 23,
+									"location": "chr17:43045678-43045802:-"
+								}
+							],
+							"location": "chr17:43045678-43125356:-",
+							"proteins": [
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705",
+								"ENSP00000420705"
+							]
+						},
+						{
+							"id": "ENST00000472490",
+							"name": "BRCA1-210",
+							"exons": [
+								{
+									"id": "ENSE00001858912",
+									"rank": 1,
+									"location": "chr17:43070928-43071066:-"
+								},
+								{
+									"id": "ENSE00001876698",
+									"rank": 2,
+									"location": "chr17:43067274-43067695:-"
+								}
+							],
+							"location": "chr17:43067274-43071066:-"
+						},
+						{
+							"id": "ENST00000700182",
+							"name": "BRCA1-236",
+							"exons": [
+								{
+									"id": "ENSE00003979059",
+									"rank": 1,
+									"location": "chr17:43125271-43125343:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003531836",
+									"rank": 4,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00001917948",
+									"rank": 5,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00003591036",
+									"rank": 6,
+									"location": "chr17:43099775-43099877:-"
+								},
+								{
+									"id": "ENSE00004011550",
+									"rank": 7,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00004011559",
+									"rank": 8,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00001936588",
+									"rank": 9,
+									"location": "chr17:43094744-43094860:-"
+								},
+								{
+									"id": "ENSE00004011558",
+									"rank": 10,
+									"location": "chr17:43090944-43091032:-"
+								},
+								{
+									"id": "ENSE00004011560",
+									"rank": 11,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00001516235",
+									"rank": 12,
+									"location": "chr17:43076488-43076611:-"
+								},
+								{
+									"id": "ENSE00004011562",
+									"rank": 13,
+									"location": "chr17:43074331-43074521:-"
+								},
+								{
+									"id": "ENSE00003979058",
+									"rank": 14,
+									"location": "chr17:43070344-43071238:-"
+								}
+							],
+							"location": "chr17:43070344-43125343:-",
+							"proteins": [
+								"ENSP00000514849",
+								"ENSP00000514849",
+								"ENSP00000514849",
+								"ENSP00000514849",
+								"ENSP00000514849",
+								"ENSP00000514849",
+								"ENSP00000514849",
+								"ENSP00000514849",
+								"ENSP00000514849",
+								"ENSP00000514849",
+								"ENSP00000514849",
+								"ENSP00000514849",
+								"ENSP00000514849"
+							]
+						},
+						{
+							"id": "ENST00000621897",
+							"name": "BRCA1-227",
+							"exons": [
+								{
+									"id": "ENSE00003753690",
+									"rank": 1,
+									"location": "chr17:43082682-43082760:-"
+								},
+								{
+									"id": "ENSE00003475006",
+									"rank": 2,
+									"location": "chr17:43082404-43082575:-"
+								},
+								{
+									"id": "ENSE00003744732",
+									"rank": 3,
+									"location": "chr17:43076488-43076611:-"
+								}
+							],
+							"location": "chr17:43076488-43082760:-"
+						},
+						{
+							"id": "ENST00000354071",
+							"name": "BRCA1-202",
+							"exons": [
+								{
+									"id": "ENSE00001819633",
+									"rank": 1,
+									"location": "chr17:43125271-43125315:-"
+								},
+								{
+									"id": "ENSE00003566275",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003823442",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00004011535",
+									"rank": 4,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00004011537",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00003618767",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011539",
+									"rank": 7,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00003673367",
+									"rank": 8,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00003518965",
+									"rank": 9,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00001847936",
+									"rank": 10,
+									"location": "chr17:43091098-43094860:-"
+								}
+							],
+							"location": "chr17:43091098-43125315:-"
+						},
+						{
+							"id": "ENST00000700183",
+							"name": "BRCA1-237",
+							"exons": [
+								{
+									"id": "ENSE00003979059",
+									"rank": 1,
+									"location": "chr17:43125271-43125343:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003979065",
+									"rank": 4,
+									"location": "chr17:43110465-43110580:-"
+								},
+								{
+									"id": "ENSE00003979064",
+									"rank": 5,
+									"location": "chr17:43106478-43106533:-"
+								},
+								{
+									"id": "ENSE00004011537",
+									"rank": 6,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00003618767",
+									"rank": 7,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011539",
+									"rank": 8,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00003979062",
+									"rank": 9,
+									"location": "chr17:43097493-43097586:-"
+								},
+								{
+									"id": "ENSE00003673367",
+									"rank": 10,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00003518965",
+									"rank": 11,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00003979067",
+									"rank": 12,
+									"location": "chr17:43094033-43094860:-"
+								}
+							],
+							"location": "chr17:43094033-43125343:-",
+							"proteins": [
+								"ENSP00000514850",
+								"ENSP00000514850",
+								"ENSP00000514850"
+							]
+						},
+						{
+							"id": "ENST00000492859",
+							"name": "BRCA1-218",
+							"exons": [
+								{
+									"id": "ENSE00001867485",
+									"rank": 1,
+									"location": "chr17:43125271-43125300:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003979065",
+									"rank": 4,
+									"location": "chr17:43110465-43110580:-"
+								},
+								{
+									"id": "ENSE00004011535",
+									"rank": 5,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00004011537",
+									"rank": 6,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00003618767",
+									"rank": 7,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011539",
+									"rank": 8,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00003673367",
+									"rank": 9,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00003518965",
+									"rank": 10,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00003790176",
+									"rank": 11,
+									"location": "chr17:43094112-43094860:-"
+								}
+							],
+							"location": "chr17:43094112-43125300:-",
+							"proteins": [
+								"ENSP00000420253",
+								"ENSP00000420253",
+								"ENSP00000420253"
+							]
+						},
+						{
+							"id": "ENST00000642945",
+							"name": "BRCA1-229",
+							"exons": [
+								{
+									"id": "ENSE00004020662",
+									"rank": 1,
+									"location": "chr17:43125277-43125343:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003824040",
+									"rank": 4,
+									"location": "chr17:43112487-43112606:-"
+								},
+								{
+									"id": "ENSE00004011535",
+									"rank": 5,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00004011537",
+									"rank": 6,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00003618767",
+									"rank": 7,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00004011539",
+									"rank": 8,
+									"location": "chr17:43099775-43099880:-"
+								},
+								{
+									"id": "ENSE00003673367",
+									"rank": 9,
+									"location": "chr17:43097244-43097289:-"
+								},
+								{
+									"id": "ENSE00003518965",
+									"rank": 10,
+									"location": "chr17:43095846-43095922:-"
+								},
+								{
+									"id": "ENSE00003817389",
+									"rank": 11,
+									"location": "chr17:43094482-43094860:-"
+								}
+							],
+							"location": "chr17:43094482-43125343:-",
+							"proteins": [
+								"ENSP00000495897",
+								"ENSP00000495897",
+								"ENSP00000495897"
+							]
+						},
+						{
+							"id": "ENST00000700184",
+							"name": "BRCA1-238",
+							"exons": [
+								{
+									"id": "ENSE00003979061",
+									"rank": 1,
+									"location": "chr17:43124017-43124339:-"
+								},
+								{
+									"id": "ENSE00003823442",
+									"rank": 2,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00004011535",
+									"rank": 3,
+									"location": "chr17:43106456-43106533:-"
+								},
+								{
+									"id": "ENSE00004011537",
+									"rank": 4,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00003618767",
+									"rank": 5,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00003979066",
+									"rank": 6,
+									"location": "chr17:43099643-43099877:-"
+								}
+							],
+							"location": "chr17:43099643-43124339:-"
+						},
+						{
+							"id": "ENST00000461798",
+							"name": "BRCA1-206",
+							"exons": [
+								{
+									"id": "ENSE00001878709",
+									"rank": 1,
+									"location": "chr17:43125277-43125370:-"
+								},
+								{
+									"id": "ENSE00003559512",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003510592",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00001945886",
+									"rank": 4,
+									"location": "chr17:43106478-43106533:-"
+								},
+								{
+									"id": "ENSE00003620244",
+									"rank": 5,
+									"location": "chr17:43104868-43104956:-"
+								},
+								{
+									"id": "ENSE00003618767",
+									"rank": 6,
+									"location": "chr17:43104122-43104261:-"
+								},
+								{
+									"id": "ENSE00001886573",
+									"rank": 7,
+									"location": "chr17:43099831-43099880:-"
+								}
+							],
+							"location": "chr17:43099831-43125370:-",
+							"proteins": [
+								"ENSP00000417988",
+								"ENSP00000417988",
+								"ENSP00000417988",
+								"ENSP00000417988"
+							]
+						},
+						{
+							"id": "ENST00000700083",
+							"name": "BRCA1-235",
+							"exons": [
+								{
+									"id": "ENSE00003978791",
+									"rank": 1,
+									"location": "chr17:43104868-43106139:-"
+								},
+								{
+									"id": "ENSE00003978788",
+									"rank": 2,
+									"location": "chr17:43104225-43104261:-"
+								}
+							],
+							"location": "chr17:43104225-43106139:-"
+						},
+						{
+							"id": "ENST00000700185",
+							"name": "BRCA1-239",
+							"exons": [
+								{
+									"id": "ENSE00001871077",
+									"rank": 1,
+									"location": "chr17:43125271-43125370:-"
+								},
+								{
+									"id": "ENSE00003566275",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003823442",
+									"rank": 3,
+									"location": "chr17:43115726-43115779:-"
+								},
+								{
+									"id": "ENSE00003979068",
+									"rank": 4,
+									"location": "chr17:43114391-43114633:-"
+								}
+							],
+							"location": "chr17:43114391-43125370:-"
+						},
+						{
+							"id": "ENST00000700186",
+							"name": "BRCA1-240",
+							"exons": [
+								{
+									"id": "ENSE00001871077",
+									"rank": 1,
+									"location": "chr17:43125271-43125370:-"
+								},
+								{
+									"id": "ENSE00003566275",
+									"rank": 2,
+									"location": "chr17:43124017-43124115:-"
+								},
+								{
+									"id": "ENSE00003979063",
+									"rank": 3,
+									"location": "chr17:43122343-43122880:-"
+								}
+							],
+							"location": "chr17:43122343-43125370:-"
+						}
+					]
+				},
+				"xrefs": {
+					"hgnc_id": "HGNC:1100",
+					"ucsc_id": "uc002ict.4",
+					"vega_id": "OTTHUMG00000157426",
+					"entrez_id": "672",
+					"uniprot_id": "A0A0U1RRA9",
+					"ensembl_gene_id": "ENSG00000012048",
+					"refseq_accession": "NM_007294"
+				},
+				"publications": ["25472942", "1676470"],
+				"memberships": {
+					"pathways": [
+						{
+							"pathway_id": "hsa01524",
+							"data_source": "KEGG",
+							"pathway_name": "Platinum drug resistance"
+						},
+						{
+							"pathway_id": "hsa03440",
+							"data_source": "KEGG",
+							"pathway_name": "Homologous recombination"
+						},
+						{
+							"pathway_id": "hsa03460",
+							"data_source": "KEGG",
+							"pathway_name": "Fanconi anemia pathway"
+						},
+						{
+							"pathway_id": "hsa04120",
+							"data_source": "KEGG",
+							"pathway_name": "Ubiquitin mediated proteolysis"
+						},
+						{
+							"pathway_id": "hsa04151",
+							"data_source": "KEGG",
+							"pathway_name": "PI3K-Akt signaling pathway"
+						},
+						{
+							"pathway_id": "hsa05206",
+							"data_source": "KEGG",
+							"pathway_name": "MicroRNAs in cancer"
+						},
+						{
+							"pathway_id": "hsa05224",
+							"data_source": "KEGG",
+							"pathway_name": "Breast cancer"
+						},
+						{
+							"pathway_id": "R-HSA-5693568",
+							"data_source": "Reactome",
+							"pathway_name": "Resolution of D-loop Structures through Holliday Junction Intermediates"
+						},
+						{
+							"pathway_id": "R-HSA-912446",
+							"data_source": "Reactome",
+							"pathway_name": "Meiotic recombination"
+						},
+						{
+							"pathway_id": "R-HSA-3108214",
+							"data_source": "Reactome",
+							"pathway_name": "SUMOylation of DNA damage response and repair proteins"
+						},
+						{
+							"pathway_id": "R-HSA-5685938",
+							"data_source": "Reactome",
+							"pathway_name": "HDR through Single Strand Annealing (SSA)"
+						},
+						{
+							"pathway_id": "R-HSA-8951664",
+							"data_source": "Reactome",
+							"pathway_name": "Neddylation"
+						},
+						{
+							"pathway_id": "R-HSA-6796648",
+							"data_source": "Reactome",
+							"pathway_name": "TP53 Regulates Transcription of DNA Repair Genes"
+						},
+						{
+							"pathway_id": "R-HSA-9755511",
+							"data_source": "Reactome",
+							"pathway_name": "KEAP1-NFE2L2 pathway"
+						},
+						{
+							"pathway_id": "R-HSA-9974237",
+							"data_source": "Reactome",
+							"pathway_name": "Negative Regulation of DNA Double Strand Break Response"
+						},
+						{
+							"pathway_id": "R-HSA-5693565",
+							"data_source": "Reactome",
+							"pathway_name": "Recruitment and ATM-mediated phosphorylation of repair and signaling proteins at DNA double strand breaks"
+						},
+						{
+							"pathway_id": "R-HSA-1221632",
+							"data_source": "Reactome",
+							"pathway_name": "Meiotic synapsis"
+						},
+						{
+							"pathway_id": "R-HSA-5685942",
+							"data_source": "Reactome",
+							"pathway_name": "HDR through Homologous Recombination (HRR)"
+						},
+						{
+							"pathway_id": "R-HSA-5689901",
+							"data_source": "Reactome",
+							"pathway_name": "Metalloprotease DUBs"
+						},
+						{
+							"pathway_id": "R-HSA-5693554",
+							"data_source": "Reactome",
+							"pathway_name": "Resolution of D-loop Structures through Synthesis-Dependent Strand Annealing (SDSA)"
+						},
+						{
+							"pathway_id": "R-HSA-5693571",
+							"data_source": "Reactome",
+							"pathway_name": "Nonhomologous End-Joining (NHEJ)"
+						},
+						{
+							"pathway_id": "R-HSA-5693579",
+							"data_source": "Reactome",
+							"pathway_name": "Homologous DNA Pairing and Strand Exchange"
+						},
+						{
+							"pathway_id": "R-HSA-5693607",
+							"data_source": "Reactome",
+							"pathway_name": "Processing of DNA double-strand break ends"
+						},
+						{
+							"pathway_id": "R-HSA-5693616",
+							"data_source": "Reactome",
+							"pathway_name": "Presynaptic phase of homologous DNA pairing and strand exchange"
+						},
+						{
+							"pathway_id": "R-HSA-6804756",
+							"data_source": "Reactome",
+							"pathway_name": "Regulation of TP53 Activity through Phosphorylation"
+						},
+						{
+							"pathway_id": "R-HSA-69473",
+							"data_source": "Reactome",
+							"pathway_name": "G2/M DNA damage checkpoint"
+						},
+						{
+							"pathway_id": "R-HSA-8953750",
+							"data_source": "Reactome",
+							"pathway_name": "Transcriptional Regulation by E2F6"
+						},
+						{
+							"pathway_id": "R-HSA-9663199",
+							"data_source": "Reactome",
+							"pathway_name": "Defective DNA double strand break response due to BRCA1 loss of function"
+						},
+						{
+							"pathway_id": "R-HSA-9699150",
+							"data_source": "Reactome",
+							"pathway_name": "Defective DNA double strand break response due to BARD1 loss of function"
+						},
+						{
+							"pathway_id": "R-HSA-9701192",
+							"data_source": "Reactome",
+							"pathway_name": "Defective homologous recombination repair (HRR) due to BRCA1 loss of function"
+						},
+						{
+							"pathway_id": "R-HSA-9704331",
+							"data_source": "Reactome",
+							"pathway_name": "Defective HDR through Homologous Recombination Repair (HRR) due to PALB2 loss of BRCA1 binding function"
+						},
+						{
+							"pathway_id": "R-HSA-9704646",
+							"data_source": "Reactome",
+							"pathway_name": "Defective HDR through Homologous Recombination Repair (HRR) due to PALB2 loss of BRCA2/RAD51/RAD51C binding function"
+						},
+						{
+							"pathway_id": "R-HSA-9709570",
+							"data_source": "Reactome",
+							"pathway_name": "Impaired BRCA2 binding to RAD51"
+						},
+						{
+							"pathway_id": "R-HSA-9709603",
+							"data_source": "Reactome",
+							"pathway_name": "Impaired BRCA2 binding to PALB2"
+						},
+						{
+							"pathway_id": "R-HSA-9825895",
+							"data_source": "Reactome",
+							"pathway_name": "Regulation of MITF-M-dependent genes involved in DNA replication, damage repair and senescence"
+						}
+					],
+					"gene_families": {
+						"HGNC": [
+							"BRCA1 C complex",
+							"Ring finger proteins",
+							"FA complementation groups",
+							"Protein phosphatase 1 regulatory subunits",
+							"BRCA1 B complex",
+							"BRCA1 A complex"
+						]
+					}
+				},
+				"functional_annotation": {
+					"biological_process": [
+						{
+							"term": "positive regulation of transcription by RNA polymerase II",
+							"term_id": "GO:0045944",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "double-strand break repair via homologous recombination",
+							"term_id": "GO:0000724",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "mitotic G2 DNA damage checkpoint signaling",
+							"term_id": "GO:0007095",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "chordate embryonic development",
+							"term_id": "GO:0043009",
+							"evidence": ["IBA"]
+						}
+					],
+					"cellular_component": [
+						{
+							"term": "BRCA1-A complex",
+							"term_id": "GO:0070531",
+							"evidence": ["IBA"]
+						},
+						{
+							"term": "BRCA1-BARD1 complex",
+							"term_id": "GO:0031436",
+							"evidence": ["IBA"]
+						}
+					],
+					"molecular_function": [
+						{
+							"term": "ubiquitin-protein transferase activity",
+							"term_id": "GO:0004842",
+							"evidence": ["IBA"]
+						}
+					]
+				},
+				"associated_with_known_ad_locus": false,
+				"gene_name": "BRCA1 DNA repair associated",
+				"synonyms": ["PPP1R53", "RNF53", "BRCC1", "FANCS"],
+				"cytogenic_location": "17q21.31"
+			}
+		]
+	}
+}
