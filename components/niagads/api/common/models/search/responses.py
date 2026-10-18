@@ -3,7 +3,7 @@ from typing import Generic, List
 from niagads.api.common.models.records.types import RecordT
 from niagads.common.models.base import CustomBaseModel
 
-from components.niagads.common.search.models.record import SearchMatch
+from niagads.common.search.models.record import SearchMatch
 from niagads.api.common.models.responses.data import DataResponse
 
 

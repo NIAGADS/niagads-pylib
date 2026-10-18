@@ -27,7 +27,7 @@ class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
         *GenomicRegionMixin.set_bin_index_fk(GeneTableBase._schema, __tablename__),
         Index(
             "ix_gene_name_trgm",
-            "name",
+            "gene_name",
             postgresql_using="gin",
             postgresql_ops={"name": "gin_trgm_ops"},
         ),

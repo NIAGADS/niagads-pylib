@@ -4,9 +4,8 @@ from niagads.api.common.models.context.request import Parameters
 from niagads.api.common.models.context.response import ResponseConfiguration
 from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.api.common.parameters.internal import EndpointContext
+from niagads.api.common.services.pagination import PaginationService
 from niagads.common.models.types import Range
-
-from components.niagads.api.common.services.pagination import PaginationService
 
 
 class BaseEndpointService:

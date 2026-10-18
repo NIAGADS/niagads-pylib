@@ -12,18 +12,18 @@ from niagads.settings.core import ServiceEnvironment, get_service_environment
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from components.niagads.api.common.models.context.response import ResponseConfiguration
-from components.niagads.api.common.services.pagination import PaginationService
+from niagads.api.common.models.context.response import ResponseConfiguration
+from niagads.api.common.services.pagination import PaginationService
 
 # internal cache; stores responses as is
-__CACHE_MANAGER = CacheManager(
+_CACHE_MANAGER = CacheManager(
     connection_string=Settings.from_env().CACHE_DB_URI,
     serializer=CacheSerializer.PICKLE,
     ttl=Settings.from_env().CACHE_TTL,
 )
 
-__DATABASE_SESSION_MANAGER: DatabaseSessionManager = DatabaseSessionManager(
-    connection_string=Settings.from_env().APP_DB_URI,
+_DATABASE_SESSION_MANAGER: DatabaseSessionManager = DatabaseSessionManager(
+    connection_string=Settings.from_env().DATABASE_URI,
     echo=get_service_environment() == ServiceEnvironment.DEV,
 )
 
@@ -39,7 +39,7 @@ class EndpointContext(BaseModel, arbitrary_types_allowed=True):
     request_data: RequestDetails = Depends(RequestDetails.from_request)
 
     cache_key: CacheKey = Depends(CacheKey.from_request)
-    cache_manager: Annotated[CacheManager, Depends(__CACHE_MANAGER)]
+    cache_manager: Annotated[CacheManager, Depends(_CACHE_MANAGER)]
 
     # session managers; can be override as needed for applications
     # http_client_session is a dict to enable connection to multiple services
@@ -48,4 +48,4 @@ class EndpointContext(BaseModel, arbitrary_types_allowed=True):
         dict[str, ClientSession],
         Depends(get_empty_dict),
     ]
-    database_session: Annotated[AsyncSession, Depends(__DATABASE_SESSION_MANAGER)]
+    database_session: Annotated[AsyncSession, Depends(_DATABASE_SESSION_MANAGER)]

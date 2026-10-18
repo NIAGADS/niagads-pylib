@@ -1,7 +1,7 @@
 """Validation helpers for shared API parameters."""
 
-from components.niagads.api.common.utils import sanitize
-from components.niagads.enums.core import CaseInsensitiveEnum
+from niagads.api.common.utils import sanitize
+from niagads.enums.core import CaseInsensitiveEnum
 
 
 def parse_comma_separated_list(value_str: str) -> list[str]:

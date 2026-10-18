@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import Query
 from pydantic import BeforeValidator
-from components.niagads.api.common.parameters.validators import (
+from niagads.api.common.parameters.validators import (
     sanitize_enum_value,
     sanitize_value,
 )
