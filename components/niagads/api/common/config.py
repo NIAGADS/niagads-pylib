@@ -23,7 +23,7 @@ class Settings(CustomSettings):
 
     MAX_SPAN_SIZE: int = 50000
 
-    API_VERSION: str
+    API_VERSION: Optional[str] = "0.0.1"
     SUPPORT_EMAIL: str = "betatesting@niagads.org"
 
     LTS: bool = True
