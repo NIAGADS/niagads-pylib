@@ -4,6 +4,8 @@ from enum import auto
 from typing import List, Optional, Union
 
 from niagads.common.core import ComponentBaseMixin
+from niagads.common.nlp.embedding.types import Embedding, EmbeddingFunction
+from niagads.common.search.models.record import SearchMatch
 from niagads.common.track.models import (
     BiosampleCharacteristics,
     CurationEvent,
@@ -19,6 +21,7 @@ from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.mixins import (
     BulkRecordRetrievalMixin,
     IdAliasMixin,
+    SearchMixin,
 )
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
@@ -36,6 +39,7 @@ class Track(
     DatasetTableBase,
     ExternalDatabaseMixin,
     IdAliasMixin,
+    SearchMixin,
     BulkRecordRetrievalMixin,
     ComponentBaseMixin,
 ):
@@ -94,6 +98,66 @@ class Track(
     curation_history: Mapped[Optional[List[CurationEvent]]] = mapped_column(
         JSONB(none_as_null=True)
     )
+
+    @classmethod
+    async def search(
+        cls, session: AsyncSession, search_text: str, *, allow_fuzzy: bool = False
+    ) -> list[SearchMatch]:
+        """Search track metadata using text matching.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            search_text (str): Text to search for.
+            allow_fuzzy (bool): Whether to include fuzzy matches.
+
+        Returns:
+            list[SearchMatch]: Matching track records.
+        """
+        raise NotImplementedError("Track text search is not implemented.")
+
+    @classmethod
+    async def semantic_search(
+        cls,
+        session: AsyncSession,
+        search_text: str,
+        embed: EmbeddingFunction,
+        *,
+        limit: int = 10,
+    ) -> list[SearchMatch]:
+        """Search track metadata using embedded query text.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            search_text (str): Text to embed and search for.
+            embed (EmbeddingFunction): Function used to generate embeddings.
+            limit (int): Maximum number of results to return.
+
+        Returns:
+            list[SearchMatch]: Tracks ranked by semantic similarity.
+        """
+        raise NotImplementedError("Track semantic search is not implemented.")
+
+    @classmethod
+    async def semantic_search_by_embedding(
+        cls,
+        session: AsyncSession,
+        phrase: str,
+        embedding: Embedding,
+        *,
+        limit: int = 10,
+    ) -> list[SearchMatch]:
+        """Search track metadata using a precomputed embedding.
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            phrase (str): Text associated with the supplied embedding.
+            embedding (Embedding): Precomputed query embedding.
+            limit (int): Maximum number of results to return.
+
+        Returns:
+            list[SearchMatch]: Tracks ranked by semantic similarity.
+        """
+        raise NotImplementedError("Track search by embedding is not implemented.")
 
     @classmethod
     async def retrieve_records(
