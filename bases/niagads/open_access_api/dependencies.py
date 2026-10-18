@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from typing import Annotated
 
 from aiohttp import ClientSession
@@ -19,18 +20,21 @@ async def get_bin_index_reference(request: Request) -> dict:
     return request.app.state.bin_index_reference
 
 
-async def get_http_client_sessions() -> dict[str, ClientSession]:
-    """Assemble client session mappings.  This overhead is so that
-    we can support connections to multiple external APIs (e.g., FILER, xQTL)"""
-    filer_manager = HttpClientSessionManager(
+async def get_http_client_sessions() -> AsyncGenerator[dict[str, ClientSession]]:
+    """Provide HTTP client sessions and close them after the request.
+
+    Yields:
+        dict[str, ClientSession]: Sessions keyed by external service name.
+    """
+    async with HttpClientSessionManager(
         Settings.from_env().FILER_REQUEST_URL,
         timeout=60,
-    )
+    ) as filer_manager:
+        yield {"filer": await filer_manager()}
     # xqtl_manager = HttpClientSessionManager(
     #     Settings.from_env().XQTL_REQUEST_URL,
     #     timeout=60,
     # )
-    return {"filer": await filer_manager()}
 
 
 class OpenAccessEndpointContext(EndpointContext):

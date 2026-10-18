@@ -1,5 +1,5 @@
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -31,29 +31,31 @@ metadata = AppMetadata(
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Configure logging and load the interval-bin reference before serving requests.
-
-    Args:
-        app (FastAPI): Application whose state holds the interval-bin reference.
-
-    Yields:
-        None: Control while the application serves requests.
-    """
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    """Initialize resources and close database and cache pools on shutdown."""
     logging.getLogger("uvicorn.error.niagads").setLevel(
         logging.DEBUG
         if get_service_environment() == ServiceEnvironment.DEV
         else logging.INFO
     )
-    await OpenAccessEndpointContext.verify_database_connection()
     database_dependency = (
         OpenAccessEndpointContext.model_fields["database_session"]
         .metadata[0]
         .dependency
     )
-    async with database_dependency.session_ctx() as session:
-        app.state.bin_index_reference = await fetch_bin_index_reference(session)
-    yield
+    cache_dependency = (
+        OpenAccessEndpointContext.model_fields["cache_manager"].metadata[0].dependency
+    )
+    try:
+        await OpenAccessEndpointContext.verify_database_connection()
+        async with database_dependency.session_ctx() as session:
+            app.state.bin_index_reference = await fetch_bin_index_reference(session)
+        yield
+    finally:
+        try:
+            await database_dependency.close()
+        finally:
+            await cache_dependency.close()
 
 
 # generate the app
