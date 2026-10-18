@@ -184,6 +184,28 @@ Do not provide unsolicited lists of:
 
 Do not turn a narrowly scoped request into a general code review.
 
+## 9. API Test Maintenance
+
+When modifying API endpoints, request/response models, dependencies,
+or other API behavior, update the corresponding pytest tests as needed.
+
+- Identify existing tests associated with the modified API functionality.
+- Update tests to reflect the intended refactored behavior, including
+  changes to routes, parameters, schemas, responses, and dependencies.
+- Add tests for new API functionality when appropriate.
+- Remove or replace obsolete test expectations only when directly
+  related to the requested changes.
+- Preserve unrelated tests, including those targeting legacy APIs
+  awaiting refactoring.
+- Do not modify production code solely to make obsolete tests pass.
+- Run relevant targeted tests when feasible.
+- Do not attempt to resolve failures caused by unrelated or incomplete
+  refactoring work.
+- Report targeted test results and any validation limitations.
+
+Test maintenance is considered part of the authorized scope for API
+changes, but must remain limited to the functionality being modified.
+
 ## Governing Principle
 
 **An incomplete refactor is not an invitation to repair the project.**
