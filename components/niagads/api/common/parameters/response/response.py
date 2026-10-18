@@ -8,7 +8,7 @@ from niagads.api.common.types import ResponseFormat, ResponseContent
 
 
 async def record_response_content_param(
-    view: Annotated[
+    content: Annotated[
         Literal[ResponseContent.FULL, ResponseContent.SUMMARY, ResponseContent.IDS],
         BeforeValidator(sanitize_enum_value(ResponseContent)),
         Query(
@@ -19,11 +19,11 @@ async def record_response_content_param(
         ),
     ] = ResponseContent.FULL,
 ) -> ResponseContent:
-    return view
+    return content
 
 
 async def response_content_param(
-    view: Annotated[
+    content: Annotated[
         ResponseContent,
         BeforeValidator(sanitize_enum_value(ResponseContent)),
         Query(
@@ -34,11 +34,11 @@ async def response_content_param(
         ),
     ] = ResponseContent.FULL,
 ) -> ResponseContent:
-    return view
+    return content
 
 
 async def data_response_content_param(
-    view: Annotated[
+    content: Annotated[
         Literal[ResponseContent.FULL, ResponseContent.COUNTS],
         BeforeValidator(sanitize_enum_value(ResponseContent)),
         Query(
@@ -49,7 +49,7 @@ async def data_response_content_param(
         ),
     ] = ResponseContent.FULL,
 ) -> ResponseContent:
-    return view
+    return content
 
 
 async def response_format_param(
@@ -62,7 +62,7 @@ async def response_format_param(
     return format
 
 
-# allowable response views for single record lookups
+# allowable response contents for single record lookups
 async def record_response_format_param(
     format: Annotated[
         Literal[ResponseFormat.JSON, ResponseFormat.XML],
