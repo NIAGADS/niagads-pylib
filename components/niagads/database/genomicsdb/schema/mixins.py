@@ -649,7 +649,7 @@ class BulkRecordRetrievalMixin:
         """
         stmt = select(
             sql_value_array.c.lookup_value,
-            func.row_to_json(cls.__table__).cast(JSONB).label("record"),
+            func.row_to_json(cls.__table__.table_valued()).cast(JSONB).label("record"),
         ).select_from(sql_value_array)
 
         if join_clause:
