@@ -82,7 +82,7 @@ async def get_genes(
     page: int = Depends(page_param),
 ) -> RecordMappingResponse:
 
-    record_model = GeneBrief if context == ResponseContent.SUMMARY else Gene
+    record_model = GeneBrief if content == ResponseContent.SUMMARY else Gene
     service = GeneEndpointService(
         context=context,
         parameters=Parameters(genes=ids, page=page),
@@ -94,12 +94,12 @@ async def get_genes(
         ),
     )
 
-    response = await service.get_cached_response()
-    if not response:
+    result = await service.get_cached_response()
+    from_cache = True
+    if not result:
         result = await service.get_record_mappings(ids)
-        response = await service.generate_response(result)
-
-    logger.debug(response)
+        from_cache = False
+    response = await service.generate_response(result, from_cache=from_cache)
     return response
 
 
