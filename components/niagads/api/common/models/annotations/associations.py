@@ -8,8 +8,8 @@ from niagads.api.common.models.records.types import ORMCompatibleRecord
 
 
 class VariantAssociation(ORMCompatibleRecord):
-    id: str = Field(
-        default=None,
+    variant: str = Field(
+        ...,
         title="Variant ID",
         description="stable identifier for the variant associated with the result",
     )
@@ -26,12 +26,12 @@ class VariantAssociation(ORMCompatibleRecord):
     )
 
     neg_log10_pvalue: float = Field(
-        default=None,
+        ...,
         title="Negative Log10 p-value",
         description="negative base-10 logarithm of the association p-value",
     )
     pvalue: str = Field(
-        default=None,
+        ...,
         title="p-value",
         description="association p-value reported for the variant",
     )
@@ -45,8 +45,13 @@ class VariantAssociation(ORMCompatibleRecord):
         title="Test Allele",
         description="allele used to evaluate the association",
     )
-    traits: Optional[dict[str, list[OntologyTerm]]] = Field(
+    traits: dict[str, list[OntologyTerm]] = Field(
         ...,
         title="Traits",
         description="associated phenotypic traits classified by context",
+    )
+    track: Optional[str] = Field(
+        ...,
+        title="Track ID",
+        description="identifier for the source data track for the association",
     )
