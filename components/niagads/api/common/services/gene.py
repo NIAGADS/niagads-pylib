@@ -1,3 +1,6 @@
+from collections import Counter
+from typing import Union
+
 from fastapi import HTTPException
 from niagads.api.common.models.annotations.associations import VariantAssociation
 from niagads.api.common.models.records.types import DynamicRecord
@@ -9,6 +12,8 @@ from niagads.database.genomicsdb.schema.gene.documents import Gene as GeneORM
 from niagads.database.genomicsdb.schema.results.associations import (
     VariantAssociation as VAOrm,
 )
+from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import matches
 
 
 class GeneEndpointService(BaseEndpointService):
@@ -70,16 +75,19 @@ class GeneEndpointService(BaseEndpointService):
             return {}
         return DynamicRecord.model_validate(mappings[gene_id]["gene_structure"])
 
-    async def fetch_associations(self, gene_id: str) -> list[VariantAssociation]:
+    async def fetch_associations(
+        self, gene_id: str, summary: bool = False
+    ) -> Union[list[VariantAssociation], list[DynamicRecord]]:
         """Assemble variant associations with their track phenotypes.
 
         Args:
             gene_id (str): Identifier used to retrieve associations.
+            summary (bool): Whether to return association counts by track.
 
         Returns:
-            list[VariantAssociation]: Associations with parsed alleles and track
-                phenotypes, omitting None-valued input fields. Returns an empty
-                list if no associations are found.
+            Union[list[VariantAssociation], list[DynamicRecord]]: Associations
+                with track phenotypes, or per-track traits and association
+                counts. Returns an empty list if no associations are found.
         """
         mappings = await VAOrm.retrieve_records(
             self._context.database_session, lookup_value=gene_id
@@ -87,6 +95,7 @@ class GeneEndpointService(BaseEndpointService):
         associations = mappings[gene_id]
         if not associations:
             return []
+
         track_stable_ids = [a.get("track_stable_id") for a in associations]
         track_mappings = await Track.retrieve_records(
             self._context.database_session, track_stable_ids
@@ -100,21 +109,44 @@ class GeneEndpointService(BaseEndpointService):
                 else None
             )
 
-        results = []
-        for association in associations:
-            variant = VariantRecord.from_positional_id(association["variant_stable_id"])
-            record = {
-                key: value
-                for key, value in association.items()
-                if key in VariantAssociation.model_fields and value is not None
-            }
-            results.append(
-                VariantAssociation(
-                    **record,
-                    id=association["variant_stable_id"],
-                    ref=variant.ref,
-                    alt=variant.alt,
-                    traits=track_traits[association["track_stable_id"]],
+        if summary:
+            return [
+                DynamicRecord(
+                    track=track_id,
+                    traits=track_traits[track_id],
+                    num_associations=count,
                 )
+                for track_id, count in Counter(track_stable_ids).items()
+            ]
+
+        results = []
+        for assoc in associations:
+            variant_id = assoc["variant_stable_id"]
+            is_structural_variant = matches(
+                variant_id, RegularExpressions.STRUCTUAL_VARIANT_ID
             )
+            track_id = assoc["track_stable_id"]
+
+            if is_structural_variant:
+                results.append(
+                    VariantAssociation(
+                        **assoc,
+                        variant_id=variant_id,
+                        traits=track_traits[track_id],
+                        track=track_id,
+                    )
+                )
+            else:
+                variant: VariantRecord = VariantRecord.from_positional_id()
+                results.append(
+                    VariantAssociation(
+                        **assoc,
+                        variant_id=variant_id,
+                        chromosome=variant.chromosome,
+                        ref=variant.ref,
+                        alt=variant.alt,
+                        traits=track_traits[track_id],
+                        track=track_id,
+                    )
+                )
         return results
