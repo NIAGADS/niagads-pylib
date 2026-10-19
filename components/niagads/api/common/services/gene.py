@@ -75,7 +75,7 @@ class GeneEndpointService(BaseEndpointService):
         mappings: RecordRetrievalResult = await self._lookup_records([gene_id])
         if not mappings[gene_id]:
             return {}
-        return DynamicRecord.model_validate(mappings[gene_id]["gene_structure"])
+        return DynamicRecord.model_validate(mappings[gene_id][0]["gene_structure"])
 
     async def fetch_associations(
         self, gene_id: str, *, flank: int = 0, summary: bool = False
