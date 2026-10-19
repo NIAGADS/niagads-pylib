@@ -2,6 +2,7 @@ from typing import Optional, Union
 
 from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
+from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.database.genomicsdb.schema.mixins import BulkRecordRetrievalMixin
 from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
@@ -18,6 +19,7 @@ from sqlalchemy import (
     literal_column,
     or_,
     select,
+    true,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -72,6 +74,16 @@ class VariantAssociation(
         track_select = cls._build_lookup_select(
             sql_value_fields,
             lookup_field=cls.track_id,
+            join_clause=[
+                (cls, cls.track_id == sql_value_fields.c.lookup_value),
+                (Track, Track.track_id == cls.track_id),
+            ],
+        )
+        track_select = track_select.with_only_columns(
+            sql_value_fields.c.lookup_value,
+            track_select.selected_columns.record.op("||")(
+                func.jsonb_build_object("track_stable_id", Track.source_id)
+            ).label("record"),
         )
 
         # ie., a bit overkill but matching template in case
@@ -109,14 +121,26 @@ class VariantAssociation(
         )
         parent_bin = literal_column(f"'{bin_index}'::ltree")
 
-        stmt = select(
-            func.row_to_json(cls.__table__.table_valued()).cast(JSONB).label("record")
-        ).where(
-            and_(
-                cls.chromosome == str(span.chromosome),
-                parent_bin.op("@>")(cls.bin_index),
-                cls.span.op("&&")(span.range),
+        stmt = (
+            select(
+                func.row_to_json(cls.__table__.table_valued())
+                .cast(JSONB)
+                .label("record")
             )
+            .select_from(cls)
+            .join(Track, Track.track_id == cls.track_id)
+            .where(
+                and_(
+                    cls.chromosome == str(span.chromosome),
+                    parent_bin.op("@>")(cls.bin_index),
+                    cls.span.op("&&")(span.range),
+                )
+            )
+        )
+        stmt = stmt.with_only_columns(
+            stmt.selected_columns.record.op("||")(
+                func.jsonb_build_object("track_stable_id", Track.source_id)
+            ).label("record"),
         )
 
         span_key = str(span)
@@ -153,6 +177,16 @@ class VariantAssociation(
                 cls.variant_stable_id == sql_value_fields.c.lookup_value,
                 cls.variant_id == sql_value_fields.c.lookup_value.cast(Integer),
             ),
+            join_clause=[
+                (cls, true()),
+                (Track, Track.track_id == cls.track_id),
+            ],
+        )
+        variant_select = variant_select.with_only_columns(
+            sql_value_fields.c.lookup_value,
+            variant_select.selected_columns.record.op("||")(
+                func.jsonb_build_object("track_stable_id", Track.source_id)
+            ).label("record"),
         )
 
         mappings = {identifier: [] for identifier in dict.fromkeys(variant_ids)}
