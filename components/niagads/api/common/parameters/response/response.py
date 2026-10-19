@@ -39,12 +39,12 @@ async def response_content_param(
 
 async def data_response_content_param(
     content: Annotated[
-        Literal[ResponseContent.FULL, ResponseContent.COUNTS],
+        Literal[ResponseContent.FULL, ResponseContent.SUMMARY],
         BeforeValidator(sanitize_enum_value(ResponseContent)),
         Query(
             description=(
                 "Select whether the response includes the full data or only the "
-                "result count."
+                "a summary report (categorized counts)."
             )
         ),
     ] = ResponseContent.FULL,
