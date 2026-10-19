@@ -4,8 +4,8 @@ from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.database.genomicsdb.schema.mixins import BulkRecordRetrievalMixin
-from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
+from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.database.genomicsdb.schema.results.base import ResultsTableBase
 from niagads.database.mixins.ranges import GenomicRegionMixin
@@ -222,6 +222,17 @@ class VariantAssociation(
     async def retrieve_records(
         cls, session, lookup_value: Union[int, str, OneBasedGenomicRegion]
     ):
+        """Find records that match an track database primary key (lookup_value:int), variant
+        stable id (str), region (OneBasedGenomicRegion)
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            lookup_value (int, str, OneBasedGenomicRegion): track_pk (int); variant
+            stable id (str), region
+        Returns:
+            RecordRetrievalResult: Matching search result records grouped by
+                identifier.
+        """
         if isinstance(lookup_value, str):  # variant id
             return await cls._retrieve_associations_by_variant(session, lookup_value)
         elif isinstance(lookup_value, int):  # track record primary key

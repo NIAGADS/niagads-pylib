@@ -1,13 +1,24 @@
 import logging
-from typing import Any
+from collections import Counter
+from typing import Any, Union
 
+from niagads.api.common.models.annotations.associations import VariantAssociation
 from niagads.api.common.models.context.request import Parameters
 from niagads.api.common.models.context.response import ResponseConfiguration
+from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.api.common.parameters.internal import EndpointContext
 from niagads.api.common.services.pagination import PaginationService
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.models.types import Range
+from niagads.common.types import RecordRetrievalResult
+from niagads.common.variant.models.record import VariantRecord
+from niagads.database.genomicsdb.schema.dataset.track import Track
+from niagads.database.genomicsdb.schema.results.associations import (
+    VariantAssociation as VAOrm,
+)
+from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import matches
 
 
 class BaseEndpointService(ComponentBaseMixin):
@@ -117,3 +128,73 @@ class BaseEndpointService(ComponentBaseMixin):
             pagination=pagination_state,
             data=paged_result,
         )
+
+    async def _generate_association_lookup_result(
+        self, associations: list[dict], *, summary: bool = False
+    ) -> Union[list[VariantAssociation], list[DynamicRecord]]:
+        """Assemble variant associations with their track phenotypes.
+
+        Args:
+            associations (list[dict]): retrieved variant associations
+
+        Returns:
+            Union[list[VariantAssociation], list[DynamicRecord]]: Associations
+                with track phenotypes, or per-track traits and association
+                counts. Returns an empty list if no associations are found.
+        """
+
+        if not associations:
+            return []
+
+        track_stable_ids = [a.get("track_stable_id") for a in associations]
+        track_mappings = await Track.retrieve_records(
+            self._context.database_session, track_stable_ids
+        )
+        track_traits = {}
+        for track_stable_id, tracks in track_mappings.items():
+            phenotypes = tracks[0]["participant_phenotypes"]
+            track_traits[track_stable_id] = (
+                {key: value for key, value in phenotypes.items() if value is not None}
+                if phenotypes is not None
+                else None
+            )
+
+        if summary:
+            return [
+                DynamicRecord(
+                    track=track_id,
+                    traits=track_traits[track_id],
+                    num_associations=count,
+                )
+                for track_id, count in Counter(track_stable_ids).items()
+            ]
+
+        results = []
+        for assoc in associations:
+            variant_id = assoc["variant_stable_id"]
+            is_structural_variant = matches(
+                variant_id, RegularExpressions.STRUCTUAL_VARIANT_ID
+            )
+            track_id = assoc["track_stable_id"]
+
+            if is_structural_variant:
+                variant_association = VariantAssociation(
+                    **assoc,
+                    variant=variant_id,
+                    traits=track_traits[track_id],
+                    track=track_id,
+                )
+
+            else:
+                variant: VariantRecord = VariantRecord.from_positional_id(variant_id)
+                variant_association = VariantAssociation(
+                    **assoc,
+                    variant=variant_id,
+                    ref=variant.ref,
+                    alt=variant.alt,
+                    traits=track_traits[track_id],
+                    track=track_id,
+                )
+
+            results.append(variant_association)
+        return results

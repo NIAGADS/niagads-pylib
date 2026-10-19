@@ -107,58 +107,7 @@ class GeneEndpointService(BaseEndpointService):
 
         mappings = await VAOrm.retrieve_records(self._context.database_session, region)
         associations = mappings[str(region)]
-        if not associations:
-            return []
 
-        track_stable_ids = [a.get("track_stable_id") for a in associations]
-        track_mappings = await Track.retrieve_records(
-            self._context.database_session, track_stable_ids
+        return await self._generate_association_lookup_result(
+            associations, summary=summary
         )
-        track_traits = {}
-        for track_stable_id, tracks in track_mappings.items():
-            phenotypes = tracks[0]["participant_phenotypes"]
-            track_traits[track_stable_id] = (
-                {key: value for key, value in phenotypes.items() if value is not None}
-                if phenotypes is not None
-                else None
-            )
-
-        if summary:
-            return [
-                DynamicRecord(
-                    track=track_id,
-                    traits=track_traits[track_id],
-                    num_associations=count,
-                )
-                for track_id, count in Counter(track_stable_ids).items()
-            ]
-
-        results = []
-        for assoc in associations:
-            variant_id = assoc["variant_stable_id"]
-            is_structural_variant = matches(
-                variant_id, RegularExpressions.STRUCTUAL_VARIANT_ID
-            )
-            track_id = assoc["track_stable_id"]
-
-            if is_structural_variant:
-                variant_association = VariantAssociation(
-                    **assoc,
-                    variant=variant_id,
-                    traits=track_traits[track_id],
-                    track=track_id,
-                )
-
-            else:
-                variant: VariantRecord = VariantRecord.from_positional_id(variant_id)
-                variant_association = VariantAssociation(
-                    **assoc,
-                    variant=variant_id,
-                    ref=variant.ref,
-                    alt=variant.alt,
-                    traits=track_traits[track_id],
-                    track=track_id,
-                )
-
-            results.append(variant_association)
-        return results

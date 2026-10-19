@@ -4,17 +4,22 @@ import logging
 from typing import Union
 
 from fastapi import APIRouter, Depends, Path, Query
+from niagads.api.common.models.annotations.associations import VariantAssociation
 from niagads.api.common.models.context.request import Parameters
 from niagads.api.common.models.context.response import ResponseConfiguration
 from niagads.api.common.models.entities.variant.records import Variant, VariantBrief
+from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.models.responses.records import (
     RecordMappingResponse,
     RecordResponse,
 )
+from niagads.api.common.parameters.location import flank_param
 from niagads.api.common.parameters.response.pagination import page_param
 from niagads.api.common.parameters.response.response import (
+    data_response_content_param,
     record_response_content_param,
     record_response_format_param,
+    response_format_param,
 )
 from niagads.api.common.parameters.validators import parse_comma_separated_list
 from niagads.api.common.services.variant import VariantEndpointService
@@ -93,9 +98,12 @@ async def get_variants(
             record_model=record_model,
         ),
     )
-
-    result = await service.get_record_mappings(ids)
-    return await service.generate_response(result)
+    result = await service.get_cached_response()
+    from_cache = True
+    if not result:
+        result = await service.get_record_mappings(ids)
+        from_cache = False
+    return await service.generate_response(result, from_cache=from_cache)
 
 
 @router.get(
@@ -124,5 +132,52 @@ async def get_variant(
         ),
     )
 
-    result = await service.fetch_record(variant)
-    return await service.generate_response(result, is_paged=True)
+    result = await service.get_cached_response()
+    from_cache = True
+    if not result:
+        result = await service.fetch_record(variant)
+        from_cache = False
+    return await service.generate_response(result, from_cache=from_cache)
+
+
+@router.get(
+    "/{variant}/associations",
+    summary="Get variant associations",
+    description="Retrieve genetic and phenotype associations for the specified variant.",
+    response_description="Variant associations.",
+    operation_id="getVariantAssociations",
+    response_model=Union[
+        RecordResponse[VariantAssociation], RecordResponse[DynamicRecord]
+    ],
+)
+async def get_variant_associations(
+    variant: str = Depends(path_variant_id),
+    flank: int = Depends(flank_param),
+    context: OpenAccessEndpointContext = Depends(),
+    format: ResponseFormat = Depends(response_format_param),
+    content: ResponseContent = Depends(data_response_content_param),
+    page: int = Depends(page_param),
+) -> RecordResponse:
+
+    summary = content == ResponseContent.SUMMARY
+
+    record_model = DynamicRecord if summary else VariantAssociation
+
+    service = VariantEndpointService(
+        context=context,
+        parameters=Parameters(variant=variant, flank=flank, page=page),
+        response_config=ResponseConfiguration(
+            format=format,
+            content=content,
+            response_model=RecordResponse,
+            record_model=record_model,
+        ),
+    )
+
+    result = await service.get_cached_response()
+    from_cache = True
+    if not result:
+        result = await service.fetch_associations(variant, flank=flank, summary=summary)
+        from_cache = False
+    response = await service.generate_response(result, from_cache=from_cache)
+    return response
