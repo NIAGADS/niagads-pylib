@@ -8,7 +8,8 @@ from niagads.api.common.models.annotations.associations import VariantAssociatio
 from niagads.api.common.models.context.request import Parameters
 from niagads.api.common.models.context.response import ResponseConfiguration
 from niagads.api.common.models.entities.gene.records import GeneBrief, Gene
-from niagads.api.common.models.responses.data import DataResponse
+from niagads.api.common.models.records.types import DynamicRecord
+from niagads.api.common.models.responses.simple import DataResponse
 from niagads.api.common.models.responses.records import (
     RecordMappingResponse,
     RecordResponse,
@@ -188,9 +189,9 @@ async def get_gene_associations(
     description="Retrieve transcripts, exons, and protein identifiers for the specified gene.",
     response_description="Gene structure.",
     operation_id="getGeneStructure",
-    # response_model=AnnotationResponse,
+    response_model=RecordResponse[DynamicRecord],
 )
-async def get_gene_associations(
+async def get_gene_strcuture(
     gene: GenomicFeature = Depends(path_gene_id),
     context: OpenAccessEndpointContext = Depends(),
     format: ResponseFormat = Depends(response_format_param),
