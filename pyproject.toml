@@ -23,8 +23,6 @@ profile = "black"
 homepage = "https://github.com/NIAGADS/niagads-pylib"
 repository = "https://github.com/NIAGADS/niagads-pylib"
 packages = [
-    {from = "bases", include = "niagads/filer_api"},
-    {from = "bases", include = "niagads/genomicsdb_api"},
     {from = "bases", include = "niagads/genomicsdb_etl"},
     {from = "bases", include = "niagads/metadata_validator_tool"},
     {from = "bases", include = "niagads/open_access_api"},

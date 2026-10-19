@@ -202,7 +202,7 @@ async def get_gene_structure(
         context=context,
         parameters=Parameters(gene=gene),
         response_config=ResponseConfiguration(
-            format=format,
+            format=ResponseFormat.JSON,
             content=ResponseContent.FULL,
             response_model=RecordResponse,
             record_model=DynamicRecord,

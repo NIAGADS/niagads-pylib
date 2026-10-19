@@ -65,15 +65,21 @@ async def runtime_exception_handler(
     request: Request,
     exc: RuntimeError,
 ) -> JSONResponse:
-    """Handle an unexpected runtime error.
+    """Handle runtime errors, preserving wrapped request validation errors.
 
     Args:
         request (Request): The incoming HTTP request.
         exc (RuntimeError): The runtime exception being handled.
 
     Returns:
-        JSONResponse: The internal-server-error response.
+        JSONResponse: The validation-error or internal-server-error response.
     """
+
+    original = exc
+    while original is not None:
+        if isinstance(original, RequestValidationError):
+            return await fastapi_request_validation_exception_handler(request, original)
+        original = original.__cause__ or original.__context__
 
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

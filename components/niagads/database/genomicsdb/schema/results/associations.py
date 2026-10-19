@@ -82,7 +82,12 @@ class VariantAssociation(
         track_select = track_select.with_only_columns(
             sql_value_fields.c.lookup_value,
             track_select.selected_columns.record.op("||")(
-                func.jsonb_build_object("track_stable_id", Track.source_id)
+                func.jsonb_build_object(
+                    "track_stable_id",
+                    Track.source_id,
+                    "position",
+                    func.lower(cls.span),
+                )
             ).label("record"),
         )
 
@@ -139,7 +144,12 @@ class VariantAssociation(
         )
         stmt = stmt.with_only_columns(
             stmt.selected_columns.record.op("||")(
-                func.jsonb_build_object("track_stable_id", Track.source_id)
+                func.jsonb_build_object(
+                    "track_stable_id",
+                    Track.source_id,
+                    "position",
+                    func.lower(cls.span),
+                )
             ).label("record"),
         )
 
@@ -185,7 +195,12 @@ class VariantAssociation(
         variant_select = variant_select.with_only_columns(
             sql_value_fields.c.lookup_value,
             variant_select.selected_columns.record.op("||")(
-                func.jsonb_build_object("track_stable_id", Track.source_id)
+                func.jsonb_build_object(
+                    "track_stable_id",
+                    Track.source_id,
+                    "position",
+                    func.lower(cls.span),
+                )
             ).label("record"),
         )
 
