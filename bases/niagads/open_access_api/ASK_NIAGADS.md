@@ -1,0 +1,169 @@
+# ASK NIAGADS prototype
+
+The existing application exposes `POST /ask`. One PydanticAI agent uses fixed API
+GET tools; no SQL, ORM changes, embedding changes, or database retrieval code is
+part of this prototype. The UI lives in the other repository at
+`apps/open-access-api-client`. Work stays on branches based on `refactor/api`
+(Python) and `app/oa-api` (frontend).
+
+## Installation and configuration
+
+For an existing root Poetry development environment, install the optional group:
+
+```bash
+poetry install --with ask
+```
+
+The Open Access API project also declares the runtime dependencies in its own
+manifest/lock. The prepared cloud interpreter is
+`projects/open-access-api/.venv/bin/python`; source checkouts use
+`PYTHONPATH=components:bases`. Dependency versions verified for this prototype:
+PydanticAI Slim 2.57.0, Logfire 5.2.0, AI SDK 7.0.143, and AI SDK React 4.0.147.
+The installed Vercel adapter explicitly supports SDK version 7.
+
+Configure server process variables (secret values belong in secure settings):
+
+| Variable | Purpose/default |
+| --- | --- |
+| OPENROUTER_API_KEY | Server-side OpenRouter credential; not required for mock tests |
+| ASK_MODEL | Explicit tool-capable OpenRouter model ending in `:free`; no default/fallback |
+| ASK_MODEL_REQUESTS | 8 per query, maximum 12 |
+| ASK_TOOL_CALLS | 12 per query, maximum 20 |
+| ASK_API_TIMEOUT | 20 seconds per API tool, maximum 30 |
+| ASK_DEADLINE | 90 seconds for the whole query, maximum 120 |
+| ASK_TELEMETRY | false; enables optional Logfire instrumentation |
+| LOGFIRE_TOKEN | Optional server-side telemetry credential |
+| ASK_CAPTURE_CONTENT | false; explicitly opt in to model/prompt/tool content capture |
+
+Never configure paid fallback models. Availability/tool support of a chosen free
+model must be verified with a bounded live call on the user's system. Provider
+construction is isolated in `ask/provider.py`; future Bedrock work can replace that
+construction while keeping tools, result contracts, and the frontend transport.
+No Bedrock integration is implemented now.
+
+On a system with the existing API configured and working, run its usual entrypoint:
+
+```bash
+PYTHONPATH=components:bases poetry run uvicorn niagads.open_access_api.app:app
+```
+
+Existing API startup still requires the database/cache. The cloud will never
+connect to that database. Do not supply database credentials to the cloud.
+
+## Cloud prototype validation
+
+Focused tests use mock API/model dependencies and need no database, model key,
+embedding download, or Logfire credentials:
+
+```bash
+PYTHONPATH=components:bases projects/open-access-api/.venv/bin/python -m pytest \
+  --confcutdir=test/bases/niagads/open_access_api/ask \
+  test/bases/niagads/open_access_api/ask -q
+```
+
+For browser checks, this test-only runner imports the **existing application**,
+overrides its lifespan and assistant dependencies, and uses synthetic test data:
+
+```bash
+PYTHONPATH=components:bases projects/open-access-api/.venv/bin/python \
+  test/bases/niagads/open_access_api/ask/serve_prototype.py
+```
+
+It binds port 8010. Run the frontend with `ASK_API_URL=http://127.0.0.1:8010`.
+Queries containing `dashboard`, `transcript`, or `phenotype` exercise the
+corresponding deterministic test scenarios; other queries show synthetic gene
+evidence. This fake model does not evaluate real question interpretation. Never
+deploy this test harness. It neither starts another production API nor changes
+the normal application lifespan.
+
+## What is connected and what is pending
+
+- Tools call existing gene, gene-structure, gene-association, and semantic query
+  operations. They bound response bytes/rows and report retrieval failures.
+- The existing semantic query embedding step remains incomplete and unchanged.
+  Search results from the test harness are synthetic; live semantic readiness is
+  not claimed.
+- `/record/region/associations` accepts `region=chr19:100-200` **or**
+  `chr=19&start=100&end=200`, plus existing format/content/page parameters. Its
+  declared response models match the gene-association endpoint. Valid input
+  returns the existing HTTP 501 not-implemented response; invalid coordinates
+  return 422. No database context or query is invoked by the placeholder.
+- Transcript tools retrieve gene structure, select the exact transcript ID,
+  and pass its returned location to the region endpoint. Missing/ambiguous
+  transcript selection requests clarification; it does not use the full gene.
+- Phenotype-to-gene retrieval explicitly reports unavailable. It does not use
+  semantic similarity as evidence of a disease association. Future ORM/API work
+  is listed in root TODO.md, including both curated and ±10 kb proximity sources.
+- API help uses FastAPI's OpenAPI generation for the registered routes. Its
+  operation catalog does not depend on application-level server metadata, which
+  currently prevents the full legacy `/openapi.json` export from validating.
+  Existing application metadata and its factory were not changed to repair that
+  unrelated refactor issue.
+
+## Response contract and extension points
+
+The official Vercel UI stream carries text/tool events and a final
+`data-niagads-result` part with a validated `AskResponse`:
+
+```json
+{
+  "version": 1,
+  "status": "ok",
+  "results": [{
+    "id": "server-issued-result-id", "kind": "genes", "rows": [],
+    "page": 1, "limit": 50, "has_more": false,
+    "sources": [], "parameters": {}, "warnings": []
+  }],
+  "presentation": [{
+    "component": "table", "result_id": "server-issued-result-id",
+    "title": "Retrieved evidence", "slot": "primary"
+  }],
+  "warnings": []
+}
+```
+
+This is a schema example, not a real query result. Results are run-local and
+server-owned; tools send bounded previews/result IDs to the model, not full
+datasets. A presentation cannot reference a result from another run. The final
+text is separate from all displayed data. Missing/invalid components are not
+executed. Status distinguishes empty, unsupported, clarification, and retrieval
+failures; provider/limit failures use safe stream errors.
+
+Supported components are `table` and `association_source_bar`. Source bars count
+evidence entries in the retrieved page, not all genes or causal importance.
+Curated evidence retains its list name, assertion/qualifiers and source; proximity
+evidence retains the stable track, variant, and window. Multiple evidence entries
+belong to one deduplicated gene. The known-AD-locus flag remains explicit rather
+than acquiring an invented curated-list name. The contract supports these fields;
+population of phenotype evidence awaits the deferred ORM methods.
+
+To add a component: extend the backend Presentation discriminator, validate its
+result kind/options in ResultStore, mirror its runtime schema in frontend
+`app/ask/contracts.ts`, and add an adapter to the explicit registry in Results.tsx.
+Reuse an existing component contract. Add both backend and frontend tests before
+allowing the model to select it. Never accept arbitrary JSX, HTML, CSS, or URLs.
+
+History is browser-memory only and cleared on reload/new session. At most 12
+messages/16,000 text characters enter a run; the request body is capped at 64 KiB.
+Client-submitted tool results/datasets are discarded, and only user/assistant
+text is allowed. Follow-up evidence is re-fetched. There is no Valkey/Cognito
+integration or cross-visit persistence in these branches.
+
+## Local handoff checks
+
+1. Supply existing database/cache settings only on the user's system. Confirm
+   existing API operations and their authorization boundaries work there.
+2. Implement deferred retrieval in the ORM layer under separately approved scope;
+   wire the region placeholder and future phenotype API through existing services.
+3. Finish embedding integration with the database's actual model/version and query
+   encoding. Do not change models or regenerate stored embeddings for this feature.
+4. Verify real transcript coordinates and both evidence paths, pagination at data
+   scale, correct phenotype selection, and provenance. Variant-impact querying
+   remains deferred.
+5. Select a current free tool-capable model, then run bounded live model/API calls.
+   Check tool arguments, grounding, rate-limit behavior, and browser output.
+6. If telemetry is enabled, confirm correlation/timing/usage without credentials,
+   authorization headers, or large result datasets. Content capture stays off
+   unless explicitly enabled. Telemetry availability cannot block query serving.
+
+Cloud mock tests do not establish live database/provider correctness.

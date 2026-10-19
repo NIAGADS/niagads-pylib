@@ -24,6 +24,9 @@ dependencies = [
     "strenum (>=0.4.15,<0.5.0)",
     "typing-extensions (>=4.13.2,<5.0.0)",
     "uvicorn (>=0.34.2,<0.35.0)",
+    "pydantic-ai-slim[openrouter,ui] (==2.57.0)",
+    "logfire[fastapi,httpx] (==5.2.0)",
+    "httpx (>=0.28.1,<0.29.0)",
 ]
 requires-python = ">=3.11,<4.0"
 version = "1.1.0"

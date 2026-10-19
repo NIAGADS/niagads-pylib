@@ -32,17 +32,24 @@ class ResultStore(ComponentBaseMixin):
         result = self.get(result_id)
         preview = []
         for row in result.rows[:5]:
-            preview.append({
-                key: value for key, value in row.items()
-                if key in {"id", "label", "variant", "track", "description"}
-                and isinstance(value, (str, int, float, bool))
-                and len(str(value)) <= 300
-            })
+            preview.append(
+                {
+                    key: value
+                    for key, value in row.items()
+                    if key in {"id", "label", "variant", "track", "description"}
+                    and isinstance(value, (str, int, float, bool))
+                    and len(str(value)) <= 300
+                }
+            )
         return {
-            "result_id": result.id, "kind": result.kind,
-            "count": len(result.rows), "page": result.page,
-            "has_more": result.has_more, "sources": result.sources[:20],
-            "preview": preview, "warnings": result.warnings,
+            "result_id": result.id,
+            "kind": result.kind,
+            "count": len(result.rows),
+            "page": result.page,
+            "has_more": result.has_more,
+            "sources": result.sources[:20],
+            "preview": preview,
+            "warnings": result.warnings,
         }
 
     def validate_presentation(self, presentation: Presentation) -> Presentation:

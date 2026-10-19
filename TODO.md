@@ -1,5 +1,30 @@
 # TODOs
 
+## ASK NIAGADS alpha
+
+* Local follow-up: update ORM retrieval models/methods for paginated associations
+  by region and phenotype-associated genes with curated and +/-10 kb proximity
+  evidence. Database queries belong in the ORM layer, never in API code. These
+  changes are outside the cloud prototype scope and require separate approval.
+* Wire placeholder region endpoints to those ORM methods after they are ready;
+  preserve existing API response/parameter conventions. Until then report the
+  capability as not implemented, not an empty successful result.
+* Complete the existing API search embedding integration locally using the
+  database's actual model/version/query encoding; the cloud prototype must not
+  alter embedding generation or retrieval implementations.
+* Conversation history is current-session only for the alpha. Deferred: persist
+  conversations across visits using the existing Valkey and AWS Cognito
+  infrastructure, which is not present on the selected development branches.
+  Inspect that infrastructure before designing the persistence integration.
+* Deferred: query variant annotations for variants predicted to impact a gene,
+  then use supporting phenotype associations to identify associated genes.
+  Variant querying infrastructure is not available yet; do not implement this
+  retrieval path in the alpha.
+* Initial gene-association evidence paths: curated gene records
+  (`associated_with_known_ad_locus` and/or `curated_list`) and associated variants
+  within the gene footprint plus 10 kb on each side. Preserve the evidence type
+  and provenance in responses; proximity does not establish predicted impact.
+
 * fix bug w/ALFA loading from dbSNP VCF: wrap in {'ALFA':}.  TODO - patch db
 
 * update schema dataset model to reflect new api model

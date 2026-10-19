@@ -1,6 +1,10 @@
 # ASK NIAGADS alpha design
 
-Status: proposed design for review, not an implementation or validation report.
+Status: prototype specification. User scope correction below supersedes the earlier database implementation proposals.
+
+## Binding scope correction
+
+Build a prototype using existing API operations and mocked responses for cloud validation. No database queries, ORM changes, embedding/retrieval changes, or query-service implementation are in scope. Database queries must remain in the ORM layer, never in API code. Region endpoints may be placeholders matching existing API conventions and returning the existing not-implemented response. Deferred ORM retrieval work belongs in TODO.md and will be implemented locally. The earlier proposed query/embedding implementation sections are removed below.
 
 ## Goal and agreed scope
 
@@ -68,16 +72,15 @@ real expected gene/variant sets without database-backed evidence.
 - The actual Python base is `open_access_api`, not the hyphenated path in the
   uploaded prompt. Gene structure and association routes already exist.
 - The semantic query service currently supplies `embedding = []`. This directly
-  blocks genuine semantic search; the alpha must supply compatible query
-  embeddings through the API search layer, rather than hide the missing step.
+  blocks genuine semantic search; the prototype must expose that limitation rather than modify retrieval or invent search hits.
 - `TextEmbeddingGenerator` exists; it defaults to LiquidAI/LFM2.5-Embedding-350M.
   ETL parameters can override that default. The inspected gene embedding ETL
   normalizes through the generator's default and does not specify prompt_name.
   Stored vectors carry embedding_model metadata, so defaults alone do not prove
   compatibility with the user's database.
 - The association ORM accepts OneBasedGenomicRegion, but returns all matching
-  rows. Slicing its result in Python would not solve the scale problem. New API
-  queries must apply filtering and pagination in SQL before materialization.
+  rows. Production-scale pagination remains an ORM-layer follow-up. The cloud
+  prototype leaves this code unchanged and only caps tool response bytes/rows.
 - There is no registered region route. Developer notes already describe using
   the application startup bin-index reference for region lookup.
 - Gene fixtures use `memberships.curated_lists`, containing `listing`,
@@ -94,9 +97,7 @@ service boundaries and keeps model-visible summaries separate from full rows.
 
 Alternatives considered: giving the model full datasets would inflate context
 and let generated prose corrupt displayed values; direct ORM access from agent
-tools would bypass the requested API boundary. Neither is used. New region and
-phenotype endpoints expose fixed application queries; only that API layer uses
-SQLAlchemy, never model-generated SQL.
+tools would bypass the requested API boundary. Neither is used. Region placeholders declare the future API contract only. All database retrieval remains owned by existing or future ORM methods, outside this prototype.
 
 Flow: Next.js useChat -> same-origin Next.js streaming proxy -> POST /ask on the
 existing FastAPI app -> PydanticAI agent -> registered API tools -> bounded API
@@ -136,59 +137,22 @@ trust a browser-provided upstream URL. Do not allow tools to call /ask recursive
 
 ### Region endpoint
 
-Add a region association route accepting either `region=chr:start-end` or the
-complete tuple `chr`, `start`, `end`. Reject mixed/incomplete forms, reversed or
-non-positive coordinates, unsupported chromosomes, and over-limit spans. Use
-existing chromosome and OneBasedGenomicRegion models; expose one-based inclusive
-coordinates and explicitly convert database half-open ranges. Bin filtering
-narrows candidates and must always accompany chromosome and overlap predicates.
-Apply pagination and stable ordering in the database. Include source track IDs,
-variant IDs, and the queried region in the response.
+Expose a placeholder under /record/region/associations with either region or
+chr/start/end input, existing response format/content/page dependencies, and
+RecordResponse association/summary schemas. Validate positive one-based inclusive
+coordinates. Do not perform bin lookup or retrieval. Valid requests raise
+NotImplementedError through the existing handler, returning HTTP 501. Future ORM
+integration is a TODO and must not put database queries in API code.
 
-### Phenotype-associated genes endpoint
+### Deferred retrieval capabilities
 
-Resolve phenotype identifiers/labels against existing ontology and track
-metadata; ambiguous matches request clarification rather than merging diseases.
-Only explicit supported equivalences count. Do not invent disease synonyms or
-ontology-descendant expansion. Filter curated evidence by its phenotype
-qualifiers. The known-AD-locus flag supplies AD evidence only; it cannot support
-an arbitrary queried phenotype.
-
-Use fixed server-side joins/EXISTS queries for qualifying phenotype tracks,
-associated variants, and genes overlapping a 10,000-base flank on each side of
-the gene footprint. Avoid one query per gene or scanning/materializing all
-association rows. Clamp the lower boundary to position 1 and preserve assembly
-context from existing records. Reuse the existing reported association set;
-do not silently add a novel significance threshold.
-
-Paginate the union of qualifying gene IDs, then retrieve source evidence for
-those genes from both paths. Return stable ordering, pagination information,
-and explicit evidence truncation/count metadata if evidence itself is bounded.
-An exhaustive 'all genes' request traverses pages; a first page is never labeled
-complete. Actual query plans/performance require validation on the user's system.
-
-Per-gene evidence is a list, with one entry for each supporting source:
-
-- evidence_type: curated or proximity.
-- data_source: curated list name/identifier or stable track identifier.
-- Known AD locus flag: retain explicitly; if it is the only evidence, identify
-  the field itself as the source rather than invent a curated-list name.
-- Curated evidence retains assertion, qualifiers, evidence code, and references.
-- Proximity evidence retains variant identifier, track identifier, queried
-  phenotype, and the gene footprint plus 10 kb window.
-
-Deduplicate genes by their stable identifier. Preserve distinct studies and
-sources. Proximity is not causal or predicted-impact evidence.
-
-### Embedding compatibility
-
-Keep embedding generation behind search endpoints. An API-scoped adapter reuses
-TextEmbeddingGenerator with an explicitly configured model and query encoding
-settings. Verify stored model metadata/dimension against configuration during
-local integration. Do not change the embedding model, regenerate embeddings,
-or run comparisons across incompatible models. An unconfigured or mismatched
-embedding backend returns an actionable unavailable state, not fabricated hits.
-Model loading is lazy so docs/help and unit tests do not download models.
+Phenotype-associated gene retrieval and query embedding completion are local
+ORM/search integration follow-ups, not cloud implementation work. The prototype
+must report unavailable capabilities explicitly and may exercise the intended
+contracts with clearly identified mocked responses in tests. Retain both evidence
+types in the response contract: curated list/known-AD-locus sources and stable
+track sources for variants within the gene footprint plus 10 kb. Deduplicate
+genes while preserving all evidence. Do not claim mocked results are real.
 
 ## Validated response and stream contract
 
@@ -264,7 +228,7 @@ concept review will precede any substantial new page-layout implementation.
 
 Cloud validation uses deterministic mocked model/API results and existing data
 fixtures. Test argument schemas, selected tool execution, dependent transcript
-calls, coordinate boundaries, bounded SQL generation, evidence merging,
+calls, coordinate boundaries, placeholder HTTP 501 behavior, evidence rendering,
 pagination, result-reference integrity, stream framing, frontend validation,
 and empty/ambiguous/provider/retrieval/cancellation states. Include a browser
 flow from the Next.js client through the existing FastAPI route with mocked

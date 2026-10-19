@@ -1,10 +1,9 @@
 """Validate authoritative results independently of database/provider access."""
 
 import pytest
-from pydantic import ValidationError
-
 from niagads.open_access_api.ask.contracts import Evidence, Presentation, ResultSet
 from niagads.open_access_api.ask.results import ResultStore
+from pydantic import ValidationError
 
 
 def test_provenance_preserves_curated_and_proximity_sources():
@@ -19,7 +18,9 @@ def test_provenance_preserves_curated_and_proximity_sources():
 
 def test_result_summary_omits_full_rows():
     store = ResultStore()
-    result = store.add(ResultSet(kind="tracks", rows=[{"id": "track-1", "large": "x" * 5000}]))
+    result = store.add(
+        ResultSet(kind="tracks", rows=[{"id": "track-1", "large": "x" * 5000}])
+    )
     summary = store.summary(result.id)
     assert "rows" not in summary
     assert summary["count"] == 1
@@ -28,7 +29,9 @@ def test_result_summary_omits_full_rows():
 
 def test_presentation_cannot_reference_unknown_result():
     with pytest.raises(ValueError, match="Unknown result"):
-        ResultStore().validate_presentation(Presentation(component="table", result_id="forged"))
+        ResultStore().validate_presentation(
+            Presentation(component="table", result_id="forged")
+        )
 
 
 def test_presentation_rejects_unknown_component():
@@ -38,12 +41,21 @@ def test_presentation_rejects_unknown_component():
 
 def test_chart_counts_are_derived_from_source_evidence():
     store = ResultStore()
-    result = store.add(ResultSet(kind="genes", rows=[
-        {"id": "g1", "evidence": [{"data_source": "list-a"}, {"data_source": "track-b"}]},
-        {"id": "g2", "evidence": [{"data_source": "track-b"}]},
-    ]))
+    result = store.add(
+        ResultSet(
+            kind="genes",
+            rows=[
+                {
+                    "id": "g1",
+                    "evidence": [{"data_source": "list-a"}, {"data_source": "track-b"}],
+                },
+                {"id": "g2", "evidence": [{"data_source": "track-b"}]},
+            ],
+        )
+    )
     assert store.source_counts(result.id) == [
-        {"term": "list-a", "count": 1}, {"term": "track-b", "count": 2},
+        {"term": "list-a", "count": 1},
+        {"term": "track-b", "count": 2},
     ]
 
 

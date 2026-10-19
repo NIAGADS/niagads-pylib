@@ -55,8 +55,13 @@ class AskResponse(CustomBaseModel):
 
     version: Literal[1] = 1
     status: Literal[
-        "ok", "empty", "clarification", "unsupported", "retrieval_error",
-        "provider_error", "invalid_presentation",
+        "ok",
+        "empty",
+        "clarification",
+        "unsupported",
+        "retrieval_error",
+        "provider_error",
+        "invalid_presentation",
     ] = "ok"
     results: list[ResultSet] = Field(default_factory=list, max_length=12)
     presentation: list[Presentation] = Field(default_factory=list, max_length=6)

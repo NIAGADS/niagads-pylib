@@ -4,9 +4,9 @@
 
 **Goal:** Add grounded conversational retrieval, evidence tables, and a source-summary dashboard to the existing Open Access API and client.
 
-**Architecture:** A single PydanticAI agent calls an allowlisted in-process API client. Fixed retrieval endpoints perform bounded database queries; a run-local result store supplies authoritative datasets to validated presentation components. A Next.js proxy forwards the AI SDK stream to useChat.
+**Architecture:** A single PydanticAI agent calls an allowlisted in-process API client. Existing retrieval endpoints remain unchanged; region placeholders declare future integration; a run-local result store supplies authoritative datasets to validated presentation components. A Next.js proxy forwards the AI SDK stream to useChat.
 
-**Tech Stack:** Existing FastAPI/Pydantic 2/SQLAlchemy; PydanticAI OpenRouter and Vercel UI adapter; optional Logfire; Next.js/React, ai/@ai-sdk/react, existing @niagads/table and @niagads/charts.
+**Tech Stack:** Existing FastAPI/Pydantic 2; PydanticAI OpenRouter and Vercel UI adapter; optional Logfire; Next.js/React, ai/@ai-sdk/react, existing @niagads/table and @niagads/charts.
 
 **Spec:** User's ASK_NIAGADS_Codex_Prompt-1.md, subsequent agreed decisions, and ../specs/2026-10-19-ask-niagads-alpha-design.md.
 
@@ -14,7 +14,7 @@
 
 - Python base refactor/api; JavaScript base app/oa-api. Never branch from main.
 - No ORM changes without specific approval; no unrelated refactor repairs.
-- One production FastAPI application; no agent SQL, arbitrary URLs, generated code, paid/provider fallback, or variant-impact queries.
+- One production FastAPI application; no SQL or database query code anywhere in the API, arbitrary URLs, generated code, paid/provider fallback, or variant-impact queries.
 - Current-session history only. Both curated and ±10 kb proximity evidence; deduplicate genes and preserve data_source per evidence entry.
 - Database-backed execution is local-system validation only. Cloud tests use mocked dependencies and real transport/parser integration.
 
@@ -40,10 +40,10 @@ Python paths are relative to niagads-pylib; frontend paths to niagads-viz-monore
 | bases/niagads/open_access_api/ask/transport.py | Input/history validation, official Vercel stream adapter, completed data parts |
 | bases/niagads/open_access_api/ask/telemetry.py | Optional nonfatal Logfire setup and redaction |
 | bases/niagads/open_access_api/routes/ask.py | POST /ask registered on existing application |
-| bases/niagads/open_access_api/routes/regions.py | GET /region/associations with region or chr/start/end |
-| bases/niagads/open_access_api/routes/phenotypes.py | GET /phenotype/genes with term, limit, page |
-| components/niagads/api/common/services/association_query.py | Fixed bounded SQLAlchemy statements and provenance assembly |
-| components/niagads/api/common/services/query.py | Complete embedding step through an API-scoped compatible generator adapter |
+| bases/niagads/open_access_api/routes/records/region.py | Region association placeholders with existing conventions |
+| Future phenotype endpoint | Deferred to local ORM integration; no cloud query implementation |
+| TODO.md | Deferred ORM integration; no SQL or query implementation in API code |
+| Existing query/embedding/retrieval code | Read-only; report missing integration honestly |
 | apps/open-access-api-client/app/api/ask/route.ts | Fixed upstream proxy with streamed body and abort propagation |
 | apps/open-access-api-client/app/ask/{contracts,registry,Chat,Results}.* | Runtime validation, existing-component adapters, session conversation |
 | apps/open-access-api-client/app/page.tsx | Host assistant while preserving /docs |
@@ -63,29 +63,17 @@ server-issued result IDs and registered table/association_source_bar components.
 - [ ] Test that model summaries omit full rows and that chart counts derive from stored rows, including duplicate genes with distinct evidence.
 - [ ] Run targeted tests, review the diff, and commit only task files.
 
-### Task 2: Bounded association retrieval endpoints
+### Task 2: Region placeholders matching existing API conventions
 
-Produces `parse_region(region, chromosome, start, end) -> OneBasedGenomicRegion`,
-`query_region_associations(session, region, page, limit, bin_reference) -> ResultSet`,
-and `query_phenotype_genes(session, phenotype, page, limit) -> ResultSet`.
+- [ ] Test both region-string and chromosome/start/end input forms, mixed/invalid input, existing operation IDs/tags/RecordResponse schemas, and HTTP 501 through the existing NotImplementedError handler.
+- [ ] Add bases/niagads/open_access_api/routes/records/region.py with region association placeholder routes, existing format/content/page dependencies, and declared association response models. Do not instantiate database context or execute retrieval.
+- [ ] Register the router in the existing application. Add deferred region/phenotype ORM integration to TODO.md. No new database query service.
+- [ ] Run focused route tests and commit.
 
-- [ ] Add test_association_query.py using AsyncMock sessions and compiled PostgreSQL statements. Cover invalid/mixed coordinates, exact inclusive boundaries, LIMIT/OFFSET/stable ordering, and an extra sentinel row for has_more.
-- [ ] Confirm tests fail, then implement query construction in the API service layer with imported existing ORM declarations. Do not change the ORM.
-- [ ] Resolve phenotype names/CURIEs explicitly. Bind JSON predicates as parameters; filter curated qualifier phenotypes and track phenotype terms, never interpolate user input into SQL text.
-- [ ] Apply pagination to deduplicated qualifying genes before materializing evidence; retrieve curated and proximity evidence for that page. Use gene footprint ±10,000 bases and stable track IDs. Do not fetch every gene's associations separately.
-- [ ] Add tests for the AD flag on a non-AD query, genes with both evidence types, bounded evidence metadata, no matches, and ambiguous term resolution.
-- [ ] Register region/phenotype routers in app.py. Add route tests with overridden dependencies; verify no second app is introduced in production.
-- [ ] Run targeted tests, review the diff, and commit task files.
+### Task 3: Record existing retrieval limitations without changing them
 
-### Task 3: Compatible API search embeddings
-
-Produces an API-scoped query embedding function using TextEmbeddingGenerator;
-QueryEndpointService.fetch_matches remains its existing public interface.
-
-- [ ] Add tests proving the embedding generator is invoked with configured model/query options once per query and that track/gene search receives the resulting vector.
-- [ ] Test incompatible model/dimension metadata as unavailable; no empty vectors and no silent model changes.
-- [ ] Implement lazy generator loading outside the agent layer, preserve the existing embedding generator contract, and run generation away from the event loop.
-- [ ] Run tests and commit scoped search changes. Record that actual database model/revision checks remain local.
+- [ ] Leave QueryEndpointService, embedding generation, ORM models, and retrieval methods unchanged.
+- [ ] Document semantic embedding completion and phenotype-gene retrieval as local follow-ups. Tools must report missing capabilities, not synthesize successful results.
 
 ### Task 4: Typed API tools and provider agent
 
