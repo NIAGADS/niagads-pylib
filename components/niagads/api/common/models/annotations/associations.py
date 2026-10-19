@@ -14,6 +14,7 @@ class VariantAssociation(ORMCompatibleRecord):
         description="stable identifier for the variant associated with the result",
     )
     chromosome: HumanGenome = Field(..., title="Chromosome")
+    position: int = Field(..., title="Position (BP)")
     ref: str = Field(
         default=None,
         title="Reference Allele",

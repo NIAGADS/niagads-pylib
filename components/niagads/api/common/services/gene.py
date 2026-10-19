@@ -91,27 +91,22 @@ class GeneEndpointService(BaseEndpointService):
                 with track phenotypes, or per-track traits and association
                 counts. Returns an empty list if no associations are found.
         """
-        if flank > 0:
-            gene_mapping = await self._lookup_records([gene_id])
-            if not gene_mapping[gene_id]:
-                return []
-            else:
-                span: Range = gene_mapping[gene_id]["span"]
-                chromosome = gene_mapping[gene_id]["chromosome"]
-                # span in db is [); we want [,] so need to subtract 1
-                location = OneBasedGenomicRegion(
-                    start=span.start, end=span.end - 1, chromosome=chromosome
-                )
-                location.start -= flank
-                location.end += flank
-                lookup_value = location
-        else:
-            lookup_value = gene_id
 
-        mappings = await VAOrm.retrieve_records(
-            self._context.database_session, lookup_value
-        )
-        associations = mappings[str(lookup_value)]
+        gene_mapping = await self._lookup_records([gene_id])
+        if not gene_mapping[gene_id]:
+            return []
+        else:
+            gene_record = gene_mapping[gene_id][0]
+            span: Range = gene_record["span"]
+            # span in db is [); we want [,] so need to subtract 1
+            region = OneBasedGenomicRegion.from_region_id(
+                gene_record["gene_structure"]["location"]
+            )
+            region.start -= flank
+            region.end += flank
+
+        mappings = await VAOrm.retrieve_records(self._context.database_session, region)
+        associations = mappings[str(region)]
         if not associations:
             return []
 
@@ -147,25 +142,23 @@ class GeneEndpointService(BaseEndpointService):
             track_id = assoc["track_stable_id"]
 
             if is_structural_variant:
-                results.append(
-                    VariantAssociation(
-                        **assoc,
-                        variant_id=variant_id,
-                        traits=track_traits[track_id],
-                        track=track_id,
-                    )
+                variant_association = VariantAssociation(
+                    **assoc,
+                    variant=variant_id,
+                    traits=track_traits[track_id],
+                    track=track_id,
                 )
+
             else:
-                variant: VariantRecord = VariantRecord.from_positional_id()
-                results.append(
-                    VariantAssociation(
-                        **assoc,
-                        variant_id=variant_id,
-                        chromosome=variant.chromosome,
-                        ref=variant.ref,
-                        alt=variant.alt,
-                        traits=track_traits[track_id],
-                        track=track_id,
-                    )
+                variant: VariantRecord = VariantRecord.from_positional_id(variant_id)
+                variant_association = VariantAssociation(
+                    **assoc,
+                    variant=variant_id,
+                    ref=variant.ref,
+                    alt=variant.alt,
+                    traits=track_traits[track_id],
+                    track=track_id,
                 )
+
+            results.append(variant_association)
         return results
