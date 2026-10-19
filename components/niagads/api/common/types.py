@@ -23,7 +23,7 @@ class ResponseContent(CaseInsensitiveEnum):
     FULL = auto()
     SUMMARY = auto()
     URLS = auto()
-    COUNTS = auto()
+    # COUNTS = auto()
     IDS = auto()
 
 
