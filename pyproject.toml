@@ -89,11 +89,9 @@ ga4gh-vrs = { extras = [
     "extras",
 ], version = "^2.2.0" }
 hgvs = { git = "https://github.com/NIAGADS/hgvs.git", rev = "NIAGADS" }
-httpx = "^0.28.1"
 itsdangerous = "^2.2.0"
 jsonschema = "^4.23.0"
 lxml = "^6.0.2"
-logfire = { version = "5.2.0", extras = ["fastapi", "httpx"] }
 nh3 = "^0.2.21"
 openpyxl = "^3.1.5"
 oxrdflib = "^0.5.0"
@@ -102,7 +100,6 @@ pgvector = "^0.4.2"
 psutil = "^7.1.0"
 psycopg2-binary = "^2.9.11"
 pydantic = "^2.11.1"
-pydantic-ai-slim = { version = "2.57.0", extras = ["openrouter", "ui"] }
 pydantic-settings = "^2.8.1"
 pyparsing = "^3.2.3"
 pysam = "^0.23.0"
@@ -135,6 +132,19 @@ mypy = "^1.8.0"
 pydocstyle = "^6.3.0"
 pytest = "^8.2.2"
 
+[tool.poetry.group.ask]
+optional = true
+
+[tool.poetry.group.ask.dependencies]
+httpx = "^0.28.1"
+
+[tool.poetry.group.ask.dependencies.pydantic-ai-slim]
+version = "2.57.0"
+extras = ["openrouter", "ui"]
+
+[tool.poetry.group.ask.dependencies.logfire]
+version = "5.2.0"
+extras = ["fastapi", "httpx"]
 [tool.poetry.scripts]
 migrate-gwas = "niagads.genomicsdb_etl.data_migration.migrate_legacy_gwas_to_hipFG_standard:main"
 runpipe = "niagads.pipeline_service.runners.core:run_main"
