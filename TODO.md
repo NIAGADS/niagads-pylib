@@ -2,6 +2,9 @@
 
 ## ASK NIAGADS alpha
 
+* Deferred: implement batch ontology-based ORM retrieval for gene documents and
+  tracks. See [Prompt 006](developer-notes/plans/ask/deferred-prompts.md#prompt-006-ontology-based-retrieval-for-gene-documents-and-tracks)
+  for association paths and scope. Activate only when explicitly requested.
 * Revisit ASK configuration loading and discoverability. `AskSettings` maps
   `ASK_*` environment variables to unprefixed attributes through `env_prefix`
   and reads `.env` relative to the working directory. Query embedding settings

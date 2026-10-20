@@ -130,3 +130,45 @@ Report the final responsibility mapping, changed files and import paths,
 checks performed, and remaining validation. Do not claim behavior is verified
 by file moves or import checks alone.
 ```
+
+## Prompt 006: Ontology-based retrieval for gene documents and tracks
+
+```text
+Implement ontology-based retrieval for gene documents and tracks in niagads-pylib.
+
+Follow AGENTS.md and applicable project skills. Inspect existing retrieval
+utilities, models, and mixins before implementing. Do not run tests unless
+explicitly requested.
+
+Add a shared OntologyTermRetrievalMixin with a batch method such as
+find_by_ontology_terms(session, ontology_term_ids). Keep entity-specific
+association queries in the Gene document and Track ORMs. Keep this separate
+from SearchMixin: it resolves already identified ontology terms to associated
+records.
+
+Support these association paths:
+
+Gene documents:
+- GeneModel.gene_type_id -> Gene document through gene_id.
+- GOAssociation.go_term_id -> Gene document through gene_id.
+- GeneXRef.ontology_term_id -> Gene document through gene_id.
+
+Tracks:
+- Track.track_type_id.
+- TrackConcept.ontology_term_id -> Track through track_id.
+- TrackContext.ontology_term_id -> Track through track_id, covering BIOSAMPLE,
+  PHENOTYPE, and EXPERIMENT contexts.
+
+Accept multiple internal ontology_term_id values and perform batch queries
+rather than one query per term. Reuse existing return models and retrieval
+conventions where suitable. Preserve the mapping between matched terms and
+retrieved records, deduplicating repeated associations.
+
+Limit this task to the ORM retrieval capability. Do not change endpoints,
+ontology search, ranking, or ontology hierarchy expansion. Other ontology
+foreign keys—evidence codes, external database types, and variant traits—are
+outside scope.
+
+Review the final diff and run focused non-test checks. Report changed files,
+verification results, and any unresolved design questions.
+```

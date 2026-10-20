@@ -27,7 +27,7 @@ Configure server process variables (secret values belong in secure settings):
 
 | Variable | Purpose/default |
 | --- | --- |
-| OPENROUTER_API_KEY | Server-side OpenRouter credential; not required for mock tests |
+| OPENROUTER_API_KEY | Server-side OpenRouter credential; required for integration tests |
 | OPENROUTER_EMBEDDING_MODEL | Configurable embedding ID; currently restricted to `liquid/lfm-2.5-embedding-350m:free` (default) |
 | OPENROUTER_EMBEDDING_TIMEOUT | 20 seconds per provider HTTP request, maximum 30 |
 | ASK_MODEL | Chat model ID or OpenRouter router, e.g. `openrouter/free`; no chat-model allowlist |
@@ -76,32 +76,33 @@ it does not print credentials or the vector. A rejected model, key, or network
 failure produces an explicit error. Chat requires its
 separate `ASK_MODEL` selection as described above; embedding generation does not.
 
-## Cloud prototype validation
+## Integration tests
 
 Run tests only when explicitly requested, as required by repository AGENTS.md.
-The focused tests use mock API/model dependencies and need no database, model
-key, embedding download, or Logfire credentials:
+The ASK tests use the shared API `client` fixture and the application's normal
+startup, database, cache, and configured OpenRouter model. Install the optional
+`ask` dependency group first. Pytest loads `../.env` relative to the repository
+root before collecting tests, preserving existing process environment values.
+Source paths are configured in `pyproject.toml`.
 
 ```bash
-PYTHONPATH=components:bases projects/open-access-api/.venv/bin/python -m pytest \
-  --confcutdir=test/bases/niagads/open_access_api/ask \
-  test/bases/niagads/open_access_api/ask -q
+poetry run pytest test/bases/niagads/open_access_api/ask
 ```
 
-For browser checks, this test-only runner imports the **existing application**,
-overrides its lifespan and assistant dependencies, and uses synthetic test data:
+To check collection without starting services or sending inference requests:
 
 ```bash
-PYTHONPATH=components:bases projects/open-access-api/.venv/bin/python \
-  test/bases/niagads/open_access_api/ask/serve_prototype.py
+poetry run pytest --collect-only test/bases/niagads/open_access_api/ask
 ```
 
-It binds port 8010. Run the frontend with `ASK_API_URL=http://127.0.0.1:8010`.
-Queries containing `dashboard`, `transcript`, or `phenotype` exercise the
-corresponding deterministic test scenarios; other queries show synthetic gene
-evidence. This fake model does not evaluate real question interpretation. Never
-deploy this test harness. It neither starts another production API nor changes
-the normal application lifespan.
+The streaming cases submit two live ASK questions: an APOE record table and an
+APOE association summary chart. Each question can use up to `ASK_MODEL_REQUESTS`
+model requests (8 by default), with provider retries potentially adding HTTP
+attempts. The two query endpoint cases can each request an OpenRouter embedding
+on a cache miss. Run them only when live service/provider use is intended.
+Missing configuration and service failures are reported as failures, not skipped
+or replaced with synthetic data. For browser checks, use the normal API
+entrypoint and point the frontend's `ASK_API_URL` at that running application.
 
 ## What is connected and what is pending
 
