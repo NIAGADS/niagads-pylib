@@ -2,23 +2,21 @@ from typing import List, Optional, Union
 
 from niagads.api.common.models.records.mixins import ORMCompatabileMixin
 from niagads.api.common.models.records.types import (
-    CountExtendedRecord,
     ORMCompatibleRecord,
 )
 from niagads.common.genomic.features.models import GenomicFeatureType
-from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.track.models import TrackRecord
-from niagads.common.track.models.samples import BiosampleCharacteristics
 from niagads.genome_reference.human import GenomeBuild
 from pydantic import ConfigDict, Field, field_serializer, model_validator
 
-
-class BiosampleCharacteristicsReport(BiosampleCharacteristics):
-    biosample_type: Optional[List[OntologyTerm]] = Field(
-        default=None,
-        title="Biosample: Type",
-        description="the biological source of a sample used in an experiment",
-    )
+# TODO: revise -> creates circular import and can be handled differently
+# upon retrieval to by serializing into ontologyterms
+# class BiosampleCharacteristicsReport(BiosampleCharacteristics):
+#     biosample_type: Optional[List[OntologyTerm]] = Field(
+#         default=None,
+#         title="Biosample: Type",
+#         description="the biological source of a sample used in an experiment",
+#     )
 
 
 class TrackMetadataBrief(ORMCompatibleRecord):
@@ -97,14 +95,7 @@ class TrackMetadataBrief(ORMCompatibleRecord):
 
 class TrackMetadata(TrackRecord, ORMCompatabileMixin):
     id: str = Field(title="Track ID", description="stable track identifier")
-    biosample_characteristics: Optional[BiosampleCharacteristicsReport] = Field(
+    biosample_characteristics: dict = Field(
         default=None,
         title="Sample Characteristics",
-    )
-
-
-class TrackResultMetrics(CountExtendedRecord):
-    id: str = Field(
-        title="Track ID",
-        description="stable track identifier",
     )
