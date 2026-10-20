@@ -31,6 +31,12 @@
 
 - This Python Monorepo is implemented using the Polylith Architecture, managed using poetry
 
+## Test environment
+
+- Environment variables are usually in `../.env`, relative to the repository root.
+- Load that file into the test process without displaying its values.
+- Run tests only when explicitly requested.
+
 ## Code Change Requirements
 
 - All code changes must strictly follow Python and PEP8 coding and line length conventions and requirements in this file.
