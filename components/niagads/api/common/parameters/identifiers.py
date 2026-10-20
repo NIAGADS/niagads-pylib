@@ -16,14 +16,6 @@ async def collection_id(
     return sanitize(collection_id)
 
 
-async def track_id(
-    track_id: str = Path(
-        description="Track (data file) identifier (FILER Accession or DSS File ID)"
-    ),
-) -> str:
-    return sanitize(track_id)
-
-
 async def track_id_query_param(
     track: Optional[str] = Query(
         default=None,
