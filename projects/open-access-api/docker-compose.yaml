@@ -26,14 +26,12 @@ services:
       dockerfile: ./Dockerfile
       args:
         API_VERSION: ${API_VERSION}
-        APP_MODULE: ${APP_MODULE}
     ports:
       - "${HOST_SERVICE_PORT}:8000"
-
     # network_mode: bridge
     # networks:
     #  - niagads-api_default
 
-  # networks:
-  #niagads-api_default:
-  #    external: true
+    # networks:
+    #niagads-api_default:
+    #    external: true
