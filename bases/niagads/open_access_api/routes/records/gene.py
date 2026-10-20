@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Path, Query
 from niagads.api.common.models.annotations.associations import VariantAssociation
 from niagads.api.common.models.context.request import Parameters
 from niagads.api.common.models.context.response import ResponseConfiguration
-from niagads.api.common.models.entities.gene.records import GeneBrief, Gene
+from niagads.api.common.models.entities.gene.records import Gene, GeneBrief
 from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.models.responses.records import (
     RecordMappingResponse,

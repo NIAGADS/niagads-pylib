@@ -1,16 +1,15 @@
 from typing import Annotated
 
 from fastapi import Query
-from pydantic import BeforeValidator
 from niagads.api.common.parameters.validators import (
     sanitize_enum_value,
     sanitize_value,
 )
-
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.common.genomic.features.types import GenomicFeatureType
 from niagads.exceptions.core import ValidationError
 from niagads.genome_reference.human import GenomeBuild, HumanGenome
+from pydantic import BeforeValidator
 
 
 async def assembly_param(

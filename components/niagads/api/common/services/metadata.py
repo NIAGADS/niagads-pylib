@@ -4,7 +4,6 @@ from typing import List, Optional
 from fastapi import HTTPException
 from niagads.api.common.constants import SHARD_PATTERN
 from niagads.api.common.models.context.request import RequestDetails
-
 from niagads.api.common.types import ResponseContent
 from niagads.common.track.models import (
     ExperimentalDesign,

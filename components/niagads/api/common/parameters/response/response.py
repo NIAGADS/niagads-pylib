@@ -1,10 +1,9 @@
 from typing import Annotated, Literal
 
 from fastapi import Query
-from pydantic import BeforeValidator
-
 from niagads.api.common.parameters.validators import sanitize_enum_value
-from niagads.api.common.types import ResponseFormat, ResponseContent
+from niagads.api.common.types import ResponseContent, ResponseFormat
+from pydantic import BeforeValidator
 
 
 async def record_response_content_param(
