@@ -11,38 +11,13 @@ from pydantic import FiniteFloat, TypeAdapter
 
 
 class OpenRouterQueryEmbedding(ComponentBaseMixin):
-    """Resolve the ETL model's provider ID and generate normalized query vectors."""
+    """Generate query vectors using the configured, restricted embedding model."""
 
-    # Match TextEmbeddingGenerator's ETL default without importing local model code.
-    MODEL = "LiquidAI/LFM2.5-Embedding-350M"
     BASE_URL = "https://openrouter.ai"
 
     def __init__(self, settings: QueryEmbeddingSettings | None = None):
         super().__init__()
         self._settings = settings or QueryEmbeddingSettings.from_env()
-
-    @classmethod
-    def resolve_model(cls, catalog: dict) -> str:
-        """Require one exact Hugging Face identity; never select a substitute."""
-        if not isinstance(catalog, dict) or not isinstance(catalog.get("data"), list):
-            raise RuntimeError(
-                "OpenRouter returned an invalid embedding model catalog."
-            )
-        matches = {
-            model["id"]
-            for model in catalog["data"]
-            if isinstance(model, dict)
-            and isinstance(model.get("hugging_face_id"), str)
-            and model["hugging_face_id"].casefold() == cls.MODEL.casefold()
-            and isinstance(model.get("id"), str)
-            and model["id"]
-        }
-        if len(matches) != 1:
-            raise NotImplementedError(
-                f"OpenRouter must advertise exactly one embedding model matching "
-                f"the ETL model {cls.MODEL}; no compatible model was confirmed."
-            )
-        return next(iter(matches))
 
     @staticmethod
     def normalize_embedding(payload: dict, model: str) -> list[float]:
@@ -69,6 +44,7 @@ class OpenRouterQueryEmbedding(ComponentBaseMixin):
         """Embed raw search text remotely, using the ETL's normalized-vector convention."""
         if not query.strip():
             raise ValueError("A nonempty semantic search query is required.")
+        model = self._settings.OPENROUTER_EMBEDDING_MODEL
         headers = {
             "Authorization": (
                 f"Bearer {self._settings.OPENROUTER_API_KEY.get_secret_value()}"
@@ -79,10 +55,6 @@ class OpenRouterQueryEmbedding(ComponentBaseMixin):
                 self.BASE_URL, timeout=self._settings.OPENROUTER_EMBEDDING_TIMEOUT
             ) as manager:
                 session = await manager()
-                async with session.get(
-                    "/api/v1/embeddings/models", headers=headers
-                ) as response:
-                    model = self.resolve_model(await response.json())
                 async with session.post(
                     "/api/v1/embeddings",
                     headers=headers,

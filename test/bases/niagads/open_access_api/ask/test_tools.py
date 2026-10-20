@@ -74,9 +74,7 @@ def test_missing_region_retrieval_is_not_reported_as_empty_success():
     asyncio.run(run())
 
 
-def test_settings_reject_paid_model_and_excessive_limits():
-    with pytest.raises(ValueError, match="free"):
-        AskSettings(model="paid/model")
+def test_settings_reject_excessive_limits():
     with pytest.raises(ValueError):
         AskSettings(tool_calls=1000)
 

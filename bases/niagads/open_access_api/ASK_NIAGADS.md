@@ -28,8 +28,9 @@ Configure server process variables (secret values belong in secure settings):
 | Variable | Purpose/default |
 | --- | --- |
 | OPENROUTER_API_KEY | Server-side OpenRouter credential; not required for mock tests |
+| OPENROUTER_EMBEDDING_MODEL | Configurable embedding ID; currently restricted to `liquid/lfm-2.5-embedding-350m:free` (default) |
 | OPENROUTER_EMBEDDING_TIMEOUT | 20 seconds per provider HTTP request, maximum 30 |
-| ASK_MODEL | Explicit tool-capable OpenRouter model ending in `:free`; no default/fallback |
+| ASK_MODEL | Chat model ID or OpenRouter router, e.g. `openrouter/free`; no chat-model allowlist |
 | ASK_MODEL_REQUESTS | 8 per query, maximum 12 |
 | ASK_TOOL_CALLS | 12 per query, maximum 20 |
 | ASK_API_TIMEOUT | 20 seconds per API tool, maximum 30 |
@@ -38,8 +39,9 @@ Configure server process variables (secret values belong in secure settings):
 | LOGFIRE_TOKEN | Optional server-side telemetry credential |
 | ASK_CAPTURE_CONTENT | false; explicitly opt in to model/prompt/tool content capture |
 
-Never configure paid fallback models. Availability/tool support of a chosen free
-model must be verified with a bounded live call on the user's system. Provider
+OpenRouter can choose the chat model per request when `ASK_MODEL` names a router.
+The chat setting has no embedding-model restriction. Tool support of the chosen
+chat model/router must be verified with a bounded live call. Provider
 construction is isolated in `ask/provider.py`; future Bedrock work can replace that
 construction while keeping tools, result contracts, and the frontend transport.
 No Bedrock integration is implemented now.
@@ -59,17 +61,19 @@ database, configure `OPENROUTER_API_KEY` securely and run:
 ```bash
 PYTHONPATH=components:bases projects/open-access-api/.venv/bin/python - <<'PY'
 import asyncio
+from niagads.api.common.config import QueryEmbeddingSettings
 from niagads.api.common.services.embeddings import OpenRouterQueryEmbedding
 
-generator = OpenRouterQueryEmbedding()
+settings = QueryEmbeddingSettings.from_env()
+generator = OpenRouterQueryEmbedding(settings)
 vector = asyncio.run(generator.generate("Alzheimer disease association studies"))
-print({"model": generator.MODEL, "dimensions": len(vector)})
+print({"model": settings.OPENROUTER_EMBEDDING_MODEL, "dimensions": len(vector)})
 PY
 ```
 
 This contacts OpenRouter for a real vector and reports the model and dimensions;
-it does not print credentials or the vector. A missing model/catalog identity,
-rejected key, or network failure produces an explicit error. Chat requires its
+it does not print credentials or the vector. A rejected model, key, or network
+failure produces an explicit error. Chat requires its
 separate `ASK_MODEL` selection as described above; embedding generation does not.
 
 ## Cloud prototype validation
@@ -110,17 +114,19 @@ the normal application lifespan.
   OpenRouter before invoking their existing retrieval methods. The agent sends
   search text and never receives or generates the vector. Variant semantic search
   remains planned.
-- The embedding adapter uses the user-selected ETL default,
-  `LiquidAI/LFM2.5-Embedding-350M`. It resolves the provider's model ID by requiring
-  exactly one matching `hugging_face_id` in OpenRouter's embedding catalog. A
-  missing, ambiguous, or unverifiable model returns an explicit unavailable error;
-  it never switches embedding models. No local model is loaded.
+- The embedding adapter sends `OPENROUTER_EMBEDDING_MODEL` directly to OpenRouter.
+  The setting defaults to and currently permits only
+  `liquid/lfm-2.5-embedding-350m:free`, the user-supplied ID for the ETL model.
+  It never routes to another embedding model or loads a local model. Catalog
+  discovery is not required. Future model changes require extending the allowed
+  embedding IDs alongside compatible stored vectors and invalidating cached
+  semantic responses; changing this setting does not regenerate stored embeddings.
 - Raw query text is sent to `/api/v1/embeddings` with float encoding. The response
   must contain one finite, nonzero vector from the selected model; it is normalized
   to unit length, matching the inspected ETL generator's default. Missing credentials
   or provider failures stop search before retrieval. Existing API response caching
   continues to avoid embedding calls when a query response is already cached.
-- OpenRouter catalog access was blocked by the cloud proxy during implementation.
+- OpenRouter access was blocked by the cloud proxy during implementation.
   Model availability, inference, tokenization/encoding compatibility, and stored
   vector dimensions still require a live check. The adapter's wiring is implemented;
   successful live semantic retrieval is not yet verified.
@@ -203,14 +209,14 @@ integration or cross-visit persistence in these branches.
    existing API operations and their authorization boundaries work there.
 2. Implement deferred retrieval in the ORM layer under separately approved scope;
    wire the region placeholder and future phenotype API through existing services.
-3. Configure `OPENROUTER_API_KEY` server-side. Confirm OpenRouter advertises the
-   exact ETL embedding model and returns compatible query vectors. Validate against
+3. Configure `OPENROUTER_API_KEY` and `OPENROUTER_EMBEDDING_MODEL` server-side.
+   Confirm OpenRouter returns compatible query vectors for the selected ID. Validate against
    the stored model/version, dimensions, and encoding. Do not switch models or
    regenerate stored embeddings for this feature.
 4. Verify real transcript coordinates and both evidence paths, pagination at data
    scale, correct phenotype selection, and provenance. Variant-impact querying
    remains deferred.
-5. Select a current free tool-capable model, then run bounded live model/API calls.
+5. Configure a tool-capable chat model or router, then run bounded live model/API calls.
    Check tool arguments, grounding, rate-limit behavior, and browser output.
 6. If telemetry is enabled, confirm correlation/timing/usage without credentials,
    authorization headers, or large result datasets. Content capture stays off

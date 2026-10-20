@@ -6,10 +6,11 @@ from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 
 def build_model(settings: AskSettings) -> OpenRouterModel:
-    """Use the explicitly selected free model without provider/model fallback."""
+    """Use the configured chat model or OpenRouter routing identifier."""
     if not settings.model or not settings.api_key:
         raise ValueError(
-            "Set ASK_MODEL to a tool-capable :free model and OPENROUTER_API_KEY server-side."
+            "Set ASK_MODEL to an OpenRouter chat model or router and "
+            "OPENROUTER_API_KEY server-side."
         )
     return OpenRouterModel(
         settings.model,

@@ -10,7 +10,7 @@
   preserve existing API response/parameter conventions. Until then report the
   capability as not implemented, not an empty successful result.
 * Validate the OpenRouter query embedding integration live with the user-selected
-  ETL default, LiquidAI/LFM2.5-Embedding-350M. Confirm catalog availability and
+  ETL default via OPENROUTER_EMBEDDING_MODEL=liquid/lfm-2.5-embedding-350m:free. Confirm availability and
   compatible model/version, encoding, dimensions, and gene/track results locally.
   Query embedding wiring is implemented; stored vectors, ETL, and ORM retrieval
   remain unchanged. Never substitute another embedding model.

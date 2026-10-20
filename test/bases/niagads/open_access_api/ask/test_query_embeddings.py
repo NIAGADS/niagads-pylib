@@ -14,23 +14,16 @@ from niagads.api.common.services.embeddings import OpenRouterQueryEmbedding
 from niagads.common.search.models.record import SearchMatch
 
 
-def test_model_selection_requires_exact_etl_identity():
-    assert (
-        OpenRouterQueryEmbedding.resolve_model(
-            {
-                "data": [
-                    {
-                        "id": "test-provider/embedding",
-                        "hugging_face_id": OpenRouterQueryEmbedding.MODEL,
-                    }
-                ]
-            }
-        )
-        == "test-provider/embedding"
+def test_embedding_model_is_configurable_and_currently_restricted():
+    model = "liquid/lfm-2.5-embedding-350m:free"
+    settings = QueryEmbeddingSettings(
+        OPENROUTER_API_KEY="synthetic-test-key", OPENROUTER_EMBEDDING_MODEL=model
     )
-    with pytest.raises(NotImplementedError, match="ETL model"):
-        OpenRouterQueryEmbedding.resolve_model(
-            {"data": [{"id": "another/model", "hugging_face_id": "another/model"}]}
+    assert settings.OPENROUTER_EMBEDDING_MODEL == model
+    with pytest.raises(ValueError):
+        QueryEmbeddingSettings(
+            OPENROUTER_API_KEY="synthetic-test-key",
+            OPENROUTER_EMBEDDING_MODEL="another/model",
         )
 
 
@@ -54,27 +47,15 @@ def test_embedding_model_substitution_is_rejected():
         )
 
 
-def test_openrouter_request_uses_catalog_id_raw_query_and_server_key(monkeypatch):
-    catalog = MagicMock()
-    catalog.json = AsyncMock(
-        return_value={
-            "data": [
-                {
-                    "id": "test-provider/embedding",
-                    "hugging_face_id": OpenRouterQueryEmbedding.MODEL,
-                }
-            ]
-        }
-    )
+def test_openrouter_request_uses_configured_id_raw_query_and_server_key(monkeypatch):
     result = MagicMock()
     result.json = AsyncMock(
         return_value={
-            "model": "test-provider/embedding",
+            "model": "liquid/lfm-2.5-embedding-350m:free",
             "data": [{"index": 0, "embedding": [3.0, 4.0]}],
         }
     )
     session = MagicMock()
-    session.get.return_value.__aenter__.return_value = catalog
     session.post.return_value.__aenter__.return_value = result
     manager = AsyncMock(return_value=session)
     manager.__aenter__.return_value = manager
@@ -92,11 +73,12 @@ def test_openrouter_request_uses_catalog_id_raw_query_and_server_key(monkeypatch
         "/api/v1/embeddings",
         headers={"Authorization": "Bearer synthetic-test-key"},
         json={
-            "model": "test-provider/embedding",
+            "model": "liquid/lfm-2.5-embedding-350m:free",
             "input": "Alzheimer disease",
             "encoding_format": "float",
         },
     )
+    session.get.assert_not_called()
 
 
 def test_query_service_uses_one_embedding_and_existing_retrieval_methods(monkeypatch):

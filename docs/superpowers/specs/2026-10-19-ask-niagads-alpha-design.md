@@ -4,8 +4,9 @@ Status: prototype specification. User scope correction below supersedes the earl
 
 2026-10-20 update: the user explicitly requested query embedding implementation
 through OpenRouter, using the ETL default LiquidAI/LFM2.5-Embedding-350M. This
-supersedes the earlier query-embedding deferral below. The API now resolves that
-exact model in OpenRouter's embedding catalog, embeds raw query text, normalizes
+supersedes the earlier query-embedding deferral below. The API now uses the
+configurable OPENROUTER_EMBEDDING_MODEL, currently restricted to the user-supplied
+ID liquid/lfm-2.5-embedding-350m:free, embeds raw query text, normalizes
 the vector, and passes it to existing retrieval methods. No ETL, stored-vector,
 ORM, or SQL changes are authorized by this extension. Provider availability and
 live retrieval remain unverified; see the current ASK_NIAGADS.md run guide.
@@ -118,8 +119,8 @@ supports sdk_version 5/6/7, while its prose documentation still emphasizes 5/6;
 do not assume prose documentation alone establishes compatibility.
 
 Use PydanticAI's OpenRouter model/provider support where the selected release
-provides it. Require an explicitly configured tool-capable free model. Reject
-paid model selection and do not silently fall back to another model/provider.
+provides it. ASK_MODEL accepts a chat model ID or router such as openrouter/free;
+chat models have no allowlist. The embedding model has its own restricted setting.
 Provider construction is isolated so Bedrock can replace it later without
 changing tools, schemas, or component rendering. Bedrock is not implemented now.
 

@@ -89,7 +89,7 @@ find_api_operations, and present_results.
 
 - [ ] Verify release APIs from the installed PydanticAI package and pin compatible dependencies in repository manifests/locks. Test provider construction without network calls.
 - [ ] Add test_tools.py and test_agent.py. Mock API transport, not tool execution. Assert exact fixed path/arguments, authorization propagation, transcript-dependent call order, timeout/retry limits, and prohibited URL/SQL arguments.
-- [ ] Implement provider separation with explicitly configured free OpenRouter model, no paid fallback, finite timeout/retries, and injectable model.
+- [ ] Implement provider separation with configurable OpenRouter chat model/router, finite timeout/retries, and injectable model. Embedding restrictions use a separate setting.
 - [ ] Implement tools returning compact summaries plus result references. Source IDs and data come from the result store; present_results validates component choices against retrieved data.
 - [ ] Add OpenAPI help search from the application-generated spec with bounded operation descriptions and validated example parameters. Retrieved descriptions are untrusted data.
 - [ ] Test empty/retrieval/provider/unsupported distinctions and prompt-injection attempts in returned API data.
