@@ -4,8 +4,17 @@ from typing import Any, Literal
 from uuid import uuid4
 
 from niagads.api.common.constants import MAX_NUM_PAGES
+from niagads.api.common.types import AnnotationKind
 from niagads.common.models.base import CustomBaseModel
+from niagads.common.types import Entity
 from pydantic import ConfigDict, Field
+
+SOURCE_CHART_TYPES = (
+    (Entity.GENE, AnnotationKind.REPORT),
+    (Entity.GENE, AnnotationKind.ASSOCIATIONS),
+    (Entity.VARIANT, AnnotationKind.ASSOCIATIONS),
+    (Entity.REGION, AnnotationKind.ASSOCIATIONS),
+)
 
 
 class Evidence(CustomBaseModel):
@@ -28,9 +37,10 @@ class ResultSet(CustomBaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str = Field(default_factory=lambda: str(uuid4()))
-    kind: Literal[
-        "genes", "variants", "tracks", "associations", "structure", "operations"
-    ]
+    entity: Entity
+    annotation: AnnotationKind | None = Field(
+        description="Annotation kind, or null for search candidates."
+    )
     rows: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
     page: int = Field(default=1, ge=1, le=MAX_NUM_PAGES)
     limit: int = Field(default=50, ge=1, le=100)
@@ -56,7 +66,7 @@ class AskResponse(CustomBaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    version: Literal[1] = 1
+    version: Literal[2] = 2
     status: Literal[
         "ok",
         "empty",
@@ -67,5 +77,7 @@ class AskResponse(CustomBaseModel):
         "invalid_presentation",
     ] = "ok"
     results: list[ResultSet] = Field(default_factory=list, max_length=12)
-    presentation: list[Presentation] = Field(default_factory=list, max_length=6)
+    presentation: list[Presentation] = Field(
+        default_factory=list, max_length=6
+    )
     warnings: list[str] = Field(default_factory=list)

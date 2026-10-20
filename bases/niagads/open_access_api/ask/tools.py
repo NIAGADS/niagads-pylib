@@ -4,13 +4,17 @@ from typing import Annotated, Literal
 
 import httpx
 from niagads.api.common.constants import MAX_NUM_PAGES
+from niagads.common.types import Entity
 from niagads.open_access_api.ask.api_client import retrieve
 from niagads.open_access_api.ask.contracts import Presentation
+from niagads.open_access_api.ask.operations import SEARCH_OPERATIONS
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 
 
-async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> dict:
+async def _execute(
+    ctx: RunContext[dict], operation: str, parameters: dict
+) -> dict:
     """Retrieve through the existing API and expose a compact evidence summary."""
     try:
         result = await retrieve(ctx.deps["client"], operation, parameters)
@@ -30,16 +34,21 @@ async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> d
 async def search_resources(
     ctx: RunContext[dict],
     query: str,
-    entity: Literal["tracks", "genes", "variants"],
+    entity: Entity,
     limit: Annotated[int, Field(ge=1, le=50)] = 10,
 ) -> dict:
     """Search gene/track candidates; semantic similarity is not association evidence."""
-    if entity == "variants":
-        detail = "Variant semantic search remains planned; use a variant identifier."
+    operation = SEARCH_OPERATIONS.get(entity)
+    if operation is None:
+        detail = (
+            "Variant semantic search remains planned; use a variant identifier."
+            if entity == Entity.VARIANT
+            else f"Semantic search for {entity.value} is not supported."
+        )
         ctx.deps.setdefault("warnings", []).append(detail)
         ctx.deps.setdefault("failures", []).append("unsupported")
         return {"status": "unsupported", "detail": detail}
-    return await _execute(ctx, f"search_{entity}", {"query": query, "limit": limit})
+    return await _execute(ctx, operation, {"query": query, "limit": limit})
 
 
 async def get_gene(ctx: RunContext[dict], gene: str) -> dict:
@@ -62,7 +71,9 @@ async def get_gene_structure(ctx: RunContext[dict], gene: str) -> dict:
     summary = await _execute(ctx, "gene_structure", {"gene": gene})
     if "result_id" in summary:
         result = ctx.deps["store"].get(summary["result_id"])
-        transcripts = [t for row in result.rows for t in row.get("transcripts", [])]
+        transcripts = [
+            t for row in result.rows for t in row.get("transcripts", [])
+        ]
         summary["transcripts"] = [
             {k: t[k] for k in ("id", "name", "location") if k in t}
             for t in transcripts[:20]
@@ -107,7 +118,9 @@ async def get_transcript_associations(
     if "result_id" not in summary:
         return summary
     result = ctx.deps["store"].get(summary["result_id"])
-    transcripts = [t for row in result.rows for t in row.get("transcripts", [])]
+    transcripts = [
+        t for row in result.rows for t in row.get("transcripts", [])
+    ]
     selected = [t for t in transcripts if t.get("id") == transcript]
     if len(selected) != 1 or not selected[0].get("location"):
         ctx.deps.setdefault("failures", []).append("clarification")
@@ -158,7 +171,13 @@ async def find_api_operations(ctx: RunContext[dict], query: str) -> dict:
                     "parameters": [
                         {
                             k: p[k]
-                            for k in ("name", "in", "required", "schema", "examples")
+                            for k in (
+                                "name",
+                                "in",
+                                "required",
+                                "schema",
+                                "examples",
+                            )
                             if k in p
                         }
                         for p in operation.get("parameters", [])[:12]
@@ -187,4 +206,8 @@ async def present_results(
         ctx.deps["store"].presentations.append(presentation)
     except ValueError as exc:
         raise ModelRetry(str(exc)) from exc
-    return {"status": "validated", "result_id": result_id, "component": component}
+    return {
+        "status": "validated",
+        "result_id": result_id,
+        "component": component,
+    }

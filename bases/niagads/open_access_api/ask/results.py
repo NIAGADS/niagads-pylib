@@ -3,7 +3,11 @@
 from collections import Counter
 
 from niagads.common.core import ComponentBaseMixin
-from niagads.open_access_api.ask.contracts import Presentation, ResultSet
+from niagads.open_access_api.ask.contracts import (
+    SOURCE_CHART_TYPES,
+    Presentation,
+    ResultSet,
+)
 
 
 class ResultStore(ComponentBaseMixin):
@@ -36,14 +40,25 @@ class ResultStore(ComponentBaseMixin):
                 {
                     key: value
                     for key, value in row.items()
-                    if key in {"id", "name", "label", "variant", "track", "description"}
+                    if key
+                    in {
+                        "id",
+                        "name",
+                        "label",
+                        "variant",
+                        "track",
+                        "description",
+                    }
                     and isinstance(value, (str, int, float, bool))
                     and len(str(value)) <= 300
                 }
             )
         return {
             "result_id": result.id,
-            "kind": result.kind,
+            "entity": result.entity.value,
+            "annotation": (
+                result.annotation.value if result.annotation else None
+            ),
             "count": len(result.rows),
             "page": result.page,
             "has_more": result.has_more,
@@ -52,11 +67,13 @@ class ResultStore(ComponentBaseMixin):
             "warnings": result.warnings,
         }
 
-    def validate_presentation(self, presentation: Presentation) -> Presentation:
+    def validate_presentation(
+        self, presentation: Presentation
+    ) -> Presentation:
         """Reject components referring to nonexistent or incompatible datasets."""
         result = self.get(presentation.result_id)
         if presentation.component == "association_source_bar":
-            if result.kind not in {"genes", "associations"}:
+            if (result.entity, result.annotation) not in SOURCE_CHART_TYPES:
                 raise ValueError("Source chart requires association evidence")
         return presentation
 

@@ -43,6 +43,20 @@ class ResponseUI(CaseInsensitiveEnum):
     DEFAULT = auto()
 
 
+class AnnotationKind(CaseInsensitiveEnum):
+    """Kinds of annotation represented by an entity's API records.
+
+    Attributes:
+        REPORT: The entity's canonical report.
+        ASSOCIATIONS: Association annotations for the entity.
+        STRUCTURE: Structural annotations for the entity.
+    """
+
+    REPORT = "report"
+    ASSOCIATIONS = "associations"
+    STRUCTURE = "structure"
+
+
 class Entity(CaseInsensitiveEnum):
     """Enumeration of entity types used in the API.
     Members:
