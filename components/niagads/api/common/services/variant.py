@@ -4,11 +4,14 @@ from fastapi import HTTPException
 from niagads.api.common.models.annotations.associations import VariantAssociation
 from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.services.base import BaseEndpointService
+from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.common.types import RecordRetrievalResult
 from niagads.common.variant.models.record import VariantRecord
+from niagads.database.genomicsdb.schema.results.associations import (
+    VariantAssociation as VAOrm,
+)
 from niagads.database.genomicsdb.schema.variant.documents import Variant as VariantORM
-from niagads.utils.regular_expressions import RegularExpressions
-from niagads.utils.string import matches
+from sqlalchemy.exc import NoResultFound
 
 
 class VariantEndpointService(BaseEndpointService):
@@ -51,14 +54,30 @@ class VariantEndpointService(BaseEndpointService):
             )
         return [mappings[variant_id]]
 
-    # TODO: resume from here -> SV logic -> lookup to get span
+    async def _fetch_structural_variant_associations(
+        self, variant: VariantRecord, *, flank: int, summary: bool
+    ):
+
+        region = OneBasedGenomicRegion.from_database_range(
+            chromosome=variant.chromosome, span=variant.span
+        )
+        region.start -= flank
+        region.end += flank
+
+        mappings = await VAOrm.retrieve_records(self._context.database_session, region)
+        associations = mappings[str(region)]
+
+        return await self._generate_association_lookup_result(
+            associations, summary=summary
+        )
+
     async def fetch_associations(
         self, variant_id: str, *, flank: int = 0, summary: bool = False
     ) -> Union[list[VariantAssociation], list[DynamicRecord]]:
         """Assemble variant associations with their track phenotypes.
 
         Args:
-            gene_id (str): Identifier used to retrieve associations.
+            variant_id (str): Identifier used to retrieve associations.
             summary (bool): Whether to return association counts by track.
 
         Returns:
@@ -66,31 +85,39 @@ class VariantEndpointService(BaseEndpointService):
                 with track phenotypes, or per-track traits and association
                 counts. Returns an empty list if no associations are found.
         """
-        is_structural_variant = matches(
-            variant_id, RegularExpressions.STRUCTUAL_VARIANT_ID
-        )
-        if is_structural_variant:
-            variant = await Variant.fetch_record()
-        else:
-            variant: VariantRecord = VariantRecord.from_positional_id(variant_id)
-            span = variant.span
 
-        gene_mapping = await self._lookup_records([gene_id])
-        if not gene_mapping[gene_id]:
-            return []
+        mappings: RecordRetrievalResult = await self._lookup_records([variant_id])
+        if variant_id not in mappings:
+            raise HTTPException(
+                status_code=404, detail=f"Variant `{variant_id}` not found"
+            )
+
+        variant = mappings["variant_id"][0]
+
+        if variant.is_structural_variant:
+            return await self._fetch_structural_variant_associations(
+                variant, flank=flank, summary=summary
+            )
+
+        if not flank:
+            mappings = await VAOrm.retrieve_records(
+                self._context.database_session, variant["id]"]
+            )
+
         else:
-            gene_record = gene_mapping[gene_id][0]
-            span: Range = gene_record["span"]
-            # span in db is [); we want [,] so need to subtract 1
-            region = OneBasedGenomicRegion.from_region_id(
-                gene_record["gene_structure"]["location"]
+            region = OneBasedGenomicRegion(
+                chromosome=variant.chromosome,
+                start=variant.span.start,
+                end=variant.span.end,
             )
             region.start -= flank
-            region.end += flank
+            region.end -= flank
 
-        mappings = await VAOrm.retrieve_records(self._context.database_session, region)
+            mappings = await VAOrm.retrieve_records(
+                self._context.database_session, region
+            )
+
         associations = mappings[str(region)]
-
         return await self._generate_association_lookup_result(
             associations, summary=summary
         )
