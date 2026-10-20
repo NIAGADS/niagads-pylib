@@ -9,7 +9,7 @@ from niagads.api.common.models.entities.track.records import TrackMetadata
 from niagads.api.common.models.entities.variant.records import Variant
 from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.models.responses.records import RecordResponse
-from niagads.api.common.types import AnnotationKind
+from niagads.api.common.types import AnnotationKind, ResponseContent
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.types import Entity
@@ -98,6 +98,36 @@ OPERATIONS = {
         annotation=AnnotationKind.ASSOCIATIONS,
         response_config=ResponseConfiguration(
             response_model=RecordResponse, record_model=VariantAssociation
+        ),
+    ),
+    "gene_associations_summary": AskOperation(
+        endpoint="/record/gene/{gene}/associations",
+        entity=Entity.GENE,
+        annotation=AnnotationKind.ASSOCIATIONS,
+        response_config=ResponseConfiguration(
+            content=ResponseContent.SUMMARY,
+            response_model=RecordResponse,
+            record_model=DynamicRecord,
+        ),
+    ),
+    "variant_associations_summary": AskOperation(
+        endpoint="/record/variant/{variant}/associations",
+        entity=Entity.VARIANT,
+        annotation=AnnotationKind.ASSOCIATIONS,
+        response_config=ResponseConfiguration(
+            content=ResponseContent.SUMMARY,
+            response_model=RecordResponse,
+            record_model=DynamicRecord,
+        ),
+    ),
+    "region_associations_summary": AskOperation(
+        endpoint="/record/region/associations",
+        entity=Entity.REGION,
+        annotation=AnnotationKind.ASSOCIATIONS,
+        response_config=ResponseConfiguration(
+            content=ResponseContent.SUMMARY,
+            response_model=RecordResponse,
+            record_model=DynamicRecord,
         ),
     ),
 }

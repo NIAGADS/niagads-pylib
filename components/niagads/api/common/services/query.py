@@ -23,6 +23,8 @@ class QueryEndpointService(BaseEndpointService):
         if entity == Entity.VARIANT:
             raise NotImplementedError("Variant semantic search is not yet implemented.")
 
+        # TODO: Revise this hard-coded mapping and update it when OntologyTerm,
+        # Variant, and other searchable entities are added.
         orm_models = {Entity.TRACK: Track, Entity.GENE: Gene}
         models = orm_models.values() if entity is None else (orm_models[entity],)
         embedding = await OpenRouterQueryEmbedding().generate(self._parameters.query)

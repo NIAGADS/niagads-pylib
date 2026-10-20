@@ -4,13 +4,12 @@ from typing import Any, Literal
 from uuid import uuid4
 
 from niagads.api.common.constants import MAX_NUM_PAGES
-from niagads.api.common.types import AnnotationKind
+from niagads.api.common.types import AnnotationKind, ResponseContent
 from niagads.common.models.base import CustomBaseModel
 from niagads.common.types import Entity
 from pydantic import ConfigDict, Field
 
 SOURCE_CHART_TYPES = (
-    (Entity.GENE, AnnotationKind.REPORT),
     (Entity.GENE, AnnotationKind.ASSOCIATIONS),
     (Entity.VARIANT, AnnotationKind.ASSOCIATIONS),
     (Entity.REGION, AnnotationKind.ASSOCIATIONS),
@@ -27,6 +26,7 @@ class ResultSet(CustomBaseModel):
     annotation: AnnotationKind | None = Field(
         description="Annotation kind, or null for search candidates."
     )
+    content: ResponseContent = ResponseContent.FULL
     rows: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
     page: int = Field(default=1, ge=1, le=MAX_NUM_PAGES)
     limit: int = Field(default=50, ge=1, le=100)

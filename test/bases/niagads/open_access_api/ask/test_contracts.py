@@ -2,25 +2,22 @@
 
 import pytest
 from niagads.api.common.constants import MAX_NUM_PAGES
-from niagads.open_access_api.ask.contracts import Evidence, Presentation, ResultSet
+from niagads.open_access_api.ask.contracts import (
+    Presentation,
+    ResultSet,
+)
 from niagads.open_access_api.ask.results import ResultStore
 from pydantic import ValidationError
-
-
-def test_provenance_preserves_curated_and_proximity_sources():
-    evidence = [
-        Evidence(evidence_type="curated", data_source="ADSP GVC TopGenes"),
-        Evidence(evidence_type="proximity", data_source="track-1", variant="rs1"),
-    ]
-    result = ResultSet(kind="genes", rows=[{"id": "gene-1", "evidence": evidence}])
-    assert [e.data_source for e in evidence] == ["ADSP GVC TopGenes", "track-1"]
-    assert result.model_dump(mode="json")["rows"][0]["evidence"][1]["variant"] == "rs1"
 
 
 def test_result_summary_omits_full_rows():
     store = ResultStore()
     result = store.add(
-        ResultSet(kind="tracks", rows=[{"id": "track-1", "large": "x" * 5000}])
+        ResultSet(
+            entity="track",
+            annotation="report",
+            rows=[{"id": "track-1", "large": "x" * 5000}],
+        )
     )
     summary = store.summary(result.id)
     assert "rows" not in summary
@@ -40,31 +37,88 @@ def test_presentation_rejects_unknown_component():
         Presentation(component="execute_js", result_id="result-1")
 
 
-def test_chart_counts_are_derived_from_source_evidence():
+def test_summary_preview_preserves_api_association_counts():
     store = ResultStore()
     result = store.add(
         ResultSet(
-            kind="genes",
+            entity="gene",
+            annotation="associations",
+            content="summary",
             rows=[
-                {
-                    "id": "g1",
-                    "evidence": [{"data_source": "list-a"}, {"data_source": "track-b"}],
-                },
-                {"id": "g2", "evidence": [{"data_source": "track-b"}]},
+                {"track": "track-a", "traits": {}, "num_associations": 1200}
             ],
         )
     )
-    assert store.source_counts(result.id) == [
-        {"term": "list-a", "count": 1},
-        {"term": "track-b", "count": 2},
+    summary = store.summary(result.id)
+    assert summary["content"] == "summary"
+    assert summary["preview"] == [
+        {"track": "track-a", "num_associations": 1200}
     ]
+    store.validate_presentation(
+        Presentation(component="association_source_bar", result_id=result.id)
+    )
 
 
 def test_result_page_has_explicit_incompleteness():
-    result = ResultSet(kind="genes", rows=[{"id": "g1"}], has_more=True)
+    result = ResultSet(
+        entity="gene", annotation="report", rows=[{"id": "g1"}], has_more=True
+    )
     assert result.has_more
     assert result.page == 1
     with pytest.raises(ValidationError):
-        ResultSet(kind="genes", rows=[], limit=101)
+        ResultSet(entity="gene", annotation="report", rows=[], limit=101)
     with pytest.raises(ValidationError):
-        ResultSet(kind="genes", rows=[], page=MAX_NUM_PAGES + 1)
+        ResultSet(
+            entity="gene", annotation="report", rows=[], page=MAX_NUM_PAGES + 1
+        )
+
+
+def test_chart_requires_an_association_summary():
+    store = ResultStore()
+    for entity, annotation, allowed in (
+        ("gene", "report", False),
+        ("variant", "report", False),
+        ("gene", "structure", False),
+        ("gene", None, False),
+        ("variant", "associations", True),
+        ("region", "associations", True),
+    ):
+        result = store.add(
+            ResultSet(entity=entity, annotation=annotation, content="summary")
+        )
+        presentation = Presentation(
+            component="association_source_bar", result_id=result.id
+        )
+        if allowed:
+            store.validate_presentation(presentation)
+        else:
+            with pytest.raises(ValueError, match="association summary"):
+                store.validate_presentation(presentation)
+
+
+def test_result_serializes_entity_and_annotation_separately():
+    result = ResultSet(entity="GENE", annotation="ASSOCIATIONS")
+    data = result.model_dump(mode="json")
+    assert data["entity"] == "gene"
+    assert data["annotation"] == "associations"
+    assert "kind" not in data
+    with pytest.raises(ValidationError):
+        ResultSet(entity="gene", annotation="unknown")
+
+
+def test_chart_rejects_full_association_records():
+    store = ResultStore()
+    result = store.add(
+        ResultSet(
+            entity="gene",
+            annotation="associations",
+            content="full",
+            rows=[{"variant": "rs1", "track": "track-a"}],
+        )
+    )
+    with pytest.raises(ValueError, match="association summary"):
+        store.validate_presentation(
+            Presentation(
+                component="association_source_bar", result_id=result.id
+            )
+        )

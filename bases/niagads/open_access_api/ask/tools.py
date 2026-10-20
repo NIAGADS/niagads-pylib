@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 
 import httpx
 from niagads.api.common.constants import MAX_NUM_PAGES
+from niagads.api.common.types import ResponseContent
 from niagads.common.types import Entity
 from niagads.open_access_api.ask.api_client import retrieve
 from niagads.open_access_api.ask.contracts import Presentation
@@ -87,10 +88,18 @@ async def get_gene_associations(
     gene: str,
     page: Annotated[int, Field(ge=1, le=MAX_NUM_PAGES)] = 1,
     flank: Annotated[int, Field(ge=0, le=1000000)] = 0,
+    content: Literal[
+        ResponseContent.FULL, ResponseContent.SUMMARY
+    ] = ResponseContent.FULL,
 ) -> dict:
-    """Retrieve an existing gene's association page, preserving source track IDs."""
+    """Retrieve gene associations; use summary content for counts by track."""
+    operation = (
+        "gene_associations_summary"
+        if content == ResponseContent.SUMMARY
+        else "gene_associations"
+    )
     return await _execute(
-        ctx, "gene_associations", {"gene": gene, "page": page, "flank": flank}
+        ctx, operation, {"gene": gene, "page": page, "flank": flank}
     )
 
 
@@ -99,11 +108,19 @@ async def get_variant_associations(
     variant: str,
     page: Annotated[int, Field(ge=1, le=MAX_NUM_PAGES)] = 1,
     flank: Annotated[int, Field(ge=0, le=1000000)] = 0,
+    content: Literal[
+        ResponseContent.FULL, ResponseContent.SUMMARY
+    ] = ResponseContent.FULL,
 ) -> dict:
-    """Retrieve a variant's association page with the API's optional flanking span."""
+    """Retrieve variant associations; use summary content for counts by track."""
+    operation = (
+        "variant_associations_summary"
+        if content == ResponseContent.SUMMARY
+        else "variant_associations"
+    )
     return await _execute(
         ctx,
-        "variant_associations",
+        operation,
         {"variant": variant, "page": page, "flank": flank},
     )
 
@@ -112,6 +129,9 @@ async def get_transcript_associations(
     ctx: RunContext[dict],
     gene: str,
     transcript: str,
+    content: Literal[
+        ResponseContent.FULL, ResponseContent.SUMMARY
+    ] = ResponseContent.FULL,
 ) -> dict:
     """Resolve the exact transcript span through gene structure, then query its region."""
     summary = await _execute(ctx, "gene_structure", {"gene": gene})
@@ -129,13 +149,30 @@ async def get_transcript_associations(
             "detail": "Select a transcript ID with a location from the gene structure.",
         }
     return await _execute(
-        ctx, "region_associations", {"region": selected[0]["location"]}
+        ctx,
+        (
+            "region_associations_summary"
+            if content == ResponseContent.SUMMARY
+            else "region_associations"
+        ),
+        {"region": selected[0]["location"]},
     )
 
 
-async def get_region_associations(ctx: RunContext[dict], region: str) -> dict:
-    """Request regional associations; prototype endpoint may explicitly return 501."""
-    return await _execute(ctx, "region_associations", {"region": region})
+async def get_region_associations(
+    ctx: RunContext[dict],
+    region: str,
+    content: Literal[
+        ResponseContent.FULL, ResponseContent.SUMMARY
+    ] = ResponseContent.FULL,
+) -> dict:
+    """Request regional associations or per-track counts; may return 501."""
+    operation = (
+        "region_associations_summary"
+        if content == ResponseContent.SUMMARY
+        else "region_associations"
+    )
+    return await _execute(ctx, operation, {"region": region})
 
 
 async def find_phenotype_genes(ctx: RunContext[dict], phenotype: str) -> dict:

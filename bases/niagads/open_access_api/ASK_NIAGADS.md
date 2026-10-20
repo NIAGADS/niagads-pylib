@@ -160,7 +160,7 @@ The official Vercel UI stream carries text/tool events and a final
   "status": "ok",
   "results": [{
     "id": "server-issued-result-id", "entity": "gene",
-    "annotation": "report", "rows": [],
+    "annotation": "report", "content": "full", "rows": [],
     "page": 1, "limit": 50, "has_more": false,
     "sources": [], "parameters": {}, "warnings": []
   }],
@@ -181,17 +181,19 @@ failures; provider/limit failures use safe stream errors.
 
 Variant reports use `entity: "variant"`, `annotation: "report"`, and the existing
 table presentation.
-Variant annotations are not phenotype association evidence; source charts require
-gene evidence or association rows. At most 50 records from an API page are retained;
-larger pages include an explicit truncation warning.
+Association source charts require `annotation: "associations"` and
+`content: "summary"`. Association tools accept the existing API content selector:
+use `full` for individual `VariantAssociation` records or `summary` for existing
+`DynamicRecord` rows containing `track`, `traits`, and `num_associations`.
+The operation registry describes both responses with the existing record models.
 
-Supported components are `table` and `association_source_bar`. Source bars count
-evidence entries in the retrieved page, not all genes or causal importance.
-Curated evidence retains its list name, assertion/qualifiers and source; proximity
-evidence retains the stable track, variant, and window. Multiple evidence entries
-belong to one deduplicated gene. The known-AD-locus flag remains explicit rather
-than acquiring an invented curated-list name. The contract supports these fields;
-population of phenotype evidence awaits the deferred ORM methods.
+Supported components are `table` and `association_source_bar`. Source bars display
+the API's `num_associations` values for the tracks in the returned summary.
+ASK does not recount individual associations, aggregate gene annotation evidence,
+or infer scientific evidence from these counts. A summary page can contain only
+some tracks; preserve pagination and truncation warnings. At most 50 returned
+records are retained under the current adapter limit. Gene reports and full
+association records can be displayed in tables, not this chart.
 
 Entity identity uses `niagads.common.types.Entity`; annotation kinds use
 `niagads.api.common.types.AnnotationKind`. A report is an annotation kind; records
@@ -202,8 +204,12 @@ the former mixed `kind` field; backend and frontend must be updated together.
 Supported retrieval operations are declared in `ask/operations.py`, with an
 endpoint, entity, annotation kind, and the existing `ResponseConfiguration`
 response/record model pair (for example, `RecordResponse` and `Gene`). This
-metadata describes the existing route's default JSON/full response; it does not
+metadata describes the requested JSON content, including association summaries; it does not
 introduce a second record-model implementation or change route validation.
+Association summary entries use `content=ResponseContent.SUMMARY` and
+`record_model=DynamicRecord`. ASK results include `content` so presentation
+validation can distinguish summaries from full records. Model previews retain
+`num_associations` alongside the track identifier.
 Search operations are derived from entries using `SearchMatch`, independently
 of their operation names. Registering an entity does not enable new retrieval.
 

@@ -27,7 +27,10 @@ def mock_api(request):
                 "data": [
                     {
                         "transcripts": [
-                            {"id": "TEST-TRANSCRIPT", "location": "chr1:100-200"},
+                            {
+                                "id": "TEST-TRANSCRIPT",
+                                "location": "chr1:100-200",
+                            },
                         ]
                     }
                 ]
@@ -36,6 +39,24 @@ def mock_api(request):
     if request.url.path == "/record/region/associations":
         return httpx.Response(501, json={"detail": "ORM integration pending"})
     if request.url.path.endswith("/associations"):
+        if request.url.params.get("content") == "summary":
+            return httpx.Response(
+                200,
+                json={
+                    "data": [
+                        {
+                            "track": "test-track-a",
+                            "traits": {},
+                            "num_associations": 1200,
+                        },
+                        {
+                            "track": "test-track-b",
+                            "traits": {},
+                            "num_associations": 35,
+                        },
+                    ]
+                },
+            )
         return httpx.Response(
             200,
             json={
@@ -65,17 +86,6 @@ def mock_api(request):
                 {
                     "id": "test-gene",
                     "label": "Synthetic test gene",
-                    "evidence": [
-                        {
-                            "evidence_type": "curated",
-                            "data_source": "test-curated-list",
-                        },
-                        {
-                            "evidence_type": "proximity",
-                            "data_source": "test-track-a",
-                            "variant": "test-variant-1",
-                        },
-                    ],
                 },
             ]
         },
@@ -97,7 +107,8 @@ async def mock_model(messages, info):
             for message in reversed(messages)
             if isinstance(message, ModelRequest)
             for part in message.parts
-            if isinstance(part, UserPromptPart) and isinstance(part.content, str)
+            if isinstance(part, UserPromptPart)
+            and isinstance(part.content, str)
         ),
         "",
     )
@@ -108,14 +119,21 @@ async def mock_model(messages, info):
                 "transcript": "TEST-TRANSCRIPT",
             }
         elif "phenotype" in question.casefold():
-            name, args = "find_phenotype_genes", {"phenotype": "test-phenotype"}
+            name, args = "find_phenotype_genes", {
+                "phenotype": "test-phenotype"
+            }
         elif "dashboard" in question.casefold():
-            name, args = "get_gene_associations", {"gene": "test-gene"}
+            name, args = "get_gene_associations", {
+                "gene": "test-gene",
+                "content": "summary",
+            }
         else:
             name, args = "get_gene", {"gene": "test-gene"}
         yield {
             0: DeltaToolCall(
-                name=name, json_args=json.dumps(args), tool_call_id="test-fetch"
+                name=name,
+                json_args=json.dumps(args),
+                tool_call_id="test-fetch",
             )
         }
     elif (
@@ -124,20 +142,27 @@ async def mock_model(messages, info):
         and "result_id" in returns[0].content
     ):
         result_id = returns[0].content["result_id"]
-        yield {
+        calls = {
             0: DeltaToolCall(
                 name="present_results",
-                json_args=json.dumps({"result_id": result_id, "component": "table"}),
+                json_args=json.dumps(
+                    {"result_id": result_id, "component": "table"}
+                ),
                 tool_call_id="test-table",
             ),
-            1: DeltaToolCall(
+        }
+        if returns[0].content.get("content") == "summary":
+            calls[1] = DeltaToolCall(
                 name="present_results",
                 json_args=json.dumps(
-                    {"result_id": result_id, "component": "association_source_bar"}
+                    {
+                        "result_id": result_id,
+                        "component": "association_source_bar",
+                    }
                 ),
                 tool_call_id="test-chart",
-            ),
-        }
+            )
+        yield calls
     else:
         yield "MOCK DATA: this response exercises the prototype with synthetic records. "
         yield "Region and phenotype retrieval require the deferred ORM integration."
@@ -151,7 +176,9 @@ async def no_database_lifespan(app):
 
 def main():
     """Import the existing production application without running its lifespan."""
-    os.environ["DATABASE_URI"] = "postgresql://prototype:prototype@127.0.0.1/prototype"
+    os.environ["DATABASE_URI"] = (
+        "postgresql://prototype:prototype@127.0.0.1/prototype"
+    )
     os.environ["CACHE_DB_URI"] = "redis://127.0.0.1:6379/0"
     os.environ["ASK_TELEMETRY"] = "false"
     app = importlib.import_module("niagads.open_access_api.app").app
@@ -159,7 +186,9 @@ def main():
     app.dependency_overrides[get_agent] = lambda: build_agent(
         AskSettings(), model=FunctionModel(stream_function=mock_model)
     )
-    app.dependency_overrides[get_api_transport] = lambda: httpx.MockTransport(mock_api)
+    app.dependency_overrides[get_api_transport] = lambda: httpx.MockTransport(
+        mock_api
+    )
     uvicorn.run(app, host="127.0.0.1", port=8010)
 
 

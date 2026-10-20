@@ -52,6 +52,11 @@ For example, the existing gene-report operation is registered as:
 ),
 ```
 
+For association summaries, also register the existing endpoint with
+`ResponseConfiguration(content=ResponseContent.SUMMARY,
+response_model=RecordResponse, record_model=DynamicRecord)`. The association
+tools select that entry when their `content` argument is `summary`.
+
 These classes are imported in `ask/operations.py`; reuse the route's existing
 record models rather than creating ASK-specific copies. The configuration
 describes the route's response; it does not replace the route's validation.
@@ -80,7 +85,9 @@ members where they fit. If a new annotation kind is needed, extend
 
 Tables can display new annotations through the existing adapter. Add an
 entity/annotation pair to `SOURCE_CHART_TYPES` in `ask/contracts.py` only when
-the records provide the evidence required by the source chart. New presentation
+the endpoint provides association summary counts. The chart also requires
+`content=ResponseContent.SUMMARY` and the existing `track`/`num_associations`
+fields; it does not count full records or gene annotation evidence. New presentation
 components need their own backend validation and frontend registry entry.
 
 After changing these enums or chart compatibility rules, regenerate the frontend

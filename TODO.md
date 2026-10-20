@@ -2,6 +2,9 @@
 
 ## ASK NIAGADS alpha
 
+* Deferred discussion: [ASK design prompts](developer-notes/plans/ask/deferred-prompts.md)
+  cover hard-coded capabilities, unexpected requests, and extension scenarios.
+  Reference only; activate individual prompts only when explicitly requested.
 * Potential refactor: generate ASK operation metadata at build time from FastAPI
   route definitions or an exported OpenAPI specification instead of maintaining
   `bases/niagads/open_access_api/ask/operations.py` independently. Route definitions

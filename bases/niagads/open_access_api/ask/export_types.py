@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from niagads.api.common.types import AnnotationKind
+from niagads.api.common.types import AnnotationKind, ResponseContent
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.types import Entity
 from niagads.open_access_api.ask.contracts import SOURCE_CHART_TYPES
@@ -23,6 +23,9 @@ class AskTypeExporter(ComponentBaseMixin):
             "Entity": {member.name: member.value for member in Entity},
             "AnnotationKind": {
                 member.name: member.value for member in AnnotationKind
+            },
+            "ResponseContent": {
+                member.name: member.value for member in ResponseContent
             },
             "sourceChartTypes": [
                 {"entity": entity.value, "annotation": annotation.value}

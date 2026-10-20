@@ -4,6 +4,7 @@ import json
 from urllib.parse import quote
 
 import httpx
+from niagads.api.common.types import AnnotationKind
 from niagads.api.common.utils import sanitize
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.common.search.models.record import SearchMatch
@@ -22,6 +23,8 @@ async def retrieve(
     path = definition.endpoint
     semantic_search = definition.response_config.record_model is SearchMatch
     params = dict(parameters)
+    if definition.annotation == AnnotationKind.ASSOCIATIONS:
+        params["content"] = definition.response_config.content.value
     identifier = definition.entity.value
     if f"{{{identifier}}}" in path:
         value = sanitize(params.pop(identifier))
@@ -73,6 +76,7 @@ async def retrieve(
     return ResultSet(
         entity=definition.entity,
         annotation=definition.annotation,
+        content=definition.response_config.content,
         rows=rows,
         page=page,
         limit=50,
