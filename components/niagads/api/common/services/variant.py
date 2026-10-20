@@ -56,7 +56,7 @@ class VariantEndpointService(BaseEndpointService):
             raise HTTPException(
                 status_code=404, detail=f"Variant `{variant_id}` not found"
             )
-        return [mappings[variant_id]]
+        return mappings[variant_id]
 
     async def _fetch_structural_variant_associations(
         self, variant: VariantRecord, *, flank: int, summary: bool
@@ -96,7 +96,9 @@ class VariantEndpointService(BaseEndpointService):
                 status_code=404, detail=f"Variant `{variant_id}` not found"
             )
 
-        variant = mappings["variant_id"][0]
+        variant = VariantRecord(
+            **mappings[variant_id][0], id=mappings[variant_id][0]["niagads_id"]
+        )
 
         if variant.is_structural_variant:
             return await self._fetch_structural_variant_associations(
@@ -105,7 +107,7 @@ class VariantEndpointService(BaseEndpointService):
 
         if not flank:
             mappings = await VAOrm.retrieve_records(
-                self._context.database_session, variant["id]"]
+                self._context.database_session, variant.id
             )
 
         else:

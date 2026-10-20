@@ -167,8 +167,7 @@ class VariantAssociation(
     ) -> dict[str, list[dict]]:
         """Retrieve associations for a variant identifier.
 
-        The identifier is matched exactly against either the variant stable ID
-        or the numeric variant ID.
+        The identifier is matched exactly against either the variant stable ID.
 
         Args:
             session (AsyncSession): Active asynchronous database session.
@@ -183,10 +182,6 @@ class VariantAssociation(
         variant_select = cls._build_lookup_select(
             sql_value_fields,
             lookup_field=cls.variant_stable_id,
-            where_clause=or_(
-                cls.variant_stable_id == sql_value_fields.c.lookup_value,
-                cls.variant_id == sql_value_fields.c.lookup_value.cast(Integer),
-            ),
             join_clause=[
                 (cls, true()),
                 (Track, Track.track_id == cls.track_id),
