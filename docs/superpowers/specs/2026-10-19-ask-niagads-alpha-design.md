@@ -2,6 +2,14 @@
 
 Status: prototype specification. User scope correction below supersedes the earlier database implementation proposals.
 
+2026-10-20 update: the user explicitly requested query embedding implementation
+through OpenRouter, using the ETL default LiquidAI/LFM2.5-Embedding-350M. This
+supersedes the earlier query-embedding deferral below. The API now resolves that
+exact model in OpenRouter's embedding catalog, embeds raw query text, normalizes
+the vector, and passes it to existing retrieval methods. No ETL, stored-vector,
+ORM, or SQL changes are authorized by this extension. Provider availability and
+live retrieval remain unverified; see the current ASK_NIAGADS.md run guide.
+
 ## Binding scope correction
 
 Build a prototype using existing API operations and mocked responses for cloud validation. No database queries, ORM changes, embedding/retrieval changes, or query-service implementation are in scope. Database queries must remain in the ORM layer, never in API code. Region endpoints may be placeholders matching existing API conventions and returning the existing not-implemented response. Deferred ORM retrieval work belongs in TODO.md and will be implemented locally. The earlier proposed query/embedding implementation sections are removed below.

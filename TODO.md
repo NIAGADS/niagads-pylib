@@ -9,9 +9,11 @@
 * Wire placeholder region endpoints to those ORM methods after they are ready;
   preserve existing API response/parameter conventions. Until then report the
   capability as not implemented, not an empty successful result.
-* Complete the existing API search embedding integration locally using the
-  database's actual model/version/query encoding; the cloud prototype must not
-  alter embedding generation or retrieval implementations.
+* Validate the OpenRouter query embedding integration live with the user-selected
+  ETL default, LiquidAI/LFM2.5-Embedding-350M. Confirm catalog availability and
+  compatible model/version, encoding, dimensions, and gene/track results locally.
+  Query embedding wiring is implemented; stored vectors, ETL, and ORM retrieval
+  remain unchanged. Never substitute another embedding model.
 * Conversation history is current-session only for the alpha. Deferred: persist
   conversations across visits using the existing Valkey and AWS Cognito
   infrastructure, which is not present on the selected development branches.

@@ -1,8 +1,9 @@
 # ASK NIAGADS prototype
 
 The existing application exposes `POST /ask`. One PydanticAI agent uses fixed API
-GET tools; no SQL, ORM changes, embedding changes, or database retrieval code is
-part of this prototype. The UI lives in the other repository at
+GET tools. The API query service generates embeddings through OpenRouter using
+the ETL default model. No SQL, ORM changes, stored-vector regeneration, or database
+retrieval changes are part of this prototype. The UI lives in the other repository at
 `apps/open-access-api-client`. Work stays on branches based on `refactor/api`
 (Python) and `app/oa-api` (frontend).
 
@@ -27,6 +28,7 @@ Configure server process variables (secret values belong in secure settings):
 | Variable | Purpose/default |
 | --- | --- |
 | OPENROUTER_API_KEY | Server-side OpenRouter credential; not required for mock tests |
+| OPENROUTER_EMBEDDING_TIMEOUT | 20 seconds per provider HTTP request, maximum 30 |
 | ASK_MODEL | Explicit tool-capable OpenRouter model ending in `:free`; no default/fallback |
 | ASK_MODEL_REQUESTS | 8 per query, maximum 12 |
 | ASK_TOOL_CALLS | 12 per query, maximum 20 |
@@ -50,6 +52,25 @@ PYTHONPATH=components:bases poetry run uvicorn niagads.open_access_api.app:app
 
 Existing API startup still requires the database/cache. The cloud will never
 connect to that database. Do not supply database credentials to the cloud.
+
+To review real embedding generation without starting the API or accessing a
+database, configure `OPENROUTER_API_KEY` securely and run:
+
+```bash
+PYTHONPATH=components:bases projects/open-access-api/.venv/bin/python - <<'PY'
+import asyncio
+from niagads.api.common.services.embeddings import OpenRouterQueryEmbedding
+
+generator = OpenRouterQueryEmbedding()
+vector = asyncio.run(generator.generate("Alzheimer disease association studies"))
+print({"model": generator.MODEL, "dimensions": len(vector)})
+PY
+```
+
+This contacts OpenRouter for a real vector and reports the model and dimensions;
+it does not print credentials or the vector. A missing model/catalog identity,
+rejected key, or network failure produces an explicit error. Chat requires its
+separate `ASK_MODEL` selection as described above; embedding generation does not.
 
 ## Cloud prototype validation
 
@@ -85,10 +106,24 @@ the normal application lifespan.
   data, bound response bytes/rows, and report retrieval failures. Variant lookups
   accept refSNP, structural, and positional allelic identifiers. Association tools
   retain the existing `page` and `flank` parameters and API page-number limit.
-- Semantic query endpoints are placeholders. The search tool reports unsupported
-  without an HTTP request; identifier-based record lookups remain available.
-  Embedding and query service implementations are unchanged. Connect semantic
-  search only after those endpoints are implemented on the development branch.
+- Gene/track semantic query endpoints now generate query embeddings through
+  OpenRouter before invoking their existing retrieval methods. The agent sends
+  search text and never receives or generates the vector. Variant semantic search
+  remains planned.
+- The embedding adapter uses the user-selected ETL default,
+  `LiquidAI/LFM2.5-Embedding-350M`. It resolves the provider's model ID by requiring
+  exactly one matching `hugging_face_id` in OpenRouter's embedding catalog. A
+  missing, ambiguous, or unverifiable model returns an explicit unavailable error;
+  it never switches embedding models. No local model is loaded.
+- Raw query text is sent to `/api/v1/embeddings` with float encoding. The response
+  must contain one finite, nonzero vector from the selected model; it is normalized
+  to unit length, matching the inspected ETL generator's default. Missing credentials
+  or provider failures stop search before retrieval. Existing API response caching
+  continues to avoid embedding calls when a query response is already cached.
+- OpenRouter catalog access was blocked by the cloud proxy during implementation.
+  Model availability, inference, tokenization/encoding compatibility, and stored
+  vector dimensions still require a live check. The adapter's wiring is implemented;
+  successful live semantic retrieval is not yet verified.
 - `/record/region/associations` accepts `region=chr19:100-200` **or**
   `chr=19&start=100&end=200`, plus existing format/content/page parameters. Its
   declared response models match the gene-association endpoint. Valid input
@@ -168,8 +203,10 @@ integration or cross-visit persistence in these branches.
    existing API operations and their authorization boundaries work there.
 2. Implement deferred retrieval in the ORM layer under separately approved scope;
    wire the region placeholder and future phenotype API through existing services.
-3. Finish embedding integration with the database's actual model/version and query
-   encoding. Do not change models or regenerate stored embeddings for this feature.
+3. Configure `OPENROUTER_API_KEY` server-side. Confirm OpenRouter advertises the
+   exact ETL embedding model and returns compatible query vectors. Validate against
+   the stored model/version, dimensions, and encoding. Do not switch models or
+   regenerate stored embeddings for this feature.
 4. Verify real transcript coordinates and both evidence paths, pagination at data
    scale, correct phenotype selection, and provenance. Variant-impact querying
    remains deferred.

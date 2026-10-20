@@ -9,6 +9,8 @@ from niagads.common.genomic.features.models import GenomicFeature
 from niagads.open_access_api.ask.contracts import ResultSet
 
 OPERATIONS = {
+    "search_tracks": ("/query/tracks", "tracks"),
+    "search_genes": ("/query/genes", "genes"),
     "gene": ("/record/gene/{gene}", "genes"),
     "variant": ("/record/variant/{variant}", "variants"),
     "track": ("/record/track/{track}", "tracks"),
@@ -60,7 +62,15 @@ async def retrieve(
     data = payload["data"]
     if not isinstance(data, list) or not all(isinstance(row, dict) for row in data):
         raise ValueError("API returned an unsupported record shape")
-    rows = data[:50]
+    rows = []
+    for record in data[:50]:
+        row = dict(record)
+        if operation.startswith("search_"):
+            if "matched_record_id" not in row:
+                raise ValueError("API returned a semantic match without an identifier")
+            row["id"] = row["matched_record_id"]
+            row.update(row.get("matched_record_details") or {})
+        rows.append(row)
     pagination = payload.get("pagination") or {}
     page = int(params.get("page", 1))
     has_more = len(data) > 50 or pagination.get("total_pages", page) > page
@@ -79,6 +89,11 @@ async def retrieve(
             )
         ),
         warnings=(
+            ["Ranked semantic results are candidates and are not exhaustive."]
+            if operation.startswith("search_")
+            else []
+        )
+        + (
             ["Only the first 50 records of this API page are shown."]
             if len(data) > 50
             else []

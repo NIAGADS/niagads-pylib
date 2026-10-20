@@ -1,6 +1,7 @@
 """Semantic query services for Open Access resources."""
 
 from niagads.api.common.services.base import BaseEndpointService
+from niagads.api.common.services.embeddings import OpenRouterQueryEmbedding
 from niagads.common.search.models.record import SearchMatch
 from niagads.common.types import Entity
 from niagads.database.genomicsdb.schema.dataset.track import Track
@@ -24,7 +25,7 @@ class QueryEndpointService(BaseEndpointService):
 
         orm_models = {Entity.TRACK: Track, Entity.GENE: Gene}
         models = orm_models.values() if entity is None else (orm_models[entity],)
-        embedding = []  # TODO: Calculate the query embedding.
+        embedding = await OpenRouterQueryEmbedding().generate(self._parameters.query)
         matches = []
         for orm_model in models:
             matches.extend(

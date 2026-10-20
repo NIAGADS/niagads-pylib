@@ -18,7 +18,7 @@ async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> d
         return ctx.deps["store"].summary(result.id)
     except NotImplementedError:
         status = "unsupported"
-        detail = "This API operation awaits local ORM/retrieval integration."
+        detail = "This API operation or its required embedding model is unavailable."
     except (httpx.HTTPError, ValueError):
         status = "retrieval_error"
         detail = "API retrieval failed or exceeded prototype limits; narrow the query or retry."
@@ -33,15 +33,13 @@ async def search_resources(
     entity: Literal["tracks", "genes", "variants"],
     limit: Annotated[int, Field(ge=1, le=50)] = 10,
 ) -> dict:
-    """Report semantic search as planned until the query endpoints are implemented."""
-    detail = (
-        "Semantic search is planned and not yet connected to this prototype. "
-        "Use a gene symbol/identifier, variant identifier, or stable track ID "
-        "for a record lookup."
-    )
-    ctx.deps.setdefault("warnings", []).append(detail)
-    ctx.deps.setdefault("failures", []).append("unsupported")
-    return {"status": "unsupported", "detail": detail}
+    """Search gene/track candidates; semantic similarity is not association evidence."""
+    if entity == "variants":
+        detail = "Variant semantic search remains planned; use a variant identifier."
+        ctx.deps.setdefault("warnings", []).append(detail)
+        ctx.deps.setdefault("failures", []).append("unsupported")
+        return {"status": "unsupported", "detail": detail}
+    return await _execute(ctx, f"search_{entity}", {"query": query, "limit": limit})
 
 
 async def get_gene(ctx: RunContext[dict], gene: str) -> dict:

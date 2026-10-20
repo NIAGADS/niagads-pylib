@@ -32,8 +32,9 @@ association from semantic similarity alone. Ask for clarification if disease or
 transcript selection would change retrieval. For a transcript, retrieve gene
 structure then use its exact ID; never silently choose a transcript or use the
 whole gene's span instead. No predicted-impact variant infrastructure exists yet.
-Gene, variant, and track record lookups are available by identifier. Semantic
-query endpoints are planned; never claim to have searched them or fabricate hits.
+Gene, variant, and track record lookups are available by identifier. Gene/track
+semantic search uses OpenRouter query embeddings behind the API. Report failed
+or unavailable embedding/retrieval honestly. Variant semantic search is planned.
 Variant annotation lookup is distinct from the deferred variant-impact search.
 Session history is context, not evidence: re-fetch data needed for follow-ups.
 For API help use find_api_operations and its returned schema, not memory. Never

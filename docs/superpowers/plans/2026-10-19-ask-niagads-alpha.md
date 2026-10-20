@@ -1,5 +1,10 @@
 # ASK NIAGADS Alpha Implementation Plan
 
+2026-10-20 scope extension: the user requested the missing OpenRouter query
+embedding integration with the ETL default model. Implemented in the API query
+service using a separate OpenRouter adapter; existing retrieval methods remain
+unchanged. Earlier embedding deferrals in this historical plan are superseded.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Native execution is selected by the repository's no-subagents instruction.
 
 **Goal:** Add grounded conversational retrieval, evidence tables, and a source-summary dashboard to the existing Open Access API and client.

@@ -151,12 +151,43 @@ def test_record_tool_reports_truncated_page_and_preserves_pagination():
     asyncio.run(run())
 
 
-@pytest.mark.parametrize("entity", ["tracks", "genes", "variants"])
-def test_semantic_search_is_unsupported_without_making_an_api_request(entity):
+def test_variant_semantic_search_is_unsupported_without_making_an_api_request():
     ctx = SimpleNamespace(deps={})
-    result = asyncio.run(search_resources(ctx, query="Alzheimer", entity=entity))
+    result = asyncio.run(search_resources(ctx, query="Alzheimer", entity="variants"))
     assert result["status"] == "unsupported"
     assert ctx.deps["failures"] == ["unsupported"]
+
+
+@pytest.mark.parametrize("entity", ["tracks", "genes"])
+def test_semantic_search_calls_existing_query_api(entity):
+    def handler(request):
+        assert request.url.path == f"/query/{entity}"
+        assert request.url.params["query"] == "Alzheimer"
+        assert request.url.params["limit"] == "10"
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "matched_record_id": "test-match",
+                        "matched_record_details": {"name": "Test semantic candidate"},
+                    }
+                ]
+            },
+        )
+
+    async def run():
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(handler), base_url="http://api"
+        ) as client:
+            return await retrieve(
+                client, f"search_{entity}", {"query": "Alzheimer", "limit": 10}
+            )
+
+    result = asyncio.run(run())
+    assert result.kind == entity
+    assert result.rows[0]["id"] == "test-match"
+    assert result.warnings
 
 
 def test_api_help_preserves_planned_operation_status():
