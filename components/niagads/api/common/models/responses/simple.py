@@ -2,7 +2,6 @@ from typing import Any, List, Union
 
 from niagads.api.common.constants import DEFAULT_NULL_STRING
 from niagads.api.common.models.responses.base import BaseResponseModel
-
 from niagads.utils.string import xstr
 
 

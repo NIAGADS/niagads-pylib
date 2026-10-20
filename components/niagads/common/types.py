@@ -1,5 +1,5 @@
 from enum import auto
-from typing import Any, Annotated, TypeAlias, Union
+from typing import Annotated, Any, TypeAlias, Union
 
 from niagads.enums.core import CaseInsensitiveEnum
 from niagads.utils.regular_expressions import RegularExpressions

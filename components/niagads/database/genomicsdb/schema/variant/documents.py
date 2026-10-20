@@ -10,8 +10,8 @@ from niagads.common.variant.models.record import VariantRecord
 from niagads.common.variant.types import VariantClass
 from niagads.database.decorators import CompressedJson
 from niagads.database.genomicsdb.schema.mixins import (
-    IdAliasMixin,
     BulkRecordRetrievalMixin,
+    IdAliasMixin,
     SearchMixin,
 )
 from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin

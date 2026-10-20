@@ -5,15 +5,14 @@ from fastapi import Depends, Request
 from niagads.api.common.config import Settings
 from niagads.api.common.models.context.cache import CacheKey
 from niagads.api.common.models.context.request import RequestDetails
+from niagads.api.common.models.context.response import ResponseConfiguration
+from niagads.api.common.services.pagination import PaginationService
 from niagads.api.common.utils import get_empty_dict
-from niagads.cache.core import CacheSerializer, CacheManager
+from niagads.cache.core import CacheManager, CacheSerializer
 from niagads.database.session import DatabaseSessionManager
 from niagads.settings.core import ServiceEnvironment, get_service_environment
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from niagads.api.common.models.context.response import ResponseConfiguration
-from niagads.api.common.services.pagination import PaginationService
 
 # internal cache; stores responses as is
 _CACHE_MANAGER = CacheManager(

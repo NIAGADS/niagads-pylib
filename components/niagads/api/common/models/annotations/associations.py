@@ -1,10 +1,9 @@
 from typing import Optional
 
+from niagads.api.common.models.records.types import ORMCompatibleRecord
 from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.genome_reference.human import HumanGenome
 from pydantic import Field
-
-from niagads.api.common.models.records.types import ORMCompatibleRecord
 
 
 class VariantAssociation(ORMCompatibleRecord):

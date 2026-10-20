@@ -2,7 +2,6 @@
 
 from typing import Any, Dict, List, Self
 
-
 from pydantic import ConfigDict, Field
 
 

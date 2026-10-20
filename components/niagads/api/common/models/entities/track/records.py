@@ -1,10 +1,10 @@
 from typing import List, Optional, Union
 
+from niagads.api.common.models.records.mixins import ORMCompatabileMixin
 from niagads.api.common.models.records.types import (
     CountExtendedRecord,
     ORMCompatibleRecord,
 )
-from niagads.api.common.models.records.mixins import ORMCompatabileMixin
 from niagads.common.genomic.features.models import GenomicFeatureType
 from niagads.common.reference.ontologies.models import OntologyTerm
 from niagads.common.track.models import TrackRecord
