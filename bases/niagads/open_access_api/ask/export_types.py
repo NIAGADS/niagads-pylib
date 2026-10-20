@@ -21,9 +21,7 @@ class AskTypeExporter(ComponentBaseMixin):
         """
         constants = {
             "Entity": {member.name: member.value for member in Entity},
-            "AnnotationKind": {
-                member.name: member.value for member in AnnotationKind
-            },
+            "AnnotationKind": {member.name: member.value for member in AnnotationKind},
             "ResponseContent": {
                 member.name: member.value for member in ResponseContent
             },

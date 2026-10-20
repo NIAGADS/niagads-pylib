@@ -55,18 +55,14 @@ async def retrieve(
     if not isinstance(payload, dict) or "data" not in payload:
         raise ValueError("API returned an unsupported record envelope")
     data = payload["data"]
-    if not isinstance(data, list) or not all(
-        isinstance(row, dict) for row in data
-    ):
+    if not isinstance(data, list) or not all(isinstance(row, dict) for row in data):
         raise ValueError("API returned an unsupported record shape")
     rows = []
     for record in data[:50]:
         row = dict(record)
         if semantic_search:
             if "matched_record_id" not in row:
-                raise ValueError(
-                    "API returned a semantic match without an identifier"
-                )
+                raise ValueError("API returned a semantic match without an identifier")
             row["id"] = row["matched_record_id"]
             row.update(row.get("matched_record_details") or {})
         rows.append(row)
