@@ -3,6 +3,7 @@
 from typing import Annotated, Literal
 
 import httpx
+from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.open_access_api.ask.api_client import retrieve
 from niagads.open_access_api.ask.contracts import Presentation
 from pydantic import Field
@@ -29,16 +30,33 @@ async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> d
 async def search_resources(
     ctx: RunContext[dict],
     query: str,
-    entity: Literal["tracks", "genes"],
+    entity: Literal["tracks", "genes", "variants"],
     limit: Annotated[int, Field(ge=1, le=50)] = 10,
 ) -> dict:
-    """Search API semantic matches; these are candidates, not phenotype association proof."""
-    return await _execute(ctx, f"search_{entity}", {"query": query, "limit": limit})
+    """Report semantic search as planned until the query endpoints are implemented."""
+    detail = (
+        "Semantic search is planned and not yet connected to this prototype. "
+        "Use a gene symbol/identifier, variant identifier, or stable track ID "
+        "for a record lookup."
+    )
+    ctx.deps.setdefault("warnings", []).append(detail)
+    ctx.deps.setdefault("failures", []).append("unsupported")
+    return {"status": "unsupported", "detail": detail}
 
 
 async def get_gene(ctx: RunContext[dict], gene: str) -> dict:
     """Retrieve an existing gene record by identifier or symbol."""
     return await _execute(ctx, "gene", {"gene": gene})
+
+
+async def get_variant(ctx: RunContext[dict], variant: str) -> dict:
+    """Retrieve variant records by refSNP, structural, or positional allelic ID."""
+    return await _execute(ctx, "variant", {"variant": variant})
+
+
+async def get_track(ctx: RunContext[dict], track: str) -> dict:
+    """Retrieve track metadata by its stable track identifier."""
+    return await _execute(ctx, "track", {"track": track})
 
 
 async def get_gene_structure(ctx: RunContext[dict], gene: str) -> dict:
@@ -58,10 +76,27 @@ async def get_gene_structure(ctx: RunContext[dict], gene: str) -> dict:
 async def get_gene_associations(
     ctx: RunContext[dict],
     gene: str,
-    page: Annotated[int, Field(ge=1, le=10000)] = 1,
+    page: Annotated[int, Field(ge=1, le=MAX_NUM_PAGES)] = 1,
+    flank: Annotated[int, Field(ge=0, le=1000000)] = 0,
 ) -> dict:
     """Retrieve an existing gene's association page, preserving source track IDs."""
-    return await _execute(ctx, "gene_associations", {"gene": gene, "page": page})
+    return await _execute(
+        ctx, "gene_associations", {"gene": gene, "page": page, "flank": flank}
+    )
+
+
+async def get_variant_associations(
+    ctx: RunContext[dict],
+    variant: str,
+    page: Annotated[int, Field(ge=1, le=MAX_NUM_PAGES)] = 1,
+    flank: Annotated[int, Field(ge=0, le=1000000)] = 0,
+) -> dict:
+    """Retrieve a variant's association page with the API's optional flanking span."""
+    return await _execute(
+        ctx,
+        "variant_associations",
+        {"variant": variant, "page": page, "flank": flank},
+    )
 
 
 async def get_transcript_associations(
@@ -121,6 +156,7 @@ async def find_api_operations(ctx: RunContext[dict], query: str) -> dict:
                     "path": path,
                     "operation_id": operation.get("operationId"),
                     "summary": operation.get("summary", "")[:300],
+                    "x-status": operation.get("x-status"),
                     "parameters": [
                         {
                             k: p[k]

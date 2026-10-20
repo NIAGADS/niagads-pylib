@@ -3,6 +3,7 @@
 from typing import Any, Literal
 from uuid import uuid4
 
+from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.common.models.base import CustomBaseModel
 from pydantic import ConfigDict, Field
 
@@ -27,9 +28,11 @@ class ResultSet(CustomBaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str = Field(default_factory=lambda: str(uuid4()))
-    kind: Literal["genes", "tracks", "associations", "structure", "operations"]
+    kind: Literal[
+        "genes", "variants", "tracks", "associations", "structure", "operations"
+    ]
     rows: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
-    page: int = Field(default=1, ge=1, le=10000)
+    page: int = Field(default=1, ge=1, le=MAX_NUM_PAGES)
     limit: int = Field(default=50, ge=1, le=100)
     has_more: bool = False
     sources: list[str] = Field(default_factory=list, max_length=100)

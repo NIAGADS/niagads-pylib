@@ -9,7 +9,10 @@ from niagads.open_access_api.ask.tools import (
     get_gene_associations,
     get_gene_structure,
     get_region_associations,
+    get_track,
     get_transcript_associations,
+    get_variant,
+    get_variant_associations,
     present_results,
     search_resources,
 )
@@ -29,6 +32,9 @@ association from semantic similarity alone. Ask for clarification if disease or
 transcript selection would change retrieval. For a transcript, retrieve gene
 structure then use its exact ID; never silently choose a transcript or use the
 whole gene's span instead. No predicted-impact variant infrastructure exists yet.
+Gene, variant, and track record lookups are available by identifier. Semantic
+query endpoints are planned; never claim to have searched them or fabricate hits.
+Variant annotation lookup is distinct from the deferred variant-impact search.
 Session history is context, not evidence: re-fetch data needed for follow-ups.
 For API help use find_api_operations and its returned schema, not memory. Never
 claim example requests or missing ORM capabilities have been executed successfully.
@@ -49,8 +55,11 @@ def build_agent(settings: AskSettings, model=None) -> Agent:
         tools=[
             search_resources,
             get_gene,
+            get_variant,
+            get_track,
             get_gene_structure,
             get_gene_associations,
+            get_variant_associations,
             get_transcript_associations,
             get_region_associations,
             find_phenotype_genes,

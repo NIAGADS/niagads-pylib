@@ -1,13 +1,23 @@
 import logging
-from typing import Any
+from collections import Counter
+from typing import Any, Union
 
+from niagads.api.common.models.annotations.associations import VariantAssociation
 from niagads.api.common.models.context.request import Parameters
 from niagads.api.common.models.context.response import ResponseConfiguration
+from niagads.api.common.models.records.types import DynamicRecord
 from niagads.api.common.models.responses.base import BaseResponseModel
 from niagads.api.common.parameters.internal import EndpointContext
 from niagads.api.common.services.pagination import PaginationService
 from niagads.common.core import ComponentBaseMixin
 from niagads.common.models.types import Range
+from niagads.common.types import RecordRetrievalResult
+from niagads.common.variant.models.record import VariantRecord
+from niagads.database.genomicsdb.schema.results.associations import (
+    VariantAssociation as VAOrm,
+)
+from niagads.utils.regular_expressions import RegularExpressions
+from niagads.utils.string import matches
 
 
 class BaseEndpointService(ComponentBaseMixin):
@@ -117,3 +127,69 @@ class BaseEndpointService(ComponentBaseMixin):
             pagination=pagination_state,
             data=paged_result,
         )
+
+    def _generate_association_lookup_result(
+        self, associations: list[dict], *, summary: bool = False
+    ) -> Union[list[VariantAssociation], list[DynamicRecord]]:
+        """Assemble variant associations with their track phenotypes.
+
+        Args:
+            associations (list[dict]): retrieved variant associations
+
+        Returns:
+            Union[list[VariantAssociation], list[DynamicRecord]]: Associations
+                with track phenotypes, or per-track traits and association
+                counts. Returns an empty list if no associations are found.
+        """
+        self.logger.info("in base with associations")
+        if not associations:
+            return []
+
+        if summary:
+            # iterate over returned tracks so that we can get a
+            # count of number of associations per track for summary
+            # response
+            track_counts = Counter()
+            track_traits = {}
+            for association in associations:
+                track_stable_id = association["track_stable_id"]
+                track_counts[track_stable_id] += 1
+
+                if track_stable_id in track_traits:
+                    continue
+
+                track_traits[track_stable_id] = association["traits"]
+
+            return [
+                DynamicRecord(
+                    track=track_id,
+                    traits=track_traits[track_id],
+                    num_associations=count,
+                )
+                for track_id, count in track_counts.items()
+            ]
+
+        results = []
+        for assoc in associations:
+            variant_id = assoc["variant_stable_id"]
+            track_id = assoc["track_stable_id"]
+
+            if matches(variant_id, RegularExpressions.STRUCTUAL_VARIANT_ID):
+                variant_association = VariantAssociation(
+                    **assoc,
+                    variant=variant_id,
+                    track=track_id,
+                )
+
+            else:
+                variant: VariantRecord = VariantRecord.from_positional_id(variant_id)
+                variant_association = VariantAssociation(
+                    **assoc,
+                    variant=variant_id,
+                    ref=variant.ref,
+                    alt=variant.alt,
+                    track=track_id,
+                )
+
+            results.append(variant_association)
+        return results

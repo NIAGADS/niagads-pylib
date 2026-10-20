@@ -36,7 +36,7 @@ class ResultStore(ComponentBaseMixin):
                 {
                     key: value
                     for key, value in row.items()
-                    if key in {"id", "label", "variant", "track", "description"}
+                    if key in {"id", "name", "label", "variant", "track", "description"}
                     and isinstance(value, (str, int, float, bool))
                     and len(str(value)) <= 300
                 }

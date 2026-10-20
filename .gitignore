@@ -12,6 +12,10 @@ db.env
 .env
 .env.local
 *.env.sample
+prod.env
+prod.runtime.env
+dev.env
+dev.runtime.env
 
 .python-version
 

@@ -11,11 +11,12 @@ part of this prototype. The UI lives in the other repository at
 For an existing root Poetry development environment, install the optional group:
 
 ```bash
-poetry install --with ask
+poetry install --no-root --with ask
 ```
 
 The Open Access API project also declares the runtime dependencies in its own
-manifest/lock. The prepared cloud interpreter is
+manifest/lock. It follows the base branch's Python 3.12–3.13 requirement and
+Polylith brick/package mappings. The prepared cloud interpreter is
 `projects/open-access-api/.venv/bin/python`; source checkouts use
 `PYTHONPATH=components:bases`. Dependency versions verified for this prototype:
 PydanticAI Slim 2.57.0, Logfire 5.2.0, AI SDK 7.0.143, and AI SDK React 4.0.147.
@@ -52,8 +53,9 @@ connect to that database. Do not supply database credentials to the cloud.
 
 ## Cloud prototype validation
 
-Focused tests use mock API/model dependencies and need no database, model key,
-embedding download, or Logfire credentials:
+Run tests only when explicitly requested, as required by repository AGENTS.md.
+The focused tests use mock API/model dependencies and need no database, model
+key, embedding download, or Logfire credentials:
 
 ```bash
 PYTHONPATH=components:bases projects/open-access-api/.venv/bin/python -m pytest \
@@ -78,16 +80,21 @@ the normal application lifespan.
 
 ## What is connected and what is pending
 
-- Tools call existing gene, gene-structure, gene-association, and semantic query
-  operations. They bound response bytes/rows and report retrieval failures.
-- The existing semantic query embedding step remains incomplete and unchanged.
-  Search results from the test harness are synthetic; live semantic readiness is
-  not claimed.
+- Tools call existing gene, variant, and track record operations, gene structure,
+  and gene/variant associations. They consume the API's list-based `RecordResponse`
+  data, bound response bytes/rows, and report retrieval failures. Variant lookups
+  accept refSNP, structural, and positional allelic identifiers. Association tools
+  retain the existing `page` and `flank` parameters and API page-number limit.
+- Semantic query endpoints are placeholders. The search tool reports unsupported
+  without an HTTP request; identifier-based record lookups remain available.
+  Embedding and query service implementations are unchanged. Connect semantic
+  search only after those endpoints are implemented on the development branch.
 - `/record/region/associations` accepts `region=chr19:100-200` **or**
   `chr=19&start=100&end=200`, plus existing format/content/page parameters. Its
   declared response models match the gene-association endpoint. Valid input
   returns the existing HTTP 501 not-implemented response; invalid coordinates
-  return 422. No database context or query is invoked by the placeholder.
+  return 422. Its OpenAPI operation carries `x-status: planned`, following the
+  base branch's convention. No database context or query is invoked by the placeholder.
 - Transcript tools retrieve gene structure, select the exact transcript ID,
   and pass its returned location to the region endpoint. Missing/ambiguous
   transcript selection requests clarification; it does not use the full gene.
@@ -95,6 +102,7 @@ the normal application lifespan.
   semantic similarity as evidence of a disease association. Future ORM/API work
   is listed in root TODO.md, including both curated and ±10 kb proximity sources.
 - API help uses FastAPI's OpenAPI generation for the registered routes. Its
+  operation catalog preserves `x-status` for planned endpoints. Its
   operation catalog does not depend on application-level server metadata, which
   currently prevents the full legacy `/openapi.json` export from validating.
   Existing application metadata and its factory were not changed to repair that
@@ -128,6 +136,11 @@ datasets. A presentation cannot reference a result from another run. The final
 text is separate from all displayed data. Missing/invalid components are not
 executed. Status distinguishes empty, unsupported, clarification, and retrieval
 failures; provider/limit failures use safe stream errors.
+
+Variant records use result kind `variants` and the existing table presentation.
+Variant annotations are not phenotype association evidence; source charts require
+gene evidence or association rows. At most 50 records from an API page are retained;
+larger pages include an explicit truncation warning.
 
 Supported components are `table` and `association_source_bar`. Source bars count
 evidence entries in the retrieved page, not all genes or causal importance.

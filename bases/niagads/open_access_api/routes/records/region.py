@@ -45,13 +45,14 @@ async def query_region(
 
 @router.get(
     "/associations",
-    summary="Get region associations (not yet implemented)",
+    summary="Get region associations",
     description=(
         "Retrieve associations in a one-based inclusive region. Prototype contract; "
         "ORM retrieval integration is pending. Valid requests currently return 501."
     ),
     response_description="Regional association records or per-track summaries.",
     operation_id="getRegionAssociations",
+    openapi_extra={"x-status": "planned"},
     response_model=Union[
         RecordResponse[VariantAssociation], RecordResponse[DynamicRecord]
     ],

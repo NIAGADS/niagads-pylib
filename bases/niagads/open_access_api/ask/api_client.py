@@ -4,15 +4,17 @@ import json
 from urllib.parse import quote
 
 import httpx
+from niagads.api.common.utils import sanitize
 from niagads.common.genomic.features.models import GenomicFeature
 from niagads.open_access_api.ask.contracts import ResultSet
 
 OPERATIONS = {
-    "search_tracks": ("/query/tracks", "tracks"),
-    "search_genes": ("/query/genes", "genes"),
     "gene": ("/record/gene/{gene}", "genes"),
+    "variant": ("/record/variant/{variant}", "variants"),
+    "track": ("/record/track/{track}", "tracks"),
     "gene_structure": ("/record/gene/{gene}/structure", "structure"),
     "gene_associations": ("/record/gene/{gene}/associations", "associations"),
+    "variant_associations": ("/record/variant/{variant}/associations", "associations"),
     "region_associations": ("/record/region/associations", "associations"),
 }
 
@@ -25,10 +27,17 @@ async def retrieve(
         raise ValueError("Operation is not registered")
     path, kind = OPERATIONS[operation]
     params = dict(parameters)
-    if "{gene}" in path:
-        gene = params.pop("gene")
-        GenomicFeature.validate_gene_id(gene)
-        path = path.format(gene=quote(gene, safe=""))
+    for identifier in ("gene", "variant", "track"):
+        if f"{{{identifier}}}" not in path:
+            continue
+        value = sanitize(params.pop(identifier))
+        if identifier == "gene":
+            value = GenomicFeature.validate_gene_id(value)
+        elif identifier == "variant":
+            value = GenomicFeature.validate_variant_id(value)
+        if not value or value in {".", ".."} or "/" in value:
+            raise ValueError("Invalid record identifier")
+        path = path.format(**{identifier: quote(value, safe="")})
     chunks = []
     size = 0
     async with client.stream("GET", path, params=params) as response:
@@ -49,24 +58,9 @@ async def retrieve(
     if not isinstance(payload, dict) or "data" not in payload:
         raise ValueError("API returned an unsupported record envelope")
     data = payload["data"]
-    if isinstance(data, dict):
-        if kind == "structure":
-            data = [data] if data else []
-        else:
-            data = [
-                row
-                for values in data.values()
-                for row in (values if isinstance(values, list) else [values])
-            ]
     if not isinstance(data, list) or not all(isinstance(row, dict) for row in data):
         raise ValueError("API returned an unsupported record shape")
-    rows = []
-    for raw in data[:50]:
-        row = dict(raw)
-        if "matched_record_id" in row:
-            row["id"] = row["matched_record_id"]
-            row.update(row.get("matched_record_details") or {})
-        rows.append(row)
+    rows = data[:50]
     pagination = payload.get("pagination") or {}
     page = int(params.get("page", 1))
     has_more = len(data) > 50 or pagination.get("total_pages", page) > page
@@ -85,8 +79,8 @@ async def retrieve(
             )
         ),
         warnings=(
-            ["Ranked search results are bounded and are not exhaustive."]
-            if operation.startswith("search_")
+            ["Only the first 50 records of this API page are shown."]
+            if len(data) > 50
             else []
         ),
     )

@@ -1,6 +1,7 @@
 """Validate authoritative results independently of database/provider access."""
 
 import pytest
+from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.open_access_api.ask.contracts import Evidence, Presentation, ResultSet
 from niagads.open_access_api.ask.results import ResultStore
 from pydantic import ValidationError
@@ -65,3 +66,5 @@ def test_result_page_has_explicit_incompleteness():
     assert result.page == 1
     with pytest.raises(ValidationError):
         ResultSet(kind="genes", rows=[], limit=101)
+    with pytest.raises(ValidationError):
+        ResultSet(kind="genes", rows=[], page=MAX_NUM_PAGES + 1)

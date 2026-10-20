@@ -643,30 +643,27 @@ class BulkRecordRetrievalMixin:
             SELECT containing ``lookup_value`` and the full record as JSON.
 
         Note:
-            Without ``join_clause``, ``where_clause`` replaces the default
-            equality match. With ``join_clause``, it is applied as a filter
-            after the additional table is joined.
+            ``where_clause`` replaces the default equality match. The match
+            condition is applied to the default join or as a filter after
+            explicit joins.
         """
         stmt = select(
             sql_value_array.c.lookup_value,
             func.row_to_json(cls.__table__.table_valued()).cast(JSONB).label("record"),
         ).select_from(sql_value_array)
 
+        match_condition = (
+            where_clause
+            if where_clause is not None
+            else lookup_field == sql_value_array.c.lookup_value
+        )
+
         if join_clause:
             for table, condition in join_clause:
                 stmt = stmt.join(table, condition)
+            stmt = stmt.where(match_condition)
         else:
-            stmt = stmt.join(
-                cls,
-                (
-                    where_clause
-                    if where_clause is not None
-                    else lookup_field == sql_value_array.c.lookup_value
-                ),
-            )
-
-        if join_clause and where_clause is not None:
-            stmt = stmt.where(where_clause)
+            stmt = stmt.join(cls, match_condition)
 
         return stmt
 

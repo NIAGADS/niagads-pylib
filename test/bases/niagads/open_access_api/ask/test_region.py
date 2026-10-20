@@ -48,6 +48,7 @@ def test_region_declares_existing_response_and_pagination_contract(client):
     ]["get"]
     assert operation["operationId"] == "getRegionAssociations"
     assert operation["tags"] == ["Region"]
+    assert operation["x-status"] == "planned"
     names = {p["name"] for p in operation["parameters"]}
     assert {"region", "chr", "start", "end", "page", "format", "content"} <= names
     assert "RecordResponse" in str(operation["responses"]["200"])

@@ -17,11 +17,7 @@ def test_agent_retrieves_and_presents_server_owned_result():
         calls.append(messages)
         if len(calls) == 1:
             return ModelResponse(
-                parts=[
-                    ToolCallPart(
-                        "search_resources", {"query": "test", "entity": "tracks"}
-                    )
-                ]
+                parts=[ToolCallPart("get_track", {"track": "track-1"})]
             )
         if len(calls) == 2:
             result_id = next(iter(store.results))
@@ -50,7 +46,7 @@ def test_agent_retrieves_and_presents_server_owned_result():
         ) as client:
             agent = build_agent(AskSettings(), model=FunctionModel(model))
             return await agent.run(
-                "Find a test track", deps={"store": store, "client": client, "spec": {}}
+                "Get track-1", deps={"store": store, "client": client, "spec": {}}
             )
 
     result = asyncio.run(run())

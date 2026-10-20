@@ -1,4 +1,4 @@
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, Union
 
 from niagads.common.models.types import Range
 from niagads.genome_reference.human import HumanGenome
@@ -94,6 +94,23 @@ class OneBasedGenomicRegion(GenomicRegion):
             end=self.end,
             length=self.length,
             strand=self.strand,
+        )
+
+    @classmethod
+    def from_database_range(cls, *, chromosome: Union[str, HumanGenome], span: Range):
+        """Create a one-based genomic region from a database span.  Database ranges
+        are stored as [,) (half-open intervals), so need to convert to [,]
+        (closed interval) by subtracting 1 from end.
+
+        Args:
+            chromosome (Union[str, HumanGenome]): Chromosome identifier.
+            span: A half-open range object with start and end coordinates.
+
+        Returns:
+            OneBasedGenomicRegion: The corresponding one-based genomic region.
+        """
+        return cls(
+            chromosome=HumanGenome(chromosome), start=span.start, end=span.end - 1
         )
 
 

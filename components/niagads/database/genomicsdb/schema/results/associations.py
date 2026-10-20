@@ -4,8 +4,8 @@ from niagads.common.genomic.regions.models import OneBasedGenomicRegion
 from niagads.database.genomicsdb.schema.dataset.helpers import track_fk_column
 from niagads.database.genomicsdb.schema.dataset.track import Track
 from niagads.database.genomicsdb.schema.mixins import BulkRecordRetrievalMixin
-from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.database.genomicsdb.schema.reference.helpers import ontology_term_fk_column
+from niagads.database.genomicsdb.schema.reference.interval_bin import IntervalBin
 from niagads.database.genomicsdb.schema.reference.mixins import ExternalDatabaseMixin
 from niagads.database.genomicsdb.schema.results.base import ResultsTableBase
 from niagads.database.mixins.ranges import GenomicRegionMixin
@@ -85,6 +85,8 @@ class VariantAssociation(
                 func.jsonb_build_object(
                     "track_stable_id",
                     Track.source_id,
+                    "traits",
+                    Track.participant_phenotypes,
                     "position",
                     func.lower(cls.span),
                 )
@@ -147,6 +149,8 @@ class VariantAssociation(
                 func.jsonb_build_object(
                     "track_stable_id",
                     Track.source_id,
+                    "traits",
+                    Track.participant_phenotypes,
                     "position",
                     func.lower(cls.span),
                 )
@@ -167,8 +171,7 @@ class VariantAssociation(
     ) -> dict[str, list[dict]]:
         """Retrieve associations for a variant identifier.
 
-        The identifier is matched exactly against either the variant stable ID
-        or the numeric variant ID.
+        The identifier is matched exactly against either the variant stable ID.
 
         Args:
             session (AsyncSession): Active asynchronous database session.
@@ -183,10 +186,6 @@ class VariantAssociation(
         variant_select = cls._build_lookup_select(
             sql_value_fields,
             lookup_field=cls.variant_stable_id,
-            where_clause=or_(
-                cls.variant_stable_id == sql_value_fields.c.lookup_value,
-                cls.variant_id == sql_value_fields.c.lookup_value.cast(Integer),
-            ),
             join_clause=[
                 (cls, true()),
                 (Track, Track.track_id == cls.track_id),
@@ -198,6 +197,8 @@ class VariantAssociation(
                 func.jsonb_build_object(
                     "track_stable_id",
                     Track.source_id,
+                    "traits",
+                    Track.participant_phenotypes,
                     "position",
                     func.lower(cls.span),
                 )
@@ -222,6 +223,17 @@ class VariantAssociation(
     async def retrieve_records(
         cls, session, lookup_value: Union[int, str, OneBasedGenomicRegion]
     ):
+        """Find records that match an track database primary key (lookup_value:int), variant
+        stable id (str), region (OneBasedGenomicRegion)
+
+        Args:
+            session (AsyncSession): Active asynchronous database session.
+            lookup_value (int, str, OneBasedGenomicRegion): track_pk (int); variant
+            stable id (str), region
+        Returns:
+            RecordRetrievalResult: Matching search result records grouped by
+                identifier.
+        """
         if isinstance(lookup_value, str):  # variant id
             return await cls._retrieve_associations_by_variant(session, lookup_value)
         elif isinstance(lookup_value, int):  # track record primary key

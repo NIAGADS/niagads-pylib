@@ -77,7 +77,7 @@ def test_real_adapter_streams_complete_result_envelope():
     app.dependency_overrides[get_agent] = lambda: build_agent(
         AskSettings(),
         model=TestModel(
-            call_tools=["search_resources"], custom_output_text="Mocked test evidence."
+            call_tools=["get_track"], custom_output_text="Mocked test evidence."
         ),
     )
     app.dependency_overrides[get_api_transport] = lambda: httpx.MockTransport(
@@ -93,7 +93,7 @@ def test_real_adapter_streams_complete_result_envelope():
                     {
                         "id": "u1",
                         "role": "user",
-                        "parts": [{"type": "text", "text": "Find tracks"}],
+                        "parts": [{"type": "text", "text": "Get track-test"}],
                     },
                 ]
             },
