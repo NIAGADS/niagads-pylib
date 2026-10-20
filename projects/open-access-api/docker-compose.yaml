@@ -28,6 +28,8 @@ services:
         API_VERSION: ${API_VERSION}
     ports:
       - "${HOST_SERVICE_PORT}:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 networks:
   default:
