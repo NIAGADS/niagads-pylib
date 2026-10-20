@@ -127,7 +127,7 @@ async def get_variant(
         response_config=ResponseConfiguration(
             format=format,
             content=content,
-            response_model=RecordMappingResponse,
+            response_model=RecordResponse,
             record_model=record_model,
         ),
     )
