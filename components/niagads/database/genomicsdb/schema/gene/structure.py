@@ -29,7 +29,7 @@ class GeneModel(GeneTableBase, GenomicRegionMixin, IdAliasMixin):
             "ix_gene_name_trgm",
             "gene_name",
             postgresql_using="gin",
-            postgresql_ops={"name": "gin_trgm_ops"},
+            postgresql_ops={"gene_name": "gin_trgm_ops"},
         ),
         CheckConstraint(
             f"source_id ~ '{RegularExpressions.ENSEMBL_GENE_ID}'",
