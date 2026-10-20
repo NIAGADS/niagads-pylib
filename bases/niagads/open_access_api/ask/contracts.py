@@ -5,7 +5,37 @@ from uuid import uuid4
 
 from niagads.api.common.constants import MAX_NUM_PAGES
 from niagads.common.models.base import CustomBaseModel
+from niagads.enums.core import CaseInsensitiveEnum
 from pydantic import ConfigDict, Field
+
+
+class AskErrorCode(CaseInsensitiveEnum):
+    """Safe failure categories shared by ASK tools and browser results."""
+
+    INVALID_INPUT = "invalid_input"
+    NOT_FOUND = "not_found"
+    UNSUPPORTED = "unsupported"
+    AUTHENTICATION = "authentication"
+    AUTHORIZATION = "authorization"
+    RATE_LIMIT = "rate_limit"
+    TIMEOUT = "timeout"
+    PROVIDER_ERROR = "provider_error"
+    MALFORMED_RESPONSE = "malformed_response"
+    RESPONSE_TOO_LARGE = "response_too_large"
+    USAGE_LIMIT = "usage_limit"
+    INTERNAL_ERROR = "internal_error"
+
+
+class AskIssue(CustomBaseModel):
+    """A safe operation failure; raw exceptions remain on the server."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    code: AskErrorCode
+    operation: str
+    message: str
+    request_id: str | None = None
+    provider_request_id: str | None = None
 
 
 class Evidence(CustomBaseModel):
@@ -56,6 +86,7 @@ class AskResponse(CustomBaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    issues: list[AskIssue] = Field(default_factory=list)
     version: Literal[1] = 1
     status: Literal[
         "ok",

@@ -7,6 +7,7 @@ import httpx
 import pytest
 from niagads.open_access_api.ask.api_client import retrieve
 from niagads.open_access_api.ask.config import AskSettings
+from niagads.open_access_api.ask.errors import RetrievalError
 from niagads.open_access_api.ask.tools import find_api_operations, search_resources
 
 
@@ -68,7 +69,7 @@ def test_missing_region_retrieval_is_not_reported_as_empty_success():
             ),
             base_url="http://api",
         ) as client:
-            with pytest.raises(NotImplementedError, match="ORM"):
+            with pytest.raises(RetrievalError, match="not available"):
                 await retrieve(client, "region_associations", {"region": "1:10-20"})
 
     asyncio.run(run())
@@ -89,7 +90,7 @@ def test_record_identifiers_cannot_change_the_registered_path(operation):
             base_url="http://api",
         ) as client:
             for identifier in ("..", "../track", "https://untrusted.example"):
-                with pytest.raises(ValueError):
+                with pytest.raises(RetrievalError):
                     await retrieve(client, operation, {operation: identifier})
 
     asyncio.run(run())
@@ -103,7 +104,7 @@ def test_invalid_api_envelope_is_not_reported_as_no_matches():
             ),
             base_url="http://api",
         ) as client:
-            with pytest.raises(ValueError, match="envelope"):
+            with pytest.raises(RetrievalError, match="invalid response"):
                 await retrieve(client, "track", {"track": "track-1"})
 
     asyncio.run(run())
