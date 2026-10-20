@@ -107,8 +107,7 @@ async def mock_model(messages, info):
             for message in reversed(messages)
             if isinstance(message, ModelRequest)
             for part in message.parts
-            if isinstance(part, UserPromptPart)
-            and isinstance(part.content, str)
+            if isinstance(part, UserPromptPart) and isinstance(part.content, str)
         ),
         "",
     )
@@ -119,9 +118,7 @@ async def mock_model(messages, info):
                 "transcript": "TEST-TRANSCRIPT",
             }
         elif "phenotype" in question.casefold():
-            name, args = "find_phenotype_genes", {
-                "phenotype": "test-phenotype"
-            }
+            name, args = "find_phenotype_genes", {"phenotype": "test-phenotype"}
         elif "dashboard" in question.casefold():
             name, args = "get_gene_associations", {
                 "gene": "test-gene",
@@ -145,9 +142,7 @@ async def mock_model(messages, info):
         calls = {
             0: DeltaToolCall(
                 name="present_results",
-                json_args=json.dumps(
-                    {"result_id": result_id, "component": "table"}
-                ),
+                json_args=json.dumps({"result_id": result_id, "component": "table"}),
                 tool_call_id="test-table",
             ),
         }
@@ -176,9 +171,7 @@ async def no_database_lifespan(app):
 
 def main():
     """Import the existing production application without running its lifespan."""
-    os.environ["DATABASE_URI"] = (
-        "postgresql://prototype:prototype@127.0.0.1/prototype"
-    )
+    os.environ["DATABASE_URI"] = "postgresql://prototype:prototype@127.0.0.1/prototype"
     os.environ["CACHE_DB_URI"] = "redis://127.0.0.1:6379/0"
     os.environ["ASK_TELEMETRY"] = "false"
     app = importlib.import_module("niagads.open_access_api.app").app
@@ -186,9 +179,7 @@ def main():
     app.dependency_overrides[get_agent] = lambda: build_agent(
         AskSettings(), model=FunctionModel(stream_function=mock_model)
     )
-    app.dependency_overrides[get_api_transport] = lambda: httpx.MockTransport(
-        mock_api
-    )
+    app.dependency_overrides[get_api_transport] = lambda: httpx.MockTransport(mock_api)
     uvicorn.run(app, host="127.0.0.1", port=8010)
 
 

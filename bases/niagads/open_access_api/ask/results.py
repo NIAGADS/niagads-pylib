@@ -56,9 +56,7 @@ class ResultStore(ComponentBaseMixin):
         return {
             "result_id": result.id,
             "entity": result.entity.value,
-            "annotation": (
-                result.annotation.value if result.annotation else None
-            ),
+            "annotation": (result.annotation.value if result.annotation else None),
             "count": len(result.rows),
             "content": result.content.value,
             "page": result.page,
@@ -68,17 +66,13 @@ class ResultStore(ComponentBaseMixin):
             "warnings": result.warnings,
         }
 
-    def validate_presentation(
-        self, presentation: Presentation
-    ) -> Presentation:
+    def validate_presentation(self, presentation: Presentation) -> Presentation:
         """Reject components referring to nonexistent or incompatible datasets."""
         result = self.get(presentation.result_id)
         if presentation.component == "association_source_bar":
             if (
-                (result.entity, result.annotation) not in SOURCE_CHART_TYPES
-                or result.content != ResponseContent.SUMMARY
-            ):
-                raise ValueError(
-                    "Source chart requires an association summary"
-                )
+                result.entity,
+                result.annotation,
+            ) not in SOURCE_CHART_TYPES or result.content != ResponseContent.SUMMARY:
+                raise ValueError("Source chart requires an association summary")
         return presentation

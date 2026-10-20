@@ -13,9 +13,7 @@ from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 
 
-async def _execute(
-    ctx: RunContext[dict], operation: str, parameters: dict
-) -> dict:
+async def _execute(ctx: RunContext[dict], operation: str, parameters: dict) -> dict:
     """Retrieve through the existing API and expose a compact evidence summary."""
     try:
         result = await retrieve(ctx.deps["client"], operation, parameters)
@@ -72,9 +70,7 @@ async def get_gene_structure(ctx: RunContext[dict], gene: str) -> dict:
     summary = await _execute(ctx, "gene_structure", {"gene": gene})
     if "result_id" in summary:
         result = ctx.deps["store"].get(summary["result_id"])
-        transcripts = [
-            t for row in result.rows for t in row.get("transcripts", [])
-        ]
+        transcripts = [t for row in result.rows for t in row.get("transcripts", [])]
         summary["transcripts"] = [
             {k: t[k] for k in ("id", "name", "location") if k in t}
             for t in transcripts[:20]
@@ -98,9 +94,7 @@ async def get_gene_associations(
         if content == ResponseContent.SUMMARY
         else "gene_associations"
     )
-    return await _execute(
-        ctx, operation, {"gene": gene, "page": page, "flank": flank}
-    )
+    return await _execute(ctx, operation, {"gene": gene, "page": page, "flank": flank})
 
 
 async def get_variant_associations(
@@ -138,9 +132,7 @@ async def get_transcript_associations(
     if "result_id" not in summary:
         return summary
     result = ctx.deps["store"].get(summary["result_id"])
-    transcripts = [
-        t for row in result.rows for t in row.get("transcripts", [])
-    ]
+    transcripts = [t for row in result.rows for t in row.get("transcripts", [])]
     selected = [t for t in transcripts if t.get("id") == transcript]
     if len(selected) != 1 or not selected[0].get("location"):
         ctx.deps.setdefault("failures", []).append("clarification")

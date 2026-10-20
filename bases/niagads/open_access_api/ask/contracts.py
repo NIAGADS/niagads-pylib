@@ -63,7 +63,5 @@ class AskResponse(CustomBaseModel):
         "invalid_presentation",
     ] = "ok"
     results: list[ResultSet] = Field(default_factory=list, max_length=12)
-    presentation: list[Presentation] = Field(
-        default_factory=list, max_length=6
-    )
+    presentation: list[Presentation] = Field(default_factory=list, max_length=6)
     warnings: list[str] = Field(default_factory=list)

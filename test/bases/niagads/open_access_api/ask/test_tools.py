@@ -128,9 +128,7 @@ def test_missing_region_retrieval_is_not_reported_as_empty_success():
             base_url="http://api",
         ) as client:
             with pytest.raises(NotImplementedError, match="ORM"):
-                await retrieve(
-                    client, "region_associations", {"region": "1:10-20"}
-                )
+                await retrieve(client, "region_associations", {"region": "1:10-20"})
 
     asyncio.run(run())
 
@@ -236,9 +234,7 @@ def test_semantic_search_calls_existing_query_api(entity, path):
                 "data": [
                     {
                         "matched_record_id": "test-match",
-                        "matched_record_details": {
-                            "name": "Test semantic candidate"
-                        },
+                        "matched_record_details": {"name": "Test semantic candidate"},
                     }
                 ]
             },
@@ -248,12 +244,8 @@ def test_semantic_search_calls_existing_query_api(entity, path):
         async with httpx.AsyncClient(
             transport=httpx.MockTransport(handler), base_url="http://api"
         ) as client:
-            ctx = SimpleNamespace(
-                deps={"client": client, "store": ResultStore()}
-            )
-            summary = await search_resources(
-                ctx, query="Alzheimer", entity=entity
-            )
+            ctx = SimpleNamespace(deps={"client": client, "store": ResultStore()})
+            summary = await search_resources(ctx, query="Alzheimer", entity=entity)
             return ctx.deps["store"].get(summary["result_id"])
 
     result = asyncio.run(run())
@@ -297,9 +289,7 @@ def test_api_help_preserves_planned_operation_status():
         ),
     ],
 )
-def test_association_tools_request_existing_api_summary(
-    tool, identifier, path
-):
+def test_association_tools_request_existing_api_summary(tool, identifier, path):
     def handler(request):
         assert request.url.path == path
         assert request.url.params["content"] == "summary"
@@ -322,9 +312,7 @@ def test_association_tools_request_existing_api_summary(
         async with httpx.AsyncClient(
             transport=httpx.MockTransport(handler), base_url="http://api"
         ) as client:
-            ctx = SimpleNamespace(
-                deps={"client": client, "store": ResultStore()}
-            )
+            ctx = SimpleNamespace(deps={"client": client, "store": ResultStore()})
             summary = await tool(
                 ctx,
                 **identifier,

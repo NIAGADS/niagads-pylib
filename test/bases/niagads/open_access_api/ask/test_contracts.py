@@ -44,16 +44,12 @@ def test_summary_preview_preserves_api_association_counts():
             entity="gene",
             annotation="associations",
             content="summary",
-            rows=[
-                {"track": "track-a", "traits": {}, "num_associations": 1200}
-            ],
+            rows=[{"track": "track-a", "traits": {}, "num_associations": 1200}],
         )
     )
     summary = store.summary(result.id)
     assert summary["content"] == "summary"
-    assert summary["preview"] == [
-        {"track": "track-a", "num_associations": 1200}
-    ]
+    assert summary["preview"] == [{"track": "track-a", "num_associations": 1200}]
     store.validate_presentation(
         Presentation(component="association_source_bar", result_id=result.id)
     )
@@ -68,9 +64,7 @@ def test_result_page_has_explicit_incompleteness():
     with pytest.raises(ValidationError):
         ResultSet(entity="gene", annotation="report", rows=[], limit=101)
     with pytest.raises(ValidationError):
-        ResultSet(
-            entity="gene", annotation="report", rows=[], page=MAX_NUM_PAGES + 1
-        )
+        ResultSet(entity="gene", annotation="report", rows=[], page=MAX_NUM_PAGES + 1)
 
 
 def test_chart_requires_an_association_summary():
@@ -118,7 +112,5 @@ def test_chart_rejects_full_association_records():
     )
     with pytest.raises(ValueError, match="association summary"):
         store.validate_presentation(
-            Presentation(
-                component="association_source_bar", result_id=result.id
-            )
+            Presentation(component="association_source_bar", result_id=result.id)
         )
